@@ -19,15 +19,6 @@ Future<void> _openLobbyWith(WidgetTester tester, int testPlayers) async {
   }
 }
 
-Future<void> _revealCard(WidgetTester tester) async {
-  await tester.tap(find.text('SONO IO'));
-  await tester.pumpAndSettle();
-  final gesture = await tester.startGesture(tester.getCenter(find.byType(FlipRoleCard)));
-  await tester.pumpAndSettle();
-  await gesture.up();
-  await tester.pumpAndSettle();
-}
-
 void main() {
   testWidgets('non si parte finché il tavolo è troppo piccolo', (tester) async {
     _usePhoneScreen(tester);
@@ -38,7 +29,7 @@ void main() {
     expect(find.textContaining('Ne mancano ancora 1'), findsOneWidget);
   });
 
-  testWidgets('narratore automatico: ogni giocatore guarda la sua carta', (tester) async {
+  testWidgets('narratore automatico: ognuno guarda la sua carta, poi cala la notte', (tester) async {
     _usePhoneScreen(tester);
     await _openLobbyWith(tester, 2);
 
@@ -69,11 +60,11 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    expect(find.text('La città\nsi addormenta'), findsOneWidget);
-    expect(find.text('SOLO PER IL NARRATORE'), findsNothing);
+    expect(find.text('NOTTE 1'), findsOneWidget);
+    expect(find.text('LEGGETE AD ALTA VOCE'), findsOneWidget);
   });
 
-  testWidgets('narratore sorteggiato: non gioca e vede tutti i ruoli', (tester) async {
+  testWidgets('narratore sorteggiato: non gioca ed è lui a leggere il copione', (tester) async {
     _usePhoneScreen(tester);
     await _openLobbyWith(tester, 3);
 
@@ -90,22 +81,18 @@ void main() {
 
     for (var card = 1; card <= 3; card++) {
       expect(find.text('CARTA $card DI 3'), findsOneWidget);
-      await _revealCard(tester);
+      await tester.tap(find.text('SONO IO'));
+      await tester.pumpAndSettle();
+      final gesture = await tester.startGesture(tester.getCenter(find.byType(FlipRoleCard)));
+      await tester.pumpAndSettle();
+      await gesture.up();
+      await tester.pumpAndSettle();
       await tester.tap(find.text('HO VISTO'));
       await tester.pumpAndSettle();
     }
 
-    expect(find.text('SOLO PER IL NARRATORE'), findsOneWidget);
-    final gesture = await tester.startGesture(tester.getCenter(find.text('SOLO PER IL NARRATORE')));
-    await tester.pumpAndSettle();
-    expect(find.text('Mafioso'), findsOneWidget);
-    await gesture.up();
-    await tester.pumpAndSettle();
-    expect(find.text('Mafioso'), findsNothing);
-
-    await tester.tap(find.text('TORNA ALLA HOME'));
-    await tester.pumpAndSettle();
-    expect(find.text('CREA STANZA'), findsOneWidget);
+    expect(find.textContaining(RegExp(r'^LEGGE .+, AD ALTA VOCE$')), findsOneWidget);
+    expect(find.byIcon(Icons.visibility), findsOneWidget);
   });
 
   testWidgets('con tre al tavolo il narratore umano non è disponibile', (tester) async {

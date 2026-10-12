@@ -5,12 +5,13 @@ import 'role.dart';
 import 'role_assignment.dart';
 
 /// Esito della preparazione: chi racconta e chi ha quale ruolo.
+/// L'ordine di [roles] è l'ordine dei posti al tavolo.
 class GameSetup {
   /// `null` quando il narratore è automatico.
   final Player? narrator;
   final Map<Player, Role> roles;
 
-  const GameSetup._(this.narrator, this.roles);
+  GameSetup.fromRoles(Map<Player, Role> roles, {this.narrator}) : roles = Map.unmodifiable(roles);
 
   /// Il narratore umano non riceve un ruolo: giocano tutti gli altri.
   factory GameSetup.deal({
@@ -22,7 +23,7 @@ class GameSetup {
       for (final player in lobby)
         if (player != narrator) player,
     ];
-    return GameSetup._(narrator, Map.unmodifiable(assignRoles(players, random)));
+    return GameSetup.fromRoles(assignRoles(players, random), narrator: narrator);
   }
 
   List<Player> get players => roles.keys.toList();

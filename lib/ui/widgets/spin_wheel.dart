@@ -141,12 +141,7 @@ class _WheelPainter extends CustomPainter {
       canvas.drawArc(disc, start, sweep, true, Paint()..color = segments[i].color);
       canvas.drawArc(disc, start, sweep, true, divider);
 
-      final label = TextPainter(
-        text: TextSpan(text: segments[i].label, style: labelStyle),
-        textDirection: TextDirection.ltr,
-        maxLines: 1,
-        ellipsis: '…',
-      )..layout(maxWidth: radius * 0.55);
+      final label = _fitLabel(segments[i].label, labelStyle, radius * 0.58);
       canvas.save();
       canvas.rotate(start + sweep / 2);
       label.paint(canvas, Offset(radius * 0.8 - label.width, -label.height / 2));
@@ -186,6 +181,21 @@ class _WheelPainter extends CustomPainter {
         ..color = AppColors.gold,
     );
     canvas.drawCircle(center, radius * 0.045, Paint()..color = AppColors.gold);
+  }
+
+  /// Le etichette lunghe si rimpiccioliscono per stare nello spicchio; solo
+  /// sotto una misura ancora leggibile vengono troncate.
+  static TextPainter _fitLabel(String text, TextStyle style, double maxWidth) {
+    TextPainter measure(TextStyle style) => TextPainter(
+          text: TextSpan(text: text, style: style),
+          textDirection: TextDirection.ltr,
+          maxLines: 1,
+          ellipsis: '…',
+        );
+    final natural = measure(style)..layout();
+    if (natural.width <= maxWidth) return natural;
+    final shrunk = max(9.0, style.fontSize! * maxWidth / natural.width);
+    return measure(style.copyWith(fontSize: shrunk))..layout(maxWidth: maxWidth);
   }
 
   @override

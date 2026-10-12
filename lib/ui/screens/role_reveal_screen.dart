@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import '../../rules/game_setup.dart';
 import '../theme/app_theme.dart';
 import '../widgets/flip_role_card.dart';
-import 'game_ready_screen.dart';
+import '../widgets/handoff_view.dart';
+import 'game_screen.dart';
 
 /// Finché c'è un solo telefono, la carta si guarda a turno passandoselo.
 /// Con la rete vera ognuno vedrà solo il pezzo "carta" sul proprio schermo.
@@ -31,7 +32,7 @@ class _RoleRevealScreenState extends State<RoleRevealScreen> {
       });
     } else {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => GameReadyScreen(setup: widget.setup)),
+        MaterialPageRoute(builder: (_) => GameScreen(setup: widget.setup)),
       );
     }
   }
@@ -89,33 +90,10 @@ class _RoleRevealScreenState extends State<RoleRevealScreen> {
                         ),
                       ],
                     )
-                  : Column(
+                  : HandoffView(
                       key: ValueKey('handoff-$_index'),
-                      children: [
-                        const Spacer(),
-                        const Icon(Icons.phone_iphone, color: AppColors.gold, size: 56),
-                        const SizedBox(height: 24),
-                        const Text('PASSA IL TELEFONO A', style: AppText.overline),
-                        const SizedBox(height: 10),
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(player.name.toUpperCase(), style: AppText.display(40)),
-                        ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Nessun altro deve guardare lo schermo.',
-                          textAlign: TextAlign.center,
-                          style: AppText.body,
-                        ),
-                        const Spacer(),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: () => setState(() => _holdingPhone = true),
-                            child: const Text('SONO IO'),
-                          ),
-                        ),
-                      ],
+                      name: player.name,
+                      onReady: () => setState(() => _holdingPhone = true),
                     ),
             ),
           ),

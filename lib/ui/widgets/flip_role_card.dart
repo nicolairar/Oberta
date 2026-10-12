@@ -174,7 +174,30 @@ class _RoleFace extends StatelessWidget {
               style: AppText.display(30, color: AppColors.textPrimary),
             ),
           ),
+          const SizedBox(height: 8),
+          Text(
+            role.motto,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontFamily: 'Georgia',
+              fontStyle: FontStyle.italic,
+              fontSize: 15,
+              color: AppColors.gold,
+            ),
+          ),
           const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              isMafia ? 'STAI CON LA FAMIGLIA' : 'STAI CON GLI ONESTI',
+              style: AppText.overline.copyWith(color: AppColors.textPrimary, fontSize: 11),
+            ),
+          ),
+          const SizedBox(height: 12),
           Text(
             role.description,
             textAlign: TextAlign.center,
