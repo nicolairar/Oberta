@@ -8,7 +8,7 @@ class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   void _createRoom(BuildContext context) {
-    final session = FakeLocalSession(hostName: 'Narratore');
+    final session = FakeLocalSession(hostName: 'Tu');
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => LobbyScreen(session: session)),
     );
@@ -17,44 +17,47 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text(
-                'OMERTÀ',
-                style: TextStyle(
-                  fontSize: 48,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.gold,
-                  letterSpacing: 4,
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment(0, -0.35),
+            radius: 1.1,
+            colors: [Color(0xFF3A1418), AppColors.background],
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                const Spacer(flex: 3),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text('OMERTÀ', style: AppText.display(60)),
                 ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'nessuno parla. qualcuno muore.',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
-              ),
-              const SizedBox(height: 64),
-              ElevatedButton(
-                onPressed: () => _createRoom(context),
-                child: const Text('CREA STANZA'),
-              ),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('In arrivo nella prossima fase')),
-                  );
-                },
-                child: const Text(
-                  'Entra in una stanza',
-                  style: TextStyle(color: AppColors.textSecondary),
+                const SizedBox(height: 12),
+                const Text('NESSUNO PARLA. QUALCUNO MUORE.', style: AppText.overline),
+                const Spacer(flex: 4),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => _createRoom(context),
+                    child: const Text('CREA STANZA'),
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Arriva insieme alla rete tra telefoni')),
+                    ),
+                    child: const Text('ENTRA IN UNA STANZA'),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+            ),
           ),
         ),
       ),

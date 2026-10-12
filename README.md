@@ -8,7 +8,14 @@ e **ONLINE** (stanze con codice, da remoto).
 
 ## Stato attuale
 
-Fase 0 completata: ambiente di sviluppo pronto, progetto scaffoldato.
+Fase 1 in corso. Già giocabile su un solo telefono: stanza con codice, lobby,
+scelta del narratore (dal gruppo / ruota / automatico), ruota dei ruoli, carta
+ruolo con flip 3D a pressione, riepilogo riservato al narratore.
+
+Manca ancora la rete tra telefoni: per ora c'è una sessione finta
+(`FakeLocalSession`) e le carte si guardano passandosi il telefono. Le schermate
+sono quelle definitive; con la rete ognuno vedrà solo la propria.
+
 Si lavora **solo su iOS** per ora (Simulator + eventuale iPhone fisico).
 Android è già scaffoldato ma non verrà testato finché non lo decidiamo insieme.
 
@@ -57,8 +64,8 @@ dei ruoli (eccetto il narratore umano, che già li conosce).
 ## Roadmap (vedi anche il brief di progetto)
 
 0. ✅ Setup ambiente (Flutter, Xcode, Simulator iOS) + hello world
-1. ⏳ Prototipo giocabile: stanza con codice, lobby, scelta narratore, ruota
-   sincronizzata, carta ruolo con flip 3D, host come server
+1. ⏳ Prototipo giocabile: stanza con codice ✅, lobby ✅, scelta narratore ✅,
+   ruota ✅, carta ruolo con flip 3D ✅, host come server (rete locale) ⏳
 2. Ciclo completo notte/giorno, compiti di copertura, griglia con viste
    personalizzate, voto, linciaggio, vittoria + unit test sulle regole
 3. Sistema di animazioni a strati (scena/metodo/regia/dettaglio)

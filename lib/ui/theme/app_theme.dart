@@ -4,13 +4,46 @@ import 'package:flutter/material.dart';
 class AppColors {
   static const background = Color(0xFF14110F);
   static const surface = Color(0xFF221C19);
+  static const surfaceHigh = Color(0xFF302723);
   static const accent = Color(0xFFB3202A);
   static const gold = Color(0xFFC9A227);
   static const textPrimary = Color(0xFFF2EAE1);
   static const textSecondary = Color(0xFFA89E93);
 }
 
+class AppText {
+  /// Titoli da locandina: serif, maiuscolo spaziato.
+  static TextStyle display(double size, {Color color = AppColors.gold}) {
+    return TextStyle(
+      fontFamily: 'Georgia',
+      fontFamilyFallback: const ['serif'],
+      fontSize: size,
+      fontWeight: FontWeight.bold,
+      letterSpacing: size * 0.08,
+      height: 1.1,
+      color: color,
+    );
+  }
+
+  static const overline = TextStyle(
+    color: AppColors.textSecondary,
+    fontSize: 12,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 2.4,
+  );
+
+  static const body = TextStyle(
+    color: AppColors.textSecondary,
+    fontSize: 15,
+    height: 1.4,
+  );
+}
+
 ThemeData buildAppTheme() {
+  final buttonShape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(14));
+  const buttonPadding = EdgeInsets.symmetric(horizontal: 28, vertical: 18);
+  const buttonText = TextStyle(fontWeight: FontWeight.w700, letterSpacing: 1.6);
+
   return ThemeData(
     useMaterial3: true,
     scaffoldBackgroundColor: AppColors.background,
@@ -19,26 +52,38 @@ ThemeData buildAppTheme() {
       brightness: Brightness.dark,
       surface: AppColors.surface,
     ),
-    textTheme: const TextTheme(
-      headlineMedium: TextStyle(
-        color: AppColors.textPrimary,
-        fontWeight: FontWeight.bold,
-        letterSpacing: 1.2,
-      ),
-      bodyMedium: TextStyle(color: AppColors.textSecondary),
-    ),
-    appBarTheme: const AppBarTheme(
+    appBarTheme: AppBarTheme(
       backgroundColor: AppColors.background,
       foregroundColor: AppColors.textPrimary,
       elevation: 0,
+      scrolledUnderElevation: 0,
+      centerTitle: true,
+      titleTextStyle: AppText.display(18, color: AppColors.textPrimary),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.accent,
         foregroundColor: AppColors.textPrimary,
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        disabledBackgroundColor: AppColors.surface,
+        disabledForegroundColor: AppColors.textSecondary,
+        padding: buttonPadding,
+        shape: buttonShape,
+        textStyle: buttonText,
       ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.gold,
+        side: const BorderSide(color: AppColors.gold),
+        padding: buttonPadding,
+        shape: buttonShape,
+        textStyle: buttonText,
+      ),
+    ),
+    snackBarTheme: const SnackBarThemeData(
+      backgroundColor: AppColors.surface,
+      contentTextStyle: TextStyle(color: AppColors.textPrimary),
+      behavior: SnackBarBehavior.floating,
     ),
   );
 }

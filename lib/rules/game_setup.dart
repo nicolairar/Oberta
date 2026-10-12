@@ -1,0 +1,40 @@
+import 'dart:math';
+
+import 'player.dart';
+import 'role.dart';
+import 'role_assignment.dart';
+
+/// Esito della preparazione: chi racconta e chi ha quale ruolo.
+class GameSetup {
+  /// `null` quando il narratore è automatico.
+  final Player? narrator;
+  final Map<Player, Role> roles;
+
+  const GameSetup._(this.narrator, this.roles);
+
+  /// Il narratore umano non riceve un ruolo: giocano tutti gli altri.
+  factory GameSetup.deal({
+    required List<Player> lobby,
+    Player? narrator,
+    Random? random,
+  }) {
+    final players = [
+      for (final player in lobby)
+        if (player != narrator) player,
+    ];
+    return GameSetup._(narrator, Map.unmodifiable(assignRoles(players, random)));
+  }
+
+  List<Player> get players => roles.keys.toList();
+
+  Role roleOf(Player player) => roles[player]!;
+
+  /// I complici che [player] ha diritto di conoscere: solo i mafiosi si vedono tra loro.
+  List<Player> teammatesOf(Player player) {
+    if (roleOf(player).team != Team.mafia) return const [];
+    return [
+      for (final entry in roles.entries)
+        if (entry.key != player && entry.value.team == Team.mafia) entry.key,
+    ];
+  }
+}
