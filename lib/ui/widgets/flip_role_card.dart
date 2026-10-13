@@ -162,67 +162,77 @@ class _RoleFace extends StatelessWidget {
         end: Alignment.bottomCenter,
         colors: [role.color, Color.lerp(role.color, Colors.black, 0.72)!],
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(role.icon, color: AppColors.textPrimary, size: 76),
-          const SizedBox(height: 18),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              role.label.toUpperCase(),
-              style: AppText.display(30, color: AppColors.textPrimary),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            role.motto,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontFamily: 'Georgia',
-              fontStyle: FontStyle.italic,
-              fontSize: 15,
-              color: AppColors.gold,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              isMafia ? 'STAI CON LA FAMIGLIA' : 'STAI CON GLI ONESTI',
-              style: AppText.overline.copyWith(color: AppColors.textPrimary, fontSize: 11),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            role.description,
-            textAlign: TextAlign.center,
-            style: AppText.body.copyWith(color: AppColors.textPrimary.withValues(alpha: 0.85)),
-          ),
-          if (isMafia) ...[
-            const SizedBox(height: 20),
-            Text(
-              teammates.isEmpty ? 'AGISCI DA SOLO' : 'I TUOI COMPLICI',
-              style: AppText.overline.copyWith(color: AppColors.gold),
-            ),
-            if (teammates.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Text(
-                teammates.map((player) => player.name).join(' · '),
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
+      // Su uno schermo piccolo, o con tanti complici da elencare, la faccia
+      // si rimpicciolisce tutta insieme invece di uscire dal bordo.
+      child: LayoutBuilder(
+        builder: (context, box) => FittedBox(
+          fit: BoxFit.scaleDown,
+          child: SizedBox(
+            width: box.maxWidth,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(role.icon, color: AppColors.textPrimary, size: 76),
+                const SizedBox(height: 18),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    role.label.toUpperCase(),
+                    style: AppText.display(30, color: AppColors.textPrimary),
+                  ),
                 ),
-              ),
-            ],
-          ],
-        ],
+                const SizedBox(height: 8),
+                Text(
+                  role.motto,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontFamily: 'Georgia',
+                    fontStyle: FontStyle.italic,
+                    fontSize: 15,
+                    color: AppColors.gold,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    isMafia ? 'STAI CON LA FAMIGLIA' : 'STAI CON GLI ONESTI',
+                    style: AppText.overline.copyWith(color: AppColors.textPrimary, fontSize: 11),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  role.description,
+                  textAlign: TextAlign.center,
+                  style: AppText.body.copyWith(color: AppColors.textPrimary.withValues(alpha: 0.85)),
+                ),
+                if (isMafia) ...[
+                  const SizedBox(height: 20),
+                  Text(
+                    teammates.isEmpty ? 'AGISCI DA SOLO' : 'I TUOI COMPLICI',
+                    style: AppText.overline.copyWith(color: AppColors.gold),
+                  ),
+                  if (teammates.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      teammates.map((player) => player.name).join(' · '),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ],
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -11,7 +11,7 @@ enum GamePhase { night, day, ended }
 
 /// Cosa fa davvero un giocatore di notte. [decoy] è il compito di copertura:
 /// stesso gesto degli altri, nessun effetto sulla partita.
-enum NightTaskKind { kill, protect, investigate, snipe, scoop, decoy }
+enum NightTaskKind { kill, silence, protect, guard, investigate, dig, snipe, scoop, decoy }
 
 class NightTask {
   final NightTaskKind kind;
@@ -22,22 +22,32 @@ class NightTask {
   const NightTask(this.kind, this.targets);
 }
 
-/// La fazione di qualcuno, venuta a galla.
+/// Qualcosa su qualcuno, venuto a galla: la fazione, a volte anche il ruolo.
 class Exposure {
   final Player subject;
+
+  /// La fazione così come risulta a chi l'ha scoperta. Il giornale scrive
+  /// quella vera; al Commissario arriva quella che sembra.
   final Team team;
 
-  const Exposure(this.subject, this.team);
+  /// Il ruolo esatto, quando salta fuori anche quello: lo trova il Becchino.
+  final Role? role;
+
+  const Exposure(this.subject, this.team, {this.role});
 }
 
 /// Chi ha colpito, di notte.
 enum AttackSource { family, sniper }
 
-/// Com'è finito un agguato: a segno, o fermato in tempo dal Dottore.
-enum AttackOutcome { killed, healed }
+/// Com'è finito un agguato: a segno, fermato in tempo dal Dottore, o
+/// incassato da chi ha la pelle dura.
+enum AttackOutcome { killed, healed, shrugged }
 
 /// Un agguato della notte. All'alba va in scena così com'è andato.
 class NightAttack {
+  /// Chi è stato colpito, per come lo vede il tavolo. Se un Guardaspalle si
+  /// è messo in mezzo c'è lui, e di chi fosse il vero bersaglio non resta
+  /// traccia.
   final Player target;
   final AttackSource source;
   final AttackOutcome outcome;
@@ -54,12 +64,21 @@ class DawnReport {
   /// posto. Chi è finito nel mirino di tutti e due conta per la famiglia.
   final List<NightAttack> attacks;
 
-
   /// Lo scoop pubblicato dal giornale, se il giornalista ha visto l'alba.
   final Exposure? scoop;
+
+  /// A chi il Sarto ha cucito la bocca: oggi non può parlare. `null` se non
+  /// ha scelto nessuno, o se chi aveva scelto non ha visto l'alba.
+  final Player? silenced;
   final Team? winner;
 
-  const DawnReport({required this.round, this.attacks = const [], this.scoop, this.winner});
+  const DawnReport({
+    required this.round,
+    this.attacks = const [],
+    this.scoop,
+    this.silenced,
+    this.winner,
+  });
 
   /// Morti della notte, in ordine di posto. I loro ruoli restano segreti.
   List<Player> get victims => [
@@ -109,6 +128,10 @@ class GameEngine {
   bool _sniperSpent = false;
   bool _scoopSpent = false;
   Player? _lastProtected;
+  Player? _lastSilenced;
+
+  /// I Reduci che hanno già incassato il loro colpo: il prossimo va a segno.
+  final Set<Player> _scarred = {};
   Team? _winner;
 
   GameEngine(this.setup, {this.settings = const GameSettings(), Random? random})
@@ -145,15 +168,23 @@ class GameEngine {
 
   /// Cosa [viewer] ha diritto di sapere su [subject]. Con `viewer` nullo
   /// restituisce solo ciò che è pubblico.
+  ///
+  /// Un'indagine dice la fazione che sembra; se sulla stessa persona c'è
+  /// anche un fatto certo (uno scoop, un ruolo svelato), vale quello.
   Knowledge knowledgeOf(Player? viewer, Player subject) {
     Role? role;
-    Team? team;
+    Team? certain;
+    Team? apparent;
     for (final fact in _facts) {
       if (fact.subject != subject || !fact.visibleTo(viewer)) continue;
-      team = fact.team;
       role ??= fact.role;
+      if (fact.apparent) {
+        apparent = fact.team;
+      } else {
+        certain = fact.team;
+      }
     }
-    return Knowledge(role: role, team: team);
+    return Knowledge(role: role, team: certain ?? apparent);
   }
 
   List<Player> get pendingNightPlayers => [
@@ -170,23 +201,43 @@ class GameEngine {
       for (final player in _alive)
         if (player != actor) player,
     ];
+    // Le fosse ancora da scavare: chi è morto senza che il suo ruolo venisse
+    // fuori, e che chi scava non ha già riesumato.
+    final graves = [
+      for (final player in setup.players)
+        if (!isAlive(player) && knowledgeOf(actor, player).role == null) player,
+    ];
+    final familyCanKill = _alive.any((player) => player != actor && setup.roleOf(player).isKiller);
     return switch (setup.roleOf(actor)) {
       // La famiglia può colpire chiunque, anche uno dei suoi: un morto in
       // casa, a volte, è il bluff migliore.
-      Role.mafioso => NightTask(NightTaskKind.kill, others),
+      Role.mafioso || Role.padrino => NightTask(NightTaskKind.kill, others),
+      // Finché in famiglia c'è chi spara, il Sarto cuce. Se resta solo lui,
+      // posa l'ago e prende la pistola.
+      Role.sarto => familyCanKill
+          ? NightTask(NightTaskKind.silence, [
+              for (final player in others)
+                if (player != _lastSilenced) player,
+            ])
+          : NightTask(NightTaskKind.kill, others),
       Role.medico => NightTask(NightTaskKind.protect, [
           for (final player in _alive)
             if (player != _lastProtected) player,
         ]),
+      Role.guardaspalle => NightTask(NightTaskKind.guard, others),
       Role.detective => NightTask(NightTaskKind.investigate, others),
+      // Senza morti da riesumare il Becchino fa finta, come gli altri.
+      Role.becchino =>
+        graves.isEmpty ? NightTask(NightTaskKind.decoy, others) : NightTask(NightTaskKind.dig, graves),
       Role.cecchino => NightTask(_sniperSpent ? NightTaskKind.decoy : NightTaskKind.snipe, others),
       Role.giornalista => NightTask(_scoopSpent ? NightTaskKind.decoy : NightTaskKind.scoop, others),
-      Role.cittadino => NightTask(NightTaskKind.decoy, others),
+      Role.cittadino || Role.reduce || Role.pregiudicato => NightTask(NightTaskKind.decoy, others),
     };
   }
 
   /// Registra la mossa notturna di [actor]; `target` nullo significa "passo".
-  /// Solo l'indagine dà una risposta immediata, e la dà solo al detective.
+  /// Solo l'indagine e lo scavo danno una risposta immediata, e la danno
+  /// solo a chi ha fatto la mossa.
   Exposure? submitNightChoice(Player actor, Player? target) {
     final task = taskFor(actor);
     if (_choices.containsKey(actor)) throw StateError('${actor.name} ha già scelto');
@@ -200,37 +251,83 @@ class GameEngine {
       _suspicion[target] = (_suspicion[target] ?? 0) + 1;
     }
     if (task.kind == NightTaskKind.investigate) {
-      final team = _teamOf(target);
+      // Il Commissario legge le carte, e le carte a volte mentono.
+      final team = setup.roleOf(target).apparentTeam;
       _facts.add(Fact(
         subject: target,
         team: team,
         visibility: Visibility.acquired,
         audience: {actor},
+        apparent: true,
       ));
       return Exposure(target, team);
+    }
+    if (task.kind == NightTaskKind.dig) {
+      final role = setup.roleOf(target);
+      _facts.add(Fact(
+        subject: target,
+        team: role.team,
+        role: role,
+        visibility: Visibility.acquired,
+        audience: {actor},
+      ));
+      return Exposure(target, role.team, role: role);
     }
     return null;
   }
 
   /// Chiude la notte: tutte le mosse si risolvono insieme, quindi chi muore
   /// stanotte ha comunque fatto in tempo ad agire.
+  ///
+  /// L'ordine in cui si fanno i conti:
+  /// 1. **I bersagli.** La famiglia vota il suo, il Cecchino sceglie il suo.
+  ///    Chi finisce nel mirino di tutti e due subisce un agguato solo, e
+  ///    conta per la famiglia.
+  /// 2. **Il Dottore.** Un agguato contro chi è protetto si ferma lì
+  ///    ([AttackOutcome.healed]), e nessun altro ci va di mezzo.
+  /// 3. **Il Guardaspalle.** Se il bersaglio è la persona che scorta, e il
+  ///    Dottore non la stava già coprendo, il colpo lo prende lui. Se il
+  ///    Dottore proteggeva il Guardaspalle, vivono tutti e due. Nel rapporto
+  ///    resta solo chi è stato colpito davvero.
+  /// 4. **Il Reduce.** Il primo colpo che lo ucciderebbe va a vuoto
+  ///    ([AttackOutcome.shrugged]) e la pelle dura è spesa. Un colpo fermato
+  ///    dal Dottore non la consuma.
+  /// 5. **I morti.** Chi resta colpito non vede l'alba, e il suo ruolo resta
+  ///    segreto.
+  ///
+  /// Poi il resto: lo scoop esce solo se il Cronista è ancora vivo, e il
+  /// silenzio del Sarto si annuncia solo se chi deve tacere ha visto l'alba.
   DawnReport resolveNight() {
     if (!nightComplete) throw StateError('la notte non è finita: manca qualcuno');
 
-    final mafiaTarget = _resolveMafiaVote();
     final protected = _targetOf(NightTaskKind.protect);
+    final guard = _actorOf(NightTaskKind.guard);
+    final guarded = _targetOf(NightTaskKind.guard);
     final sniped = _targetOf(NightTaskKind.snipe);
+    final silenceTarget = _targetOf(NightTaskKind.silence);
     final scoopTarget = _targetOf(NightTaskKind.scoop);
     final journalist = _actorOf(NightTaskKind.scoop);
 
+    // Chi viene colpito davvero, e da chi. La famiglia passa per prima.
+    final struck = <Player, AttackSource>{};
+    void aim(Player? target, AttackSource source) {
+      if (target == null) return;
+      final shielded = target == guarded && target != protected;
+      struck.putIfAbsent(shielded ? guard! : target, () => source);
+    }
+
+    aim(_resolveMafiaVote(), AttackSource.family);
+    aim(sniped, AttackSource.sniper);
+
+    AttackOutcome land(Player target) {
+      if (target == protected) return AttackOutcome.healed;
+      final tough = setup.roleOf(target) == Role.reduce && _scarred.add(target);
+      return tough ? AttackOutcome.shrugged : AttackOutcome.killed;
+    }
+
     final attacks = [
       for (final player in _alive)
-        if (player == mafiaTarget || player == sniped)
-          NightAttack(
-            player,
-            player == mafiaTarget ? AttackSource.family : AttackSource.sniper,
-            player == protected ? AttackOutcome.healed : AttackOutcome.killed,
-          ),
+        if (struck[player] case final source?) NightAttack(player, source, land(player)),
     ];
     final victims = [
       for (final attack in attacks)
@@ -248,12 +345,19 @@ class GameEngine {
     }
 
     _lastProtected = protected;
+    _lastSilenced = silenceTarget;
     _alive.removeWhere(victims.contains);
     _choices.clear();
     _history.add(RoundRecord(round: _round, nightVictims: victims));
     _phase = _updateWinner() ? GamePhase.ended : GamePhase.day;
 
-    return DawnReport(round: _round, attacks: attacks, scoop: scoop, winner: _winner);
+    return DawnReport(
+      round: _round,
+      attacks: attacks,
+      scoop: scoop,
+      silenced: victims.contains(silenceTarget) ? null : silenceTarget,
+      winner: _winner,
+    );
   }
 
   /// Applica il verdetto della piazza; `condemned` nullo significa nessuna condanna.
@@ -312,7 +416,12 @@ class GameEngine {
     };
     if (votes.isEmpty) return null;
 
-    final boss = _alive.firstWhere((player) => _teamOf(player) == Team.mafia);
+    // Il capo è il Padrino; senza di lui, il primo al tavolo tra chi vota.
+    final voters = _alive.where(votes.containsKey);
+    final boss = voters.firstWhere(
+      (player) => setup.roleOf(player) == Role.padrino,
+      orElse: () => voters.first,
+    );
     final weights = settings.mafiaTieBreak == TieBreak.boss ? {boss: 2} : const <Player, int>{};
     final leaders = tallyVotes(votes, weights: weights).leaders;
     if (leaders.isEmpty) return null;

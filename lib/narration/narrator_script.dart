@@ -65,15 +65,17 @@ class NarratorScript {
       DeathStory.compose(_picker, pack, city, method: _deck.draw(pack.methods));
 
   /// Una scena per ogni agguato della notte, nell'ordine del rapporto: la
-  /// famiglia pesca dal mazzo, il Cecchino e il Dottore hanno la loro.
+  /// famiglia pesca dal mazzo; il Cecchino, il Dottore e chi ha la pelle
+  /// dura hanno la loro.
   List<DeathStory> stage(DawnReport report) => [
         for (final attack in report.attacks)
-          if (!attack.isFatal)
-            DeathStory.rescue(_picker, pack, city)
-          else if (attack.source == AttackSource.sniper)
-            DeathStory.sniper(_picker, pack, city)
-          else
-            composeDeath(),
+          switch (attack.outcome) {
+            AttackOutcome.healed => DeathStory.rescue(_picker, pack, city),
+            AttackOutcome.shrugged => DeathStory.lucky(_picker, pack, city),
+            AttackOutcome.killed when attack.source == AttackSource.sniper =>
+              DeathStory.sniper(_picker, pack, city),
+            AttackOutcome.killed => composeDeath(),
+          },
       ];
 
   /// [stories] sono gli agguati già messi in scena, uno per [DawnReport.attacks];
@@ -104,6 +106,13 @@ class NarratorScript {
       final name = scoop.subject.name;
       lines.add(_story(_picker.pick('scoop', pack.scoops), name: name));
       lines.add(_fact(scoop.team == Team.mafia ? pack.scoopMafia : pack.scoopClean, name: name));
+    }
+
+    // Il silenzio vale per la discussione: se la partita è finita, non serve.
+    final silenced = report.silenced;
+    if (silenced != null && report.winner == null) {
+      lines.add(_story(_picker.pick('silence', pack.silences), name: silenced.name));
+      lines.add(_fact(pack.silencedFact, name: silenced.name));
     }
 
     if (report.winner == null) {

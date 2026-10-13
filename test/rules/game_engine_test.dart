@@ -15,6 +15,12 @@ const sniper = Player(id: 'sniper', name: 'Cecchino');
 const reporter = Player(id: 'reporter', name: 'Cronista');
 const anna = Player(id: 'anna', name: 'Anna');
 const bruno = Player(id: 'bruno', name: 'Bruno');
+const don = Player(id: 'don', name: 'Padrino');
+const tailor = Player(id: 'tailor', name: 'Sarto');
+const digger = Player(id: 'digger', name: 'Becchino');
+const guard = Player(id: 'guard', name: 'Guardaspalle');
+const veteran = Player(id: 'veteran', name: 'Reduce');
+const convict = Player(id: 'convict', name: 'Pregiudicato');
 
 /// Un tavolo da otto con tutti i ruoli, in ordine di posto.
 GameEngine fullTable({TieBreak tieBreak = TieBreak.random, int seed = 1}) {
@@ -26,6 +32,29 @@ GameEngine fullTable({TieBreak tieBreak = TieBreak.random, int seed = 1}) {
       doctor: Role.medico,
       sniper: Role.cecchino,
       reporter: Role.giornalista,
+      anna: Role.cittadino,
+      bruno: Role.cittadino,
+    }),
+    settings: GameSettings(mafiaTieBreak: tieBreak),
+    random: Random(seed),
+  );
+}
+
+/// Un tavolo da tredici con tutti e dodici i ruoli, in ordine di posto.
+GameEngine grandTable({TieBreak tieBreak = TieBreak.random, int seed = 1}) {
+  return GameEngine(
+    GameSetup.fromRoles({
+      don: Role.padrino,
+      tailor: Role.sarto,
+      picciotto: Role.mafioso,
+      detective: Role.detective,
+      doctor: Role.medico,
+      sniper: Role.cecchino,
+      reporter: Role.giornalista,
+      digger: Role.becchino,
+      guard: Role.guardaspalle,
+      veteran: Role.reduce,
+      convict: Role.pregiudicato,
       anna: Role.cittadino,
       bruno: Role.cittadino,
     }),
@@ -280,6 +309,490 @@ void main() {
     });
   });
 
+  group('il Padrino', () {
+    test('vota l\'agguato come un Picciotto', () {
+      final engine = grandTable();
+      expect(engine.taskFor(don).kind, NightTaskKind.kill);
+      expect(engine.taskFor(don).targets, isNot(contains(don)));
+      expect(playNight(engine, {don: anna, picciotto: anna}).victims, [anna]);
+    });
+
+    test('al Commissario risulta innocente', () {
+      final engine = grandTable();
+      final finding = engine.submitNightChoice(detective, don)!;
+      expect(finding.team, Team.citizens);
+      expect(finding.role, isNull);
+      expect(engine.knowledgeOf(detective, don).team, Team.citizens);
+      expect(engine.knowledgeOf(detective, don).role, isNull);
+    });
+
+    test('il giornale invece scrive la verità', () {
+      final engine = grandTable();
+      final report = playNight(engine, {detective: don, reporter: don});
+      expect(report.scoop!.team, Team.mafia);
+      expect(engine.knowledgeOf(null, don).team, Team.mafia);
+      expect(engine.knowledgeOf(detective, don).team, Team.mafia,
+          reason: 'lo scoop smentisce l\'indagine, anche per chi l\'ha fatta');
+    });
+
+    test('un\'indagine fatta dopo lo scoop non cancella quello che è pubblico', () {
+      final engine = grandTable();
+      playNight(engine, {reporter: don});
+      engine.lynch(null);
+
+      expect(engine.submitNightChoice(detective, don)!.team, Team.citizens,
+          reason: 'le carte del Padrino restano in regola');
+      expect(engine.knowledgeOf(detective, don).team, Team.mafia);
+    });
+
+    test('il patibolo lo smaschera per tutti', () {
+      final engine = grandTable();
+      playNight(engine, {detective: don});
+      final report = engine.lynch(don);
+      expect(report.role, Role.padrino);
+      expect(engine.knowledgeOf(detective, don).role, Role.padrino);
+      expect(engine.knowledgeOf(detective, don).team, Team.mafia);
+    });
+
+    test('la famiglia lo riconosce', () {
+      final engine = grandTable();
+      expect(engine.knowledgeOf(picciotto, don).role, Role.padrino);
+      expect(engine.knowledgeOf(tailor, don).role, Role.padrino);
+      expect(engine.knowledgeOf(don, tailor).role, Role.sarto);
+      expect(engine.knowledgeOf(anna, don).isEmpty, isTrue);
+    });
+
+    test('con "decide il capo" il capo è lui, ovunque sia seduto', () {
+      for (var seed = 0; seed < 10; seed++) {
+        final engine = GameEngine(
+          GameSetup.fromRoles({
+            picciotto: Role.mafioso,
+            don: Role.padrino,
+            anna: Role.cittadino,
+            bruno: Role.cittadino,
+            detective: Role.detective,
+            doctor: Role.medico,
+          }),
+          settings: const GameSettings(mafiaTieBreak: TieBreak.boss),
+          random: Random(seed),
+        );
+        expect(playNight(engine, {picciotto: anna, don: bruno}).victims, [bruno]);
+      }
+    });
+
+    test('morto il Padrino, comanda il primo che vota: non il Sarto', () {
+      for (var seed = 0; seed < 10; seed++) {
+        final engine = GameEngine(
+          GameSetup.fromRoles({
+            tailor: Role.sarto,
+            picciotto: Role.mafioso,
+            boss: Role.mafioso,
+            don: Role.padrino,
+            anna: Role.cittadino,
+            bruno: Role.cittadino,
+            detective: Role.detective,
+            doctor: Role.medico,
+            sniper: Role.cittadino,
+            reporter: Role.cittadino,
+            digger: Role.cittadino,
+            guard: Role.cittadino,
+            veteran: Role.cittadino,
+          }),
+          settings: const GameSettings(mafiaTieBreak: TieBreak.boss),
+          random: Random(seed),
+        );
+        playNight(engine);
+        engine.lynch(don);
+        expect(playNight(engine, {picciotto: anna, boss: bruno, tailor: detective}).victims, [anna]);
+      }
+    });
+  });
+
+  group('il Sarto', () {
+    test('cuce una bocca: all\'alba si sa chi deve tacere', () {
+      final engine = grandTable();
+      expect(engine.taskFor(tailor).kind, NightTaskKind.silence);
+      expect(engine.taskFor(tailor).targets, isNot(contains(tailor)));
+
+      final report = playNight(engine, {tailor: bruno});
+      expect(report.silenced, bruno);
+      expect(report.victims, isEmpty);
+      expect(engine.isAlive(bruno), isTrue, reason: 'chi tace resta in gioco, e si può votare');
+      expect(engine.lynch(bruno).condemned, bruno);
+    });
+
+    test('finché c\'è chi spara, il suo voto non conta nell\'agguato', () {
+      final engine = grandTable(tieBreak: TieBreak.nobody);
+      final report = playNight(engine, {don: anna, picciotto: anna, tailor: bruno});
+      expect(report.victims, [anna]);
+      expect(report.silenced, bruno);
+
+      engine.lynch(null);
+      final tie = playNight(engine, {don: bruno, picciotto: detective, tailor: detective});
+      expect(tie.victims, isEmpty, reason: 'uno pari: il Sarto non sposta la parità');
+    });
+
+    test('mai la stessa persona due notti di fila', () {
+      final engine = grandTable();
+      playNight(engine, {tailor: bruno});
+      engine.lynch(null);
+
+      expect(engine.taskFor(tailor).targets, isNot(contains(bruno)));
+      expect(() => engine.submitNightChoice(tailor, bruno), throwsArgumentError);
+
+      playNight(engine, {tailor: anna});
+      engine.lynch(null);
+      expect(engine.taskFor(tailor).targets, contains(bruno));
+      expect(engine.taskFor(tailor).targets, isNot(contains(anna)));
+    });
+
+    test('se una notte passa, la notte dopo può scegliere chiunque', () {
+      final engine = grandTable();
+      playNight(engine, {tailor: bruno});
+      engine.lynch(null);
+      expect(playNight(engine).silenced, isNull);
+      engine.lynch(null);
+      expect(engine.taskFor(tailor).targets, contains(bruno));
+    });
+
+    test('se chi doveva tacere muore, non si annuncia niente', () {
+      final engine = grandTable();
+      final report = playNight(engine, {don: bruno, picciotto: bruno, tailor: bruno});
+      expect(report.victims, [bruno]);
+      expect(report.silenced, isNull);
+    });
+
+    test('chi doveva tacere e si salva, tace lo stesso', () {
+      final engine = grandTable();
+      final report = playNight(engine, {don: bruno, picciotto: bruno, tailor: bruno, doctor: bruno});
+      expect(report.victims, isEmpty);
+      expect(report.silenced, bruno);
+    });
+
+    test('il silenzio vale anche se il Sarto non vede l\'alba', () {
+      final engine = grandTable();
+      final report = playNight(engine, {tailor: bruno, sniper: tailor});
+      expect(report.victims, [tailor]);
+      expect(report.silenced, bruno);
+    });
+
+    test('può cucire la bocca anche a uno dei suoi', () {
+      final engine = grandTable();
+      expect(playNight(engine, {tailor: don}).silenced, don);
+    });
+
+    test('rimasto l\'ultimo a poter uccidere, posa l\'ago e uccide', () {
+      final engine = grandTable();
+      playNight(engine, {tailor: bruno});
+      engine.lynch(don);
+      expect(engine.taskFor(tailor).kind, NightTaskKind.silence, reason: 'c\'è ancora il Picciotto');
+      playNight(engine, {tailor: anna});
+      engine.lynch(picciotto);
+
+      final task = engine.taskFor(tailor);
+      expect(task.kind, NightTaskKind.kill);
+      expect(task.targets, contains(anna), reason: 'il divieto valeva per l\'ago, non per la pistola');
+      final report = playNight(engine, {tailor: anna});
+      expect(report.victims, [anna]);
+      expect(report.silenced, isNull);
+    });
+
+    test('da solo fin dall\'inizio, uccide e basta', () {
+      final engine = GameEngine(GameSetup.fromRoles({
+        tailor: Role.sarto,
+        anna: Role.cittadino,
+        bruno: Role.cittadino,
+        detective: Role.detective,
+      }));
+      expect(engine.taskFor(tailor).kind, NightTaskKind.kill);
+      expect(playNight(engine, {tailor: anna}).victims, [anna]);
+    });
+  });
+
+  group('il Becchino', () {
+    test('senza morti da riesumare ha un compito di copertura', () {
+      final engine = grandTable();
+      final task = engine.taskFor(digger);
+      expect(task.kind, NightTaskKind.decoy);
+      expect(task.targets, isNot(contains(digger)));
+      expect(engine.submitNightChoice(digger, anna), isNull);
+      expect(engine.suspicion, {anna: 1});
+    });
+
+    test('scava nella fossa di chi è morto di notte e scopre chi era', () {
+      final engine = grandTable();
+      playNight(engine, {don: doctor, picciotto: doctor});
+      engine.lynch(null);
+
+      final task = engine.taskFor(digger);
+      expect(task.kind, NightTaskKind.dig);
+      expect(task.targets, [doctor]);
+
+      final finding = engine.submitNightChoice(digger, doctor)!;
+      expect(finding.subject, doctor);
+      expect(finding.role, Role.medico);
+      expect(finding.team, Team.citizens);
+      expect(engine.knowledgeOf(digger, doctor).role, Role.medico);
+      expect(engine.knowledgeOf(anna, doctor).isEmpty, isTrue, reason: 'lo sa solo chi ha scavato');
+      expect(engine.knowledgeOf(null, doctor).isEmpty, isTrue);
+    });
+
+    test('i vivi non si riesumano', () {
+      final engine = grandTable();
+      playNight(engine, {don: doctor, picciotto: doctor});
+      engine.lynch(null);
+      expect(() => engine.submitNightChoice(digger, anna), throwsArgumentError);
+    });
+
+    test('chi è finito sul patibolo non ha segreti: non c\'è niente da scavare', () {
+      final engine = grandTable();
+      playNight(engine);
+      engine.lynch(anna);
+      expect(engine.taskFor(digger).kind, NightTaskKind.decoy);
+    });
+
+    test('una fossa si scava una volta sola', () {
+      final engine = grandTable();
+      playNight(engine, {don: doctor, picciotto: doctor});
+      engine.lynch(null);
+      playNight(engine, {digger: doctor, don: anna, picciotto: anna});
+      engine.lynch(null);
+
+      expect(engine.taskFor(digger).targets, [anna]);
+      playNight(engine, {digger: anna});
+      engine.lynch(null);
+      expect(engine.taskFor(digger).kind, NightTaskKind.decoy, reason: 'le fosse sono finite');
+      expect(engine.knowledgeOf(digger, doctor).role, Role.medico);
+      expect(engine.knowledgeOf(digger, anna).role, Role.cittadino);
+    });
+
+    test('la fossa dice sempre la verità, anche su chi inganna il Commissario', () {
+      final engine = grandTable();
+      playNight(engine, {sniper: convict});
+      engine.lynch(null);
+      final clean = engine.submitNightChoice(digger, convict)!;
+      expect(clean.role, Role.pregiudicato);
+      expect(clean.team, Team.citizens);
+
+      final other = grandTable();
+      playNight(other, {sniper: don});
+      other.lynch(null);
+      final dirty = other.submitNightChoice(digger, don)!;
+      expect(dirty.role, Role.padrino);
+      expect(dirty.team, Team.mafia);
+    });
+
+    test('se muore mentre scava, quello che ha scoperto non lo sa nessun altro', () {
+      final engine = grandTable();
+      playNight(engine, {don: doctor, picciotto: doctor});
+      engine.lynch(null);
+      final report = playNight(engine, {digger: doctor, don: digger, picciotto: digger});
+      expect(report.victims, [digger]);
+      expect(engine.knowledgeOf(null, doctor).isEmpty, isTrue);
+    });
+  });
+
+  group('il Guardaspalle', () {
+    test('muore al posto di chi scorta, e nessuno sa chi era il bersaglio', () {
+      final engine = grandTable();
+      expect(engine.taskFor(guard).kind, NightTaskKind.guard);
+
+      final report = playNight(engine, {don: anna, picciotto: anna, guard: anna});
+      expect(report.victims, [guard]);
+      expect(report.attacks, hasLength(1), reason: 'in scena va un agguato solo, contro chi è caduto');
+      expect(report.attacks.single.target, guard);
+      expect(report.attacks.single.source, AttackSource.family);
+      expect(engine.isAlive(anna), isTrue);
+      expect(engine.isAlive(guard), isFalse);
+      expect(engine.knowledgeOf(null, guard).isEmpty, isTrue, reason: 'una morte come le altre');
+    });
+
+    test('ferma anche il colpo del Cecchino', () {
+      final engine = grandTable();
+      final report = playNight(engine, {sniper: don, guard: don});
+      expect(report.victims, [guard]);
+      expect(report.attacks.single.source, AttackSource.sniper);
+      expect(engine.isAlive(don), isTrue);
+    });
+
+    test('non può fare da scudo a se stesso', () {
+      final engine = grandTable();
+      expect(engine.taskFor(guard).targets, isNot(contains(guard)));
+      expect(() => engine.submitNightChoice(guard, guard), throwsArgumentError);
+    });
+
+    test('se scorta qualcun altro, per lui non cambia niente', () {
+      final engine = grandTable();
+      final report = playNight(engine, {don: anna, picciotto: anna, guard: bruno});
+      expect(report.victims, [anna]);
+      expect(engine.isAlive(guard), isTrue);
+    });
+
+    test('preso di mira lui, muore come chiunque', () {
+      final engine = grandTable();
+      final report = playNight(engine, {don: guard, picciotto: guard, guard: anna});
+      expect(report.victims, [guard]);
+    });
+
+    test('se il Dottore copre il bersaglio, il Guardaspalle non serve', () {
+      final engine = grandTable();
+      final report = playNight(engine, {don: anna, picciotto: anna, guard: anna, doctor: anna});
+      expect(report.victims, isEmpty);
+      expect(report.attacks.single.target, anna);
+      expect(report.attacks.single.outcome, AttackOutcome.healed);
+      expect(engine.isAlive(guard), isTrue);
+    });
+
+    test('se il Dottore copre il Guardaspalle, vivono tutti e due', () {
+      final engine = grandTable();
+      final report = playNight(engine, {don: anna, picciotto: anna, guard: anna, doctor: guard});
+      expect(report.victims, isEmpty);
+      expect(report.attacks.single.target, guard, reason: 'il colpo l\'ha preso lui');
+      expect(report.attacks.single.outcome, AttackOutcome.healed);
+      expect(engine.isAlive(anna), isTrue);
+      expect(engine.isAlive(guard), isTrue);
+    });
+
+    test('tra due fuochi cade una volta sola', () {
+      final engine = grandTable();
+      final report = playNight(engine, {don: anna, picciotto: anna, guard: anna, sniper: guard});
+      expect(report.attacks, hasLength(1));
+      expect(report.attacks.single.target, guard);
+      expect(report.attacks.single.source, AttackSource.family);
+      expect(report.victims, [guard]);
+      expect(engine.isAlive(anna), isTrue);
+    });
+
+    test('scorta uno, ma la notte ne colpisce due: salva solo il suo', () {
+      final engine = grandTable();
+      final report = playNight(engine, {don: anna, picciotto: anna, guard: anna, sniper: bruno});
+      expect(report.victims.toSet(), {guard, bruno});
+      expect(engine.isAlive(anna), isTrue);
+    });
+
+    test('se scorta il Reduce muore lui, e la pelle dura resta intatta', () {
+      final engine = grandTable();
+      final first = playNight(engine, {don: veteran, picciotto: veteran, guard: veteran});
+      expect(first.victims, [guard]);
+      engine.lynch(null);
+
+      final second = playNight(engine, {don: veteran, picciotto: veteran});
+      expect(second.attacks.single.outcome, AttackOutcome.shrugged);
+      expect(engine.isAlive(veteran), isTrue);
+    });
+
+    test('se cade, e doveva tacere, non si annuncia niente', () {
+      final engine = grandTable();
+      final report = playNight(engine, {don: anna, picciotto: anna, guard: anna, tailor: guard});
+      expect(report.victims, [guard]);
+      expect(report.silenced, isNull);
+    });
+  });
+
+  group('il Reduce', () {
+    test('di notte non ha mosse: ha solo la pelle dura', () {
+      expect(grandTable().taskFor(veteran).kind, NightTaskKind.decoy);
+    });
+
+    test('il primo agguato va a vuoto, il secondo no', () {
+      final engine = grandTable();
+      final first = playNight(engine, {don: veteran, picciotto: veteran});
+      expect(first.victims, isEmpty);
+      expect(first.attacks.single.target, veteran);
+      expect(first.attacks.single.outcome, AttackOutcome.shrugged);
+      expect(first.attacks.single.isFatal, isFalse);
+      expect(engine.isAlive(veteran), isTrue);
+      expect(engine.knowledgeOf(null, veteran).isEmpty, isTrue, reason: 'il tavolo può solo sospettare');
+      engine.lynch(null);
+
+      final second = playNight(engine, {don: veteran, picciotto: veteran});
+      expect(second.victims, [veteran]);
+      expect(second.attacks.single.outcome, AttackOutcome.killed);
+    });
+
+    test('regge anche il colpo del Cecchino, che però è speso', () {
+      final engine = grandTable();
+      final report = playNight(engine, {sniper: veteran});
+      expect(report.victims, isEmpty);
+      expect(report.attacks.single.source, AttackSource.sniper);
+      expect(report.attacks.single.outcome, AttackOutcome.shrugged);
+      engine.lynch(null);
+      expect(engine.taskFor(sniper).kind, NightTaskKind.decoy);
+    });
+
+    test('famiglia e Cecchino la stessa notte: un agguato solo, e lo regge', () {
+      final engine = grandTable();
+      final report = playNight(engine, {don: veteran, picciotto: veteran, sniper: veteran});
+      expect(report.attacks, hasLength(1));
+      expect(report.attacks.single.outcome, AttackOutcome.shrugged);
+      expect(engine.isAlive(veteran), isTrue);
+    });
+
+    test('se lo salva il Dottore, la pelle dura non si consuma', () {
+      final engine = grandTable();
+      final healed = playNight(engine, {don: veteran, picciotto: veteran, doctor: veteran});
+      expect(healed.attacks.single.outcome, AttackOutcome.healed);
+      engine.lynch(null);
+
+      final shrugged = playNight(engine, {don: veteran, picciotto: veteran});
+      expect(shrugged.attacks.single.outcome, AttackOutcome.shrugged);
+      engine.lynch(null);
+
+      final killed = playNight(engine, {don: veteran, picciotto: veteran});
+      expect(killed.victims, [veteran]);
+    });
+
+    test('il patibolo non guarda la pelle', () {
+      final engine = grandTable();
+      playNight(engine);
+      expect(engine.lynch(veteran).role, Role.reduce);
+      expect(engine.isAlive(veteran), isFalse);
+    });
+  });
+
+  group('il Pregiudicato', () {
+    test('sta con gli onesti e di notte non ha mosse', () {
+      expect(Role.pregiudicato.team, Team.citizens);
+      expect(grandTable().taskFor(convict).kind, NightTaskKind.decoy);
+    });
+
+    test('al Commissario risulta della famiglia', () {
+      final engine = grandTable();
+      final finding = engine.submitNightChoice(detective, convict)!;
+      expect(finding.team, Team.mafia);
+      expect(engine.knowledgeOf(detective, convict).team, Team.mafia);
+      expect(engine.knowledgeOf(don, convict).isEmpty, isTrue, reason: 'la famiglia non lo conosce');
+    });
+
+    test('il giornale lo scagiona, anche agli occhi del Commissario', () {
+      final engine = grandTable();
+      final report = playNight(engine, {detective: convict, reporter: convict});
+      expect(report.scoop!.team, Team.citizens);
+      expect(engine.knowledgeOf(null, convict).team, Team.citizens);
+      expect(engine.knowledgeOf(detective, convict).team, Team.citizens);
+    });
+
+    test('sul patibolo la carta dice la verità', () {
+      final engine = grandTable();
+      playNight(engine, {detective: convict});
+      final report = engine.lynch(convict);
+      expect(report.role, Role.pregiudicato);
+      expect(engine.knowledgeOf(detective, convict).team, Team.citizens);
+    });
+
+    test('per la vittoria conta come un onesto', () {
+      final engine = GameEngine(GameSetup.fromRoles({
+        boss: Role.mafioso,
+        convict: Role.pregiudicato,
+        anna: Role.cittadino,
+        bruno: Role.cittadino,
+      }));
+      playNight(engine, {boss: anna});
+      expect(engine.winner, isNull, reason: 'uno contro due: il Pregiudicato fa numero con gli onesti');
+      expect(engine.lynch(boss).winner, Team.citizens);
+    });
+  });
+
   group('chi sa cosa', () {
     test('ognuno conosce il proprio ruolo', () {
       final engine = fullTable();
@@ -373,6 +886,41 @@ void main() {
       expect(engine.phase, GamePhase.ended);
     });
 
+    test('Padrino e Sarto contano per la famiglia', () {
+      final engine = GameEngine(GameSetup.fromRoles({
+        don: Role.padrino,
+        tailor: Role.sarto,
+        anna: Role.cittadino,
+        bruno: Role.cittadino,
+        detective: Role.detective,
+      }));
+      final report = playNight(engine, {don: anna, tailor: bruno});
+      expect(report.winner, Team.mafia, reason: 'due contro due');
+    });
+
+    test('gli onesti vincono solo quando cade tutta la famiglia, Sarto compreso', () {
+      final engine = grandTable();
+      playNight(engine);
+      expect(engine.lynch(don).winner, isNull);
+      playNight(engine);
+      expect(engine.lynch(picciotto).winner, isNull);
+      playNight(engine);
+      expect(engine.lynch(tailor).winner, Team.citizens);
+    });
+
+    test('un colpo andato a vuoto non fa vincere nessuno', () {
+      final engine = GameEngine(GameSetup.fromRoles({
+        boss: Role.mafioso,
+        veteran: Role.reduce,
+        anna: Role.cittadino,
+      }));
+      final first = playNight(engine, {boss: veteran});
+      expect(first.winner, isNull);
+      expect(engine.phase, GamePhase.day);
+      engine.lynch(null);
+      expect(playNight(engine, {boss: veteran}).winner, Team.mafia);
+    });
+
     test('a partita finita non si gioca più', () {
       final engine = smallTable();
       playNight(engine);
@@ -406,30 +954,54 @@ void main() {
     });
   });
 
-  test('partite casuali finiscono sempre con un vincitore', () {
-    for (var seed = 0; seed < 200; seed++) {
+  test('partite casuali, a ogni tavolo da 3 a 16, finiscono sempre con un vincitore', () {
+    final played = <Role>{};
+    final tasks = <NightTaskKind>{};
+    final outcomes = <AttackOutcome>{};
+    for (var seed = 0; seed < 420; seed++) {
       final random = Random(seed);
-      final lobby = [for (var i = 0; i < 3 + seed % 10; i++) Player(id: 'p$i', name: 'P$i')];
+      final lobby = [for (var i = 0; i < 3 + seed % 14; i++) Player(id: 'p$i', name: 'P$i')];
       final engine = GameEngine(
         GameSetup.deal(lobby: lobby, random: random),
         settings: GameSettings(mafiaTieBreak: TieBreak.values[seed % 3]),
         random: random,
       );
+      played.addAll(engine.setup.roles.values);
 
       var rounds = 0;
       while (engine.phase != GamePhase.ended) {
         expect(rounds++, lessThan(100), reason: 'seed=$seed: la partita non finisce');
-        for (final player in engine.alivePlayers) {
-          final targets = engine.taskFor(player).targets;
-          final skip = targets.isEmpty || random.nextInt(5) == 0;
-          engine.submitNightChoice(player, skip ? null : targets[random.nextInt(targets.length)]);
+        final before = engine.alivePlayers;
+        for (final player in before) {
+          final task = engine.taskFor(player);
+          tasks.add(task.kind);
+          expect(task.targets.toSet(), hasLength(task.targets.length), reason: 'seed=$seed');
+          final skip = task.targets.isEmpty || random.nextInt(5) == 0;
+          final target = skip ? null : task.targets[random.nextInt(task.targets.length)];
+          final finding = engine.submitNightChoice(player, target);
+          if (task.kind == NightTaskKind.dig && target != null) {
+            expect(finding!.role, engine.setup.roleOf(target), reason: 'seed=$seed');
+          }
         }
-        engine.resolveNight();
+        final report = engine.resolveNight();
+        outcomes.addAll(report.attacks.map((attack) => attack.outcome));
+        expect(report.attacks.length, lessThanOrEqualTo(2), reason: 'seed=$seed');
+        for (final attack in report.attacks) {
+          expect(before, contains(attack.target), reason: 'seed=$seed: si colpisce solo chi è vivo');
+          expect(engine.isAlive(attack.target), !attack.isFatal, reason: 'seed=$seed');
+        }
+        expect(engine.alivePlayers.length, before.length - report.victims.length, reason: 'seed=$seed');
+        if (report.silenced != null) {
+          expect(engine.isAlive(report.silenced!), isTrue, reason: 'seed=$seed: i morti tacciono già');
+        }
         if (engine.phase != GamePhase.day) break;
         final alive = engine.alivePlayers;
         engine.lynch(alive[random.nextInt(alive.length)]);
       }
       expect(engine.winner, isNotNull, reason: 'seed=$seed');
     }
+    expect(played, Role.values.toSet(), reason: 'tutti i ruoli sono scesi in campo');
+    expect(tasks, NightTaskKind.values.toSet(), reason: 'tutte le mosse sono state fatte');
+    expect(outcomes, AttackOutcome.values.toSet(), reason: 'tutti gli esiti si sono visti');
   });
 }

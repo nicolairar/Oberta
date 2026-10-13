@@ -130,7 +130,7 @@ const italianPack = NarrationPack(
     'Le pompe funebri esprimono viva preoccupazione.',
     'Guardatevi in faccia: qualcuno, qui, è deluso.',
     'Non rilassatevi. Di solito è così che comincia.',
-    'Il becchino ha dormito otto ore, e non sa cosa pensare.',
+    'Il custode del cimitero ha dormito otto ore, e non sa cosa pensare.',
   ],
   secondVictims: [
     'E non è finita.',
@@ -146,11 +146,20 @@ const italianPack = NarrationPack(
   ],
   rescues: [
     'Uno sparo dal vicolo, {name} a terra. Poi dei passi di corsa: il Dottore.',
-    'Volevano chiudere il conto di {name}. Il Dottore è arrivato prima del becchino.',
+    'Volevano chiudere il conto di {name}. Il Dottore è arrivato prima del prete.',
     '{name} era già a terra. Ma il Dottore, stanotte, passava proprio di lì.',
     'Un colpo, e {name} va giù. Una borsa di cuoio si apre: non è finita.',
   ],
   savedFact: 'Stanotte hanno sparato a {name}, ma il Dottore ha fatto in tempo. {name} resta in gioco.',
+  // Il colpo fermato dalla fiaschetta: in scena si vede proprio quella. Il
+  // fatto non nomina nessun ruolo: al tavolo resta il dubbio su chi sia.
+  shrugs: [
+    'Uno sparo. {name} barcolla, poi si tocca il taschino: una fiaschetta, ammaccata.',
+    'Il colpo parte, e fa «ding». {name} tira fuori una fiaschetta col buco.',
+    'Uno sparo dal vicolo. {name} resta in piedi: il proiettile è nella fiaschetta.',
+    '{name} sente un colpo al petto. Sotto la giacca, una fiaschetta piegata in due.',
+  ],
+  shruggedFact: 'Stanotte hanno sparato a {name}, ma il colpo non è andato a segno. {name} resta in gioco.',
   methods: [
     StoryPiece('auto', 'Due fari nel buio. Un\'auto nera non frena. {name} si volta: troppo tardi.'),
     StoryPiece('pianoforte', 'Una corda si spezza. Un pianoforte precipita. {name} alza gli occhi.'),
@@ -192,6 +201,13 @@ const italianPack = NarrationPack(
   ],
   scoopMafia: 'Il giornale lo scrive chiaro: {name} sta con la famiglia.',
   scoopClean: 'Il giornale lo scrive chiaro: {name} è innocente.',
+  silences: [
+    'Ago, filo, e un lavoro di fino: stamattina {name} ha la bocca cucita.',
+    'Qualcuno ha fatto visita a {name}, stanotte. Con un ago e un consiglio.',
+    'Sul cuscino di {name}, un rocchetto di filo nero. Il messaggio è arrivato.',
+  ],
+  silencedFact:
+      'Oggi {name} non può parlare durante la discussione. Vota a gesti, e resta tra chi potete eliminare.',
   dayInstruction: 'Avete {minutes} per discutere. Poi votate chi eliminare.',
   oneMinute: 'un minuto',
   manyMinutes: '{minutes} minuti',
@@ -246,15 +262,21 @@ const italianPack = NarrationPack(
   mafiaWinsFact: 'Vince la famiglia: gli onesti non sono più in maggioranza.',
   taskPrompts: {
     NightTaskKind.kill: 'Chi eliminate stanotte?',
+    NightTaskKind.silence: 'A chi cuci la bocca stanotte?',
     NightTaskKind.protect: 'Chi proteggi stanotte?',
+    NightTaskKind.guard: 'A chi fai da scudo stanotte?',
     NightTaskKind.investigate: 'Su chi vuoi indagare?',
+    NightTaskKind.dig: 'Quale fossa scavi stanotte?',
     NightTaskKind.snipe: 'Vuoi sparare a qualcuno?',
     NightTaskKind.scoop: 'Su chi pubblichi lo scoop?',
   },
   taskHints: {
     NightTaskKind.kill: 'Chi scegli non vedrà l\'alba. Se siete in più d\'uno, vince la maggioranza.',
+    NightTaskKind.silence: 'Chi scegli domani non potrà parlare. Mai la stessa persona due notti di fila.',
     NightTaskKind.protect: 'Chi scegli stanotte non può morire. Mai la stessa persona due notti di fila.',
+    NightTaskKind.guard: 'Se stanotte provano a uccidere chi scegli, muori tu al suo posto.',
     NightTaskKind.investigate: 'Scoprirai subito se sta con la famiglia o con gli onesti.',
+    NightTaskKind.dig: 'Scegli tra chi è morto di notte: scoprirai subito, solo tu, che ruolo aveva.',
     NightTaskKind.snipe: 'Hai un solo proiettile in tutta la partita. Se passi, ti resta.',
     NightTaskKind.scoop: 'Hai un solo scoop: all\'alba tutti sapranno da che parte sta. Se passi, ti resta.',
     NightTaskKind.decoy: 'Stanotte non hai una mossa: rispondi lo stesso, così nessuno capisce chi sei.',

@@ -19,6 +19,7 @@ La modalità **un telefono** si gioca dall'inizio alla fine: stanza, lobby,
 scelta del narratore, ruota dei ruoli, carta con flip 3D, poi notte, alba,
 discussione, voto e verdetto finché una fazione vince.
 
+- **Dodici ruoli, da 3 a 16 giocatori**: vedi [I dodici ruoli](#i-dodici-ruoli).
 - **Notte con compiti di copertura**: tutti prendono il telefono e toccano
   qualcuno sulla stessa griglia. Solo alcune mosse sono vere.
 - **Griglia personale**: ognuno vede i segni di ruolo solo dove ha diritto.
@@ -43,6 +44,71 @@ Manca ancora la rete tra telefoni: `FakeLocalSession` fa da stanza finta.
 
 Si lavora **solo su iOS** per ora (Simulator + eventuale iPhone fisico).
 Android è già scaffoldato ma non verrà testato finché non lo decidiamo insieme.
+
+## I dodici ruoli
+
+Si gioca da 3 a 16, narratore escluso. Circa uno su quattro sta con la
+famiglia; gli altri ruoli entrano man mano che il tavolo cresce, e a ogni
+tavolo resta almeno un Onesto. Di notte ognuno fa **una sola mossa**: chi
+non ne ha una vera riceve un compito di copertura.
+
+**La famiglia** (si conoscono tra loro)
+
+| Ruolo | Da | Cosa fa |
+|---|---|---|
+| **Il Picciotto** | 3 | Di notte vota con la famiglia chi non vedrà l'alba. |
+| **Il Padrino** | 8 | Vota come un Picciotto, ma al Commissario risulta innocente. Se la parità la decide il capo, il capo è lui. |
+| **Il Sarto** | 10 | «Cuce abiti di giorno e bocche di notte»: ogni notte sceglie chi, il giorno dopo, non potrà parlare (mai la stessa persona due notti di fila). Non vota l'agguato finché in famiglia c'è chi spara; rimasto solo, uccide lui. |
+
+**Gli onesti**
+
+| Ruolo | Da | Cosa fa |
+|---|---|---|
+| **L'Onesto** | 3 | Nessun potere: osserva, accusa, vota. |
+| **Il Commissario** | 4 | Ogni notte indaga su qualcuno e scopre da che parte sta. O da che parte sembra stare. |
+| **Il Dottore** | 5 | Ogni notte protegge qualcuno, anche se stesso. Mai la stessa persona due notti di fila. |
+| **Il Cecchino** | 7 | Un solo proiettile in tutta la partita. |
+| **Il Cronista** | 8 | Un solo scoop: all'alba tutti sanno da che parte sta davvero chi ha scelto. Se il Cronista muore quella notte, il giornale non esce. |
+| **Il Becchino** | 8 | Ogni notte può scavare nella fossa di chi è morto di notte, e scopre (solo lui) che ruolo aveva. |
+| **Il Reduce** | 9 | Pelle dura: il primo agguato notturno contro di lui va a vuoto. Il secondo no. |
+| **Il Guardaspalle** | 10 | Ogni notte scorta qualcuno: se quella persona finisce nel mirino, muore lui al suo posto. Il tavolo vede solo la sua morte. |
+| **Il Pregiudicato** | 11 | Sta con gli onesti, ma al Commissario risulta della famiglia. |
+
+Solo il Commissario si fa ingannare da Padrino e Pregiudicato: il giornale,
+la fossa e il patibolo dicono sempre la verità.
+
+**Il mazzo, tavolo per tavolo**
+
+| Giocatori | Famiglia | Onesti con un ruolo | Onesti |
+|---|---|---|---|
+| 3 | Picciotto | — | 2 |
+| 4 | Picciotto | Commissario | 2 |
+| 5 | Picciotto | + Dottore | 2 |
+| 6 | Picciotto | come sopra | 3 |
+| 7 | Picciotto | + Cecchino | 3 |
+| 8 | Padrino, Picciotto | + Cronista, Becchino | 1 |
+| 9 | Padrino, Picciotto | + Reduce | 1 |
+| 10 | Padrino, Sarto | + Guardaspalle | 1 |
+| 11 | Padrino, Sarto | + Pregiudicato (ci sono tutti e otto) | 1 |
+| 12 | Padrino, Sarto, Picciotto | tutti e otto | 1 |
+| 13 | Padrino, Sarto, Picciotto | tutti e otto | 2 |
+| 14 | Padrino, Sarto, Picciotto | tutti e otto | 3 |
+| 15 | Padrino, Sarto, Picciotto | tutti e otto | 4 |
+| 16 | Padrino, Sarto, 2 Picciotti | tutti e otto | 4 |
+
+**Come si chiude una notte.** Le mosse si risolvono tutte insieme, quindi
+chi muore ha comunque fatto in tempo ad agire. Nell'ordine:
+
+1. la famiglia e il Cecchino scelgono i loro bersagli (chi è nel mirino di
+   tutti e due subisce un agguato solo);
+2. il Dottore ferma l'agguato contro chi protegge;
+3. il Guardaspalle prende il colpo destinato a chi scorta (se il Dottore
+   proteggeva il Guardaspalle, vivono tutti e due);
+4. il Reduce regge il primo colpo che lo ucciderebbe;
+5. chi resta colpito muore, e il suo ruolo resta segreto.
+
+All'alba ogni agguato va in scena per com'è andato: il delitto, il Dottore
+che arriva in tempo, o il colpo che si ferma su una fiaschetta nel taschino.
 
 ## Stack tecnico e perché
 
@@ -89,12 +155,12 @@ dei ruoli (eccetto il narratore umano, che già li conosce).
 0. ✅ Setup ambiente (Flutter, Xcode, Simulator iOS)
 1. ✅ Preparazione: stanza con codice, lobby, narratore, ruota, carta ruolo
 2. ✅ Partita completa su un telefono: notte, alba, giorno, voto, vittoria,
-   con test sulle regole e sul copione
+   dodici ruoli e tavoli fino a 16, con test sulle regole e sul copione
 3. ⏳ Grafica e animazioni: fondali ✅, avatar ✅, scene di morte ✅,
    suoni e musica ⏳
 4. Un telefono a testa in rete locale
 5. Server remoto (Supabase): partite a distanza, narratore automatico con voce
-6. Classificata, altri ruoli, inglese, pubblicazione
+6. Classificata, inglese, pubblicazione
 
 **Regola d'oro:** prima il gioco deve divertire, poi si abbelliscono le animazioni.
 
