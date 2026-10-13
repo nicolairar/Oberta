@@ -11,6 +11,7 @@ import '../../rules/game_settings.dart';
 import '../../rules/game_setup.dart';
 import '../../rules/player.dart';
 import '../../rules/role.dart';
+import '../../sound/sound_stage.dart';
 import '../theme/app_theme.dart';
 import '../theme/role_style.dart';
 import '../widgets/avatar_spotlight.dart';
@@ -144,6 +145,7 @@ class _GameScreenState extends State<GameScreen> {
       // storia va prima in scena e poi nel copione del narratore.
       _dawn = _engine.resolveNight();
       _deaths = _script.stage(_dawn);
+      SoundStage.instance.prepare([for (final story in _deaths) deathActFor(story.method.id)]);
       if (_deaths.isNotEmpty) {
         _crime = 0;
         _stage = _Stage.crimeIntro;

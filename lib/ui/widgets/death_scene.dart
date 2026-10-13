@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../narration/death_story.dart';
+import '../../sound/sound_stage.dart';
 import '../theme/app_theme.dart';
 import 'city_backdrop.dart';
 import 'noir_avatar.dart';
@@ -127,6 +129,7 @@ class DeathScene extends StatefulWidget {
 
 class _DeathSceneState extends State<DeathScene> with SingleTickerProviderStateMixin {
   late final AnimationController _film;
+  final List<Timer> _tuning = [];
   bool _struck = false;
   bool _ended = false;
   bool _finished = false;
@@ -149,8 +152,36 @@ class _DeathSceneState extends State<DeathScene> with SingleTickerProviderStateM
       })
       ..addStatusListener((status) {
         if (status == AnimationStatus.completed) setState(() => _ended = true);
-      })
-      ..forward();
+      });
+
+    // Il film parte quando parte la musica. Il palco muto risponde subito;
+    // quello vero ci mette un attimo, e la scena lo aspetta (ma non per
+    // sempre: senza audio si va in onda lo stesso).
+    final music = SoundStage.instance.playScene(widget.act);
+    if (music is Future<void>) {
+      music.timeout(const Duration(seconds: 4), onTimeout: () {}).whenComplete(() {
+        if (!mounted || _ended) return;
+        _film.forward();
+        for (final after in const [300, 1000, 2400]) {
+          _tuning.add(Timer(Duration(milliseconds: after), _tune));
+        }
+      });
+    } else {
+      _film.forward();
+    }
+  }
+
+  /// Rimette il film a tempo col nastro. Lo fa presto, mentre la vittima sta
+  /// ancora camminando: lì un fotogramma saltato non lo nota nessuno, mentre
+  /// uno sparo fuori tempo lo notano tutti.
+  Future<void> _tune() async {
+    final heard = await SoundStage.instance.position();
+    if (heard == null || !mounted || !_film.isAnimating) return;
+    final length = DeathScene.length.inMicroseconds;
+    final drift = heard.inMicroseconds - _film.value * length;
+    if (drift.abs() > 40000 && heard.inMicroseconds < length) {
+      _film.forward(from: heard.inMicroseconds / length);
+    }
   }
 
   /// Chi salta la scena arriva comunque al ritratto finale: il nome si legge
@@ -158,6 +189,7 @@ class _DeathSceneState extends State<DeathScene> with SingleTickerProviderStateM
   void _skip() {
     _struck = true;
     _film.value = 1;
+    SoundStage.instance.stop();
   }
 
   void _finish() {
@@ -168,6 +200,10 @@ class _DeathSceneState extends State<DeathScene> with SingleTickerProviderStateM
 
   @override
   void dispose() {
+    for (final timer in _tuning) {
+      timer.cancel();
+    }
+    SoundStage.instance.stop();
     _film.dispose();
     super.dispose();
   }

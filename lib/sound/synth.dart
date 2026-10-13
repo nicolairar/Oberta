@@ -27,7 +27,7 @@ abstract final class Env {
 /// qualche filtro. Così il gioco suona senza portarsi dietro un solo file
 /// audio, e senza licenze da controllare.
 class Tape {
-  static const rate = 22050;
+  static const rate = 32000;
 
   final Float64List samples;
   final Random _random;
@@ -140,46 +140,6 @@ class Tape {
       ring[cursor] = damping * 0.5 * (value + ring[next]);
       cursor = next;
       return gain * value * min(1.0, (1 - life) * 12);
-    });
-  }
-
-  /// Una voce da cartone animato: una nota ruvida scolpita dalle formanti di
-  /// una vocale, che può cambiare strada facendo. [from] e [to] sono l'altezza
-  /// della voce; [vowel] e [vowelTo] le due formanti, in Hz. È così che la
-  /// vittima si lamenta, teatralmente, senza che nessuno l'abbia registrata.
-  void voice(
-    double at,
-    double length,
-    double from, {
-    double? to,
-    (double, double) vowel = (700, 1150),
-    (double, double)? vowelTo,
-    double gain = 0.5,
-    Envelope? envelope,
-    double vibrato = 0.03,
-    double vibratoRate = 6,
-  }) {
-    final shape = envelope ?? Env.hold(0.12);
-    final glide = to == null ? 1.0 : to / from;
-    final end = vowelTo ?? vowel;
-    var phase = 0.0;
-    _write(at, length, (i, life) {
-      final pitch = (glide == 1 ? from : from * pow(glide, life)) *
-          (1 + vibrato * life * sin(2 * pi * vibratoRate * i / rate));
-      phase += 2 * pi * pitch / rate;
-      final first = vowel.$1 + (end.$1 - vowel.$1) * life;
-      final second = vowel.$2 + (end.$2 - vowel.$2) * life;
-      var value = 0.0;
-      for (var n = 1; n <= 28; n++) {
-        final freq = pitch * n;
-        if (freq > 4200) break;
-        final a = (freq - first) / 130;
-        final b = (freq - second) / 170;
-        final c = (freq - 2700) / 260;
-        final weight = exp(-a * a) + 0.6 * exp(-b * b) + 0.15 * exp(-c * c) + 0.04 / n;
-        value += weight * sin(phase * n);
-      }
-      return gain * shape(life) * value;
     });
   }
 
