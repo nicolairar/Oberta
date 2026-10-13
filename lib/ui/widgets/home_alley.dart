@@ -20,8 +20,8 @@ class HomeAlleyLayout {
   /// Le zone dello schermo da lasciare libere (tacca, barra in basso).
   final EdgeInsets safe;
 
-  /// L'angolo in alto a destra, tenuto vuoto apposta: ci andrà il pulsante
-  /// di impostazioni e lingua. Lì c'è solo muro.
+  /// L'angolo in alto a destra, riservato alla targhetta delle impostazioni:
+  /// niente altro ci finisce sopra, e se la targhetta manca lì c'è solo muro.
   late final Rect slot;
 
   /// La targa con il nome del vicolo, in alto a sinistra.

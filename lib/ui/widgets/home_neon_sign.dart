@@ -30,10 +30,10 @@ class HomeNeonSign {
   static const headroom = 0.30;
 
   static const _gap = 0.17;
-  static const _widths = [0.62, 0.80, 0.50, 0.58, 0.60, 0.72];
+  static const _widths = [0.62, 0.58, 0.50, 0.58, 0.60, 0.72];
 
   /// Larghezza e altezza dell'insegna, in altezze di lettera.
-  static const width = 3.82 + _gap * (letters - 1);
+  static const width = 3.60 + _gap * (letters - 1);
   static const height = 1 + headroom;
 
   static double widthOf(int index) => _widths[index];
@@ -64,8 +64,17 @@ class HomeNeonSign {
           Rect.fromLTWH(0, 0, 0.62 * cap, cap),
           Radius.circular(0.31 * cap),
         ));
-      case 1: // M
-        line([(0, 1), (0, 0), (0.40, 0.62), (0.80, 0), (0.80, 1)]);
+      case 1: // B: due pance, quella sotto un filo più larga.
+        path
+          ..moveTo(0, cap)
+          ..lineTo(0, 0)
+          ..lineTo(0.30 * cap, 0)
+          ..arcToPoint(Offset(0.30 * cap, 0.48 * cap), radius: Radius.circular(0.24 * cap))
+          ..lineTo(0, 0.48 * cap)
+          ..moveTo(0.30 * cap, 0.48 * cap)
+          ..lineTo(0.32 * cap, 0.48 * cap)
+          ..arcToPoint(Offset(0.32 * cap, cap), radius: Radius.circular(0.26 * cap))
+          ..lineTo(0, cap);
       case 2: // E
         line([(0.50, 0), (0, 0), (0, 1), (0.50, 1)]);
         line([(0, 0.5), (0.40, 0.5)]);
@@ -95,14 +104,17 @@ class HomeNeonSign {
 
   /// I guasti del giro: lettera, secondo in cui comincia a sfarfallare, e
   /// per quanti secondi poi resta al buio prima di riaccendersi.
+  ///
+  /// Il tubo difettoso è la B: quando muore l'insegna dice «O ERTÀ», e il
+  /// buco è proprio la lettera che nessuno vuole pronunciare.
   static const _faults = [
-    (3, 7.0, 0.0),
-    (3, 16.4, 1.6),
+    (1, 7.0, 0.0),
+    (1, 16.4, 1.6),
     (5, 24.5, 0.0),
-    (3, 29.0, 0.0),
-    (3, 41.2, 2.2),
-    (1, 46.0, 0.0),
-    (3, 55.5, 0.0),
+    (1, 29.0, 0.0),
+    (1, 41.2, 2.2),
+    (3, 46.0, 0.0),
+    (1, 55.5, 0.0),
   ];
 
   /// Il calo di tensione che una volta a giro prende tutta l'insegna.

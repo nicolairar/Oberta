@@ -46,7 +46,7 @@ void main() {
     await tester.pumpWidget(const OmertaApp());
     await tester.pumpAndSettle();
     expect(tester.binding.hasScheduledFrame, isFalse);
-    expect(find.text('OMERTÀ'), findsOneWidget);
+    expect(find.text('OBERTÀ'), findsOneWidget);
   });
 
   test('ogni città del copione ha il suo profilo', () {

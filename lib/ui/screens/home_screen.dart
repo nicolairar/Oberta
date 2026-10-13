@@ -8,12 +8,16 @@ import '../widgets/home_alley.dart';
 import '../widgets/home_caption.dart';
 import '../widgets/home_neon_sign.dart';
 import '../widgets/home_posters.dart';
+import '../widgets/home_settings_plate.dart';
 import 'lobby_screen.dart';
 
 /// Tutti i testi della schermata, in un posto solo: quando arriva la
 /// traduzione basta sostituire questi.
 abstract final class _Texts {
-  static const title = 'OMERTÀ';
+  static const title = 'OBERTÀ';
+
+  /// La targhetta con l'ingranaggio, in alto a destra.
+  static const settings = 'Impostazioni';
 
   /// La targa di marmo all'angolo del vicolo.
   static const alley = 'VICOLO DEL SILENZIO';
@@ -55,10 +59,14 @@ double _span(double t, double from, double to) => ((t - from) / (to - from)).cla
 /// al neon fa da titolo, i manifesti sul muro fanno da menu: quello di
 /// stasera apre la stanza, gli altri due annunciano le modalità che verranno.
 ///
-/// L'angolo in alto a destra resta vuoto apposta (vedi
-/// [HomeAlleyLayout.slot]): ci andrà il pulsante di impostazioni e lingua.
+/// L'angolo in alto a destra (vedi [HomeAlleyLayout.slot]) è riservato alle
+/// impostazioni: la targhetta con l'ingranaggio compare solo se qualcuno
+/// passa [onSettings], altrimenti lì c'è solo muro.
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  /// Che cosa succede toccando l'ingranaggio. Senza, il pulsante non c'è.
+  final VoidCallback? onSettings;
+
+  const HomeScreen({super.key, this.onSettings});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -139,7 +147,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   /// Apre la stanza. Prima il nero si chiude a iride sul manifesto, come
-  /// alla fine di una scena; al ritorno si riapre.
+  /// alla fine di una scena; al ritorno si riapre. Chi torna trascinando
+  /// la lobby dal bordo non deve trovarci sotto il nero: l'iride si riapre
+  /// appena il dito comincia a tirare.
   Future<void> _createRoom() async {
     if (_leaving) return;
     HapticFeedback.mediumImpact();
@@ -149,12 +159,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       await _iris.forward();
     }
     final session = FakeLocalSession(hostName: _Texts.hostName);
-    await navigator.push(PageRouteBuilder<void>(
-      transitionDuration: const Duration(milliseconds: 320),
-      reverseTransitionDuration: const Duration(milliseconds: 260),
-      pageBuilder: (_, _, _) => LobbyScreen(session: session),
-      transitionsBuilder: (_, animation, _, child) => FadeTransition(opacity: animation, child: child),
-    ));
+    final dragging = navigator.userGestureInProgressNotifier;
+    void reopen() {
+      if (dragging.value && mounted) _iris.reverse();
+    }
+
+    dragging.addListener(reopen);
+    await navigator.push(_OutOfTheDarkRoute(builder: (_) => LobbyScreen(session: session)));
+    dragging.removeListener(reopen);
     if (!mounted) return;
     setState(() => _leaving = false);
     _iris.reverse();
@@ -204,109 +216,157 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final layout = HomeAlleyLayout(constraints.biggest, MediaQuery.paddingOf(context));
-            return Stack(
-              fit: StackFit.expand,
-              children: [
-                RepaintBoundary(
-                  child: CustomPaint(painter: HomeWallPainter(layout, plaque: _Texts.alley)),
-                ),
-                RepaintBoundary(
-                  child: CustomPaint(
-                    painter: HomeNeonPainter(sign: layout.sign, cap: layout.cap, state: _neon),
+            // I pittori sbordano di qualche mattone oltre lo schermo: va
+            // tagliato, o si vede quando la pagina scorre via su iPhone.
+            return ClipRect(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  RepaintBoundary(
+                    child: CustomPaint(painter: HomeWallPainter(layout, plaque: _Texts.alley)),
                   ),
-                ),
-                // Il titolo vero: i tubi li disegna il pittore, ma chi usa
-                // VoiceOver deve poterlo leggere. E chi tocca l'insegna la
-                // manda in corto.
-                Positioned.fromRect(
-                  rect: layout.sign,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: _touchSign,
-                    child: Semantics(
-                      header: true,
-                      child: const FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(_Texts.title, style: TextStyle(color: Color(0x00000000))),
-                      ),
-                    ),
-                  ),
-                ),
-                _posted(
-                  rect: layout.mainPoster,
-                  tilt: -0.016,
-                  at: 1.75,
-                  child: HomeTonightPoster(
-                    banner: _Texts.tonight,
-                    title: _Texts.sharedTitle,
-                    blurb: _Texts.sharedBlurb,
-                    action: _Texts.createRoom,
-                    onTap: _createRoom,
-                    ambient: _ambient,
-                  ),
-                ),
-                _posted(
-                  rect: layout.leftPoster,
-                  tilt: 0.030,
-                  at: 2.05,
-                  child: HomeSoonPoster(
-                    title: _Texts.ownTitle,
-                    blurb: _Texts.ownBlurb,
-                    strip: _Texts.soon,
-                    emblem: HomeSoonEmblem.phones,
-                    paper: const Color(0xFF1C3148),
-                    seed: 8,
-                    onTap: () => _notYet(_Texts.ownTeaser),
-                  ),
-                ),
-                _posted(
-                  rect: layout.rightPoster,
-                  tilt: -0.038,
-                  at: 2.25,
-                  child: HomeSoonPoster(
-                    title: _Texts.rankedTitle,
-                    blurb: _Texts.rankedBlurb,
-                    strip: _Texts.soon,
-                    emblem: HomeSoonEmblem.laurel,
-                    paper: const Color(0xFF581019),
-                    seed: 21,
-                    onTap: () => _notYet(_Texts.rankedTeaser),
-                  ),
-                ),
-                IgnorePointer(
-                  child: RepaintBoundary(
+                  RepaintBoundary(
                     child: CustomPaint(
-                      painter: HomeStreetPainter(layout: layout, ambient: _ambient, intro: _intro, neon: _neon),
+                      painter: HomeNeonPainter(sign: layout.sign, cap: layout.cap, state: _neon),
                     ),
                   ),
-                ),
-                Positioned.fromRect(
-                  rect: layout.caption,
-                  child: IgnorePointer(
-                    child: HomeCaption(
-                      key: _caption,
-                      lines: _Texts.captions,
-                      first: _firstCaption,
-                      delay: HomeStreetPainter.opening - 0.3,
-                    ),
-                  ),
-                ),
-                IgnorePointer(
-                  ignoring: !_leaving,
-                  child: CustomPaint(
-                    painter: HomeIrisPainter(
-                      closing: _iris,
-                      focus: Offset(
-                        layout.mainPoster.center.dx,
-                        layout.mainPoster.bottom - layout.mainPoster.height * 0.14,
+                  // Il titolo vero: i tubi li disegna il pittore, ma chi usa
+                  // VoiceOver deve poterlo leggere. E chi tocca l'insegna la
+                  // manda in corto.
+                  Positioned.fromRect(
+                    rect: layout.sign,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: _touchSign,
+                      child: Semantics(
+                        header: true,
+                        child: const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(_Texts.title, style: TextStyle(color: Color(0x00000000))),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                  if (widget.onSettings case final onSettings?)
+                    Positioned.fromRect(
+                      rect: layout.slot,
+                      child: HomeSettingsPlate(
+                        label: _Texts.settings,
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          onSettings();
+                        },
+                      ),
+                    ),
+                  _posted(
+                    rect: layout.mainPoster,
+                    tilt: -0.016,
+                    at: 1.75,
+                    child: HomeTonightPoster(
+                      banner: _Texts.tonight,
+                      title: _Texts.sharedTitle,
+                      blurb: _Texts.sharedBlurb,
+                      action: _Texts.createRoom,
+                      onTap: _createRoom,
+                      ambient: _ambient,
+                    ),
+                  ),
+                  _posted(
+                    rect: layout.leftPoster,
+                    tilt: 0.030,
+                    at: 2.05,
+                    child: HomeSoonPoster(
+                      title: _Texts.ownTitle,
+                      blurb: _Texts.ownBlurb,
+                      strip: _Texts.soon,
+                      emblem: HomeSoonEmblem.phones,
+                      paper: const Color(0xFF1C3148),
+                      seed: 8,
+                      onTap: () => _notYet(_Texts.ownTeaser),
+                    ),
+                  ),
+                  _posted(
+                    rect: layout.rightPoster,
+                    tilt: -0.038,
+                    at: 2.25,
+                    child: HomeSoonPoster(
+                      title: _Texts.rankedTitle,
+                      blurb: _Texts.rankedBlurb,
+                      strip: _Texts.soon,
+                      emblem: HomeSoonEmblem.laurel,
+                      paper: const Color(0xFF581019),
+                      seed: 21,
+                      onTap: () => _notYet(_Texts.rankedTeaser),
+                    ),
+                  ),
+                  IgnorePointer(
+                    child: RepaintBoundary(
+                      child: CustomPaint(
+                        painter: HomeStreetPainter(layout: layout, ambient: _ambient, intro: _intro, neon: _neon),
+                      ),
+                    ),
+                  ),
+                  Positioned.fromRect(
+                    rect: layout.caption,
+                    child: IgnorePointer(
+                      child: HomeCaption(
+                        key: _caption,
+                        lines: _Texts.captions,
+                        first: _firstCaption,
+                        delay: HomeStreetPainter.opening - 0.3,
+                      ),
+                    ),
+                  ),
+                  IgnorePointer(
+                    ignoring: !_leaving,
+                    child: CustomPaint(
+                      painter: HomeIrisPainter(
+                        closing: _iris,
+                        focus: Offset(
+                          layout.mainPoster.center.dx,
+                          layout.mainPoster.bottom - layout.mainPoster.height * 0.14,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+/// La strada verso la lobby. All'andata la pagina affiora dal nero in cui
+/// l'iride ha appena chiuso il vicolo; una volta arrivata si comporta come
+/// ogni altra pagina, e su iPhone si torna indietro trascinando dal bordo.
+class _OutOfTheDarkRoute extends MaterialPageRoute<void> {
+  _OutOfTheDarkRoute({required super.builder});
+
+  bool _arrived = false;
+
+  @override
+  TickerFuture didPush() => super.didPush()..whenCompleteOrCancel(() => _arrived = true);
+
+  @override
+  Widget buildTransitions(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    // La transizione di sistema c'è sempre, perché è lei a portare il gesto
+    // del ritorno: all'andata però la si tiene ferma a fine corsa, e a
+    // muoversi è solo la dissolvenza.
+    return FadeTransition(
+      opacity: _arrived ? kAlwaysCompleteAnimation : animation,
+      child: super.buildTransitions(
+        context,
+        _arrived ? animation : kAlwaysCompleteAnimation,
+        secondaryAnimation,
+        child,
       ),
     );
   }

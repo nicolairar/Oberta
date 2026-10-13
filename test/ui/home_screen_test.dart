@@ -1,6 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omerta/main.dart';
+import 'package:omerta/ui/screens/home_screen.dart';
+import 'package:omerta/ui/theme/app_theme.dart';
 
 void _usePhone(WidgetTester tester, Size size, {double top = 59, double bottom = 34}) {
   tester.view.physicalSize = size;
@@ -31,7 +34,7 @@ void main() {
         expect(tester.takeException(), isNull, reason: 'fotogramma $frame');
       }
 
-      expect(find.text('OMERTÀ'), findsOneWidget);
+      expect(find.text('OBERTÀ'), findsOneWidget);
       expect(find.text('UN TELEFONO PER TUTTI'), findsOneWidget);
       expect(find.text('CREA STANZA'), findsOneWidget);
       expect(find.text('UN TELEFONO\nA TESTA'), findsOneWidget);
@@ -70,7 +73,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.binding.hasScheduledFrame, isFalse);
 
-    await tester.tap(find.text('OMERTÀ'));
+    await tester.tap(find.text('OBERTÀ'));
     await tester.pumpAndSettle();
     expect(tester.binding.hasScheduledFrame, isFalse, reason: 'l\'insegna toccata non riparte');
 
@@ -118,5 +121,48 @@ void main() {
     expect(find.text('CREA STANZA'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('dalla lobby si torna nel vicolo trascinando dal bordo, come su ogni iPhone', (tester) async {
+    _usePhone(tester, const Size(393, 852));
+    _reduceAnimations(tester);
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    try {
+      await tester.pumpWidget(const OmertaApp());
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('CREA STANZA'));
+      await tester.pumpAndSettle();
+      expect(find.text('CODICE STANZA'), findsOneWidget);
+
+      await tester.dragFrom(const Offset(4, 420), const Offset(330, 0));
+      await tester.pumpAndSettle();
+      expect(find.text('CODICE STANZA'), findsNothing);
+      expect(find.text('CREA STANZA'), findsOneWidget);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  testWidgets('la targhetta delle impostazioni c\'è solo se qualcuno la ascolta', (tester) async {
+    _usePhone(tester, const Size(375, 667), top: 20, bottom: 0);
+    _reduceAnimations(tester);
+    await tester.pumpWidget(const OmertaApp());
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Impostazioni'), findsNothing);
+
+    var opened = 0;
+    await tester.pumpWidget(MaterialApp(
+      theme: buildAppTheme(),
+      home: HomeScreen(onSettings: () => opened++),
+    ));
+    await tester.pumpAndSettle();
+    final plate = tester.getRect(find.byTooltip('Impostazioni'));
+    expect(plate.top, greaterThanOrEqualTo(20), reason: 'sotto la tacca');
+    expect(plate.right, lessThanOrEqualTo(375));
+    expect(plate.width, greaterThanOrEqualTo(44), reason: 'abbastanza grande per un dito');
+
+    await tester.tap(find.byTooltip('Impostazioni'));
+    expect(opened, 1);
+    expect(find.text('CREA STANZA'), findsOneWidget, reason: 'si resta nel vicolo');
   });
 }
