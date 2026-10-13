@@ -5,10 +5,12 @@ import 'picker.dart';
 /// dove siamo, cosa succede, come si chiude. Tre battute brevi.
 /// Ogni strato si pesca per conto suo, quindi due scene uguali sono rarissime.
 class DeathStory {
-  /// L'azione del Cecchino e quella di chi viene salvato dal Dottore: non
-  /// stanno nel mazzo della famiglia, ma hanno anche loro una scena.
+  /// L'azione del Cecchino, quella di chi viene salvato dal Dottore e quella
+  /// del colpo che si ferma sulla fiaschetta: non stanno nel mazzo della
+  /// famiglia, ma hanno anche loro una scena.
   static const sniperId = 'cecchino';
   static const rescueId = 'dottore';
+  static const luckyId = 'fiaschetta';
 
   final StoryPiece scene;
   final StoryPiece method;
@@ -49,6 +51,15 @@ class DeathStory {
         method: StoryPiece(rescueId, picker.pick('death.rescue', pack.rescues)),
         epilogue: null,
         fact: pack.savedFact,
+      );
+
+  /// L'agguato andato a vuoto da solo: il colpo c'è stato, ma chi era nel
+  /// mirino ha la pelle dura e resta in piedi.
+  factory DeathStory.lucky(Picker picker, NarrationPack pack, CitySetting city) => DeathStory(
+        scene: picker.pick('death.scene', city.scenes),
+        method: StoryPiece(luckyId, picker.pick('death.lucky', pack.shrugs)),
+        epilogue: null,
+        fact: pack.shruggedFact,
       );
 
   /// Vero se chi era nel mirino è ancora in gioco.

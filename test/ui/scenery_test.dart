@@ -81,12 +81,14 @@ void main() {
       for (final method in italianPack.methods) deathActFor(method.id),
       deathActFor(DeathStory.sniperId),
       deathActFor(DeathStory.rescueId),
+      deathActFor(DeathStory.luckyId),
     };
-    expect(staged, DeathAct.values.toSet().difference({DeathAct.lucky}),
-        reason: 'nessuna coreografia resta senza copione');
+    expect(staged, DeathAct.values.toSet(), reason: 'nessuna coreografia resta senza copione');
     expect(deathActFor(DeathStory.sniperId), DeathAct.sniper);
     expect(deathActFor(DeathStory.rescueId), DeathAct.rescue);
+    expect(deathActFor(DeathStory.luckyId), DeathAct.lucky);
     expect(DeathAct.rescue.survives, isTrue);
+    expect(DeathAct.lucky.survives, isTrue);
     expect(DeathAct.sniper.survives, isFalse);
     expect(deathActFor('pugnale'), DeathAct.knife);
     expect(deathActFor('violino'), DeathAct.burst);

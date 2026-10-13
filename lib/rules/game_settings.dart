@@ -6,7 +6,8 @@ enum TieBreak {
   /// Sorteggio tra i più votati.
   random,
 
-  /// Il voto del capo (il primo mafioso vivo) vale doppio.
+  /// Il voto del capo vale doppio: è il Padrino finché è vivo, poi il primo
+  /// della famiglia, in ordine di posto, che vota l'agguato.
   boss,
 }
 

@@ -9,7 +9,7 @@ enum Visibility {
   /// Una squadra che si conosce (i mafiosi tra loro).
   team,
 
-  /// Chi se l'è guadagnata (l'esito di un'indagine).
+  /// Chi se l'è guadagnata (l'esito di un'indagine, una fossa scavata).
   acquired,
 
   /// Tutti (il ruolo di un linciato, uno scoop del giornale).
@@ -26,12 +26,18 @@ class Fact {
   final Visibility visibility;
   final Set<Player> audience;
 
+  /// Vero se [team] è la fazione che *risulta*, non per forza quella vera:
+  /// è così l'esito di un'indagine, che il Padrino e il Pregiudicato
+  /// ingannano. Un fatto certo sulla stessa persona conta di più.
+  final bool apparent;
+
   const Fact({
     required this.subject,
     required this.team,
     this.role,
     required this.visibility,
     this.audience = const {},
+    this.apparent = false,
   });
 
   bool visibleTo(Player? viewer) =>

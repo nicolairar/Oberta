@@ -61,6 +61,11 @@ class NarrationPack {
   final List<String> rescues;
   final String savedFact;
 
+  /// Il colpo che non va a segno perché chi era nel mirino ha la pelle
+  /// dura: si ferma sulla fiaschetta nel taschino. Il fatto non dice perché.
+  final List<String> shrugs;
+  final String shruggedFact;
+
   /// Gli strati di una morte notturna che non dipendono dalla città:
   /// l'azione e lo stacco finale. L'ambientazione viene dalla città.
   final List<StoryPiece> methods;
@@ -69,6 +74,10 @@ class NarrationPack {
   final List<String> scoops;
   final String scoopMafia;
   final String scoopClean;
+
+  /// La bocca cucita dal Sarto: chi viene nominato oggi non può parlare.
+  final List<String> silences;
+  final String silencedFact;
 
   final String dayInstruction;
   final String oneMinute;
@@ -109,11 +118,15 @@ class NarrationPack {
     required this.sniperShots,
     required this.rescues,
     required this.savedFact,
+    required this.shrugs,
+    required this.shruggedFact,
     required this.methods,
     required this.epilogues,
     required this.scoops,
     required this.scoopMafia,
     required this.scoopClean,
+    required this.silences,
+    required this.silencedFact,
     required this.dayInstruction,
     required this.oneMinute,
     required this.manyMinutes,

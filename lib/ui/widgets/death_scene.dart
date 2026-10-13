@@ -67,6 +67,7 @@ DeathAct deathActFor(String methodId) => switch (methodId) {
       'bacio' => DeathAct.kiss,
       DeathStory.sniperId => DeathAct.sniper,
       DeathStory.rescueId => DeathAct.rescue,
+      DeathStory.luckyId => DeathAct.lucky,
       _ => DeathAct.knife,
     };
 

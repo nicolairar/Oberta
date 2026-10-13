@@ -21,11 +21,25 @@ NarratorScript scriptIn(String cityId, int seed) => NarratorScript(
     );
 
 /// Il rapporto di una notte in cui la famiglia ha ucciso [victims].
-DawnReport night(int round, List<Player> victims, {Exposure? scoop, Team? winner}) => DawnReport(
+DawnReport night(
+  int round,
+  List<Player> victims, {
+  Exposure? scoop,
+  Player? silenced,
+  Team? winner,
+}) =>
+    DawnReport(
       round: round,
       attacks: [for (final victim in victims) NightAttack(victim, AttackSource.family, AttackOutcome.killed)],
       scoop: scoop,
+      silenced: silenced,
       winner: winner,
+    );
+
+/// Una notte in cui hanno sparato a [target], e il colpo non è andato a segno.
+DawnReport shrugged(Player target, {AttackSource source = AttackSource.family}) => DawnReport(
+      round: 2,
+      attacks: [NightAttack(target, source, AttackOutcome.shrugged)],
     );
 
 String textOf(List<ScriptLine> lines) => lines.map((line) => line.text).join(' ');
@@ -121,9 +135,11 @@ void main() {
         ...italianPack.secondVictims,
         ...italianPack.sniperShots,
         ...italianPack.rescues,
+        ...italianPack.shrugs,
         for (final piece in italianPack.methods) piece.text,
         for (final piece in italianPack.epilogues) piece.text,
         ...italianPack.scoops,
+        ...italianPack.silences,
         ...italianPack.voteCalls,
         ...italianPack.lynchScenes,
         ...italianPack.lynchedInnocent,
@@ -138,6 +154,64 @@ void main() {
       }
       expect(words(italianPack.howToPlay), lessThanOrEqualTo(32));
       expect(words(italianPack.nightInstruction), lessThanOrEqualTo(16));
+      for (final fact in [italianPack.savedFact, italianPack.shruggedFact, italianPack.silencedFact]) {
+        expect(words(fact), lessThanOrEqualTo(18), reason: fact);
+      }
+      for (final kind in NightTaskKind.values) {
+        expect(words(italianPack.taskHints[kind]!), lessThanOrEqualTo(16), reason: kind.name);
+      }
+    });
+
+    test('le battute nuove nominano sempre di chi parlano', () {
+      expect(italianPack.shrugs.length, greaterThanOrEqualTo(3));
+      expect(italianPack.silences.length, greaterThanOrEqualTo(3));
+      final lines = [
+        ...italianPack.shrugs,
+        italianPack.shruggedFact,
+        ...italianPack.silences,
+        italianPack.silencedFact,
+      ];
+      for (final line in lines) {
+        expect(line, contains('{name}'), reason: line);
+      }
+    });
+
+    test('il colpo andato a vuoto è una fiaschetta, e non dice chi ha la pelle dura', () {
+      for (final line in italianPack.shrugs) {
+        expect(line, contains('fiaschetta'), reason: 'in scena si vede quella');
+      }
+      final text = [...italianPack.shrugs, italianPack.shruggedFact].join(' ').toUpperCase();
+      expect(text, isNot(contains('REDUCE')));
+      expect(text, isNot(contains('DOTTORE')), reason: 'stavolta il Dottore non c\'entra');
+      expect(italianPack.shruggedFact, contains('resta in gioco'));
+    });
+
+    test('nessuna battuta d\'atmosfera ruba il nome a un ruolo', () {
+      // "Il becchino ha dormito" suonerebbe come un indizio, ora che c'è Il Becchino.
+      final labels = [for (final role in Role.values) role.label.toUpperCase()];
+      final atmosphere = [
+        ...italianPack.firstNights,
+        ...italianPack.nights,
+        ...italianPack.quietDawns,
+        ...italianPack.secondVictims,
+        ...italianPack.sniperShots,
+        ...italianPack.shrugs,
+        ...italianPack.silences,
+        ...italianPack.voteCalls,
+        ...italianPack.noLynch,
+        for (final piece in italianPack.methods) piece.text,
+        for (final piece in italianPack.epilogues) piece.text,
+      ].join(' ').toUpperCase();
+      for (final label in labels) {
+        expect(atmosphere, isNot(contains(label)), reason: label);
+      }
+      expect(italianPack.rescues.join(' ').toLowerCase(), isNot(contains('becchino')));
+    });
+
+    test('chi deve tacere lo sa in modo chiaro: niente parole, ma resta in gioco', () {
+      expect(italianPack.silencedFact, contains('non può parlare'));
+      expect(italianPack.silencedFact.toLowerCase(), contains('vota'));
+      expect(italianPack.silencedFact, contains('eliminare'));
     });
 
     test('nessuno chiude gli occhi: ci si passa il telefono', () {
@@ -146,8 +220,14 @@ void main() {
         italianPack.nightInstruction,
         italianPack.nobodyDied,
         italianPack.victimFact,
+        italianPack.shruggedFact,
+        italianPack.silencedFact,
         ...italianPack.firstNights,
         ...italianPack.nights,
+        ...italianPack.shrugs,
+        ...italianPack.silences,
+        ...italianPack.taskPrompts.values,
+        ...italianPack.taskHints.values,
       ].join(' ').toLowerCase();
       expect(everything, isNot(contains('occhi')));
       expect(italianPack.nightInstruction, contains('telefono'));
@@ -190,9 +270,19 @@ void main() {
       expect(saved.fact, italianPack.savedFact);
       expect(saved.paragraphs, hasLength(2), reason: 'niente stacco finale: chiude il fatto');
 
+      final lucky = DeathStory.lucky(picker, italianPack, chicago);
+      expect(lucky.method.id, DeathStory.luckyId);
+      expect(lucky.survived, isTrue);
+      expect(lucky.fact, italianPack.shruggedFact);
+      expect(italianPack.shrugs, contains(lucky.method.text));
+      expect(chicago.scenes, contains(lucky.scene));
+      expect(lucky.paragraphs, hasLength(2), reason: 'niente stacco finale: chiude il fatto');
+
       final ids = italianPack.methods.map((piece) => piece.id);
       expect(ids, isNot(contains(DeathStory.sniperId)));
       expect(ids, isNot(contains(DeathStory.rescueId)));
+      expect(ids, isNot(contains(DeathStory.luckyId)));
+      expect({DeathStory.sniperId, DeathStory.rescueId, DeathStory.luckyId}, hasLength(3));
       for (final line in [...italianPack.sniperShots, ...italianPack.rescues, italianPack.savedFact]) {
         expect(line, contains('{name}'), reason: line);
       }
@@ -226,10 +316,15 @@ void main() {
               night(1, [sara, luca], scoop: Exposure(luca, Team.mafia)),
               discussion: threeMinutes,
             ),
+            ...script.dawn(night(2, [sara], silenced: luca), discussion: threeMinutes),
+            ...script.dawn(shrugged(sara), discussion: threeMinutes),
+            ...script.dawn(shrugged(sara, source: AttackSource.sniper), discussion: threeMinutes),
             ...script.voteCall(),
             ...script.lynch(const LynchReport(round: 1)),
             ...script.lynch(const LynchReport(round: 1, condemned: sara, role: Role.medico)),
             ...script.lynch(const LynchReport(round: 1, condemned: sara, role: Role.mafioso)),
+            for (final role in Role.values)
+              ...script.lynch(LynchReport(round: 1, condemned: sara, role: role)),
             ...script.ending(Team.mafia),
             ...script.ending(Team.citizens),
           ];
@@ -249,6 +344,12 @@ void main() {
             words(script.dawn(night(1, [sara]), discussion: threeMinutes)),
             lessThanOrEqualTo(60),
           );
+          expect(
+            words(script.dawn(night(1, [sara], silenced: luca), discussion: threeMinutes)),
+            lessThanOrEqualTo(95),
+            reason: 'una morte e una bocca cucita: la pagina più lunga di un\'alba normale',
+          );
+          expect(words(script.dawn(shrugged(sara), discussion: threeMinutes)), lessThanOrEqualTo(60));
           expect(words(script.voteCall()), lessThanOrEqualTo(25));
           expect(
             words(script.lynch(const LynchReport(round: 1, condemned: sara, role: Role.medico))),
@@ -452,6 +553,132 @@ void main() {
       expect(facts[1], 'Stanotte è morta una persona: Luca. Il suo ruolo resta segreto.');
       expect(textOf(lines), isNot(contains('{name}')));
       expect(textOf(lines), isNot(contains(italianPack.nobodyDied)));
+    });
+
+    test('il colpo andato a vuoto: luogo, fiaschetta, e un fatto che non fa nomi di ruolo', () {
+      final script = scriptIn('palermo', 6);
+      final roleNames = [for (final role in Role.values) role.label.toUpperCase()];
+      for (final source in AttackSource.values) {
+        for (var i = 0; i < 30; i++) {
+          final report = shrugged(sara, source: source);
+          final stories = script.stage(report);
+          expect(stories.single.method.id, DeathStory.luckyId, reason: source.name);
+
+          final lines = script.dawn(report, discussion: threeMinutes, stories: stories);
+          expect(lines, hasLength(4), reason: 'luogo, azione, fatto, istruzione');
+          expect(lines[0].text, matches(RegExp('^(Esterno|Interno), notte')));
+          expect(lines[1].text, contains('Sara'));
+          expect(lines[1].text, contains('fiaschetta'));
+          expect(factsOf(lines).first,
+              'Stanotte hanno sparato a Sara, ma il colpo non è andato a segno. Sara resta in gioco.');
+          final text = textOf(lines).toUpperCase();
+          expect(text, isNot(contains('{')));
+          expect(text, isNot(contains(italianPack.nobodyDied.toUpperCase())));
+          for (final name in roleNames) {
+            expect(text, isNot(contains(name)), reason: name);
+          }
+        }
+      }
+    });
+
+    test('una notte può avere un morto, un salvataggio e un colpo a vuoto: tre scene diverse', () {
+      final script = scriptIn('new-york', 2);
+      const mario = Player(id: 'mario', name: 'Mario');
+      const report = DawnReport(round: 3, attacks: [
+        NightAttack(sara, AttackSource.family, AttackOutcome.shrugged),
+        NightAttack(luca, AttackSource.sniper, AttackOutcome.killed),
+      ]);
+      expect(script.stage(report).map((story) => story.method.id), [DeathStory.luckyId, DeathStory.sniperId]);
+
+      const other = DawnReport(round: 3, attacks: [
+        NightAttack(sara, AttackSource.sniper, AttackOutcome.healed),
+        NightAttack(mario, AttackSource.family, AttackOutcome.killed),
+      ]);
+      final stories = script.stage(other);
+      expect(stories.first.method.id, DeathStory.rescueId);
+      expect(italianPack.methods.map((piece) => piece.id), contains(stories.last.method.id));
+    });
+
+    test('la bocca cucita si annuncia all\'alba, prima di aprire la discussione', () {
+      final script = scriptIn('napoli', 5);
+      for (var i = 0; i < 20; i++) {
+        final lines = script.dawn(night(2, [sara], silenced: luca), discussion: threeMinutes);
+        final facts = factsOf(lines);
+        expect(facts, [
+          'Stanotte è morta una persona: Sara. Il suo ruolo resta segreto.',
+          'Oggi Luca non può parlare durante la discussione. Vota a gesti, e resta tra chi potete eliminare.',
+          'Avete 3 minuti per discutere. Poi votate chi eliminare.',
+        ]);
+        final announcement = lines[lines.length - 3];
+        expect(announcement.isFact, isFalse);
+        expect(announcement.text, contains('Luca'));
+        expect(italianPack.silences.map((line) => line.replaceAll('{name}', 'Luca')), contains(announcement.text));
+      }
+    });
+
+    test('anche in una notte tranquilla qualcuno può svegliarsi con la bocca cucita', () {
+      final lines = scriptIn('chicago', 4).dawn(night(1, [], silenced: luca), discussion: threeMinutes);
+      final facts = factsOf(lines);
+      expect(facts.first, 'Stanotte non è morto nessuno.');
+      expect(facts[1], startsWith('Oggi Luca non può parlare'));
+      expect(facts, hasLength(3));
+    });
+
+    test('lo scoop viene prima del silenzio: prima le notizie, poi le regole del giorno', () {
+      final lines = scriptIn('chicago', 4).dawn(
+        night(1, [], scoop: Exposure(sara, Team.mafia), silenced: luca),
+        discussion: threeMinutes,
+      );
+      final facts = factsOf(lines);
+      expect(facts[1], contains('Sara sta con la famiglia'));
+      expect(facts[2], startsWith('Oggi Luca non può parlare'));
+    });
+
+    test('se la partita finisce all\'alba, il silenzio non si annuncia: non c\'è discussione', () {
+      final lines = scriptIn('chicago', 5).dawn(
+        night(3, [sara], silenced: luca, winner: Team.mafia),
+        discussion: threeMinutes,
+      );
+      expect(textOf(lines), isNot(contains('Luca')));
+      expect(factsOf(lines), hasLength(1));
+    });
+
+    test('il patibolo chiama ogni ruolo col suo nome e la sua squadra', () {
+      final script = scriptIn('palermo', 2);
+      String card(Role role) => script.lynch(LynchReport(round: 1, condemned: sara, role: role))[1].text;
+
+      expect(card(Role.padrino), 'La carta si gira. Sara era… IL PADRINO. Stava con la famiglia.');
+      expect(card(Role.sarto), 'La carta si gira. Sara era… IL SARTO. Stava con la famiglia.');
+      expect(card(Role.becchino), 'La carta si gira. Sara era… IL BECCHINO. Stava con gli onesti.');
+      expect(card(Role.guardaspalle), 'La carta si gira. Sara era… IL GUARDASPALLE. Stava con gli onesti.');
+      expect(card(Role.reduce), 'La carta si gira. Sara era… IL REDUCE. Stava con gli onesti.');
+      expect(card(Role.pregiudicato), 'La carta si gira. Sara era… IL PREGIUDICATO. Stava con gli onesti.',
+          reason: 'la carta dice la verità, non la fedina');
+    });
+
+    test('condannare Padrino o Sarto fa reagire come per un mafioso; il Pregiudicato no', () {
+      final script = scriptIn('chicago', 8);
+      String reaction(Role role) => script.lynch(LynchReport(round: 1, condemned: sara, role: role)).last.text;
+      for (var i = 0; i < 20; i++) {
+        expect(italianPack.lynchedMafioso, contains(reaction(Role.padrino)));
+        expect(italianPack.lynchedMafioso, contains(reaction(Role.sarto)));
+        expect(italianPack.lynchedInnocent, contains(reaction(Role.pregiudicato)));
+      }
+    });
+
+    test('ogni mossa nuova ha domanda e spiegazione sue', () {
+      final script = scriptIn('chicago', 1);
+      String prompt(NightTaskKind kind) => script.taskPrompt(NightTask(kind, const []), 1);
+      String hint(NightTaskKind kind) => script.taskHint(NightTask(kind, const []));
+
+      expect(prompt(NightTaskKind.silence), 'A chi cuci la bocca stanotte?');
+      expect(prompt(NightTaskKind.dig), 'Quale fossa scavi stanotte?');
+      expect(prompt(NightTaskKind.guard), 'A chi fai da scudo stanotte?');
+      expect(hint(NightTaskKind.silence), contains('due notti di fila'));
+      expect(hint(NightTaskKind.dig), contains('solo tu'));
+      expect(hint(NightTaskKind.guard), contains('muori tu'));
+      final hints = {for (final kind in NightTaskKind.values) hint(kind)};
+      expect(hints, hasLength(NightTaskKind.values.length));
     });
 
     test('gli agguati della famiglia pescano dal mazzo: mai due uguali di fila', () {
