@@ -399,6 +399,8 @@ class _GameScreenState extends State<GameScreen> {
 
   Widget _taskDoneView() {
     final finding = _finding;
+    final found = finding?.role;
+    final isMafia = finding?.team == Team.mafia;
     return Column(
       children: [
         const Spacer(),
@@ -409,9 +411,10 @@ class _GameScreenState extends State<GameScreen> {
           const SizedBox(height: 12),
           const Text('Nessuno saprà cosa hai scelto.', style: AppText.body),
         ] else ...[
-          const Icon(Icons.search, color: AppColors.gold, size: 56),
+          // L'indagine dice da che parte sta; la fossa dice chi era.
+          Icon(found?.icon ?? Icons.search, color: AppColors.gold, size: 56),
           const SizedBox(height: 20),
-          const Text('LA TUA INDAGINE', style: AppText.overline),
+          Text(found == null ? 'LA TUA INDAGINE' : 'NELLA FOSSA', style: AppText.overline),
           const SizedBox(height: 10),
           FittedBox(
             fit: BoxFit.scaleDown,
@@ -421,13 +424,24 @@ class _GameScreenState extends State<GameScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          Text(
-            finding.team == Team.mafia ? 'È DELLA FAMIGLIA' : 'È INNOCENTE',
-            style: AppText.display(
-              20,
-              color: finding.team == Team.mafia ? _mafiaRed : _cleanGreen,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              found != null
+                  ? 'ERA ${found.label.toUpperCase()}'
+                  : isMafia
+                      ? 'È DELLA FAMIGLIA'
+                      : 'È INNOCENTE',
+              style: AppText.display(20, color: isMafia ? _mafiaRed : _cleanGreen),
             ),
           ),
+          if (found != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              isMafia ? 'STAVA CON LA FAMIGLIA' : 'STAVA CON GLI ONESTI',
+              style: AppText.overline,
+            ),
+          ],
         ],
         const Spacer(),
         SizedBox(
@@ -438,6 +452,7 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  /// La griglia del giorno, uguale per tutti: sta in mezzo al tavolo.
   Widget _publicGrid({List<Player>? selectable}) {
     return PlayerGrid(
       players: widget.setup.players,
@@ -445,6 +460,7 @@ class _GameScreenState extends State<GameScreen> {
       knowledgeOf: (player) => _engine.knowledgeOf(null, player),
       selectable: selectable,
       selected: _selected,
+      silenced: _dawn.silenced,
       onSelect: (player) => setState(() => _selected = player),
     );
   }

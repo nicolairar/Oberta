@@ -17,10 +17,14 @@ class PlayerGrid extends StatelessWidget {
   /// Chi tiene il telefono, se la griglia è personale.
   final Player? viewer;
 
-  /// Chi si può toccare. `null` rende la griglia di sola lettura.
+  /// Chi si può toccare. `null` rende la griglia di sola lettura. Di solito
+  /// sono i vivi, ma non per forza: il Becchino sceglie tra i morti.
   final List<Player>? selectable;
   final Player? selected;
   final ValueChanged<Player>? onSelect;
+
+  /// Chi oggi ha la bocca cucita: lo si vede dal segno sul ritratto.
+  final Player? silenced;
 
   const PlayerGrid({
     super.key,
@@ -31,6 +35,7 @@ class PlayerGrid extends StatelessWidget {
     this.selectable,
     this.selected,
     this.onSelect,
+    this.silenced,
   });
 
   @override
@@ -46,15 +51,20 @@ class PlayerGrid extends StatelessWidget {
           _Entrance(
             index: index,
             child: _PlayerTile(
-            player: player,
-            alive: isAlive(player),
-            knowledge: knowledgeOf(player),
-            isViewer: player == viewer,
-            selected: player == selected,
-            enabled: selectable?.contains(player) ?? true,
-            onTap: selectable != null && selectable!.contains(player) && onSelect != null
-                ? () => onSelect!(player)
-                : null,
+              player: player,
+              alive: isAlive(player),
+              knowledge: knowledgeOf(player),
+              isViewer: player == viewer,
+              selected: player == selected,
+              silenced: player == silenced,
+              choice: selectable == null
+                  ? _Choice.none
+                  : selectable!.contains(player)
+                      ? _Choice.open
+                      : _Choice.closed,
+              onTap: selectable != null && selectable!.contains(player) && onSelect != null
+                  ? () => onSelect!(player)
+                  : null,
             ),
           ),
       ],
@@ -85,13 +95,18 @@ class _Entrance extends StatelessWidget {
   }
 }
 
+/// Se su una tessera c'è da scegliere: niente (la griglia si guarda e basta),
+/// sì, oppure no perché stavolta tocca ad altri.
+enum _Choice { none, open, closed }
+
 class _PlayerTile extends StatelessWidget {
   final Player player;
   final bool alive;
   final Knowledge knowledge;
   final bool isViewer;
   final bool selected;
-  final bool enabled;
+  final bool silenced;
+  final _Choice choice;
   final VoidCallback? onTap;
 
   const _PlayerTile({
@@ -100,19 +115,24 @@ class _PlayerTile extends StatelessWidget {
     required this.knowledge,
     required this.isViewer,
     required this.selected,
-    required this.enabled,
+    required this.silenced,
+    required this.choice,
     required this.onTap,
   });
+
+  /// Chi si può scegliere sta in piena luce, anche da morto: resta la croce
+  /// a dire che non c'è più. Gli altri sfumano, i morti più dei vivi.
+  double get _opacity => switch (choice) {
+        _Choice.open => 1,
+        _Choice.closed => alive ? 0.55 : 0.38,
+        _Choice.none => alive ? 1 : 0.38,
+      };
 
   @override
   Widget build(BuildContext context) {
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 200),
-      opacity: !alive
-          ? 0.38
-          : enabled
-              ? 1
-              : 0.55,
+      opacity: _opacity,
       child: Material(
         color: selected ? AppColors.surfaceHigh : AppColors.surface,
         borderRadius: BorderRadius.circular(16),
@@ -134,8 +154,19 @@ class _PlayerTile extends StatelessWidget {
               children: [
                 Stack(
                   alignment: Alignment.center,
+                  clipBehavior: Clip.none,
                   children: [
                     NoirAvatar(seed: player.name, size: 50, faded: !alive),
+                    if (silenced && alive)
+                      const Positioned(
+                        right: -8,
+                        top: -6,
+                        child: CircleAvatar(
+                          radius: 11,
+                          backgroundColor: AppColors.gold,
+                          child: Icon(Icons.voice_over_off, size: 14, color: AppColors.background),
+                        ),
+                      ),
                     // Il pugnale tipografico, non la croce: iOS disegna "✝" come emoji.
                     if (!alive)
                       const Text(
