@@ -6,6 +6,9 @@ import 'role.dart';
 /// Numero minimo di giocatori con un ruolo (narratore escluso).
 const minRolePlayers = 3;
 
+/// Numero massimo di giocatori con un ruolo: oltre, il tavolo non si regge.
+const maxRolePlayers = 16;
+
 /// Mazzo bilanciato per [count] giocatori: circa un mafioso ogni quattro,
 /// ruoli speciali che entrano man mano che il tavolo cresce, il resto cittadini.
 List<Role> rolesForPlayerCount(int count) {
