@@ -4,6 +4,8 @@ import '../../network/fake_local_session.dart';
 import '../../rules/player.dart';
 import '../../rules/role_assignment.dart';
 import '../theme/app_theme.dart';
+import '../widgets/noir_avatar.dart';
+import '../widgets/scene_scaffold.dart';
 import 'narrator_selection_screen.dart';
 
 class LobbyScreen extends StatefulWidget {
@@ -44,7 +46,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
   @override
   Widget build(BuildContext context) {
     final session = widget.session;
-    return Scaffold(
+    return SceneScaffold(
       appBar: AppBar(
         title: const Text('LOBBY'),
         actions: [
@@ -82,16 +84,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
                     itemBuilder: (context, index) {
                       final player = players[index];
                       return ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: AppColors.surfaceHigh,
-                          child: Text(
-                            player.name.characters.first.toUpperCase(),
-                            style: const TextStyle(
-                              color: AppColors.gold,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
+                        leading: NoirAvatar(seed: player.name, size: 46),
                         title: Text(
                           player.name,
                           style: const TextStyle(color: AppColors.textPrimary, fontSize: 17),

@@ -4,38 +4,27 @@ import '../../rules/game_setup.dart';
 import '../../rules/player.dart';
 import '../../rules/wheel_spin.dart';
 import '../theme/app_theme.dart';
-import '../widgets/spin_wheel.dart';
+import '../widgets/revolver_cylinder.dart';
+import '../widgets/scene_scaffold.dart';
 import 'role_deal_screen.dart';
 
-class NarratorWheelScreen extends StatefulWidget {
+/// Il narratore si sorteggia alla maniera della famiglia: un nome per camera,
+/// un giro di tamburo, e chi si ferma sotto il cane racconta.
+class NarratorDrawScreen extends StatefulWidget {
   final List<Player> players;
 
-  const NarratorWheelScreen({super.key, required this.players});
+  const NarratorDrawScreen({super.key, required this.players});
 
   @override
-  State<NarratorWheelScreen> createState() => _NarratorWheelScreenState();
+  State<NarratorDrawScreen> createState() => _NarratorDrawScreenState();
 }
 
-class _NarratorWheelScreenState extends State<NarratorWheelScreen> {
-  static const _palette = [Color(0xFF8E1620), Color(0xFF2B2320), Color(0xFF5A1B20)];
-
-  late final WheelSpin _spin = WheelSpin.random(segmentCount: widget.players.length);
-  late final List<WheelSegment> _segments = _buildSegments();
+class _NarratorDrawScreenState extends State<NarratorDrawScreen> {
+  // La camera sorteggiata deve fermarsi esattamente sotto il cane.
+  late final WheelSpin _spin = WheelSpin.random(segmentCount: widget.players.length, spread: 0);
   bool _stopped = false;
 
   Player get _narrator => widget.players[_spin.winnerIndex];
-
-  List<WheelSegment> _buildSegments() {
-    final count = widget.players.length;
-    return [
-      for (var i = 0; i < count; i++)
-        WheelSegment(
-          widget.players[i].name,
-          // L'ultimo spicchio non deve avere lo stesso colore del primo, che gli sta accanto.
-          _palette[i == count - 1 && i % 3 == 0 ? 1 : i % 3],
-        ),
-    ];
-  }
 
   void _continue() {
     final setup = GameSetup.deal(lobby: widget.players, narrator: _narrator);
@@ -46,7 +35,7 @@ class _NarratorWheelScreenState extends State<NarratorWheelScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SceneScaffold(
       appBar: AppBar(title: const Text('SORTEGGIO')),
       body: SafeArea(
         child: Padding(
@@ -57,10 +46,11 @@ class _NarratorWheelScreenState extends State<NarratorWheelScreen> {
               Expanded(
                 child: Center(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 28),
-                    child: SpinWheel(
-                      segments: _segments,
+                    padding: const EdgeInsets.fromLTRB(4, 40, 4, 24),
+                    child: RevolverCylinder(
+                      names: [for (final player in widget.players) player.name],
                       finalAngle: _spin.finalAngle,
+                      winnerIndex: _spin.winnerIndex,
                       onStopped: () => setState(() => _stopped = true),
                     ),
                   ),

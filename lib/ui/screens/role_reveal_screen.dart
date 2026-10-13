@@ -4,6 +4,7 @@ import '../../rules/game_setup.dart';
 import '../theme/app_theme.dart';
 import '../widgets/flip_role_card.dart';
 import '../widgets/handoff_view.dart';
+import '../widgets/scene_scaffold.dart';
 import 'game_screen.dart';
 
 /// Finché c'è un solo telefono, la carta si guarda a turno passandoselo.
@@ -45,7 +46,7 @@ class _RoleRevealScreenState extends State<RoleRevealScreen> {
 
     return PopScope(
       canPop: false,
-      child: Scaffold(
+      child: SceneScaffold(
         appBar: AppBar(
           automaticallyImplyLeading: false,
           title: Text('CARTA ${_index + 1} DI ${players.length}'),

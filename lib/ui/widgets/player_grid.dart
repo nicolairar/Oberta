@@ -5,6 +5,7 @@ import '../../rules/player.dart';
 import '../../rules/role.dart';
 import '../theme/app_theme.dart';
 import '../theme/role_style.dart';
+import 'noir_avatar.dart';
 
 /// Il tavolo visto dall'alto: la stessa griglia per tutti, con i segni di
 /// ruolo solo dove chi guarda ha diritto di saperlo.
@@ -38,11 +39,13 @@ class PlayerGrid extends StatelessWidget {
       crossAxisCount: 3,
       mainAxisSpacing: 10,
       crossAxisSpacing: 10,
-      childAspectRatio: 0.8,
+      childAspectRatio: 0.78,
       padding: const EdgeInsets.symmetric(vertical: 4),
       children: [
-        for (final player in players)
-          _PlayerTile(
+        for (final (index, player) in players.indexed)
+          _Entrance(
+            index: index,
+            child: _PlayerTile(
             player: player,
             alive: isAlive(player),
             knowledge: knowledgeOf(player),
@@ -52,8 +55,32 @@ class PlayerGrid extends StatelessWidget {
             onTap: selectable != null && selectable!.contains(player) && onSelect != null
                 ? () => onSelect!(player)
                 : null,
+            ),
           ),
       ],
+    );
+  }
+}
+
+/// Le tessere si posano sul tavolo una dopo l'altra, come carte servite.
+class _Entrance extends StatelessWidget {
+  final int index;
+  final Widget child;
+
+  const _Entrance({required this.index, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final wait = 55.0 * index;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: Duration(milliseconds: (320 + wait).round()),
+      curve: Interval(wait / (320 + wait), 1, curve: Curves.easeOutBack),
+      builder: (context, landed, child) => Opacity(
+        opacity: landed.clamp(0.0, 1.0),
+        child: Transform.scale(scale: 0.7 + 0.3 * landed, child: child),
+      ),
+      child: child,
     );
   }
 }
@@ -105,19 +132,23 @@ class _PlayerTile extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                CircleAvatar(
-                  radius: 22,
-                  backgroundColor: AppColors.background,
-                  // Il pugnale tipografico, non la croce: iOS disegna "✝" come emoji.
-                  child: Text(
-                    alive ? player.name.characters.first.toUpperCase() : '†',
-                    style: TextStyle(
-                      fontFamily: alive ? null : 'Georgia',
-                      color: alive ? AppColors.gold : AppColors.textSecondary,
-                      fontSize: alive ? 18 : 26,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    NoirAvatar(seed: player.name, size: 50, faded: !alive),
+                    // Il pugnale tipografico, non la croce: iOS disegna "✝" come emoji.
+                    if (!alive)
+                      const Text(
+                        '†',
+                        style: TextStyle(
+                          fontFamily: 'Georgia',
+                          color: AppColors.textPrimary,
+                          fontSize: 30,
+                          fontWeight: FontWeight.w700,
+                          shadows: [Shadow(color: Colors.black, blurRadius: 6)],
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 Text(

@@ -3,9 +3,6 @@
 Gioco tipo Lupus in Fabula / Mafia / Assassino, giocato **solo con gli smartphone**
 (niente carte, niente fogli). Tema noir/mafia, stile cartoon-noir.
 
-Due modalità: **LIVE** (tutti allo stesso tavolo, un telefono a testa, si parla a voce)
-e **ONLINE** (stanze con codice, da remoto).
-
 ## Le tre modalità
 
 | Modalità | Come si gioca | Cosa serve |
@@ -30,6 +27,17 @@ discussione, voto e verdetto finché una fazione vince.
   e ogni morte è raccontata come la scena di un film, composta a strati.
   Ogni pagina affianca al racconto una frase chiara, in evidenza, che dice
   cosa è successo e cosa si fa adesso.
+
+- **Grafica**: fondali animati con lo skyline di ogni città (luna, pioggia,
+  finestre accese, l'alba che sorge), ritratti da foto segnaletica per ogni
+  giocatore, il tamburo di un revolver per sorteggiare il narratore, un tavolo
+  da poker che distribuisce le carte.
+- **La scena del delitto**: all'alba si appoggia il telefono sul tavolo e la
+  morte della notte va in scena a sagome nere, con una coreografia per ogni
+  arma del copione. Poi il narratore la racconta.
+
+Tutto è disegnato in codice (`CustomPainter`): nessuna immagine, nessun font,
+nessuna dipendenza esterna, quindi nessuna licenza da tenere d'occhio.
 
 Manca ancora la rete tra telefoni: `FakeLocalSession` fa da stanza finta.
 
@@ -82,7 +90,8 @@ dei ruoli (eccetto il narratore umano, che già li conosce).
 1. ✅ Preparazione: stanza con codice, lobby, narratore, ruota, carta ruolo
 2. ✅ Partita completa su un telefono: notte, alba, giorno, voto, vittoria,
    con test sulle regole e sul copione
-3. ⏳ Grafica e animazioni: fondali, avatar, scene di morte a strati
+3. ⏳ Grafica e animazioni: fondali ✅, avatar ✅, scene di morte ✅,
+   suoni e musica ⏳
 4. Un telefono a testa in rete locale
 5. Server remoto (Supabase): partite a distanza, narratore automatico con voce
 6. Classificata, altri ruoli, inglese, pubblicazione

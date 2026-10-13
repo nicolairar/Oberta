@@ -7,6 +7,11 @@ void _usePhoneScreen(WidgetTester tester) {
   tester.view.physicalSize = const Size(1179, 2556);
   tester.view.devicePixelRatio = 3;
   addTearDown(tester.view.reset);
+  // I fondali animati non si fermano mai: nei test si chiede al sistema di
+  // ridurre le animazioni, come farebbe un utente dalle impostazioni.
+  tester.platformDispatcher.accessibilityFeaturesTestValue =
+      const FakeAccessibilityFeatures(disableAnimations: true);
+  addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
 }
 
 Future<void> _openLobbyWith(WidgetTester tester, int testPlayers) async {
@@ -37,9 +42,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Narratore automatico'));
     await tester.pumpAndSettle();
-    expect(find.text('Le carte sono pronte'), findsOneWidget);
+    expect(find.text('Le carte sono servite'), findsOneWidget);
 
-    await tester.tap(find.text('DISTRIBUISCI LE CARTE'));
+    await tester.tap(find.text('GUARDATE LE CARTE'));
     await tester.pumpAndSettle();
 
     for (var card = 1; card <= 3; card++) {
@@ -70,13 +75,13 @@ void main() {
 
     await tester.tap(find.text('AVVIA'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Sorteggiato dalla ruota'));
+    await tester.tap(find.text('Sorteggiato dal tamburo'));
     await tester.pumpAndSettle();
     expect(find.text('IL NARRATORE È'), findsOneWidget);
 
     await tester.tap(find.text('CONTINUA'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('DISTRIBUISCI LE CARTE'));
+    await tester.tap(find.text('GUARDATE LE CARTE'));
     await tester.pumpAndSettle();
 
     for (var card = 1; card <= 3; card++) {

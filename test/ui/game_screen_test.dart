@@ -7,6 +7,7 @@ import 'package:omerta/rules/player.dart';
 import 'package:omerta/rules/role.dart';
 import 'package:omerta/ui/screens/game_screen.dart';
 import 'package:omerta/ui/theme/app_theme.dart';
+import 'package:omerta/ui/widgets/death_scene.dart';
 import 'package:omerta/ui/widgets/player_grid.dart';
 
 const ada = Player(id: 'ada', name: 'Ada');
@@ -26,6 +27,11 @@ Future<void> pumpGame(WidgetTester tester, {Player? narrator, Size screen = cons
   tester.view.physicalSize = screen * 3;
   tester.view.devicePixelRatio = 3;
   addTearDown(tester.view.reset);
+  // I fondali animati non si fermano mai: nei test si chiede al sistema di
+  // ridurre le animazioni, come farebbe un utente dalle impostazioni.
+  tester.platformDispatcher.accessibilityFeaturesTestValue =
+      const FakeAccessibilityFeatures(disableAnimations: true);
+  addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
 
   await tester.pumpWidget(MaterialApp(
     theme: buildAppTheme(),
@@ -79,8 +85,8 @@ void main() {
     expect(find.text('NOTTE 1'), findsOneWidget);
     expect(find.text('LEGGETE AD ALTA VOCE'), findsOneWidget);
     expect(find.textContaining(RegExp(r'^(Chicago|New York|Palermo|Napoli|Las Vegas), 19\d\d$')), findsOneWidget);
-    expect(find.textContaining('Si gioca così.'), findsOneWidget);
-    expect(find.textContaining('Chiudete gli occhi.'), findsOneWidget);
+    expect(find.textContaining('Di notte la famiglia elimina una persona.'), findsOneWidget);
+    expect(find.textContaining('Passatevi il telefono.'), findsOneWidget);
     await tap(tester, 'COMINCIA LA NOTTE');
 
     await nightTurn(tester, ada, pick: carla);
@@ -98,9 +104,20 @@ void main() {
     await nightTurn(tester, dino);
     await tap(tester, 'FATTO');
 
+    // Prima del racconto, il delitto va in scena col telefono sul tavolo.
+    expect(find.text('Telefono\nsul tavolo'), findsOneWidget);
+    await tester.tap(find.text('BUIO IN SALA'));
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.byType(DeathScene), findsOneWidget);
+    expect(find.text('CARLA'), findsNothing, reason: 'il nome arriva solo alla fine della scena');
+    await tester.pump(const Duration(milliseconds: 7200));
+    expect(find.text('CARLA'), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(find.byType(DeathScene), findsNothing);
+
     expect(find.text('ALBA'), findsOneWidget);
     expect(find.text('Cronaca nera'), findsOneWidget);
-    expect(find.text('Aprite gli occhi. Stanotte è morta una persona: Carla. Il suo ruolo resta segreto.'), findsOneWidget);
+    expect(find.text('Stanotte è morta una persona: Carla. Il suo ruolo resta segreto.'), findsOneWidget);
     expect(find.textContaining('notte.'), findsWidgets, reason: 'la morte è raccontata come una scena');
     expect(find.textContaining('L\'Onesto'), findsNothing, reason: 'di notte il ruolo resta segreto');
     expect(find.text('Avete 3 minuti per discutere. Poi votate chi eliminare.'), findsOneWidget);
@@ -163,6 +180,9 @@ void main() {
     await tap(tester, 'FATTO');
     await nightTurn(tester, dino);
     await tap(tester, 'FATTO');
+    await tester.tap(find.text('BUIO IN SALA'));
+    await tester.pump(const Duration(milliseconds: 500));
+    await tap(tester, 'SALTA');
     await tap(tester, 'APRI LA DISCUSSIONE');
 
     expect(find.text('FAMIGLIA'), findsNothing, reason: 'l\'indagine non è pubblica');
@@ -227,7 +247,7 @@ void main() {
     }
     expect(pages, greaterThan(0));
     expect(find.text('COMINCIA LA NOTTE'), findsOneWidget);
-    expect(find.textContaining('Chiudete gli occhi.').hitTestable(), findsOneWidget, reason: 'l\'istruzione finale è in vista');
+    expect(find.textContaining('Passatevi il telefono.').hitTestable(), findsOneWidget, reason: 'l\'istruzione finale è in vista');
   });
 
   testWidgets('uscire dalla partita chiede conferma', (tester) async {

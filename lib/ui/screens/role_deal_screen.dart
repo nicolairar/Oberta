@@ -1,16 +1,15 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 
 import '../../rules/game_setup.dart';
 import '../../rules/role.dart';
 import '../theme/app_theme.dart';
 import '../theme/role_style.dart';
-import '../widgets/spin_wheel.dart';
+import '../widgets/deal_table.dart';
+import '../widgets/scene_scaffold.dart';
 import 'role_reveal_screen.dart';
 
-/// La ruota mescola il mazzo davanti a tutti. I ruoli in gioco sono pubblici,
-/// chi ha preso cosa no: per questo la ruota non ha freccia né vincitore.
+/// Le carte si distribuiscono davanti a tutti, coperte. Quali ruoli sono in
+/// gioco è pubblico; chi ha preso cosa no.
 class RoleDealScreen extends StatefulWidget {
   final GameSetup setup;
 
@@ -21,14 +20,12 @@ class RoleDealScreen extends StatefulWidget {
 }
 
 class _RoleDealScreenState extends State<RoleDealScreen> {
-  late final List<Role> _deck = widget.setup.roles.values.toList()
-    ..sort((a, b) => a.index.compareTo(b.index));
-  late final double _finalAngle = 2 * pi * (5 + Random().nextDouble());
-  bool _stopped = false;
+  bool _dealt = false;
 
   Map<Role, int> get _counts {
+    final deck = widget.setup.roles.values.toList()..sort((a, b) => a.index.compareTo(b.index));
     final counts = <Role, int>{};
-    for (final role in _deck) {
+    for (final role in deck) {
       counts[role] = (counts[role] ?? 0) + 1;
     }
     return counts;
@@ -37,8 +34,8 @@ class _RoleDealScreenState extends State<RoleDealScreen> {
   @override
   Widget build(BuildContext context) {
     final narrator = widget.setup.narrator;
-    return Scaffold(
-      appBar: AppBar(title: const Text('I RUOLI')),
+    return SceneScaffold(
+      appBar: AppBar(title: const Text('LE CARTE')),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -55,24 +52,19 @@ class _RoleDealScreenState extends State<RoleDealScreen> {
                 ),
               ),
               Expanded(
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 24),
-                    child: SpinWheel(
-                      segments: [for (final role in _deck) WheelSegment(role.label, role.color)],
-                      finalAngle: _finalAngle,
-                      duration: const Duration(milliseconds: 4200),
-                      showPointer: false,
-                      onStopped: () => setState(() => _stopped = true),
-                    ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: DealTable(
+                    names: [for (final player in widget.setup.players) player.name],
+                    onDealt: () => setState(() => _dealt = true),
                   ),
                 ),
               ),
               Text(
-                _stopped ? 'Le carte sono pronte' : 'Si mescolano le carte…',
+                _dealt ? 'Le carte sono servite' : 'Si mescola il mazzo…',
                 style: AppText.display(22, color: AppColors.textPrimary),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               Wrap(
                 alignment: WrapAlignment.center,
                 spacing: 8,
@@ -81,18 +73,18 @@ class _RoleDealScreenState extends State<RoleDealScreen> {
                   for (final entry in _counts.entries) _RoleChip(role: entry.key, count: entry.value),
                 ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _stopped
+                  onPressed: _dealt
                       ? () => Navigator.of(context).pushReplacement(
                             MaterialPageRoute(
                               builder: (_) => RoleRevealScreen(setup: widget.setup),
                             ),
                           )
                       : null,
-                  child: const Text('DISTRIBUISCI LE CARTE'),
+                  child: const Text('GUARDATE LE CARTE'),
                 ),
               ),
             ],
@@ -114,7 +106,7 @@ class _RoleChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
-        color: role.color.withValues(alpha: 0.55),
+        color: Color.lerp(role.color, Colors.black, 0.25),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: AppColors.gold.withValues(alpha: 0.4)),
       ),

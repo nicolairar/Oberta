@@ -53,7 +53,8 @@ ThemeData buildAppTheme() {
       surface: AppColors.surface,
     ),
     appBarTheme: AppBarTheme(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
       foregroundColor: AppColors.textPrimary,
       elevation: 0,
       scrolledUnderElevation: 0,
@@ -74,6 +75,7 @@ ThemeData buildAppTheme() {
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         foregroundColor: AppColors.gold,
+        backgroundColor: AppColors.background.withValues(alpha: 0.72),
         side: const BorderSide(color: AppColors.gold),
         padding: buttonPadding,
         shape: buttonShape,

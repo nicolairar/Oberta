@@ -41,7 +41,6 @@ class NarratorScript {
 
   List<ScriptLine> opening() => [
         _story(_picker.pick('opening', city.openings)),
-        _story(_picker.pick('premise', pack.premises)),
         _fact(pack.howToPlay),
       ];
 
@@ -50,8 +49,18 @@ class NarratorScript {
         _fact(pack.nightInstruction),
       ];
 
-  List<ScriptLine> dawn(DawnReport report, {required Duration discussion}) {
-    final lines = [_story(_picker.pick('dawn', pack.dawns))];
+  /// Sorteggia come è morta una vittima. Chi mette in scena il delitto e chi
+  /// lo racconta devono usare la stessa storia: si compone una volta sola.
+  DeathStory composeDeath() => DeathStory.compose(_picker, pack, city);
+
+  /// [stories] sono le morti già messe in scena, una per vittima; se mancano
+  /// vengono composte qui.
+  List<ScriptLine> dawn(
+    DawnReport report, {
+    required Duration discussion,
+    List<DeathStory>? stories,
+  }) {
+    final lines = <ScriptLine>[];
 
     if (report.victims.isEmpty) {
       lines.add(_fact(pack.nobodyDied));
@@ -60,7 +69,8 @@ class NarratorScript {
     for (var i = 0; i < report.victims.length; i++) {
       final name = report.victims[i].name;
       if (i > 0) lines.add(_story(_picker.pick('dawn.again', pack.secondVictims)));
-      for (final paragraph in DeathStory.compose(_picker, pack, city).paragraphs) {
+      final story = stories != null ? stories[i] : composeDeath();
+      for (final paragraph in story.paragraphs) {
         lines.add(_story(paragraph, name: name));
       }
       lines.add(_fact(pack.victimFact, name: name));
@@ -77,7 +87,6 @@ class NarratorScript {
       final minutes = discussion.inMinutes == 1
           ? pack.oneMinute
           : pack.manyMinutes.replaceAll('{minutes}', '${discussion.inMinutes}');
-      lines.add(_story(_picker.pick('day', pack.days)));
       lines.add(_fact(pack.dayInstruction.replaceAll('{minutes}', minutes)));
     }
     return lines;

@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../narration/death_story.dart';
 import '../../narration/narrator_script.dart';
 import '../../rules/game_engine.dart';
 import '../../rules/game_settings.dart';
@@ -12,9 +13,13 @@ import '../../rules/player.dart';
 import '../../rules/role.dart';
 import '../theme/app_theme.dart';
 import '../theme/role_style.dart';
+import '../widgets/avatar_spotlight.dart';
+import '../widgets/death_scene.dart';
 import '../widgets/handoff_view.dart';
 import '../widgets/narrator_roles_sheet.dart';
 import '../widgets/player_grid.dart';
+import '../widgets/role_reveal_card.dart';
+import '../widgets/scene_scaffold.dart';
 import '../widgets/script_card.dart';
 
 /// La partita su un solo telefono: il copione si legge ad alta voce, di notte
@@ -35,12 +40,16 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-enum _Stage { script, handoff, task, taskDone, toNarrator, day, vote, end }
+enum _Stage { script, handoff, task, taskDone, crimeIntro, crime, toNarrator, day, vote, end }
 
 class _ScriptPage {
   final IconData icon;
   final String title;
   final List<ScriptLine> lines;
+
+  /// Di chi parla la pagina: i loro ritratti prendono il posto dell'icona.
+  final List<String> portraits;
+  final bool portraitsFallen;
 
   /// Il ruolo che questa pagina svela. Resta coperto, insieme alle battute
   /// dopo la prima, finché chi legge non gira la carta.
@@ -52,6 +61,8 @@ class _ScriptPage {
     required this.icon,
     required this.title,
     required this.lines,
+    this.portraits = const [],
+    this.portraitsFallen = false,
     this.revealed,
     required this.action,
     required this.onAction,
@@ -69,11 +80,15 @@ class _GameScreenState extends State<GameScreen> {
   _Stage _stage = _Stage.script;
   int _step = 0;
   String _title = '';
+  SceneMood _mood = SceneMood.night;
   late _ScriptPage _page;
   List<Player> _queue = const [];
   int _turn = 0;
   Player? _selected;
   Exposure? _finding;
+  late DawnReport _dawn;
+  List<DeathStory> _deaths = const [];
+  int _crime = 0;
   List<ScriptLine> _voteLines = const [];
   List<ScriptLine> _endingLines = const [];
 
@@ -96,6 +111,7 @@ class _GameScreenState extends State<GameScreen> {
   void _enterNight() {
     final round = _engine.round;
     _title = 'NOTTE $round';
+    _mood = SceneMood.night;
     _stage = _Stage.script;
     _page = _ScriptPage(
       icon: Icons.nightlight_round,
@@ -122,6 +138,15 @@ class _GameScreenState extends State<GameScreen> {
       if (_turn + 1 < _queue.length) {
         _turn++;
         _stage = _Stage.handoff;
+        return;
+      }
+      // La notte è finita. Ogni morte si compone una volta sola: la stessa
+      // storia va prima in scena e poi nel copione del narratore.
+      _dawn = _engine.resolveNight();
+      _deaths = [for (var i = 0; i < _dawn.victims.length; i++) _script.composeDeath()];
+      if (_deaths.isNotEmpty) {
+        _crime = 0;
+        _stage = _Stage.crimeIntro;
       } else if (_narrator != null) {
         _stage = _Stage.toNarrator;
       } else {
@@ -130,21 +155,35 @@ class _GameScreenState extends State<GameScreen> {
     });
   }
 
+  void _afterCrime() {
+    _advance(() {
+      if (_crime + 1 < _deaths.length) {
+        _crime++;
+      } else {
+        _enterDawn();
+      }
+    });
+  }
+
   void _enterDawn() {
-    final report = _engine.resolveNight();
+    final report = _dawn;
     final winner = report.winner;
     _title = 'ALBA';
+    _mood = SceneMood.dawn;
     _stage = _Stage.script;
     _page = _ScriptPage(
       icon: Icons.wb_twilight,
       title: report.victims.isEmpty ? 'Tutti vivi' : 'Cronaca nera',
-      lines: _script.dawn(report, discussion: widget.settings.discussion),
+      lines: _script.dawn(report, discussion: widget.settings.discussion, stories: _deaths),
+      portraits: [for (final victim in report.victims) victim.name],
+      portraitsFallen: true,
       action: winner != null ? 'FINALE' : 'APRI LA DISCUSSIONE',
       onAction: () => _advance(() {
         if (winner != null) {
           _enterEnd(winner);
         } else {
           _title = 'GIORNO ${_engine.round}';
+          _mood = SceneMood.day;
           _stage = _Stage.day;
         }
       }),
@@ -155,11 +194,13 @@ class _GameScreenState extends State<GameScreen> {
     final report = _engine.lynch(condemned);
     final winner = report.winner;
     _title = 'IL VERDETTO';
+    _mood = SceneMood.dusk;
     _stage = _Stage.script;
     _page = _ScriptPage(
       icon: Icons.gavel,
       title: condemned?.name ?? 'Nessuna condanna',
       lines: _script.lynch(report),
+      portraits: [if (condemned != null) condemned.name],
       revealed: report.role,
       action: winner != null ? 'FINALE' : 'CONTINUA',
       onAction: () => _advance(() => winner != null ? _enterEnd(winner) : _enterNight()),
@@ -168,6 +209,7 @@ class _GameScreenState extends State<GameScreen> {
 
   void _enterEnd(Team winner) {
     _title = 'FINE';
+    _mood = winner == Team.mafia ? SceneMood.night : SceneMood.dawn;
     _endingLines = _script.ending(winner);
     _stage = _Stage.end;
   }
@@ -196,11 +238,32 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_stage == _Stage.crime) {
+      // Il delitto va in scena a tutto schermo, senza barre né pulsanti.
+      final story = _deaths[_crime];
+      return PopScope(
+        canPop: false,
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          body: DeathScene(
+            key: ValueKey('crime-$_step'),
+            act: deathActFor(story.method.id),
+            victimName: _dawn.victims[_crime].name,
+            caption: story.scene.text,
+            style: skylineFor(_script.city.id),
+            onFinished: _afterCrime,
+          ),
+        ),
+      );
+    }
     final phoneIsWithNarrator =
         _stage == _Stage.script || _stage == _Stage.day || _stage == _Stage.vote;
     return PopScope(
       canPop: false,
-      child: Scaffold(
+      child: SceneScaffold(
+        mood: _mood,
+        style: skylineFor(_script.city.id),
+        rain: _mood == SceneMood.night && _engine.round.isOdd,
         appBar: AppBar(
           leading: IconButton(
             icon: const Icon(Icons.close),
@@ -242,6 +305,8 @@ class _GameScreenState extends State<GameScreen> {
           ),
         _Stage.task => _taskView(_queue[_turn]),
         _Stage.taskDone => _taskDoneView(),
+        _Stage.crimeIntro => _crimeIntroView(),
+        _Stage.crime => const SizedBox.shrink(),
         _Stage.toNarrator => HandoffView(name: _narrator!.name, onReady: () => _advance(_enterDawn)),
         _Stage.day => _DayView(
             duration: widget.settings.discussion,
@@ -254,6 +319,35 @@ class _GameScreenState extends State<GameScreen> {
         _Stage.vote => _voteView(),
         _Stage.end => _endView(),
       };
+
+  Widget _crimeIntroView() {
+    return Column(
+      children: [
+        const Spacer(),
+        const Icon(Icons.theaters, color: AppColors.gold, size: 56),
+        const SizedBox(height: 24),
+        Text(
+          'Telefono\nsul tavolo',
+          textAlign: TextAlign.center,
+          style: AppText.display(34),
+        ),
+        const SizedBox(height: 14),
+        const Text(
+          'Mettetelo al centro e guardate tutti.\nStanotte è successo qualcosa.',
+          textAlign: TextAlign.center,
+          style: AppText.body,
+        ),
+        const Spacer(),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: () => _advance(() => _stage = _Stage.crime),
+            child: const Text('BUIO IN SALA'),
+          ),
+        ),
+      ],
+    );
+  }
 
   Widget _taskView(Player actor) {
     final task = _engine.taskFor(actor);
@@ -525,7 +619,23 @@ class _ScriptViewState extends State<_ScriptView> {
 
     return Column(
       children: [
-        Icon(page.icon, color: AppColors.gold, size: 36),
+        if (page.portraits.isEmpty)
+          Icon(page.icon, color: AppColors.gold, size: 36)
+        else
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (final name in page.portraits)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: AvatarSpotlight(
+                    seed: name,
+                    size: page.portraits.length > 1 ? 72 : 92,
+                    fallen: page.portraitsFallen,
+                  ),
+                ),
+            ],
+          ),
         const SizedBox(height: 8),
         FittedBox(
           fit: BoxFit.scaleDown,
@@ -533,12 +643,7 @@ class _ScriptViewState extends State<_ScriptView> {
         ),
         if (revealed != null) ...[
           const SizedBox(height: 12),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 400),
-            child: cardCovered
-                ? const SizedBox(key: ValueKey('covered'), height: 34)
-                : _RoleBadge(role: revealed),
-          ),
+          RoleRevealCard(role: revealed, faceUp: !cardCovered),
         ],
         const SizedBox(height: 16),
         Expanded(
@@ -587,39 +692,6 @@ class _ScriptViewState extends State<_ScriptView> {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _RoleBadge extends StatelessWidget {
-  final Role role;
-
-  const _RoleBadge({required this.role});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(8, 6, 16, 6),
-      decoration: BoxDecoration(
-        color: role.color,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: AppColors.gold),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(role.icon, color: AppColors.textPrimary, size: 20),
-          const SizedBox(width: 8),
-          Text(
-            role.label.toUpperCase(),
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.5,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -39,24 +39,24 @@ class CitySetting {
 /// `{minutes}` la durata. Le liste sono battute d'atmosfera, pescate a caso;
 /// i campi singoli sono le frasi chiare che dicono cosa è successo e cosa si
 /// fa adesso.
+///
+/// Il copione si legge ad alta voce a un tavolo che vuole giocare: ogni
+/// battuta sta in una riga o due. Se è più lunga, nessuno la legge.
 class NarrationPack {
   final List<CitySetting> cities;
-  final List<String> premises;
   final String howToPlay;
 
   final List<String> firstNights;
   final List<String> nights;
   final String nightInstruction;
 
-  final List<String> dawns;
   final String nobodyDied;
   final List<String> quietDawns;
   final List<String> secondVictims;
   final String victimFact;
 
   /// Gli strati di una morte notturna che non dipendono dalla città:
-  /// inquadratura, azione, stacco finale. L'ambientazione viene dalla città.
-  final List<StoryPiece> shots;
+  /// l'azione e lo stacco finale. L'ambientazione viene dalla città.
   final List<StoryPiece> methods;
   final List<StoryPiece> epilogues;
 
@@ -64,7 +64,6 @@ class NarrationPack {
   final String scoopMafia;
   final String scoopClean;
 
-  final List<String> days;
   final String dayInstruction;
   final String oneMinute;
   final String manyMinutes;
@@ -93,23 +92,19 @@ class NarrationPack {
 
   const NarrationPack({
     required this.cities,
-    required this.premises,
     required this.howToPlay,
     required this.firstNights,
     required this.nights,
     required this.nightInstruction,
-    required this.dawns,
     required this.nobodyDied,
     required this.quietDawns,
     required this.secondVictims,
     required this.victimFact,
-    required this.shots,
     required this.methods,
     required this.epilogues,
     required this.scoops,
     required this.scoopMafia,
     required this.scoopClean,
-    required this.days,
     required this.dayInstruction,
     required this.oneMinute,
     required this.manyMinutes,

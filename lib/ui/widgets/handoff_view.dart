@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import 'avatar_spotlight.dart';
 
 /// Schermo neutro tra un giocatore e l'altro quando il telefono è uno solo:
 /// non mostra nulla di segreto finché chi lo riceve non dice che è pronto.
@@ -15,8 +16,8 @@ class HandoffView extends StatelessWidget {
     return Column(
       children: [
         const Spacer(),
-        const Icon(Icons.phone_iphone, color: AppColors.gold, size: 56),
-        const SizedBox(height: 24),
+        AvatarSpotlight(seed: name, size: 140),
+        const SizedBox(height: 28),
         const Text('PASSA IL TELEFONO A', style: AppText.overline),
         const SizedBox(height: 10),
         FittedBox(

@@ -4,7 +4,8 @@ import '../../rules/game_setup.dart';
 import '../../rules/player.dart';
 import '../../rules/role_assignment.dart';
 import '../theme/app_theme.dart';
-import 'narrator_wheel_screen.dart';
+import '../widgets/scene_scaffold.dart';
+import 'narrator_draw_screen.dart';
 import 'role_deal_screen.dart';
 
 class NarratorSelectionScreen extends StatelessWidget {
@@ -52,7 +53,7 @@ class NarratorSelectionScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final needMore = 'Servono almeno ${minRolePlayers + 1} giocatori';
-    return Scaffold(
+    return SceneScaffold(
       appBar: AppBar(title: const Text('NARRATORE')),
       body: SafeArea(
         child: ListView(
@@ -73,11 +74,11 @@ class NarratorSelectionScreen extends StatelessWidget {
             ),
             _OptionCard(
               icon: Icons.casino,
-              title: 'Sorteggiato dalla ruota',
-              subtitle: _canSpareAPlayer ? 'La sorte decide. Chi esce racconta e non gioca.' : needMore,
+              title: 'Sorteggiato dal tamburo',
+              subtitle: _canSpareAPlayer ? 'Un giro di tamburo. Chi esce racconta e non gioca.' : needMore,
               onTap: _canSpareAPlayer
                   ? () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => NarratorWheelScreen(players: players)),
+                        MaterialPageRoute(builder: (_) => NarratorDrawScreen(players: players)),
                       )
                   : null,
             ),

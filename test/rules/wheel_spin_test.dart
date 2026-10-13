@@ -20,6 +20,17 @@ void main() {
     }
   });
 
+  test('senza scarto si ferma esattamente al centro, come una camera sotto il cane', () {
+    for (var count = 3; count <= 12; count++) {
+      for (var winner = 0; winner < count; winner++) {
+        final spin = WheelSpin.towards(segmentCount: count, winnerIndex: winner, spread: 0);
+        final sweep = 2 * pi / count;
+        final local = -spin.finalAngle % (2 * pi);
+        expect(local, closeTo((winner + 0.5) * sweep, 1e-9), reason: 'count=$count winner=$winner');
+      }
+    }
+  });
+
   test('fa diversi giri completi prima di fermarsi', () {
     final spin = WheelSpin.towards(segmentCount: 6, winnerIndex: 0, random: Random(1));
     expect(spin.finalAngle, greaterThan(2 * pi * 4));
