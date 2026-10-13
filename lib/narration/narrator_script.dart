@@ -4,6 +4,7 @@ import '../rules/game_engine.dart';
 import '../rules/role.dart';
 import 'death_story.dart';
 import 'italian_pack.dart';
+import 'method_deck.dart';
 import 'narration_pack.dart';
 import 'picker.dart';
 
@@ -27,15 +28,24 @@ class NarratorScript {
   /// La città in cui è ambientata questa partita, sorteggiata all'inizio.
   final CitySetting city;
   final Picker _picker;
+  final MethodDeck _deck;
 
-  NarratorScript._(this.pack, this.city, this._picker);
+  NarratorScript._(this.pack, this.city, this._picker, this._deck);
 
-  factory NarratorScript({NarrationPack pack = italianPack, CitySetting? city, Random? random}) {
+  /// Senza [random] le morti si pescano dal mazzo della serata, che non si
+  /// ripete da una partita all'altra; con un seme, da un mazzo tutto suo.
+  factory NarratorScript({
+    NarrationPack pack = italianPack,
+    CitySetting? city,
+    Random? random,
+    MethodDeck? deck,
+  }) {
     final rng = random ?? Random();
     return NarratorScript._(
       pack,
       city ?? pack.cities[rng.nextInt(pack.cities.length)],
       Picker(rng),
+      deck ?? (random == null ? MethodDeck.session : MethodDeck(rng)),
     );
   }
 
@@ -51,29 +61,42 @@ class NarratorScript {
 
   /// Sorteggia come è morta una vittima. Chi mette in scena il delitto e chi
   /// lo racconta devono usare la stessa storia: si compone una volta sola.
-  DeathStory composeDeath() => DeathStory.compose(_picker, pack, city);
+  DeathStory composeDeath() =>
+      DeathStory.compose(_picker, pack, city, method: _deck.draw(pack.methods));
 
-  /// [stories] sono le morti già messe in scena, una per vittima; se mancano
-  /// vengono composte qui.
+  /// Una scena per ogni agguato della notte, nell'ordine del rapporto: la
+  /// famiglia pesca dal mazzo, il Cecchino e il Dottore hanno la loro.
+  List<DeathStory> stage(DawnReport report) => [
+        for (final attack in report.attacks)
+          if (!attack.isFatal)
+            DeathStory.rescue(_picker, pack, city)
+          else if (attack.source == AttackSource.sniper)
+            DeathStory.sniper(_picker, pack, city)
+          else
+            composeDeath(),
+      ];
+
+  /// [stories] sono gli agguati già messi in scena, uno per [DawnReport.attacks];
+  /// se mancano vengono composti qui.
   List<ScriptLine> dawn(
     DawnReport report, {
     required Duration discussion,
     List<DeathStory>? stories,
   }) {
     final lines = <ScriptLine>[];
+    final scenes = stories ?? stage(report);
 
-    if (report.victims.isEmpty) {
+    if (report.attacks.isEmpty) {
       lines.add(_fact(pack.nobodyDied));
       lines.add(_story(_picker.pick('dawn.quiet', pack.quietDawns)));
     }
-    for (var i = 0; i < report.victims.length; i++) {
-      final name = report.victims[i].name;
+    for (var i = 0; i < report.attacks.length; i++) {
+      final name = report.attacks[i].target.name;
       if (i > 0) lines.add(_story(_picker.pick('dawn.again', pack.secondVictims)));
-      final story = stories != null ? stories[i] : composeDeath();
-      for (final paragraph in story.paragraphs) {
+      for (final paragraph in scenes[i].paragraphs) {
         lines.add(_story(paragraph, name: name));
       }
-      lines.add(_fact(pack.victimFact, name: name));
+      lines.add(_fact(scenes[i].fact, name: name));
     }
 
     final scoop = report.scoop;

@@ -96,11 +96,42 @@ void main() {
       expect(engine.taskFor(doctor).targets, contains(anna));
     });
 
-    test('un mafioso non può colpire la famiglia', () {
+    test('la famiglia può colpire anche uno dei suoi, ma nessuno sé stesso', () {
       final engine = fullTable();
-      expect(engine.taskFor(boss).targets, isNot(contains(picciotto)));
+      expect(engine.taskFor(boss).targets, contains(picciotto));
       expect(engine.taskFor(boss).targets, isNot(contains(boss)));
-      expect(() => engine.submitNightChoice(boss, picciotto), throwsArgumentError);
+      expect(() => engine.submitNightChoice(boss, boss), throwsArgumentError);
+
+      final report = playNight(engine, {boss: picciotto});
+      expect(report.victims, [picciotto]);
+      expect(engine.isAlive(picciotto), isFalse);
+    });
+
+    test('ogni agguato finisce nel rapporto così com\'è andato', () {
+      final engine = fullTable();
+      final report = playNight(engine, {boss: anna, picciotto: anna, doctor: anna, sniper: bruno});
+
+      expect(report.victims, [bruno]);
+      expect(report.attacks.map((attack) => attack.target), [anna, bruno]);
+      final saved = report.attacks.first;
+      expect(saved.source, AttackSource.family);
+      expect(saved.outcome, AttackOutcome.healed);
+      expect(saved.isFatal, isFalse);
+      final shot = report.attacks.last;
+      expect(shot.source, AttackSource.sniper);
+      expect(shot.isFatal, isTrue);
+    });
+
+    test('chi finisce nel mirino di tutti e due conta una volta, per la famiglia', () {
+      final engine = fullTable();
+      final report = playNight(engine, {boss: anna, picciotto: anna, sniper: anna});
+      expect(report.attacks, hasLength(1));
+      expect(report.attacks.single.source, AttackSource.family);
+      expect(report.victims, [anna]);
+    });
+
+    test('una notte senza agguati non lascia niente da mettere in scena', () {
+      expect(playNight(fullTable()).attacks, isEmpty);
     });
 
     test('chi muore stanotte ha fatto in tempo ad agire', () {

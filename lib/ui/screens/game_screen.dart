@@ -140,10 +140,10 @@ class _GameScreenState extends State<GameScreen> {
         _stage = _Stage.handoff;
         return;
       }
-      // La notte è finita. Ogni morte si compone una volta sola: la stessa
+      // La notte è finita. Ogni agguato si compone una volta sola: la stessa
       // storia va prima in scena e poi nel copione del narratore.
       _dawn = _engine.resolveNight();
-      _deaths = [for (var i = 0; i < _dawn.victims.length; i++) _script.composeDeath()];
+      _deaths = _script.stage(_dawn);
       if (_deaths.isNotEmpty) {
         _crime = 0;
         _stage = _Stage.crimeIntro;
@@ -175,8 +175,12 @@ class _GameScreenState extends State<GameScreen> {
       icon: Icons.wb_twilight,
       title: report.victims.isEmpty ? 'Tutti vivi' : 'Cronaca nera',
       lines: _script.dawn(report, discussion: widget.settings.discussion, stories: _deaths),
-      portraits: [for (final victim in report.victims) victim.name],
-      portraitsFallen: true,
+      // Chi è morto, a lutto. Se non è morto nessuno, chi l'ha scampata.
+      portraits: [
+        for (final attack in report.attacks)
+          if (attack.isFatal || report.victims.isEmpty) attack.target.name,
+      ],
+      portraitsFallen: report.victims.isNotEmpty,
       action: winner != null ? 'FINALE' : 'APRI LA DISCUSSIONE',
       onAction: () => _advance(() {
         if (winner != null) {
@@ -248,8 +252,9 @@ class _GameScreenState extends State<GameScreen> {
           body: DeathScene(
             key: ValueKey('crime-$_step'),
             act: deathActFor(story.method.id),
-            victimName: _dawn.victims[_crime].name,
+            victimName: _dawn.attacks[_crime].target.name,
             caption: story.scene.text,
+            epilogue: story.epilogue?.id ?? '',
             style: skylineFor(_script.city.id),
             onFinished: _afterCrime,
           ),

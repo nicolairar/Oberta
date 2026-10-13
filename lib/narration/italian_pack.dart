@@ -124,8 +124,8 @@ const italianPack = NarrationPack(
   ],
   nightInstruction: 'Passatevi il telefono. Ognuno fa la sua mossa in segreto, poi lo passa.',
   nobodyDied: 'Stanotte non è morto nessuno.',
-  // Non dicono mai perché nessuno è morto: può essere merito del Dottore o
-  // una scelta della famiglia, e il tavolo non deve saperlo.
+  // Per le albe in cui nessuno è stato nemmeno preso di mira. Se il Dottore
+  // ha salvato qualcuno lo si vede in scena, e parlano i `rescues`.
   quietDawns: [
     'Le pompe funebri esprimono viva preoccupazione.',
     'Guardatevi in faccia: qualcuno, qui, è deluso.',
@@ -138,6 +138,19 @@ const italianPack = NarrationPack(
     'Ma la notte è stata lunga.',
   ],
   victimFact: 'Stanotte è morta una persona: {name}. Il suo ruolo resta segreto.',
+  sniperShots: [
+    'Un colpo solo, da una finestra lontana. {name} non ha sentito niente.',
+    'Un riflesso su un tetto, poi uno sparo. {name} cade prima dell\'eco.',
+    'Qualcuno, da lontano, ha preso la mira con calma. {name} resta sull\'asfalto.',
+    'Nessuno dietro l\'angolo, stavolta. Solo un mirino, e {name} al centro.',
+  ],
+  rescues: [
+    'Uno sparo dal vicolo, {name} a terra. Poi dei passi di corsa: il Dottore.',
+    'Volevano chiudere il conto di {name}. Il Dottore è arrivato prima del becchino.',
+    '{name} era già a terra. Ma il Dottore, stanotte, passava proprio di lì.',
+    'Un colpo, e {name} va giù. Una borsa di cuoio si apre: non è finita.',
+  ],
+  savedFact: 'Stanotte hanno sparato a {name}, ma il Dottore ha fatto in tempo. {name} resta in gioco.',
   methods: [
     StoryPiece('auto', 'Due fari nel buio. Un\'auto nera non frena. {name} si volta: troppo tardi.'),
     StoryPiece('pianoforte', 'Una corda si spezza. Un pianoforte precipita. {name} alza gli occhi.'),
@@ -151,6 +164,14 @@ const italianPack = NarrationPack(
     StoryPiece('violino', 'Una custodia di violino si apre. Non c\'è un violino. {name} cade.'),
     StoryPiece('cassaforte', 'Dall\'alto, una cassaforte. {name} fa in tempo a leggere la marca.'),
     StoryPiece('sigaro', '{name} accende un sigaro avuto in regalo. Il sigaro fa «bum».'),
+    StoryPiece('mazza', 'Dall\'angolo, una mazza da baseball. Un colpo secco. {name} vede le stelle.'),
+    StoryPiece('lupara', 'Due canne mozze spuntano dal buio. Un boato. {name} vola all\'indietro.'),
+    StoryPiece('raffica', 'Un\'auto rallenta. Dal finestrino, un mitra. {name} non fa in tempo a voltarsi.'),
+    StoryPiece('garrota', 'Un filo d\'acciaio, due mani guantate. {name} scalcia, poi smette.'),
+    StoryPiece('vaso', 'Dal terzo piano cade un vaso di gerani. Non per caso. {name} non lo vede.'),
+    StoryPiece('tombino', 'Il tombino si apre sotto i piedi di {name}. Poi si richiude, con cura.'),
+    StoryPiece('buio', 'Il lampione si spegne. Un rumore. Quando si riaccende, {name} è a terra.'),
+    StoryPiece('bacio', 'Una sconosciuta, un bacio, un rossetto che non perdona. {name} sorride, poi cade.'),
   ],
   epilogues: [
     StoryPiece('gatto', 'Un gatto ha visto tutto. Non parlerà.'),

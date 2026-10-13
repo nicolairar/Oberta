@@ -30,17 +30,42 @@ class Exposure {
   const Exposure(this.subject, this.team);
 }
 
+/// Chi ha colpito, di notte.
+enum AttackSource { family, sniper }
+
+/// Com'è finito un agguato: a segno, o fermato in tempo dal Dottore.
+enum AttackOutcome { killed, healed }
+
+/// Un agguato della notte. All'alba va in scena così com'è andato.
+class NightAttack {
+  final Player target;
+  final AttackSource source;
+  final AttackOutcome outcome;
+
+  const NightAttack(this.target, this.source, this.outcome);
+
+  bool get isFatal => outcome == AttackOutcome.killed;
+}
+
 class DawnReport {
   final int round;
 
-  /// Morti della notte, in ordine di posto. I loro ruoli restano segreti.
-  final List<Player> victims;
+  /// Gli agguati della notte, uno per persona presa di mira, in ordine di
+  /// posto. Chi è finito nel mirino di tutti e due conta per la famiglia.
+  final List<NightAttack> attacks;
+
 
   /// Lo scoop pubblicato dal giornale, se il giornalista ha visto l'alba.
   final Exposure? scoop;
   final Team? winner;
 
-  const DawnReport({required this.round, required this.victims, this.scoop, this.winner});
+  const DawnReport({required this.round, this.attacks = const [], this.scoop, this.winner});
+
+  /// Morti della notte, in ordine di posto. I loro ruoli restano segreti.
+  List<Player> get victims => [
+        for (final attack in attacks)
+          if (attack.isFatal) attack.target,
+      ];
 }
 
 class LynchReport {
@@ -146,10 +171,9 @@ class GameEngine {
         if (player != actor) player,
     ];
     return switch (setup.roleOf(actor)) {
-      Role.mafioso => NightTask(NightTaskKind.kill, [
-          for (final player in _alive)
-            if (_teamOf(player) != Team.mafia) player,
-        ]),
+      // La famiglia può colpire chiunque, anche uno dei suoi: un morto in
+      // casa, a volte, è il bluff migliore.
+      Role.mafioso => NightTask(NightTaskKind.kill, others),
       Role.medico => NightTask(NightTaskKind.protect, [
           for (final player in _alive)
             if (player != _lastProtected) player,
@@ -199,9 +223,18 @@ class GameEngine {
     final scoopTarget = _targetOf(NightTaskKind.scoop);
     final journalist = _actorOf(NightTaskKind.scoop);
 
-    final victims = [
+    final attacks = [
       for (final player in _alive)
-        if ((player == mafiaTarget || player == sniped) && player != protected) player,
+        if (player == mafiaTarget || player == sniped)
+          NightAttack(
+            player,
+            player == mafiaTarget ? AttackSource.family : AttackSource.sniper,
+            player == protected ? AttackOutcome.healed : AttackOutcome.killed,
+          ),
+    ];
+    final victims = [
+      for (final attack in attacks)
+        if (attack.isFatal) attack.target,
     ];
 
     if (sniped != null) _sniperSpent = true;
@@ -220,7 +253,7 @@ class GameEngine {
     _history.add(RoundRecord(round: _round, nightVictims: victims));
     _phase = _updateWinner() ? GamePhase.ended : GamePhase.day;
 
-    return DawnReport(round: _round, victims: victims, scoop: scoop, winner: _winner);
+    return DawnReport(round: _round, attacks: attacks, scoop: scoop, winner: _winner);
   }
 
   /// Applica il verdetto della piazza; `condemned` nullo significa nessuna condanna.

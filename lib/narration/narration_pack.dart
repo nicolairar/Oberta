@@ -55,6 +55,12 @@ class NarrationPack {
   final List<String> secondVictims;
   final String victimFact;
 
+  /// Quello che succede quando a sparare è il Cecchino, e quando il Dottore
+  /// arriva in tempo. Nominano sempre la persona presa di mira.
+  final List<String> sniperShots;
+  final List<String> rescues;
+  final String savedFact;
+
   /// Gli strati di una morte notturna che non dipendono dalla città:
   /// l'azione e lo stacco finale. L'ambientazione viene dalla città.
   final List<StoryPiece> methods;
@@ -100,6 +106,9 @@ class NarrationPack {
     required this.quietDawns,
     required this.secondVictims,
     required this.victimFact,
+    required this.sniperShots,
+    required this.rescues,
+    required this.savedFact,
     required this.methods,
     required this.epilogues,
     required this.scoops,

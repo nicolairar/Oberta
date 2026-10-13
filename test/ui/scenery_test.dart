@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omerta/main.dart';
+import 'package:omerta/narration/death_story.dart';
 import 'package:omerta/narration/italian_pack.dart';
 import 'package:omerta/ui/widgets/city_backdrop.dart';
 import 'package:omerta/ui/widgets/deal_table.dart';
@@ -76,28 +77,56 @@ void main() {
   });
 
   test('ogni azione del copione ha la sua coreografia', () {
-    final staged = {for (final method in italianPack.methods) deathActFor(method.id)};
-    expect(staged, DeathAct.values.toSet(), reason: 'nessuna coreografia resta senza copione');
+    final staged = {
+      for (final method in italianPack.methods) deathActFor(method.id),
+      deathActFor(DeathStory.sniperId),
+      deathActFor(DeathStory.rescueId),
+    };
+    expect(staged, DeathAct.values.toSet().difference({DeathAct.lucky}),
+        reason: 'nessuna coreografia resta senza copione');
+    expect(deathActFor(DeathStory.sniperId), DeathAct.sniper);
+    expect(deathActFor(DeathStory.rescueId), DeathAct.rescue);
+    expect(DeathAct.rescue.survives, isTrue);
+    expect(DeathAct.sniper.survives, isFalse);
     expect(deathActFor('pugnale'), DeathAct.knife);
     expect(deathActFor('violino'), DeathAct.burst);
     expect(deathActFor('azione-senza-scena'), DeathAct.knife);
   });
 
   testWidgets('ogni coreografia si disegna dal primo all\'ultimo fotogramma', (tester) async {
+    final endings = ['', ...italianPack.epilogues.map((piece) => piece.id)];
+    var take = 0;
     for (final act in DeathAct.values) {
       for (final hat in AvatarHead.values) {
-        for (var frame = 0; frame <= 40; frame++) {
+        final epilogue = endings[take++ % endings.length];
+        for (var frame = 0; frame <= 50; frame++) {
           await tester.pumpWidget(CustomPaint(
             size: const Size(393, 852),
-            painter: DeathScenePainter(t: frame / 40, act: act, victimHat: hat),
+            painter: DeathScenePainter(t: frame / 50, act: act, victimHat: hat, epilogue: epilogue),
           ));
-          expect(tester.takeException(), isNull, reason: '$act $hat fotogramma $frame');
+          expect(tester.takeException(), isNull, reason: '$act $hat $epilogue fotogramma $frame');
         }
       }
     }
   });
 
-  testWidgets('la scena del delitto dura qualche secondo, poi passa la mano', (tester) async {
+  test('il film rallenta sul colpo, e il suo orologio si può leggere al contrario', () {
+    expect(filmTime(0), 0);
+    expect(filmTime(1), 1);
+    var previous = 0.0;
+    for (var i = 1; i <= 200; i++) {
+      final now = filmTime(i / 200);
+      expect(now, greaterThan(previous), reason: 'il film non torna mai indietro');
+      expect(filmClock(now), closeTo(i / 200, 1e-9));
+      previous = now;
+    }
+    final strike = filmClock(DeathScenePainter.strike);
+    final entrance = filmTime(0.10) - filmTime(0.05);
+    final slowMotion = filmTime(strike + 0.025) - filmTime(strike - 0.025);
+    expect(slowMotion, lessThan(entrance * 0.6), reason: 'sul colpo il tempo si dilata');
+  });
+
+  testWidgets('la scena del delitto si ferma sul ritratto e aspetta il tavolo', (tester) async {
     tester.platformDispatcher.accessibilityFeaturesTestValue =
         const FakeAccessibilityFeatures(disableAnimations: true);
     addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
@@ -114,7 +143,44 @@ void main() {
     await tester.pump(const Duration(seconds: 3));
     expect(finished, 0);
     expect(find.text('Esterno, notte. Un vicolo.'), findsOneWidget, reason: 'la didascalia è scritta per intero');
-    await tester.pumpAndSettle();
+    expect(find.text('AVANTI'), findsNothing);
+    expect(find.text('SALTA'), findsOneWidget);
+
+    await tester.pump(DeathScene.length);
+    await tester.pump();
+    expect(finished, 0, reason: 'finito il film nessuno viene portato via dal ritratto');
+    expect(find.text('MARCO'), findsOneWidget);
+    expect(find.text('NON VEDRÀ L\'ALBA'), findsOneWidget);
+    expect(find.text('SALTA'), findsNothing);
+
+    await tester.tap(find.text('AVANTI'));
+    await tester.tap(find.text('AVANTI'));
+    expect(finished, 1);
+  });
+
+  testWidgets('chi salta la scena arriva al ritratto, non oltre', (tester) async {
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+
+    var finished = 0;
+    await tester.pumpWidget(MaterialApp(
+      home: DeathScene(
+        act: DeathAct.rescue,
+        victimName: 'Giulia',
+        caption: 'Esterno, notte. Il porto.',
+        onFinished: () => finished++,
+      ),
+    ));
+    await tester.pump(const Duration(seconds: 1));
+    await tester.tap(find.text('SALTA'));
+    await tester.pump();
+
+    expect(finished, 0);
+    expect(find.text('GIULIA'), findsOneWidget);
+    expect(find.text('VEDRÀ L\'ALBA'), findsOneWidget, reason: 'il Dottore è arrivato in tempo');
+    expect(find.text('†'), findsNothing);
+    await tester.tap(find.text('AVANTI'));
     expect(finished, 1);
   });
 

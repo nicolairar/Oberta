@@ -20,6 +20,14 @@ NarratorScript scriptIn(String cityId, int seed) => NarratorScript(
       random: Random(seed),
     );
 
+/// Il rapporto di una notte in cui la famiglia ha ucciso [victims].
+DawnReport night(int round, List<Player> victims, {Exposure? scoop, Team? winner}) => DawnReport(
+      round: round,
+      attacks: [for (final victim in victims) NightAttack(victim, AttackSource.family, AttackOutcome.killed)],
+      scoop: scoop,
+      winner: winner,
+    );
+
 String textOf(List<ScriptLine> lines) => lines.map((line) => line.text).join(' ');
 
 List<String> factsOf(List<ScriptLine> lines) => [
@@ -111,6 +119,8 @@ void main() {
         ...italianPack.nights,
         ...italianPack.quietDawns,
         ...italianPack.secondVictims,
+        ...italianPack.sniperShots,
+        ...italianPack.rescues,
         for (final piece in italianPack.methods) piece.text,
         for (final piece in italianPack.epilogues) piece.text,
         ...italianPack.scoops,
@@ -161,8 +171,30 @@ void main() {
         final current = DeathStory.compose(picker, italianPack, chicago);
         expect(current.scene.id, isNot(previous.scene.id));
         expect(current.method.id, isNot(previous.method.id));
-        expect(current.epilogue.id, isNot(previous.epilogue.id));
+        expect(current.epilogue!.id, isNot(previous.epilogue!.id));
         previous = current;
+      }
+    });
+
+    test('il Cecchino e il Dottore hanno una scena loro, fuori dal mazzo', () {
+      final picker = Picker(Random(6));
+      final shot = DeathStory.sniper(picker, italianPack, chicago);
+      expect(shot.method.id, DeathStory.sniperId);
+      expect(shot.survived, isFalse);
+      expect(shot.fact, italianPack.victimFact);
+      expect(shot.paragraphs, hasLength(3));
+
+      final saved = DeathStory.rescue(picker, italianPack, chicago);
+      expect(saved.method.id, DeathStory.rescueId);
+      expect(saved.survived, isTrue);
+      expect(saved.fact, italianPack.savedFact);
+      expect(saved.paragraphs, hasLength(2), reason: 'niente stacco finale: chiude il fatto');
+
+      final ids = italianPack.methods.map((piece) => piece.id);
+      expect(ids, isNot(contains(DeathStory.sniperId)));
+      expect(ids, isNot(contains(DeathStory.rescueId)));
+      for (final line in [...italianPack.sniperShots, ...italianPack.rescues, italianPack.savedFact]) {
+        expect(line, contains('{name}'), reason: line);
       }
     });
 
@@ -189,9 +221,9 @@ void main() {
             ...script.opening(),
             ...script.nightFalls(1),
             ...script.nightFalls(2),
-            ...script.dawn(const DawnReport(round: 1, victims: []), discussion: threeMinutes),
+            ...script.dawn(night(1, []), discussion: threeMinutes),
             ...script.dawn(
-              const DawnReport(round: 1, victims: [sara, luca], scoop: Exposure(luca, Team.mafia)),
+              night(1, [sara, luca], scoop: Exposure(luca, Team.mafia)),
               discussion: threeMinutes,
             ),
             ...script.voteCall(),
@@ -214,7 +246,7 @@ void main() {
           expect(words([...script.opening(), ...script.nightFalls(1)]), lessThanOrEqualTo(75));
           expect(words(script.nightFalls(2)), lessThanOrEqualTo(30));
           expect(
-            words(script.dawn(const DawnReport(round: 1, victims: [sara]), discussion: threeMinutes)),
+            words(script.dawn(night(1, [sara]), discussion: threeMinutes)),
             lessThanOrEqualTo(60),
           );
           expect(words(script.voteCall()), lessThanOrEqualTo(25));
@@ -246,7 +278,7 @@ void main() {
     test('l\'alba senza morti lo dice chiaro e apre la discussione', () {
       final script = scriptIn('chicago', 2);
       for (var i = 0; i < 30; i++) {
-        final lines = script.dawn(const DawnReport(round: 1, victims: []), discussion: threeMinutes);
+        final lines = script.dawn(night(1, []), discussion: threeMinutes);
         expect(lines, hasLength(3));
         expect(factsOf(lines), [
           'Stanotte non è morto nessuno.',
@@ -258,7 +290,7 @@ void main() {
     test('ogni morte è una scena di tre battute, chiusa da un fatto chiaro', () {
       final script = scriptIn('new-york', 3);
       for (var i = 0; i < 50; i++) {
-        final lines = script.dawn(const DawnReport(round: 2, victims: [sara]), discussion: threeMinutes);
+        final lines = script.dawn(night(2, [sara]), discussion: threeMinutes);
 
         expect(lines, hasLength(5), reason: 'luogo, azione, stacco, fatto, istruzione');
         expect(lines[0].text, matches(RegExp('^(Esterno|Interno), notte')));
@@ -274,7 +306,7 @@ void main() {
       final script = scriptIn('las-vegas', 4);
       final vegas = script.city.scenes.map((scene) => scene.text).toSet();
       for (var i = 0; i < 40; i++) {
-        final lines = script.dawn(const DawnReport(round: 1, victims: [sara]), discussion: threeMinutes);
+        final lines = script.dawn(night(1, [sara]), discussion: threeMinutes);
         expect(vegas, contains(lines[0].text));
       }
     });
@@ -284,7 +316,7 @@ void main() {
       final roleNames = [for (final role in Role.values) role.label.toUpperCase()];
       for (var i = 0; i < 100; i++) {
         final text = textOf(
-          script.dawn(const DawnReport(round: 2, victims: [sara, luca]), discussion: threeMinutes),
+          script.dawn(night(2, [sara, luca]), discussion: threeMinutes),
         ).toUpperCase();
         expect(text, contains('SARA'));
         expect(text, contains('LUCA'));
@@ -296,7 +328,7 @@ void main() {
 
     test('due morti nella stessa notte hanno due scene e due fatti', () {
       final lines = scriptIn('chicago', 5)
-          .dawn(const DawnReport(round: 2, victims: [sara, luca]), discussion: threeMinutes);
+          .dawn(night(2, [sara, luca]), discussion: threeMinutes);
       final facts = factsOf(lines);
       expect(facts[0], contains('Sara'));
       expect(facts[1], contains('Luca'));
@@ -306,11 +338,11 @@ void main() {
     test('lo scoop dice chiaro da che parte sta', () {
       final script = scriptIn('palermo', 4);
       final mafia = script.dawn(
-        const DawnReport(round: 1, victims: [], scoop: Exposure(luca, Team.mafia)),
+        night(1, [], scoop: Exposure(luca, Team.mafia)),
         discussion: threeMinutes,
       );
       final clean = script.dawn(
-        const DawnReport(round: 1, victims: [], scoop: Exposure(luca, Team.citizens)),
+        night(1, [], scoop: Exposure(luca, Team.citizens)),
         discussion: threeMinutes,
       );
       expect(factsOf(mafia), contains('Il giornale lo scrive chiaro: Luca sta con la famiglia.'));
@@ -319,7 +351,7 @@ void main() {
 
     test('se la partita finisce all\'alba non si apre nessuna discussione', () {
       final lines = scriptIn('chicago', 5).dawn(
-        const DawnReport(round: 3, victims: [sara], winner: Team.mafia),
+        night(3, [sara], winner: Team.mafia),
         discussion: threeMinutes,
       );
       expect(textOf(lines), isNot(contains('minuti')));
@@ -328,7 +360,7 @@ void main() {
 
     test('un minuto solo si dice "un minuto"', () {
       final lines = scriptIn('chicago', 6).dawn(
-        const DawnReport(round: 1, victims: []),
+        night(1, []),
         discussion: const Duration(minutes: 1),
       );
       expect(factsOf(lines).last, 'Avete un minuto per discutere. Poi votate chi eliminare.');
@@ -403,6 +435,35 @@ void main() {
         for (final kind in NightTaskKind.values) script.taskPrompt(NightTask(kind, const []), 1),
       };
       expect(prompts, hasLength(NightTaskKind.values.length));
+    });
+
+    test('l\'alba racconta ogni agguato per quello che è stato', () {
+      final script = scriptIn('chicago', 8);
+      const report = DawnReport(round: 2, attacks: [
+        NightAttack(sara, AttackSource.family, AttackOutcome.healed),
+        NightAttack(luca, AttackSource.sniper, AttackOutcome.killed),
+      ]);
+      final stories = script.stage(report);
+      expect(stories.map((story) => story.method.id), [DeathStory.rescueId, DeathStory.sniperId]);
+
+      final lines = script.dawn(report, discussion: threeMinutes, stories: stories);
+      final facts = factsOf(lines);
+      expect(facts[0], 'Stanotte hanno sparato a Sara, ma il Dottore ha fatto in tempo. Sara resta in gioco.');
+      expect(facts[1], 'Stanotte è morta una persona: Luca. Il suo ruolo resta segreto.');
+      expect(textOf(lines), isNot(contains('{name}')));
+      expect(textOf(lines), isNot(contains(italianPack.nobodyDied)));
+    });
+
+    test('gli agguati della famiglia pescano dal mazzo: mai due uguali di fila', () {
+      final script = scriptIn('napoli', 3);
+      final seen = <String>[];
+      for (var round = 0; round < 60; round++) {
+        final story = script.stage(night(round, [sara])).single;
+        if (seen.isNotEmpty) expect(story.method.id, isNot(seen.last));
+        seen.add(story.method.id);
+      }
+      final deck = italianPack.methods.length;
+      expect(seen.take(deck).toSet(), hasLength(deck), reason: 'tutte le azioni escono prima che una si ripeta');
     });
   });
 }

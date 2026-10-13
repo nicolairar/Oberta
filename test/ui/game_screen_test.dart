@@ -110,9 +110,11 @@ void main() {
     await tester.pump(const Duration(milliseconds: 600));
     expect(find.byType(DeathScene), findsOneWidget);
     expect(find.text('CARLA'), findsNothing, reason: 'il nome arriva solo alla fine della scena');
-    await tester.pump(const Duration(milliseconds: 7200));
+    await tester.pump(DeathScene.length + const Duration(milliseconds: 100));
+    await tester.pump();
     expect(find.text('CARLA'), findsOneWidget);
-    await tester.pumpAndSettle();
+    expect(find.byType(DeathScene), findsOneWidget, reason: 'la scena aspetta che il tavolo vada avanti');
+    await tap(tester, 'AVANTI');
     expect(find.byType(DeathScene), findsNothing);
 
     expect(find.text('ALBA'), findsOneWidget);
@@ -183,6 +185,7 @@ void main() {
     await tester.tap(find.text('BUIO IN SALA'));
     await tester.pump(const Duration(milliseconds: 500));
     await tap(tester, 'SALTA');
+    await tap(tester, 'AVANTI');
     await tap(tester, 'APRI LA DISCUSSIONE');
 
     expect(find.text('FAMIGLIA'), findsNothing, reason: 'l\'indagine non è pubblica');
