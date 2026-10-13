@@ -4,6 +4,7 @@ import '../../network/fake_local_session.dart';
 import '../theme/app_theme.dart';
 import '../widgets/scene_scaffold.dart';
 import 'lobby_screen.dart';
+import 'screening_room_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -40,10 +41,10 @@ class HomeScreen extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
-                  onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Arriva insieme alla rete tra telefoni')),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(builder: (_) => const ScreeningRoomScreen()),
                   ),
-                  child: const Text('ENTRA IN UNA STANZA'),
+                  child: const Text('SALA PROVE'),
                 ),
               ),
               const SizedBox(height: 12),
@@ -94,7 +95,7 @@ class _NeonSignState extends State<_NeonSign> with SingleTickerProviderStateMixi
         return FittedBox(
           fit: BoxFit.scaleDown,
           child: Text(
-            'OMERTÀ',
+            'OBERTÀ',
             style: AppText.display(62, color: Color.lerp(const Color(0xFF6B4A1E), const Color(0xFFFFE7B0), power)!)
                 .copyWith(
               shadows: [

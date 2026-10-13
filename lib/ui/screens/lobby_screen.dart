@@ -32,6 +32,8 @@ class _LobbyScreenState extends State<LobbyScreen> {
   }
 
   void _addFakePlayer() {
+    // Chi ospita più i finti: oltre il tavolo pieno non si aggiunge nessuno.
+    if (_fakeCount + 1 >= maxRolePlayers) return;
     final name = _fakeCount < _testNames.length ? _testNames[_fakeCount] : 'Ospite ${_fakeCount + 1}';
     _fakeCount++;
     widget.session.addFakePlayer(name);

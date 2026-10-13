@@ -17,7 +17,7 @@ class OmertaApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Omertà',
+      title: 'Obertà',
       theme: buildAppTheme(),
       home: const HomeScreen(),
     );
