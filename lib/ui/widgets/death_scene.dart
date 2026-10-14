@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../l10n/app_strings.dart';
 import '../../narration/death_story.dart';
 import '../../sound/sound_stage.dart';
 import '../theme/app_theme.dart';
@@ -301,7 +302,7 @@ class _DeathSceneState extends State<DeathScene> with SingleTickerProviderStateM
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          survives ? 'VEDRÀ L\'ALBA' : 'NON VEDRÀ L\'ALBA',
+                          survives ? AppStrings.of(context).willSeeDawn : AppStrings.of(context).wontSeeDawn,
                           style: survives ? AppText.overline.copyWith(color: AppColors.gold) : AppText.overline,
                         ),
                       ],
@@ -319,7 +320,7 @@ class _DeathSceneState extends State<DeathScene> with SingleTickerProviderStateM
                     padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
                     child: SizedBox(
                       width: double.infinity,
-                      child: ElevatedButton(onPressed: _finish, child: const Text('AVANTI')),
+                      child: ElevatedButton(onPressed: _finish, child: Text(AppStrings.of(context).next)),
                     ),
                   ),
                 )
@@ -327,7 +328,7 @@ class _DeathSceneState extends State<DeathScene> with SingleTickerProviderStateM
                   alignment: Alignment.topRight,
                   child: TextButton(
                     onPressed: _skip,
-                    child: const Text('SALTA', style: TextStyle(color: AppColors.textSecondary)),
+                    child: Text(AppStrings.of(context).skip, style: const TextStyle(color: AppColors.textSecondary)),
                   ),
                 ),
         ),

@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_strings.dart';
 import '../../rules/role.dart';
 import '../theme/app_theme.dart';
 import '../theme/role_style.dart';
@@ -17,6 +18,7 @@ class RoleRevealCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings.of(context);
     return SizedBox(
       height: height,
       width: height * 5 / 7,
@@ -38,7 +40,7 @@ class RoleRevealCard extends StatelessWidget {
                 ? Transform(
                     alignment: Alignment.center,
                     transform: Matrix4.rotationY(pi),
-                    child: _face(),
+                    child: _face(t),
                   )
                 : _back(),
           );
@@ -66,7 +68,7 @@ class RoleRevealCard extends StatelessWidget {
     );
   }
 
-  Widget _face() {
+  Widget _face(AppStrings t) {
     return Container(
       decoration: _frame(LinearGradient(
         begin: Alignment.topCenter,
@@ -82,13 +84,13 @@ class RoleRevealCard extends StatelessWidget {
           FittedBox(
             fit: BoxFit.scaleDown,
             child: Text(
-              role.label.toUpperCase(),
+              t.role(role).label.toUpperCase(),
               style: AppText.display(15, color: AppColors.textPrimary),
             ),
           ),
           const SizedBox(height: 6),
           Text(
-            role.team == Team.mafia ? 'FAMIGLIA' : 'ONESTI',
+            role.team == Team.mafia ? t.familyBadge : t.townBadge,
             style: AppText.overline.copyWith(color: AppColors.gold, fontSize: 10),
           ),
         ],

@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_strings.dart';
 import '../../sound/cue_sounds.dart';
 import '../../sound/sound_stage.dart';
 import '../theme/app_theme.dart';
@@ -19,59 +20,15 @@ class ScreeningRoomScreen extends StatefulWidget {
 }
 
 class _ScreeningRoomScreenState extends State<ScreeningRoomScreen> {
-  static const _title = 'SALA PROVE';
-  static const _intro = 'Tutte le scene della notte. Toccane una per rivederla.';
-  static const _caption = 'Esterno, notte. Prova generale.';
   static const _extras = ['Marco', 'Giulia', 'Luca', 'Sara', 'Paolo', 'Elena', 'Davide', 'Chiara'];
   static const _endings = ['', 'gatto', 'sirene', 'carta', 'mambo', 'finestra', 'sipario'];
-
-  static const _effects = 'EFFETTI';
-  static const _cueNames = {
-    Cue.click: 'Il tamburo che gira',
-    Cue.bang: 'Lo sparo del sorteggio',
-    Cue.deal: 'Una carta servita',
-    Cue.flip: 'Una carta girata',
-    Cue.nightfall: 'Cala la notte',
-    Cue.dawn: 'L\'alba',
-    Cue.tick: 'Gli ultimi secondi',
-    Cue.timeUp: 'Tempo scaduto',
-    Cue.drumroll: 'Il rullo di tamburi',
-    Cue.caught: 'Era della famiglia',
-    Cue.innocent: 'Era innocente',
-    Cue.townWins: 'Vincono gli onesti',
-    Cue.familyWins: 'Vince la famiglia',
-  };
-
-  static const _names = {
-    DeathAct.knife: 'Il pugnale',
-    DeathAct.gun: 'Il silenziatore',
-    DeathAct.burst: 'La custodia da violino',
-    DeathAct.car: 'L\'auto nera',
-    DeathAct.piano: 'Il pianoforte',
-    DeathAct.safe: 'La cassaforte',
-    DeathAct.chandelier: 'Il lampadario',
-    DeathAct.blast: 'Il pacco regalo',
-    DeathAct.poison: 'Il caffè corretto',
-    DeathAct.noose: 'Il cappio',
-    DeathAct.grab: 'Le scarpe di cemento',
-    DeathAct.bat: 'La mazza',
-    DeathAct.lupara: 'La lupara',
-    DeathAct.driveBy: 'La raffica dall\'auto',
-    DeathAct.garrote: 'La garrota',
-    DeathAct.pot: 'Il vaso dal terzo piano',
-    DeathAct.manhole: 'Il tombino',
-    DeathAct.blackout: 'Il buio',
-    DeathAct.kiss: 'Il bacio',
-    DeathAct.sniper: 'Il Cecchino',
-    DeathAct.rescue: 'Il Dottore arriva in tempo',
-    DeathAct.lucky: 'La fiaschetta',
-  };
 
   final _random = Random();
   int _screenings = 0;
 
   void _screen(DeathAct act) {
     SoundStage.instance.prepare([act]);
+    final caption = AppStrings.of(context).screeningCaption;
     final take = _screenings++;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -80,7 +37,7 @@ class _ScreeningRoomScreenState extends State<ScreeningRoomScreen> {
           body: DeathScene(
             act: act,
             victimName: _extras[_random.nextInt(_extras.length)],
-            caption: _caption,
+            caption: caption,
             epilogue: _endings[take % _endings.length],
             style: SkylineStyle.values[take % SkylineStyle.values.length],
             onFinished: () => Navigator.of(context).pop(),
@@ -92,14 +49,15 @@ class _ScreeningRoomScreenState extends State<ScreeningRoomScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings.of(context);
     return SceneScaffold(
       mood: SceneMood.night,
-      appBar: AppBar(title: const Text(_title)),
+      appBar: AppBar(title: Text(t.screeningTitle)),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
           children: [
-            const Text(_intro, textAlign: TextAlign.center, style: AppText.body),
+            Text(t.screeningIntro, textAlign: TextAlign.center, style: AppText.body),
             const SizedBox(height: 16),
             for (final act in DeathAct.values)
               Padding(
@@ -114,14 +72,14 @@ class _ScreeningRoomScreenState extends State<ScreeningRoomScreen> {
                         color: act.survives ? AppColors.gold : AppColors.accent,
                       ),
                       const SizedBox(width: 14),
-                      Expanded(child: Text(_names[act]!, style: const TextStyle(letterSpacing: 0.5))),
+                      Expanded(child: Text(t.sceneName(act), style: const TextStyle(letterSpacing: 0.5))),
                       const Icon(Icons.play_arrow, size: 20),
                     ],
                   ),
                 ),
               ),
             const SizedBox(height: 18),
-            const Text(_effects, textAlign: TextAlign.center, style: AppText.overline),
+            Text(t.screeningEffects, textAlign: TextAlign.center, style: AppText.overline),
             const SizedBox(height: 10),
             Wrap(
               spacing: 8,
@@ -131,7 +89,7 @@ class _ScreeningRoomScreenState extends State<ScreeningRoomScreen> {
                 for (final cue in Cue.values)
                   ActionChip(
                     avatar: const Icon(Icons.volume_up, size: 18, color: AppColors.gold),
-                    label: Text(_cueNames[cue]!),
+                    label: Text(t.cueName(cue)),
                     onPressed: () => SoundStage.instance.cue(cue),
                   ),
               ],

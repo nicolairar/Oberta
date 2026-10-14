@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_strings.dart';
 import '../../network/fake_local_session.dart';
 import '../../roster/photo_camera.dart';
 import '../../roster/roster.dart';
@@ -15,31 +16,6 @@ import 'narrator_selection_screen.dart';
 import 'person_screen.dart';
 
 // I testi della schermata, tutti qui: la traduzione li prenderà da qui.
-const _title = 'IL TAVOLO';
-const _debugAdd = '+ TEST';
-const _clearTooltip = 'Via tutti';
-const _emptyTitle = 'CHI GIOCA STASERA?';
-const _emptyBody = 'Passatevi il telefono: ognuno scrive il suo nome e si fa la foto segnaletica.';
-const _emptyPlaceholder = '???';
-const _tableEmpty = 'TAVOLO VUOTO';
-const _readyHint = 'Si può cominciare.';
-const _tableFull = 'Tavolo pieno: in più di $maxTablePlayers non si gioca.';
-const _tableFullRefusal = 'Il tavolo è pieno: prima si deve alzare qualcuno.';
-const _rosterFull = 'L\'elenco è pieno: prima togli qualcuno.';
-const _gestureHint = 'Tocca una faccia per farla sedere o alzare.\nTienila premuta per cambiare nome o foto.';
-const _out = 'FUORI';
-const _privacy = 'Nomi e foto restano su questo telefono.';
-const _add = 'AGGIUNGI';
-const _start = 'AVVIA';
-const _clearTitle = 'Via tutti?';
-const _clearBody = 'Cancello da questo telefono tutti i nomi e tutte le foto. Non si torna indietro.';
-const _clearCancel = 'ANNULLA';
-const _clearConfirm = 'CANCELLA TUTTI';
-
-String _seatedCount(int seated) => '$seated AL TAVOLO';
-
-String _missingHint(int missing) =>
-    missing == 1 ? 'Ne manca ancora uno per cominciare.' : 'Ne mancano ancora $missing per cominciare.';
 
 /// Chi gioca stasera, su un telefono solo: l'elenco salvato di nomi e facce,
 /// da cui si sceglie chi siede al tavolo. Chi resta fuori resta in elenco.
@@ -57,9 +33,25 @@ class LobbyScreen extends StatefulWidget {
 }
 
 class _LobbyScreenState extends State<LobbyScreen> {
+  AppStrings get _t => AppStrings.of(context);
+
   static const _testNames = [
-    'Marco', 'Giulia', 'Luca', 'Sara', 'Paolo', 'Elena', 'Davide', 'Chiara',
-    'Matteo', 'Anna', 'Simone', 'Marta', 'Pietro', 'Irene', 'Nicola', 'Greta',
+    'Marco',
+    'Giulia',
+    'Luca',
+    'Sara',
+    'Paolo',
+    'Elena',
+    'Davide',
+    'Chiara',
+    'Matteo',
+    'Anna',
+    'Simone',
+    'Marta',
+    'Pietro',
+    'Irene',
+    'Nicola',
+    'Greta',
   ];
 
   late final RosterStore _store = widget.roster ?? RosterStore.instance;
@@ -81,9 +73,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
 
   /// La stanza segue l'elenco: chi è seduto qui è seduto lì.
   void _seatTable() {
-    widget.session.seat([
-      for (final member in _store.roster.table) Player(id: member.id, name: member.name),
-    ]);
+    widget.session.seat([for (final member in _store.roster.table) Player(id: member.id, name: member.name)]);
   }
 
   void _say(String message) {
@@ -95,7 +85,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
   /// La scorciatoia di chi sviluppa: un nome di prova, senza foto.
   void _addTestPlayer() {
     final roster = _store.roster;
-    if (roster.isFull) return _say(_rosterFull);
+    if (roster.isFull) return _say(_t.lobbyRosterFull);
     var name = _testNames.firstWhere((name) => roster.checkName(name) == null, orElse: () => '');
     for (var guest = 1; name.isEmpty; guest++) {
       if (roster.checkName('Ospite $guest') == null) name = 'Ospite $guest';
@@ -104,7 +94,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
   }
 
   void _openPerson([RosterMember? member]) {
-    if (member == null && _store.roster.isFull) return _say(_rosterFull);
+    if (member == null && _store.roster.isFull) return _say(_t.lobbyRosterFull);
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -115,7 +105,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
 
   Future<void> _toggleSeat(RosterMember member) async {
     final seated = await _store.seat(member.id, !member.seated);
-    if (!seated && mounted) _say(_tableFullRefusal);
+    if (!seated && mounted) _say(_t.lobbyTableFullRefusal);
   }
 
   Future<void> _clear() async {
@@ -123,16 +113,19 @@ class _LobbyScreenState extends State<LobbyScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: Text(_clearTitle, style: AppText.display(22, color: AppColors.textPrimary)),
-        content: const Text(_clearBody, style: AppText.body),
+        title: Text(_t.lobbyClearTitle, style: AppText.display(22, color: AppColors.textPrimary)),
+        content: Text(_t.lobbyClearBody, style: AppText.body),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text(_clearCancel, style: TextStyle(color: AppColors.textSecondary)),
+            child: Text(_t.lobbyClearCancel, style: TextStyle(color: AppColors.textSecondary)),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text(_clearConfirm, style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700)),
+            child: Text(
+              _t.lobbyClearConfirm,
+              style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700),
+            ),
           ),
         ],
       ),
@@ -141,11 +134,8 @@ class _LobbyScreenState extends State<LobbyScreen> {
   }
 
   void _startGame() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => NarratorSelectionScreen(players: widget.session.currentPlayers),
-      ),
-    );
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => NarratorSelectionScreen(players: widget.session.currentPlayers)));
   }
 
   @override
@@ -158,16 +148,16 @@ class _LobbyScreenState extends State<LobbyScreen> {
         final missing = minRolePlayers - seated;
         return SceneScaffold(
           appBar: AppBar(
-            title: const Text(_title),
+            title: Text(_t.lobbyTitle),
             actions: [
               if (kDebugMode)
                 TextButton(
                   onPressed: _addTestPlayer,
-                  child: const Text(_debugAdd, style: TextStyle(color: AppColors.gold)),
+                  child: Text(_t.lobbyDebugAdd, style: TextStyle(color: AppColors.gold)),
                 ),
               if (!roster.isEmpty)
                 IconButton(
-                  tooltip: _clearTooltip,
+                  tooltip: _t.lobbyClearTooltip,
                   onPressed: _clear,
                   icon: const Icon(Icons.delete_sweep_outlined, color: AppColors.textSecondary),
                 ),
@@ -189,7 +179,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
                                     child: FittedBox(
                                       fit: BoxFit.scaleDown,
                                       child: Text(
-                                        seated == 0 ? _tableEmpty : _seatedCount(seated),
+                                        seated == 0 ? _t.lobbyTableEmpty : _t.lobbySeated(seated),
                                         style: AppText.display(28),
                                       ),
                                     ),
@@ -199,21 +189,17 @@ class _LobbyScreenState extends State<LobbyScreen> {
                                     padding: const EdgeInsets.symmetric(horizontal: 24),
                                     child: Text(
                                       missing > 0
-                                          ? _missingHint(missing)
+                                          ? _t.lobbyMissing(missing)
                                           : roster.tableIsFull
-                                              ? _tableFull
-                                              : _readyHint,
+                                          ? _t.lobbyTableFull
+                                          : _t.lobbyReadyHint,
                                       textAlign: TextAlign.center,
                                       style: AppText.body,
                                     ),
                                   ),
                                   const SizedBox(height: 8),
                                   Expanded(
-                                    child: _RosterGrid(
-                                      roster: roster,
-                                      onToggle: _toggleSeat,
-                                      onEdit: _openPerson,
-                                    ),
+                                    child: _RosterGrid(roster: roster, onToggle: _toggleSeat, onEdit: _openPerson),
                                   ),
                                 ],
                               ),
@@ -222,7 +208,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
                         padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
                         child: Column(
                           children: [
-                            const _PrivacyLine(text: _privacy),
+                            _PrivacyLine(text: _t.lobbyPrivacy),
                             const SizedBox(height: 10),
                             Row(
                               children: [
@@ -230,7 +216,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
                                   child: OutlinedButton.icon(
                                     onPressed: _openPerson,
                                     icon: const Icon(Icons.person_add_alt_1, size: 20),
-                                    label: const FittedBox(fit: BoxFit.scaleDown, child: Text(_add)),
+                                    label: FittedBox(fit: BoxFit.scaleDown, child: Text(_t.lobbyAdd)),
                                     style: OutlinedButton.styleFrom(
                                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 18),
                                     ),
@@ -240,7 +226,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
                                 Expanded(
                                   child: ElevatedButton(
                                     onPressed: missing > 0 ? null : _startGame,
-                                    child: const FittedBox(fit: BoxFit.scaleDown, child: Text(_start)),
+                                    child: FittedBox(fit: BoxFit.scaleDown, child: Text(_t.lobbyStart)),
                                   ),
                                 ),
                               ],
@@ -271,11 +257,7 @@ class _PrivacyLine extends StatelessWidget {
         const Icon(Icons.lock_outline, size: 14, color: AppColors.textSecondary),
         const SizedBox(width: 6),
         Flexible(
-          child: Text(
-            text,
-            textAlign: TextAlign.center,
-            style: AppText.body.copyWith(fontSize: 12.5, height: 1.25),
-          ),
+          child: Text(text, textAlign: TextAlign.center, style: AppText.body.copyWith(fontSize: 12.5, height: 1.25)),
         ),
       ],
     );
@@ -288,6 +270,7 @@ class _EmptyTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings.of(context);
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
@@ -295,12 +278,18 @@ class _EmptyTable extends StatelessWidget {
           children: [
             Transform.rotate(
               angle: -0.07,
-              child: const SizedBox(width: 168, child: MugshotFrame(name: '', placeholder: _emptyPlaceholder)),
+              child: SizedBox(
+                width: 168,
+                child: MugshotFrame(name: '', placeholder: t.lobbyEmptyPlaceholder),
+              ),
             ),
             const SizedBox(height: 28),
-            FittedBox(fit: BoxFit.scaleDown, child: Text(_emptyTitle, style: AppText.display(26))),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(t.lobbyEmptyTitle, style: AppText.display(26)),
+            ),
             const SizedBox(height: 10),
-            const Text(_emptyBody, textAlign: TextAlign.center, style: AppText.body),
+            Text(t.lobbyEmptyBody, textAlign: TextAlign.center, style: AppText.body),
           ],
         ),
       ),
@@ -318,6 +307,7 @@ class _RosterGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings.of(context);
     final members = roster.members;
     final columns = members.length > 9 ? 4 : 3;
     // In fondo le tessere sfumano: si capisce che l'elenco continua.
@@ -353,7 +343,7 @@ class _RosterGrid extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(24, 14, 24, 8),
               child: Text(
-                _gestureHint,
+                t.lobbyGestureHint,
                 textAlign: TextAlign.center,
                 style: AppText.body.copyWith(fontSize: 12.5, height: 1.35),
               ),
@@ -375,6 +365,7 @@ class _PersonTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings.of(context);
     final seated = member.seated;
     final still = MediaQuery.disableAnimationsOf(context);
     // Chi arriva si posa sul tavolo, come una carta servita.
@@ -445,7 +436,10 @@ class _PersonTile extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(999),
                                   border: Border.all(color: AppColors.textSecondary.withValues(alpha: 0.5)),
                                 ),
-                                child: Text(_out, style: AppText.overline.copyWith(fontSize: 9, letterSpacing: 1.4)),
+                                child: Text(
+                                  t.lobbyOut,
+                                  style: AppText.overline.copyWith(fontSize: 9, letterSpacing: 1.4),
+                                ),
                               ),
                             ),
                         ],

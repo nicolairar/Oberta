@@ -1,4 +1,5 @@
 import '../rules/game_engine.dart';
+import '../rules/role.dart';
 
 /// Un pezzo di storia con un nome stabile: il testo cambia con la lingua,
 /// l'[id] no, e servirà alle animazioni per mettere in scena lo stesso pezzo.
@@ -7,6 +8,16 @@ class StoryPiece {
   final String text;
 
   const StoryPiece(this.id, this.text);
+}
+
+/// Come si presenta un ruolo in una lingua: il nome di scena, la frase che
+/// il personaggio direbbe di sé, e cosa fa, in una riga o due.
+class RoleText {
+  final String label;
+  final String motto;
+  final String description;
+
+  const RoleText(this.label, this.motto, this.description);
 }
 
 /// La città vera in cui è ambientata una partita, con i suoi luoghi veri.
@@ -43,6 +54,9 @@ class CitySetting {
 /// Il copione si legge ad alta voce a un tavolo che vuole giocare: ogni
 /// battuta sta in una riga o due. Se è più lunga, nessuno la legge.
 class NarrationPack {
+  /// I dodici ruoli, come li chiamano la carta, il copione e la griglia.
+  final Map<Role, RoleText> roles;
+
   final List<CitySetting> cities;
   final String howToPlay;
 
@@ -106,6 +120,7 @@ class NarrationPack {
   final List<String> decoyPrompts;
 
   const NarrationPack({
+    required this.roles,
     required this.cities,
     required this.howToPlay,
     required this.firstNights,
@@ -149,4 +164,6 @@ class NarrationPack {
     required this.taskHints,
     required this.decoyPrompts,
   });
+
+  RoleText role(Role role) => roles[role]!;
 }

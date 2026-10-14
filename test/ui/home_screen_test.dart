@@ -114,7 +114,8 @@ void main() {
     expect(find.text('IL TAVOLO'), findsOneWidget);
 
     // Tornando indietro l'iride si riapre sul vicolo.
-    await tester.pageBack();
+    // Il telefono dei test parla italiano: il pulsante si chiama «Indietro», non «Back».
+    await tester.tap(find.byType(BackButton));
     for (var frame = 0; frame < 10; frame++) {
       await tester.pump(const Duration(milliseconds: 100));
     }

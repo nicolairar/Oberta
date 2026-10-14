@@ -154,8 +154,17 @@ lib/
                  vittoria, e chi ha diritto di sapere cosa (`GameEngine`).
 
   narration/  -> Il copione del narratore (Dart puro). Il codice compone,
-                 i testi stanno in un pacchetto per lingua (`italian_pack`):
-                 aggiungere l'inglese è aggiungere un file.
+                 i testi stanno in un pacchetto per lingua (`italian_pack`,
+                 `english_pack`), insieme ai nomi, motti e spiegazioni dei
+                 dodici ruoli.
+
+  l10n/       -> Le lingue dell'app (`AppLanguage`) e i testi
+                 dell'interfaccia (`AppStrings`, una classe per lingua).
+                 Si segue la lingua del telefono: italiano se è italiano,
+                 inglese altrimenti; dalle impostazioni si sceglie a mano.
+
+  settings/   -> Le preferenze ricordate tra una sera e l'altra (lingua,
+                 audio), con `shared_preferences`.
 
   network/    -> Strato di comunicazione, sostituibile dietro un'unica
                  interfaccia: sessione finta oggi, poi HostLocale (rete
@@ -187,7 +196,7 @@ dei ruoli (eccetto il narratore umano, che già li conosce).
    suoni e musica ⏳
 4. Un telefono a testa in rete locale
 5. Server remoto (Supabase): partite a distanza, narratore automatico con voce
-6. Classificata, inglese, pubblicazione
+6. Classificata, pubblicazione (l'inglese c'è ✅)
 
 **Regola d'oro:** prima il gioco deve divertire, poi si abbelliscono le animazioni.
 

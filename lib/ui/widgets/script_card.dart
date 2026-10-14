@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_strings.dart';
 import '../../narration/narrator_script.dart';
 import '../theme/app_theme.dart';
 
@@ -15,6 +16,7 @@ class ScriptCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final reader = this.reader;
+    final t = AppStrings.of(context);
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
@@ -31,9 +33,7 @@ class ScriptCard extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  reader == null
-                      ? 'LEGGETE AD ALTA VOCE'
-                      : 'LEGGE ${reader.toUpperCase()}, AD ALTA VOCE',
+                  reader == null ? t.readAloud : t.readerReadsAloud(reader),
                   style: AppText.overline.copyWith(color: AppColors.gold),
                 ),
               ),

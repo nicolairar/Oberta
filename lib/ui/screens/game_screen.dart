@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../l10n/app_strings.dart';
 import '../../narration/death_story.dart';
 import '../../narration/narrator_script.dart';
 import '../../rules/game_engine.dart';
@@ -77,7 +78,12 @@ class _GameScreenState extends State<GameScreen> {
 
   late final GameEngine _engine =
       GameEngine(widget.setup, settings: widget.settings, random: widget.random);
-  late final NarratorScript _script = NarratorScript(random: widget.random);
+
+  /// La lingua della partita: quella in uso quando è cominciata. Copione e
+  /// pulsanti restano in quella fino alla fine.
+  late final AppStrings _t;
+  late final NarratorScript _script;
+  bool _started = false;
 
   _Stage _stage = _Stage.script;
   int _step = 0;
@@ -97,8 +103,12 @@ class _GameScreenState extends State<GameScreen> {
   Player? get _narrator => widget.setup.narrator;
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    _t = AppStrings.of(context);
+    _script = NarratorScript(pack: _t.pack, random: widget.random);
     _enterNight();
   }
 
@@ -113,14 +123,14 @@ class _GameScreenState extends State<GameScreen> {
   void _enterNight() {
     final round = _engine.round;
     SoundStage.instance.cue(Cue.nightfall);
-    _title = 'NOTTE $round';
+    _title = _t.nightTitle(round);
     _mood = SceneMood.night;
     _stage = _Stage.script;
     _page = _ScriptPage(
       icon: Icons.nightlight_round,
-      title: round == 1 ? _script.city.title : 'Cala la notte',
+      title: round == 1 ? _script.city.title : _t.nightFalls,
       lines: [if (round == 1) ..._script.opening(), ..._script.nightFalls(round)],
-      action: 'COMINCIA LA NOTTE',
+      action: _t.startTheNight,
       onAction: () => _advance(() {
         _queue = _engine.alivePlayers;
         _turn = 0;
@@ -173,12 +183,12 @@ class _GameScreenState extends State<GameScreen> {
     final report = _dawn;
     final winner = report.winner;
     SoundStage.instance.cue(Cue.dawn);
-    _title = 'ALBA';
+    _title = _t.dawnTitle;
     _mood = SceneMood.dawn;
     _stage = _Stage.script;
     _page = _ScriptPage(
       icon: Icons.wb_twilight,
-      title: report.victims.isEmpty ? 'Tutti vivi' : 'Cronaca nera',
+      title: report.victims.isEmpty ? _t.everyoneAlive : _t.crimePage,
       lines: _script.dawn(report, discussion: widget.settings.discussion, stories: _deaths),
       // Chi è morto, a lutto. Se non è morto nessuno, chi l'ha scampata.
       portraits: [
@@ -186,12 +196,12 @@ class _GameScreenState extends State<GameScreen> {
           if (attack.isFatal || report.victims.isEmpty) attack.target.name,
       ],
       portraitsFallen: report.victims.isNotEmpty,
-      action: winner != null ? 'FINALE' : 'APRI LA DISCUSSIONE',
+      action: winner != null ? _t.finale : _t.openTheFloor,
       onAction: () => _advance(() {
         if (winner != null) {
           _enterEnd(winner);
         } else {
-          _title = 'GIORNO ${_engine.round}';
+          _title = _t.dayTitle(_engine.round);
           _mood = SceneMood.day;
           _stage = _Stage.day;
         }
@@ -204,23 +214,23 @@ class _GameScreenState extends State<GameScreen> {
     final winner = report.winner;
     // Il rullo di tamburi accompagna il condannato fino alla carta.
     if (report.role != null) SoundStage.instance.cue(Cue.drumroll);
-    _title = 'IL VERDETTO';
+    _title = _t.verdictTitle;
     _mood = SceneMood.dusk;
     _stage = _Stage.script;
     _page = _ScriptPage(
       icon: Icons.gavel,
-      title: condemned?.name ?? 'Nessuna condanna',
+      title: condemned?.name ?? _t.noConviction,
       lines: _script.lynch(report),
       portraits: [if (condemned != null) condemned.name],
       revealed: report.role,
-      action: winner != null ? 'FINALE' : 'CONTINUA',
+      action: winner != null ? _t.finale : _t.continueLabel,
       onAction: () => _advance(() => winner != null ? _enterEnd(winner) : _enterNight()),
     );
   }
 
   void _enterEnd(Team winner) {
     SoundStage.instance.cue(winner == Team.mafia ? Cue.familyWins : Cue.townWins);
-    _title = 'FINE';
+    _title = _t.endTitle;
     _mood = winner == Team.mafia ? SceneMood.night : SceneMood.dawn;
     _endingLines = _script.ending(winner);
     _stage = _Stage.end;
@@ -237,11 +247,11 @@ class _GameScreenState extends State<GameScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: const Text('Abbandonare la partita?'),
-        content: const Text('La partita in corso andrà persa.'),
+        title: Text(_t.leaveQuestion),
+        content: Text(_t.leaveWarning),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('RESTA')),
-          TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('ESCI')),
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(_t.stay)),
+          TextButton(onPressed: () => Navigator.of(context).pop(true), child: Text(_t.leave)),
         ],
       ),
     );
@@ -250,6 +260,14 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screen = _screen();
+    // Se intanto l'app ha cambiato lingua, la partita resta in quella in cui
+    // è cominciata: anche i pezzi che i testi li cercano da sé.
+    if (identical(AppStrings.of(context), _t)) return screen;
+    return Localizations.override(context: context, locale: _t.language.locale, child: screen);
+  }
+
+  Widget _screen() {
     if (_stage == _Stage.crime) {
       // Il delitto va in scena a tutto schermo, senza barre né pulsanti.
       final story = _deaths[_crime];
@@ -280,7 +298,7 @@ class _GameScreenState extends State<GameScreen> {
         appBar: AppBar(
           leading: IconButton(
             icon: const Icon(Icons.close),
-            tooltip: 'Abbandona la partita',
+            tooltip: _t.leaveTooltip,
             onPressed: _confirmExit,
           ),
           title: Text(_title),
@@ -288,7 +306,7 @@ class _GameScreenState extends State<GameScreen> {
             if (_narrator != null && phoneIsWithNarrator)
               IconButton(
                 icon: const Icon(Icons.visibility),
-                tooltip: 'Ruoli, solo per il narratore',
+                tooltip: _t.rolesTooltip,
                 onPressed: () => NarratorRolesSheet.show(
                   context,
                   setup: widget.setup,
@@ -311,7 +329,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _stageView() => switch (_stage) {
-        _Stage.script => _ScriptView(page: _page, reader: _narrator?.name),
+        _Stage.script => _ScriptView(page: _page, reader: _narrator?.name, strings: _t),
         _Stage.handoff => HandoffView(
             name: _queue[_turn].name,
             onReady: () => _advance(() => _stage = _Stage.task),
@@ -322,6 +340,7 @@ class _GameScreenState extends State<GameScreen> {
         _Stage.crime => const SizedBox.shrink(),
         _Stage.toNarrator => HandoffView(name: _narrator!.name, onReady: () => _advance(_enterDawn)),
         _Stage.day => _DayView(
+            strings: _t,
             duration: widget.settings.discussion,
             grid: _publicGrid(),
             onVote: () => _advance(() {
@@ -340,13 +359,13 @@ class _GameScreenState extends State<GameScreen> {
         const Icon(Icons.theaters, color: AppColors.gold, size: 56),
         const SizedBox(height: 24),
         Text(
-          'Telefono\nsul tavolo',
+          _t.phoneOnTheTable,
           textAlign: TextAlign.center,
           style: AppText.display(34),
         ),
         const SizedBox(height: 14),
-        const Text(
-          'Mettetelo al centro e guardate tutti.\nStanotte è successo qualcosa.',
+        Text(
+          _t.phoneOnTheTableHint,
           textAlign: TextAlign.center,
           style: AppText.body,
         ),
@@ -355,7 +374,7 @@ class _GameScreenState extends State<GameScreen> {
           width: double.infinity,
           child: ElevatedButton(
             onPressed: () => _advance(() => _stage = _Stage.crime),
-            child: const Text('BUIO IN SALA'),
+            child: Text(_t.lightsDown),
           ),
         ),
       ],
@@ -390,13 +409,13 @@ class _GameScreenState extends State<GameScreen> {
         Row(
           children: [
             Expanded(
-              child: OutlinedButton(onPressed: () => _submit(null), child: const Text('PASSO')),
+              child: OutlinedButton(onPressed: () => _submit(null), child: Text(_t.pass)),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: ElevatedButton(
                 onPressed: selected == null ? null : () => _submit(selected),
-                child: const Text('CONFERMA'),
+                child: Text(_t.confirm),
               ),
             ),
           ],
@@ -415,14 +434,14 @@ class _GameScreenState extends State<GameScreen> {
         if (finding == null) ...[
           const Icon(Icons.check_circle_outline, color: AppColors.gold, size: 56),
           const SizedBox(height: 20),
-          Text('Fatto.', style: AppText.display(36)),
+          Text(_t.doneTitle, style: AppText.display(36)),
           const SizedBox(height: 12),
-          const Text('Nessuno saprà cosa hai scelto.', style: AppText.body),
+          Text(_t.nobodyWillKnow, style: AppText.body),
         ] else ...[
           // L'indagine dice da che parte sta; la fossa dice chi era.
           Icon(found?.icon ?? Icons.search, color: AppColors.gold, size: 56),
           const SizedBox(height: 20),
-          Text(found == null ? 'LA TUA INDAGINE' : 'NELLA FOSSA', style: AppText.overline),
+          Text(found == null ? _t.yourInvestigation : _t.inTheGrave, style: AppText.overline),
           const SizedBox(height: 10),
           FittedBox(
             fit: BoxFit.scaleDown,
@@ -436,17 +455,17 @@ class _GameScreenState extends State<GameScreen> {
             fit: BoxFit.scaleDown,
             child: Text(
               found != null
-                  ? 'ERA ${found.label.toUpperCase()}'
+                  ? _t.wasRole(_t.role(found).label)
                   : isMafia
-                      ? 'È DELLA FAMIGLIA'
-                      : 'È INNOCENTE',
+                      ? _t.isFamily
+                      : _t.isInnocent,
               style: AppText.display(20, color: isMafia ? _mafiaRed : _cleanGreen),
             ),
           ),
           if (found != null) ...[
             const SizedBox(height: 10),
             Text(
-              isMafia ? 'STAVA CON LA FAMIGLIA' : 'STAVA CON GLI ONESTI',
+              isMafia ? _t.wasWithFamily : _t.wasWithTown,
               style: AppText.overline,
             ),
           ],
@@ -454,7 +473,7 @@ class _GameScreenState extends State<GameScreen> {
         const Spacer(),
         SizedBox(
           width: double.infinity,
-          child: ElevatedButton(onPressed: _afterTask, child: const Text('FATTO')),
+          child: ElevatedButton(onPressed: _afterTask, child: Text(_t.done)),
         ),
       ],
     );
@@ -486,14 +505,14 @@ class _GameScreenState extends State<GameScreen> {
             Expanded(
               child: OutlinedButton(
                 onPressed: () => _advance(() => _enterVerdict(null)),
-                child: const Text('NESSUNO'),
+                child: Text(_t.nobody),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: ElevatedButton(
                 onPressed: selected == null ? null : () => _advance(() => _enterVerdict(selected)),
-                child: const Text('CONDANNA'),
+                child: Text(_t.condemn),
               ),
             ),
           ],
@@ -504,10 +523,10 @@ class _GameScreenState extends State<GameScreen> {
 
   String _fateOf(Player player) {
     for (final record in _engine.history) {
-      if (record.nightVictims.contains(player)) return 'Notte ${record.round}';
-      if (record.lynched == player) return 'Patibolo, giorno ${record.round}';
+      if (record.nightVictims.contains(player)) return _t.fateNight(record.round);
+      if (record.lynched == player) return _t.fateGallows(record.round);
     }
-    return 'Ancora in piedi';
+    return _t.stillStanding;
   }
 
   Widget _endView() {
@@ -523,14 +542,14 @@ class _GameScreenState extends State<GameScreen> {
         ),
         const SizedBox(height: 12),
         Text(
-          mafiaWon ? 'Vince\nla famiglia' : 'Vincono\ngli onesti',
+          mafiaWon ? _t.familyWins : _t.townWins,
           textAlign: TextAlign.center,
           style: AppText.display(36, color: mafiaWon ? _mafiaRed : AppColors.gold),
         ),
         const SizedBox(height: 20),
         ScriptCard(reader: _narrator?.name, lines: _endingLines),
         const SizedBox(height: 28),
-        const Text('CHI ERA CHI', style: AppText.overline),
+        Text(_t.whoWasWho, style: AppText.overline),
         const SizedBox(height: 4),
         for (final entry in widget.setup.roles.entries)
           ListTile(
@@ -544,7 +563,7 @@ class _GameScreenState extends State<GameScreen> {
               style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
             ),
             subtitle: Text(
-              entry.value.label,
+              _t.role(entry.value).label,
               style: TextStyle(
                 color: entry.value.team == Team.mafia ? _mafiaRed : AppColors.textSecondary,
               ),
@@ -553,17 +572,19 @@ class _GameScreenState extends State<GameScreen> {
           ),
         if (suspects.isNotEmpty) ...[
           const SizedBox(height: 20),
-          const Text('LA FACCIA PIÙ SOSPETTA', style: AppText.overline),
+          Text(_t.mostSuspicious, style: AppText.overline),
           const SizedBox(height: 6),
           Text(
-            '${suspects.first.key.name}, con ${suspects.first.value} '
-            '${suspects.first.value == 1 ? 'dito puntato' : 'dita puntate'} nel buio. '
-            '${widget.setup.roleOf(suspects.first.key).team == Team.mafia ? 'A ragione.' : 'A torto.'}',
+            _t.suspicion(
+              suspects.first.key.name,
+              suspects.first.value,
+              rightly: widget.setup.roleOf(suspects.first.key).team == Team.mafia,
+            ),
             style: AppText.body.copyWith(color: AppColors.textPrimary),
           ),
         ],
         const SizedBox(height: 28),
-        ElevatedButton(onPressed: _goHome, child: const Text('TORNA ALLA HOME')),
+        ElevatedButton(onPressed: _goHome, child: Text(_t.backHome)),
       ],
     );
   }
@@ -575,8 +596,9 @@ class _GameScreenState extends State<GameScreen> {
 class _ScriptView extends StatefulWidget {
   final _ScriptPage page;
   final String? reader;
+  final AppStrings strings;
 
-  const _ScriptView({required this.page, required this.reader});
+  const _ScriptView({required this.page, required this.reader, required this.strings});
 
   @override
   State<_ScriptView> createState() => _ScriptViewState();
@@ -643,9 +665,9 @@ class _ScriptViewState extends State<_ScriptView> {
     final revealed = page.revealed;
     final cardCovered = revealed != null && !_cardTurned;
     final (label, onPressed) = _moreBelow
-        ? ('CONTINUA A LEGGERE', _readOn)
+        ? (widget.strings.keepReading, _readOn)
         : cardCovered
-            ? ('GIRA LA CARTA', _turnCard)
+            ? (widget.strings.flipTheCard, _turnCard)
             : (page.action, page.onAction);
 
     return Column(
@@ -728,11 +750,12 @@ class _ScriptViewState extends State<_ScriptView> {
 }
 
 class _DayView extends StatefulWidget {
+  final AppStrings strings;
   final Duration duration;
   final Widget grid;
   final VoidCallback onVote;
 
-  const _DayView({required this.duration, required this.grid, required this.onVote});
+  const _DayView({required this.strings, required this.duration, required this.grid, required this.onVote});
 
   @override
   State<_DayView> createState() => _DayViewState();
@@ -770,13 +793,14 @@ class _DayViewState extends State<_DayView> {
     final expired = _left == Duration.zero;
     final minutes = _left.inMinutes;
     final seconds = (_left.inSeconds % 60).toString().padLeft(2, '0');
+    final t = widget.strings;
     return Column(
       children: [
         Text(
           '$minutes:$seconds',
           style: AppText.display(64, color: expired ? AppColors.accent : AppColors.gold),
         ),
-        Text(expired ? 'TEMPO SCADUTO' : 'LA PIAZZA DISCUTE', style: AppText.overline),
+        Text(expired ? t.timeUp : t.floorIsOpen, style: AppText.overline),
         const SizedBox(height: 16),
         Expanded(child: widget.grid),
         const SizedBox(height: 12),
@@ -785,12 +809,12 @@ class _DayViewState extends State<_DayView> {
             Expanded(
               child: OutlinedButton(
                 onPressed: () => setState(() => _left += const Duration(minutes: 1)),
-                child: const Text('+1 MIN'),
+                child: Text(t.plusMinute),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: ElevatedButton(onPressed: widget.onVote, child: const Text('AL VOTO')),
+              child: ElevatedButton(onPressed: widget.onVote, child: Text(t.callTheVote)),
             ),
           ],
         ),

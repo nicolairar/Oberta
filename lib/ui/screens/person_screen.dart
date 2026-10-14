@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../l10n/app_strings.dart';
 import '../../roster/photo_camera.dart';
 import '../../roster/portrait_registry.dart';
 import '../../roster/roster.dart';
@@ -12,37 +13,6 @@ import '../widgets/mugshot_frame.dart';
 import '../widgets/scene_scaffold.dart';
 
 // I testi della schermata, tutti qui: la traduzione li prenderà da qui.
-const _titleNew = 'NUOVA SCHEDA';
-const _titleEdit = 'SCHEDA';
-const _placardEmpty = 'IL TUO NOME';
-const _nameHint = 'Come ti chiami?';
-const _nameEmpty = 'Senza un nome non ti si può schedare.';
-const _nameTooLong = 'Troppo lungo: al massimo $maxNameLength lettere.';
-const _nameTaken = 'C\'è già qualcuno con questo nome.';
-const _shoot = 'SCATTA';
-const _reshoot = 'RIFAI';
-const _gallery = 'GALLERIA';
-const _noPhoto = 'SENZA FOTO';
-const _hintDrag = 'Trascina per centrare la faccia';
-const _submitNew = 'AGGIUNGI AL TAVOLO';
-const _submitEdit = 'SALVA';
-const _privacy = 'La foto resta su questo telefono: il gioco non la manda da nessuna parte.';
-const _cameraDenied = 'Niente permesso per la fotocamera. Puoi darlo dalle Impostazioni, o giocare senza foto.';
-const _cameraFailed = 'La foto non è riuscita. Riprova, o gioca senza.';
-const _stamp = 'SCHEDATO';
-const _bookedPass = 'Passa il telefono al prossimo.';
-const _next = 'AVANTI IL PROSSIMO';
-const _done = 'ABBIAMO FINITO';
-const _removeTooltip = 'Togli dall\'elenco';
-const _removeCancel = 'ANNULLA';
-const _removeConfirm = 'TOGLI';
-const _removeBody = 'Cancello dal telefono il nome e la foto.';
-
-String _bookedSeated(String name) => '$name è al tavolo.';
-
-String _bookedWatching(String name) => 'Il tavolo è pieno: $name per ora guarda.';
-
-String _removeTitle(String name) => 'Via $name?';
 
 /// La scheda di una persona: il nome e la foto segnaletica. Senza [member]
 /// è una scheda nuova, e dopo ogni schedato è pronta per il prossimo: il
@@ -63,6 +33,8 @@ class PersonScreen extends StatefulWidget {
 }
 
 class _PersonScreenState extends State<PersonScreen> {
+  AppStrings get _t => AppStrings.of(context);
+
   final _name = TextEditingController();
   final _nameFocus = FocusNode();
 
@@ -104,11 +76,11 @@ class _PersonScreenState extends State<PersonScreen> {
 
   /// Il nome vuoto si rimprovera solo a chi ha già provato a salvare.
   String? get _nameError => switch (_problem) {
-        NameProblem.taken => _nameTaken,
-        NameProblem.tooLong => _nameTooLong,
-        NameProblem.empty when _submitted => _nameEmpty,
-        _ => null,
-      };
+    NameProblem.taken => _t.personNameTaken,
+    NameProblem.tooLong => _t.personNameTooLong,
+    NameProblem.empty when _submitted => _t.personNameEmpty,
+    _ => null,
+  };
 
   void _say(String message) {
     ScaffoldMessenger.of(context)
@@ -129,9 +101,9 @@ class _PersonScreenState extends State<PersonScreen> {
       });
       if (_name.text.trim().isEmpty) _nameFocus.requestFocus();
     } on PhotoAccessDenied {
-      if (mounted) _say(_cameraDenied);
+      if (mounted) _say(_t.personCameraDenied);
     } catch (_) {
-      if (mounted) _say(_cameraFailed);
+      if (mounted) _say(_t.personCameraFailed);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -216,16 +188,19 @@ class _PersonScreenState extends State<PersonScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: Text(_removeTitle(member.name), style: AppText.display(22, color: AppColors.textPrimary)),
-        content: const Text(_removeBody, style: AppText.body),
+        title: Text(_t.personRemoveTitle(member.name), style: AppText.display(22, color: AppColors.textPrimary)),
+        content: Text(_t.personRemoveBody, style: AppText.body),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text(_removeCancel, style: TextStyle(color: AppColors.textSecondary)),
+            child: Text(_t.personRemoveCancel, style: TextStyle(color: AppColors.textSecondary)),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text(_removeConfirm, style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700)),
+            child: Text(
+              _t.personRemoveConfirm,
+              style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700),
+            ),
           ),
         ],
       ),
@@ -241,11 +216,11 @@ class _PersonScreenState extends State<PersonScreen> {
     return SceneScaffold(
       resizeForKeyboard: false,
       appBar: AppBar(
-        title: Text(_editing ? _titleEdit : _titleNew),
+        title: Text(_editing ? _t.personTitleEdit : _t.personTitleNew),
         actions: [
           if (_editing)
             IconButton(
-              tooltip: _removeTooltip,
+              tooltip: _t.personRemoveTooltip,
               onPressed: _remove,
               icon: const Icon(Icons.person_remove_outlined, color: AppColors.textSecondary),
             ),
@@ -294,8 +269,8 @@ class _PersonScreenState extends State<PersonScreen> {
                   builder: (context, _) => MugshotFrame(
                     name: _name.text,
                     photo: photo,
-                    placeholder: _placardEmpty,
-                    caption: photo == null ? null : _hintDrag,
+                    placeholder: _t.personPlacardEmpty,
+                    caption: photo == null ? null : _t.personHintDrag,
                   ),
                 ),
               ),
@@ -307,18 +282,18 @@ class _PersonScreenState extends State<PersonScreen> {
               children: [
                 _SideButton(
                   icon: Icons.photo_library_outlined,
-                  label: _gallery,
+                  label: _t.personGallery,
                   onTap: _busy ? null : () => _take(PhotoSource.gallery),
                 ),
                 const SizedBox(width: 6),
                 _Shutter(
-                  label: photo == null ? _shoot : _reshoot,
+                  label: photo == null ? _t.personShoot : _t.personReshoot,
                   onTap: _busy ? null : () => _take(PhotoSource.camera),
                 ),
                 const SizedBox(width: 6),
                 _SideButton(
                   icon: Icons.no_photography_outlined,
-                  label: _noPhoto,
+                  label: _t.personNoPhoto,
                   onTap: photo == null || _busy ? null : _dropPhoto,
                 ),
               ],
@@ -339,7 +314,7 @@ class _PersonScreenState extends State<PersonScreen> {
                 cursorColor: AppColors.gold,
                 style: const TextStyle(color: AppColors.textPrimary, fontSize: 20, fontWeight: FontWeight.w600),
                 decoration: InputDecoration(
-                  hintText: _nameHint,
+                  hintText: _t.personNameHint,
                   hintStyle: const TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w400),
                   errorText: _nameError,
                   errorMaxLines: 2,
@@ -365,13 +340,13 @@ class _PersonScreenState extends State<PersonScreen> {
                   onPressed: _busy ? null : _submit,
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
-                    child: Text(_editing ? _submitEdit : _submitNew),
+                    child: Text(_editing ? _t.personSubmitEdit : _t.personSubmitNew),
                   ),
                 ),
               ),
               const SizedBox(height: 10),
               Text(
-                _privacy,
+                _t.personPrivacy,
                 textAlign: TextAlign.center,
                 style: AppText.body.copyWith(fontSize: 12.5, height: 1.25),
               ),
@@ -392,16 +367,16 @@ class _PersonScreenState extends State<PersonScreen> {
             const SizedBox(height: 8),
             SizedBox(
               width: side * 1.1,
-              child: MugshotFrame(name: booked.name, photo: _store.photoOf(booked), stamp: _stamp),
+              child: MugshotFrame(name: booked.name, photo: _store.photoOf(booked), stamp: _t.personStamp),
             ),
             const SizedBox(height: 24),
             Text(
-              booked.seated ? _bookedSeated(booked.name) : _bookedWatching(booked.name),
+              booked.seated ? _t.personBookedSeated(booked.name) : _t.personBookedWatching(booked.name),
               textAlign: TextAlign.center,
               style: const TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 6),
-            const Text(_bookedPass, textAlign: TextAlign.center, style: AppText.body),
+            Text(_t.personBookedPass, textAlign: TextAlign.center, style: AppText.body),
           ],
         ),
         Padding(
@@ -413,7 +388,7 @@ class _PersonScreenState extends State<PersonScreen> {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: _nextPerson,
-                    child: const FittedBox(fit: BoxFit.scaleDown, child: Text(_next)),
+                    child: FittedBox(fit: BoxFit.scaleDown, child: Text(_t.personNext)),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -422,7 +397,7 @@ class _PersonScreenState extends State<PersonScreen> {
                 width: double.infinity,
                 child: OutlinedButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const FittedBox(fit: BoxFit.scaleDown, child: Text(_done)),
+                  child: FittedBox(fit: BoxFit.scaleDown, child: Text(_t.personDone)),
                 ),
               ),
             ],
@@ -433,9 +408,9 @@ class _PersonScreenState extends State<PersonScreen> {
   }
 
   static OutlineInputBorder _border(Color color, {double width = 1}) => OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: color, width: width),
-      );
+    borderRadius: BorderRadius.circular(14),
+    borderSide: BorderSide(color: color, width: width),
+  );
 }
 
 /// Il pulsante grande, tondo e rosso: quello che scatta.

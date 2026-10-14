@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../l10n/app_strings.dart';
 import '../../rules/player.dart';
 import '../../rules/role.dart';
 import '../../sound/cue_sounds.dart';
@@ -143,7 +144,7 @@ class _CardBack extends StatelessWidget {
           const SizedBox(height: 28),
           const Icon(Icons.fingerprint, color: AppColors.textSecondary, size: 40),
           const SizedBox(height: 10),
-          const Text('TIENI PREMUTO', style: AppText.overline),
+          Text(AppStrings.of(context).pressAndHold, style: AppText.overline),
         ],
       ),
     );
@@ -159,6 +160,8 @@ class _RoleFace extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMafia = role.team == Team.mafia;
+    final t = AppStrings.of(context);
+    final text = t.role(role);
     return _CardFrame(
       gradient: LinearGradient(
         begin: Alignment.topCenter,
@@ -180,13 +183,13 @@ class _RoleFace extends StatelessWidget {
                 FittedBox(
                   fit: BoxFit.scaleDown,
                   child: Text(
-                    role.label.toUpperCase(),
+                    text.label.toUpperCase(),
                     style: AppText.display(30, color: AppColors.textPrimary),
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  role.motto,
+                  text.motto,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontFamily: 'Georgia',
@@ -203,20 +206,20 @@ class _RoleFace extends StatelessWidget {
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
-                    isMafia ? 'STAI CON LA FAMIGLIA' : 'STAI CON GLI ONESTI',
+                    isMafia ? t.youAreFamily : t.youAreTown,
                     style: AppText.overline.copyWith(color: AppColors.textPrimary, fontSize: 11),
                   ),
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  role.description,
+                  text.description,
                   textAlign: TextAlign.center,
                   style: AppText.body.copyWith(color: AppColors.textPrimary.withValues(alpha: 0.85)),
                 ),
                 if (isMafia) ...[
                   const SizedBox(height: 20),
                   Text(
-                    teammates.isEmpty ? 'AGISCI DA SOLO' : 'I TUOI COMPLICI',
+                    teammates.isEmpty ? t.youActAlone : t.yourAccomplices,
                     style: AppText.overline.copyWith(color: AppColors.gold),
                   ),
                   if (teammates.isNotEmpty) ...[

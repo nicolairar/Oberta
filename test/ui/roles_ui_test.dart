@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:omerta/l10n/app_language.dart';
+import 'package:omerta/narration/italian_pack.dart';
 import 'package:omerta/rules/game_setup.dart';
 import 'package:omerta/rules/knowledge.dart';
 import 'package:omerta/rules/player.dart';
@@ -11,6 +13,8 @@ import 'package:omerta/ui/widgets/flip_role_card.dart';
 import 'package:omerta/ui/widgets/narrator_roles_sheet.dart';
 import 'package:omerta/ui/widgets/player_grid.dart';
 import 'package:omerta/ui/widgets/role_reveal_card.dart';
+
+import '../support/languages.dart';
 
 const _mafiaRed = Color(0xFFE5606A);
 
@@ -28,71 +32,76 @@ void main() {
     expect({for (final role in Role.values) role.icon}, hasLength(Role.values.length));
   });
 
-  for (final screen in const [Size(393, 852), Size(320, 568)]) {
-    testWidgets('la carta di ogni ruolo sta nello schermo ${screen.width.round()}x${screen.height.round()}',
-        (tester) async {
-      _useScreen(tester, screen);
-      const accomplices = [
-        Player(id: 'a', name: 'Massimiliano'),
-        Player(id: 'b', name: 'Francesca'),
-        Player(id: 'c', name: 'Alessandro'),
-      ];
-      for (final role in Role.values) {
-        // Lo stesso spazio che la carta ha quando ci si passa il telefono.
-        await tester.pumpWidget(MaterialApp(
-          theme: buildAppTheme(),
-          home: Scaffold(
-            body: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  children: [
-                    Text('NOME', style: AppText.display(24)),
-                    Expanded(
-                      child: Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 20),
-                          child: FlipRoleCard(
-                            key: ValueKey(role),
-                            role: role,
-                            teammates: role.team == Team.mafia ? accomplices : const [],
+  for (final language in AppLanguage.values) {
+    for (final screen in const [Size(393, 852), Size(320, 568)]) {
+      testWidgets('la carta di ogni ruolo sta nello schermo ${screen.width.round()}x${screen.height.round()}, '
+          'in ${language.nativeName}', (tester) async {
+        final t = language.strings;
+        _useScreen(tester, screen);
+        const accomplices = [
+          Player(id: 'a', name: 'Massimiliano'),
+          Player(id: 'b', name: 'Francesca'),
+          Player(id: 'c', name: 'Alessandro'),
+        ];
+        for (final role in Role.values) {
+          // Lo stesso spazio che la carta ha quando ci si passa il telefono.
+          await tester.pumpWidget(
+            appIn(
+              language,
+              Scaffold(
+                body: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      children: [
+                        Text('NOME', style: AppText.display(24)),
+                        Expanded(
+                          child: Center(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 20),
+                              child: FlipRoleCard(
+                                key: ValueKey(role),
+                                role: role,
+                                teammates: role.team == Team.mafia ? accomplices : const [],
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                        const SizedBox(height: 110),
+                      ],
                     ),
-                    const SizedBox(height: 110),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ));
-        final hold = await tester.startGesture(tester.getCenter(find.byType(FlipRoleCard)));
-        await tester.pumpAndSettle();
-        expect(tester.takeException(), isNull, reason: role.name);
-        expect(find.text(role.label.toUpperCase()), findsOneWidget);
-        expect(find.text(role.motto), findsOneWidget);
-        expect(find.text(role.description), findsOneWidget);
-        expect(
-          find.text(role.team == Team.mafia ? 'STAI CON LA FAMIGLIA' : 'STAI CON GLI ONESTI'),
-          findsOneWidget,
-          reason: role.name,
-        );
-        expect(find.text('I TUOI COMPLICI'), role.team == Team.mafia ? findsOneWidget : findsNothing);
-        await hold.up();
-        await tester.pumpAndSettle();
-      }
-    });
+          );
+          final hold = await tester.startGesture(tester.getCenter(find.byType(FlipRoleCard)));
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull, reason: role.name);
+          expect(find.text(t.role(role).label.toUpperCase()), findsOneWidget);
+          expect(find.text(t.role(role).motto), findsOneWidget);
+          expect(find.text(t.role(role).description), findsOneWidget);
+          expect(find.text(role.team == Team.mafia ? t.youAreFamily : t.youAreTown), findsOneWidget, reason: role.name);
+          expect(find.text(t.yourAccomplices), role.team == Team.mafia ? findsOneWidget : findsNothing);
+          await hold.up();
+          await tester.pumpAndSettle();
+        }
+      });
+    }
   }
 
   testWidgets('la carta del condannato dice la squadra vera di ogni ruolo', (tester) async {
     for (final role in Role.values) {
-      await tester.pumpWidget(MaterialApp(
-        home: Center(child: RoleRevealCard(key: ValueKey(role), role: role, faceUp: true)),
-      ));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Center(
+            child: RoleRevealCard(key: ValueKey(role), role: role, faceUp: true),
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: role.name);
-      expect(find.text(role.label.toUpperCase()), findsOneWidget);
+      expect(find.text(italianPack.role(role).label.toUpperCase()), findsOneWidget);
       expect(find.text(role.team == Team.mafia ? 'FAMIGLIA' : 'ONESTI'), findsOneWidget, reason: role.name);
     }
     expect(Role.pregiudicato.team, Team.citizens);
@@ -102,21 +111,23 @@ void main() {
     _useScreen(tester, const Size(393, 852));
     final players = _players(12);
     final setup = GameSetup.fromRoles(Map.fromIterables(players, Role.values));
-    await tester.pumpWidget(MaterialApp(
-      theme: buildAppTheme(),
-      home: Scaffold(
-        body: Padding(
-          padding: const EdgeInsets.all(24),
-          child: NarratorRolesSheet(setup: setup, isAlive: (player) => player != players.last),
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildAppTheme(),
+        home: Scaffold(
+          body: Padding(
+            padding: const EdgeInsets.all(24),
+            child: NarratorRolesSheet(setup: setup, isAlive: (player) => player != players.last),
+          ),
         ),
       ),
-    ));
+    );
 
     final hold = await tester.startGesture(tester.getCenter(find.text('SOLO PER IL NARRATORE')));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     for (final role in Role.values) {
-      final label = tester.widget<Text>(find.text(role.label));
+      final label = tester.widget<Text>(find.text(italianPack.role(role).label));
       expect(label.style!.color == _mafiaRed, role.team == Team.mafia, reason: role.name);
     }
     expect(find.byIcon(Icons.smoking_rooms), findsOneWidget);
@@ -129,10 +140,14 @@ void main() {
   group('PlayerGrid', () {
     Future<void> pumpGrid(WidgetTester tester, PlayerGrid grid) async {
       _useScreen(tester, const Size(393, 852));
-      await tester.pumpWidget(MaterialApp(
-        theme: buildAppTheme(),
-        home: Scaffold(body: Padding(padding: const EdgeInsets.all(24), child: grid)),
-      ));
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildAppTheme(),
+          home: Scaffold(
+            body: Padding(padding: const EdgeInsets.all(24), child: grid),
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
     }
 
@@ -213,11 +228,7 @@ void main() {
       final players = _players(3);
       await pumpGrid(
         tester,
-        PlayerGrid(
-          players: players,
-          isAlive: (player) => player != players[1],
-          knowledgeOf: (_) => Knowledge.none,
-        ),
+        PlayerGrid(players: players, isAlive: (player) => player != players[1], knowledgeOf: (_) => Knowledge.none),
       );
       expect(opacityOf(tester, players[0]), 1);
       expect(opacityOf(tester, players[1]), 0.38);
@@ -227,12 +238,7 @@ void main() {
       final players = _players(3);
       await pumpGrid(
         tester,
-        PlayerGrid(
-          players: players,
-          isAlive: (_) => true,
-          knowledgeOf: (_) => Knowledge.none,
-          silenced: players[1],
-        ),
+        PlayerGrid(players: players, isAlive: (_) => true, knowledgeOf: (_) => Knowledge.none, silenced: players[1]),
       );
       expect(find.byIcon(Icons.voice_over_off), findsOneWidget);
       expect(

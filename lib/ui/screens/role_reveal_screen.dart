@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_strings.dart';
 import '../../rules/game_setup.dart';
 import '../theme/app_theme.dart';
 import '../widgets/flip_role_card.dart';
@@ -43,13 +44,14 @@ class _RoleRevealScreenState extends State<RoleRevealScreen> {
     final setup = widget.setup;
     final players = setup.players;
     final player = players[_index];
+    final t = AppStrings.of(context);
 
     return PopScope(
       canPop: false,
       child: SceneScaffold(
         appBar: AppBar(
           automaticallyImplyLeading: false,
-          title: Text('CARTA ${_index + 1} DI ${players.length}'),
+          title: Text(t.cardOf(_index + 1, players.length)),
         ),
         body: SafeArea(
           child: Padding(
@@ -76,8 +78,8 @@ class _RoleRevealScreenState extends State<RoleRevealScreen> {
                             ),
                           ),
                         ),
-                        const Text(
-                          'Tieni premuta la carta per guardarla.\nRilascia e torna coperta.',
+                        Text(
+                          t.holdTheCardHint,
                           textAlign: TextAlign.center,
                           style: AppText.body,
                         ),
@@ -86,7 +88,7 @@ class _RoleRevealScreenState extends State<RoleRevealScreen> {
                           width: double.infinity,
                           child: ElevatedButton(
                             onPressed: _seen ? _next : null,
-                            child: const Text('HO VISTO'),
+                            child: Text(t.gotIt),
                           ),
                         ),
                       ],

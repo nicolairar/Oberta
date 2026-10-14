@@ -188,7 +188,7 @@ void main() {
 
     test('nessuna battuta d\'atmosfera ruba il nome a un ruolo', () {
       // "Il becchino ha dormito" suonerebbe come un indizio, ora che c'è Il Becchino.
-      final labels = [for (final role in Role.values) role.label.toUpperCase()];
+      final labels = [for (final role in Role.values) italianPack.role(role).label.toUpperCase()];
       final atmosphere = [
         ...italianPack.firstNights,
         ...italianPack.nights,
@@ -414,7 +414,7 @@ void main() {
 
     test('di notte il ruolo di chi muore non viene mai detto', () {
       final script = scriptIn('napoli', 3);
-      final roleNames = [for (final role in Role.values) role.label.toUpperCase()];
+      final roleNames = [for (final role in Role.values) italianPack.role(role).label.toUpperCase()];
       for (var i = 0; i < 100; i++) {
         final text = textOf(
           script.dawn(night(2, [sara, luca]), discussion: threeMinutes),
@@ -557,7 +557,7 @@ void main() {
 
     test('il colpo andato a vuoto: luogo, fiaschetta, e un fatto che non fa nomi di ruolo', () {
       final script = scriptIn('palermo', 6);
-      final roleNames = [for (final role in Role.values) role.label.toUpperCase()];
+      final roleNames = [for (final role in Role.values) italianPack.role(role).label.toUpperCase()];
       for (final source in AttackSource.values) {
         for (var i = 0; i < 30; i++) {
           final report = shrugged(sara, source: source);

@@ -1,4 +1,5 @@
 import '../rules/game_engine.dart';
+import '../rules/role.dart';
 import 'narration_pack.dart';
 
 // Regole per chi scrive:
@@ -9,6 +10,68 @@ import 'narration_pack.dart';
 // - azioni e stacchi devono funzionare in qualsiasi luogo;
 // - si gioca passandosi il telefono: nessuno chiude gli occhi.
 const italianPack = NarrationPack(
+  roles: {
+    Role.mafioso: RoleText(
+      'Il Picciotto',
+      '«Niente di personale.»',
+      'Ogni notte, insieme alla famiglia, scegli chi non vedrà l\'alba.',
+    ),
+    Role.padrino: RoleText(
+      'Il Padrino',
+      '«Io faccio solo favori. Chiedete in giro.»',
+      'Scegli con la famiglia chi non vedrà l\'alba. Al Commissario risulti innocente.',
+    ),
+    Role.sarto: RoleText(
+      'Il Sarto',
+      '«Cucio abiti di giorno e bocche di notte.»',
+      'Ogni notte togli la parola a qualcuno per un giorno. Se la famiglia resta senza sicari, uccidi tu.',
+    ),
+    Role.cittadino: RoleText(
+      'L\'Onesto',
+      '«Io non ho visto niente. Purtroppo è vero.»',
+      'Nessun potere, solo occhi e lingua. Osserva, accusa, vota.',
+    ),
+    Role.detective: RoleText(
+      'Il Commissario',
+      '«Mentono tutti. Qualcuno meglio.»',
+      'Ogni notte indaghi su qualcuno e scopri da che parte sta.',
+    ),
+    Role.medico: RoleText(
+      'Il Dottore',
+      '«Ricucio quello che gli altri strappano.»',
+      'Ogni notte proteggi qualcuno. Mai la stessa persona due notti di fila.',
+    ),
+    Role.cecchino: RoleText(
+      'Il Cecchino',
+      '«Un colpo. Non due.»',
+      'Hai un solo proiettile per tutta la partita. Scegli bene la notte.',
+    ),
+    Role.giornalista: RoleText(
+      'Il Cronista',
+      '«La verità esce in edicola alle sei.»',
+      'Hai un solo scoop: all\'alba tutti sapranno da che parte sta chi hai scelto. Se all\'alba ci arrivi.',
+    ),
+    Role.becchino: RoleText(
+      'Il Becchino',
+      '«I miei clienti non mentono mai.»',
+      'Ogni notte puoi scavare nella fossa di chi è morto di notte: scopri, solo tu, che ruolo aveva.',
+    ),
+    Role.guardaspalle: RoleText(
+      'Il Guardaspalle',
+      '«Prima devono passare da me.»',
+      'Ogni notte fai da scudo a qualcuno. Se quella notte finisce nel mirino, muori tu al suo posto.',
+    ),
+    Role.reduce: RoleText(
+      'Il Reduce',
+      '«Mi hanno già sparato. Gente migliore di voi.»',
+      'Hai la pelle dura: il primo agguato notturno contro di te va a vuoto. Il secondo no.',
+    ),
+    Role.pregiudicato: RoleText(
+      'Il Pregiudicato',
+      '«Ho pagato tutto. La fedina non lo sa.»',
+      'Stai con gli onesti, ma la fedina è sporca: al Commissario risulti della famiglia.',
+    ),
+  },
   cities: [
     CitySetting(
       id: 'chicago',

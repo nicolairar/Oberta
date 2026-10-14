@@ -9,6 +9,9 @@ import 'package:omerta/rules/game_engine.dart';
 import 'package:omerta/rules/player.dart';
 import 'package:omerta/rules/role.dart';
 
+/// I nomi di scena inglesi, come li porta il pacchetto.
+final englishRoleNames = {for (final role in Role.values) role: englishPack.role(role).label};
+
 const sara = Player(id: 'sara', name: 'Sara');
 const luca = Player(id: 'luca', name: 'Luca');
 const threeMinutes = Duration(minutes: 3);
@@ -426,11 +429,6 @@ void main() {
   });
 
   group('NarratorScript in inglese', () {
-    /// La carta del patibolo porta il nome del ruolo, che oggi arriva da
-    /// `Role.label` ed è in italiano: lo si toglie per guardare il resto.
-    String withoutRoleLabel(List<ScriptLine> lines, Role role) =>
-        textOf(lines).replaceAll(role.label.toUpperCase(), '');
-
     List<String> everyPage(NarratorScript script) => [
           textOf(script.opening()),
           textOf(script.nightFalls(1)),
@@ -453,11 +451,8 @@ void main() {
           textOf(script.voteCall()),
           textOf(script.lynch(const LynchReport(round: 1))),
           for (final role in Role.values) ...[
-            withoutRoleLabel(script.lynch(LynchReport(round: 1, condemned: sara, role: role)), role),
-            withoutRoleLabel(
-              script.lynch(LynchReport(round: 1, condemned: sara, role: role, winner: role.team.opponent)),
-              role,
-            ),
+            textOf(script.lynch(LynchReport(round: 1, condemned: sara, role: role))),
+            textOf(script.lynch(LynchReport(round: 1, condemned: sara, role: role, winner: role.team.opponent))),
           ],
           textOf(script.ending(Team.mafia)),
           textOf(script.ending(Team.citizens)),
@@ -627,8 +622,6 @@ void main() {
     });
 
     test('il patibolo: prima la scena, poi la carta con ruolo e squadra, poi il commento', () {
-      // Il nome del ruolo sulla carta è ancora quello italiano di `Role.label`:
-      // il pacchetto non ha un campo per i nomi dei ruoli. Il resto è inglese.
       final script = englishIn('new-york', 7);
       for (final role in Role.values) {
         final lines = script.lynch(LynchReport(round: 1, condemned: sara, role: role));
@@ -637,7 +630,7 @@ void main() {
         expect(lines[0].isFact, isFalse);
         expect(lines[0].text, contains('Sara'));
         expect(lines[1].isFact, isTrue);
-        expect(lines[1].text, 'The card flips. Sara was… ${role.label.toUpperCase()}. $side');
+        expect(lines[1].text, 'The card flips. Sara was… ${englishRoleNames[role]!.toUpperCase()}. $side');
         expect(
           role.team == Team.mafia ? englishPack.lynchedMafioso : englishPack.lynchedInnocent,
           contains(lines[2].text),
@@ -653,20 +646,15 @@ void main() {
       );
     });
 
-    test(
-      'la carta chiama il ruolo col suo nome inglese',
-      () {
-        final script = englishIn('palermo', 2);
-        String card(Role role) => script.lynch(LynchReport(round: 1, condemned: sara, role: role))[1].text;
-        expect(card(Role.medico), 'The card flips. Sara was… THE DOC. On the town\'s side.');
-        expect(card(Role.sarto), 'The card flips. Sara was… THE TAILOR. On the Family\'s side.');
-        for (final role in Role.values) {
-          expect(card(role), contains(englishRoleNames[role]!.toUpperCase()), reason: role.name);
-        }
-      },
-      skip: 'narrator_script.dart prende il nome da Role.label, che è solo in italiano: '
-          'serve un campo del pacchetto per i nomi dei ruoli',
-    );
+    test('la carta chiama il ruolo col suo nome inglese', () {
+      final script = englishIn('palermo', 2);
+      String card(Role role) => script.lynch(LynchReport(round: 1, condemned: sara, role: role))[1].text;
+      expect(card(Role.medico), 'The card flips. Sara was… THE DOC. On the town\'s side.');
+      expect(card(Role.sarto), 'The card flips. Sara was… THE TAILOR. On the Family\'s side.');
+      for (final role in Role.values) {
+        expect(card(role), contains(englishRoleNames[role]!.toUpperCase()), reason: role.name);
+      }
+    });
 
     test('il finale dice chi ha vinto e perché', () {
       final script = englishIn('las-vegas', 10);

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_strings.dart';
 import '../../rules/knowledge.dart';
 import '../../rules/player.dart';
 import '../../rules/role.dart';
@@ -130,6 +131,7 @@ class _PlayerTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings.of(context);
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 200),
       opacity: _opacity,
@@ -194,7 +196,7 @@ class _PlayerTile extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
-                SizedBox(height: 20, child: _badge()),
+                SizedBox(height: 20, child: _badge(t)),
               ],
             ),
           ),
@@ -203,7 +205,7 @@ class _PlayerTile extends StatelessWidget {
     );
   }
 
-  Widget _badge() {
+  Widget _badge(AppStrings t) {
     final role = knowledge.role;
     if (role != null) {
       return Row(
@@ -216,14 +218,14 @@ class _PlayerTile extends StatelessWidget {
           ),
           if (isViewer) ...[
             const SizedBox(width: 5),
-            const Text('TU', style: AppText.overline),
+            Text(t.youBadge, style: AppText.overline),
           ],
         ],
       );
     }
     return switch (knowledge.team) {
-      Team.mafia => _teamLabel('FAMIGLIA', const Color(0xFFE5606A)),
-      Team.citizens => _teamLabel('INNOCENTE', const Color(0xFF6FBF9A)),
+      Team.mafia => _teamLabel(t.familyBadge, const Color(0xFFE5606A)),
+      Team.citizens => _teamLabel(t.innocentBadge, const Color(0xFF6FBF9A)),
       null => const SizedBox.shrink(),
     };
   }
