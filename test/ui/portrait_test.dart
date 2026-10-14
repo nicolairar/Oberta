@@ -6,6 +6,7 @@ import 'package:omerta/roster/portrait_registry.dart';
 import 'package:omerta/roster/roster_storage.dart';
 import 'package:omerta/roster/roster_store.dart';
 import 'package:omerta/ui/widgets/death_scene.dart';
+import 'package:omerta/ui/widgets/face_close_up.dart';
 import 'package:omerta/ui/widgets/handoff_view.dart';
 import 'package:omerta/ui/widgets/mugshot_frame.dart';
 import 'package:omerta/ui/widgets/noir_avatar.dart';
@@ -142,11 +143,20 @@ void main() {
       await store.add('Giulia', photo: giuliaPhoto);
       await stage(tester, victim: 'Marco');
 
-      // Per tutto il film ci sono solo sagome: nessuna foto, di nessuno.
+      // Per tutto il film ci sono solo sagome; l'unica foto che può comparire
+      // è quella della vittima, nel primo piano di quando si accorge di
+      // qualcosa. Quella di Giulia mai.
+      var closeUps = 0;
       for (var second = 0; second < 11; second++) {
         await tester.pump(const Duration(seconds: 1));
-        expect(photos(), findsNothing, reason: 'secondo $second');
+        final shown = photos().evaluate().length;
+        expect(shown, lessThanOrEqualTo(1), reason: 'secondo $second');
+        if (shown == 1) {
+          closeUps++;
+          expect(shownIn(tester, find.byType(FaceCloseUp)), store.photoOf(marco)!.image, reason: 'secondo $second');
+        }
       }
+      expect(closeUps, greaterThan(0), reason: 'il primo piano mostra la vittima');
 
       await tester.pump(DeathScene.length);
       await tester.pump();
