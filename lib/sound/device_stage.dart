@@ -66,7 +66,10 @@ class DeviceStage extends SoundStage {
       await _ready;
       final path = await _tape(act);
       if (ticket != _ticket) return;
-      await _player.play(DeviceFileSource(path));
+      // Prima di cambiare nastro si riavvolge: la posizione che il film
+      // chiede poco dopo deve essere quella del nastro nuovo.
+      await _player.stop();
+      await _player.play(DeviceFileSource(path), position: Duration.zero);
     } catch (error) {
       // Un nastro venuto male non deve fermare la partita: la scena va in
       // onda muta, e la prossima volta si riprova da capo.

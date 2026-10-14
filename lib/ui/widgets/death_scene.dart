@@ -95,6 +95,17 @@ double filmTime(double x) => _warp(x, toFilm: true);
 /// a [t]. Serve a chi deve far cadere un suono esattamente su un fotogramma.
 double filmClock(double t) => _warp(t, toFilm: false);
 
+/// Dove deve saltare il film per tornare a tempo col nastro, o `null` se va
+/// bene così. Uno scarto di qualche centesimo non si nota e non vale un
+/// salto; uno scarto grande non è un ritardo del nastro ma il lettore che
+/// parla ancora del nastro di prima, e lì è meglio restare dove si è.
+Duration? resyncTarget({required Duration heard, required Duration film}) {
+  final drift = (heard - film).abs();
+  if (drift <= const Duration(milliseconds: 40) || drift >= const Duration(milliseconds: 800)) return null;
+  if (heard >= DeathScene.length) return null;
+  return heard;
+}
+
 /// Quello che è successo di notte, da guardare tutti insieme col telefono sul
 /// tavolo: una strada, qualcuno che arriva, e qualcuno dietro l'angolo. Si
 /// chiude sul ritratto di chi non vedrà l'alba (o di chi, stavolta, la vedrà)
@@ -179,11 +190,8 @@ class _DeathSceneState extends State<DeathScene> with SingleTickerProviderStateM
   Future<void> _tune() async {
     final heard = await SoundStage.instance.position();
     if (heard == null || !mounted || !_film.isAnimating) return;
-    final length = DeathScene.length.inMicroseconds;
-    final drift = heard.inMicroseconds - _film.value * length;
-    if (drift.abs() > 40000 && heard.inMicroseconds < length) {
-      _film.forward(from: heard.inMicroseconds / length);
-    }
+    final target = resyncTarget(heard: heard, film: DeathScene.length * _film.value);
+    if (target != null) _film.forward(from: target.inMicroseconds / DeathScene.length.inMicroseconds);
   }
 
   /// Chi salta la scena arriva comunque al ritratto finale: il nome si legge
