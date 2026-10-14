@@ -37,8 +37,29 @@ discussione, voto e verdetto finché una fazione vince.
   morte della notte va in scena a sagome nere, con una coreografia per ogni
   arma del copione. Poi il narratore la racconta.
 
-Tutto è disegnato in codice (`CustomPainter`): nessuna immagine, nessun font,
-nessuna dipendenza esterna, quindi nessuna licenza da tenere d'occhio.
+- **Il tavolo e le facce vere**: nella modalità un telefono ci si passa il
+  telefono e ognuno si fa la sua scheda, nome e foto segnaletica (fotocamera
+  frontale o libreria, oppure niente foto e resta il ritratto disegnato).
+  L'elenco resta salvato: alla partita dopo si ritrova il tavolo di prima, si
+  aggiunge chi arriva, si alza chi non gioca, si toglie chi se ne va o si
+  cancellano tutti. Le foto compaiono in ogni ritratto del gioco, trattate in
+  seppia dentro la stessa cornice; nella scena del delitto si vede solo la
+  vittima, mai chi ha colpito.
+
+Tutto è disegnato in codice (`CustomPainter`): nessuna immagine, nessun font.
+Le uniche dipendenze sono due plugin ufficiali di Flutter (licenza BSD):
+`image_picker` per la fotocamera e `path_provider` per la cartella dell'app.
+
+### Dove finiscono nomi e foto
+
+Solo sul telefono. Il gioco non ha codice di rete: nomi e foto non vengono
+mandati da nessuna parte. Stanno nella cartella privata dell'app
+(`Application Support/roster/`): un `roster.json` con nomi e posti al tavolo, e
+una cartella `photos/` con un JPEG piccolo per persona (lato lungo 800 punti,
+un centinaio di kilobyte). Togliere una foto, una persona o tutti cancella
+anche i file; disinstallare l'app cancella tutto. Come per ogni app, se il
+telefono fa il backup su iCloud o sul computer, la cartella dell'app è
+compresa nel backup del telefono.
 
 Manca ancora la rete tra telefoni: `FakeLocalSession` fa da stanza finta.
 
@@ -139,6 +160,12 @@ lib/
   network/    -> Strato di comunicazione, sostituibile dietro un'unica
                  interfaccia: sessione finta oggi, poi HostLocale (rete
                  locale) e ServerRemoto (Supabase).
+
+  roster/     -> L'elenco di chi gioca su questo telefono: il modello (Dart
+                 puro), l'archivio dietro un'interfaccia (in memoria nei
+                 test, su file nell'app) e le facce che i ritratti mostrano.
+                 Solo `device_roster.dart` tocca i plugin, e si installa
+                 all'avvio in `main()`.
 
   ui/         -> Schermate e widget. Mostra quello che riceve, non decide.
     screens/

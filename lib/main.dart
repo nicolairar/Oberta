@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'roster/device_roster.dart';
 import 'sound/device_stage.dart';
 import 'sound/sound_stage.dart';
 import 'ui/screens/home_screen.dart';
@@ -9,6 +10,7 @@ import 'ui/widgets/settings_sheet.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   SoundStage.instance = DeviceStage();
+  installDeviceRoster();
   runApp(const OmertaApp());
 }
 

@@ -9,6 +9,7 @@ import '../../sound/sound_stage.dart';
 import '../theme/app_theme.dart';
 import 'city_backdrop.dart';
 import 'noir_avatar.dart';
+import 'victim_card.dart';
 
 /// Le coreografie disponibili per quello che succede di notte.
 enum DeathAct {
@@ -263,26 +264,7 @@ class _DeathSceneState extends State<DeathScene> with SingleTickerProviderStateM
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Transform.scale(
-                          scale: 1.25 - 0.25 * Curves.easeOut.transform(card),
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              NoirAvatar(seed: widget.victimName, size: 132, faded: !survives),
-                              if (!survives)
-                                const Text(
-                                  '†',
-                                  style: TextStyle(
-                                    fontFamily: 'Georgia',
-                                    fontSize: 78,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.textPrimary,
-                                    shadows: [Shadow(color: Colors.black, blurRadius: 12)],
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
+                        VictimCard(name: widget.victimName, survives: survives, reveal: card),
                         const SizedBox(height: 22),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 24),

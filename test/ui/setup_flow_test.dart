@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omerta/main.dart';
+import 'package:omerta/roster/roster_storage.dart';
+import 'package:omerta/roster/roster_store.dart';
 import 'package:omerta/ui/widgets/flip_role_card.dart';
 
 void _usePhoneScreen(WidgetTester tester) {
@@ -14,29 +16,35 @@ void _usePhoneScreen(WidgetTester tester) {
   addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
 }
 
-Future<void> _openLobbyWith(WidgetTester tester, int testPlayers) async {
+/// Apre il tavolo e ci fa sedere [players] giocatori di prova.
+Future<void> _openLobbyWith(WidgetTester tester, int players) async {
   await tester.pumpWidget(const OmertaApp());
   await tester.tap(find.text('CREA STANZA'));
   await tester.pumpAndSettle();
-  for (var i = 0; i < testPlayers; i++) {
+  for (var i = 0; i < players; i++) {
     await tester.tap(find.text('+ TEST'));
-    await tester.pump();
+    await tester.pumpAndSettle();
   }
 }
 
 void main() {
+  // L'elenco dell'app dura quanto il processo: ogni test parte dal suo,
+  // vuoto e in memoria, senza la gente del test di prima.
+  setUp(() => RosterStore.instance = RosterStore(MemoryRosterStorage()));
+
   testWidgets('non si parte finché il tavolo è troppo piccolo', (tester) async {
     _usePhoneScreen(tester);
-    await _openLobbyWith(tester, 1);
+    await _openLobbyWith(tester, 2);
 
     final start = tester.widget<ElevatedButton>(find.widgetWithText(ElevatedButton, 'AVVIA'));
     expect(start.onPressed, isNull);
-    expect(find.textContaining('Ne mancano ancora 1'), findsOneWidget);
+    expect(find.text('2 AL TAVOLO'), findsOneWidget);
+    expect(find.text('Ne manca ancora uno per cominciare.'), findsOneWidget);
   });
 
   testWidgets('narratore automatico: ognuno guarda la sua carta, poi cala la notte', (tester) async {
     _usePhoneScreen(tester);
-    await _openLobbyWith(tester, 2);
+    await _openLobbyWith(tester, 3);
 
     await tester.tap(find.text('AVVIA'));
     await tester.pumpAndSettle();
@@ -71,7 +79,7 @@ void main() {
 
   testWidgets('narratore sorteggiato: non gioca ed è lui a leggere il copione', (tester) async {
     _usePhoneScreen(tester);
-    await _openLobbyWith(tester, 3);
+    await _openLobbyWith(tester, 4);
 
     await tester.tap(find.text('AVVIA'));
     await tester.pumpAndSettle();
@@ -102,7 +110,7 @@ void main() {
 
   testWidgets('con tre al tavolo il narratore umano non è disponibile', (tester) async {
     _usePhoneScreen(tester);
-    await _openLobbyWith(tester, 2);
+    await _openLobbyWith(tester, 3);
 
     await tester.tap(find.text('AVVIA'));
     await tester.pumpAndSettle();

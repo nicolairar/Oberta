@@ -2,12 +2,18 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../roster/portrait_registry.dart';
 import '../theme/app_theme.dart';
+import 'noir_photo.dart';
 
 /// Il ritratto di un giocatore: una foto segnaletica da film noir. Una sagoma
 /// scura davanti alle righe dell'altezza, un filo di luce di taglio, e pochi
 /// dettagli chiari che fanno la faccia. Tutto si ricava dal [seed], così la
 /// stessa persona ha sempre la stessa faccia su ogni telefono.
+///
+/// Se chi si chiama [seed] si è fatto fotografare, nella stessa cornice c'è
+/// la sua faccia vera: lo dice il [PortraitRegistry], che conosce solo nomi
+/// e foto. Chi usa questo widget non deve sapere né fare altro.
 class NoirAvatar extends StatelessWidget {
   final String seed;
   final double size;
@@ -15,13 +21,35 @@ class NoirAvatar extends StatelessWidget {
   /// I morti restano nella griglia, ma in bianco e nero e sbiaditi.
   final bool faded;
 
-  const NoirAvatar({super.key, required this.seed, this.size = 44, this.faded = false});
+  final bool _photoAllowed;
+
+  const NoirAvatar({super.key, required this.seed, this.size = 44, this.faded = false}) : _photoAllowed = true;
+
+  /// Sempre il ritratto disegnato, anche per chi una foto ce l'ha: serve
+  /// dove la foto si sta ancora scegliendo.
+  const NoirAvatar.drawn({super.key, required this.seed, this.size = 44, this.faded = false})
+      : _photoAllowed = false;
 
   @override
   Widget build(BuildContext context) {
+    final registry = PortraitRegistry.instance;
+    final drawn = CustomPaint(painter: _AvatarPainter(_Look.from(seed), faded));
     return SizedBox.square(
       dimension: size,
-      child: CustomPaint(painter: _AvatarPainter(_Look.from(seed), faded)),
+      child: ListenableBuilder(
+        listenable: registry,
+        builder: (context, _) {
+          final photo = _photoAllowed ? registry.photoOf(seed) : null;
+          if (photo == null) return drawn;
+          return NoirPhoto(
+            photo: photo,
+            faded: faded,
+            shape: BoxShape.circle,
+            frame: _CoinFramePainter(faded),
+            fallback: drawn,
+          );
+        },
+      ),
     );
   }
 }
@@ -173,23 +201,7 @@ class _AvatarPainter extends CustomPainter {
     _paintExtra(canvas, s);
     canvas.restore();
 
-    // La cornice: un anello scuro e uno d'oro, come una moneta.
-    canvas.drawCircle(
-      bounds.center,
-      s / 2 - s * 0.012,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = s * 0.05
-        ..color = Colors.black.withValues(alpha: 0.55),
-    );
-    canvas.drawCircle(
-      bounds.center,
-      s / 2 - max(0.75, s * 0.012),
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = max(1.5, s * 0.024)
-        ..color = (faded ? AppColors.textSecondary : AppColors.gold).withValues(alpha: 0.9),
-    );
+    _CoinFramePainter(faded).paint(canvas, size);
   }
 
   void _paintHead(Canvas canvas, double s, Paint paint) {
@@ -482,4 +494,37 @@ class _AvatarPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_AvatarPainter old) => old.look != look || old.faded != faded;
+}
+
+/// La cornice dei ritratti: un anello scuro e uno d'oro, come una moneta.
+/// È la stessa per le facce disegnate e per quelle fotografate.
+class _CoinFramePainter extends CustomPainter {
+  final bool faded;
+
+  const _CoinFramePainter(this.faded);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final s = size.shortestSide;
+    final center = Offset(s / 2, s / 2);
+    canvas.drawCircle(
+      center,
+      s / 2 - s * 0.012,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = s * 0.05
+        ..color = Colors.black.withValues(alpha: 0.55),
+    );
+    canvas.drawCircle(
+      center,
+      s / 2 - max(0.75, s * 0.012),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = max(1.5, s * 0.024)
+        ..color = (faded ? AppColors.textSecondary : AppColors.gold).withValues(alpha: 0.9),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_CoinFramePainter old) => old.faded != faded;
 }

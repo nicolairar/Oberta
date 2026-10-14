@@ -79,7 +79,7 @@ void main() {
 
     await tester.tap(find.text('CREA STANZA'));
     await tester.pumpAndSettle();
-    expect(find.text('CODICE STANZA'), findsOneWidget);
+    expect(find.text('IL TAVOLO'), findsOneWidget);
   });
 
   testWidgets('un manifesto «prossimamente» risponde con una didascalia e non porta da nessuna parte',
@@ -97,7 +97,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Un telefono a testa: arriva con la rete. Pazienza.'), findsOneWidget);
     expect(find.text('CREA STANZA'), findsOneWidget, reason: 'si resta nel vicolo');
-    expect(find.text('CODICE STANZA'), findsNothing);
+    expect(find.text('IL TAVOLO'), findsNothing);
   });
 
   testWidgets('toccando CREA STANZA il nero si chiude a iride, poi si entra nella lobby', (tester) async {
@@ -107,11 +107,11 @@ void main() {
 
     await tester.tap(find.text('CREA STANZA'));
     await tester.pump(const Duration(milliseconds: 200));
-    expect(find.text('CODICE STANZA'), findsNothing, reason: 'l\'iride si sta ancora chiudendo');
+    expect(find.text('IL TAVOLO'), findsNothing, reason: 'l\'iride si sta ancora chiudendo');
     for (var frame = 0; frame < 10; frame++) {
       await tester.pump(const Duration(milliseconds: 100));
     }
-    expect(find.text('CODICE STANZA'), findsOneWidget);
+    expect(find.text('IL TAVOLO'), findsOneWidget);
 
     // Tornando indietro l'iride si riapre sul vicolo.
     await tester.pageBack();
@@ -132,11 +132,11 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('CREA STANZA'));
       await tester.pumpAndSettle();
-      expect(find.text('CODICE STANZA'), findsOneWidget);
+      expect(find.text('IL TAVOLO'), findsOneWidget);
 
       await tester.dragFrom(const Offset(4, 420), const Offset(330, 0));
       await tester.pumpAndSettle();
-      expect(find.text('CODICE STANZA'), findsNothing);
+      expect(find.text('IL TAVOLO'), findsNothing);
       expect(find.text('CREA STANZA'), findsOneWidget);
     } finally {
       debugDefaultTargetPlatformOverride = null;

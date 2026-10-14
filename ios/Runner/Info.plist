@@ -26,6 +26,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Obertà usa la fotocamera per scattare la foto segnaletica di chi gioca. La foto resta su questo telefono.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Obertà ti fa scegliere dalla libreria la foto di chi gioca. La foto scelta resta su questo telefono.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
