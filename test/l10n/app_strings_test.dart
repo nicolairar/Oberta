@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:omerta/l10n/app_language.dart';
-import 'package:omerta/l10n/app_strings.dart';
-import 'package:omerta/narration/english_pack.dart';
-import 'package:omerta/narration/italian_pack.dart';
-import 'package:omerta/rules/role.dart';
+import 'package:oberta/l10n/app_language.dart';
+import 'package:oberta/l10n/app_strings.dart';
+import 'package:oberta/narration/english_pack.dart';
+import 'package:oberta/narration/italian_pack.dart';
+import 'package:oberta/rules/role.dart';
 
 import '../support/languages.dart';
 

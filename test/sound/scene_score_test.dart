@@ -2,9 +2,9 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:omerta/sound/scene_score.dart';
-import 'package:omerta/sound/synth.dart';
-import 'package:omerta/ui/widgets/death_scene.dart';
+import 'package:oberta/sound/scene_score.dart';
+import 'package:oberta/sound/synth.dart';
+import 'package:oberta/ui/widgets/death_scene.dart';
 
 /// I campioni di un file WAV a 16 bit, da -1 a 1.
 List<double> samplesOf(Uint8List wav) {

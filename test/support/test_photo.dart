@@ -3,7 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:omerta/roster/roster_store.dart';
+import 'package:oberta/roster/roster_store.dart';
 
 /// Una foto finta, come uscirebbe dalla fotocamera: verticale 3:4, con una
 /// faccia disegnata nel mezzo. [variant] cambia colori e pettinatura.

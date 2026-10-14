@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:omerta/rules/role.dart';
+import 'package:oberta/rules/role.dart';
 
 void main() {
   // I nomi, i motti e le spiegazioni stanno nei pacchetti di lingua: vedi

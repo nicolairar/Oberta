@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:omerta/roster/roster_storage.dart';
-import 'package:omerta/roster/roster_store.dart';
-import 'package:omerta/settings/app_settings.dart';
-import 'package:omerta/settings/settings_store.dart';
+import 'package:oberta/roster/roster_storage.dart';
+import 'package:oberta/roster/roster_store.dart';
+import 'package:oberta/settings/app_settings.dart';
+import 'package:oberta/settings/settings_store.dart';
 
 /// Il telefono dei test parla italiano, come quello di chi ha scritto le
 /// prove: chi vuole l'inglese lo chiede nel test. Ogni prova parte da

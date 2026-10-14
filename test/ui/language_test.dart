@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:omerta/main.dart';
-import 'package:omerta/settings/app_settings.dart';
-import 'package:omerta/settings/settings_store.dart';
-import 'package:omerta/sound/sound_stage.dart';
-import 'package:omerta/ui/widgets/flip_role_card.dart';
+import 'package:oberta/main.dart';
+import 'package:oberta/settings/app_settings.dart';
+import 'package:oberta/settings/settings_store.dart';
+import 'package:oberta/sound/sound_stage.dart';
+import 'package:oberta/ui/widgets/flip_role_card.dart';
 
 void _usePhone(WidgetTester tester, {List<Locale> speaks = const [Locale('it', 'IT')]}) {
   tester.view.physicalSize = const Size(393, 852);
@@ -40,7 +40,7 @@ void main() {
 
   testWidgets('un telefono in italiano apre il vicolo in italiano', (tester) async {
     _usePhone(tester, speaks: const [Locale('it', 'IT')]);
-    await tester.pumpWidget(OmertaApp(settings: AppSettings(MemorySettingsStore())));
+    await tester.pumpWidget(ObertaApp(settings: AppSettings(MemorySettingsStore())));
     await tester.pumpAndSettle();
     _expectItalianAlley();
     expect(find.byTooltip('Impostazioni'), findsOneWidget);
@@ -49,7 +49,7 @@ void main() {
   for (final locale in const [Locale('en', 'US'), Locale('de', 'DE'), Locale('fr', 'FR')]) {
     testWidgets('un telefono in $locale apre il vicolo in inglese', (tester) async {
       _usePhone(tester, speaks: [locale]);
-      await tester.pumpWidget(OmertaApp(settings: AppSettings(MemorySettingsStore())));
+      await tester.pumpWidget(ObertaApp(settings: AppSettings(MemorySettingsStore())));
       await tester.pumpAndSettle();
       _expectEnglishAlley();
       expect(find.byTooltip('Settings'), findsOneWidget);
@@ -60,7 +60,7 @@ void main() {
     for (final size in const [Size(320, 480), Size(375, 667), Size(667, 375), Size(430, 932)]) {
       _usePhone(tester, speaks: const [Locale('en', 'US')]);
       tester.view.physicalSize = size;
-      await tester.pumpWidget(OmertaApp(settings: AppSettings(MemorySettingsStore())));
+      await tester.pumpWidget(ObertaApp(settings: AppSettings(MemorySettingsStore())));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: '$size');
       await tester.tap(find.byTooltip('Settings'));
@@ -73,7 +73,7 @@ void main() {
   testWidgets('dalle impostazioni si passa all\'inglese, e il vicolo cambia subito', (tester) async {
     _usePhone(tester);
     final store = MemorySettingsStore();
-    await tester.pumpWidget(OmertaApp(settings: AppSettings(store)));
+    await tester.pumpWidget(ObertaApp(settings: AppSettings(store)));
     await tester.pumpAndSettle();
     _expectItalianAlley();
 
@@ -101,7 +101,7 @@ void main() {
   testWidgets('la lingua scelta resta dopo un riavvio, anche se il telefono parla italiano', (tester) async {
     _usePhone(tester);
     final store = MemorySettingsStore({AppSettings.languageKey: 'en'});
-    await tester.pumpWidget(OmertaApp(settings: AppSettings(store)));
+    await tester.pumpWidget(ObertaApp(settings: AppSettings(store)));
     await tester.pumpAndSettle();
     _expectEnglishAlley();
 
@@ -114,7 +114,7 @@ void main() {
     expect(store.values.containsKey(AppSettings.languageKey), isFalse);
 
     await tester.pumpWidget(const SizedBox());
-    await tester.pumpWidget(OmertaApp(settings: AppSettings(store)));
+    await tester.pumpWidget(ObertaApp(settings: AppSettings(store)));
     await tester.pumpAndSettle();
     _expectItalianAlley();
   });
@@ -122,7 +122,7 @@ void main() {
   testWidgets('su un telefono inglese si può scegliere l\'italiano', (tester) async {
     _usePhone(tester, speaks: const [Locale('en', 'US')]);
     final store = MemorySettingsStore();
-    await tester.pumpWidget(OmertaApp(settings: AppSettings(store)));
+    await tester.pumpWidget(ObertaApp(settings: AppSettings(store)));
     await tester.pumpAndSettle();
     _expectEnglishAlley();
 
@@ -137,7 +137,7 @@ void main() {
   testWidgets('l\'audio spento dalle impostazioni resta spento al riavvio', (tester) async {
     _usePhone(tester);
     final store = MemorySettingsStore();
-    await tester.pumpWidget(OmertaApp(settings: AppSettings(store)));
+    await tester.pumpWidget(ObertaApp(settings: AppSettings(store)));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Impostazioni'));
     await tester.pumpAndSettle();
@@ -148,7 +148,7 @@ void main() {
     expect(tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value, isFalse);
 
     await tester.pumpWidget(const SizedBox());
-    await tester.pumpWidget(OmertaApp(settings: AppSettings(store)));
+    await tester.pumpWidget(ObertaApp(settings: AppSettings(store)));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Impostazioni'));
     await tester.pumpAndSettle();
@@ -159,7 +159,7 @@ void main() {
     _usePhone(tester, speaks: const [Locale('en', 'US')]);
     tester.view.physicalSize = const Size(1179, 2556);
     tester.view.devicePixelRatio = 3;
-    await tester.pumpWidget(OmertaApp(settings: AppSettings(MemorySettingsStore())));
+    await tester.pumpWidget(ObertaApp(settings: AppSettings(MemorySettingsStore())));
     await tester.pumpAndSettle();
     await tester.tap(find.text('CREATE ROOM'));
     await tester.pumpAndSettle();
@@ -204,7 +204,7 @@ void main() {
 
   testWidgets('in inglese la sala prove e le sue scene parlano inglese', (tester) async {
     _usePhone(tester, speaks: const [Locale('en', 'US')]);
-    await tester.pumpWidget(OmertaApp(settings: AppSettings(MemorySettingsStore())));
+    await tester.pumpWidget(ObertaApp(settings: AppSettings(MemorySettingsStore())));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Settings'));
     await tester.pumpAndSettle();

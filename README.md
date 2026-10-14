@@ -1,4 +1,4 @@
-# Omertà — gioco di ruoli nascosti sugli smartphone
+# Obertà — gioco di ruoli nascosti sugli smartphone
 
 Gioco tipo Lupus in Fabula / Mafia / Assassino, giocato **solo con gli smartphone**
 (niente carte, niente fogli). Tema noir/mafia, stile cartoon-noir.
@@ -33,9 +33,27 @@ discussione, voto e verdetto finché una fazione vince.
   finestre accese, l'alba che sorge), ritratti da foto segnaletica per ogni
   giocatore, il tamburo di un revolver per sorteggiare il narratore, un tavolo
   da poker che distribuisce le carte.
-- **La scena del delitto**: all'alba si appoggia il telefono sul tavolo e la
-  morte della notte va in scena a sagome nere, con una coreografia per ogni
-  arma del copione. Poi il narratore la racconta.
+- **Il menu**: un vicolo sotto la pioggia, con l'insegna al neon che ogni
+  tanto salta, il tizio che fuma sotto il lampione, il gatto, i fari delle
+  auto; le modalità sono manifesti attaccati al muro.
+- **Le scene della notte**: all'alba si appoggia il telefono sul tavolo e
+  ogni agguato va in scena per com'è andato, a sagome nere: ventidue
+  coreografie (dal pugnale al pianoforte, dalla lupara al bacio avvelenato,
+  il colpo del Cecchino, il Dottore che arriva in tempo, la fiaschetta che
+  ferma il proiettile), al rallentatore sul colpo, con le scritte da fumetto
+  e il primo piano della vittima. Le azioni si pescano da un mazzo: nessuna
+  si ripete finché non sono uscite tutte. Ogni scena si chiude sul ritratto
+  e aspetta il tavolo; la Sala prove, dalle impostazioni, le fa rivedere.
+- **Musica ed effetti**: ogni scena ha la sua colonna sonora (contrabbasso,
+  archi che tremano, il cuore che accelera, il colpo d'orchestra) a tempo
+  col film, e ogni momento della partita il suo suono: il tamburo del
+  revolver, le carte, il gong della notte, le campane dell'alba, il
+  ticchettio del timer, il rullo di tamburi sul condannato e il trombone
+  triste se era innocente. Tutto è sintetizzato in codice: nessun file
+  audio, nessuna licenza.
+- **Italiano e inglese**: l'app segue la lingua del telefono, e dalle
+  impostazioni si cambia a mano. Copione, ruoli e interfaccia esistono in
+  tutte e due le lingue.
 
 - **Il tavolo e le facce vere**: nella modalità un telefono ci si passa il
   telefono e ognuno si fa la sua scheda, nome e foto segnaletica (fotocamera
@@ -46,9 +64,12 @@ discussione, voto e verdetto finché una fazione vince.
   seppia dentro la stessa cornice; nella scena del delitto si vede solo la
   vittima, mai chi ha colpito.
 
-Tutto è disegnato in codice (`CustomPainter`): nessuna immagine, nessun font.
-Le uniche dipendenze sono due plugin ufficiali di Flutter (licenza BSD):
-`image_picker` per la fotocamera e `path_provider` per la cartella dell'app.
+Tutto è disegnato e suonato in codice (`CustomPainter`, un piccolo
+sintetizzatore in `lib/sound/`): nessuna immagine, nessun font, nessun file
+audio. Anche l'icona è disegnata in codice: `tool/make_app_icons.sh` la
+rigenera in tutte le misure. Le dipendenze sono plugin con licenza libera:
+`image_picker` e `path_provider` (fotocamera e cartella dell'app),
+`shared_preferences` (le impostazioni), `audioplayers` (MIT, per suonare).
 
 ### Dove finiscono nomi e foto
 
@@ -192,13 +213,22 @@ dei ruoli (eccetto il narratore umano, che già li conosce).
 1. ✅ Preparazione: stanza con codice, lobby, narratore, ruota, carta ruolo
 2. ✅ Partita completa su un telefono: notte, alba, giorno, voto, vittoria,
    dodici ruoli e tavoli fino a 16, con test sulle regole e sul copione
-3. ⏳ Grafica e animazioni: fondali ✅, avatar ✅, scene di morte ✅,
-   suoni e musica ⏳
+3. ✅ Grafica, animazioni e suoni: fondali, menu, ritratti e foto, scene
+   della notte, musica ed effetti (le voci ⏳: servono registrazioni vere)
 4. Un telefono a testa in rete locale
 5. Server remoto (Supabase): partite a distanza, narratore automatico con voce
 6. Classificata, pubblicazione (l'inglese c'è ✅)
 
 **Regola d'oro:** prima il gioco deve divertire, poi si abbelliscono le animazioni.
+
+## TestFlight
+
+- Bundle ID `com.obertagame.oberta`, team `RP26VC54CU`, app "Obertà" su
+  App Store Connect.
+- Serve un Apple ID collegato in Xcode (Settings → Accounts): la firma è
+  automatica, Xcode crea da solo certificato e profilo.
+- `flutter build ipa --export-options-plist=ios/ExportOptions.plist` compila,
+  firma e carica la build su App Store Connect.
 
 ## Come lanciare il progetto
 

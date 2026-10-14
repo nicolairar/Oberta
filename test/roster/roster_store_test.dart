@@ -1,10 +1,10 @@
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:omerta/roster/portrait_registry.dart';
-import 'package:omerta/roster/roster.dart';
-import 'package:omerta/roster/roster_storage.dart';
-import 'package:omerta/roster/roster_store.dart';
+import 'package:oberta/roster/portrait_registry.dart';
+import 'package:oberta/roster/roster.dart';
+import 'package:oberta/roster/roster_storage.dart';
+import 'package:oberta/roster/roster_store.dart';
 
 /// Per l'elenco una foto è solo un mucchio di byte: non importa che si veda.
 Uint8List shot(int seed) => Uint8List.fromList([seed, seed + 1, seed + 2]);

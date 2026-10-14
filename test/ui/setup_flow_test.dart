@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:omerta/main.dart';
-import 'package:omerta/roster/roster_storage.dart';
-import 'package:omerta/roster/roster_store.dart';
-import 'package:omerta/ui/widgets/flip_role_card.dart';
+import 'package:oberta/main.dart';
+import 'package:oberta/roster/roster_storage.dart';
+import 'package:oberta/roster/roster_store.dart';
+import 'package:oberta/ui/widgets/flip_role_card.dart';
 
 void _usePhoneScreen(WidgetTester tester) {
   tester.view.physicalSize = const Size(1179, 2556);
@@ -18,7 +18,7 @@ void _usePhoneScreen(WidgetTester tester) {
 
 /// Apre il tavolo e ci fa sedere [players] giocatori di prova.
 Future<void> _openLobbyWith(WidgetTester tester, int players) async {
-  await tester.pumpWidget(const OmertaApp());
+  await tester.pumpWidget(const ObertaApp());
   await tester.tap(find.text('CREA STANZA'));
   await tester.pumpAndSettle();
   for (var i = 0; i < players; i++) {

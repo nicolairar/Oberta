@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:omerta/l10n/app_language.dart';
-import 'package:omerta/l10n/app_strings.dart';
-import 'package:omerta/ui/theme/app_theme.dart';
+import 'package:oberta/l10n/app_language.dart';
+import 'package:oberta/l10n/app_strings.dart';
+import 'package:oberta/ui/theme/app_theme.dart';
 
 /// Un `MaterialApp` che parla [language], come quello vero dopo che la
 /// lingua è stata scelta: per provare un pezzo di interfaccia in inglese.

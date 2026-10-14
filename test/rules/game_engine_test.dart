@@ -1,11 +1,11 @@
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:omerta/rules/game_engine.dart';
-import 'package:omerta/rules/game_settings.dart';
-import 'package:omerta/rules/game_setup.dart';
-import 'package:omerta/rules/player.dart';
-import 'package:omerta/rules/role.dart';
+import 'package:oberta/rules/game_engine.dart';
+import 'package:oberta/rules/game_settings.dart';
+import 'package:oberta/rules/game_setup.dart';
+import 'package:oberta/rules/player.dart';
+import 'package:oberta/rules/role.dart';
 
 const boss = Player(id: 'boss', name: 'Boss');
 const picciotto = Player(id: 'picciotto', name: 'Picciotto');

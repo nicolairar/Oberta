@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:omerta/main.dart';
-import 'package:omerta/narration/death_story.dart';
-import 'package:omerta/narration/italian_pack.dart';
-import 'package:omerta/ui/widgets/city_backdrop.dart';
-import 'package:omerta/ui/widgets/deal_table.dart';
-import 'package:omerta/ui/widgets/death_scene.dart';
-import 'package:omerta/ui/widgets/noir_avatar.dart';
-import 'package:omerta/ui/widgets/revolver_cylinder.dart';
-import 'package:omerta/ui/widgets/scene_scaffold.dart';
+import 'package:oberta/main.dart';
+import 'package:oberta/narration/death_story.dart';
+import 'package:oberta/narration/italian_pack.dart';
+import 'package:oberta/ui/widgets/city_backdrop.dart';
+import 'package:oberta/ui/widgets/deal_table.dart';
+import 'package:oberta/ui/widgets/death_scene.dart';
+import 'package:oberta/ui/widgets/noir_avatar.dart';
+import 'package:oberta/ui/widgets/revolver_cylinder.dart';
+import 'package:oberta/ui/widgets/scene_scaffold.dart';
 
 void main() {
   testWidgets('ogni città e ogni ora del giorno si disegnano, anche in movimento', (tester) async {
@@ -43,7 +43,7 @@ void main() {
         const FakeAccessibilityFeatures(disableAnimations: true);
     addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
 
-    await tester.pumpWidget(const OmertaApp());
+    await tester.pumpWidget(const ObertaApp());
     await tester.pumpAndSettle();
     expect(tester.binding.hasScheduledFrame, isFalse);
     expect(find.text('OBERTÀ'), findsOneWidget);

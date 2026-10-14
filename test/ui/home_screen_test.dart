@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:omerta/main.dart';
-import 'package:omerta/ui/screens/home_screen.dart';
-import 'package:omerta/ui/theme/app_theme.dart';
+import 'package:oberta/main.dart';
+import 'package:oberta/ui/screens/home_screen.dart';
+import 'package:oberta/ui/theme/app_theme.dart';
 
 void _usePhone(WidgetTester tester, Size size, {double top = 59, double bottom = 34}) {
   tester.view.physicalSize = size;
@@ -27,7 +27,7 @@ void main() {
   for (final MapEntry(key: name, value: (size, top, bottom)) in phones.entries) {
     testWidgets('sul telefono $name il vicolo mostra l\'insegna e le tre modalità', (tester) async {
       _usePhone(tester, size, top: top, bottom: bottom);
-      await tester.pumpWidget(const OmertaApp());
+      await tester.pumpWidget(const ObertaApp());
       // L'apertura: il lampione, le lettere una dopo l'altra, i manifesti.
       for (var frame = 0; frame < 40; frame++) {
         await tester.pump(const Duration(milliseconds: 100));
@@ -46,7 +46,7 @@ void main() {
 
   testWidgets('un giro intero del vicolo si disegna senza inciampi', (tester) async {
     _usePhone(tester, const Size(393, 852));
-    await tester.pumpWidget(const OmertaApp());
+    await tester.pumpWidget(const ObertaApp());
     // Sessantacinque secondi: il fiammifero, le boccate, le lettere in
     // corto, la berlina, il gatto, e il ciclo che ricomincia.
     for (var frame = 0; frame < 260; frame++) {
@@ -59,7 +59,7 @@ void main() {
   testWidgets('nessuno schermo, per quanto strano, fa uscire la carta dai bordi', (tester) async {
     for (final size in const [Size(320, 480), Size(667, 375), Size(820, 1180)]) {
       _usePhone(tester, size, top: 0, bottom: 0);
-      await tester.pumpWidget(const OmertaApp());
+      await tester.pumpWidget(const ObertaApp());
       await tester.pump(const Duration(seconds: 4));
       expect(tester.takeException(), isNull, reason: '$size');
       await tester.pumpWidget(const SizedBox());
@@ -69,7 +69,7 @@ void main() {
   testWidgets('con le animazioni ridotte il vicolo è fermo, e la stanza si apre lo stesso', (tester) async {
     _usePhone(tester, const Size(393, 852));
     _reduceAnimations(tester);
-    await tester.pumpWidget(const OmertaApp());
+    await tester.pumpWidget(const ObertaApp());
     await tester.pumpAndSettle();
     expect(tester.binding.hasScheduledFrame, isFalse);
 
@@ -86,7 +86,7 @@ void main() {
       (tester) async {
     _usePhone(tester, const Size(393, 852));
     _reduceAnimations(tester);
-    await tester.pumpWidget(const OmertaApp());
+    await tester.pumpWidget(const ObertaApp());
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('CLASSIFICATA'));
@@ -102,7 +102,7 @@ void main() {
 
   testWidgets('toccando CREA STANZA il nero si chiude a iride, poi si entra nella lobby', (tester) async {
     _usePhone(tester, const Size(393, 852));
-    await tester.pumpWidget(const OmertaApp());
+    await tester.pumpWidget(const ObertaApp());
     await tester.pump(const Duration(seconds: 4));
 
     await tester.tap(find.text('CREA STANZA'));
@@ -129,7 +129,7 @@ void main() {
     _reduceAnimations(tester);
     debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
     try {
-      await tester.pumpWidget(const OmertaApp());
+      await tester.pumpWidget(const ObertaApp());
       await tester.pumpAndSettle();
       await tester.tap(find.text('CREA STANZA'));
       await tester.pumpAndSettle();
@@ -170,7 +170,7 @@ void main() {
   testWidgets('dalla targhetta si aprono le impostazioni, con suoni e sala prove', (tester) async {
     _usePhone(tester, const Size(393, 852), top: 47, bottom: 34);
     _reduceAnimations(tester);
-    await tester.pumpWidget(const OmertaApp());
+    await tester.pumpWidget(const ObertaApp());
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Impostazioni'));
     await tester.pumpAndSettle();

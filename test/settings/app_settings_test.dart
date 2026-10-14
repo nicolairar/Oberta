@@ -1,9 +1,9 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:omerta/l10n/app_language.dart';
-import 'package:omerta/settings/app_settings.dart';
-import 'package:omerta/settings/settings_store.dart';
-import 'package:omerta/sound/sound_stage.dart';
+import 'package:oberta/l10n/app_language.dart';
+import 'package:oberta/settings/app_settings.dart';
+import 'package:oberta/settings/settings_store.dart';
+import 'package:oberta/sound/sound_stage.dart';
 
 void main() {
   tearDown(() => SoundStage.instance.enabled = true);

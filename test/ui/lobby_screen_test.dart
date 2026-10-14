@@ -2,16 +2,16 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:omerta/network/fake_local_session.dart';
-import 'package:omerta/roster/photo_camera.dart';
-import 'package:omerta/roster/roster.dart';
-import 'package:omerta/roster/roster_storage.dart';
-import 'package:omerta/roster/roster_store.dart';
-import 'package:omerta/ui/screens/lobby_screen.dart';
-import 'package:omerta/ui/screens/narrator_selection_screen.dart';
-import 'package:omerta/ui/theme/app_theme.dart';
-import 'package:omerta/ui/widgets/mugshot_frame.dart';
-import 'package:omerta/ui/widgets/noir_avatar.dart';
+import 'package:oberta/network/fake_local_session.dart';
+import 'package:oberta/roster/photo_camera.dart';
+import 'package:oberta/roster/roster.dart';
+import 'package:oberta/roster/roster_storage.dart';
+import 'package:oberta/roster/roster_store.dart';
+import 'package:oberta/ui/screens/lobby_screen.dart';
+import 'package:oberta/ui/screens/narrator_selection_screen.dart';
+import 'package:oberta/ui/theme/app_theme.dart';
+import 'package:oberta/ui/widgets/mugshot_frame.dart';
+import 'package:oberta/ui/widgets/noir_avatar.dart';
 
 import '../support/test_photo.dart';
 

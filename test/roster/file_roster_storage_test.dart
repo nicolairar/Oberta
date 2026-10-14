@@ -2,14 +2,14 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:omerta/roster/file_roster_storage.dart';
+import 'package:oberta/roster/file_roster_storage.dart';
 
 void main() {
   late Directory folder;
   late FileRosterStorage storage;
 
   setUp(() {
-    folder = Directory.systemTemp.createTempSync('omerta-roster-test-');
+    folder = Directory.systemTemp.createTempSync('oberta-roster-test-');
     // La cartella vera all'inizio non esiste: la crea chi scrive.
     storage = FileRosterStorage(() async => Directory('${folder.path}/roster'));
   });

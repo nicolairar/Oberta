@@ -2,8 +2,8 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:omerta/sound/cue_sounds.dart';
-import 'package:omerta/sound/synth.dart';
+import 'package:oberta/sound/cue_sounds.dart';
+import 'package:oberta/sound/synth.dart';
 
 List<double> samplesOf(Uint8List wav) {
   final data = ByteData.sublistView(wav, 44);

@@ -2,12 +2,12 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:omerta/l10n/app_language.dart';
-import 'package:omerta/rules/game_setup.dart';
-import 'package:omerta/rules/player.dart';
-import 'package:omerta/rules/role.dart';
-import 'package:omerta/ui/screens/game_screen.dart';
-import 'package:omerta/ui/widgets/death_scene.dart';
+import 'package:oberta/l10n/app_language.dart';
+import 'package:oberta/rules/game_setup.dart';
+import 'package:oberta/rules/player.dart';
+import 'package:oberta/rules/role.dart';
+import 'package:oberta/ui/screens/game_screen.dart';
+import 'package:oberta/ui/widgets/death_scene.dart';
 
 import '../support/languages.dart';
 

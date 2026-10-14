@@ -1,8 +1,8 @@
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:omerta/narration/method_deck.dart';
-import 'package:omerta/narration/narration_pack.dart';
+import 'package:oberta/narration/method_deck.dart';
+import 'package:oberta/narration/narration_pack.dart';
 
 void main() {
   const methods = [

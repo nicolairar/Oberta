@@ -1,9 +1,9 @@
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:omerta/rules/game_setup.dart';
-import 'package:omerta/rules/player.dart';
-import 'package:omerta/rules/role.dart';
+import 'package:oberta/rules/game_setup.dart';
+import 'package:oberta/rules/player.dart';
+import 'package:oberta/rules/role.dart';
 
 List<Player> _players(int count) => [for (var i = 0; i < count; i++) Player(id: 'p$i', name: 'P$i')];
 

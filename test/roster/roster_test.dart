@@ -1,8 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:omerta/roster/roster.dart';
-import 'package:omerta/rules/role_assignment.dart';
+import 'package:oberta/roster/roster.dart';
+import 'package:oberta/rules/role_assignment.dart';
 
 Roster rosterOf(Iterable<String> names) => names.fold(Roster.empty, (roster, name) => roster.add(name));
 

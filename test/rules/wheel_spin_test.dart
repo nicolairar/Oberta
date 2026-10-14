@@ -1,7 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:omerta/rules/wheel_spin.dart';
+import 'package:oberta/rules/wheel_spin.dart';
 
 void main() {
   test('la ruota si ferma sempre sullo spicchio deciso in partenza', () {

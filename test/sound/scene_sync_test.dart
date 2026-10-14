@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:omerta/ui/widgets/death_scene.dart';
+import 'package:oberta/ui/widgets/death_scene.dart';
 
 void main() {
   Duration ms(int value) => Duration(milliseconds: value);

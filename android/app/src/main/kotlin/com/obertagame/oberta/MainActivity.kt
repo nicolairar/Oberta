@@ -1,4 +1,4 @@
-package com.omertagame.omerta
+package com.obertagame.oberta
 
 import io.flutter.embedding.android.FlutterActivity
 

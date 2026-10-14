@@ -1,7 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:omerta/rules/room_code.dart';
+import 'package:oberta/rules/room_code.dart';
 
 void main() {
   test('generateRoomCode produce 4 lettere maiuscole', () {

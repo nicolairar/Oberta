@@ -1,13 +1,13 @@
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:omerta/narration/death_story.dart';
-import 'package:omerta/narration/italian_pack.dart';
-import 'package:omerta/narration/narrator_script.dart';
-import 'package:omerta/narration/picker.dart';
-import 'package:omerta/rules/game_engine.dart';
-import 'package:omerta/rules/player.dart';
-import 'package:omerta/rules/role.dart';
+import 'package:oberta/narration/death_story.dart';
+import 'package:oberta/narration/italian_pack.dart';
+import 'package:oberta/narration/narrator_script.dart';
+import 'package:oberta/narration/picker.dart';
+import 'package:oberta/rules/game_engine.dart';
+import 'package:oberta/rules/player.dart';
+import 'package:oberta/rules/role.dart';
 
 const sara = Player(id: 'sara', name: 'Sara');
 const luca = Player(id: 'luca', name: 'Luca');

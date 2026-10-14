@@ -16,14 +16,14 @@ Future<void> main() async {
   SoundStage.instance = DeviceStage();
   installDeviceRoster();
   AppSettings.instance = await AppSettings.open();
-  runApp(const OmertaApp());
+  runApp(const ObertaApp());
 }
 
-class OmertaApp extends StatelessWidget {
+class ObertaApp extends StatelessWidget {
   /// Le preferenze da seguire; senza, quelle aperte da `main`.
   final AppSettings? settings;
 
-  const OmertaApp({super.key, this.settings});
+  const ObertaApp({super.key, this.settings});
 
   @override
   Widget build(BuildContext context) {

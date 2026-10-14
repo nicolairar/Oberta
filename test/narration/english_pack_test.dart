@@ -1,13 +1,13 @@
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:omerta/narration/english_pack.dart';
-import 'package:omerta/narration/italian_pack.dart';
-import 'package:omerta/narration/narration_pack.dart';
-import 'package:omerta/narration/narrator_script.dart';
-import 'package:omerta/rules/game_engine.dart';
-import 'package:omerta/rules/player.dart';
-import 'package:omerta/rules/role.dart';
+import 'package:oberta/narration/english_pack.dart';
+import 'package:oberta/narration/italian_pack.dart';
+import 'package:oberta/narration/narration_pack.dart';
+import 'package:oberta/narration/narrator_script.dart';
+import 'package:oberta/rules/game_engine.dart';
+import 'package:oberta/rules/player.dart';
+import 'package:oberta/rules/role.dart';
 
 /// I nomi di scena inglesi, come li porta il pacchetto.
 final englishRoleNames = {for (final role in Role.values) role: englishPack.role(role).label};
