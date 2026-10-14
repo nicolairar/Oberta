@@ -4,6 +4,7 @@ import 'sound/device_stage.dart';
 import 'sound/sound_stage.dart';
 import 'ui/screens/home_screen.dart';
 import 'ui/theme/app_theme.dart';
+import 'ui/widgets/settings_sheet.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,7 +20,9 @@ class OmertaApp extends StatelessWidget {
     return MaterialApp(
       title: 'Obertà',
       theme: buildAppTheme(),
-      home: const HomeScreen(),
+      home: Builder(
+        builder: (context) => HomeScreen(onSettings: () => SettingsSheet.show(context)),
+      ),
     );
   }
 }
