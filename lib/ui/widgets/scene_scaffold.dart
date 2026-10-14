@@ -14,6 +14,10 @@ class SceneScaffold extends StatelessWidget {
   final SkylineStyle style;
   final bool rain;
 
+  /// Falso dove c'è da scrivere: la città non deve salire insieme alla
+  /// tastiera, e a farle posto ci pensa il contenuto.
+  final bool resizeForKeyboard;
+
   const SceneScaffold({
     super.key,
     this.appBar,
@@ -21,12 +25,14 @@ class SceneScaffold extends StatelessWidget {
     this.mood = SceneMood.night,
     this.style = SkylineStyle.metropolis,
     this.rain = false,
+    this.resizeForKeyboard = true,
   });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
+      resizeToAvoidBottomInset: resizeForKeyboard,
       backgroundColor: AppColors.background,
       appBar: appBar,
       body: CityBackdrop(mood: mood, style: style, rain: rain, child: body),

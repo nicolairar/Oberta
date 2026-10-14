@@ -4,9 +4,9 @@ import '../rules/player.dart';
 import '../rules/room_code.dart';
 import 'game_session.dart';
 
-/// Sessione finta per sviluppare la UI su un solo telefono, prima che esista
-/// una vera rete locale (HostLocale). Il narratore/host è l'unico giocatore
-/// reale; gli altri si possono aggiungere a mano per provare il flusso.
+/// Sessione finta per giocare su un solo telefono, prima che esista una vera
+/// rete locale (HostLocale). Nessuno si collega: chi siede al tavolo lo
+/// decide questo telefono, e lo dice alla stanza con [seat].
 class FakeLocalSession implements GameSession {
   @override
   final String roomCode;
@@ -29,9 +29,13 @@ class FakeLocalSession implements GameSession {
   @override
   Stream<List<Player>> get playersStream => _controller.stream;
 
-  void addFakePlayer(String name) {
-    _players.add(Player(id: 'fake-${_players.length}', name: name));
-    _controller.add(List.unmodifiable(_players));
+  /// Mette [table] al posto di chi c'era nella stanza. Su un telefono solo
+  /// non c'è un "io" che gioca: il tavolo è l'elenco di chi se lo passa.
+  void seat(List<Player> table) {
+    _players
+      ..clear()
+      ..addAll(table);
+    if (!_controller.isClosed) _controller.add(List.unmodifiable(_players));
   }
 
   @override
