@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../sound/cue_sounds.dart';
+import '../../sound/sound_stage.dart';
 import '../theme/app_theme.dart';
 import 'noir_avatar.dart';
 
@@ -54,7 +56,10 @@ class _DealTableState extends State<DealTable> with SingleTickerProviderStateMix
     for (var i = 0; i < widget.names.length; i++) {
       if (_progress(i) >= 1) landed++;
     }
-    if (landed > _landed) HapticFeedback.lightImpact();
+    if (landed > _landed) {
+      HapticFeedback.lightImpact();
+      SoundStage.instance.cue(Cue.deal);
+    }
     _landed = landed;
   }
 

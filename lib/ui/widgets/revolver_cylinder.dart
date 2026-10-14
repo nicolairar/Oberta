@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../rules/wheel_spin.dart';
+import '../../sound/cue_sounds.dart';
+import '../../sound/sound_stage.dart';
 import '../theme/app_theme.dart';
 import 'noir_avatar.dart';
 
@@ -43,6 +45,7 @@ class _RevolverCylinderState extends State<RevolverCylinder> with TickerProvider
       ..addStatusListener((status) {
         if (status == AnimationStatus.completed) {
           HapticFeedback.heavyImpact();
+          SoundStage.instance.cue(Cue.bang);
           _bang.forward();
           widget.onStopped?.call();
         }
@@ -59,6 +62,7 @@ class _RevolverCylinderState extends State<RevolverCylinder> with TickerProvider
     if (index != _lastIndex) {
       _lastIndex = index;
       HapticFeedback.selectionClick();
+      SoundStage.instance.cue(Cue.click);
     }
   }
 

@@ -11,6 +11,7 @@ import '../../rules/game_settings.dart';
 import '../../rules/game_setup.dart';
 import '../../rules/player.dart';
 import '../../rules/role.dart';
+import '../../sound/cue_sounds.dart';
 import '../../sound/sound_stage.dart';
 import '../theme/app_theme.dart';
 import '../theme/role_style.dart';
@@ -111,6 +112,7 @@ class _GameScreenState extends State<GameScreen> {
 
   void _enterNight() {
     final round = _engine.round;
+    SoundStage.instance.cue(Cue.nightfall);
     _title = 'NOTTE $round';
     _mood = SceneMood.night;
     _stage = _Stage.script;
@@ -170,6 +172,7 @@ class _GameScreenState extends State<GameScreen> {
   void _enterDawn() {
     final report = _dawn;
     final winner = report.winner;
+    SoundStage.instance.cue(Cue.dawn);
     _title = 'ALBA';
     _mood = SceneMood.dawn;
     _stage = _Stage.script;
@@ -199,6 +202,8 @@ class _GameScreenState extends State<GameScreen> {
   void _enterVerdict(Player? condemned) {
     final report = _engine.lynch(condemned);
     final winner = report.winner;
+    // Il rullo di tamburi accompagna il condannato fino alla carta.
+    if (report.role != null) SoundStage.instance.cue(Cue.drumroll);
     _title = 'IL VERDETTO';
     _mood = SceneMood.dusk;
     _stage = _Stage.script;
@@ -214,6 +219,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _enterEnd(Team winner) {
+    SoundStage.instance.cue(winner == Team.mafia ? Cue.familyWins : Cue.townWins);
     _title = 'FINE';
     _mood = winner == Team.mafia ? SceneMood.night : SceneMood.dawn;
     _endingLines = _script.ending(winner);
@@ -622,6 +628,8 @@ class _ScriptViewState extends State<_ScriptView> {
 
   void _turnCard() {
     HapticFeedback.heavyImpact();
+    final caught = widget.page.revealed?.team == Team.mafia;
+    SoundStage.instance.cue(caught ? Cue.caught : Cue.innocent);
     setState(() {
       _cardTurned = true;
       _reachedEnd = false;
@@ -742,7 +750,12 @@ class _DayViewState extends State<_DayView> {
     _timer = Timer.periodic(_second, (_) {
       if (_left == Duration.zero) return;
       setState(() => _left -= _second);
-      if (_left == Duration.zero) HapticFeedback.heavyImpact();
+      if (_left == Duration.zero) {
+        HapticFeedback.heavyImpact();
+        SoundStage.instance.cue(Cue.timeUp);
+      } else if (_left <= const Duration(seconds: 10)) {
+        SoundStage.instance.cue(Cue.tick);
+      }
     });
   }
 

@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 
 import '../../rules/player.dart';
 import '../../rules/role.dart';
+import '../../sound/cue_sounds.dart';
+import '../../sound/sound_stage.dart';
 import '../theme/app_theme.dart';
 import '../theme/role_style.dart';
 
@@ -54,6 +56,7 @@ class _FlipRoleCardState extends State<FlipRoleCard> with SingleTickerProviderSt
 
   void _press() {
     HapticFeedback.mediumImpact();
+    SoundStage.instance.cue(Cue.flip);
     _controller.forward();
   }
 

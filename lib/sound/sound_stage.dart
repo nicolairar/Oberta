@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import '../ui/widgets/death_scene.dart';
+import 'cue_sounds.dart';
 
 /// Il palco del suono: chi mette in scena chiede, lui suona.
 ///
@@ -27,6 +28,10 @@ class SoundStage {
   /// A che punto è arrivato il nastro, se sta suonando: serve al film per
   /// rimettersi a tempo.
   Future<Duration?> position() async => null;
+
+  /// Un suono breve per un gesto o un cambio di scena. Non ferma la musica
+  /// di una scena, e più suoni brevi possono sovrapporsi.
+  void cue(Cue cue) {}
 
   Future<void> stop() async {}
 }

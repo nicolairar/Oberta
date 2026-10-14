@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../sound/cue_sounds.dart';
 import '../../sound/sound_stage.dart';
 import '../theme/app_theme.dart';
 import '../widgets/death_scene.dart';
@@ -23,6 +24,23 @@ class _ScreeningRoomScreenState extends State<ScreeningRoomScreen> {
   static const _caption = 'Esterno, notte. Prova generale.';
   static const _extras = ['Marco', 'Giulia', 'Luca', 'Sara', 'Paolo', 'Elena', 'Davide', 'Chiara'];
   static const _endings = ['', 'gatto', 'sirene', 'carta', 'mambo', 'finestra', 'sipario'];
+
+  static const _effects = 'EFFETTI';
+  static const _cueNames = {
+    Cue.click: 'Il tamburo che gira',
+    Cue.bang: 'Lo sparo del sorteggio',
+    Cue.deal: 'Una carta servita',
+    Cue.flip: 'Una carta girata',
+    Cue.nightfall: 'Cala la notte',
+    Cue.dawn: 'L\'alba',
+    Cue.tick: 'Gli ultimi secondi',
+    Cue.timeUp: 'Tempo scaduto',
+    Cue.drumroll: 'Il rullo di tamburi',
+    Cue.caught: 'Era della famiglia',
+    Cue.innocent: 'Era innocente',
+    Cue.townWins: 'Vincono gli onesti',
+    Cue.familyWins: 'Vince la famiglia',
+  };
 
   static const _names = {
     DeathAct.knife: 'Il pugnale',
@@ -102,6 +120,22 @@ class _ScreeningRoomScreenState extends State<ScreeningRoomScreen> {
                   ),
                 ),
               ),
+            const SizedBox(height: 18),
+            const Text(_effects, textAlign: TextAlign.center, style: AppText.overline),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.center,
+              children: [
+                for (final cue in Cue.values)
+                  ActionChip(
+                    avatar: const Icon(Icons.volume_up, size: 18, color: AppColors.gold),
+                    label: Text(_cueNames[cue]!),
+                    onPressed: () => SoundStage.instance.cue(cue),
+                  ),
+              ],
+            ),
           ],
         ),
       ),

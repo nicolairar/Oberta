@@ -5,6 +5,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 
 import '../ui/widgets/death_scene.dart';
+import 'cue_sounds.dart';
 import 'scene_score.dart';
 import 'sound_stage.dart';
 
@@ -13,6 +14,12 @@ import 'sound_stage.dart';
 class DeviceStage extends SoundStage {
   final AudioPlayer _player = AudioPlayer();
   final Map<DeathAct, Future<String>> _tapes = {};
+
+  /// I suoni brevi, incisi tutti insieme appena l'app parte, e una piccola
+  /// batteria di lettori per poterli suonare uno sopra l'altro.
+  late final Future<Map<Cue, String>> _cues = _recordCues();
+  final List<AudioPlayer> _shortPlayers = [for (var i = 0; i < 4; i++) AudioPlayer()];
+  int _nextShort = 0;
   late final Future<void> _ready = _setUp();
 
   /// Cambia a ogni richiesta: un nastro che arriva tardi capisce da qui che
@@ -21,6 +28,34 @@ class DeviceStage extends SoundStage {
 
   DeviceStage() {
     _ready.then<void>((_) {}, onError: _report);
+    _cues.then<void>((_) {}, onError: _report);
+  }
+
+  Future<Map<Cue, String>> _recordCues() async {
+    final tapes = await compute(_composeAllCues, null);
+    final paths = <Cue, String>{};
+    for (final cue in Cue.values) {
+      final file = File('${Directory.systemTemp.path}/cue-${cue.name}.wav');
+      await file.writeAsBytes(tapes[cue.index], flush: true);
+      paths[cue] = file.path;
+    }
+    return paths;
+  }
+
+  @override
+  void cue(Cue cue) {
+    if (!enabled) return;
+    final player = _shortPlayers[_nextShort++ % _shortPlayers.length];
+    () async {
+      try {
+        await _ready;
+        final path = (await _cues)[cue]!;
+        await player.stop();
+        await player.play(DeviceFileSource(path));
+      } catch (error) {
+        _report(error);
+      }
+    }();
   }
 
   /// Il suono fa parte della scena: deve sentirsi anche col telefono in
@@ -100,3 +135,5 @@ class DeviceStage extends SoundStage {
 
   void _report(Object error) => debugPrint('Audio: $error');
 }
+
+List<Uint8List> _composeAllCues(Object? _) => [for (final cue in Cue.values) composeCue(cue)];
