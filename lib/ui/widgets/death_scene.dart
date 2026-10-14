@@ -8,6 +8,7 @@ import '../../narration/death_story.dart';
 import '../../sound/sound_stage.dart';
 import '../theme/app_theme.dart';
 import 'city_backdrop.dart';
+import 'face_close_up.dart';
 import 'noir_avatar.dart';
 import 'victim_card.dart';
 
@@ -184,6 +185,15 @@ class _DeathSceneState extends State<DeathScene> with SingleTickerProviderStateM
     }
   }
 
+  /// Il momento in cui la vittima si accorge di qualcosa, e la cinepresa le
+  /// va addosso: chi guarda in alto lo fa più tardi, gli altri quando si
+  /// girano sotto il lampione.
+  double get _closeUpAt => switch (widget.act) {
+        DeathAct.car || DeathAct.piano || DeathAct.safe || DeathAct.chandelier => 0.465,
+        DeathAct.pot || DeathAct.manhole || DeathAct.sniper || DeathAct.driveBy => 0.465,
+        _ => 0.39,
+      };
+
   /// Rimette il film a tempo col nastro. Lo fa presto, mentre la vittima sta
   /// ancora camminando: lì un fotogramma saltato non lo nota nessuno, mentre
   /// uno sparo fuori tempo lo notano tutti.
@@ -243,9 +253,14 @@ class _DeathSceneState extends State<DeathScene> with SingleTickerProviderStateM
             final t = filmTime(_film.value);
             final typed = (widget.caption.length * _span(_film.value, 0.02, 0.20)).round();
             final card = _span(t, 0.86, 0.93);
+            final closeUp = _span(t, _closeUpAt, _closeUpAt + 0.09);
             return Stack(
               fit: StackFit.expand,
               children: [
+                Align(
+                  alignment: const Alignment(-0.55, -0.48),
+                  child: FaceCloseUp(name: widget.victimName, life: closeUp),
+                ),
                 Align(
                   alignment: const Alignment(0, 0.93),
                   child: Padding(

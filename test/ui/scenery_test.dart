@@ -232,4 +232,23 @@ void main() {
       expect(tester.takeException(), isNull);
     }
   });
+
+  testWidgets('a metà scena la vittima si accorge di qualcosa, e arriva il suo primo piano', (tester) async {
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+    await tester.pumpWidget(MaterialApp(
+      home: DeathScene(act: DeathAct.gun, victimName: 'Giulia', caption: 'Esterno, notte.', onFinished: () {}),
+    ));
+    Duration at(double t) => Duration(milliseconds: (filmClock(t) * DeathScene.length.inMilliseconds).round());
+
+    await tester.pump(at(0.30));
+    expect(find.text('?!'), findsNothing, reason: 'all\'inizio la vittima cammina tranquilla');
+    await tester.pump(at(0.43) - at(0.30));
+    expect(find.text('?!'), findsOneWidget);
+    expect(find.byType(NoirAvatar), findsOneWidget, reason: 'solo la faccia della vittima');
+    await tester.pump(at(0.60) - at(0.43));
+    expect(find.text('?!'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
 }
