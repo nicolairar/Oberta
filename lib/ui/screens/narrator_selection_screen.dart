@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_strings.dart';
 import '../../rules/game_setup.dart';
 import '../../rules/player.dart';
 import '../../rules/role_assignment.dart';
@@ -32,9 +33,9 @@ class NarratorSelectionScreen extends StatelessWidget {
         child: ListView(
           shrinkWrap: true,
           children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(24, 0, 24, 12),
-              child: Text('CHI RACCONTA?', style: AppText.overline),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+              child: Text(AppStrings.of(context).whoNarrates, style: AppText.overline),
             ),
             for (final player in players)
               ListTile(
@@ -52,30 +53,28 @@ class NarratorSelectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final needMore = 'Servono almeno ${minRolePlayers + 1} giocatori';
+    final t = AppStrings.of(context);
+    final needMore = t.needAtLeast(minRolePlayers + 1);
     return SceneScaffold(
-      appBar: AppBar(title: const Text('NARRATORE')),
+      appBar: AppBar(title: Text(t.narratorTitle)),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(24),
           children: [
-            Text('Chi tiene\nle fila?', style: AppText.display(34)),
+            Text(t.whoPullsTheStrings, style: AppText.display(34)),
             const SizedBox(height: 8),
-            const Text(
-              'Il narratore guida la partita e conosce tutti i ruoli.',
-              style: AppText.body,
-            ),
+            Text(t.narratorIntro, style: AppText.body),
             const SizedBox(height: 28),
             _OptionCard(
               icon: Icons.how_to_reg,
-              title: 'Scelto dal gruppo',
-              subtitle: _canSpareAPlayer ? 'Decidete voi chi racconta. Non riceve un ruolo.' : needMore,
+              title: t.pickedByGroup,
+              subtitle: _canSpareAPlayer ? t.pickedByGroupHint : needMore,
               onTap: _canSpareAPlayer ? () => _chooseFromGroup(context) : null,
             ),
             _OptionCard(
               icon: Icons.casino,
-              title: 'Sorteggiato dal tamburo',
-              subtitle: _canSpareAPlayer ? 'Un giro di tamburo. Chi esce racconta e non gioca.' : needMore,
+              title: t.drawnByCylinder,
+              subtitle: _canSpareAPlayer ? t.drawnByCylinderHint : needMore,
               onTap: _canSpareAPlayer
                   ? () => Navigator.of(context).push(
                         MaterialPageRoute(builder: (_) => NarratorDrawScreen(players: players)),
@@ -84,8 +83,8 @@ class NarratorSelectionScreen extends StatelessWidget {
             ),
             _OptionCard(
               icon: Icons.smart_toy,
-              title: 'Narratore automatico',
-              subtitle: 'Racconta il telefono: giocano tutti.',
+              title: t.automaticNarrator,
+              subtitle: t.automaticNarratorHint,
               onTap: () => _deal(context, null),
             ),
           ],

@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../l10n/app_language.dart';
+import '../../l10n/app_strings.dart';
 import '../../network/fake_local_session.dart';
 import '../widgets/home_alley.dart';
 import '../widgets/home_caption.dart';
@@ -10,48 +12,6 @@ import '../widgets/home_neon_sign.dart';
 import '../widgets/home_posters.dart';
 import '../widgets/home_settings_plate.dart';
 import 'lobby_screen.dart';
-
-/// Tutti i testi della schermata, in un posto solo: quando arriva la
-/// traduzione basta sostituire questi.
-abstract final class _Texts {
-  static const title = 'OBERTÀ';
-
-  /// La targhetta con l'ingranaggio, in alto a destra.
-  static const settings = 'Impostazioni';
-
-  /// La targa di marmo all'angolo del vicolo.
-  static const alley = 'VICOLO DEL SILENZIO';
-
-  // Il manifesto di stasera: un telefono solo, che ci si passa.
-  static const tonight = 'STASERA SI GIOCA';
-  static const sharedTitle = 'UN TELEFONO PER TUTTI';
-  static const sharedBlurb = 'Si passa di mano in mano. Niente rete, niente testimoni.';
-  static const createRoom = 'CREA STANZA';
-
-  /// Il nome di chi apre la stanza, finché non lo si può scegliere.
-  static const hostName = 'Tu';
-
-  // I due manifesti di quello che arriverà.
-  static const soon = 'PROSSIMAMENTE';
-  static const ownTitle = 'UN TELEFONO\nA TESTA';
-  static const ownBlurb = 'Ognuno col suo, e un codice di quattro lettere.';
-  static const ownTeaser = 'Un telefono a testa: arriva con la rete. Pazienza.';
-  static const rankedTitle = 'CLASSIFICATA';
-  static const rankedBlurb = 'Sconosciuti, punti e una classifica da scalare.';
-  static const rankedTeaser = 'La classificata apre presto. Intanto fatti un nome.';
-
-  /// Le didascalie battute a macchina in fondo al vicolo: a ogni visita si
-  /// comincia da una diversa.
-  static const captions = [
-    'Nessuno ha visto niente.',
-    'Nessuno parla. Qualcuno muore.',
-    'Tu non c\'eri. E se c\'eri, dormivi.',
-    'In questa città anche i muri stanno zitti.',
-    'Fidarsi è bene. Tacere è meglio.',
-    'Chi sa, tace. Chi parla non vede l\'alba.',
-    'Stanotte qualcuno non torna a casa.',
-  ];
-}
 
 double _span(double t, double from, double to) => ((t - from) / (to - from)).clamp(0.0, 1.0);
 
@@ -74,7 +34,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   /// Quante volte si è passati di qui: decide da che didascalia cominciare.
-  static int _visits = Random().nextInt(_Texts.captions.length);
+  static int _visits = Random().nextInt(AppLanguage.it.strings.homeCaptions.length);
 
   /// Un momento tranquillo del giro, per chi vuole la scena ferma: nessuna
   /// lettera in corto, nessun gatto, la sigaretta accesa.
@@ -154,11 +114,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     if (_leaving) return;
     HapticFeedback.mediumImpact();
     final navigator = Navigator.of(context);
+    final host = AppStrings.of(context).hostName;
     if (!_still) {
       setState(() => _leaving = true);
       await _iris.forward();
     }
-    final session = FakeLocalSession(hostName: _Texts.hostName);
+    final session = FakeLocalSession(hostName: host);
     final dragging = navigator.userGestureInProgressNotifier;
     void reopen() {
       if (dragging.value && mounted) _iris.reverse();
@@ -208,6 +169,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings.of(context);
     return Scaffold(
       backgroundColor: const Color(0xFF07070B),
       // I manifesti sono oggetti del vicolo, non testo dell'interfaccia: si
@@ -223,7 +185,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 fit: StackFit.expand,
                 children: [
                   RepaintBoundary(
-                    child: CustomPaint(painter: HomeWallPainter(layout, plaque: _Texts.alley)),
+                    child: CustomPaint(painter: HomeWallPainter(layout, plaque: t.alleyPlaque)),
                   ),
                   RepaintBoundary(
                     child: CustomPaint(
@@ -240,9 +202,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       onTap: _touchSign,
                       child: Semantics(
                         header: true,
-                        child: const FittedBox(
+                        child: FittedBox(
                           fit: BoxFit.scaleDown,
-                          child: Text(_Texts.title, style: TextStyle(color: Color(0x00000000))),
+                          child: Text(t.homeTitle, style: const TextStyle(color: Color(0x00000000))),
                         ),
                       ),
                     ),
@@ -251,7 +213,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     Positioned.fromRect(
                       rect: layout.slot,
                       child: HomeSettingsPlate(
-                        label: _Texts.settings,
+                        label: t.settings,
                         onTap: () {
                           HapticFeedback.selectionClick();
                           onSettings();
@@ -263,10 +225,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     tilt: -0.016,
                     at: 1.75,
                     child: HomeTonightPoster(
-                      banner: _Texts.tonight,
-                      title: _Texts.sharedTitle,
-                      blurb: _Texts.sharedBlurb,
-                      action: _Texts.createRoom,
+                      banner: t.tonight,
+                      title: t.sharedTitle,
+                      blurb: t.sharedBlurb,
+                      action: t.createRoom,
                       onTap: _createRoom,
                       ambient: _ambient,
                     ),
@@ -276,13 +238,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     tilt: 0.030,
                     at: 2.05,
                     child: HomeSoonPoster(
-                      title: _Texts.ownTitle,
-                      blurb: _Texts.ownBlurb,
-                      strip: _Texts.soon,
+                      title: t.ownTitle,
+                      blurb: t.ownBlurb,
+                      strip: t.soon,
                       emblem: HomeSoonEmblem.phones,
                       paper: const Color(0xFF1C3148),
                       seed: 8,
-                      onTap: () => _notYet(_Texts.ownTeaser),
+                      onTap: () => _notYet(t.ownTeaser),
                     ),
                   ),
                   _posted(
@@ -290,13 +252,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     tilt: -0.038,
                     at: 2.25,
                     child: HomeSoonPoster(
-                      title: _Texts.rankedTitle,
-                      blurb: _Texts.rankedBlurb,
-                      strip: _Texts.soon,
+                      title: t.rankedTitle,
+                      blurb: t.rankedBlurb,
+                      strip: t.soon,
                       emblem: HomeSoonEmblem.laurel,
                       paper: const Color(0xFF581019),
                       seed: 21,
-                      onTap: () => _notYet(_Texts.rankedTeaser),
+                      onTap: () => _notYet(t.rankedTeaser),
                     ),
                   ),
                   IgnorePointer(
@@ -311,7 +273,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     child: IgnorePointer(
                       child: HomeCaption(
                         key: _caption,
-                        lines: _Texts.captions,
+                        lines: t.homeCaptions,
                         first: _firstCaption,
                         delay: HomeStreetPainter.opening - 0.3,
                       ),

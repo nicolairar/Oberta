@@ -150,7 +150,7 @@ class NarratorScript {
     return [
       _story(_picker.pick('lynch.scene', pack.lynchScenes), name: condemned.name),
       _fact(
-        '${pack.cardTurns.replaceAll('{role}', role.label.toUpperCase())} '
+        '${pack.cardTurns.replaceAll('{role}', pack.role(role).label.toUpperCase())} '
         '${isMafia ? pack.wasMafia : pack.wasCitizen}',
         name: condemned.name,
       ),

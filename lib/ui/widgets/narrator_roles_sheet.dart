@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_strings.dart';
 import '../../rules/game_setup.dart';
 import '../../rules/player.dart';
 import '../../rules/role.dart';
@@ -43,6 +44,7 @@ class _NarratorRolesSheetState extends State<NarratorRolesSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings.of(context);
     return Listener(
       onPointerDown: (_) => setState(() => _visible = true),
       onPointerUp: (_) => setState(() => _visible = false),
@@ -63,18 +65,18 @@ class _NarratorRolesSheetState extends State<NarratorRolesSheet> {
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   children: [
                     for (final entry in widget.setup.roles.entries)
-                      _row(entry.key, entry.value, widget.isAlive(entry.key)),
+                      _row(t, entry.key, entry.value, widget.isAlive(entry.key)),
                   ],
                 )
-              : const Column(
-                  key: ValueKey('hidden'),
+              : Column(
+                  key: const ValueKey('hidden'),
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.visibility_off, color: AppColors.textSecondary, size: 36),
-                    SizedBox(height: 12),
-                    Text('SOLO PER IL NARRATORE', style: AppText.overline),
-                    SizedBox(height: 6),
-                    Text('Tieni premuto per vedere tutti i ruoli', style: AppText.body),
+                    const Icon(Icons.visibility_off, color: AppColors.textSecondary, size: 36),
+                    const SizedBox(height: 12),
+                    Text(t.narratorOnly, style: AppText.overline),
+                    const SizedBox(height: 6),
+                    Text(t.holdToSeeRoles, style: AppText.body),
                   ],
                 ),
         ),
@@ -82,7 +84,7 @@ class _NarratorRolesSheetState extends State<NarratorRolesSheet> {
     );
   }
 
-  Widget _row(Player player, Role role, bool alive) {
+  Widget _row(AppStrings t, Player player, Role role, bool alive) {
     return Opacity(
       opacity: alive ? 1 : 0.4,
       child: ListTile(
@@ -101,7 +103,7 @@ class _NarratorRolesSheetState extends State<NarratorRolesSheet> {
           ),
         ),
         trailing: Text(
-          role.label,
+          t.role(role).label,
           style: TextStyle(
             color: role.team == Team.mafia ? const Color(0xFFE5606A) : AppColors.textSecondary,
             fontWeight: FontWeight.w700,

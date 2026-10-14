@@ -2,24 +2,6 @@ import '../rules/game_engine.dart';
 import '../rules/role.dart';
 import 'narration_pack.dart';
 
-/// I nomi di scena dei ruoli in inglese. Il copione oggi prende il nome da
-/// `Role.label`, che è in italiano: quando i nomi passeranno dal pacchetto,
-/// sono questi. Le battute qui sotto li usano già così ("the Doc").
-const englishRoleNames = <Role, String>{
-  Role.mafioso: 'The Soldier',
-  Role.padrino: 'The Godfather',
-  Role.sarto: 'The Tailor',
-  Role.cittadino: 'The Honest One',
-  Role.detective: 'The Commissioner',
-  Role.medico: 'The Doc',
-  Role.cecchino: 'The Sniper',
-  Role.giornalista: 'The Reporter',
-  Role.becchino: 'The Gravedigger',
-  Role.guardaspalle: 'The Bodyguard',
-  Role.reduce: 'The Veteran',
-  Role.pregiudicato: 'The Ex-Con',
-};
-
 // Regole per chi scrive, le stesse del pacchetto italiano più due:
 // - breve: una riga o due per battuta, sennò al tavolo nessuno la legge;
 // - mai il genere di un giocatore: il nome, "they/their", o si gira la frase;
@@ -29,6 +11,69 @@ const englishRoleNames = <Role, String>{
 // - le due fazioni si chiamano sempre "the Family" e "the town";
 // - si traduce la battuta, non le parole. Inglese americano.
 const englishPack = NarrationPack(
+  // I nomi di scena: le battute qui sotto li usano già così ("the Doc").
+  roles: {
+    Role.mafioso: RoleText(
+      'The Soldier',
+      '“Nothing personal.”',
+      'Each night, with the Family, you pick who won\'t see the dawn.',
+    ),
+    Role.padrino: RoleText(
+      'The Godfather',
+      '“I only do favors. Ask around.”',
+      'Pick with the Family who won\'t see the dawn. To the Commissioner, you look clean.',
+    ),
+    Role.sarto: RoleText(
+      'The Tailor',
+      '“Suits by day. Mouths by night.”',
+      'Each night you take someone\'s voice for a day. If the Family runs out of shooters, you shoot.',
+    ),
+    Role.cittadino: RoleText(
+      'The Honest One',
+      '“I didn\'t see a thing. Sadly, that\'s true.”',
+      'No powers, just eyes and a big mouth. Watch, accuse, vote.',
+    ),
+    Role.detective: RoleText(
+      'The Commissioner',
+      '“Everybody lies. Some do it better.”',
+      'Each night you investigate someone and find out which side they\'re on.',
+    ),
+    Role.medico: RoleText(
+      'The Doc',
+      '“I patch up what others tear open.”',
+      'Each night you protect someone. Never the same person two nights running.',
+    ),
+    Role.cecchino: RoleText(
+      'The Sniper',
+      '“One shot. Not two.”',
+      'You have one bullet for the whole game. Pick your night carefully.',
+    ),
+    Role.giornalista: RoleText(
+      'The Reporter',
+      '“The truth hits the stands at six.”',
+      'One scoop: at dawn everyone learns which side your pick is on. If you live to see dawn.',
+    ),
+    Role.becchino: RoleText(
+      'The Gravedigger',
+      '“My clients never lie.”',
+      'Each night you can dig up someone who died at night, and learn, alone, what role they had.',
+    ),
+    Role.guardaspalle: RoleText(
+      'The Bodyguard',
+      '“They\'ll have to get through me.”',
+      'Each night you shield someone. If they\'re the target that night, you die in their place.',
+    ),
+    Role.reduce: RoleText(
+      'The Veteran',
+      '“I\'ve been shot before. By better shots.”',
+      'You have thick skin: the first night attack on you misses. The second one doesn\'t.',
+    ),
+    Role.pregiudicato: RoleText(
+      'The Ex-Con',
+      '“I did my time. My record didn\'t.”',
+      'You\'re with the town, but your record is dirty: to the Commissioner, you look like Family.',
+    ),
+  },
   cities: [
     CitySetting(
       id: 'chicago',

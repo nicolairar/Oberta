@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_strings.dart';
 import '../../rules/game_setup.dart';
 import '../../rules/player.dart';
 import '../../rules/wheel_spin.dart';
@@ -35,14 +36,15 @@ class _NarratorDrawScreenState extends State<NarratorDrawScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings.of(context);
     return SceneScaffold(
-      appBar: AppBar(title: const Text('SORTEGGIO')),
+      appBar: AppBar(title: Text(t.drawTitle)),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             children: [
-              Text('Chi racconta\nstanotte?', textAlign: TextAlign.center, style: AppText.display(30)),
+              Text(t.whoNarratesTonight, textAlign: TextAlign.center, style: AppText.display(30)),
               Expanded(
                 child: Center(
                   child: Padding(
@@ -61,7 +63,7 @@ class _NarratorDrawScreenState extends State<NarratorDrawScreen> {
                 duration: const Duration(milliseconds: 500),
                 child: Column(
                   children: [
-                    const Text('IL NARRATORE È', style: AppText.overline),
+                    Text(t.theNarratorIs, style: AppText.overline),
                     const SizedBox(height: 6),
                     FittedBox(
                       fit: BoxFit.scaleDown,
@@ -78,7 +80,7 @@ class _NarratorDrawScreenState extends State<NarratorDrawScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _stopped ? _continue : null,
-                  child: const Text('CONTINUA'),
+                  child: Text(t.continueLabel),
                 ),
               ),
             ],

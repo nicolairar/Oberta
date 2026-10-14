@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_strings.dart';
 import '../../rules/game_setup.dart';
 import '../../rules/role.dart';
 import '../theme/app_theme.dart';
@@ -34,17 +35,18 @@ class _RoleDealScreenState extends State<RoleDealScreen> {
   @override
   Widget build(BuildContext context) {
     final narrator = widget.setup.narrator;
+    final t = AppStrings.of(context);
     return SceneScaffold(
-      appBar: AppBar(title: const Text('LE CARTE')),
+      appBar: AppBar(title: Text(t.cardsTitle)),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             children: [
-              const Text('NARRATORE', style: AppText.overline),
+              Text(t.narratorTitle, style: AppText.overline),
               const SizedBox(height: 4),
               Text(
-                narrator?.name ?? 'Automatico',
+                narrator?.name ?? t.automatic,
                 style: const TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 18,
@@ -61,7 +63,7 @@ class _RoleDealScreenState extends State<RoleDealScreen> {
                 ),
               ),
               Text(
-                _dealt ? 'Le carte sono servite' : 'Si mescola il mazzo…',
+                _dealt ? t.cardsDealt : t.shuffling,
                 style: AppText.display(22, color: AppColors.textPrimary),
               ),
               const SizedBox(height: 14),
@@ -84,7 +86,7 @@ class _RoleDealScreenState extends State<RoleDealScreen> {
                             ),
                           )
                       : null,
-                  child: const Text('GUARDATE LE CARTE'),
+                  child: Text(t.checkYourCards),
                 ),
               ),
             ],
@@ -116,7 +118,7 @@ class _RoleChip extends StatelessWidget {
           Icon(role.icon, size: 16, color: AppColors.textPrimary),
           const SizedBox(width: 6),
           Text(
-            '$count × ${role.label}',
+            '$count × ${AppStrings.of(context).role(role).label}',
             style: const TextStyle(
               color: AppColors.textPrimary,
               fontSize: 13,
