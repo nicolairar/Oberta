@@ -5,6 +5,7 @@ import '../narration/narration_pack.dart';
 import '../rules/role.dart';
 import '../sound/cue_sounds.dart';
 import '../ui/widgets/death_scene.dart';
+import '../ui/widgets/verdict_scene.dart';
 import 'app_language.dart';
 
 /// Tutti i testi dell'interfaccia in una lingua. Il copione del narratore e
@@ -162,6 +163,19 @@ abstract class AppStrings {
   String get wontSeeDawn;
   String get next;
   String get skip;
+
+  // Il verdetto in scena.
+  String verdictCaption(VerdictTake take);
+
+  /// Il timbro sul ritratto del condannato: solo per le condanne.
+  String verdictStamp(VerdictTake take);
+  String get verdictLine;
+  String get acquittalTitle;
+  String get acquittalLine;
+
+  /// Il cartello di fine città, quando non si sa che città sia.
+  String get townSign;
+  String verdictWord(VerdictWord word);
 
   // La sala prove.
   String get screeningTitle;
@@ -343,6 +357,13 @@ abstract class AppStrings {
     'wontSeeDawn': wontSeeDawn,
     'next': next,
     'skip': skip,
+    for (final take in VerdictTake.values) 'verdictCaption.${take.name}': verdictCaption(take),
+    for (final take in VerdictTake.condemnations) 'verdictStamp.${take.name}': verdictStamp(take),
+    'verdictLine': verdictLine,
+    'acquittalTitle': acquittalTitle,
+    'acquittalLine': acquittalLine,
+    'townSign': townSign,
+    for (final word in VerdictWord.values) 'verdictWord.${word.name}': verdictWord(word),
     'screeningTitle': screeningTitle,
     'screeningIntro': screeningIntro,
     'screeningCaption': screeningCaption,
