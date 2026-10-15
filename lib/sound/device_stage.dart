@@ -214,7 +214,9 @@ class DeviceStage extends SoundStage implements VerdictStage {
       for (final deck in [..._musicDecks, ..._ambienceDecks, ..._atmosphereDecks]) {
         deck.cancel();
       }
-      for (final player in [_player, ..._shortPlayers, for (final deck in [..._musicDecks, ..._ambienceDecks, ..._atmosphereDecks]) deck.player]) {
+      _memeTimer?.cancel();
+      _memeDuck = 1;
+      for (final player in [_player, _memePlayer, ..._shortPlayers, for (final deck in [..._musicDecks, ..._ambienceDecks, ..._atmosphereDecks]) deck.player]) {
         player.stop().then<void>((_) {}, onError: _report);
       }
       _mood = null;
@@ -260,11 +262,32 @@ class DeviceStage extends SoundStage implements VerdictStage {
     () async {
       try {
         if (after > Duration.zero) await Future<void>.delayed(after);
-        if (!memeMode) return;
+        if (!memeMode || !enabled) return;
         await _ready;
-        final player = _shortPlayers[_nextShort++ % _shortPlayers.length];
-        await player.stop();
-        await player.play(AssetSource(meme.asset), volume: effectsVolume * 0.7);
+        // Mentre suona una canzoncina, i meme brevi aspettano il loro turno:
+        // due meme uno sopra l'altro non fanno ridere nessuno.
+        final now = DateTime.now();
+        if (_memeUntil.isAfter(now)) {
+          if (meme.isLong) return;
+          await Future<void>.delayed(_memeUntil.difference(now));
+          if (!memeMode || !enabled) return;
+        }
+        _memeUntil = DateTime.now().add(Duration(milliseconds: meme.millis));
+        // Il meme è la battuta: la musica si fa da parte. Quelli lunghi la
+        // zittiscono del tutto (e il sottofondo con lei), quelli brevi la
+        // abbassano per un attimo.
+        _memeDuck = meme.isLong ? 0 : 0.35;
+        _musicDeck.fadeTo(_musicTarget, const Duration(milliseconds: 150));
+        if (meme.isLong) _ambienceDeck.fadeTo(0, const Duration(milliseconds: 300));
+        _memeTimer?.cancel();
+        _memeTimer = Timer(Duration(milliseconds: meme.millis + 200), () {
+          _memeDuck = 1;
+          _musicDeck.fadeTo(_musicTarget, const Duration(milliseconds: 1200));
+          if (_ambienceGroup != null) _ambienceDeck.fadeTo(_ambienceVolume, const Duration(milliseconds: 1500));
+        });
+        await _memePlayer.stop();
+        // I meme sono fatti per farsi sentire: sopra a tutto il resto.
+        await _memePlayer.play(AssetSource(meme.asset), volume: (effectsVolume * 1.15).clamp(0.0, 1.0));
       } catch (error) {
         _report(error);
       }
@@ -352,7 +375,12 @@ class DeviceStage extends SoundStage implements VerdictStage {
     _musicDeck.fadeTo(_musicTarget, const Duration(milliseconds: 600));
   }
 
-  double get _musicTarget => enabled ? (musicVolume * _duck).clamp(0.0, 1.0) : 0;
+  double get _musicTarget => enabled ? (musicVolume * _duck * _memeDuck).clamp(0.0, 1.0) : 0;
+
+  final AudioPlayer _memePlayer = AudioPlayer();
+  DateTime _memeUntil = DateTime(0);
+  double _memeDuck = 1;
+  Timer? _memeTimer;
 
   @override
   Future<Duration?> position() async {

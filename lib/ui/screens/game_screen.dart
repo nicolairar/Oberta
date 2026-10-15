@@ -201,6 +201,8 @@ class _GameScreenState extends State<GameScreen> {
     _dawnAtmosphere();
     // Il Cronista smaschera uno della famiglia: sus.
     if (report.scoop?.team == Team.mafia) SoundStage.instance.meme(Meme.vineBoom, after: const Duration(seconds: 2));
+    // Nessun morto stanotte: la città l'ha scampata, e se la ride.
+    if (report.victims.isEmpty) SoundStage.instance.meme(Meme.heeHee, after: const Duration(milliseconds: 1200));
     _title = _t.dawnTitle;
     _mood = SceneMood.dawn;
     _stage = _Stage.script;

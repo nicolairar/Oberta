@@ -1,11 +1,14 @@
 import '../ui/widgets/verdict_scene.dart';
 import 'fx_groups.dart';
+import 'memes.dart';
 import 'scene_cues.dart';
 
 /// I suoni dei filmati del verdetto, agganciati ai momenti del film
 /// ([VerdictBeats]): la folla quando marcia, il tonfo quando il cemento
 /// cade, il tuffo quando il condannato tocca l'acqua.
-List<SceneCue> verdictCuesFor(VerdictTake take) {
+///
+/// Con la modalità meme, sul colpo di scena di ogni film un meme breve.
+List<SceneCue> verdictCuesFor(VerdictTake take, {bool memes = false}) {
   final cues = <SceneCue>[
     const SceneCue.fx(VerdictBeats.marchFrom, FxGroup.whisper, 0.35),
     ...switch (take) {
@@ -48,6 +51,15 @@ List<SceneCue> verdictCuesFor(VerdictTake take) {
         ],
     },
   ];
+  if (memes) {
+    cues.addAll(switch (take) {
+      VerdictTake.molo => const [SceneCue.meme(VerdictBeats.splash + 0.01, Meme.faaah)],
+      VerdictTake.cartello => const [SceneCue.meme(VerdictBeats.cough + 0.01, Meme.knocked)],
+      VerdictTake.treno => const [SceneCue.meme(VerdictBeats.sniff + 0.01, Meme.heeHee)],
+      VerdictTake.cannone => const [SceneCue.meme(VerdictBeats.bonk + 0.01, Meme.vineBoom)],
+      VerdictTake.assoluzione => const [SceneCue.meme(VerdictBeats.emptySquare, Meme.error)],
+    });
+  }
   cues.sort((a, b) => a.t.compareTo(b.t));
   return cues;
 }

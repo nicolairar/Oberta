@@ -172,7 +172,7 @@ class VerdictScene extends StatefulWidget {
 }
 
 class _VerdictSceneState extends State<VerdictScene> with SingleTickerProviderStateMixin {
-  late final List<SceneCue> _cues = verdictCuesFor(_take);
+  late final List<SceneCue> _cues = verdictCuesFor(_take, memes: SoundStage.instance.memeMode);
   int _nextCue = 0;
 
   late final VerdictTake _take =

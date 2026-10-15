@@ -25,6 +25,30 @@ enum Meme {
   error,
   knocked;
 
+  /// Quanto dura, in millisecondi: quelli lunghi (le canzoncine, la risata)
+  /// zittiscono la musica finché non finiscono.
+  int get millis => switch (this) {
+        vineBoom => 1175,
+        faaah => 1810,
+        animeAhh => 570,
+        animeGirl => 1890,
+        lutador => 6430,
+        catLaugh => 3250,
+        chicken => 5380,
+        heeHee => 930,
+        rizz => 1270,
+        hellNah => 9840,
+        englishSpanish => 24470,
+        dexter => 10550,
+        applePay => 630,
+        error => 790,
+        knocked => 650,
+      };
+
+  /// Una canzoncina o una risata lunga: sopra la tarantella non si capisce
+  /// niente, quindi la musica tace.
+  bool get isLong => millis > 2500;
+
   String get asset => 'meme/${switch (this) {
         vineBoom => 'vine_boom',
         animeAhh => 'anime_ahh',
@@ -47,7 +71,7 @@ Meme? strikeMeme(DeathAct act) => switch (act) {
       DeathAct.kiss => _one(const [Meme.rizz, Meme.heeHee]),
       DeathAct.rescue => Meme.applePay,
       DeathAct.lucky => null,
-      _ => _dice.nextDouble() < 0.4 ? Meme.knocked : null,
+      _ => _dice.nextDouble() < 0.8 ? _one(const [Meme.knocked, Meme.knocked, Meme.vineBoom]) : null,
     };
 
 /// Il meme della reazione, un attimo dopo il colpo.
@@ -55,7 +79,7 @@ Meme? reactionMeme(DeathAct act) => switch (act) {
       DeathAct.kiss => _one(const [Meme.animeAhh, Meme.animeGirl]),
       DeathAct.manhole => Meme.lutador,
       DeathAct.rescue || DeathAct.lucky => null,
-      _ => _dice.nextDouble() < 0.6 ? Meme.faaah : null,
+      _ => _dice.nextDouble() < 0.9 ? Meme.faaah : null,
     };
 
 /// La carta girata dopo il verdetto.
