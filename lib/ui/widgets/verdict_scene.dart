@@ -193,6 +193,7 @@ class _VerdictSceneState extends State<VerdictScene> with SingleTickerProviderSt
         if (status == AnimationStatus.completed) setState(() => _ended = true);
       });
 
+    SoundStage.instance.duckMusic(true);
     final music = SoundStage.instance.playVerdict(_take);
     if (music is Future<void>) {
       music.timeout(const Duration(seconds: 4), onTimeout: () {}).whenComplete(() {
@@ -233,6 +234,7 @@ class _VerdictSceneState extends State<VerdictScene> with SingleTickerProviderSt
 
   @override
   void dispose() {
+    SoundStage.instance.duckMusic(false);
     for (final timer in _tuning) {
       timer.cancel();
     }

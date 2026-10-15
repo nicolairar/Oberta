@@ -520,4 +520,10 @@ final class EnglishStrings extends AppStrings {
 
   @override
   String get someoneSaved => 'SOMEONE';
+
+  @override
+  String get musicVolumeLabel => 'Music';
+
+  @override
+  String get effectsVolumeLabel => 'Sound effects';
 }

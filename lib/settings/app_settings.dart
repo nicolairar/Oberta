@@ -9,7 +9,9 @@ import 'settings_store.dart';
 class AppSettings extends ChangeNotifier {
   static const languageKey = 'language';
   static const soundKey = 'sound';
-  static const keys = {languageKey, soundKey};
+  static const musicVolumeKey = 'musicVolume';
+  static const effectsVolumeKey = 'effectsVolume';
+  static const keys = {languageKey, soundKey, musicVolumeKey, effectsVolumeKey};
 
   /// Le preferenze in uso. I test le tengono in memoria; `main` le apre dal
   /// telefono con [open].
@@ -18,16 +20,34 @@ class AppSettings extends ChangeNotifier {
   final SettingsStore _store;
   AppLanguage? _language;
   bool _soundOn;
+  double _musicVolume;
+  double _effectsVolume;
 
   AppSettings(this._store)
       : _language = AppLanguage.values.asNameMap()[_store.getString(languageKey)],
-        _soundOn = _store.getBool(soundKey) ?? true;
+        _soundOn = _store.getBool(soundKey) ?? true,
+        _musicVolume = _readVolume(_store, musicVolumeKey, defaultMusicVolume),
+        _effectsVolume = _readVolume(_store, effectsVolumeKey, defaultEffectsVolume);
+
+  /// La musica parte a metà: è un sottofondo, non deve coprire il tavolo.
+  static const defaultMusicVolume = 0.5;
+  static const defaultEffectsVolume = 0.8;
+
+  static double _readVolume(SettingsStore store, String key, double fallback) =>
+      (double.tryParse(store.getString(key) ?? '') ?? fallback).clamp(0.0, 1.0);
+
+  void _applyVolumes() {
+    SoundStage.instance
+      ..musicVolume = _musicVolume
+      ..effectsVolume = _effectsVolume;
+  }
 
   /// Legge le preferenze salvate sul telefono e rimette l'audio com'era
   /// rimasto. Il palco del suono va montato prima.
   static Future<AppSettings> open() async {
     final settings = AppSettings(await DeviceSettingsStore.open(keys));
     SoundStage.instance.enabled = settings.soundOn;
+    settings._applyVolumes();
     return settings;
   }
 
@@ -43,6 +63,31 @@ class AppSettings extends ChangeNotifier {
 
   /// La lingua in cui si gioca: quella scelta, o quella del telefono.
   AppLanguage languageFor(List<Locale>? device) => _language ?? AppLanguage.forDevice(device);
+
+  /// Il volume della musica di sottofondo, da 0 a 1.
+  double get musicVolume => _musicVolume;
+
+  set musicVolume(double volume) {
+    volume = volume.clamp(0.0, 1.0);
+    if (volume == _musicVolume) return;
+    _musicVolume = volume;
+    _store.setString(musicVolumeKey, volume.toStringAsFixed(2));
+    _applyVolumes();
+    SoundStage.instance.duckMusic(false);
+    notifyListeners();
+  }
+
+  /// Il volume degli effetti e delle scene, da 0 a 1.
+  double get effectsVolume => _effectsVolume;
+
+  set effectsVolume(double volume) {
+    volume = volume.clamp(0.0, 1.0);
+    if (volume == _effectsVolume) return;
+    _effectsVolume = volume;
+    _store.setString(effectsVolumeKey, volume.toStringAsFixed(2));
+    _applyVolumes();
+    notifyListeners();
+  }
 
   bool get soundOn => _soundOn;
 

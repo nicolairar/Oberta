@@ -185,6 +185,8 @@ abstract class AppStrings {
   String get screeningEffects;
   String get screeningVerdicts;
   String get someoneSaved;
+  String get musicVolumeLabel;
+  String get effectsVolumeLabel;
   String verdictName(VerdictTake take);
   String cueName(Cue cue);
 
@@ -374,6 +376,8 @@ abstract class AppStrings {
     'screeningEffects': screeningEffects,
     'screeningVerdicts': screeningVerdicts,
     'someoneSaved': someoneSaved,
+    'musicVolumeLabel': musicVolumeLabel,
+    'effectsVolumeLabel': effectsVolumeLabel,
     for (final take in VerdictTake.values) 'verdictName.${take.name}': verdictName(take),
     'lobbyTitle': lobbyTitle,
     'lobbyDebugAdd': lobbyDebugAdd,

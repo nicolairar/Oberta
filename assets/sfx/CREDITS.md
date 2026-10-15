@@ -1,0 +1,191 @@
+# Effetti sonori
+
+Registrazioni da **Freesound** (https://freesound.org), tutte con licenza
+**Creative Commons Zero (CC0 1.0)**: uso libero, anche commerciale, senza obbligo
+di citare. Le citiamo comunque: grazie a chi le ha caricate.
+
+Sono le anteprime ufficiali di Freesound, ritagliate, normalizzate e
+convertite in AAC mono (scaricate il 15 ottobre 2026).
+
+| File | Titolo | Autore | Pagina |
+|---|---|---|---|
+| `fx_rooster_1.m4a` | Rooster crow | arelitron | https://freesound.org/people/arelitron/sounds/582624/ |
+| `fx_rooster_2.m4a` | _rooster crowing.mp3 | deleted_user_3667256 | https://freesound.org/people/deleted_user_3667256/sounds/320322/ |
+| `fx_rooster_3.m4a` | Rooster crow | jsbarrett | https://freesound.org/people/jsbarrett/sounds/200339/ |
+| `fx_rooster_4.m4a` | Rooster Crowing | LoafDV | https://freesound.org/people/LoafDV/sounds/385820/ |
+| `fx_birds_1.m4a` | Bird chirps then takes off flapping wings .wav | Ambient-X | https://freesound.org/people/Ambient-X/sounds/682534/ |
+| `fx_birds_2.m4a` | Dungeness_Birds.wav | jjbulley | https://freesound.org/people/jjbulley/sounds/104671/ |
+| `fx_birds_3.m4a` | Bird song City Park.wav | pawsound | https://freesound.org/people/pawsound/sounds/154835/ |
+| `fx_birds_4.m4a` | Bird Noise - 8.wav | SpaceJoe | https://freesound.org/people/SpaceJoe/sounds/507269/ |
+| `fx_birds_5.m4a` | Alien sparrow chirping | Mastersoundboy2005 | https://freesound.org/people/Mastersoundboy2005/sounds/748262/ |
+| `fx_birds_6.m4a` | SPARROW - 5 | SamuelGremaud | https://freesound.org/people/SamuelGremaud/sounds/517808/ |
+| `fx_church_1.m4a` | Church Bell.wav | MVMTech | https://freesound.org/people/MVMTech/sounds/569356/ |
+| `fx_church_2.m4a` | ChurchBells.wav | BMacZero | https://freesound.org/people/BMacZero/sounds/96146/ |
+| `fx_church_3.m4a` | Berlin church bells | Sam-Mortley | https://freesound.org/people/Sam-Mortley/sounds/807688/ |
+| `fx_church_4.m4a` | Church bells (2).wav | anand.username.taken | https://freesound.org/people/anand.username.taken/sounds/501412/ |
+| `fx_church_5.m4a` | Bell Ring.wav | Ivanovich94 | https://freesound.org/people/Ivanovich94/sounds/271250/ |
+| `fx_church_6.m4a` | Bell Ring | Dalesome | https://freesound.org/people/Dalesome/sounds/352927/ |
+| `fx_church_7.m4a` | Bell Ring.wav | VSokorelos | https://freesound.org/people/VSokorelos/sounds/346171/ |
+| `fx_market_1.m4a` | Crowd Talking Quietly Stadium.mp3 | FunWithSound | https://freesound.org/people/FunWithSound/sounds/381373/ |
+| `fx_market_2.m4a` | Busy Room Ambience / Small crowd / People talking in background | Breviceps | https://freesound.org/people/Breviceps/sounds/457043/ |
+| `fx_cart_1.m4a` | horse snort.wav | bruno.auzet | https://freesound.org/people/bruno.auzet/sounds/538697/ |
+| `fx_crickets_1.m4a` | Night ambient with crickets and baby 48000 Hz 24 bit Stereo.wav | diogorusso | https://freesound.org/people/diogorusso/sounds/612592/ |
+| `fx_crickets_2.m4a` | Crickets chirping pt 2 | yahsay | https://freesound.org/people/yahsay/sounds/842645/ |
+| `fx_crickets_3.m4a` | Single Cricket Chirping, Close Perspective 02 | HECKFRICKER | https://freesound.org/people/HECKFRICKER/sounds/753272/ |
+| `fx_crickets_4.m4a` | Artificial Cricket Chirp | Fission9 | https://freesound.org/people/Fission9/sounds/467857/ |
+| `fx_crickets_5.m4a` | naturaleza, bosque parque encantado nature in the forest.aif | guanescape | https://freesound.org/people/guanescape/sounds/640081/ |
+| `fx_owl_1.m4a` | Owl Hooting with far away dog barking | gfrog | https://freesound.org/people/gfrog/sounds/159726/ |
+| `fx_owl_2.m4a` | owl_hooting_000102_0145S3 002-070 000-002 068-074.wav | Gerent | https://freesound.org/people/Gerent/sounds/558396/ |
+| `fx_owl_3.m4a` | Owl Hoot | Breviceps | https://freesound.org/people/Breviceps/sounds/465697/ |
+| `fx_wind_1.m4a` | chimney wind 1.wav | Walter_Odington | https://freesound.org/people/Walter_Odington/sounds/26189/ |
+| `fx_wind_2.m4a` | whislingwind.WAV | stomachache | https://freesound.org/people/stomachache/sounds/45642/ |
+| `fx_wind_3.m4a` | BK-Wind_G#5.WAV | Anillogic | https://freesound.org/people/Anillogic/sounds/122327/ |
+| `fx_wind_4.m4a` | Wind4.mp3 | vandale | https://freesound.org/people/vandale/sounds/379471/ |
+| `fx_dog_1.m4a` | Distant Dog Bark | qubodup | https://freesound.org/people/qubodup/sounds/813116/ |
+| `fx_dog_2.m4a` | Dogs Barking in Distance_Rural.wav | rvandemark | https://freesound.org/people/rvandemark/sounds/581478/ |
+| `fx_dog_3.m4a` | Thuir Distant dog bark - 2025 03 14 00h01 - XY H2N | Sadiquecat | https://freesound.org/people/Sadiquecat/sounds/792440/ |
+| `fx_cat_1.m4a` | cat meow | tuberatanka | https://freesound.org/people/tuberatanka/sounds/110011/ |
+| `fx_cat_2.m4a` | New Cat Meow 1 | steffcaffrey | https://freesound.org/people/steffcaffrey/sounds/479272/ |
+| `fx_cat_3.m4a` | SND_CatHighMeows.wav | megrez7274 | https://freesound.org/people/megrez7274/sounds/508686/ |
+| `fx_cat_4.m4a` | Cute Kitten Meow | Breviceps | https://freesound.org/people/Breviceps/sounds/448084/ |
+| `fx_cat_5.m4a` | kitten meow evil really cool.aiff | kyles | https://freesound.org/people/kyles/sounds/51809/ |
+| `fx_thunder_1.m4a` | thunder.rumble.loop.ogg | xUMR | https://freesound.org/people/xUMR/sounds/486558/ |
+| `fx_thunder_2.m4a` | thunder rumble 1.wav | FenrirFangs | https://freesound.org/people/FenrirFangs/sounds/234736/ |
+| `fx_rain_1.m4a` | Raining in my house.m4a | ManDaKi | https://freesound.org/people/ManDaKi/sounds/695793/ |
+| `fx_rain_2.m4a` | Ambience - Freezing Rain falling on snow-covered leaves | jaegrover | https://freesound.org/people/jaegrover/sounds/413854/ |
+| `fx_siren_1.m4a` | dub_siren_lfo_square_short_9 | leonseptavaux | https://freesound.org/people/leonseptavaux/sounds/716153/ |
+| `fx_siren_2.m4a` | Electronic Siren | FartBiscuit1700 | https://freesound.org/people/FartBiscuit1700/sounds/361491/ |
+| `fx_siren_3.m4a` | High-Low Siren | se2001 | https://freesound.org/people/se2001/sounds/521779/ |
+| `fx_siren_4.m4a` | 220331 Siren, ambulence, short distant pass stops, city, VideoNTG, Toronto | TRP | https://freesound.org/people/TRP/sounds/717560/ |
+| `fx_siren_5.m4a` | Ambulance - Siren | Filmscore | https://freesound.org/people/Filmscore/sounds/865752/ |
+| `fx_clock_1.m4a` | Clock Ticks (Loopable!) | se2001 | https://freesound.org/people/se2001/sounds/511967/ |
+| `fx_clock_2.m4a` | ticking of the clock 01.wav | blukotek | https://freesound.org/people/blukotek/sounds/412751/ |
+| `fx_clock_3.m4a` | Old Scots Clock - Ticking.wav | fauxpress | https://freesound.org/people/fauxpress/sounds/42139/ |
+| `fx_clock_4.m4a` | Grandfather clock.wav | Ryding | https://freesound.org/people/Ryding/sounds/125968/ |
+| `fx_clock_5.m4a` | Ominous Grandfather Clock Pendulum Ticking | brktkrgll | https://freesound.org/people/brktkrgll/sounds/856170/ |
+| `fx_clock_6.m4a` | NCSU Bell Tower | katycostigan | https://freesound.org/people/katycostigan/sounds/129447/ |
+| `fx_clock_7.m4a` | bells.mp3 | FreethinkerAnon | https://freesound.org/people/FreethinkerAnon/sounds/131298/ |
+| `fx_foghorn_1.m4a` | Foghorn.wav | JalynCatbtg | https://freesound.org/people/JalynCatbtg/sounds/616350/ |
+| `fx_foghorn_2.m4a` | Long Distant Foghorn.aiff | Danjocross | https://freesound.org/people/Danjocross/sounds/507471/ |
+| `fx_train_1.m4a` | Steam Whistle.wav | mike_stranks | https://freesound.org/people/mike_stranks/sounds/407394/ |
+| `fx_train_2.m4a` | Steam Whistle.mp3 | Bidone | https://freesound.org/people/Bidone/sounds/71778/ |
+| `fx_train_3.m4a` | Train Whistle 3-chime e-flat minor | Hockinfinger | https://freesound.org/people/Hockinfinger/sounds/854370/ |
+| `fx_carpass_1.m4a` | Small Motorbike Passing By | IENBA | https://freesound.org/people/IENBA/sounds/828204/ |
+| `fx_carhorn_1.m4a` | Honk! (Vintage Bicycle Horn) | Breviceps | https://freesound.org/people/Breviceps/sounds/468441/ |
+| `fx_carhorn_2.m4a` | Evan's Old Vocal Car Horn.mp3 | se2001 | https://freesound.org/people/se2001/sounds/461944/ |
+| `fx_screech_1.m4a` | Tires Squeaking.aif | RutgerMuller | https://freesound.org/people/RutgerMuller/sounds/104026/ |
+| `fx_screech_2.m4a` | Distant car tire screetch | Sadiquecat | https://freesound.org/people/Sadiquecat/sounds/737192/ |
+| `fx_revolver_1.m4a` | Heathers Gunshot Effect2.wav | okieactor | https://freesound.org/people/okieactor/sounds/415912/ |
+| `fx_revolver_2.m4a` | Single Pistol Gunshot 3.3.wav | morganpurkis | https://freesound.org/people/morganpurkis/sounds/392229/ |
+| `fx_revolver_3.m4a` | Revolver calibre 38 - vários disparos_02 | reishugo | https://freesound.org/people/reishugo/sounds/346906/ |
+| `fx_shotgun_1.m4a` | shotgun with clink.mp3 | CraftyIndividual | https://freesound.org/people/CraftyIndividual/sounds/418435/ |
+| `fx_shotgun_2.m4a` | shotgun shoot | MrGungus | https://freesound.org/people/MrGungus/sounds/773873/ |
+| `fx_shotgun_3.m4a` | aa12_fire | db465 | https://freesound.org/people/db465/sounds/865991/ |
+| `fx_tommy_1.m4a` | Heavy Machine Gun | ShawnyBoy | https://freesound.org/people/ShawnyBoy/sounds/165394/ |
+| `fx_tommy_2.m4a` | BigGun.wav | Willary1 | https://freesound.org/people/Willary1/sounds/342184/ |
+| `fx_ricochet_1.m4a` | bullet ricochet.wav | aust_paul | https://freesound.org/people/aust_paul/sounds/30932/ |
+| `fx_ricochet_2.m4a` | Reverse Ricochet Accent.wav | WannyManny | https://freesound.org/people/WannyManny/sounds/609633/ |
+| `fx_scream_1.m4a` | Cartoon Wow Scream Voice | NicknameLarry | https://freesound.org/people/NicknameLarry/sounds/508898/ |
+| `fx_scream_2.m4a` | Short Scream | riippumattog | https://freesound.org/people/riippumattog/sounds/788867/ |
+| `fx_scream_3.m4a` | Man Screams His Death Into The Void | BlockFrog | https://freesound.org/people/BlockFrog/sounds/752055/ |
+| `fx_scream_4.m4a` | weak scream | riippumattog | https://freesound.org/people/riippumattog/sounds/872929/ |
+| `fx_scream_5.m4a` | JirkaScream 2 | Kalibrk | https://freesound.org/people/Kalibrk/sounds/339308/ |
+| `fx_scream_6.m4a` | Panic-stricken screaming #2 | Klangkobold | https://freesound.org/people/Klangkobold/sounds/547964/ |
+| `fx_scream_7.m4a` | Girl_Scream.wav | tcrocker68 | https://freesound.org/people/tcrocker68/sounds/235592/ |
+| `fx_scream_8.m4a` | Little woman screaming sound effect | Mastersoundboy2005 | https://freesound.org/people/Mastersoundboy2005/sounds/733539/ |
+| `fx_scream_9.m4a` | WOMAN SCREAM | queen_westeros | https://freesound.org/people/queen_westeros/sounds/222585/ |
+| `fx_ouch_1.m4a` | Ouch.wav | ajanhallinta | https://freesound.org/people/ajanhallinta/sounds/649543/ |
+| `fx_ouch_2.m4a` | Short Oww | qubodup | https://freesound.org/people/qubodup/sounds/743351/ |
+| `fx_ouch_3.m4a` | Short Ouch | qubodup | https://freesound.org/people/qubodup/sounds/743350/ |
+| `fx_ouch_4.m4a` | Robotic Male Grunting In Pain | elynch0901 | https://freesound.org/people/elynch0901/sounds/464487/ |
+| `fx_ouch_5.m4a` | Male Grunting In Pain | elynch0901 | https://freesound.org/people/elynch0901/sounds/464486/ |
+| `fx_groan_1.m4a` | something dying.wav | Reitanna | https://freesound.org/people/Reitanna/sounds/343999/ |
+| `fx_groan_2.m4a` | MaleDeathSound13.wav | Blankened | https://freesound.org/people/Blankened/sounds/577032/ |
+| `fx_groan_3.m4a` | Dragons Dying Breath | MickBoere | https://freesound.org/people/MickBoere/sounds/276577/ |
+| `fx_gasp_1.m4a` | CRWDReac_Crowd Gasping In Surprise, Voiced 01_ShaneVincent_GSC24_XY-AKG214-96k.wav | ShangusBurger | https://freesound.org/people/ShangusBurger/sounds/763875/ |
+| `fx_gasp_2.m4a` | Female Gasp | kanyonwyvern | https://freesound.org/people/kanyonwyvern/sounds/740310/ |
+| `fx_gasp_3.m4a` | Exaggerated Surprised Gasp! | CuboRodante | https://freesound.org/people/CuboRodante/sounds/812418/ |
+| `fx_laugh_1.m4a` | Evil_Laugh.flac | fortnight | https://freesound.org/people/fortnight/sounds/258017/ |
+| `fx_laugh_2.m4a` | evil laugh.wav | Reitanna | https://freesound.org/people/Reitanna/sounds/215339/ |
+| `fx_laugh_3.m4a` | 14-evil laugh.wav | tilano408 | https://freesound.org/people/tilano408/sounds/445639/ |
+| `fx_laugh_4.m4a` | laugh.wav | ShadowFlayer | https://freesound.org/people/ShadowFlayer/sounds/401605/ |
+| `fx_laugh_5.m4a` | Man Laugh | NinjaSharkStudios | https://freesound.org/people/NinjaSharkStudios/sounds/649082/ |
+| `fx_boo_1.m4a` | Voice_Crowd_Small_Expression_Boo_Stereo | Nox_Sound | https://freesound.org/people/Nox_Sound/sounds/752707/ |
+| `fx_boo_2.m4a` | Boo 7 Get Off The Stage No You Didn't.wav | jayfrosting | https://freesound.org/people/jayfrosting/sounds/333407/ |
+| `fx_cheer_1.m4a` | Voice_Crowd_Small_Expression_Applause_Cheer_Stereo | Nox_Sound | https://freesound.org/people/Nox_Sound/sounds/752709/ |
+| `fx_cheer_2.m4a` | Small Auditorium Crowd Applause and Cheering | ElevatorFan2020 | https://freesound.org/people/ElevatorFan2020/sounds/859009/ |
+| `fx_cheer_3.m4a` | hit series with distant applause.aiff | SoundCollectah | https://freesound.org/people/SoundCollectah/sounds/109743/ |
+| `fx_gavel_1.m4a` | Sold.mp3 | watchthatfilms | https://freesound.org/people/watchthatfilms/sounds/692529/ |
+| `fx_gavel_2.m4a` | Hammer falls to wood floor | odditonic | https://freesound.org/people/odditonic/sounds/388833/ |
+| `fx_gavel_3.m4a` | Japan_Kashiwa_Temple_Hammering_Roof.wav | RutgerMuller | https://freesound.org/people/RutgerMuller/sounds/364849/ |
+| `fx_drumroll_1.m4a` | buzz roll.wav | bigjoedrummer | https://freesound.org/people/bigjoedrummer/sounds/77305/ |
+| `fx_drumroll_2.m4a` | Custom Snare - Lex Trap Drum Roll 8 Count - Nova Sound | NovaSoundTechnology | https://freesound.org/people/NovaSoundTechnology/sounds/347130/ |
+| `fx_trombone_1.m4a` | horn_fail_wahwah_1.wav | TaranP | https://freesound.org/people/TaranP/sounds/362206/ |
+| `fx_trombone_2.m4a` | Fail Jingle (stereo mix) | unfa | https://freesound.org/people/unfa/sounds/181351/ |
+| `fx_trombone_3.m4a` | wah wah sad trombone.wav | kirbydx | https://freesound.org/people/kirbydx/sounds/175409/ |
+| `fx_slidewhist_1.m4a` | classic dizzy take slide whistle.wav | martian | https://freesound.org/people/martian/sounds/403002/ |
+| `fx_slidewhist_2.m4a` | Slide Whistle.wav | WalliumVA | https://freesound.org/people/WalliumVA/sounds/672965/ |
+| `fx_slidewhist_3.m4a` | FX swanee whistle down.wav | v0idation | https://freesound.org/people/v0idation/sounds/497093/ |
+| `fx_boing_1.m4a` | cartoon-sound-double-boing | sdroliasnick | https://freesound.org/people/sdroliasnick/sounds/731261/ |
+| `fx_boing_2.m4a` | cartoon-sound-single-boing | sdroliasnick | https://freesound.org/people/sdroliasnick/sounds/731262/ |
+| `fx_boing_3.m4a` | cartoon-sound-triple | sdroliasnick | https://freesound.org/people/sdroliasnick/sounds/731263/ |
+| `fx_splash_1.m4a` | Big Water Splash | qubodup | https://freesound.org/people/qubodup/sounds/442773/ |
+| `fx_splash_2.m4a` | Văng Nước - Lớn Tiếng - Đơn Kênh | SieuAmThanh | https://freesound.org/people/SieuAmThanh/sounds/676380/ |
+| `fx_splash_3.m4a` | Ice Splash 5 | giwake | https://freesound.org/people/giwake/sounds/666549/ |
+| `fx_explosion_1.m4a` | Cartoon Explosion (designed on cassette tape lol) | modusmogulus | https://freesound.org/people/modusmogulus/sounds/784205/ |
+| `fx_explosion_2.m4a` | Retro Small Bomb Explosion | modusmogulus | https://freesound.org/people/modusmogulus/sounds/792520/ |
+| `fx_explosion_3.m4a` | NổLớnDướiNước2 | SieuAmThanh | https://freesound.org/people/SieuAmThanh/sounds/546958/ |
+| `fx_pianocrash_1.m4a` | Piano crash sound.m4a | Indian_gamer2005 | https://freesound.org/people/Indian_gamer2005/sounds/548430/ |
+| `fx_pianocrash_2.m4a` | Piano falling down stairs.wav | tantaramusic | https://freesound.org/people/tantaramusic/sounds/112251/ |
+| `fx_glassbreak_1.m4a` | breaking_glass_mirror_Audio_Technica_MB2K.wav | gladkiy | https://freesound.org/people/gladkiy/sounds/276939/ |
+| `fx_glassbreak_2.m4a` | Hard Glass Break 3 | ElevatorFan2020 | https://freesound.org/people/ElevatorFan2020/sounds/861044/ |
+| `fx_glassbreak_3.m4a` | ZXAudiocraft - Glass - Misc 003.wav | zxaudiocraft | https://freesound.org/people/zxaudiocraft/sounds/521348/ |
+| `fx_cough_1.m4a` | Male cough | aldenroth2 | https://freesound.org/people/aldenroth2/sounds/272029/ |
+| `fx_cough_2.m4a` | MaleCough.wav | Kragnour | https://freesound.org/people/Kragnour/sounds/473867/ |
+| `fx_cough_3.m4a` | Male cough | dastudiospr | https://freesound.org/people/dastudiospr/sounds/537150/ |
+| `fx_kiss_1.m4a` | Lip smack 2 (short) | hollandm | https://freesound.org/people/hollandm/sounds/691905/ |
+| `fx_kiss_2.m4a` | NPX Male Wet Kiss 3.wav | noahpardo | https://freesound.org/people/noahpardo/sounds/352345/ |
+| `fx_kiss_3.m4a` | Kiss_04.wav | deleted_user_2104797 | https://freesound.org/people/deleted_user_2104797/sounds/346666/ |
+| `fx_kiss_4.m4a` | Kissing.wav | jimbo555 | https://freesound.org/people/jimbo555/sounds/630496/ |
+| `fx_kiss_5.m4a` | mmkiss.ogg | DeLiteMia | https://freesound.org/people/DeLiteMia/sounds/393932/ |
+| `fx_wolfwhistle_1.m4a` | Wolf Whistle | GrayEpic | https://freesound.org/people/GrayEpic/sounds/808464/ |
+| `fx_wolfwhistle_2.m4a` | Wolf  Whistle.wav | deleted_user_4389770 | https://freesound.org/people/deleted_user_4389770/sounds/241258/ |
+| `fx_wolfwhistle_3.m4a` | whistle .wav | ripper351 | https://freesound.org/people/ripper351/sounds/151091/ |
+| `fx_fallwhist_1.m4a` | Cartoon Fall | plasterbrain | https://freesound.org/people/plasterbrain/sounds/395443/ |
+| `fx_fallwhist_2.m4a` | 8bit Fall | plasterbrain | https://freesound.org/people/plasterbrain/sounds/464907/ |
+| `fx_fallwhist_3.m4a` | falling whistle swish 1.wav | blukotek | https://freesound.org/people/blukotek/sounds/268914/ |
+| `fx_faint_1.m4a` | BODY FALL - V HVY - DIRT | leonelmail | https://freesound.org/people/leonelmail/sounds/504626/ |
+| `fx_faint_2.m4a` | Thud / Falling on wooden floor / Snapping, breaking neck | Breviceps | https://freesound.org/people/Breviceps/sounds/447922/ |
+| `fx_faint_3.m4a` | Body fall_01.wav | deleted_user_2104797 | https://freesound.org/people/deleted_user_2104797/sounds/346695/ |
+| `fx_cashreg_1.m4a` | Cash Register (imitation with toaster and bells) | modusmogulus | https://freesound.org/people/modusmogulus/sounds/794903/ |
+| `fx_cashreg_2.m4a` | Cash Register Fake.wav | CapsLok | https://freesound.org/people/CapsLok/sounds/184438/ |
+| `fx_typewriter_1.m4a` | Typewriter Button SLIDE 1A.wav | mincedbeats | https://freesound.org/people/mincedbeats/sounds/433600/ |
+| `fx_typewriter_2.m4a` | Typewriter - single key - type 1.wav | yottasounds | https://freesound.org/people/yottasounds/sounds/380138/ |
+| `fx_phone_1.m4a` | Telephone ringtone | Raclure | https://freesound.org/people/Raclure/sounds/458866/ |
+| `fx_phone_2.m4a` | Phone Ring | NachtmahrTV | https://freesound.org/people/NachtmahrTV/sounds/572349/ |
+| `fx_door_1.m4a` | 26.07.26- Knocking on Wooden Door 6 | Valerie-Vivegnis | https://freesound.org/people/Valerie-Vivegnis/sounds/865364/ |
+| `fx_door_2.m4a` | Knocking on Wood Door (1) | Flem0527 | https://freesound.org/people/Flem0527/sounds/629987/ |
+| `fx_whisper_1.m4a` | CrowdWhisper.aiff | sketchygio | https://freesound.org/people/sketchygio/sounds/144904/ |
+| `fx_whisper_2.m4a` | CRWDReac_Crowd Gasping In Surprise, Devolves To Gossip_ShaneVincent_GSC24_FUMA-AmbeoVR.wav | ShangusBurger | https://freesound.org/people/ShangusBurger/sounds/764091/ |
+| `fx_heartbeat_1.m4a` | heartbeat sub kick - softer | music_is_wiggly_air | https://freesound.org/people/music_is_wiggly_air/sounds/784658/ |
+| `fx_heartbeat_2.m4a` | Heartbeat 97 BPM | Cloud-10 | https://freesound.org/people/Cloud-10/sounds/688735/ |
+| `fx_fuse_1.m4a` | Kitchen Fuse Switch.wav | mincedbeats | https://freesound.org/people/mincedbeats/sounds/593976/ |
+| `fx_fuse_2.m4a` | FUSE.wav | Seidolon | https://freesound.org/people/Seidolon/sounds/372186/ |
+| `fx_fuse_3.m4a` | 1.5_sparkler.wav | 15GKovacovaJulie | https://freesound.org/people/15GKovacovaJulie/sounds/461085/ |
+| `fx_match_1.m4a` | Match strike 03 | scalywhale | https://freesound.org/people/scalywhale/sounds/423811/ |
+| `fx_match_2.m4a` | Striking a Match 5 | HunteR4708 | https://freesound.org/people/HunteR4708/sounds/256803/ |
+| `fx_cigar_1.m4a` | LIGHTER FLICK 14 | reergaregs | https://freesound.org/people/reergaregs/sounds/827022/ |
+| `fx_cigar_2.m4a` | LIGHTER FLICK 12 | reergaregs | https://freesound.org/people/reergaregs/sounds/827020/ |
+| `fx_coin_1.m4a` | Coin dropped on table 5 | HoseNoseSounds | https://freesound.org/people/HoseNoseSounds/sounds/510735/ |
+| `fx_coin_2.m4a` | Coin_Drop_27 | Valenspire | https://freesound.org/people/Valenspire/sounds/699522/ |
+| `fx_whoosh_1.m4a` | Whoosh 03 | velcronator | https://freesound.org/people/velcronator/sounds/733890/ |
+| `fx_whoosh_2.m4a` | Ukulele Whoosh 3.wav | saturdaysoundguy | https://freesound.org/people/saturdaysoundguy/sounds/391449/ |
+| `fx_chuckle_1.m4a` | Wholesome Genuine Laugh (male) | JotrainG | https://freesound.org/people/JotrainG/sounds/720133/ |
+| `fx_chuckle_2.m4a` | Laugh_male_quiet.wav | deleted_user_2104797 | https://freesound.org/people/deleted_user_2104797/sounds/166141/ |
+| `fx_chuckle_3.m4a` | giggle.wav | Reitanna | https://freesound.org/people/Reitanna/sounds/235168/ |
+| `fx_chuckle_4.m4a` | Giggling | CreepyKing | https://freesound.org/people/CreepyKing/sounds/842295/ |
+| `fx_surprise_1.m4a` | Mild Surprise 5 | nomiqbomi | https://freesound.org/people/nomiqbomi/sounds/578368/ |
+| `fx_tada_1.m4a` | TaDa!.wav | jimhancock | https://freesound.org/people/jimhancock/sounds/376318/ |
+| `fx_tada_2.m4a` | TaDa!.aif | jimhancock | https://freesound.org/people/jimhancock/sounds/256128/ |
+| `fx_harmonica_1.m4a` | Harmonica-C random stuff multi-take | Sadiquecat | https://freesound.org/people/Sadiquecat/sounds/792630/ |
+| `fx_harmonica_2.m4a` | low_harmonica_8 | ssud_motion | https://freesound.org/people/ssud_motion/sounds/732320/ |

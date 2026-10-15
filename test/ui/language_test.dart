@@ -92,7 +92,8 @@ void main() {
     expect(find.text('Music and sound effects'), findsOneWidget);
     expect(store.values[AppSettings.languageKey], 'en');
 
-    await tester.tapAt(const Offset(200, 80));
+    // Il foglio ora è alto (ci sono i volumi): lo si chiude come col gesto.
+    Navigator.of(tester.element(find.text('SETTINGS'))).pop();
     await tester.pumpAndSettle();
     expect(find.text('SETTINGS'), findsNothing, reason: 'il foglio si è chiuso');
     _expectEnglishAlley();

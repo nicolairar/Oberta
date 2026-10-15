@@ -13,6 +13,7 @@ import '../../rules/game_setup.dart';
 import '../../rules/player.dart';
 import '../../rules/role.dart';
 import '../../sound/cue_sounds.dart';
+import '../../sound/fx_groups.dart';
 import '../../sound/sound_stage.dart';
 import '../../sound/verdict_stage.dart';
 import '../theme/app_theme.dart';
@@ -130,7 +131,8 @@ class _GameScreenState extends State<GameScreen> {
 
   void _enterNight() {
     final round = _engine.round;
-    SoundStage.instance.cue(Cue.nightfall);
+    SoundStage.instance.music(MusicMood.night);
+    _nightAtmosphere();
     _title = _t.nightTitle(round);
     _mood = SceneMood.night;
     _stage = _Stage.script;
@@ -191,6 +193,7 @@ class _GameScreenState extends State<GameScreen> {
     final report = _dawn;
     final winner = report.winner;
     SoundStage.instance.cue(Cue.dawn);
+    _dawnAtmosphere();
     _title = _t.dawnTitle;
     _mood = SceneMood.dawn;
     _stage = _Stage.script;
@@ -212,6 +215,8 @@ class _GameScreenState extends State<GameScreen> {
         } else {
           _title = _t.dayTitle(_engine.round);
           _mood = SceneMood.day;
+          SoundStage.instance.music(MusicMood.day);
+          SoundStage.instance.effect(_pick(const [FxGroup.birds, FxGroup.market, FxGroup.clock, FxGroup.church, FxGroup.whisper]));
           SoundStage.instance.prepareVerdicts();
           _stage = _Stage.day;
         }
@@ -226,6 +231,29 @@ class _GameScreenState extends State<GameScreen> {
     _condemned = condemned;
     _verdictTake = VerdictScene.variants[_dice.nextInt(VerdictScene.variants.length)];
     _stage = _Stage.verdict;
+  }
+
+  final _atmosphere = Random();
+
+  T _pick<T>(List<T> options) => options[_atmosphere.nextInt(options.length)];
+
+  /// La città di notte: ogni notte un po' diversa, mai la stessa tre volte.
+  void _nightAtmosphere() {
+    const night = [
+      FxGroup.crickets, FxGroup.owl, FxGroup.wind, FxGroup.dog, FxGroup.cat, FxGroup.thunder,
+      FxGroup.rain, FxGroup.siren, FxGroup.clock, FxGroup.foghorn, FxGroup.train, FxGroup.carpass,
+    ];
+    final stage = SoundStage.instance;
+    stage.effect(_pick(night), after: const Duration(milliseconds: 900));
+    if (_atmosphere.nextBool()) stage.effect(_pick(night), after: const Duration(seconds: 6), volume: 0.7);
+  }
+
+  /// L'alba: il gallo, gli uccelli, a volte le campane.
+  void _dawnAtmosphere() {
+    final stage = SoundStage.instance;
+    stage.effect(FxGroup.rooster, after: const Duration(milliseconds: 300));
+    stage.effect(FxGroup.birds, after: const Duration(seconds: 2), volume: 0.8);
+    if (_atmosphere.nextInt(3) == 0) stage.effect(FxGroup.church, after: const Duration(seconds: 4), volume: 0.7);
   }
 
   void _afterVerdictScene() => _advance(_enterVerdictPage);
@@ -251,6 +279,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _enterEnd(Team winner) {
+    SoundStage.instance.music(winner == Team.mafia ? MusicMood.winFamily : MusicMood.winTown);
     SoundStage.instance.cue(winner == Team.mafia ? Cue.familyWins : Cue.townWins);
     _title = _t.endTitle;
     _mood = winner == Team.mafia ? SceneMood.night : SceneMood.dawn;
@@ -278,6 +307,13 @@ class _GameScreenState extends State<GameScreen> {
       ),
     );
     if (leave == true && mounted) _goHome();
+  }
+
+  @override
+  void dispose() {
+    // Fuori dalla partita si torna al sottofondo del menu.
+    SoundStage.instance.music(MusicMood.menu);
+    super.dispose();
   }
 
   @override

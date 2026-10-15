@@ -1,0 +1,10 @@
+Metti qui le tracce (mp3 o m4a), con questi nomi:
+
+  menu.mp3        il vicolo, sottofondo del menu
+  night.mp3       la notte
+  day.mp3         la discussione
+  win_town.mp3    vincono gli onesti
+  win_family.mp3  vince la famiglia
+
+Se ne hai di più per lo stesso momento, chiamale menu_2.mp3, menu_3.mp3...
+e a ogni partita ne esce una diversa.

@@ -46,6 +46,20 @@ class SettingsSheet extends StatelessWidget {
                   secondary: const Icon(Icons.music_note, color: AppColors.gold),
                   onChanged: (on) => settings.soundOn = on,
                 ),
+                _VolumeTile(
+                  icon: Icons.library_music,
+                  label: t.musicVolumeLabel,
+                  value: settings.musicVolume,
+                  enabled: settings.soundOn,
+                  onChanged: (volume) => settings.musicVolume = volume,
+                ),
+                _VolumeTile(
+                  icon: Icons.graphic_eq,
+                  label: t.effectsVolumeLabel,
+                  value: settings.effectsVolume,
+                  enabled: settings.soundOn,
+                  onChanged: (volume) => settings.effectsVolume = volume,
+                ),
                 ListTile(
                   leading: const Icon(Icons.translate, color: AppColors.gold),
                   title: Text(t.languageSetting),
@@ -82,6 +96,47 @@ class SettingsSheet extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// Un cursore di volume, con la percentuale a destra.
+class _VolumeTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final double value;
+  final bool enabled;
+  final ValueChanged<double> onChanged;
+
+  const _VolumeTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Icon(icon, color: AppColors.gold),
+      title: Text(label),
+      subtitle: Row(
+        children: [
+          Expanded(
+            child: Slider(
+              value: value,
+              divisions: 20,
+              activeColor: AppColors.gold,
+              onChanged: enabled ? onChanged : null,
+            ),
+          ),
+          SizedBox(
+            width: 44,
+            child: Text('${(value * 100).round()}%', textAlign: TextAlign.end, style: AppText.body),
+          ),
+        ],
+      ),
     );
   }
 }

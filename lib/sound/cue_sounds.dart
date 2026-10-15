@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'fx_groups.dart';
 import 'synth.dart';
 
 /// I suoni brevi del resto della partita: quelli che non accompagnano un
@@ -45,6 +46,17 @@ enum Cue {
   /// Vince la famiglia: l'organo nella cattedrale vuota.
   familyWins,
 }
+
+/// I suoni brevi per cui c'è un gruppo di effetti registrati: ogni volta ne
+/// esce uno diverso. Hanno la precedenza sul resto.
+const cueEffects = {
+  Cue.bang: FxGroup.revolver,
+  Cue.drumroll: FxGroup.drumroll,
+  Cue.timeUp: FxGroup.phone,
+  Cue.innocent: FxGroup.trombone,
+  Cue.townWins: FxGroup.cheer,
+  Cue.familyWins: FxGroup.laugh,
+};
 
 /// I suoni brevi che hanno una registrazione vera tra gli asset (pacchetti
 /// CC0 di Kenney): per questi l'app suona il file, per gli altri il nastro

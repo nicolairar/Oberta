@@ -17,6 +17,7 @@ Future<void> main() async {
   installDeviceRoster();
   AppSettings.instance = await AppSettings.open();
   runApp(const ObertaApp());
+  SoundStage.instance.music(MusicMood.menu);
 }
 
 class ObertaApp extends StatelessWidget {

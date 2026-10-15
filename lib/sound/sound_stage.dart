@@ -2,6 +2,10 @@ import 'dart:async';
 
 import '../ui/widgets/death_scene.dart';
 import 'cue_sounds.dart';
+import 'fx_groups.dart';
+
+/// Il sottofondo di ogni momento della partita.
+enum MusicMood { menu, night, day, winTown, winFamily }
 
 /// Il palco del suono: chi mette in scena chiede, lui suona.
 ///
@@ -13,6 +17,22 @@ class SoundStage {
 
   /// Spento, il palco non suona più niente finché non lo si riaccende.
   bool enabled = true;
+
+  /// Quanto suonano la musica e gli effetti, da 0 a 1. Separati: chi vuole
+  /// la musica bassa e gli spari forti può farlo.
+  double musicVolume = 0.5;
+  double effectsVolume = 0.8;
+
+  /// Cambia la musica di sottofondo: dissolvenza dalla traccia di prima a
+  /// quella nuova (una a caso tra quelle di [mood]). Se suona già, resta.
+  void music(MusicMood? mood) {}
+
+  /// Abbassa la musica mentre va in scena un filmato, e la rialza dopo.
+  void duckMusic(bool ducked) {}
+
+  /// Un effetto registrato di [group], una registrazione a caso (mai la
+  /// stessa due volte di fila). [after] lo ritarda.
+  void effect(FxGroup group, {Duration after = Duration.zero, double volume = 1}) {}
 
   /// Avvisa che queste scene stanno per andare in onda, così la colonna
   /// sonora è pronta quando si spengono le luci.

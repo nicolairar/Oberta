@@ -63,13 +63,28 @@ class SceneScore {
       };
 
   Uint8List record() {
-    _entrance();
-    _suspense();
-    _stinger();
+    // Con i suoni registrati la musica la fa la colonna sonora vera, che
+    // continua sotto la scena: qui restano solo i rumori. Senza (nei test,
+    // o se mancano gli asset) si suona tutto in sintetico come prima.
+    final synthetic = bank.isEmpty;
+    if (synthetic) {
+      _entrance();
+      _suspense();
+      _stinger();
+    } else {
+      _steps();
+    }
     _effects();
-    _aftermath();
+    if (synthetic) _aftermath();
     tape.room();
     return tape.toWav();
+  }
+
+  /// I passi della vittima che arriva sotto il lampione.
+  void _steps() {
+    for (var step = 0; step < 9; step++) {
+      _footstep(at(0.04 + 0.30 * (step + 0.5) / 9), 0.5);
+    }
   }
 
   // ------------------------------------------------------------------- musica

@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import '../../l10n/app_strings.dart';
 import '../../narration/death_story.dart';
+import '../../sound/scene_effects.dart';
 import '../../sound/sound_stage.dart';
 import '../theme/app_theme.dart';
 import 'city_backdrop.dart';
@@ -163,6 +164,7 @@ class _DeathSceneState extends State<DeathScene> with SingleTickerProviderStateM
         if (!_struck && filmTime(_film.value) >= DeathScenePainter.strike) {
           _struck = true;
           HapticFeedback.heavyImpact();
+          _strikeEffects();
         }
       })
       ..addStatusListener((status) {
@@ -172,6 +174,7 @@ class _DeathSceneState extends State<DeathScene> with SingleTickerProviderStateM
     // Il film parte quando parte la musica. Il palco muto risponde subito;
     // quello vero ci mette un attimo, e la scena lo aspetta (ma non per
     // sempre: senza audio si va in onda lo stesso).
+    SoundStage.instance.duckMusic(true);
     final music = SoundStage.instance.playScene(widget.act);
     if (music is Future<void>) {
       music.timeout(const Duration(seconds: 4), onTimeout: () {}).whenComplete(() {
@@ -184,6 +187,17 @@ class _DeathSceneState extends State<DeathScene> with SingleTickerProviderStateM
     } else {
       _film.forward();
     }
+  }
+
+  /// I rumori veri del colpo, e la reazione della vittima un attimo dopo.
+  /// Ogni volta ne escono di diversi: lo stesso agguato non suona mai uguale.
+  void _strikeEffects() {
+    final stage = SoundStage.instance;
+    for (final group in strikeEffectsFor(widget.act)) {
+      stage.effect(group);
+    }
+    final reaction = reactionFor(widget.act);
+    if (reaction != null) stage.effect(reaction, after: const Duration(milliseconds: 380));
   }
 
   /// Il momento in cui la vittima si accorge di qualcosa, e la cinepresa le
@@ -224,6 +238,7 @@ class _DeathSceneState extends State<DeathScene> with SingleTickerProviderStateM
     for (final timer in _tuning) {
       timer.cancel();
     }
+    SoundStage.instance.duckMusic(false);
     SoundStage.instance.stop();
     _film.dispose();
     super.dispose();

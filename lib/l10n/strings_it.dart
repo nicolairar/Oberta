@@ -521,4 +521,10 @@ final class ItalianStrings extends AppStrings {
 
   @override
   String get someoneSaved => 'QUALCUNO';
+
+  @override
+  String get musicVolumeLabel => 'Musica';
+
+  @override
+  String get effectsVolumeLabel => 'Effetti sonori';
 }

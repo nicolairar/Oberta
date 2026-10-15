@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
@@ -7,6 +8,8 @@ import 'package:flutter/foundation.dart';
 import '../ui/widgets/death_scene.dart';
 import '../ui/widgets/verdict_scene.dart';
 import 'cue_sounds.dart';
+import 'fx_groups.dart';
+import 'music_tracks.dart';
 import 'sample_bank.dart';
 import 'scene_score.dart';
 import 'sound_stage.dart';
@@ -24,6 +27,13 @@ class DeviceStage extends SoundStage implements VerdictStage {
   late final Future<Map<Cue, String>> _cues = _recordCues();
   final List<AudioPlayer> _shortPlayers = [for (var i = 0; i < 4; i++) AudioPlayer()];
   int _nextShort = 0;
+
+  final AudioPlayer _music = AudioPlayer();
+  final _random = Random();
+  MusicMood? _mood;
+  double _duck = 1;
+  Timer? _fade;
+  final Map<FxGroup, int> _lastTake = {};
   late final Future<void> _ready = _setUp();
   late final Future<SampleBank> _bank = loadSampleBank();
 
@@ -55,6 +65,12 @@ class DeviceStage extends SoundStage implements VerdictStage {
       try {
         await _ready;
         await player.stop();
+        await player.setVolume(effectsVolume);
+        final fx = cueEffects[cue];
+        if (fx != null) {
+          effect(fx);
+          return;
+        }
         final recorded = cueRecordings[cue];
         if (recorded != null) {
           await player.play(AssetSource('sounds/${recorded[_nextShort % recorded.length]}.wav'));
@@ -113,6 +129,7 @@ class DeviceStage extends SoundStage implements VerdictStage {
       // Prima di cambiare nastro si riavvolge: la posizione che il film
       // chiede poco dopo deve essere quella del nastro nuovo.
       await _player.stop();
+      await _player.setVolume(effectsVolume);
       await _player.play(DeviceFileSource(path), position: Duration.zero);
     } catch (error) {
       // Un nastro venuto male non deve fermare la partita: la scena va in
@@ -143,11 +160,75 @@ class DeviceStage extends SoundStage implements VerdictStage {
       final path = await (_verdicts[take] ??= recordVerdictTape(take));
       if (ticket != _ticket) return;
       await _player.stop();
+      await _player.setVolume(effectsVolume);
       await _player.play(DeviceFileSource(path), position: Duration.zero);
     } catch (error) {
       _verdicts.remove(take);
       _report(error);
     }
+  }
+
+  @override
+  void effect(FxGroup group, {Duration after = Duration.zero, double volume = 1}) {
+    if (!enabled || effectsVolume <= 0) return;
+    () async {
+      try {
+        if (after > Duration.zero) await Future<void>.delayed(after);
+        if (!enabled) return;
+        await _ready;
+        // Una registrazione diversa dall'ultima, quando se ne ha la scelta.
+        var take = 1 + _random.nextInt(group.count);
+        if (group.count > 1 && take == _lastTake[group]) take = take % group.count + 1;
+        _lastTake[group] = take;
+        final player = _shortPlayers[_nextShort++ % _shortPlayers.length];
+        await player.stop();
+        await player.setVolume((effectsVolume * volume).clamp(0.0, 1.0));
+        await player.play(AssetSource(group.asset(take)));
+      } catch (error) {
+        _report(error);
+      }
+    }();
+  }
+
+  @override
+  void music(MusicMood? mood) {
+    if (mood == _mood) return;
+    _mood = mood;
+    _fadeTo(0, const Duration(milliseconds: 700), then: () async {
+      await _music.stop();
+      if (mood == null || !enabled || _mood != mood) return;
+      final tracks = musicTracks[mood]!;
+      final track = tracks[_random.nextInt(tracks.length)];
+      await _music.setReleaseMode(mood == MusicMood.winTown || mood == MusicMood.winFamily ? ReleaseMode.release : ReleaseMode.loop);
+      await _music.setVolume(0);
+      await _music.play(AssetSource('music/$track.m4a'));
+      _fadeTo(_musicTarget, const Duration(milliseconds: 2200));
+    });
+  }
+
+  @override
+  void duckMusic(bool ducked) {
+    _duck = ducked ? 0.3 : 1;
+    _fadeTo(_musicTarget, const Duration(milliseconds: 600));
+  }
+
+  double get _musicTarget => enabled ? (musicVolume * _duck).clamp(0.0, 1.0) : 0;
+
+  /// Porta la musica al volume [target] a piccoli passi, ogni 40 ms.
+  void _fadeTo(double target, Duration length, {Future<void> Function()? then}) {
+    _fade?.cancel();
+    final steps = max(1, length.inMilliseconds ~/ 40);
+    var step = 0;
+    final start = _music.volume;
+    _fade = Timer.periodic(const Duration(milliseconds: 40), (timer) async {
+      step++;
+      final t = (step / steps).clamp(0.0, 1.0);
+      await _music.setVolume(start + (target - start) * t);
+      if (step >= steps) {
+        timer.cancel();
+        await then?.call();
+      }
+    });
   }
 
   @override
