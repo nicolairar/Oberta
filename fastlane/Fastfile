@@ -1,0 +1,39 @@
+default_platform(:ios)
+
+# Il numero di build sta in pubspec.yaml ("version: 1.0.0+N"). Ogni upload
+# su TestFlight ne vuole uno nuovo: se dall'ultimo commit non è già salito,
+# lo alza di uno.
+def ensure_build_number_bumped
+  path = "../pubspec.yaml"
+  content = File.read(path)
+  current = content[/^version:\s*[\d.]+\+(\d+)/, 1].to_i
+  committed = `git -C .. show HEAD:pubspec.yaml 2>/dev/null`[/^version:\s*[\d.]+\+(\d+)/, 1].to_i
+  return current if current > committed
+
+  File.write(path, content.sub(/^(version:\s*[\d.]+\+)#{current}$/) { "#{$1}#{current + 1}" })
+  UI.success "Build #{current} → #{current + 1}"
+  current + 1
+end
+
+platform :ios do
+  desc "Compila, firma e carica una build su TestFlight"
+  lane :beta do
+    build = ensure_build_number_bumped
+
+    api_key = app_store_connect_api_key(
+      key_id: ENV.fetch("ASC_KEY_ID"),
+      issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+      key_filepath: ENV.fetch("ASC_KEY_PATH"),
+    )
+
+    sh("cd .. && flutter build ipa --release --export-options-plist=ios/ExportOptionsLocal.plist")
+
+    upload_to_testflight(
+      ipa: "build/ios/ipa/Oberta.ipa",
+      api_key: api_key,
+      skip_waiting_for_build_processing: true,
+    )
+
+    UI.success "Build #{build} caricata su TestFlight"
+  end
+end

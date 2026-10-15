@@ -49,3 +49,9 @@ app.*.map.json
 
 # Claude Code
 .claude/
+
+# fastlane: chiavi e rapporti restano sul Mac
+fastlane/AuthKey_*.p8
+fastlane/.env
+fastlane/report.xml
+fastlane/README.md
