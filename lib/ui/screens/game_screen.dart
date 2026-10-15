@@ -25,6 +25,7 @@ import '../widgets/narrator_roles_sheet.dart';
 import '../widgets/player_grid.dart';
 import '../widgets/role_reveal_card.dart';
 import '../widgets/city_backdrop.dart';
+import '../widgets/sky_events.dart';
 import '../widgets/scene_scaffold.dart';
 import '../widgets/script_card.dart';
 import '../widgets/verdict_scene.dart';
@@ -217,7 +218,8 @@ class _GameScreenState extends State<GameScreen> {
           _title = _t.dayTitle(_engine.round);
           _mood = SceneMood.day;
           SoundStage.instance.music(MusicMood.day);
-          SoundStage.instance.effect(_pick(const [FxGroup.birds, FxGroup.market, FxGroup.clock, FxGroup.church, FxGroup.whisper]));
+          // La piazza di giorno: gli uccelli passano, e dove c'è il campanile suonano le ore.
+          _seenAndHeard(_hasBellTower && _atmosphere.nextBool() ? FxGroup.church : FxGroup.birds);
           SoundStage.instance.prepareVerdicts();
           _stage = _Stage.day;
         }
@@ -244,10 +246,12 @@ class _GameScreenState extends State<GameScreen> {
     // Pioggia e tuoni solo quando sullo schermo piove: si sente quello che
     // si vede, mai a caso.
     final raining = _engine.round.isOdd;
+    // Il sottofondo dura tutta la notte: la pioggia se piove, se no grilli o vento.
+    SoundStage.instance.ambience(raining ? FxGroup.rain : _pick(const [FxGroup.crickets, FxGroup.wind]));
     final night = [
-      FxGroup.crickets, FxGroup.owl, FxGroup.wind, FxGroup.dog, FxGroup.cat,
-      FxGroup.siren, FxGroup.clock, FxGroup.foghorn, FxGroup.train, FxGroup.carpass,
-      if (raining) ...[FxGroup.rain, FxGroup.thunder, FxGroup.thunder],
+      FxGroup.owl, FxGroup.dog, FxGroup.cat, FxGroup.siren, FxGroup.train, FxGroup.carpass,
+      if (_portCity) FxGroup.foghorn,
+      if (raining) ...[FxGroup.thunder, FxGroup.thunder],
     ];
     _nightSound(_pick(night), const Duration(milliseconds: 900));
     if (_atmosphere.nextBool()) _nightSound(_pick(night), const Duration(seconds: 6), volume: 0.7);
@@ -256,23 +260,51 @@ class _GameScreenState extends State<GameScreen> {
   /// Un rumore della notte. Il tuono porta con sé il suo lampo, che arriva
   /// prima: la luce corre più veloce del suono.
   void _nightSound(FxGroup group, Duration after, {double volume = 1}) {
-    if (group != FxGroup.thunder) {
-      SoundStage.instance.effect(group, after: after, volume: volume);
-      return;
-    }
     _thunders.add(Timer(after, () {
       if (!mounted || _mood != SceneMood.night) return;
-      CityBackdrop.flash();
-      SoundStage.instance.effect(FxGroup.thunder, after: const Duration(milliseconds: 450), volume: volume);
+      _seenAndHeard(group, volume: volume);
     }));
+  }
+
+  /// Le città che hanno un porto, o un lago con le navi: lì la sirena della
+  /// nebbia ha senso.
+  bool get _hasBellTower => {SkylineStyle.mediterranean, SkylineStyle.volcano}.contains(skylineFor(_script.city.id));
+
+  bool get _portCity => const {'chicago', 'new-york', 'palermo', 'napoli'}.contains(_script.city.id);
+
+  /// Un rumore e la sua scenetta, insieme: ogni suono ha qualcosa da vedere.
+  void _seenAndHeard(FxGroup group, {double volume = 1}) {
+    final stage = SoundStage.instance;
+    final (scene, delay) = switch (group) {
+      FxGroup.thunder => (null, 450),
+      FxGroup.owl => (SkyEvent.owl, 350),
+      FxGroup.dog => (SkyEvent.window, 0),
+      FxGroup.cat => (SkyEvent.cat, 600),
+      FxGroup.siren => (SkyEvent.siren, 0),
+      FxGroup.train => (SkyEvent.train, 500),
+      FxGroup.carpass => (SkyEvent.car, 300),
+      FxGroup.foghorn => (SkyEvent.fog, 400),
+      FxGroup.rooster => (SkyEvent.rooster, 700),
+      FxGroup.birds => (SkyEvent.birds, 0),
+      _ => (null, 0),
+    };
+    if (group == FxGroup.thunder) CityBackdrop.flash();
+    if (scene != null) CityBackdrop.show(scene);
+    stage.effect(group, after: Duration(milliseconds: delay), volume: volume);
   }
 
   /// L'alba: il gallo, gli uccelli, a volte le campane.
   void _dawnAtmosphere() {
     final stage = SoundStage.instance;
-    stage.effect(FxGroup.rooster, after: const Duration(milliseconds: 300));
-    stage.effect(FxGroup.birds, after: const Duration(seconds: 2), volume: 0.8);
-    if (_atmosphere.nextInt(3) == 0) stage.effect(FxGroup.church, after: const Duration(seconds: 4), volume: 0.7);
+    stage.ambience(null);
+    _thunders.add(Timer(const Duration(milliseconds: 300), () {
+      if (mounted) _seenAndHeard(FxGroup.rooster);
+    }));
+    _thunders.add(Timer(const Duration(seconds: 3), () {
+      if (mounted) _seenAndHeard(FxGroup.birds, volume: 0.8);
+    }));
+    // Le campane solo dove c'è un campanile all'orizzonte.
+    if (_hasBellTower && _atmosphere.nextBool()) stage.effect(FxGroup.church, after: const Duration(seconds: 4), volume: 0.7);
   }
 
   void _afterVerdictScene() => _advance(_enterVerdictPage);
@@ -333,6 +365,7 @@ class _GameScreenState extends State<GameScreen> {
     for (final thunder in _thunders) {
       thunder.cancel();
     }
+    SoundStage.instance.ambience(null);
     // Fuori dalla partita si torna al sottofondo del menu.
     SoundStage.instance.music(MusicMood.menu);
     super.dispose();

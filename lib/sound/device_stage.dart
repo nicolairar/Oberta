@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import '../ui/widgets/death_scene.dart';
 import '../ui/widgets/verdict_scene.dart';
 import 'cue_sounds.dart';
+import 'ambience.dart';
 import 'fx_groups.dart';
 import 'music_tracks.dart';
 import 'sample_bank.dart';
@@ -29,6 +30,8 @@ class DeviceStage extends SoundStage implements VerdictStage {
   int _nextShort = 0;
 
   final AudioPlayer _music = AudioPlayer();
+  final AudioPlayer _ambience = AudioPlayer();
+  FxGroup? _ambienceGroup;
   final _random = Random();
   MusicMood? _mood;
   double _duck = 1;
@@ -204,6 +207,35 @@ class DeviceStage extends SoundStage implements VerdictStage {
       await _music.play(AssetSource('music/$track.m4a'));
       _fadeTo(_musicTarget, const Duration(milliseconds: 2200));
     });
+  }
+
+  @override
+  void ambience(FxGroup? group) {
+    if (group == _ambienceGroup) return;
+    _ambienceGroup = group;
+    () async {
+      try {
+        // Via quello di prima, piano.
+        for (var v = _ambience.volume; v > 0.01; v -= 0.08) {
+          await _ambience.setVolume(v);
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+        }
+        await _ambience.stop();
+        if (group == null || !enabled || _ambienceGroup != group) return;
+        await _ambience.setReleaseMode(ReleaseMode.loop);
+        await _ambience.setVolume(0);
+        await _ambience.play(AssetSource(group.asset(ambienceTake[group] ?? 1)));
+        final target = (effectsVolume * 0.7).clamp(0.0, 1.0);
+        for (var v = 0.0; v < target; v += 0.05) {
+          if (_ambienceGroup != group) return;
+          await _ambience.setVolume(v);
+          await Future<void>.delayed(const Duration(milliseconds: 60));
+        }
+        await _ambience.setVolume(target);
+      } catch (error) {
+        _report(error);
+      }
+    }();
   }
 
   @override

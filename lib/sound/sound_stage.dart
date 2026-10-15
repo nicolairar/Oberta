@@ -27,6 +27,10 @@ class SoundStage {
   /// quella nuova (una a caso tra quelle di [mood]). Se suona già, resta.
   void music(MusicMood? mood) {}
 
+  /// Un sottofondo che gira in loop finché non lo si cambia (pioggia, grilli,
+  /// vento), in dissolvenza; `null` lo spegne.
+  void ambience(FxGroup? group) {}
+
   /// Abbassa la musica mentre va in scena un filmato, e la rialza dopo.
   void duckMusic(bool ducked) {}
 

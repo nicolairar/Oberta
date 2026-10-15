@@ -2,6 +2,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import 'sky_events.dart';
+
 /// L'ora del giorno che il fondale mette in scena.
 enum SceneMood { night, dawn, day, dusk }
 
@@ -36,6 +38,13 @@ class CityBackdrop extends StatefulWidget {
 
   static void flash() => lightning.value++;
 
+  /// Le scenette in coda: ogni fondale le prende e le mette in scena.
+  static final _scenes = ValueNotifier<(SkyEvent, int)?>(null);
+  static int _sceneCount = 0;
+
+  /// Mette in scena una scenetta della città, nel fondale in vista.
+  static void show(SkyEvent event) => _scenes.value = (event, ++_sceneCount);
+
   @override
   State<CityBackdrop> createState() => _CityBackdropState();
 }
@@ -60,6 +69,23 @@ class _CityBackdropState extends State<CityBackdrop> with TickerProviderStateMix
     _from = _to = _target;
     _bolt = AnimationController(vsync: this, duration: const Duration(milliseconds: 650));
     CityBackdrop.lightning.addListener(_strike);
+    CityBackdrop._scenes.addListener(_scene);
+  }
+
+  final List<(SkyEvent, int, AnimationController)> _running = [];
+
+  void _scene() {
+    final next = CityBackdrop._scenes.value;
+    if (next == null || !_animate || !mounted) return;
+    final (event, seed) = next;
+    final controller = AnimationController(vsync: this, duration: event.length);
+    final entry = (event, seed, controller);
+    setState(() => _running.add(entry));
+    controller.forward().whenComplete(() {
+      if (!mounted) return;
+      setState(() => _running.remove(entry));
+      controller.dispose();
+    });
   }
 
   void _strike() {
@@ -102,6 +128,10 @@ class _CityBackdropState extends State<CityBackdrop> with TickerProviderStateMix
   @override
   void dispose() {
     CityBackdrop.lightning.removeListener(_strike);
+    CityBackdrop._scenes.removeListener(_scene);
+    for (final (_, _, controller) in _running) {
+      controller.dispose();
+    }
     _ambient.dispose();
     _shift.dispose();
     _bolt.dispose();
@@ -121,6 +151,17 @@ class _CityBackdropState extends State<CityBackdrop> with TickerProviderStateMix
             ),
           ),
         ),
+        if (_running.isNotEmpty)
+          IgnorePointer(
+            child: AnimatedBuilder(
+              animation: Listenable.merge([for (final (_, _, controller) in _running) controller]),
+              builder: (context, _) => CustomPaint(
+                painter: SkyEventsPainter([
+                  for (final (event, seed, controller) in _running) (event: event, t: controller.value, seed: seed),
+                ]),
+              ),
+            ),
+          ),
         IgnorePointer(
           child: AnimatedBuilder(
             animation: _bolt,
