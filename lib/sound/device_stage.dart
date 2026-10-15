@@ -5,15 +5,18 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 
 import '../ui/widgets/death_scene.dart';
+import '../ui/widgets/verdict_scene.dart';
 import 'cue_sounds.dart';
 import 'scene_score.dart';
 import 'sound_stage.dart';
+import 'verdict_stage.dart';
 
 /// Il palco vero: incide i nastri su un file temporaneo e li suona
 /// dall'altoparlante del telefono.
-class DeviceStage extends SoundStage {
+class DeviceStage extends SoundStage implements VerdictStage {
   final AudioPlayer _player = AudioPlayer();
   final Map<DeathAct, Future<String>> _tapes = {};
+  final Map<VerdictTake, Future<String>> _verdicts = {};
 
   /// I suoni brevi, incisi tutti insieme appena l'app parte, e una piccola
   /// batteria di lettori per poterli suonare uno sopra l'altro.
@@ -109,6 +112,34 @@ class DeviceStage extends SoundStage {
       // Un nastro venuto male non deve fermare la partita: la scena va in
       // onda muta, e la prossima volta si riprova da capo.
       _tapes.remove(act);
+      _report(error);
+    }
+  }
+
+  @override
+  void prepareVerdicts(Iterable<VerdictTake> takes) {
+    if (!enabled) return;
+    for (final take in takes) {
+      (_verdicts[take] ??= recordVerdictTape(take)).then<void>((_) {}, onError: _report);
+    }
+  }
+
+  @override
+  FutureOr<void> playVerdict(VerdictTake take) {
+    final ticket = ++_ticket;
+    if (!enabled) return null;
+    return _playVerdict(take, ticket);
+  }
+
+  Future<void> _playVerdict(VerdictTake take, int ticket) async {
+    try {
+      await _ready;
+      final path = await (_verdicts[take] ??= recordVerdictTape(take));
+      if (ticket != _ticket) return;
+      await _player.stop();
+      await _player.play(DeviceFileSource(path), position: Duration.zero);
+    } catch (error) {
+      _verdicts.remove(take);
       _report(error);
     }
   }

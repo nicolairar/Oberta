@@ -10,6 +10,7 @@ import 'package:oberta/ui/screens/game_screen.dart';
 import 'package:oberta/ui/theme/app_theme.dart';
 import 'package:oberta/ui/theme/role_style.dart';
 import 'package:oberta/ui/widgets/death_scene.dart';
+import 'package:oberta/ui/widgets/verdict_scene.dart';
 import 'package:oberta/ui/widgets/player_grid.dart';
 
 const ada = Player(id: 'ada', name: 'Ada');
@@ -61,6 +62,17 @@ Future<void> pumpGame(
     ),
   ));
   await tap(tester, 'GIOCA');
+}
+
+/// Il filmato della piazza: lo si salta fino al ritratto, poi avanti.
+Future<void> watchVerdict(WidgetTester tester, {String skip = 'SALTA', String next = 'AVANTI'}) async {
+  expect(find.byType(VerdictScene), findsOneWidget, reason: 'prima della carta va in scena la piazza');
+  if (find.text(skip).evaluate().isNotEmpty) {
+    await tester.tap(find.text(skip));
+    await tester.pump();
+  }
+  await tester.tap(find.text(next));
+  await tester.pumpAndSettle();
 }
 
 /// Tocca un pulsante; se il copione è più lungo dello schermo, prima lo
@@ -148,6 +160,7 @@ void main() {
     expect(tester.widget<ElevatedButton>(condemn).onPressed, isNull);
     await tap(tester, 'Ada');
     await tap(tester, 'CONDANNA');
+    await watchVerdict(tester);
 
     expect(find.text('IL VERDETTO'), findsOneWidget);
     expect(find.textContaining('PICCIOTTO'), findsNothing, reason: 'la carta è ancora coperta');
@@ -201,6 +214,7 @@ void main() {
     expect(find.text('†'), findsOneWidget);
     await tap(tester, 'AL VOTO');
     await tap(tester, 'NESSUNO');
+    await watchVerdict(tester);
     expect(find.text('Nessuna condanna'), findsOneWidget);
     expect(find.text('Oggi non viene eliminato nessuno.'), findsOneWidget);
     await tap(tester, 'CONTINUA');
@@ -247,6 +261,7 @@ void main() {
     await tap(tester, 'APRI LA DISCUSSIONE');
     await tap(tester, 'AL VOTO');
     await tap(tester, 'NESSUNO');
+    await watchVerdict(tester);
     await tap(tester, 'CONTINUA');
 
     await tap(tester, 'COMINCIA LA NOTTE');
@@ -284,6 +299,7 @@ void main() {
     expect(find.byIcon(Role.cittadino.icon), findsNothing, reason: 'quello che ha scoperto non è pubblico');
     await tap(tester, 'AL VOTO');
     await tap(tester, 'NESSUNO');
+    await watchVerdict(tester);
     await tap(tester, 'CONTINUA');
 
     await tap(tester, 'COMINCIA LA NOTTE');
@@ -396,6 +412,7 @@ void main() {
     final grid = tester.widget<PlayerGrid>(find.byType(PlayerGrid));
     expect(grid.selectable, contains(elio), reason: 'chi tace si può comunque condannare');
     await tap(tester, 'NESSUNO');
+    await watchVerdict(tester);
     await tap(tester, 'CONTINUA');
 
     await tap(tester, 'COMINCIA LA NOTTE');

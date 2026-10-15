@@ -133,6 +133,13 @@ void main() {
     expect(find.text('NOBODY'), findsOneWidget);
     await tap(tester, 'Ada');
     await tap(tester, 'CONDEMN');
+    // The town square's film comes first; skip it to the portrait.
+    if (find.text('SKIP').evaluate().isNotEmpty) {
+      await tester.tap(find.text('SKIP'));
+      await tester.pump();
+    }
+    await tester.tap(find.text('NEXT'));
+    await tester.pumpAndSettle();
 
     expect(find.text('THE VERDICT'), findsOneWidget);
     expect(find.textContaining('SOLDIER'), findsNothing, reason: 'the card is still face down');

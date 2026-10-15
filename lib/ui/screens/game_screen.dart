@@ -14,6 +14,7 @@ import '../../rules/player.dart';
 import '../../rules/role.dart';
 import '../../sound/cue_sounds.dart';
 import '../../sound/sound_stage.dart';
+import '../../sound/verdict_stage.dart';
 import '../theme/app_theme.dart';
 import '../theme/role_style.dart';
 import '../widgets/avatar_spotlight.dart';
@@ -24,6 +25,7 @@ import '../widgets/player_grid.dart';
 import '../widgets/role_reveal_card.dart';
 import '../widgets/scene_scaffold.dart';
 import '../widgets/script_card.dart';
+import '../widgets/verdict_scene.dart';
 
 /// La partita su un solo telefono: il copione si legge ad alta voce, di notte
 /// il telefono fa il giro del tavolo, di giorno resta in mezzo.
@@ -43,7 +45,7 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-enum _Stage { script, handoff, task, taskDone, crimeIntro, crime, toNarrator, day, vote, end }
+enum _Stage { script, handoff, task, taskDone, crimeIntro, crime, toNarrator, day, vote, verdict, end }
 
 class _ScriptPage {
   final IconData icon;
@@ -95,6 +97,12 @@ class _GameScreenState extends State<GameScreen> {
   Player? _selected;
   Exposure? _finding;
   late DawnReport _dawn;
+  // Il verdetto della piazza, tra il filmato e la pagina della carta. Il
+  // filmato si sceglie con un dado tutto suo: non guarda mai il ruolo.
+  final Random _dice = Random();
+  Player? _condemned;
+  late LynchReport _verdict;
+  late String _verdictTake;
   List<DeathStory> _deaths = const [];
   int _crime = 0;
   List<ScriptLine> _voteLines = const [];
@@ -203,14 +211,27 @@ class _GameScreenState extends State<GameScreen> {
         } else {
           _title = _t.dayTitle(_engine.round);
           _mood = SceneMood.day;
+          SoundStage.instance.prepareVerdicts();
           _stage = _Stage.day;
         }
       }),
     );
   }
 
+  /// La piazza ha votato: prima il filmato (che non dice niente del ruolo),
+  /// poi la pagina del verdetto con la carta da girare.
   void _enterVerdict(Player? condemned) {
-    final report = _engine.lynch(condemned);
+    _verdict = _engine.lynch(condemned);
+    _condemned = condemned;
+    _verdictTake = VerdictScene.variants[_dice.nextInt(VerdictScene.variants.length)];
+    _stage = _Stage.verdict;
+  }
+
+  void _afterVerdictScene() => _advance(_enterVerdictPage);
+
+  void _enterVerdictPage() {
+    final report = _verdict;
+    final condemned = _condemned;
     final winner = report.winner;
     // Il rullo di tamburi accompagna il condannato fino alla carta.
     if (report.role != null) SoundStage.instance.cue(Cue.drumroll);
@@ -268,6 +289,26 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _screen() {
+    if (_stage == _Stage.verdict) {
+      final condemned = _condemned;
+      final style = skylineFor(_script.city.id);
+      return PopScope(
+        canPop: false,
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          body: condemned == null
+              ? VerdictScene.acquittal(key: ValueKey('verdict-$_step'), style: style, onFinished: _afterVerdictScene)
+              : VerdictScene(
+                  key: ValueKey('verdict-$_step'),
+                  condemnedName: condemned.name,
+                  variant: _verdictTake,
+                  town: _script.city.name,
+                  style: style,
+                  onFinished: _afterVerdictScene,
+                ),
+        ),
+      );
+    }
     if (_stage == _Stage.crime) {
       // Il delitto va in scena a tutto schermo, senza barre né pulsanti.
       final story = _deaths[_crime];
@@ -337,7 +378,7 @@ class _GameScreenState extends State<GameScreen> {
         _Stage.task => _taskView(_queue[_turn]),
         _Stage.taskDone => _taskDoneView(),
         _Stage.crimeIntro => _crimeIntroView(),
-        _Stage.crime => const SizedBox.shrink(),
+        _Stage.crime || _Stage.verdict => const SizedBox.shrink(),
         _Stage.toNarrator => HandoffView(name: _narrator!.name, onReady: () => _advance(_enterDawn)),
         _Stage.day => _DayView(
             strings: _t,
