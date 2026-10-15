@@ -486,7 +486,7 @@ class HomeStreetPainter extends CustomPainter {
     canvas.restore();
     for (var i = 0; i < HomeNeonSign.letters; i++) {
       final width = HomeNeonSign.widthOf(i) * cap;
-      column(layout.sign.left + HomeNeonSign.leftOf(i) * cap + width / 2, width, _red, 0.55 * neon.power[i], i);
+      column(layout.sign.left + HomeNeonSign.leftOf(i) * cap + width / 2, width, _red, 0.55 * neon.light(i), i);
     }
     column(layout.lampHead.dx, layout.smoker * 0.34, _warm, 0.42 * lamp, 9);
 

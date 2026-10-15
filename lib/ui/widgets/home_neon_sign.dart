@@ -11,12 +11,20 @@ class HomeNeonState extends ChangeNotifier {
 
   List<double> get power => _power;
 
-  /// La luce che l'insegna butta intorno, in media.
-  double get glow => _power.reduce((a, b) => a + b) / _power.length;
+  /// La M fantasma dietro la B: si accende solo quando la B muore.
+  double _ghost = 0;
+  double get ghost => _ghost;
 
-  void set(List<double> next) {
-    if (listEquals(next, _power)) return;
+  /// La luce che manda la lettera [index], contando anche la M fantasma.
+  double light(int index) => index == HomeNeonSign.ghostLetter ? max(_power[index], _ghost) : _power[index];
+
+  /// La luce che l'insegna butta intorno, in media.
+  double get glow => [for (var i = 0; i < _power.length; i++) light(i)].reduce((a, b) => a + b) / _power.length;
+
+  void set(List<double> next, {double ghost = 0}) {
+    if (listEquals(next, _power) && ghost == _ghost) return;
     _power = next;
+    _ghost = ghost;
     notifyListeners();
   }
 }
@@ -37,6 +45,41 @@ class HomeNeonSign {
   static const height = 1 + headroom;
 
   static double widthOf(int index) => _widths[index];
+
+  /// La lettera che ha un errore sotto: la B di OBERTÀ nasconde la M di
+  /// OMERTÀ. Quando la B si fulmina, per un attimo l'insegna prova a
+  /// correggersi in OMERTÀ, ma non ce la fa mai: torna sempre OBERTÀ.
+  static const ghostLetter = 1;
+
+  /// I tubi della M fantasma, nello stesso spazio della B.
+  static Path ghostTubes(double cap) {
+    final w = _widths[ghostLetter];
+    return Path()
+      ..moveTo(0, cap)
+      ..lineTo(0, 0)
+      ..lineTo(w / 2 * cap, 0.58 * cap)
+      ..lineTo(w * cap, 0)
+      ..lineTo(w * cap, cap);
+  }
+
+  // La M che prova ad accendersi: scatti, buchi, mai ferma.
+  static const _ghostBuzz = [0.9, 1.0, 0.0, 0.8, 1.0, 1.0, 0.15, 0.0, 1.0, 0.6, 1.0, 0.0, 0.0, 0.7];
+
+  /// Quanto è accesa la M fantasma: solo mentre la B è spenta (nei suoi
+  /// guasti, o quando qualcuno tocca l'insegna e salta la corrente).
+  static double ghostAt(double seconds, double intro, {double jolt = 1}) {
+    if (intro < 0.9 + ghostLetter * 0.15 + _strike.length / _rate) return 0;
+    if (jolt < 0.3) return 0.85;
+    for (final (letter, start, dark) in _faults) {
+      if (letter != ghostLetter) continue;
+      final local = seconds - start;
+      final buzz = _pattern(_buzz, local);
+      if (!buzz.isNaN) return buzz < 0.3 ? 0.9 : 0;
+      final after = local - _buzz.length / _rate;
+      if (after >= 0 && after < dark) return _ghostBuzz[(after * _rate).floor() % _ghostBuzz.length];
+    }
+    return 0;
+  }
 
   /// Dove comincia la lettera [index], in altezze di lettera.
   static double leftOf(int index) {
@@ -188,7 +231,7 @@ class HomeNeonPainter extends CustomPainter {
     // I mattoni sono dipinti già illuminati: dove un tubo è spento ci va
     // sopra il buio.
     for (var i = 0; i < HomeNeonSign.letters; i++) {
-      final dark = 1 - power[i];
+      final dark = 1 - state.light(i);
       if (dark < 0.02) continue;
       final bounds = Rect.fromCircle(center: middle(i), radius: cap * 2.5);
       canvas.drawRect(
@@ -209,18 +252,19 @@ class HomeNeonPainter extends CustomPainter {
 
     // L'alone: una nebbia rossa larga, più forte dietro le lettere accese.
     for (var i = 0; i < HomeNeonSign.letters; i++) {
-      if (power[i] < 0.02) continue;
+      final light = state.light(i);
+      if (light < 0.02) continue;
       final bounds = Rect.fromCircle(center: middle(i), radius: cap * 1.25);
       canvas.drawRect(
         bounds,
         Paint()
           ..shader = RadialGradient(
-            colors: [_red.withValues(alpha: 0.20 * power[i]), _red.withValues(alpha: 0)],
+            colors: [_red.withValues(alpha: 0.20 * light), _red.withValues(alpha: 0)],
           ).createShader(bounds),
       );
     }
 
-    final tube = cap * 0.082;
+    final tube = cap * 0.095;
     Paint stroke(double width, Color color) => Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = width
@@ -236,6 +280,12 @@ class HomeNeonPainter extends CustomPainter {
       canvas.drawPath(path, stroke(tube * 1.5, Colors.black.withValues(alpha: 0.55)));
       canvas.drawPath(path, stroke(tube, _glass));
       if (power[i] > 0.02) (groups[power[i]] ??= Path()).addPath(path, Offset.zero);
+    }
+    // La M fantasma: il suo vetro si vede solo quando prende corrente.
+    final ghost = state.ghost;
+    if (ghost > 0.02) {
+      final path = HomeNeonSign.ghostTubes(cap).shift(origin(HomeNeonSign.ghostLetter));
+      (groups[ghost] ??= Path()).addPath(path, Offset.zero);
     }
     for (final MapEntry(key: p, value: path) in groups.entries) {
       canvas.drawPath(

@@ -65,13 +65,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   /// Porta la corrente all'insegna: chi si accende, chi sfarfalla.
   void _wire() {
     final jolt = _short.isAnimating ? HomeNeonSign.shortAt(_short.value) : 1.0;
-    _neon.set([
-      for (final power in HomeNeonSign.powerAt(
-        _ambient.value * HomeStreetPainter.loop,
-        _intro.value * HomeStreetPainter.opening,
-      ))
-        power * jolt,
-    ]);
+    final seconds = _ambient.value * HomeStreetPainter.loop;
+    final intro = _intro.value * HomeStreetPainter.opening;
+    _neon.set(
+      [
+        for (final power in HomeNeonSign.powerAt(seconds, intro)) power * jolt,
+      ],
+      ghost: HomeNeonSign.ghostAt(seconds, intro, jolt: jolt),
+    );
   }
 
   /// Chi tocca l'insegna prende la scossa: i tubi saltano tutti insieme.
