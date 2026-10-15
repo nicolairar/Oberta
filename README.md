@@ -221,6 +221,10 @@ dei ruoli (eccetto il narratore umano, che già li conosce).
 
 **Regola d'oro:** prima il gioco deve divertire, poi si abbelliscono le animazioni.
 
+La direzione a lungo termine (Supabase, un telefono a testa anche senza
+internet, ruoli segreti, personalizzazione, classificata) è in
+[docs/visione.md](docs/visione.md).
+
 ## TestFlight
 
 - Bundle ID `com.obertagame.oberta`, team `RP26VC54CU`, app "Obertà" su
