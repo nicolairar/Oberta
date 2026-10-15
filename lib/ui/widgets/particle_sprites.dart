@@ -15,22 +15,33 @@ class ParticleSprites {
   final List<ui.Image> dirt;
   final List<ui.Image> blackSmoke;
   final List<ui.Image> flashes;
-  final ui.Image? slash;
-  final ui.Image? glint;
-  final ui.Image? scorch;
+  final ui.Image scorch;
+
+  // Per i dettagli dei film: il fendente nel buio, la scarica del lampione,
+  // i cocci e la polvere, l'alone di luce, il luccichio, la scia del colpo.
+  final ui.Image slash;
+  final ui.Image electric;
+  final ui.Image debris;
+  final ui.Image glow;
+  final ui.Image glint;
+  final ui.Image tracer;
 
   const ParticleSprites({
     required this.muzzle,
     required this.spark,
     required this.smoke,
     required this.explosions,
-    this.puffs = const [],
-    this.dirt = const [],
-    this.blackSmoke = const [],
-    this.flashes = const [],
-    this.slash,
-    this.glint,
-    this.scorch,
+    required this.puffs,
+    required this.dirt,
+    required this.blackSmoke,
+    required this.flashes,
+    required this.scorch,
+    required this.slash,
+    required this.electric,
+    required this.debris,
+    required this.glow,
+    required this.glint,
+    required this.tracer,
   });
 
   static final Future<ParticleSprites> shared = _load();
@@ -47,9 +58,13 @@ class ParticleSprites {
         dirt: [for (final i in const ['01', '02']) await _decode('assets/particles/dirt_$i.png')],
         blackSmoke: [for (final i in const ['00', '03', '06', '09', '12']) await _decode('assets/particles/black_smoke_$i.png')],
         flashes: [for (var i = 0; i <= 8; i++) await _decode('assets/particles/flash_0$i.png')],
-        slash: await _decode('assets/particles/slash_02.png'),
-        glint: await _decode('assets/particles/star_06.png'),
         scorch: await _decode('assets/particles/scorch_01.png'),
+        slash: await _decode('assets/particles/slash_01.png'),
+        electric: await _decode('assets/particles/spark_01.png'),
+        debris: await _decode('assets/particles/dirt_01.png'),
+        glow: await _decode('assets/particles/circle_05.png'),
+        glint: await _decode('assets/particles/star_06.png'),
+        tracer: await _decode('assets/particles/trace_01.png'),
       );
 
   static Future<ui.Image> _decode(String path) async {
