@@ -10,11 +10,26 @@ class ParticleSprites {
   final ui.Image smoke;
   final List<ui.Image> explosions;
 
+  // Per i dettagli dei film: il fendente nel buio, la scarica del lampione,
+  // i cocci e la polvere, l'alone di luce, il luccichio, la scia del colpo.
+  final ui.Image slash;
+  final ui.Image electric;
+  final ui.Image debris;
+  final ui.Image glow;
+  final ui.Image glint;
+  final ui.Image tracer;
+
   const ParticleSprites({
     required this.muzzle,
     required this.spark,
     required this.smoke,
     required this.explosions,
+    required this.slash,
+    required this.electric,
+    required this.debris,
+    required this.glow,
+    required this.glint,
+    required this.tracer,
   });
 
   static final Future<ParticleSprites> shared = _load();
@@ -27,6 +42,12 @@ class ParticleSprites {
           for (var i = 0; i <= 8; i++)
             await _decode('assets/particles/explosion_${i.toString().padLeft(2, '0')}.png'),
         ],
+        slash: await _decode('assets/particles/slash_01.png'),
+        electric: await _decode('assets/particles/spark_01.png'),
+        debris: await _decode('assets/particles/dirt_01.png'),
+        glow: await _decode('assets/particles/circle_05.png'),
+        glint: await _decode('assets/particles/star_06.png'),
+        tracer: await _decode('assets/particles/trace_01.png'),
       );
 
   static Future<ui.Image> _decode(String path) async {

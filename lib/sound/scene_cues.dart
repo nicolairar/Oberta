@@ -169,8 +169,10 @@ List<SceneCue> sceneCuesFor(DeathAct act, {bool memes = false}) {
           const SceneCue.fx(0.545, FxGroup.whiz, 0.35),
           const SceneCue.fx(0.59, FxGroup.ricochet, 0.35),
           reaction(0.625, FxGroup.scream),
-          // L'ultimo colpo si porta via il lampione.
+          // L'ultimo colpo si porta via il lampione, e l'auto riparte
+          // sgommando.
           const SceneCue.fx(0.63, FxGroup.bulb, 0.6),
+          const SceneCue.fx(0.635, FxGroup.screech, 0.45),
           const SceneCue.fx(0.71, FxGroup.faint, 0.7),
         ],
       DeathAct.garrote => [
@@ -198,6 +200,8 @@ List<SceneCue> sceneCuesFor(DeathAct act, {bool memes = false}) {
           const SceneCue.fx(_s + 0.13, FxGroup.scrape, 0.4),
           const SceneCue.sample(_s + 0.19, 'metal_heavy', 0.6),
           const SceneCue.fx(0.78, FxGroup.bubbles, 0.35),
+          // Il chiusino che si solleva di un dito, per guardare.
+          const SceneCue.sample(0.79, 'metal_light', 0.35),
         ],
       DeathAct.blackout => [
           // Il lampione che sfrigola e muore, la lama nel buio, la luce che torna.
@@ -238,7 +242,8 @@ List<SceneCue> sceneCuesFor(DeathAct act, {bool memes = false}) {
           const SceneCue.fx(0.748, FxGroup.syringe, 0.45),
           const SceneCue.fx(0.765, FxGroup.heartbeat, 0.7),
           const SceneCue.fx(0.79, FxGroup.bandage, 0.45),
-          const SceneCue.fx(0.845, FxGroup.gasp, 0.6),
+          // Il sussulto con cui torna in sé e si tira su.
+          const SceneCue.fx(0.80, FxGroup.gasp, 0.6),
         ],
       DeathAct.lucky => [
           const SceneCue.fx(0.505, FxGroup.cock, 0.5),
@@ -247,6 +252,8 @@ List<SceneCue> sceneCuesFor(DeathAct act, {bool memes = false}) {
           const SceneCue.fx(_s + 0.01, FxGroup.ricochet, 0.6),
           const SceneCue.fx(_s + 0.04, FxGroup.gasp, 0.6),
           for (var step = 0; step < 6; step++) SceneCue.sample(0.675 + step * 0.012, 'step_${step % 4 + 1}', 0.45),
+          // Un sorso dalla fiaschetta che gli ha salvato la pelle.
+          const SceneCue.fx(0.79, FxGroup.gulp, 0.45),
         ],
     },
   ];
