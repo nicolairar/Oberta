@@ -61,7 +61,9 @@ class ParticleSprites {
       destination,
       ui.Paint()
         ..filterQuality = ui.FilterQuality.medium
-        ..color = tint.withValues(alpha: opacity.clamp(0.0, 1.0)),
+        // Gli sprite sono bianchi: il colore li moltiplica, l'alfa li sfuma.
+        ..color = ui.Color.fromRGBO(255, 255, 255, opacity.clamp(0.0, 1.0))
+        ..colorFilter = ui.ColorFilter.mode(tint, ui.BlendMode.modulate),
     );
     canvas.restore();
   }
