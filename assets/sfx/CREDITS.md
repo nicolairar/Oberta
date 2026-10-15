@@ -189,3 +189,128 @@ convertite in AAC mono (scaricate il 15 ottobre 2026).
 | `fx_tada_2.m4a` | TaDa!.aif | jimhancock | https://freesound.org/people/jimhancock/sounds/256128/ |
 | `fx_harmonica_1.m4a` | Harmonica-C random stuff multi-take | Sadiquecat | https://freesound.org/people/Sadiquecat/sounds/792630/ |
 | `fx_harmonica_2.m4a` | low_harmonica_8 | ssud_motion | https://freesound.org/people/ssud_motion/sounds/732320/ |
+| `fx_revolver_4.m4a` | 357 Magnum Revolver Gunshot with Tail | Shark_Anthony | https://freesound.org/people/Shark_Anthony/sounds/683175/ |
+| `fx_revolver_5.m4a` | Desert Eagle Gunshot | elliotlp | https://freesound.org/people/elliotlp/sounds/330634/ |
+| `fx_revolver_6.m4a` | Gunshot.wav | Cloud-10 | https://freesound.org/people/Cloud-10/sounds/632821/ |
+| `fx_shotgun_4.m4a` | 20 gauge shotgun gunshot | michorvath | https://freesound.org/people/michorvath/sounds/427595/ |
+| `fx_shotgun_5.m4a` | Shotgun Shot 03.wav | LilMati | https://freesound.org/people/LilMati/sounds/473846/ |
+| `fx_shotgun_6.m4a` | Shotgun Shot | LeMudCrab | https://freesound.org/people/LeMudCrab/sounds/163455/ |
+| `fx_tommy_3.m4a` | Machine Gun Burst | qubodup | https://freesound.org/people/qubodup/sounds/482121/ |
+| `fx_tommy_4.m4a` | Clean Machine Gun Burst | qubodup | https://freesound.org/people/qubodup/sounds/482122/ |
+| `fx_tommy_5.m4a` | ak 47 - burst.mp3 | ninebilly | https://freesound.org/people/ninebilly/sounds/520935/ |
+| `fx_ricochet_3.m4a` | Ricochet 2.wav | morganpurkis | https://freesound.org/people/morganpurkis/sounds/392975/ |
+| `fx_ricochet_4.m4a` | fx_ricochet.wav | harrisonlace | https://freesound.org/people/harrisonlace/sounds/634884/ |
+| `fx_ricochet_5.m4a` | Bullet_Ricochet_01 | Artmasterrich | https://freesound.org/people/Artmasterrich/sounds/345413/ |
+| `fx_cock_1.m4a` | revolvercock1.wav | Dredile | https://freesound.org/people/Dredile/sounds/111676/ |
+| `fx_cock_2.m4a` | Cocking a revolver | acidsnowflake | https://freesound.org/people/acidsnowflake/sounds/402790/ |
+| `fx_cock_3.m4a` | Pistol Cock.wav | nebulasnails | https://freesound.org/people/nebulasnails/sounds/405538/ |
+| `fx_cock_4.m4a` | Gun Cock.wav | krucifix | https://freesound.org/people/krucifix/sounds/442847/ |
+| `fx_pump_1.m4a` | Shotgun Rack Sample.wav | Krovi | https://freesound.org/people/Krovi/sounds/613801/ |
+| `fx_pump_2.m4a` | SXP_SHOTGUN_RACK_01 | dasBUTCHER84 | https://freesound.org/people/dasBUTCHER84/sounds/449614/ |
+| `fx_pump_3.m4a` | GunRack3.mp3 | AKkingStudio | https://freesound.org/people/AKkingStudio/sounds/679878/ |
+| `fx_pump_4.m4a` | rack 12-guage shotgun.mp3 | zekybomb | https://freesound.org/people/zekybomb/sounds/677662/ |
+| `fx_bolt_1.m4a` | 22 bolt action rifle cycle | Metrolynn | https://freesound.org/people/Metrolynn/sounds/620928/ |
+| `fx_bolt_2.m4a` | .22 Bolt Action Long Rifle Rechambering | AlexCoover | https://freesound.org/people/AlexCoover/sounds/706404/ |
+| `fx_bolt_3.m4a` | Bolt Action 2.0.mp3 | VIPERSTRONG | https://freesound.org/people/VIPERSTRONG/sounds/655735/ |
+| `fx_bolt_4.m4a` | Mauser 98k - bolt-action mechanism sound | Walking.With.Microphones | https://freesound.org/people/Walking.With.Microphones/sounds/802673/ |
+| `fx_casing_1.m4a` | Shell Bounce 1 | magnuswaker | https://freesound.org/people/magnuswaker/sounds/523059/ |
+| `fx_casing_2.m4a` | Shotgun Shell Drop sfx | lumikon | https://freesound.org/people/lumikon/sounds/564481/ |
+| `fx_casing_3.m4a` | Shotgun shell hitting ground | toadridingbike | https://freesound.org/people/toadridingbike/sounds/759624/ |
+| `fx_casing_4.m4a` | Bullet Shell Thrown On Table.wav | LilMati | https://freesound.org/people/LilMati/sounds/370805/ |
+| `fx_casing_5.m4a` | 12 guage shotgun shell drop | MrGungus | https://freesound.org/people/MrGungus/sounds/773860/ |
+| `fx_silencer_1.m4a` | Silenced Pistol Layered (Powerful) | Paul368 | https://freesound.org/people/Paul368/sounds/255716/ |
+| `fx_silencer_2.m4a` | Silenced Gunshot.wav | morganpurkis | https://freesound.org/people/morganpurkis/sounds/369781/ |
+| `fx_silencer_3.m4a` | Silenced Gunshot 2.wav | morganpurkis | https://freesound.org/people/morganpurkis/sounds/380185/ |
+| `fx_silencer_4.m4a` | Silenced shot.wav | hoot_avi | https://freesound.org/people/hoot_avi/sounds/100465/ |
+| `fx_silencer_5.m4a` | silenced pistol shot | Clutvh | https://freesound.org/people/Clutvh/sounds/627087/ |
+| `fx_sniper_1.m4a` | FPS Sniper Shot | qubodup | https://freesound.org/people/qubodup/sounds/816114/ |
+| `fx_sniper_2.m4a` | Sniper Shot Echoey | qubodup | https://freesound.org/people/qubodup/sounds/815476/ |
+| `fx_sniper_3.m4a` | Sniper Rifle | SuperPhat | https://freesound.org/people/SuperPhat/sounds/514228/ |
+| `fx_sniper_4.m4a` | Distant Gunshot | Resaural | https://freesound.org/people/Resaural/sounds/541164/ |
+| `fx_sniper_5.m4a` | Single Gunshot 2.wav | morganpurkis | https://freesound.org/people/morganpurkis/sounds/370304/ |
+| `fx_whiz_1.m4a` | whizzes.ogg | Diboz | https://freesound.org/people/Diboz/sounds/232386/ |
+| `fx_whiz_2.m4a` | whizzes.ogg | Diboz | https://freesound.org/people/Diboz/sounds/232386/ |
+| `fx_whiz_3.m4a` | whizzes.ogg | Diboz | https://freesound.org/people/Diboz/sounds/232386/ |
+| `fx_whiz_4.m4a` | Fly-by whiz SFX (subsonic) | modusmogulus | https://freesound.org/people/modusmogulus/sounds/789222/ |
+| `fx_whiz_5.m4a` | Whizzby | Daleonfire | https://freesound.org/people/Daleonfire/sounds/505238/ |
+| `fx_impact_1.m4a` | VisceralBulletImpacts.wav | u1769092 | https://freesound.org/people/u1769092/sounds/423301/ |
+| `fx_impact_2.m4a` | VisceralBulletImpacts.wav | u1769092 | https://freesound.org/people/u1769092/sounds/423301/ |
+| `fx_impact_3.m4a` | VisceralBulletImpacts.wav | u1769092 | https://freesound.org/people/u1769092/sounds/423301/ |
+| `fx_impact_4.m4a` | Headshot.wav | Pablobd | https://freesound.org/people/Pablobd/sounds/511194/ |
+| `fx_impact_5.m4a` | Bullet Blood 4 | JustInvoke | https://freesound.org/people/JustInvoke/sounds/138481/ |
+| `fx_punch_1.m4a` | Punch (3) | johnfolker | https://freesound.org/people/johnfolker/sounds/269231/ |
+| `fx_punch_2.m4a` | Punch (2) | johnfolker | https://freesound.org/people/johnfolker/sounds/269232/ |
+| `fx_punch_3.m4a` | Punch in the face | Huminaatio | https://freesound.org/people/Huminaatio/sounds/390462/ |
+| `fx_punch_4.m4a` | Punch_02.wav | thefsoundman | https://freesound.org/people/thefsoundman/sounds/118513/ |
+| `fx_punch_5.m4a` | Realistic Punch | JewTwinz | https://freesound.org/people/JewTwinz/sounds/244513/ |
+| `fx_stab_1.m4a` | Knife Stab.wav | Mixedupmoviestuff | https://freesound.org/people/Mixedupmoviestuff/sounds/179222/ |
+| `fx_stab_2.m4a` | Large Swede Stab with Whoosh.wav | minituffy | https://freesound.org/people/minituffy/sounds/385966/ |
+| `fx_stab_3.m4a` | Knife Stab Pull.wav | neilsher | https://freesound.org/people/neilsher/sounds/411742/ |
+| `fx_stab_4.m4a` | Knife Stab.wav | neilsher | https://freesound.org/people/neilsher/sounds/411743/ |
+| `fx_stab_5.m4a` | Knife Stab.wav | neilsher | https://freesound.org/people/neilsher/sounds/411743/ |
+| `fx_swish_1.m4a` | swing.mp3 | GaussTheWizard | https://freesound.org/people/GaussTheWizard/sounds/367182/ |
+| `fx_swish_2.m4a` | Sword.wav | hello_flowers | https://freesound.org/people/hello_flowers/sounds/37596/ |
+| `fx_swish_3.m4a` | Sword Movement Single 1 | deleted_user_6479820 | https://freesound.org/people/deleted_user_6479820/sounds/395266/ |
+| `fx_swish_4.m4a` | swosh swinging sword 37.flac | qubodup | https://freesound.org/people/qubodup/sounds/60024/ |
+| `fx_bathit_1.m4a` | whack02.mp3 | Qat | https://freesound.org/people/Qat/sounds/114683/ |
+| `fx_bathit_2.m4a` | Bat_hit2 | hashtagsmcgee | https://freesound.org/people/hashtagsmcgee/sounds/851452/ |
+| `fx_bathit_3.m4a` | Smash.ogg | egomassive | https://freesound.org/people/egomassive/sounds/536777/ |
+| `fx_faint_4.m4a` | Body falling on the ground 1 | ihitokage | https://freesound.org/people/ihitokage/sounds/395331/ |
+| `fx_faint_5.m4a` | Body falling | NeoSpica | https://freesound.org/people/NeoSpica/sounds/504617/ |
+| `fx_faint_6.m4a` | BodyFall.wav | 000600 | https://freesound.org/people/000600/sounds/187136/ |
+| `fx_faint_7.m4a` | Body Fall Over.wav | raubana | https://freesound.org/people/raubana/sounds/82027/ |
+| `fx_drag_1.m4a` | GRAY EPIC DRAG.mp3 | GrayEpic | https://freesound.org/people/GrayEpic/sounds/540407/ |
+| `fx_drag_2.m4a` | GRAY EPIC DRAG.mp3 | GrayEpic | https://freesound.org/people/GrayEpic/sounds/540407/ |
+| `fx_drag_3.m4a` | Pushing or dragging a heavy object | randbsoundbites | https://freesound.org/people/randbsoundbites/sounds/798753/ |
+| `fx_drag_4.m4a` | R18-35-Drag Body Across Floor.wav | craigsmith | https://freesound.org/people/craigsmith/sounds/481863/ |
+| `fx_ceramic_1.m4a` | Plate Break 1.wav | jc.sg | https://freesound.org/people/jc.sg/sounds/565642/ |
+| `fx_ceramic_2.m4a` | Tile Breaking | Fission9 | https://freesound.org/people/Fission9/sounds/583310/ |
+| `fx_ceramic_3.m4a` | Mug Breaking.wav | m_delaparra | https://freesound.org/people/m_delaparra/sounds/338018/ |
+| `fx_ceramic_4.m4a` | Breaking pot short | anna_bliss | https://freesound.org/people/anna_bliss/sounds/810043/ |
+| `fx_rope_1.m4a` | Stretch - Short | NearTheAtmoshphere | https://freesound.org/people/NearTheAtmoshphere/sounds/676988/ |
+| `fx_rope_2.m4a` | ropes | ssierra1202 | https://freesound.org/people/ssierra1202/sounds/391946/ |
+| `fx_rope_3.m4a` | ropes | ssierra1202 | https://freesound.org/people/ssierra1202/sounds/391946/ |
+| `fx_thud_1.m4a` | drop-item-heavy2.mp3 | rottako | https://freesound.org/people/rottako/sounds/693582/ |
+| `fx_thud_2.m4a` | Luggage Drop 1.wav | stephenbist | https://freesound.org/people/stephenbist/sounds/434781/ |
+| `fx_thud_3.m4a` | ANI Big Pipe Hit | ani_music | https://freesound.org/people/ani_music/sounds/244983/ |
+| `fx_thud_4.m4a` | door metal big heavy close kinda slam thud echo offmic.wav | kyles | https://freesound.org/people/kyles/sounds/406197/ |
+| `fx_chain_1.m4a` | Steel chain being dropped | ani_music | https://freesound.org/people/ani_music/sounds/167373/ |
+| `fx_chain_2.m4a` | Steel chain soft drop | ani_music | https://freesound.org/people/ani_music/sounds/167913/ |
+| `fx_chain_3.m4a` | Dropping Chain - Sound Effect | Rizzard | https://freesound.org/people/Rizzard/sounds/559589/ |
+| `fx_chain_4.m4a` | MetalDrop.wav | nickronk123 | https://freesound.org/people/nickronk123/sounds/489767/ |
+| `fx_spark_1.m4a` | Taser/High Voltage discharge | The_Chemical_Workshop | https://freesound.org/people/The_Chemical_Workshop/sounds/403252/ |
+| `fx_spark_2.m4a` | Taser/High Voltage discharge | The_Chemical_Workshop | https://freesound.org/people/The_Chemical_Workshop/sounds/403252/ |
+| `fx_spark_3.m4a` | Spark.wav | BMacZero | https://freesound.org/people/BMacZero/sounds/94132/ |
+| `fx_bulb_1.m4a` | Fluorescent Lightbulb Break.wav | sandb1ns | https://freesound.org/people/sandb1ns/sounds/558969/ |
+| `fx_bulb_2.m4a` | light bulb glass burst drop on floor2.wav | kyles | https://freesound.org/people/kyles/sounds/637659/ |
+| `fx_debris_1.m4a` | Fall debris (crash) | xkeril | https://freesound.org/people/xkeril/sounds/703248/ |
+| `fx_debris_2.m4a` | Concrete SMASH 2 | magnuswaker | https://freesound.org/people/magnuswaker/sounds/522099/ |
+| `fx_debris_3.m4a` | rock falling 010.wav | yottasounds | https://freesound.org/people/yottasounds/sounds/232137/ |
+| `fx_debris_4.m4a` | Rubble Trouble | magnuswaker | https://freesound.org/people/magnuswaker/sounds/758580/ |
+| `fx_bandage_1.m4a` | Duct Tape 1 | _natiKatz | https://freesound.org/people/_natiKatz/sounds/223375/ |
+| `fx_bandage_2.m4a` | Duct Tape 1 | _natiKatz | https://freesound.org/people/_natiKatz/sounds/223375/ |
+| `fx_bandage_3.m4a` | Free Tape Ripping Sound | MilkyGacha | https://freesound.org/people/MilkyGacha/sounds/467721/ |
+| `fx_bandage_4.m4a` | Cloth Rip Fast | Rudmer_Rotteveel | https://freesound.org/people/Rudmer_Rotteveel/sounds/591195/ |
+| `fx_bandage_5.m4a` | Short Ripping Sound | Kodack | https://freesound.org/people/Kodack/sounds/256307/ |
+| `fx_syringe_1.m4a` | Syringe single pop.m4a | Coniela | https://freesound.org/people/Coniela/sounds/458423/ |
+| `fx_syringe_2.m4a` | Syringe Pop | Chaos-Kid | https://freesound.org/people/Chaos-Kid/sounds/740045/ |
+| `fx_running_1.m4a` | Footsteps Running Away Fading 1 | Rudmer_Rotteveel | https://freesound.org/people/Rudmer_Rotteveel/sounds/316923/ |
+| `fx_running_2.m4a` | Footsteps Running Away Fading 2 | Rudmer_Rotteveel | https://freesound.org/people/Rudmer_Rotteveel/sounds/316922/ |
+| `fx_running_3.m4a` | Footsteps Running Away Fading | Rudmer_Rotteveel | https://freesound.org/people/Rudmer_Rotteveel/sounds/316924/ |
+| `fx_running_4.m4a` | running | Topschool | https://freesound.org/people/Topschool/sounds/443218/ |
+| `fx_engine_1.m4a` | V8 Supercar fly-by | FFKoenigsegg20012017 | https://freesound.org/people/FFKoenigsegg20012017/sounds/339136/ |
+| `fx_engine_2.m4a` | Car.ogg | egomassive | https://freesound.org/people/egomassive/sounds/536735/ |
+| `fx_engine_3.m4a` | Rev.mp3 | mr333me | https://freesound.org/people/mr333me/sounds/656005/ |
+| `fx_engine_4.m4a` | Aston low rev growl.aif | victormalloy | https://freesound.org/people/victormalloy/sounds/113184/ |
+| `fx_gulp_1.m4a` | Cartoon - Gulp! | Breviceps | https://freesound.org/people/Breviceps/sounds/450624/ |
+| `fx_gulp_2.m4a` | Gulp.boaay | BOAAY | https://freesound.org/people/BOAAY/sounds/552676/ |
+| `fx_gulp_3.m4a` | Drink / Drinking liquid | Breviceps | https://freesound.org/people/Breviceps/sounds/445970/ |
+| `fx_gulp_4.m4a` | heavy_swallow.wav | Mikes-MultiMedia | https://freesound.org/people/Mikes-MultiMedia/sounds/368711/ |
+| `fx_bubbles_1.m4a` | Bubbles 004.wav | ristooooo1 | https://freesound.org/people/ristooooo1/sounds/539819/ |
+| `fx_bubbles_2.m4a` | Bubbles | hotpin7 | https://freesound.org/people/hotpin7/sounds/840042/ |
+| `fx_bubbles_3.m4a` | Bubbles_Single2.wav | BMacZero | https://freesound.org/people/BMacZero/sounds/96125/ |
+| `fx_scrape_1.m4a` | Scrape | Caitlin_100 | https://freesound.org/people/Caitlin_100/sounds/398405/ |
+| `fx_scrape_2.m4a` | Scrape | Caitlin_100 | https://freesound.org/people/Caitlin_100/sounds/398405/ |
+| `fx_scrape_3.m4a` | Scraping Stone  | dslrguide | https://freesound.org/people/dslrguide/sounds/321488/ |
+| `fx_unsheath_1.m4a` | unsheath_sword.wav | Qat | https://freesound.org/people/Qat/sounds/107589/ |
+| `fx_unsheath_2.m4a` | Unsheathed blade | deleted_user_2906614 | https://freesound.org/people/deleted_user_2906614/sounds/320521/ |
