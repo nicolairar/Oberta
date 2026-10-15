@@ -3,6 +3,7 @@ import '../narration/narration_pack.dart';
 import '../roster/roster.dart';
 import '../sound/cue_sounds.dart';
 import '../ui/widgets/death_scene.dart';
+import '../ui/widgets/verdict_scene.dart';
 import 'app_language.dart';
 import 'app_strings.dart';
 
@@ -262,6 +263,44 @@ final class ItalianStrings extends AppStrings {
   String get next => 'AVANTI';
   @override
   String get skip => 'SALTA';
+
+  @override
+  String verdictCaption(VerdictTake take) => switch (take) {
+    VerdictTake.molo => 'Al tramonto, giù al molo.',
+    VerdictTake.cartello => 'Il confine della città. Strada polverosa, niente ritorno.',
+    VerdictTake.treno => 'Stazione centrale. L\'ultimo treno della sera.',
+    VerdictTake.cannone => 'Il circo è in città. Cercasi volontario.',
+    VerdictTake.assoluzione => 'La piazza, al tramonto. Volano parole grosse.',
+  };
+  @override
+  String verdictStamp(VerdictTake take) => switch (take) {
+    VerdictTake.molo => 'DORME COI PESCI',
+    VerdictTake.cartello => 'FUORI CITTÀ',
+    VerdictTake.treno => 'SOLA ANDATA',
+    VerdictTake.cannone => 'IN ORBITA',
+    VerdictTake.assoluzione => '',
+  };
+  @override
+  String get verdictLine => 'LA PIAZZA HA DECISO';
+  @override
+  String get acquittalTitle => 'NESSUNA CONDANNA';
+  @override
+  String get acquittalLine => 'PER STASERA, TUTTI A CASA';
+  @override
+  String get townSign => 'CITTÀ';
+  @override
+  String verdictWord(VerdictWord word) => switch (word) {
+    VerdictWord.thud => 'TONF!',
+    VerdictWord.byeBye => 'CIAO CIAO!',
+    VerdictWord.glub => 'BLUB',
+    VerdictWord.getOut => 'FUORI!',
+    VerdictWord.cough => 'COF COF!',
+    VerdictWord.toot => 'TU-TUUU!',
+    VerdictWord.sniff => 'SNIF SNIF!',
+    VerdictWord.ping => 'PLING!',
+    VerdictWord.bonk => 'TOC!',
+    VerdictWord.shrug => 'BOH!',
+  };
 
   @override
   String get screeningTitle => 'SALA PROVE';

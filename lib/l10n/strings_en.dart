@@ -3,6 +3,7 @@ import '../narration/narration_pack.dart';
 import '../roster/roster.dart';
 import '../sound/cue_sounds.dart';
 import '../ui/widgets/death_scene.dart';
+import '../ui/widgets/verdict_scene.dart';
 import 'app_language.dart';
 import 'app_strings.dart';
 
@@ -264,6 +265,44 @@ final class EnglishStrings extends AppStrings {
   String get next => 'NEXT';
   @override
   String get skip => 'SKIP';
+
+  @override
+  String verdictCaption(VerdictTake take) => switch (take) {
+    VerdictTake.molo => 'Sundown, down at the docks.',
+    VerdictTake.cartello => 'The city limits. A dusty road, and no ride back.',
+    VerdictTake.treno => 'Central Station. The last train out tonight.',
+    VerdictTake.cannone => 'The circus has come to the city. Volunteer wanted.',
+    VerdictTake.assoluzione => 'The main square at sundown. Tempers flare.',
+  };
+  @override
+  String verdictStamp(VerdictTake take) => switch (take) {
+    VerdictTake.molo => 'SLEEPS WITH THE FISHES',
+    VerdictTake.cartello => 'RUN OUT OF THE CITY',
+    VerdictTake.treno => 'ONE WAY TICKET',
+    VerdictTake.cannone => 'IN ORBIT',
+    VerdictTake.assoluzione => '',
+  };
+  @override
+  String get verdictLine => 'THE PEOPLE HAVE SPOKEN';
+  @override
+  String get acquittalTitle => 'NO CONVICTION';
+  @override
+  String get acquittalLine => 'EVERYBODY GO HOME. FOR TONIGHT.';
+  @override
+  String get townSign => 'CITY';
+  @override
+  String verdictWord(VerdictWord word) => switch (word) {
+    VerdictWord.thud => 'THUNK!',
+    VerdictWord.byeBye => 'BYE BYE!',
+    VerdictWord.glub => 'GLUB',
+    VerdictWord.getOut => 'GET OUT!',
+    VerdictWord.cough => 'COUGH!',
+    VerdictWord.toot => 'CHOO-CHOO!',
+    VerdictWord.sniff => 'SNIFF!',
+    VerdictWord.ping => 'TWINKLE!',
+    VerdictWord.bonk => 'BONK!',
+    VerdictWord.shrug => 'MEH!',
+  };
 
   @override
   String get screeningTitle => 'SCREENING ROOM';
