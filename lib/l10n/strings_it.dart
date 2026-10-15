@@ -506,4 +506,16 @@ final class ItalianStrings extends AppStrings {
 
   @override
   String personRemoveTitle(String name) => 'Via $name?';
+
+  @override
+  String get screeningVerdicts => 'VERDETTI';
+
+  @override
+  String verdictName(VerdictTake take) => switch (take) {
+        VerdictTake.molo => 'Il molo',
+        VerdictTake.cartello => 'Il cartello di fine città',
+        VerdictTake.treno => 'L\'ultimo treno',
+        VerdictTake.cannone => 'Il cannone del circo',
+        VerdictTake.assoluzione => 'Nessuna condanna',
+      };
 }

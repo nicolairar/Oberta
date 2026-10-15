@@ -183,6 +183,8 @@ abstract class AppStrings {
   String get screeningCaption;
   String sceneName(DeathAct act);
   String get screeningEffects;
+  String get screeningVerdicts;
+  String verdictName(VerdictTake take);
   String cueName(Cue cue);
 
   // Il tavolo e la scheda di chi gioca.
@@ -369,6 +371,8 @@ abstract class AppStrings {
     'screeningCaption': screeningCaption,
     for (final act in DeathAct.values) 'sceneName.${act.name}': sceneName(act),
     'screeningEffects': screeningEffects,
+    'screeningVerdicts': screeningVerdicts,
+    for (final take in VerdictTake.values) 'verdictName.${take.name}': verdictName(take),
     'lobbyTitle': lobbyTitle,
     'lobbyDebugAdd': lobbyDebugAdd,
     'lobbyClearTooltip': lobbyClearTooltip,

@@ -5,8 +5,10 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_strings.dart';
 import '../../sound/cue_sounds.dart';
 import '../../sound/sound_stage.dart';
+import '../../sound/verdict_stage.dart';
 import '../theme/app_theme.dart';
 import '../widgets/death_scene.dart';
+import '../widgets/verdict_scene.dart';
 import '../widgets/scene_scaffold.dart';
 
 /// La sala prove: tutte le scene della notte, da rivedere una per una senza
@@ -47,6 +49,27 @@ class _ScreeningRoomScreenState extends State<ScreeningRoomScreen> {
     );
   }
 
+  void _screenVerdict(VerdictTake take) {
+    SoundStage.instance.prepareVerdicts([take]);
+    final style = SkylineStyle.values[_screenings++ % SkylineStyle.values.length];
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => Scaffold(
+          backgroundColor: Colors.black,
+          body: take == VerdictTake.assoluzione
+              ? VerdictScene.acquittal(style: style, onFinished: () => Navigator.of(context).pop())
+              : VerdictScene(
+                  condemnedName: _extras[_random.nextInt(_extras.length)],
+                  variant: take.name,
+                  town: 'Palermo',
+                  style: style,
+                  onFinished: () => Navigator.of(context).pop(),
+                ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppStrings.of(context);
@@ -73,6 +96,24 @@ class _ScreeningRoomScreenState extends State<ScreeningRoomScreen> {
                       ),
                       const SizedBox(width: 14),
                       Expanded(child: Text(t.sceneName(act), style: const TextStyle(letterSpacing: 0.5))),
+                      const Icon(Icons.play_arrow, size: 20),
+                    ],
+                  ),
+                ),
+              ),
+            const SizedBox(height: 18),
+            Text(t.screeningVerdicts, textAlign: TextAlign.center, style: AppText.overline),
+            const SizedBox(height: 10),
+            for (final take in VerdictTake.values)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: OutlinedButton(
+                  onPressed: () => _screenVerdict(take),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.gavel, size: 20, color: AppColors.gold),
+                      const SizedBox(width: 14),
+                      Expanded(child: Text(t.verdictName(take), style: const TextStyle(letterSpacing: 0.5))),
                       const Icon(Icons.play_arrow, size: 20),
                     ],
                   ),
