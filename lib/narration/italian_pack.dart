@@ -213,7 +213,8 @@ const italianPack = NarrationPack(
     '{name} era già a terra. Ma il Dottore, stanotte, passava proprio di lì.',
     'Un colpo, e {name} va giù. Una borsa di cuoio si apre: non è finita.',
   ],
-  savedFact: 'Stanotte hanno sparato a {name}, ma il Dottore ha fatto in tempo. {name} resta in gioco.',
+  someone: 'qualcuno',
+  savedFact: 'Stanotte hanno sparato a qualcuno, ma il Dottore ha fatto in tempo. Chi fosse, resta un segreto.',
   // Il colpo fermato dalla fiaschetta: in scena si vede proprio quella. Il
   // fatto non nomina nessun ruolo: al tavolo resta il dubbio su chi sia.
   shrugs: [
@@ -222,7 +223,7 @@ const italianPack = NarrationPack(
     'Uno sparo dal vicolo. {name} resta in piedi: il proiettile è nella fiaschetta.',
     '{name} sente un colpo al petto. Sotto la giacca, una fiaschetta piegata in due.',
   ],
-  shruggedFact: 'Stanotte hanno sparato a {name}, ma il colpo non è andato a segno. {name} resta in gioco.',
+  shruggedFact: 'Stanotte hanno sparato a qualcuno, ma il colpo è andato a vuoto. Chi fosse, resta un segreto.',
   methods: [
     StoryPiece('auto', 'Due fari nel buio. Un\'auto nera non frena. {name} si volta: troppo tardi.'),
     StoryPiece('pianoforte', 'Una corda si spezza. Un pianoforte precipita. {name} alza gli occhi.'),

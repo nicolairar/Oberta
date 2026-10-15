@@ -215,7 +215,8 @@ const englishPack = NarrationPack(
     '{name} was already down. But the Doc just happened to be passing by.',
     'One shot, and {name} goes down. A leather bag snaps open: it isn\'t over.',
   ],
-  savedFact: 'Last night somebody shot {name}, but the Doc got there in time. {name} stays in the game.',
+  someone: 'someone',
+  savedFact: 'Last night someone got shot, but the Doc made it in time. Who it was stays a secret.',
   // Il colpo fermato dalla fiaschetta: in scena si vede proprio quella. Il
   // fatto non nomina nessun ruolo: al tavolo resta il dubbio su chi sia.
   shrugs: [
@@ -224,7 +225,7 @@ const englishPack = NarrationPack(
     'A shot from the alley. {name} stays standing: the bullet is in the flask.',
     '{name} feels a thump in the chest. Under the jacket, a flask bent double.',
   ],
-  shruggedFact: 'Last night somebody shot at {name}, but it didn\'t work. {name} stays in the game.',
+  shruggedFact: 'Last night someone got shot at, but the bullet missed. Who it was stays a secret.',
   methods: [
     StoryPiece('auto', 'Two headlights in the dark. A black sedan doesn\'t brake. {name} turns around: too late.'),
     StoryPiece('pianoforte', 'A rope snaps. A grand piano drops. {name} looks up.'),

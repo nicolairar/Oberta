@@ -254,7 +254,8 @@ class _DeathSceneState extends State<DeathScene> with SingleTickerProviderStateM
             final t = filmTime(_film.value);
             final typed = (widget.caption.length * _span(_film.value, 0.02, 0.20)).round();
             final card = _span(t, 0.86, 0.93);
-            final closeUp = _span(t, _closeUpAt, _closeUpAt + 0.09);
+            // Chi si salva resta anonimo: niente primo piano.
+            final closeUp = survives ? 0.0 : _span(t, _closeUpAt, _closeUpAt + 0.09);
             return Stack(
               fit: StackFit.expand,
               children: [

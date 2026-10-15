@@ -184,6 +184,7 @@ abstract class AppStrings {
   String sceneName(DeathAct act);
   String get screeningEffects;
   String get screeningVerdicts;
+  String get someoneSaved;
   String verdictName(VerdictTake take);
   String cueName(Cue cue);
 
@@ -372,6 +373,7 @@ abstract class AppStrings {
     for (final act in DeathAct.values) 'sceneName.${act.name}': sceneName(act),
     'screeningEffects': screeningEffects,
     'screeningVerdicts': screeningVerdicts,
+    'someoneSaved': someoneSaved,
     for (final take in VerdictTake.values) 'verdictName.${take.name}': verdictName(take),
     'lobbyTitle': lobbyTitle,
     'lobbyDebugAdd': lobbyDebugAdd,

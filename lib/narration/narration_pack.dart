@@ -73,6 +73,10 @@ class NarrationPack {
   /// arriva in tempo. Nominano sempre la persona presa di mira.
   final List<String> sniperShots;
   final List<String> rescues;
+
+  /// Come si chiama, nel racconto, chi si è salvato: nessuno deve sapere chi
+  /// fosse, quindi è solo "qualcuno".
+  final String someone;
   final String savedFact;
 
   /// Il colpo che non va a segno perché chi era nel mirino ha la pelle
@@ -132,6 +136,7 @@ class NarrationPack {
     required this.victimFact,
     required this.sniperShots,
     required this.rescues,
+    required this.someone,
     required this.savedFact,
     required this.shrugs,
     required this.shruggedFact,

@@ -93,7 +93,9 @@ class NarratorScript {
       lines.add(_story(_picker.pick('dawn.quiet', pack.quietDawns)));
     }
     for (var i = 0; i < report.attacks.length; i++) {
-      final name = report.attacks[i].target.name;
+      // Chi l'ha scampata resta anonimo: il tavolo sa solo che qualcuno è
+      // stato preso di mira, non chi.
+      final name = scenes[i].survived ? pack.someone : report.attacks[i].target.name;
       if (i > 0) lines.add(_story(_picker.pick('dawn.again', pack.secondVictims)));
       for (final paragraph in scenes[i].paragraphs) {
         lines.add(_story(paragraph, name: name));
@@ -179,6 +181,9 @@ class NarratorScript {
 
   String _fill(String template, String? name) {
     final text = template.replaceAll('{city}', city.name);
-    return name == null ? text : text.replaceAll('{name}', name);
+    if (name == null) return text;
+    final filled = text.replaceAll('{name}', name);
+    // "qualcuno" a inizio frase va maiuscolo.
+    return template.startsWith('{name}') && filled.isNotEmpty ? filled[0].toUpperCase() + filled.substring(1) : filled;
   }
 }

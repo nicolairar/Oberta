@@ -517,4 +517,7 @@ final class EnglishStrings extends AppStrings {
         VerdictTake.cannone => 'The circus cannon',
         VerdictTake.assoluzione => 'No conviction',
       };
+
+  @override
+  String get someoneSaved => 'SOMEONE';
 }

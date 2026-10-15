@@ -311,9 +311,7 @@ void main() {
         for (final piece in englishPack.methods) piece.text,
         ...englishPack.sniperShots,
         ...englishPack.rescues,
-        englishPack.savedFact,
         ...englishPack.shrugs,
-        englishPack.shruggedFact,
         ...englishPack.silences,
         englishPack.silencedFact,
         ...englishPack.scoops,
@@ -384,8 +382,11 @@ void main() {
       final text = [...englishPack.shrugs, englishPack.shruggedFact].join(' ').toLowerCase();
       expect(text, isNot(contains('veteran')));
       expect(text, isNot(contains('doc')), reason: 'stavolta il Dottore non c\'entra');
-      expect(englishPack.shruggedFact, contains('stays in the game'));
-      expect(englishPack.savedFact, contains('stays in the game'));
+      // Chi si salva resta anonimo: il fatto non fa nomi.
+      for (final fact in [englishPack.shruggedFact, englishPack.savedFact]) {
+        expect(fact, isNot(contains('{name}')));
+        expect(fact, contains('stays a secret'));
+      }
     });
 
     test('i fatti sono chiari: chi è morto, chi tace, chi ha vinto', () {
@@ -559,7 +560,8 @@ void main() {
       ]);
       final lines = script.dawn(report, discussion: threeMinutes);
       final facts = factsOf(lines);
-      expect(facts[0], 'Last night somebody shot Sara, but the Doc got there in time. Sara stays in the game.');
+      expect(facts[0], 'Last night someone got shot, but the Doc made it in time. Who it was stays a secret.');
+      expect(textOf(lines), isNot(contains('Sara')), reason: 'chi si salva resta anonimo');
       expect(facts[1], 'Last night one person died: Luca. Their role stays secret.');
       expect(
         englishPack.sniperShots.map((line) => line.replaceAll('{name}', 'Luca')),
@@ -574,10 +576,10 @@ void main() {
         for (var i = 0; i < 30; i++) {
           final lines = script.dawn(attack(sara, source, AttackOutcome.shrugged), discussion: threeMinutes);
           expect(lines, hasLength(4), reason: 'luogo, azione, fatto, istruzione');
-          expect(lines[1].text, allOf(contains('Sara'), contains('flask')));
+          expect(lines[1].text, allOf(isNot(contains('Sara')), contains('flask')));
           expect(
             factsOf(lines).first,
-            'Last night somebody shot at Sara, but it didn\'t work. Sara stays in the game.',
+            'Last night someone got shot at, but the bullet missed. Who it was stays a secret.',
           );
           final text = textOf(lines).toLowerCase();
           for (final name in englishRoleNames.values) {

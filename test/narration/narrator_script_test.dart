@@ -167,7 +167,6 @@ void main() {
       expect(italianPack.silences.length, greaterThanOrEqualTo(3));
       final lines = [
         ...italianPack.shrugs,
-        italianPack.shruggedFact,
         ...italianPack.silences,
         italianPack.silencedFact,
       ];
@@ -183,7 +182,11 @@ void main() {
       final text = [...italianPack.shrugs, italianPack.shruggedFact].join(' ').toUpperCase();
       expect(text, isNot(contains('REDUCE')));
       expect(text, isNot(contains('DOTTORE')), reason: 'stavolta il Dottore non c\'entra');
-      expect(italianPack.shruggedFact, contains('resta in gioco'));
+      // Chi si salva resta anonimo: il fatto non fa nomi.
+      for (final fact in [italianPack.shruggedFact, italianPack.savedFact]) {
+        expect(fact, isNot(contains('{name}')));
+        expect(fact, contains('resta un segreto'));
+      }
     });
 
     test('nessuna battuta d\'atmosfera ruba il nome a un ruolo', () {
@@ -283,7 +286,7 @@ void main() {
       expect(ids, isNot(contains(DeathStory.rescueId)));
       expect(ids, isNot(contains(DeathStory.luckyId)));
       expect({DeathStory.sniperId, DeathStory.rescueId, DeathStory.luckyId}, hasLength(3));
-      for (final line in [...italianPack.sniperShots, ...italianPack.rescues, italianPack.savedFact]) {
+      for (final line in [...italianPack.sniperShots, ...italianPack.rescues]) {
         expect(line, contains('{name}'), reason: line);
       }
     });
@@ -549,7 +552,8 @@ void main() {
 
       final lines = script.dawn(report, discussion: threeMinutes, stories: stories);
       final facts = factsOf(lines);
-      expect(facts[0], 'Stanotte hanno sparato a Sara, ma il Dottore ha fatto in tempo. Sara resta in gioco.');
+      expect(facts[0], 'Stanotte hanno sparato a qualcuno, ma il Dottore ha fatto in tempo. Chi fosse, resta un segreto.');
+      expect(textOf(lines), isNot(contains('Sara')), reason: 'chi si salva resta anonimo');
       expect(facts[1], 'Stanotte è morta una persona: Luca. Il suo ruolo resta segreto.');
       expect(textOf(lines), isNot(contains('{name}')));
       expect(textOf(lines), isNot(contains(italianPack.nobodyDied)));
@@ -567,10 +571,10 @@ void main() {
           final lines = script.dawn(report, discussion: threeMinutes, stories: stories);
           expect(lines, hasLength(4), reason: 'luogo, azione, fatto, istruzione');
           expect(lines[0].text, matches(RegExp('^(Esterno|Interno), notte')));
-          expect(lines[1].text, contains('Sara'));
+          expect(lines[1].text, isNot(contains('Sara')));
           expect(lines[1].text, contains('fiaschetta'));
           expect(factsOf(lines).first,
-              'Stanotte hanno sparato a Sara, ma il colpo non è andato a segno. Sara resta in gioco.');
+              'Stanotte hanno sparato a qualcuno, ma il colpo è andato a vuoto. Chi fosse, resta un segreto.');
           final text = textOf(lines).toUpperCase();
           expect(text, isNot(contains('{')));
           expect(text, isNot(contains(italianPack.nobodyDied.toUpperCase())));

@@ -199,9 +199,10 @@ class _GameScreenState extends State<GameScreen> {
       title: report.victims.isEmpty ? _t.everyoneAlive : _t.crimePage,
       lines: _script.dawn(report, discussion: widget.settings.discussion, stories: _deaths),
       // Chi è morto, a lutto. Se non è morto nessuno, chi l'ha scampata.
+      // Solo i morti: chi si è salvato resta anonimo.
       portraits: [
         for (final attack in report.attacks)
-          if (attack.isFatal || report.victims.isEmpty) attack.target.name,
+          if (attack.isFatal) attack.target.name,
       ],
       portraitsFallen: report.victims.isNotEmpty,
       action: winner != null ? _t.finale : _t.openTheFloor,
@@ -319,7 +320,7 @@ class _GameScreenState extends State<GameScreen> {
           body: DeathScene(
             key: ValueKey('crime-$_step'),
             act: deathActFor(story.method.id),
-            victimName: _dawn.attacks[_crime].target.name,
+            victimName: _dawn.attacks[_crime].isFatal ? _dawn.attacks[_crime].target.name : _t.someoneSaved,
             caption: story.scene.text,
             epilogue: story.epilogue?.id ?? '',
             style: skylineFor(_script.city.id),

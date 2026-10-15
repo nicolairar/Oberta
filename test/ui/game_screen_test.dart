@@ -338,13 +338,14 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
     expect(tester.widget<DeathScene>(find.byType(DeathScene)).act, DeathAct.lucky);
     await tap(tester, 'SALTA');
-    expect(find.text('BRUNO'), findsOneWidget);
+    expect(find.text('BRUNO'), findsNothing, reason: 'chi si salva resta anonimo');
+    expect(find.text('QUALCUNO'), findsOneWidget);
     expect(find.text('VEDRÀ L\'ALBA'), findsOneWidget);
     await tap(tester, 'AVANTI');
 
     expect(find.text('Tutti vivi'), findsOneWidget);
     expect(
-      find.text('Stanotte hanno sparato a Bruno, ma il colpo non è andato a segno. Bruno resta in gioco.'),
+      find.text('Stanotte hanno sparato a qualcuno, ma il colpo è andato a vuoto. Chi fosse, resta un segreto.'),
       findsOneWidget,
     );
     expect(find.textContaining('fiaschetta'), findsOneWidget);

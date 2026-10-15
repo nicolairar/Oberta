@@ -518,4 +518,7 @@ final class ItalianStrings extends AppStrings {
         VerdictTake.cannone => 'Il cannone del circo',
         VerdictTake.assoluzione => 'Nessuna condanna',
       };
+
+  @override
+  String get someoneSaved => 'QUALCUNO';
 }
