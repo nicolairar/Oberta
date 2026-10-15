@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import '../ui/widgets/death_scene.dart';
 import '../ui/widgets/verdict_scene.dart';
 import 'cue_sounds.dart';
+import 'sample_bank.dart';
 import 'scene_score.dart';
 import 'sound_stage.dart';
 import 'verdict_stage.dart';
@@ -24,6 +25,7 @@ class DeviceStage extends SoundStage implements VerdictStage {
   final List<AudioPlayer> _shortPlayers = [for (var i = 0; i < 4; i++) AudioPlayer()];
   int _nextShort = 0;
   late final Future<void> _ready = _setUp();
+  late final Future<SampleBank> _bank = loadSampleBank();
 
   /// Cambia a ogni richiesta: un nastro che arriva tardi capisce da qui che
   /// nel frattempo la scena è finita, e non parte.
@@ -52,9 +54,13 @@ class DeviceStage extends SoundStage implements VerdictStage {
     () async {
       try {
         await _ready;
-        final path = (await _cues)[cue]!;
         await player.stop();
-        await player.play(DeviceFileSource(path));
+        final recorded = cueRecordings[cue];
+        if (recorded != null) {
+          await player.play(AssetSource('sounds/${recorded[_nextShort % recorded.length]}.wav'));
+        } else {
+          await player.play(DeviceFileSource((await _cues)[cue]!));
+        }
       } catch (error) {
         _report(error);
       }
@@ -79,7 +85,7 @@ class DeviceStage extends SoundStage implements VerdictStage {
   /// altro isolate, per non far scattare le animazioni.
   Future<String> _record(DeathAct act) async {
     final file = File('${Directory.systemTemp.path}/scene-${act.name}.wav');
-    final bytes = await compute(composeSceneByIndex, act.index);
+    final bytes = await compute(composeSceneByIndex, (act.index, await _bank));
     await file.writeAsBytes(bytes, flush: true);
     return file.path;
   }

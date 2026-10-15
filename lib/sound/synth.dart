@@ -143,6 +143,33 @@ class Tape {
     });
   }
 
+  /// Incolla sul nastro un suono registrato (già a [rate] Hz, mono), a
+  /// partire da [at] secondi.
+  void sample(double at, Float64List data, {double gain = 1}) {
+    _write(at, data.length / rate, (i, _) => i < data.length ? gain * data[i] : 0);
+  }
+
+  /// I campioni di un WAV a 16 bit mono, da -1 a 1. Tutto quello che non è
+  /// il blocco dei dati (intestazioni, metadati) viene saltato.
+  static Float64List decodeWav(Uint8List bytes) {
+    final data = ByteData.sublistView(bytes);
+    var offset = 12;
+    while (offset + 8 <= bytes.length) {
+      final id = String.fromCharCodes(bytes.sublist(offset, offset + 4));
+      final size = data.getUint32(offset + 4, Endian.little);
+      if (id == 'data') {
+        final count = min(size, bytes.length - offset - 8) ~/ 2;
+        final out = Float64List(count);
+        for (var i = 0; i < count; i++) {
+          out[i] = data.getInt16(offset + 8 + i * 2, Endian.little) / 32768;
+        }
+        return out;
+      }
+      offset += 8 + size + (size.isOdd ? 1 : 0);
+    }
+    return Float64List(0);
+  }
+
   /// Mette tutto in una stanza: quattro echi corti che si rincorrono. Senza,
   /// ogni suono sembra uscire da una scatola di latta.
   void room({double mix = 0.22}) {

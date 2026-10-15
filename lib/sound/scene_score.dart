@@ -2,15 +2,16 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import '../ui/widgets/death_scene.dart';
+import 'sample_bank.dart';
 import 'synth.dart';
 
 /// La colonna sonora di una scena notturna: musica ed effetti incisi su un
 /// unico nastro, già a tempo col film. Chi la suona deve solo farla partire
 /// insieme alla scena.
-Uint8List composeScene(DeathAct act) => SceneScore(act).record();
+Uint8List composeScene(DeathAct act, [SampleBank bank = const {}]) => SceneScore(act, bank: bank).record();
 
 /// Come [composeScene], per chi può passare solo un numero (un altro isolate).
-Uint8List composeSceneByIndex(int index) => composeScene(DeathAct.values[index]);
+Uint8List composeSceneByIndex((int, SampleBank) job) => composeScene(DeathAct.values[job.$1], job.$2);
 
 /// Compone il nastro di una scena. I tempi sono quelli del film: ogni
 /// rumore è agganciato allo stesso istante in cui il pittore disegna il gesto.
@@ -27,7 +28,21 @@ class SceneScore {
   final DeathAct act;
   final Tape tape;
 
-  SceneScore(this.act) : tape = Tape(seconds, seed: 11 + act.index);
+  /// I suoni registrati da incollare sul nastro; senza, tutto è sintetico.
+  final SampleBank bank;
+  int _take = 0;
+
+  SceneScore(this.act, {this.bank = const {}}) : tape = Tape(seconds, seed: 11 + act.index);
+
+  /// Incolla il primo campione disponibile tra [names] (a rotazione, così
+  /// due passi di fila non sono identici). Restituisce `false` se non ce
+  /// n'è nessuno, e chi chiama ripiega sul sintetico.
+  bool _recorded(List<String> names, double when, {double gain = 1}) {
+    final present = [for (final name in names) if (bank[name] != null) bank[name]!];
+    if (present.isEmpty) return false;
+    tape.sample(when, present[_take++ % present.length], gain: gain);
+    return true;
+  }
 
   /// A che secondo del nastro cade il momento [t] del film.
   static double at(double t) => filmClock(t) * DeathScene.length.inMilliseconds / 1000;
@@ -284,6 +299,7 @@ class SceneScore {
   }
 
   void _footstep(double when, double gain) {
+    if (_recorded(const ['step_1', 'step_2', 'step_3', 'step_4'], when, gain: 0.9 * gain)) return;
     tape.noise(when, 0.05, gain: 0.30 * gain, lowpass: 1800, highpass: 300, envelope: Env.hit(6, 0.05));
     tape.tone(when, 0.06, 190, to: 120, gain: 0.28 * gain, envelope: Env.hit(6, 0.05));
   }
@@ -301,6 +317,7 @@ class SceneScore {
   }
 
   void _bell(double when, double strength) {
+    _recorded(const ['bell', 'bell_2'], when, gain: 0.8 * strength);
     tape.tone(
       when,
       4.2,
@@ -324,6 +341,7 @@ class SceneScore {
   /// La lama: un soffio e il canto dell'acciaio.
   void _slash(double when) {
     _swoosh(when - 0.09, 0.14);
+    if (_recorded(const ['knife', 'knife_2'], when - 0.03, gain: 1.2)) return;
     tape.tone(
       when,
       0.5,
@@ -344,12 +362,16 @@ class SceneScore {
   }
 
   void _thud(double when, {double weight = 1}) {
-    tape.tone(when, 0.24, 120, to: 45, gain: 0.55 * weight, partials: const [(1, 1), (2, 0.5), (3, 0.2)], envelope: Env.hit(5, 0.02));
+    // Il tonfo vero, e sotto un colpo basso che dà peso.
+    final real = _recorded(const ['body_fall', 'body_fall_2'], when, gain: min(1.4, weight));
+    tape.tone(when, 0.24, 120, to: 45, gain: (real ? 0.25 : 0.55) * weight, partials: const [(1, 1), (2, 0.5), (3, 0.2)], envelope: Env.hit(5, 0.02));
     tape.noise(when, 0.14, gain: 0.3 * weight, lowpass: 500, envelope: Env.hit(5, 0.03));
   }
 
   /// Un colpo secco su qualcosa di duro: legno, coccio, un tacco.
   void _knock(double when, double freq, {double gain = 0.5}) {
+    final names = freq <= 700 ? const ['wood_heavy', 'wood_heavy_2'] : (freq >= 1400 ? const ['latch'] : const ['plank']);
+    if (_recorded(names, when, gain: 2 * gain)) return;
     tape.tone(when, 0.09, freq, gain: gain, partials: const [(1, 1), (2.4, 0.5), (4.1, 0.25)], envelope: Env.hit(6, 0.02));
     tape.noise(when, 0.02, gain: gain * 0.6, lowpass: 5000, envelope: Env.hit(3, 0.1));
   }
@@ -364,6 +386,8 @@ class SceneScore {
     double gain = 0.2,
   }) {
     final rng = Random(pieces * 31 + low.round());
+    final names = low >= 1800 ? const ['glass_heavy', 'glass_heavy_2'] : (low < 1000 ? const ['plate', 'plate_2'] : const ['glass_medium']);
+    if (_recorded(names, when, gain: 4 * gain)) gain *= 0.5;
     tape.noise(when, 0.25, gain: gain * 1.4, highpass: low, envelope: Env.hit(6, 0.02));
     for (var i = 0; i < pieces; i++) {
       final late = pow(rng.nextDouble(), 1.6) * spread;
@@ -379,6 +403,8 @@ class SceneScore {
   }
 
   void _clang(double when, double base, {double gain = 0.2}) {
+    final names = base < 250 ? const ['metal_heavy', 'metal_heavy_2'] : const ['metal_medium'];
+    if (_recorded(names, when, gain: 5 * gain)) gain *= 0.4;
     tape.tone(
       when,
       1.3,
@@ -437,6 +463,7 @@ class SceneScore {
 
   /// Il proiettile che rimbalza sul metallo e se ne va fischiando.
   void _ricochet(double when) {
+    _recorded(const ['metal_light'], when, gain: 1.2);
     tape.tone(when, 0.06, 2600, gain: 0.35, partials: const [(1, 1), (1.5, 0.6), (2.6, 0.4)], envelope: Env.hit(5, 0.01));
     tape.tone(when + 0.02, 0.6, 3400, to: 1100, gain: 0.20, envelope: Env.hit(3.5, 0.02), vibrato: 0.05, vibratoRate: 28);
   }
@@ -453,6 +480,7 @@ class SceneScore {
   }
 
   void _creak(double when, double length) {
+    if (_recorded(const ['creak'], when, gain: 1.2)) return;
     tape.tone(
       when,
       length,
@@ -465,7 +493,9 @@ class SceneScore {
   }
 
   void _scuffle(double when, int count) {
+    _recorded(const ['punch', 'punch_2'], when, gain: 0.9);
     for (var i = 0; i < count; i++) {
+      if (_recorded(const ['cloth_1', 'cloth_2'], when + i * 0.11)) continue;
       tape.noise(when + i * 0.11, 0.09, gain: 0.25, lowpass: 1500, highpass: 250, envelope: Env.swell());
     }
   }

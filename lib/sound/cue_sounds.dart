@@ -46,6 +46,21 @@ enum Cue {
   familyWins,
 }
 
+/// I suoni brevi che hanno una registrazione vera tra gli asset (pacchetti
+/// CC0 di Kenney): per questi l'app suona il file, per gli altri il nastro
+/// sintetico. Quando ce n'è più d'uno se ne pesca uno a caso.
+const cueRecordings = {
+  Cue.click: ['click'],
+  Cue.deal: ['deal_1', 'deal_2', 'deal_3'],
+  Cue.flip: ['flip'],
+  Cue.nightfall: ['sax_03'],
+  Cue.dawn: ['bell'],
+  Cue.tick: ['tick'],
+  Cue.caught: ['hit_04'],
+  Cue.townWins: ['pizzi_07'],
+  Cue.familyWins: ['sax_13'],
+};
+
 /// Il nastro di un suono breve, come file WAV.
 Uint8List composeCue(Cue cue) => _CueScore(cue).record();
 

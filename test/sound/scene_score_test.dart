@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oberta/sound/sample_bank.dart';
 import 'package:oberta/sound/scene_score.dart';
 import 'package:oberta/sound/synth.dart';
 import 'package:oberta/ui/widgets/death_scene.dart';
@@ -82,7 +84,7 @@ void main() {
 
     test('la stessa scena suona sempre uguale', () {
       expect(composeScene(DeathAct.piano), composeScene(DeathAct.piano));
-      expect(composeSceneByIndex(DeathAct.kiss.index), composeScene(DeathAct.kiss));
+      expect(composeSceneByIndex((DeathAct.kiss.index, const {})), composeScene(DeathAct.kiss));
     });
 
     test('il colpo spicca su tutto, e un attimo prima la musica trattiene il fiato', () {
@@ -100,6 +102,33 @@ void main() {
       expect(SceneScore.at(1), DeathScene.length.inSeconds);
       expect(strike, closeTo(filmClock(DeathScenePainter.strike) * 14, 1e-9));
       expect(strike, inInclusiveRange(7, 8.5), reason: 'il rallentatore porta il colpo oltre metà film');
+    });
+  });
+
+  group('i suoni registrati', () {
+    /// La banca dei campioni letta dagli asset, come fa l'app.
+    SampleBank bankFromDisk() => {
+          for (final name in sceneSamples)
+            if (File('assets/sounds/$name.wav').existsSync())
+              name: Tape.decodeWav(File('assets/sounds/$name.wav').readAsBytesSync()),
+        };
+
+    test('ogni campione delle scene c\'è, si legge e non è muto', () {
+      final bank = bankFromDisk();
+      expect(bank.keys.toSet(), sceneSamples.toSet());
+      for (final entry in bank.entries) {
+        expect(entry.value.length, greaterThan(Tape.rate ~/ 50), reason: entry.key);
+        expect(entry.value.map((sample) => sample.abs()).reduce(max), greaterThan(0.05), reason: entry.key);
+      }
+    });
+
+    test('con i campioni le scene suonano diverse, e restano nei limiti', () {
+      final bank = bankFromDisk();
+      for (final act in [DeathAct.knife, DeathAct.bat, DeathAct.chandelier, DeathAct.safe]) {
+        final real = composeScene(act, bank);
+        expect(real, isNot(composeScene(act)), reason: act.name);
+        expect(samplesOf(real).every((sample) => sample.abs() <= 1), isTrue, reason: act.name);
+      }
     });
   });
 }
