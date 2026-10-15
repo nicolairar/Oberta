@@ -26,7 +26,24 @@ platform :ios do
       key_filepath: ENV.fetch("ASC_KEY_PATH"),
     )
 
-    sh("cd .. && flutter build ipa --release --export-options-plist=ios/ExportOptionsLocal.plist")
+    # Mai ricaricare un pacchetto vecchio: si parte da zero.
+    sh("rm -rf ../build/ios/ipa")
+    sh("cd .. && flutter build ipa --release --export-options-plist=ios/ExportOptionsLocal.plist") rescue nil
+    unless File.exist?("../build/ios/ipa/Oberta.ipa")
+      # Se Xcode non ha l'account, l'archivio c'è ma la firma no: la si fa
+      # con la chiave API di App Store Connect.
+      sh(
+        "cd .. && xcodebuild -exportArchive -archivePath build/ios/archive/Runner.xcarchive " \
+        "-exportPath build/ios/ipa -exportOptionsPlist ios/ExportOptionsLocal.plist " \
+        "-allowProvisioningUpdates " \
+        "-authenticationKeyPath #{File.expand_path(ENV.fetch('ASC_KEY_PATH'), '..')} " \
+        "-authenticationKeyID #{ENV.fetch('ASC_KEY_ID')} " \
+        "-authenticationKeyIssuerID #{ENV.fetch('ASC_ISSUER_ID')}"
+      )
+      ipa = Dir["../build/ios/ipa/*.ipa"].first
+      UI.user_error!("Nessun pacchetto firmato") unless ipa
+      File.rename(ipa, "../build/ios/ipa/Oberta.ipa") unless ipa.end_with?("/Oberta.ipa")
+    end
 
     upload_to_testflight(
       ipa: "build/ios/ipa/Oberta.ipa",
