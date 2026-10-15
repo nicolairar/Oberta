@@ -66,6 +66,7 @@ flutter:
     - assets/sounds/
     - assets/sfx/
     - assets/music/
+    - assets/meme/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

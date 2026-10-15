@@ -146,14 +146,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(SoundStage.instance.enabled, isFalse);
     expect(store.values[AppSettings.soundKey], false);
-    expect(tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value, isFalse);
+    expect(tester.widget<SwitchListTile>(find.byType(SwitchListTile).first).value, isFalse);
 
     await tester.pumpWidget(const SizedBox());
     await tester.pumpWidget(ObertaApp(settings: AppSettings(store)));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Impostazioni'));
     await tester.pumpAndSettle();
-    expect(tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value, isFalse);
+    expect(tester.widget<SwitchListTile>(find.byType(SwitchListTile).first).value, isFalse);
   });
 
   testWidgets('in inglese dal vicolo alla prima notte: narratore, carte, passaggio del telefono', (tester) async {

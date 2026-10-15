@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import '../../l10n/app_strings.dart';
 import '../../narration/death_story.dart';
+import '../../sound/memes.dart';
 import '../../sound/scene_effects.dart';
 import '../../sound/sound_stage.dart';
 import '../theme/app_theme.dart';
@@ -197,7 +198,14 @@ class _DeathSceneState extends State<DeathScene> with SingleTickerProviderStateM
       stage.effect(group);
     }
     final reaction = reactionFor(widget.act);
-    if (reaction != null) stage.effect(reaction, after: const Duration(milliseconds: 380));
+    final memeOnStrike = strikeMeme(widget.act);
+    final memeOnReaction = reactionMeme(widget.act);
+    if (stage.memeMode && memeOnStrike != null) stage.meme(memeOnStrike);
+    if (stage.memeMode && memeOnReaction != null) {
+      stage.meme(memeOnReaction, after: const Duration(milliseconds: 380));
+    } else if (reaction != null) {
+      stage.effect(reaction, after: const Duration(milliseconds: 380));
+    }
   }
 
   /// Il momento in cui la vittima si accorge di qualcosa, e la cinepresa le

@@ -526,4 +526,10 @@ final class EnglishStrings extends AppStrings {
 
   @override
   String get effectsVolumeLabel => 'Sound effects';
+
+  @override
+  String get memeMode => 'Meme mode';
+
+  @override
+  String get memeModeHint => 'Vine booms, FAAAH and friends at the big moments.';
 }

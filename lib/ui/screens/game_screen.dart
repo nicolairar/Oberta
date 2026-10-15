@@ -14,6 +14,7 @@ import '../../rules/player.dart';
 import '../../rules/role.dart';
 import '../../sound/cue_sounds.dart';
 import '../../sound/fx_groups.dart';
+import '../../sound/memes.dart';
 import '../../sound/sound_stage.dart';
 import '../../sound/verdict_stage.dart';
 import '../theme/app_theme.dart';
@@ -196,6 +197,8 @@ class _GameScreenState extends State<GameScreen> {
     final winner = report.winner;
     SoundStage.instance.cue(Cue.dawn);
     _dawnAtmosphere();
+    // Il Cronista smaschera uno della famiglia: sus.
+    if (report.scoop?.team == Team.mafia) SoundStage.instance.meme(Meme.vineBoom, after: const Duration(seconds: 2));
     _title = _t.dawnTitle;
     _mood = SceneMood.dawn;
     _stage = _Stage.script;
@@ -315,6 +318,8 @@ class _GameScreenState extends State<GameScreen> {
     final winner = report.winner;
     // Il rullo di tamburi accompagna il condannato fino alla carta.
     if (report.role != null) SoundStage.instance.cue(Cue.drumroll);
+    // Nessuna condanna: il silenzio imbarazzato della battuta che non ride nessuno.
+    if (condemned == null) SoundStage.instance.meme(Meme.chicken, after: const Duration(milliseconds: 600));
     _title = _t.verdictTitle;
     _mood = SceneMood.dusk;
     _stage = _Stage.script;
@@ -332,6 +337,7 @@ class _GameScreenState extends State<GameScreen> {
   void _enterEnd(Team winner) {
     SoundStage.instance.music(winner == Team.mafia ? MusicMood.winFamily : MusicMood.winTown);
     SoundStage.instance.cue(winner == Team.mafia ? Cue.familyWins : Cue.townWins);
+    if (winner == Team.mafia) SoundStage.instance.meme(Meme.catLaugh, after: const Duration(milliseconds: 800));
     _title = _t.endTitle;
     _mood = winner == Team.mafia ? SceneMood.night : SceneMood.dawn;
     _endingLines = _script.ending(winner);
@@ -477,6 +483,7 @@ class _GameScreenState extends State<GameScreen> {
             duration: widget.settings.discussion,
             grid: _publicGrid(),
             onVote: () => _advance(() {
+              SoundStage.instance.meme(Meme.dexter);
               _voteLines = _script.voteCall();
               _stage = _Stage.vote;
             }),
@@ -784,7 +791,12 @@ class _ScriptViewState extends State<_ScriptView> {
   void _turnCard() {
     HapticFeedback.heavyImpact();
     final caught = widget.page.revealed?.team == Team.mafia;
-    SoundStage.instance.cue(caught ? Cue.caught : Cue.innocent);
+    final stage = SoundStage.instance;
+    if (stage.memeMode) {
+      stage.meme(cardMeme(caught: caught));
+    } else {
+      stage.cue(caught ? Cue.caught : Cue.innocent);
+    }
     setState(() {
       _cardTurned = true;
       _reachedEnd = false;
@@ -908,7 +920,7 @@ class _DayViewState extends State<_DayView> {
       setState(() => _left -= _second);
       if (_left == Duration.zero) {
         HapticFeedback.heavyImpact();
-        SoundStage.instance.cue(Cue.timeUp);
+        SoundStage.instance.memeMode ? SoundStage.instance.meme(Meme.error) : SoundStage.instance.cue(Cue.timeUp);
       } else if (_left <= const Duration(seconds: 10)) {
         SoundStage.instance.cue(Cue.tick);
       }

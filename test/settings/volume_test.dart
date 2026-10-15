@@ -20,4 +20,15 @@ void main() {
     expect(again.musicVolume, 0.25);
     expect(again.effectsVolume, 1.0);
   });
+
+  test('la modalità meme parte spenta, e si ricorda quando la si accende', () {
+    final store = MemorySettingsStore();
+    final settings = AppSettings(store);
+    expect(settings.memeMode, isFalse);
+    expect(SoundStage.instance.memeMode, isFalse);
+    settings.memeMode = true;
+    expect(SoundStage.instance.memeMode, isTrue);
+    expect(AppSettings(store).memeMode, isTrue);
+    settings.memeMode = false;
+  });
 }

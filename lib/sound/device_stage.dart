@@ -10,6 +10,7 @@ import '../ui/widgets/verdict_scene.dart';
 import 'cue_sounds.dart';
 import 'ambience.dart';
 import 'fx_groups.dart';
+import 'memes.dart';
 import 'music_tracks.dart';
 import 'sample_bank.dart';
 import 'scene_score.dart';
@@ -207,6 +208,24 @@ class DeviceStage extends SoundStage implements VerdictStage {
       await _music.play(AssetSource('music/$track.m4a'));
       _fadeTo(_musicTarget, const Duration(milliseconds: 2200));
     });
+  }
+
+  @override
+  void meme(Meme meme, {Duration after = Duration.zero}) {
+    if (!enabled || !memeMode || effectsVolume <= 0) return;
+    () async {
+      try {
+        if (after > Duration.zero) await Future<void>.delayed(after);
+        if (!memeMode) return;
+        await _ready;
+        final player = _shortPlayers[_nextShort++ % _shortPlayers.length];
+        await player.stop();
+        await player.setVolume(effectsVolume);
+        await player.play(AssetSource(meme.asset));
+      } catch (error) {
+        _report(error);
+      }
+    }();
   }
 
   @override

@@ -60,6 +60,14 @@ class SettingsSheet extends StatelessWidget {
                   enabled: settings.soundOn,
                   onChanged: (volume) => settings.effectsVolume = volume,
                 ),
+                SwitchListTile(
+                  value: settings.memeMode,
+                  activeThumbColor: AppColors.gold,
+                  title: Text(t.memeMode),
+                  subtitle: Text(t.memeModeHint),
+                  secondary: const Icon(Icons.sentiment_very_satisfied, color: AppColors.gold),
+                  onChanged: settings.soundOn ? (on) => settings.memeMode = on : null,
+                ),
                 ListTile(
                   leading: const Icon(Icons.translate, color: AppColors.gold),
                   title: Text(t.languageSetting),

@@ -187,6 +187,8 @@ abstract class AppStrings {
   String get someoneSaved;
   String get musicVolumeLabel;
   String get effectsVolumeLabel;
+  String get memeMode;
+  String get memeModeHint;
   String verdictName(VerdictTake take);
   String cueName(Cue cue);
 
@@ -378,6 +380,8 @@ abstract class AppStrings {
     'someoneSaved': someoneSaved,
     'musicVolumeLabel': musicVolumeLabel,
     'effectsVolumeLabel': effectsVolumeLabel,
+    'memeMode': memeMode,
+    'memeModeHint': memeModeHint,
     for (final take in VerdictTake.values) 'verdictName.${take.name}': verdictName(take),
     'lobbyTitle': lobbyTitle,
     'lobbyDebugAdd': lobbyDebugAdd,

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../sound/memes.dart';
+import '../../sound/sound_stage.dart';
 import '../../l10n/app_strings.dart';
 import '../../rules/game_setup.dart';
 import '../theme/app_theme.dart';
@@ -20,6 +22,13 @@ class RoleRevealScreen extends StatefulWidget {
 }
 
 class _RoleRevealScreenState extends State<RoleRevealScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Mentre ognuno guarda la sua carta, in modalità meme parte la canzoncina.
+    SoundStage.instance.meme(Meme.englishSpanish);
+  }
+
   int _index = 0;
   bool _holdingPhone = false;
   bool _seen = false;

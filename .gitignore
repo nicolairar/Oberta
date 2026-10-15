@@ -55,3 +55,6 @@ fastlane/AuthKey_*.p8
 fastlane/.env
 fastlane/report.xml
 fastlane/README.md
+
+# File da analizzare prima di entrare nel gioco
+incoming/

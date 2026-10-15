@@ -527,4 +527,10 @@ final class ItalianStrings extends AppStrings {
 
   @override
   String get effectsVolumeLabel => 'Effetti sonori';
+
+  @override
+  String get memeMode => 'Modalità meme';
+
+  @override
+  String get memeModeHint => 'Vine boom, FAAAH e compagnia nei momenti clou.';
 }

@@ -11,7 +11,8 @@ class AppSettings extends ChangeNotifier {
   static const soundKey = 'sound';
   static const musicVolumeKey = 'musicVolume';
   static const effectsVolumeKey = 'effectsVolume';
-  static const keys = {languageKey, soundKey, musicVolumeKey, effectsVolumeKey};
+  static const memeKey = 'meme';
+  static const keys = {languageKey, soundKey, musicVolumeKey, effectsVolumeKey, memeKey};
 
   /// Le preferenze in uso. I test le tengono in memoria; `main` le apre dal
   /// telefono con [open].
@@ -27,7 +28,21 @@ class AppSettings extends ChangeNotifier {
       : _language = AppLanguage.values.asNameMap()[_store.getString(languageKey)],
         _soundOn = _store.getBool(soundKey) ?? true,
         _musicVolume = _readVolume(_store, musicVolumeKey, defaultMusicVolume),
-        _effectsVolume = _readVolume(_store, effectsVolumeKey, defaultEffectsVolume);
+        _effectsVolume = _readVolume(_store, effectsVolumeKey, defaultEffectsVolume),
+        _memeMode = _store.getBool(memeKey) ?? false;
+
+  bool _memeMode;
+
+  /// La modalità meme, spenta finché qualcuno non la accende.
+  bool get memeMode => _memeMode;
+
+  set memeMode(bool on) {
+    if (on == _memeMode) return;
+    _memeMode = on;
+    SoundStage.instance.memeMode = on;
+    _store.setBool(memeKey, on);
+    notifyListeners();
+  }
 
   /// La musica parte a metà: è un sottofondo, non deve coprire il tavolo.
   static const defaultMusicVolume = 0.5;
@@ -48,6 +63,7 @@ class AppSettings extends ChangeNotifier {
     final settings = AppSettings(await DeviceSettingsStore.open(keys));
     SoundStage.instance.enabled = settings.soundOn;
     settings._applyVolumes();
+    SoundStage.instance.memeMode = settings.memeMode;
     return settings;
   }
 

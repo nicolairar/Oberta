@@ -3,6 +3,7 @@ import 'dart:async';
 import '../ui/widgets/death_scene.dart';
 import 'cue_sounds.dart';
 import 'fx_groups.dart';
+import 'memes.dart';
 
 /// Il sottofondo di ogni momento della partita.
 enum MusicMood { menu, night, day, winTown, winFamily }
@@ -22,6 +23,12 @@ class SoundStage {
   /// la musica bassa e gli spari forti può farlo.
   double musicVolume = 0.5;
   double effectsVolume = 0.8;
+
+  /// La modalità meme: spenta, i meme non suonano mai.
+  bool memeMode = false;
+
+  /// Un meme, se la modalità meme è accesa. [after] lo ritarda.
+  void meme(Meme meme, {Duration after = Duration.zero}) {}
 
   /// Cambia la musica di sottofondo: dissolvenza dalla traccia di prima a
   /// quella nuova (una a caso tra quelle di [mood]). Se suona già, resta.
