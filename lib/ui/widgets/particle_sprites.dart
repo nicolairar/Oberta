@@ -10,11 +10,27 @@ class ParticleSprites {
   final ui.Image smoke;
   final List<ui.Image> explosions;
 
+  // Polvere, detriti e fumo per i tonfi e le esplosioni.
+  final List<ui.Image> puffs;
+  final List<ui.Image> dirt;
+  final List<ui.Image> blackSmoke;
+  final List<ui.Image> flashes;
+  final ui.Image? slash;
+  final ui.Image? glint;
+  final ui.Image? scorch;
+
   const ParticleSprites({
     required this.muzzle,
     required this.spark,
     required this.smoke,
     required this.explosions,
+    this.puffs = const [],
+    this.dirt = const [],
+    this.blackSmoke = const [],
+    this.flashes = const [],
+    this.slash,
+    this.glint,
+    this.scorch,
   });
 
   static final Future<ParticleSprites> shared = _load();
@@ -27,6 +43,13 @@ class ParticleSprites {
           for (var i = 0; i <= 8; i++)
             await _decode('assets/particles/explosion_${i.toString().padLeft(2, '0')}.png'),
         ],
+        puffs: [for (final i in const ['00', '03', '06', '09', '12']) await _decode('assets/particles/puff_$i.png')],
+        dirt: [for (final i in const ['01', '02']) await _decode('assets/particles/dirt_$i.png')],
+        blackSmoke: [for (final i in const ['00', '03', '06', '09', '12']) await _decode('assets/particles/black_smoke_$i.png')],
+        flashes: [for (var i = 0; i <= 8; i++) await _decode('assets/particles/flash_0$i.png')],
+        slash: await _decode('assets/particles/slash_02.png'),
+        glint: await _decode('assets/particles/star_06.png'),
+        scorch: await _decode('assets/particles/scorch_01.png'),
       );
 
   static Future<ui.Image> _decode(String path) async {
@@ -38,6 +61,36 @@ class ParticleSprites {
   }
 
   ui.Image explosionAt(double progress) => explosions[(progress * explosions.length).floor().clamp(0, explosions.length - 1)];
+
+  /// Come [draw], ma il colore tinge davvero lo sprite (con [draw] conta
+  /// solo l'opacità): polvere grigia, fumi verdi, bruciature scure.
+  static void drawTinted(
+    ui.Canvas canvas,
+    ui.Image image,
+    ui.Offset center, {
+    required double width,
+    required double height,
+    required ui.Color tint,
+    double opacity = 1,
+    double rotation = 0,
+  }) {
+    if (opacity <= 0 || width <= 0 || height <= 0) return;
+    final source = ui.Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble());
+    final destination = ui.Rect.fromCenter(center: ui.Offset.zero, width: width, height: height);
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    canvas.rotate(rotation);
+    canvas.drawImageRect(
+      image,
+      source,
+      destination,
+      ui.Paint()
+        ..filterQuality = ui.FilterQuality.medium
+        ..colorFilter = ui.ColorFilter.mode(tint, ui.BlendMode.modulate)
+        ..color = ui.Color.fromARGB((opacity.clamp(0.0, 1.0) * 255).round(), 255, 255, 255),
+    );
+    canvas.restore();
+  }
 
   static void draw(
     ui.Canvas canvas,

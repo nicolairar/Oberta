@@ -206,18 +206,18 @@ class SceneScore {
         _crash(hit, pieces: 10, low: 400, high: 1800);
         _whistle(hit + 0.15, 0.9, 500, 1400, gain: 0.10);
       case DeathAct.piano:
-        _whistle(at(0.46), hit - at(0.46), 1500, 420);
+        _whistle(at(0.50), hit - at(0.50), 1500, 420);
         _thud(hit, weight: 1.8);
         for (var i = 0; i < 14; i++) {
           tape.pluck(hit + i * 0.012, 65.0 * pow(2, (i * 7 % 36) / 12), length: 2.6, gain: 0.30, damping: 0.998);
         }
         tape.pluck(at(0.70), 1046.5, length: 1.5, gain: 0.25, brightness: 0.9, damping: 0.998);
       case DeathAct.safe:
-        _whistle(at(0.46), hit - at(0.46), 1300, 380);
+        _whistle(at(0.50), hit - at(0.50), 1300, 380);
         _thud(hit, weight: 2);
         _clang(hit, 170);
       case DeathAct.chandelier:
-        _whistle(at(0.46), hit - at(0.46), 1700, 600, gain: 0.10);
+        _whistle(at(0.50), hit - at(0.50), 1700, 600, gain: 0.10);
         _crash(at(0.46), pieces: 8, low: 2500, high: 6000, spread: hit - at(0.46), gain: 0.10);
         _thud(hit, weight: 1.4);
         _crash(hit, pieces: 46, low: 1800, high: 7000, spread: 0.7);
