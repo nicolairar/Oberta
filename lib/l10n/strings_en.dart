@@ -162,6 +162,9 @@ final class EnglishStrings extends AppStrings {
   String get startTheNight => 'START THE NIGHT';
   @override
   String get dawnTitle => 'DAWN';
+
+  @override
+  String get dayBreaks => 'Day breaks';
   @override
   String get everyoneAlive => 'Everyone made it';
   @override

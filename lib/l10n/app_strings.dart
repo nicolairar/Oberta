@@ -111,6 +111,7 @@ abstract class AppStrings {
   String get nightFalls;
   String get startTheNight;
   String get dawnTitle;
+  String get dayBreaks;
   String get everyoneAlive;
   String get crimePage;
   String get finale;
@@ -313,6 +314,7 @@ abstract class AppStrings {
     'nightFalls': nightFalls,
     'startTheNight': startTheNight,
     'dawnTitle': dawnTitle,
+    'dayBreaks': dayBreaks,
     'everyoneAlive': everyoneAlive,
     'crimePage': crimePage,
     'finale': finale,

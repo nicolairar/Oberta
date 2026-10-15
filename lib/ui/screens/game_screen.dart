@@ -23,6 +23,7 @@ import '../widgets/avatar_spotlight.dart';
 import '../widgets/death_scene.dart';
 import '../widgets/handoff_view.dart';
 import '../widgets/narrator_roles_sheet.dart';
+import '../widgets/phase_shift.dart';
 import '../widgets/player_grid.dart';
 import '../widgets/role_reveal_card.dart';
 import '../widgets/city_backdrop.dart';
@@ -64,6 +65,9 @@ class _ScriptPage {
   /// Il ruolo che questa pagina svela. Resta coperto, insieme alle battute
   /// dopo la prima, finché chi legge non gira la carta.
   final Role? revealed;
+  /// La pagina apre un cambio d'ora: `true` cala la notte, `false` si fa
+  /// giorno, `null` niente.
+  final bool? nightfall;
   final String action;
   final VoidCallback onAction;
 
@@ -74,6 +78,7 @@ class _ScriptPage {
     this.portraits = const [],
     this.portraitsFallen = false,
     this.revealed,
+    this.nightfall,
     required this.action,
     required this.onAction,
   });
@@ -140,12 +145,17 @@ class _GameScreenState extends State<GameScreen> {
     SoundStage.instance.cue(Cue.nightfall);
     _nightAtmosphere();
     _title = _t.nightTitle(round);
-    _mood = SceneMood.night;
+    // Prima il tramonto, poi la notte: il fondale scende con la pagina.
+    _mood = SceneMood.dusk;
+    _thunders.add(Timer(const Duration(milliseconds: 1400), () {
+      if (mounted && _mood == SceneMood.dusk) setState(() => _mood = SceneMood.night);
+    }));
     _stage = _Stage.script;
     _page = _ScriptPage(
       icon: Icons.nightlight_round,
       title: round == 1 ? _script.city.title : _t.nightFalls,
       lines: [if (round == 1) ..._script.opening(), ..._script.nightFalls(round)],
+      nightfall: true,
       action: _t.startTheNight,
       onAction: () => _advance(() {
         _queue = _engine.alivePlayers;
@@ -208,6 +218,7 @@ class _GameScreenState extends State<GameScreen> {
     _stage = _Stage.script;
     _page = _ScriptPage(
       icon: Icons.wb_twilight,
+      nightfall: false,
       title: report.victims.isEmpty ? _t.everyoneAlive : _t.crimePage,
       lines: _script.dawn(report, discussion: widget.settings.discussion, stories: _deaths),
       // Chi è morto, a lutto. Se non è morto nessuno, chi l'ha scampata.
@@ -857,7 +868,16 @@ class _ScriptViewState extends State<_ScriptView> {
 
     return Column(
       children: [
-        if (page.portraits.isEmpty)
+        if (page.nightfall != null)
+          PhaseShift(
+            key: ValueKey(page),
+            toNight: page.nightfall!,
+            label: page.nightfall! ? widget.strings.nightFalls : widget.strings.dayBreaks,
+          ),
+        if (page.nightfall != null && page.portraits.isNotEmpty) const SizedBox(height: 12),
+        if (page.nightfall != null && page.portraits.isEmpty)
+          const SizedBox.shrink()
+        else if (page.portraits.isEmpty)
           Icon(page.icon, color: AppColors.gold, size: 36)
         else
           Row(

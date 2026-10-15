@@ -16,6 +16,7 @@ import 'city_backdrop.dart';
 import 'face_close_up.dart';
 import 'mugshot_frame.dart';
 import 'noir_avatar.dart';
+import 'particle_sprites.dart';
 import '../press.dart';
 
 /// I modi in cui la piazza si libera di qualcuno, più quello in cui non si
@@ -178,6 +179,7 @@ class _VerdictSceneState extends State<VerdictScene> with SingleTickerProviderSt
   late final VerdictTake _take =
       widget.condemnedName == null ? VerdictTake.assoluzione : VerdictTake.pick(widget.variant, Random());
   late final AnimationController _film;
+  late final Future<ParticleSprites> _particles = ParticleSprites.shared;
   final List<Timer> _tuning = [];
   bool _struck = false;
   bool _ended = false;
@@ -264,10 +266,20 @@ class _VerdictSceneState extends State<VerdictScene> with SingleTickerProviderSt
       fit: StackFit.expand,
       children: [
         CityBackdrop(mood: SceneMood.dusk, style: widget.style, child: const SizedBox.expand()),
-        AnimatedBuilder(
-          animation: _film,
-          builder: (context, _) => CustomPaint(
-            painter: VerdictScenePainter(t: _film.value, take: _take, hat: hat, town: town, strings: strings),
+        FutureBuilder<ParticleSprites>(
+          future: _particles,
+          builder: (context, snapshot) => AnimatedBuilder(
+            animation: _film,
+            builder: (context, _) => CustomPaint(
+              painter: VerdictScenePainter(
+                t: _film.value,
+                take: _take,
+                hat: hat,
+                town: town,
+                strings: strings,
+                sprites: snapshot.data,
+              ),
+            ),
           ),
         ),
         AnimatedBuilder(
@@ -453,6 +465,7 @@ const _curses = ['#@!', '?!', '%&!', '!!', '@#?', '*!'];
 class VerdictScenePainter extends CustomPainter {
   final double t;
   final VerdictTake take;
+  final ParticleSprites? sprites;
 
   /// Il cappello del condannato, lo stesso del suo ritratto.
   final AvatarHead hat;
@@ -467,6 +480,7 @@ class VerdictScenePainter extends CustomPainter {
     required this.strings,
     this.hat = AvatarHead.fedora,
     this.town = '',
+    this.sprites,
   });
 
   static const _ink = Color(0xFF050506);
@@ -1402,6 +1416,29 @@ class VerdictScenePainter extends CustomPainter {
       for (final (scale, color) in const [(1.0, Color(0xFFFF6A2B)), (0.65, Color(0xFFFFB13B)), (0.35, Color(0xFFFFF3C4))]) {
         canvas.drawCircle(muzzle + dir * (_u * 0.2), _u * 0.8 * Curves.easeOut.transform(blast) * scale, Paint()..color = color.withValues(alpha: 1 - blast));
       }
+      final textures = sprites;
+      if (textures != null) {
+        final centre = muzzle + dir * (_u * 0.2);
+        final grow = Curves.easeOut.transform(blast);
+        ParticleSprites.draw(
+          canvas,
+          textures.explosionAt(blast),
+          centre,
+          width: _u * 2.6 * grow,
+          height: _u * 2.6 * grow,
+          opacity: 0.92 * (1 - blast),
+        );
+        ParticleSprites.draw(
+          canvas,
+          textures.muzzle,
+          muzzle,
+          width: _u * 0.45,
+          height: _u * 1.0,
+          opacity: 1 - blast,
+          rotation: angle + pi / 2,
+          tint: const Color(0xFFFFD68A),
+        );
+      }
     }
     for (var i = 0; i < 4; i++) {
       _puff(canvas, muzzle + dir * (_u * (0.2 + i * 0.25)), _span(t, VerdictBeats.boom + i * 0.01, VerdictBeats.boom + 0.20), size: 1.0 + i * 0.2);
@@ -2024,6 +2061,19 @@ class VerdictScenePainter extends CustomPainter {
 
   void _puff(Canvas canvas, Offset center, double life, {double size = 1, Color color = const Color(0xFF8E8A86)}) {
     if (life <= 0 || life >= 1) return;
+    final textures = sprites;
+    if (textures != null) {
+      ParticleSprites.draw(
+        canvas,
+        textures.smoke,
+        center,
+        width: _u * size * 1.45,
+        height: _u * size * 1.45,
+        opacity: 0.68 * (1 - life),
+        tint: color,
+      );
+      return;
+    }
     final paint = Paint()
       ..color = color.withValues(alpha: 0.55 * (1 - life))
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, _u * 0.05);
@@ -2039,6 +2089,19 @@ class VerdictScenePainter extends CustomPainter {
 
   void _star(Canvas canvas, Offset center, double radius, Color color) {
     if (radius <= 0) return;
+    final textures = sprites;
+    if (textures != null) {
+      ParticleSprites.draw(
+        canvas,
+        textures.spark,
+        center,
+        width: radius * 3.2,
+        height: radius * 3.2,
+        opacity: color.a,
+        tint: color,
+      );
+      return;
+    }
     final path = Path();
     for (var i = 0; i < 16; i++) {
       final r = i.isEven ? radius : radius * 0.42;

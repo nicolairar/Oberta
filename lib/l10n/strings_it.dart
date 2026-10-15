@@ -160,6 +160,9 @@ final class ItalianStrings extends AppStrings {
   String get startTheNight => 'COMINCIA LA NOTTE';
   @override
   String get dawnTitle => 'ALBA';
+
+  @override
+  String get dayBreaks => 'Si fa giorno';
   @override
   String get everyoneAlive => 'Tutti vivi';
   @override

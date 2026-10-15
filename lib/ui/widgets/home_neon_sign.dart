@@ -151,13 +151,19 @@ class HomeNeonSign {
   /// Il tubo difettoso è la B: quando muore l'insegna dice «O ERTÀ», e il
   /// buco è proprio la lettera che nessuno vuole pronunciare.
   static const _faults = [
+    (1, 3.0, 0.9),
     (1, 7.0, 0.0),
+    (1, 11.5, 1.2),
     (1, 16.4, 1.6),
+    (1, 21.0, 0.8),
     (5, 24.5, 0.0),
-    (1, 29.0, 0.0),
+    (1, 29.0, 1.0),
+    (1, 35.5, 0.0),
+    (1, 38.5, 1.1),
     (1, 41.2, 2.2),
     (3, 46.0, 0.0),
-    (1, 55.5, 0.0),
+    (1, 49.5, 0.9),
+    (1, 55.5, 1.3),
   ];
 
   /// Il calo di tensione che una volta a giro prende tutta l'insegna.
