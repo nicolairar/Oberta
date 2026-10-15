@@ -8,6 +8,7 @@ import '../../sound/cue_sounds.dart';
 import '../../sound/sound_stage.dart';
 import '../theme/app_theme.dart';
 import 'noir_avatar.dart';
+import '../../sound/memes.dart';
 
 /// Il tamburo di un revolver visto da dietro, con un giocatore in ogni
 /// camera. Gira scattando, rallenta, e la camera che si ferma sotto il cane
@@ -46,6 +47,8 @@ class _RevolverCylinderState extends State<RevolverCylinder> with TickerProvider
         if (status == AnimationStatus.completed) {
           HapticFeedback.heavyImpact();
           SoundStage.instance.cue(Cue.bang);
+          // Il narratore estratto: "hell nah".
+          SoundStage.instance.meme(Meme.hellNah, after: const Duration(milliseconds: 500));
           _bang.forward();
           widget.onStopped?.call();
         }

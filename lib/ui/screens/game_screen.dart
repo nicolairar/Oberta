@@ -664,7 +664,11 @@ class _GameScreenState extends State<GameScreen> {
       selectable: selectable,
       selected: _selected,
       silenced: _dawn.silenced,
-      onSelect: (player) => setState(() => _selected = player),
+      onSelect: (player) {
+        // Il dito punta qualcuno in piazza: sus.
+        if (player != _selected) SoundStage.instance.meme(Meme.vineBoom);
+        setState(() => _selected = player);
+      },
     );
   }
 

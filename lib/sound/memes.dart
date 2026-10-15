@@ -82,5 +82,12 @@ Meme? reactionMeme(DeathAct act) => switch (act) {
       _ => _dice.nextDouble() < 0.9 ? Meme.faaah : null,
     };
 
+/// I meme brevi e stupidi, quelli che si possono buttare ovunque.
+const shortMemes = [Meme.vineBoom, Meme.knocked, Meme.heeHee, Meme.rizz, Meme.animeAhh, Meme.applePay, Meme.error];
+
+/// Un meme breve a caso, con probabilità [chance]: per i momenti qualsiasi
+/// (una carta che cade, un posto preso) che diventano cringe.
+Meme? now(double chance, [List<Meme> pool = shortMemes]) => _dice.nextDouble() < chance ? _one(pool) : null;
+
 /// La carta girata dopo il verdetto.
 Meme cardMeme({required bool caught}) => caught ? Meme.vineBoom : _one(const [Meme.catLaugh, Meme.hellNah]);

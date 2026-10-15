@@ -7,6 +7,7 @@ import '../../sound/cue_sounds.dart';
 import '../../sound/sound_stage.dart';
 import '../theme/app_theme.dart';
 import 'noir_avatar.dart';
+import '../../sound/memes.dart';
 
 /// Il tavolo da poker nel retro del locale: i giocatori seduti intorno al
 /// panno verde, il mazzo che si mescola al centro e una carta coperta che
@@ -51,6 +52,9 @@ class _DealTableState extends State<DealTable> with SingleTickerProviderStateMix
   }
 
   /// Un colpetto ogni volta che una carta tocca il panno.
+  /// Quanti meme sono già usciti durante la distribuzione: un paio basta.
+  int _memes = 0;
+
   void _tap() {
     var landed = 0;
     for (var i = 0; i < widget.names.length; i++) {
@@ -59,6 +63,13 @@ class _DealTableState extends State<DealTable> with SingleTickerProviderStateMix
     if (landed > _landed) {
       HapticFeedback.lightImpact();
       SoundStage.instance.cue(Cue.deal);
+      if (_memes < 2) {
+        final meme = now(0.25);
+        if (meme != null) {
+          _memes++;
+          SoundStage.instance.meme(meme);
+        }
+      }
     }
     _landed = landed;
   }

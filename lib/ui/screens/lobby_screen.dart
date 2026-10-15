@@ -16,6 +16,7 @@ import 'narrator_selection_screen.dart';
 import 'person_screen.dart';
 import '../press.dart';
 import '../../sound/sound_stage.dart';
+import '../../sound/memes.dart';
 
 // I testi della schermata, tutti qui: la traduzione li prenderà da qui.
 
@@ -107,6 +108,11 @@ class _LobbyScreenState extends State<LobbyScreen> {
 
   Future<void> _toggleSeat(RosterMember member) async {
     SoundStage.instance.press(member.seated ? Press.card : Press.chips);
+    // Chi si siede al tavolo, ogni tanto, ha il suo momento.
+    if (!member.seated && SoundStage.instance.memeMode) {
+      final meme = now(0.3, const [Meme.rizz, Meme.heeHee, Meme.applePay]);
+      if (meme != null) SoundStage.instance.meme(meme);
+    }
     final seated = await _store.seat(member.id, !member.seated);
     if (!seated && mounted) _say(_t.lobbyTableFullRefusal);
   }
