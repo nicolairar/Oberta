@@ -12,8 +12,6 @@ import 'ambience.dart';
 import 'fx_groups.dart';
 import 'memes.dart';
 import 'music_tracks.dart';
-import 'sample_bank.dart';
-import 'scene_score.dart';
 import 'sound_stage.dart';
 import 'verdict_stage.dart';
 
@@ -21,13 +19,11 @@ import 'verdict_stage.dart';
 /// dall'altoparlante del telefono.
 class DeviceStage extends SoundStage implements VerdictStage {
   final AudioPlayer _player = AudioPlayer();
-  final Map<DeathAct, Future<String>> _tapes = {};
-  final Map<VerdictTake, Future<String>> _verdicts = {};
 
   /// I suoni brevi, incisi tutti insieme appena l'app parte, e una piccola
   /// batteria di lettori per poterli suonare uno sopra l'altro.
   late final Future<Map<Cue, String>> _cues = _recordCues();
-  final List<AudioPlayer> _shortPlayers = [for (var i = 0; i < 4; i++) AudioPlayer()];
+  final List<AudioPlayer> _shortPlayers = [for (var i = 0; i < 8; i++) AudioPlayer()];
   int _nextShort = 0;
 
   final AudioPlayer _music = AudioPlayer();
@@ -39,11 +35,7 @@ class DeviceStage extends SoundStage implements VerdictStage {
   Timer? _fade;
   final Map<FxGroup, int> _lastTake = {};
   late final Future<void> _ready = _setUp();
-  late final Future<SampleBank> _bank = loadSampleBank();
 
-  /// Cambia a ogni richiesta: un nastro che arriva tardi capisce da qui che
-  /// nel frattempo la scena è finita, e non parte.
-  int _ticket = 0;
 
   DeviceStage() {
     _ready.then<void>((_) {}, onError: _report);
@@ -69,16 +61,17 @@ class DeviceStage extends SoundStage implements VerdictStage {
       try {
         await _ready;
         await player.stop();
+        final gain = cueGains[cue] ?? 0.6;
         final fx = cueEffects[cue];
         if (fx != null) {
-          effect(fx);
+          effect(fx, volume: gain);
           return;
         }
         final recorded = cueRecordings[cue];
         if (recorded != null) {
-          await player.play(AssetSource('sounds/${recorded[_nextShort % recorded.length]}.wav'), volume: effectsVolume);
+          await player.play(AssetSource('sounds/${recorded[_nextShort % recorded.length]}.wav'), volume: effectsVolume * gain);
         } else {
-          await player.play(DeviceFileSource((await _cues)[cue]!), volume: effectsVolume);
+          await player.play(DeviceFileSource((await _cues)[cue]!), volume: effectsVolume * gain);
         }
       } catch (error) {
         _report(error);
@@ -98,76 +91,48 @@ class DeviceStage extends SoundStage implements VerdictStage {
         ),
       );
 
-  Future<String> _tape(DeathAct act) => _tapes[act] ??= _record(act);
 
-  /// Comporre un nastro costa qualche decimo di secondo: lo si fa in un
-  /// altro isolate, per non far scattare le animazioni.
-  Future<String> _record(DeathAct act) async {
-    final file = File('${Directory.systemTemp.path}/scene-${act.name}.wav');
-    final bytes = await compute(composeSceneByIndex, (act.index, await _bank));
-    await file.writeAsBytes(bytes, flush: true);
-    return file.path;
-  }
+
 
   @override
-  void prepare(Iterable<DeathAct> acts) {
-    if (!enabled) return;
-    for (final act in acts) {
-      _tape(act).then<void>((_) {}, onError: _report);
-    }
-  }
+  void prepare(Iterable<DeathAct> acts) {}
 
+
+  /// Le scene non hanno più un nastro: ogni suono parte da solo al suo
+  /// fotogramma (vedi `scene_cues.dart`). Il film parte subito.
   @override
   FutureOr<void> playScene(DeathAct act) {
-    final ticket = ++_ticket;
-    if (!enabled) return null;
-    return _play(act, ticket);
-  }
-
-  Future<void> _play(DeathAct act, int ticket) async {
-    try {
-      await _ready;
-      final path = await _tape(act);
-      if (ticket != _ticket) return;
-      // Prima di cambiare nastro si riavvolge: la posizione che il film
-      // chiede poco dopo deve essere quella del nastro nuovo.
-      await _player.stop();
-      await _player.play(DeviceFileSource(path), position: Duration.zero, volume: _sceneVolume);
-    } catch (error) {
-      // Un nastro venuto male non deve fermare la partita: la scena va in
-      // onda muta, e la prossima volta si riprova da capo.
-      _tapes.remove(act);
-      _report(error);
-    }
+    return null;
   }
 
   @override
-  void prepareVerdicts(Iterable<VerdictTake> takes) {
-    if (!enabled) return;
-    for (final take in takes) {
-      (_verdicts[take] ??= recordVerdictTape(take)).then<void>((_) {}, onError: _report);
-    }
+  void sample(String name, {double volume = 1}) {
+    if (!enabled || effectsVolume <= 0) return;
+    final player = _shortPlayers[_nextShort++ % _shortPlayers.length];
+    () async {
+      try {
+        await player.stop();
+        await player.play(AssetSource('sounds/$name.wav'), volume: (effectsVolume * volume).clamp(0.0, 1.0));
+      } catch (error) {
+        _report(error);
+      }
+    }();
   }
 
+
+
+  @override
+  void prepareVerdicts(Iterable<VerdictTake> takes) {}
+
+
+  /// Anche i verdetti suonano a battute (vedi `verdict_cues.dart`), senza nastro.
   @override
   FutureOr<void> playVerdict(VerdictTake take) {
-    final ticket = ++_ticket;
-    if (!enabled) return null;
-    return _playVerdict(take, ticket);
+    return null;
   }
 
-  Future<void> _playVerdict(VerdictTake take, int ticket) async {
-    try {
-      await _ready;
-      final path = await (_verdicts[take] ??= recordVerdictTape(take));
-      if (ticket != _ticket) return;
-      await _player.stop();
-      await _player.play(DeviceFileSource(path), position: Duration.zero, volume: _sceneVolume);
-    } catch (error) {
-      _verdicts.remove(take);
-      _report(error);
-    }
-  }
+
+
 
   @override
   void effect(FxGroup group, {Duration after = Duration.zero, double volume = 1}) {
@@ -227,7 +192,6 @@ class DeviceStage extends SoundStage implements VerdictStage {
     _enabled = on;
     if (!on) {
       _fade?.cancel();
-      _ticket++;
       for (final player in [_player, _music, _ambience, ..._shortPlayers]) {
         player.stop().then<void>((_) {}, onError: _report);
       }
@@ -278,7 +242,7 @@ class DeviceStage extends SoundStage implements VerdictStage {
         await _ready;
         final player = _shortPlayers[_nextShort++ % _shortPlayers.length];
         await player.stop();
-        await player.play(AssetSource(meme.asset), volume: effectsVolume);
+        await player.play(AssetSource(meme.asset), volume: effectsVolume * 0.7);
       } catch (error) {
         _report(error);
       }
@@ -354,7 +318,6 @@ class DeviceStage extends SoundStage implements VerdictStage {
 
   @override
   Future<void> stop() async {
-    _ticket++;
     try {
       await _player.stop();
     } catch (error) {

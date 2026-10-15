@@ -4,6 +4,7 @@ import '../ui/widgets/death_scene.dart';
 import 'cue_sounds.dart';
 import 'fx_groups.dart';
 import 'memes.dart';
+import 'scene_cues.dart';
 
 /// Il sottofondo di ogni momento della partita.
 enum MusicMood { menu, night, day, winTown, winFamily }
@@ -29,6 +30,20 @@ class SoundStage {
 
   /// Un meme, se la modalità meme è accesa. [after] lo ritarda.
   void meme(Meme meme, {Duration after = Duration.zero}) {}
+
+  /// Un campione dei pacchetti Kenney (`assets/sounds/<name>.wav`).
+  void sample(String name, {double volume = 1}) {}
+
+  /// Un suono di una scena, al suo momento.
+  void sceneCue(SceneCue cue) {
+    if (cue.meme != null) {
+      meme(cue.meme!);
+    } else if (cue.fx != null) {
+      effect(cue.fx!, volume: cue.gain);
+    } else if (cue.sample != null) {
+      sample(cue.sample!, volume: cue.gain);
+    }
+  }
 
   /// Cambia la musica di sottofondo: dissolvenza dalla traccia di prima a
   /// quella nuova (una a caso tra quelle di [mood]). Se suona già, resta.

@@ -7,6 +7,8 @@ import 'package:flutter/services.dart';
 
 import '../../l10n/app_strings.dart';
 import '../../roster/portrait_registry.dart';
+import '../../sound/scene_cues.dart';
+import '../../sound/verdict_cues.dart';
 import '../../sound/sound_stage.dart';
 import '../../sound/verdict_stage.dart';
 import '../theme/app_theme.dart';
@@ -169,6 +171,9 @@ class VerdictScene extends StatefulWidget {
 }
 
 class _VerdictSceneState extends State<VerdictScene> with SingleTickerProviderStateMixin {
+  late final List<SceneCue> _cues = verdictCuesFor(_take);
+  int _nextCue = 0;
+
   late final VerdictTake _take =
       widget.condemnedName == null ? VerdictTake.assoluzione : VerdictTake.pick(widget.variant, Random());
   late final AnimationController _film;
@@ -187,6 +192,9 @@ class _VerdictSceneState extends State<VerdictScene> with SingleTickerProviderSt
         if (!_struck && _film.value >= _take.payoff) {
           _struck = true;
           HapticFeedback.mediumImpact();
+        }
+        while (_nextCue < _cues.length && _film.value >= _cues[_nextCue].t) {
+          SoundStage.instance.sceneCue(_cues[_nextCue++]);
         }
       })
       ..addStatusListener((status) {
@@ -222,6 +230,7 @@ class _VerdictSceneState extends State<VerdictScene> with SingleTickerProviderSt
   /// Chi salta arriva alla carta finale, e avanti si va solo col pulsante.
   void _skip() {
     _struck = true;
+    _nextCue = _cues.length;
     _film.value = 1;
     SoundStage.instance.stop();
   }

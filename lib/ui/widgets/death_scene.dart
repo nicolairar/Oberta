@@ -6,8 +6,7 @@ import 'package:flutter/services.dart';
 
 import '../../l10n/app_strings.dart';
 import '../../narration/death_story.dart';
-import '../../sound/memes.dart';
-import '../../sound/scene_effects.dart';
+import '../../sound/scene_cues.dart';
 import '../../sound/sound_stage.dart';
 import '../theme/app_theme.dart';
 import 'city_backdrop.dart';
@@ -146,6 +145,8 @@ class DeathScene extends StatefulWidget {
 
 class _DeathSceneState extends State<DeathScene> with SingleTickerProviderStateMixin {
   late final AnimationController _film;
+  late final List<SceneCue> _cues = sceneCuesFor(widget.act, memes: SoundStage.instance.memeMode);
+  int _nextCue = 0;
   final List<Timer> _tuning = [];
   bool _struck = false;
   bool _ended = false;
@@ -162,10 +163,13 @@ class _DeathSceneState extends State<DeathScene> with SingleTickerProviderStateM
       animationBehavior: AnimationBehavior.preserve,
     )
       ..addListener(() {
-        if (!_struck && filmTime(_film.value) >= DeathScenePainter.strike) {
+        final t = filmTime(_film.value);
+        if (!_struck && t >= DeathScenePainter.strike) {
           _struck = true;
           HapticFeedback.heavyImpact();
-          _strikeEffects();
+        }
+        while (_nextCue < _cues.length && t >= _cues[_nextCue].t) {
+          SoundStage.instance.sceneCue(_cues[_nextCue++]);
         }
       })
       ..addStatusListener((status) {
@@ -187,24 +191,6 @@ class _DeathSceneState extends State<DeathScene> with SingleTickerProviderStateM
       });
     } else {
       _film.forward();
-    }
-  }
-
-  /// I rumori veri del colpo, e la reazione della vittima un attimo dopo.
-  /// Ogni volta ne escono di diversi: lo stesso agguato non suona mai uguale.
-  void _strikeEffects() {
-    final stage = SoundStage.instance;
-    for (final group in strikeEffectsFor(widget.act)) {
-      stage.effect(group);
-    }
-    final reaction = reactionFor(widget.act);
-    final memeOnStrike = strikeMeme(widget.act);
-    final memeOnReaction = reactionMeme(widget.act);
-    if (stage.memeMode && memeOnStrike != null) stage.meme(memeOnStrike);
-    if (stage.memeMode && memeOnReaction != null) {
-      stage.meme(memeOnReaction, after: const Duration(milliseconds: 380));
-    } else if (reaction != null) {
-      stage.effect(reaction, after: const Duration(milliseconds: 380));
     }
   }
 
@@ -231,6 +217,7 @@ class _DeathSceneState extends State<DeathScene> with SingleTickerProviderStateM
   /// sempre, e avanti si va solo col pulsante.
   void _skip() {
     _struck = true;
+    _nextCue = _cues.length;
     _film.value = 1;
     SoundStage.instance.stop();
   }

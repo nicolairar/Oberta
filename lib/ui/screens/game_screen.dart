@@ -195,7 +195,6 @@ class _GameScreenState extends State<GameScreen> {
   void _enterDawn() {
     final report = _dawn;
     final winner = report.winner;
-    SoundStage.instance.cue(Cue.dawn);
     _dawnAtmosphere();
     // Il Cronista smaschera uno della famiglia: sus.
     if (report.scoop?.team == Team.mafia) SoundStage.instance.meme(Meme.vineBoom, after: const Duration(seconds: 2));

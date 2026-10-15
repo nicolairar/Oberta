@@ -47,6 +47,25 @@ enum Cue {
   familyWins,
 }
 
+/// Quanto forte suona ogni suono breve rispetto al volume degli effetti: il
+/// mixaggio del resto della partita. Gli scatti e le carte stanno sotto,
+/// i finali e i colpi di scena sopra.
+const cueGains = {
+  Cue.click: 0.3,
+  Cue.bang: 0.7,
+  Cue.deal: 0.4,
+  Cue.flip: 0.45,
+  Cue.nightfall: 0.5,
+  Cue.dawn: 0.5,
+  Cue.tick: 0.3,
+  Cue.timeUp: 0.6,
+  Cue.drumroll: 0.55,
+  Cue.caught: 0.7,
+  Cue.innocent: 0.7,
+  Cue.townWins: 0.65,
+  Cue.familyWins: 0.65,
+};
+
 /// I suoni brevi per cui c'è un gruppo di effetti registrati: ogni volta ne
 /// esce uno diverso. Hanno la precedenza sul resto.
 const cueEffects = {
