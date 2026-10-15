@@ -8,6 +8,7 @@ import '../theme/app_theme.dart';
 import '../widgets/revolver_cylinder.dart';
 import '../widgets/scene_scaffold.dart';
 import 'role_deal_screen.dart';
+import '../press.dart';
 
 /// Il narratore si sorteggia alla maniera della famiglia: un nome per camera,
 /// un giro di tamburo, e chi si ferma sotto il cane racconta.
@@ -79,7 +80,7 @@ class _NarratorDrawScreenState extends State<NarratorDrawScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _stopped ? _continue : null,
+                  onPressed: pressed(_stopped ? _continue : null, Press.confirm),
                   child: Text(t.continueLabel),
                 ),
               ),

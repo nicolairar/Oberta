@@ -16,6 +16,7 @@ import 'city_backdrop.dart';
 import 'face_close_up.dart';
 import 'mugshot_frame.dart';
 import 'noir_avatar.dart';
+import '../press.dart';
 
 /// I modi in cui la piazza si libera di qualcuno, più quello in cui non si
 /// libera di nessuno.
@@ -321,14 +322,14 @@ class _VerdictSceneState extends State<VerdictScene> with SingleTickerProviderSt
                     padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
                     child: SizedBox(
                       width: double.infinity,
-                      child: ElevatedButton(onPressed: _finish, child: Text(strings.next)),
+                      child: ElevatedButton(onPressed: pressed(_finish, Press.confirm), child: Text(strings.next)),
                     ),
                   ),
                 )
               : Align(
                   alignment: Alignment.topRight,
                   child: TextButton(
-                    onPressed: _skip,
+                    onPressed: pressed(_skip, Press.back),
                     child: Text(strings.skip, style: const TextStyle(color: AppColors.textSecondary)),
                   ),
                 ),

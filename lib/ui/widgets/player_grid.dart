@@ -7,6 +7,7 @@ import '../../rules/role.dart';
 import '../theme/app_theme.dart';
 import '../theme/role_style.dart';
 import 'noir_avatar.dart';
+import '../press.dart';
 
 /// Il tavolo visto dall'alto: la stessa griglia per tutti, con i segni di
 /// ruolo solo dove chi guarda ha diritto di saperlo.
@@ -140,7 +141,7 @@ class _PlayerTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: onTap,
+          onTap: pressed(onTap, Press.card),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
             decoration: BoxDecoration(

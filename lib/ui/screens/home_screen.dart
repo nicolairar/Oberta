@@ -12,6 +12,8 @@ import '../widgets/home_neon_sign.dart';
 import '../widgets/home_posters.dart';
 import '../widgets/home_settings_plate.dart';
 import 'lobby_screen.dart';
+import '../../sound/fx_groups.dart';
+import '../../sound/sound_stage.dart';
 
 double _span(double t, double from, double to) => ((t - from) / (to - from)).clamp(0.0, 1.0);
 
@@ -113,6 +115,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Future<void> _createRoom() async {
     if (_leaving) return;
     HapticFeedback.mediumImpact();
+    // Si entra nella stanza sul retro: la porta, le fiches, e la musica del tavolo.
+    final sound = SoundStage.instance;
+    sound.effect(FxGroup.door, volume: 0.45);
+    sound.press(Press.chips);
+    sound.music(MusicMood.table);
     final navigator = Navigator.of(context);
     final host = AppStrings.of(context).hostName;
     if (!_still) {
@@ -128,6 +135,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     dragging.addListener(reopen);
     await navigator.push(_OutOfTheDarkRoute(builder: (_) => LobbyScreen(session: session)));
     dragging.removeListener(reopen);
+    // Fuori dalla stanza si torna nel vicolo, con la sua musica.
+    SoundStage.instance.music(MusicMood.menu);
     if (!mounted) return;
     setState(() => _leaving = false);
     _iris.reverse();
@@ -137,6 +146,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   /// didascalia risponde.
   void _notYet(String teaser) {
     HapticFeedback.selectionClick();
+    SoundStage.instance.press(Press.tap);
     _caption.currentState?.say(teaser);
   }
 

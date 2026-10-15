@@ -9,6 +9,7 @@ import '../widgets/flip_role_card.dart';
 import '../widgets/handoff_view.dart';
 import '../widgets/scene_scaffold.dart';
 import 'game_screen.dart';
+import '../press.dart';
 
 /// Finché c'è un solo telefono, la carta si guarda a turno passandoselo.
 /// Con la rete vera ognuno vedrà solo il pezzo "carta" sul proprio schermo.
@@ -96,7 +97,7 @@ class _RoleRevealScreenState extends State<RoleRevealScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: _seen ? _next : null,
+                            onPressed: pressed(_seen ? _next : null, Press.confirm),
                             child: Text(t.gotIt),
                           ),
                         ),

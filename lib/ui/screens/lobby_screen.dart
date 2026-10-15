@@ -14,6 +14,8 @@ import '../widgets/noir_avatar.dart';
 import '../widgets/scene_scaffold.dart';
 import 'narrator_selection_screen.dart';
 import 'person_screen.dart';
+import '../press.dart';
+import '../../sound/sound_stage.dart';
 
 // I testi della schermata, tutti qui: la traduzione li prenderà da qui.
 
@@ -104,6 +106,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
   }
 
   Future<void> _toggleSeat(RosterMember member) async {
+    SoundStage.instance.press(member.seated ? Press.card : Press.chips);
     final seated = await _store.seat(member.id, !member.seated);
     if (!seated && mounted) _say(_t.lobbyTableFullRefusal);
   }
@@ -117,11 +120,11 @@ class _LobbyScreenState extends State<LobbyScreen> {
         content: Text(_t.lobbyClearBody, style: AppText.body),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: pressed(() => Navigator.of(context).pop(false), Press.back),
             child: Text(_t.lobbyClearCancel, style: TextStyle(color: AppColors.textSecondary)),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: pressed(() => Navigator.of(context).pop(true), Press.confirm),
             child: Text(
               _t.lobbyClearConfirm,
               style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700),
@@ -152,13 +155,13 @@ class _LobbyScreenState extends State<LobbyScreen> {
             actions: [
               if (kDebugMode)
                 TextButton(
-                  onPressed: _addTestPlayer,
+                  onPressed: pressed(_addTestPlayer, Press.tap),
                   child: Text(_t.lobbyDebugAdd, style: TextStyle(color: AppColors.gold)),
                 ),
               if (!roster.isEmpty)
                 IconButton(
                   tooltip: _t.lobbyClearTooltip,
-                  onPressed: _clear,
+                  onPressed: pressed(_clear, Press.tap),
                   icon: const Icon(Icons.delete_sweep_outlined, color: AppColors.textSecondary),
                 ),
             ],
@@ -214,7 +217,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
                               children: [
                                 Expanded(
                                   child: OutlinedButton.icon(
-                                    onPressed: _openPerson,
+                                    onPressed: pressed(_openPerson, Press.tap),
                                     icon: const Icon(Icons.person_add_alt_1, size: 20),
                                     label: FittedBox(fit: BoxFit.scaleDown, child: Text(_t.lobbyAdd)),
                                     style: OutlinedButton.styleFrom(
@@ -225,7 +228,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: ElevatedButton(
-                                    onPressed: missing > 0 ? null : _startGame,
+                                    onPressed: pressed(missing > 0 ? null : _startGame, Press.shuffle),
                                     child: FittedBox(fit: BoxFit.scaleDown, child: Text(_t.lobbyStart)),
                                   ),
                                 ),
@@ -385,7 +388,7 @@ class _PersonTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
-            onTap: onTap,
+            onTap: pressed(onTap),
             onLongPress: onLongPress,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),

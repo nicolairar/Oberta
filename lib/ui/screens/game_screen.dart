@@ -30,6 +30,7 @@ import '../widgets/sky_events.dart';
 import '../widgets/scene_scaffold.dart';
 import '../widgets/script_card.dart';
 import '../widgets/verdict_scene.dart';
+import '../press.dart';
 
 /// La partita su un solo telefono: il copione si legge ad alta voce, di notte
 /// il telefono fa il giro del tavolo, di giorno resta in mezzo.
@@ -135,6 +136,8 @@ class _GameScreenState extends State<GameScreen> {
   void _enterNight() {
     final round = _engine.round;
     SoundStage.instance.music(MusicMood.night);
+    // Cala la notte: il colpo che apre il capitolo, sotto la musica che cambia.
+    SoundStage.instance.cue(Cue.nightfall);
     _nightAtmosphere();
     _title = _t.nightTitle(round);
     _mood = SceneMood.night;
@@ -220,8 +223,9 @@ class _GameScreenState extends State<GameScreen> {
           _title = _t.dayTitle(_engine.round);
           _mood = SceneMood.day;
           SoundStage.instance.music(MusicMood.day);
-          // La piazza di giorno: gli uccelli passano, e dove c'è il campanile suonano le ore.
-          _seenAndHeard(_hasBellTower && _atmosphere.nextBool() ? FxGroup.church : FxGroup.birds);
+          // La piazza di giorno: gli uccelli restano sotto, e dove c'è il
+          // campanile suonano le ore, lontane.
+          if (_hasBellTower && _atmosphere.nextBool()) _seenAndHeard(FxGroup.church, volume: 0.6);
           SoundStage.instance.prepareVerdicts();
           _stage = _Stage.day;
         }
@@ -290,23 +294,29 @@ class _GameScreenState extends State<GameScreen> {
       FxGroup.birds => (SkyEvent.birds, 0),
       _ => (null, 0),
     };
-    if (group == FxGroup.thunder) CityBackdrop.flash();
     if (scene != null) CityBackdrop.show(scene);
-    stage.effect(group, after: Duration(milliseconds: delay), volume: volume);
+    if (group == FxGroup.thunder) {
+      // Il tuono resta secco, come il lampo che lo porta.
+      CityBackdrop.flash();
+      stage.effect(group, after: Duration(milliseconds: delay), volume: 0.45 * volume);
+    } else {
+      // Tutto il resto è sottofondo: entra ed esce piano, sotto la musica.
+      stage.atmosphere(group, after: Duration(milliseconds: delay), volume: volume);
+    }
   }
 
   /// L'alba: il gallo, gli uccelli, a volte le campane.
   void _dawnAtmosphere() {
     final stage = SoundStage.instance;
-    stage.ambience(null);
-    _thunders.add(Timer(const Duration(milliseconds: 300), () {
-      if (mounted) _seenAndHeard(FxGroup.rooster);
+    // La notte sfuma negli uccelli: un letto che dura tutta la mattina, e
+    // sopra, mentre sale, il gallo. Niente che finisce prima che l'altro cominci.
+    stage.ambience(FxGroup.birds);
+    CityBackdrop.show(SkyEvent.birds);
+    _thunders.add(Timer(const Duration(milliseconds: 1200), () {
+      if (mounted) _seenAndHeard(FxGroup.rooster, volume: 0.9);
     }));
-    _thunders.add(Timer(const Duration(seconds: 3), () {
-      if (mounted) _seenAndHeard(FxGroup.birds, volume: 0.8);
-    }));
-    // Le campane solo dove c'è un campanile all'orizzonte.
-    if (_hasBellTower && _atmosphere.nextBool()) stage.effect(FxGroup.church, after: const Duration(seconds: 4), volume: 0.7);
+    // Le campane solo dove c'è un campanile all'orizzonte, lontane.
+    if (_hasBellTower && _atmosphere.nextBool()) stage.atmosphere(FxGroup.church, after: const Duration(seconds: 5), volume: 0.6);
   }
 
   void _afterVerdictScene() => _advance(_enterVerdictPage);
@@ -357,8 +367,8 @@ class _GameScreenState extends State<GameScreen> {
         title: Text(_t.leaveQuestion),
         content: Text(_t.leaveWarning),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(_t.stay)),
-          TextButton(onPressed: () => Navigator.of(context).pop(true), child: Text(_t.leave)),
+          TextButton(onPressed: pressed(() => Navigator.of(context).pop(false), Press.back), child: Text(_t.stay)),
+          TextButton(onPressed: pressed(() => Navigator.of(context).pop(true), Press.tap), child: Text(_t.leave)),
         ],
       ),
     );
@@ -371,8 +381,7 @@ class _GameScreenState extends State<GameScreen> {
       thunder.cancel();
     }
     SoundStage.instance.ambience(null);
-    // Fuori dalla partita si torna al sottofondo del menu.
-    SoundStage.instance.music(MusicMood.menu);
+    // La musica del vicolo la rimette il vicolo, quando ci si torna.
     super.dispose();
   }
 
@@ -437,7 +446,7 @@ class _GameScreenState extends State<GameScreen> {
           leading: IconButton(
             icon: const Icon(Icons.close),
             tooltip: _t.leaveTooltip,
-            onPressed: _confirmExit,
+            onPressed: pressed(_confirmExit, Press.back),
           ),
           title: Text(_title),
           actions: [
@@ -445,10 +454,13 @@ class _GameScreenState extends State<GameScreen> {
               IconButton(
                 icon: const Icon(Icons.visibility),
                 tooltip: _t.rolesTooltip,
-                onPressed: () => NarratorRolesSheet.show(
-                  context,
-                  setup: widget.setup,
-                  isAlive: _engine.isAlive,
+                onPressed: pressed(
+                  () => NarratorRolesSheet.show(
+                    context,
+                    setup: widget.setup,
+                    isAlive: _engine.isAlive,
+                  ),
+                  Press.card,
                 ),
               ),
           ],
@@ -512,7 +524,7 @@ class _GameScreenState extends State<GameScreen> {
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: () => _advance(() => _stage = _Stage.crime),
+            onPressed: pressed(() => _advance(() => _stage = _Stage.crime), Press.tap),
             child: Text(_t.lightsDown),
           ),
         ),
@@ -548,12 +560,12 @@ class _GameScreenState extends State<GameScreen> {
         Row(
           children: [
             Expanded(
-              child: OutlinedButton(onPressed: () => _submit(null), child: Text(_t.pass)),
+              child: OutlinedButton(onPressed: pressed(() => _submit(null), Press.tap), child: Text(_t.pass)),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: ElevatedButton(
-                onPressed: selected == null ? null : () => _submit(selected),
+                onPressed: pressed(selected == null ? null : () => _submit(selected), Press.tap),
                 child: Text(_t.confirm),
               ),
             ),
@@ -612,7 +624,7 @@ class _GameScreenState extends State<GameScreen> {
         const Spacer(),
         SizedBox(
           width: double.infinity,
-          child: ElevatedButton(onPressed: _afterTask, child: Text(_t.done)),
+          child: ElevatedButton(onPressed: pressed(_afterTask, Press.confirm), child: Text(_t.done)),
         ),
       ],
     );
@@ -643,14 +655,14 @@ class _GameScreenState extends State<GameScreen> {
           children: [
             Expanded(
               child: OutlinedButton(
-                onPressed: () => _advance(() => _enterVerdict(null)),
+                onPressed: pressed(() => _advance(() => _enterVerdict(null)), Press.tap),
                 child: Text(_t.nobody),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: ElevatedButton(
-                onPressed: selected == null ? null : () => _advance(() => _enterVerdict(selected)),
+                onPressed: pressed(selected == null ? null : () => _advance(() => _enterVerdict(selected)), Press.tap),
                 child: Text(_t.condemn),
               ),
             ),
@@ -723,7 +735,7 @@ class _GameScreenState extends State<GameScreen> {
           ),
         ],
         const SizedBox(height: 28),
-        ElevatedButton(onPressed: _goHome, child: Text(_t.backHome)),
+        ElevatedButton(onPressed: pressed(_goHome, Press.confirm), child: Text(_t.backHome)),
       ],
     );
   }
@@ -952,13 +964,13 @@ class _DayViewState extends State<_DayView> {
           children: [
             Expanded(
               child: OutlinedButton(
-                onPressed: () => setState(() => _left += const Duration(minutes: 1)),
+                onPressed: pressed(() => setState(() => _left += const Duration(minutes: 1)), Press.chips),
                 child: Text(t.plusMinute),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: ElevatedButton(onPressed: widget.onVote, child: Text(t.callTheVote)),
+              child: ElevatedButton(onPressed: pressed(widget.onVote, Press.confirm), child: Text(t.callTheVote)),
             ),
           ],
         ),

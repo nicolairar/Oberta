@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import '../press.dart';
 
 /// Il pulsante delle impostazioni: una targhetta di smalto scuro avvitata al
 /// muro, con un ingranaggio. Sta zitta in un angolo e non ruba la scena
@@ -34,7 +35,7 @@ class _HomeSettingsPlateState extends State<HomeSettingsPlate> {
           onTapDown: (_) => _press(true),
           onTapUp: (_) => _press(false),
           onTapCancel: () => _press(false),
-          onTap: widget.onTap,
+          onTap: pressed(widget.onTap, Press.toggle),
           child: CustomPaint(painter: _PlatePainter(_pressed), size: Size.infinite),
         ),
       ),

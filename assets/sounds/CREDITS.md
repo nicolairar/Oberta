@@ -10,9 +10,9 @@ Pacchetti usati (scaricati il 15 ottobre 2026 dalle pagine ufficiali):
 
 | Pacchetto | Pagina | File |
 |---|---|---|
-| Casino Audio | https://kenney.nl/assets/casino-audio | `deal_*`, `flip` |
+| Casino Audio | https://kenney.nl/assets/casino-audio | `deal_*`, `flip`, `chips_*`, `card_*`, `shuffle` |
 | Impact Sounds | https://kenney.nl/assets/impact-sounds | `bell*`, `wood_*`, `plank`, `body_fall*`, `punch*`, `glass_*`, `plate*`, `metal_*`, `tin`, `step_*` |
-| Interface Sounds | https://kenney.nl/assets/interface-sounds | `tick` |
+| Interface Sounds | https://kenney.nl/assets/interface-sounds | `tick`, `ui_*` |
 | RPG Audio | https://kenney.nl/assets/rpg-audio | `click`, `knife*`, `bag`, `cloth_*`, `creak`, `latch` |
 | Music Jingles | https://kenney.nl/assets/music-jingles | `sax_03`, `sax_13`, `hit_04`, `pizzi_07` |
 

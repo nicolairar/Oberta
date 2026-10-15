@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_strings.dart';
 import '../theme/app_theme.dart';
 import 'avatar_spotlight.dart';
+import '../press.dart';
 
 /// Schermo neutro tra un giocatore e l'altro quando il telefono è uno solo:
 /// non mostra nulla di segreto finché chi lo riceve non dice che è pronto.
@@ -35,7 +36,7 @@ class HandoffView extends StatelessWidget {
         const Spacer(),
         SizedBox(
           width: double.infinity,
-          child: ElevatedButton(onPressed: onReady, child: Text(t.itsMe)),
+          child: ElevatedButton(onPressed: pressed(onReady, Press.confirm), child: Text(t.itsMe)),
         ),
       ],
     );

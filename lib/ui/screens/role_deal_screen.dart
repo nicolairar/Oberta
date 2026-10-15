@@ -8,6 +8,7 @@ import '../theme/role_style.dart';
 import '../widgets/deal_table.dart';
 import '../widgets/scene_scaffold.dart';
 import 'role_reveal_screen.dart';
+import '../press.dart';
 
 /// Le carte si distribuiscono davanti a tutti, coperte. Quali ruoli sono in
 /// gioco è pubblico; chi ha preso cosa no.
@@ -79,13 +80,16 @@ class _RoleDealScreenState extends State<RoleDealScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _dealt
-                      ? () => Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(
-                              builder: (_) => RoleRevealScreen(setup: widget.setup),
-                            ),
-                          )
-                      : null,
+                  onPressed: pressed(
+                    _dealt
+                        ? () => Navigator.of(context).pushReplacement(
+                              MaterialPageRoute(
+                                builder: (_) => RoleRevealScreen(setup: widget.setup),
+                              ),
+                            )
+                        : null,
+                    Press.card,
+                  ),
                   child: Text(t.checkYourCards),
                 ),
               ),

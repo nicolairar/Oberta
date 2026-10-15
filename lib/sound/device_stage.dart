@@ -26,13 +26,22 @@ class DeviceStage extends SoundStage implements VerdictStage {
   final List<AudioPlayer> _shortPlayers = [for (var i = 0; i < 8; i++) AudioPlayer()];
   int _nextShort = 0;
 
-  final AudioPlayer _music = AudioPlayer();
-  final AudioPlayer _ambience = AudioPlayer();
+  /// Due lettori per la musica e due per il sottofondo, per passare
+  /// dall'uno all'altro in dissolvenza incrociata.
+  final List<_Deck> _musicDecks = [_Deck(), _Deck()];
+  late _Deck _musicDeck = _musicDecks.first;
+  final List<_Deck> _ambienceDecks = [_Deck(), _Deck()];
+  late _Deck _ambienceDeck = _ambienceDecks.first;
+
+  /// I rumori di fondo (il gallo, gli uccelli, il treno lontano), che si
+  /// sovrappongono in dissolvenza.
+  final List<_Deck> _atmosphereDecks = [for (var i = 0; i < 5; i++) _Deck()];
+  int _nextAtmosphere = 0;
+
   FxGroup? _ambienceGroup;
   final _random = Random();
   MusicMood? _mood;
   double _duck = 1;
-  Timer? _fade;
   final Map<FxGroup, int> _lastTake = {};
   late final Future<void> _ready = _setUp();
 
@@ -61,7 +70,7 @@ class DeviceStage extends SoundStage implements VerdictStage {
       try {
         await _ready;
         await player.stop();
-        final gain = cueGains[cue] ?? 0.6;
+        final gain = (cueGains[cue] ?? 0.6) * mix.cue;
         final fx = cueEffects[cue];
         if (fx != null) {
           effect(fx, volume: gain);
@@ -161,22 +170,33 @@ class DeviceStage extends SoundStage implements VerdictStage {
     if (!enabled) return;
     if (mood == _mood) return;
     _mood = mood;
-    _fadeTo(0, const Duration(milliseconds: 700), then: () async {
-      await _music.stop();
-      if (mood == null || !enabled || _mood != mood) return;
-      final tracks = musicTracks[mood]!;
-      final track = tracks[_random.nextInt(tracks.length)];
-      await _music.setReleaseMode(mood == MusicMood.winTown || mood == MusicMood.winFamily ? ReleaseMode.release : ReleaseMode.loop);
-      await _music.play(AssetSource('music/$track.m4a'), volume: 0);
-      _fadeTo(_musicTarget, const Duration(milliseconds: 2200));
-    });
+    // Dissolvenza incrociata: la traccia nuova sale mentre la vecchia scende,
+    // senza un secondo di silenzio in mezzo.
+    final old = _musicDeck;
+    _musicDeck = _musicDecks.firstWhere((deck) => deck != old);
+    old.fadeTo(0, const Duration(milliseconds: 1800), then: old.stop);
+    if (mood == null) return;
+    final deck = _musicDeck;
+    () async {
+      try {
+        final tracks = musicTracks[mood]!;
+        final track = tracks[_random.nextInt(tracks.length)];
+        await deck.player.stop();
+        await deck.player.setReleaseMode(mood == MusicMood.winTown || mood == MusicMood.winFamily ? ReleaseMode.release : ReleaseMode.loop);
+        await deck.player.play(AssetSource('music/$track.m4a'), volume: 0);
+        deck.volume = 0;
+        if (_musicDeck == deck) deck.fadeTo(_musicTarget, const Duration(milliseconds: 2500));
+      } catch (error) {
+        _report(error);
+      }
+    }();
   }
 
   /// Il nastro delle scene è inciso a volume pieno: va tenuto sotto gli effetti.
   double get _sceneVolume => (effectsVolume * 0.6).clamp(0.0, 1.0);
 
   /// Il sottofondo (pioggia, grilli) sta sotto a tutto.
-  double get _ambienceVolume => (effectsVolume * 0.45).clamp(0.0, 1.0);
+  double get _ambienceVolume => (effectsVolume * mix.ambience).clamp(0.0, 1.0);
 
   bool _enabled = true;
   MusicMood? _wanted;
@@ -191,8 +211,10 @@ class DeviceStage extends SoundStage implements VerdictStage {
     if (on == _enabled) return;
     _enabled = on;
     if (!on) {
-      _fade?.cancel();
-      for (final player in [_player, _music, _ambience, ..._shortPlayers]) {
+      for (final deck in [..._musicDecks, ..._ambienceDecks, ..._atmosphereDecks]) {
+        deck.cancel();
+      }
+      for (final player in [_player, ..._shortPlayers, for (final deck in [..._musicDecks, ..._ambienceDecks, ..._atmosphereDecks]) deck.player]) {
         player.stop().then<void>((_) {}, onError: _report);
       }
       _mood = null;
@@ -218,7 +240,7 @@ class DeviceStage extends SoundStage implements VerdictStage {
   @override
   set musicVolume(double volume) {
     _musicVolume = volume;
-    _fadeTo(_musicTarget, const Duration(milliseconds: 250));
+    _musicDeck.fadeTo(_musicTarget, const Duration(milliseconds: 250));
   }
 
   @override
@@ -228,7 +250,7 @@ class DeviceStage extends SoundStage implements VerdictStage {
   set effectsVolume(double volume) {
     _effectsVolume = volume;
     // Anche quello che sta già suonando si adegua.
-    _ambience.setVolume(_ambienceVolume).then<void>((_) {}, onError: _report);
+    _ambienceDeck.fadeTo(_ambienceGroup == null ? 0 : _ambienceVolume, const Duration(milliseconds: 250));
     _player.setVolume(_sceneVolume).then<void>((_) {}, onError: _report);
   }
 
@@ -257,24 +279,52 @@ class DeviceStage extends SoundStage implements VerdictStage {
     }
     if (group == _ambienceGroup) return;
     _ambienceGroup = group;
+    // Anche qui una dissolvenza incrociata lunga: la pioggia che diventa
+    // grilli non deve mai "staccare".
+    final old = _ambienceDeck;
+    _ambienceDeck = _ambienceDecks.firstWhere((deck) => deck != old);
+    old.fadeTo(0, const Duration(milliseconds: 3000), then: old.stop);
+    if (group == null) return;
+    final deck = _ambienceDeck;
     () async {
       try {
-        // Via quello di prima, piano.
-        for (var v = _ambience.volume; v > 0.01; v -= 0.08) {
-          await _ambience.setVolume(v);
-          await Future<void>.delayed(const Duration(milliseconds: 50));
-        }
-        await _ambience.stop();
-        if (group == null || !enabled || _ambienceGroup != group) return;
-        await _ambience.setReleaseMode(ReleaseMode.loop);
-        await _ambience.play(AssetSource(group.asset(ambienceTake[group] ?? 1)), volume: 0);
-        final target = _ambienceVolume;
-        for (var v = 0.0; v < target; v += 0.05) {
-          if (_ambienceGroup != group) return;
-          await _ambience.setVolume(v);
-          await Future<void>.delayed(const Duration(milliseconds: 60));
-        }
-        await _ambience.setVolume(target);
+        await deck.player.stop();
+        await deck.player.setReleaseMode(ReleaseMode.loop);
+        await deck.player.play(AssetSource(group.asset(ambienceTake[group] ?? 1)), volume: 0);
+        deck.volume = 0;
+        if (_ambienceDeck == deck) deck.fadeTo(_ambienceVolume, const Duration(milliseconds: 3500));
+      } catch (error) {
+        _report(error);
+      }
+    }();
+  }
+
+  /// Un rumore di fondo che entra piano, resta sotto la musica e se ne va
+  /// in dissolvenza prima di finire: niente attacchi secchi, niente stacchi.
+  /// Più di uno può suonare insieme.
+  @override
+  void atmosphere(FxGroup group, {Duration after = Duration.zero, double volume = 1}) {
+    if (!enabled || effectsVolume <= 0) return;
+    () async {
+      try {
+        if (after > Duration.zero) await Future<void>.delayed(after);
+        if (!enabled) return;
+        await _ready;
+        final deck = _atmosphereDecks[_nextAtmosphere++ % _atmosphereDecks.length];
+        deck.cancel();
+        await deck.player.stop();
+        var take = 1 + _random.nextInt(group.count);
+        if (group.count > 1 && take == _lastTake[group]) take = take % group.count + 1;
+        _lastTake[group] = take;
+        await deck.player.setReleaseMode(ReleaseMode.stop);
+        await deck.player.play(AssetSource(group.asset(take)), volume: 0);
+        deck.volume = 0;
+        final target = (effectsVolume * mix.atmosphere * volume).clamp(0.0, 1.0);
+        deck.fadeTo(target, const Duration(milliseconds: 900));
+        final length = await deck.player.getDuration();
+        if (length == null) return;
+        final tail = Duration(milliseconds: min(2500, length.inMilliseconds ~/ 3));
+        deck.later(length - tail, () => deck.fadeTo(0, tail));
       } catch (error) {
         _report(error);
       }
@@ -282,29 +332,27 @@ class DeviceStage extends SoundStage implements VerdictStage {
   }
 
   @override
+  void press(Press press) {
+    if (!enabled || effectsVolume <= 0) return;
+    final (name, gain) = switch (press) {
+      Press.tap => ('ui_tap', 1.0),
+      Press.confirm => ('ui_confirm', 0.9),
+      Press.back => ('ui_back', 0.9),
+      Press.toggle => ('ui_toggle', 1.0),
+      Press.chips => ('chips_${1 + _random.nextInt(3)}', 1.0),
+      Press.card => ('card_place_${1 + _random.nextInt(3)}', 1.0),
+      Press.shuffle => ('shuffle', 0.8),
+    };
+    sample(name, volume: mix.press * gain);
+  }
+
+  @override
   void duckMusic(bool ducked) {
     _duck = ducked ? 0.3 : 1;
-    _fadeTo(_musicTarget, const Duration(milliseconds: 600));
+    _musicDeck.fadeTo(_musicTarget, const Duration(milliseconds: 600));
   }
 
   double get _musicTarget => enabled ? (musicVolume * _duck).clamp(0.0, 1.0) : 0;
-
-  /// Porta la musica al volume [target] a piccoli passi, ogni 40 ms.
-  void _fadeTo(double target, Duration length, {Future<void> Function()? then}) {
-    _fade?.cancel();
-    final steps = max(1, length.inMilliseconds ~/ 40);
-    var step = 0;
-    final start = _music.volume;
-    _fade = Timer.periodic(const Duration(milliseconds: 40), (timer) async {
-      step++;
-      final t = (step / steps).clamp(0.0, 1.0);
-      await _music.setVolume(start + (target - start) * t);
-      if (step >= steps) {
-        timer.cancel();
-        await then?.call();
-      }
-    });
-  }
 
   @override
   Future<Duration?> position() async {
@@ -329,3 +377,42 @@ class DeviceStage extends SoundStage implements VerdictStage {
 }
 
 List<Uint8List> _composeAllCues(Object? _) => [for (final cue in Cue.values) composeCue(cue)];
+
+/// Un lettore con il suo volume, che sa salire e scendere piano.
+class _Deck {
+  final AudioPlayer player = AudioPlayer();
+  double volume = 0;
+  Timer? _fade;
+  Timer? _later;
+
+  void cancel() {
+    _fade?.cancel();
+    _later?.cancel();
+  }
+
+  /// Più tardi, se nel frattempo nessuno ha cambiato idea.
+  void later(Duration after, void Function() action) {
+    _later?.cancel();
+    _later = Timer(after, action);
+  }
+
+  /// Porta il volume a [target] a piccoli passi, ogni 40 ms.
+  void fadeTo(double target, Duration length, {Future<void> Function()? then}) {
+    _fade?.cancel();
+    final steps = max(1, length.inMilliseconds ~/ 40);
+    var step = 0;
+    final start = volume;
+    _fade = Timer.periodic(const Duration(milliseconds: 40), (timer) {
+      step++;
+      final t = (step / steps).clamp(0.0, 1.0);
+      volume = start + (target - start) * t;
+      player.setVolume(volume).then<void>((_) {}, onError: (Object e) => debugPrint('Audio: $e'));
+      if (step >= steps) {
+        timer.cancel();
+        then?.call().then<void>((_) {}, onError: (Object e) => debugPrint('Audio: $e'));
+      }
+    });
+  }
+
+  Future<void> stop() => player.stop();
+}

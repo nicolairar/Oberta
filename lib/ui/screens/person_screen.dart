@@ -11,6 +11,7 @@ import '../../roster/roster_store.dart';
 import '../theme/app_theme.dart';
 import '../widgets/mugshot_frame.dart';
 import '../widgets/scene_scaffold.dart';
+import '../press.dart';
 
 // I testi della schermata, tutti qui: la traduzione li prenderà da qui.
 
@@ -192,11 +193,11 @@ class _PersonScreenState extends State<PersonScreen> {
         content: Text(_t.personRemoveBody, style: AppText.body),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: pressed(() => Navigator.of(context).pop(false), Press.back),
             child: Text(_t.personRemoveCancel, style: TextStyle(color: AppColors.textSecondary)),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: pressed(() => Navigator.of(context).pop(true), Press.confirm),
             child: Text(
               _t.personRemoveConfirm,
               style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700),
@@ -221,7 +222,7 @@ class _PersonScreenState extends State<PersonScreen> {
           if (_editing)
             IconButton(
               tooltip: _t.personRemoveTooltip,
-              onPressed: _remove,
+              onPressed: pressed(_remove, Press.tap),
               icon: const Icon(Icons.person_remove_outlined, color: AppColors.textSecondary),
             ),
         ],
@@ -337,7 +338,7 @@ class _PersonScreenState extends State<PersonScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _busy ? null : _submit,
+                  onPressed: pressed(_busy ? null : _submit, Press.confirm),
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Text(_editing ? _t.personSubmitEdit : _t.personSubmitNew),
@@ -387,7 +388,7 @@ class _PersonScreenState extends State<PersonScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: _nextPerson,
+                    onPressed: pressed(_nextPerson, Press.confirm),
                     child: FittedBox(fit: BoxFit.scaleDown, child: Text(_t.personNext)),
                   ),
                 ),
@@ -396,7 +397,7 @@ class _PersonScreenState extends State<PersonScreen> {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: pressed(() => Navigator.of(context).pop(), Press.back),
                   child: FittedBox(fit: BoxFit.scaleDown, child: Text(_t.personDone)),
                 ),
               ),
@@ -425,7 +426,7 @@ class _Shutter extends StatelessWidget {
     return _RoundAction(
       label: label,
       labelColor: AppColors.textPrimary,
-      onTap: onTap,
+      onTap: pressed(onTap),
       child: Container(
         width: 78,
         height: 78,
@@ -457,7 +458,7 @@ class _SideButton extends StatelessWidget {
     return _RoundAction(
       label: label,
       labelColor: AppColors.textSecondary,
-      onTap: onTap,
+      onTap: pressed(onTap),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 14),
         child: Container(
@@ -492,7 +493,7 @@ class _RoundAction extends StatelessWidget {
       child: Material(
         type: MaterialType.transparency,
         child: InkWell(
-          onTap: onTap,
+          onTap: pressed(onTap),
           borderRadius: BorderRadius.circular(18),
           child: SizedBox(
             width: 92,

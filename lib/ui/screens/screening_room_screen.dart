@@ -10,6 +10,7 @@ import '../theme/app_theme.dart';
 import '../widgets/death_scene.dart';
 import '../widgets/verdict_scene.dart';
 import '../widgets/scene_scaffold.dart';
+import '../press.dart';
 
 /// La sala prove: tutte le scene della notte, da rivedere una per una senza
 /// dover giocare una partita intera. Serve a chi le disegna e a chi vuole
@@ -86,7 +87,7 @@ class _ScreeningRoomScreenState extends State<ScreeningRoomScreen> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: OutlinedButton(
-                  onPressed: () => _screen(act),
+                  onPressed: pressed(() => _screen(act), Press.tap),
                   child: Row(
                     children: [
                       Icon(
@@ -108,7 +109,7 @@ class _ScreeningRoomScreenState extends State<ScreeningRoomScreen> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: OutlinedButton(
-                  onPressed: () => _screenVerdict(take),
+                  onPressed: pressed(() => _screenVerdict(take), Press.tap),
                   child: Row(
                     children: [
                       const Icon(Icons.gavel, size: 20, color: AppColors.gold),

@@ -7,7 +7,21 @@ import 'memes.dart';
 import 'scene_cues.dart';
 
 /// Il sottofondo di ogni momento della partita.
-enum MusicMood { menu, night, day, winTown, winFamily }
+enum MusicMood { menu, table, night, day, winTown, winFamily }
+
+/// I suoni dei tasti: ogni gesto ha il suo.
+enum Press { tap, confirm, back, toggle, chips, card, shuffle }
+
+/// Il mixaggio: quanto suona ogni famiglia di suoni rispetto al volume
+/// degli effetti. La musica e il gioco davanti, i rumori di fondo dietro.
+const mix = (
+  scene: 0.75,
+  cue: 0.8,
+  press: 0.35,
+  atmosphere: 0.3,
+  ambience: 0.2,
+);
+
 
 /// Il palco del suono: chi mette in scena chiede, lui suona.
 ///
@@ -39,9 +53,9 @@ class SoundStage {
     if (cue.meme != null) {
       meme(cue.meme!);
     } else if (cue.fx != null) {
-      effect(cue.fx!, volume: cue.gain);
+      effect(cue.fx!, volume: cue.gain * mix.scene);
     } else if (cue.sample != null) {
-      sample(cue.sample!, volume: cue.gain);
+      sample(cue.sample!, volume: cue.gain * mix.scene);
     }
   }
 
@@ -52,6 +66,14 @@ class SoundStage {
   /// Un sottofondo che gira in loop finché non lo si cambia (pioggia, grilli,
   /// vento), in dissolvenza; `null` lo spegne.
   void ambience(FxGroup? group) {}
+
+  /// Un rumore di fondo (il gallo, gli uccelli, un treno lontano): entra in
+  /// dissolvenza, resta sotto la musica, esce in dissolvenza. Più rumori di
+  /// fondo possono suonare insieme.
+  void atmosphere(FxGroup group, {Duration after = Duration.zero, double volume = 1}) {}
+
+  /// Il suono di un tasto.
+  void press(Press press) {}
 
   /// Abbassa la musica mentre va in scena un filmato, e la rialza dopo.
   void duckMusic(bool ducked) {}

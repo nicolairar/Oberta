@@ -8,6 +8,7 @@ import '../theme/app_theme.dart';
 import '../widgets/scene_scaffold.dart';
 import 'narrator_draw_screen.dart';
 import 'role_deal_screen.dart';
+import '../press.dart';
 
 class NarratorSelectionScreen extends StatelessWidget {
   final List<Player> players;
@@ -119,7 +120,7 @@ class _OptionCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(18),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
-            onTap: onTap,
+            onTap: pressed(onTap),
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(18),

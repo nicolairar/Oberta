@@ -13,6 +13,7 @@ import 'city_backdrop.dart';
 import 'face_close_up.dart';
 import 'noir_avatar.dart';
 import 'victim_card.dart';
+import '../press.dart';
 
 /// Le coreografie disponibili per quello che succede di notte.
 enum DeathAct {
@@ -331,14 +332,14 @@ class _DeathSceneState extends State<DeathScene> with SingleTickerProviderStateM
                     padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
                     child: SizedBox(
                       width: double.infinity,
-                      child: ElevatedButton(onPressed: _finish, child: Text(AppStrings.of(context).next)),
+                      child: ElevatedButton(onPressed: pressed(_finish, Press.confirm), child: Text(AppStrings.of(context).next)),
                     ),
                   ),
                 )
               : Align(
                   alignment: Alignment.topRight,
                   child: TextButton(
-                    onPressed: _skip,
+                    onPressed: pressed(_skip, Press.back),
                     child: Text(AppStrings.of(context).skip, style: const TextStyle(color: AppColors.textSecondary)),
                   ),
                 ),
