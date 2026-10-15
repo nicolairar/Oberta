@@ -69,7 +69,6 @@ class DeviceStage extends SoundStage implements VerdictStage {
       try {
         await _ready;
         await player.stop();
-        await player.setVolume(effectsVolume);
         final fx = cueEffects[cue];
         if (fx != null) {
           effect(fx);
@@ -77,9 +76,9 @@ class DeviceStage extends SoundStage implements VerdictStage {
         }
         final recorded = cueRecordings[cue];
         if (recorded != null) {
-          await player.play(AssetSource('sounds/${recorded[_nextShort % recorded.length]}.wav'));
+          await player.play(AssetSource('sounds/${recorded[_nextShort % recorded.length]}.wav'), volume: effectsVolume);
         } else {
-          await player.play(DeviceFileSource((await _cues)[cue]!));
+          await player.play(DeviceFileSource((await _cues)[cue]!), volume: effectsVolume);
         }
       } catch (error) {
         _report(error);
@@ -133,8 +132,7 @@ class DeviceStage extends SoundStage implements VerdictStage {
       // Prima di cambiare nastro si riavvolge: la posizione che il film
       // chiede poco dopo deve essere quella del nastro nuovo.
       await _player.stop();
-      await _player.setVolume(effectsVolume);
-      await _player.play(DeviceFileSource(path), position: Duration.zero);
+      await _player.play(DeviceFileSource(path), position: Duration.zero, volume: _sceneVolume);
     } catch (error) {
       // Un nastro venuto male non deve fermare la partita: la scena va in
       // onda muta, e la prossima volta si riprova da capo.
@@ -164,8 +162,7 @@ class DeviceStage extends SoundStage implements VerdictStage {
       final path = await (_verdicts[take] ??= recordVerdictTape(take));
       if (ticket != _ticket) return;
       await _player.stop();
-      await _player.setVolume(effectsVolume);
-      await _player.play(DeviceFileSource(path), position: Duration.zero);
+      await _player.play(DeviceFileSource(path), position: Duration.zero, volume: _sceneVolume);
     } catch (error) {
       _verdicts.remove(take);
       _report(error);
@@ -186,8 +183,7 @@ class DeviceStage extends SoundStage implements VerdictStage {
         _lastTake[group] = take;
         final player = _shortPlayers[_nextShort++ % _shortPlayers.length];
         await player.stop();
-        await player.setVolume((effectsVolume * volume).clamp(0.0, 1.0));
-        await player.play(AssetSource(group.asset(take)));
+        await player.play(AssetSource(group.asset(take)), volume: (effectsVolume * volume).clamp(0.0, 1.0));
       } catch (error) {
         _report(error);
       }
@@ -196,6 +192,8 @@ class DeviceStage extends SoundStage implements VerdictStage {
 
   @override
   void music(MusicMood? mood) {
+    _wanted = mood;
+    if (!enabled) return;
     if (mood == _mood) return;
     _mood = mood;
     _fadeTo(0, const Duration(milliseconds: 700), then: () async {
@@ -204,10 +202,70 @@ class DeviceStage extends SoundStage implements VerdictStage {
       final tracks = musicTracks[mood]!;
       final track = tracks[_random.nextInt(tracks.length)];
       await _music.setReleaseMode(mood == MusicMood.winTown || mood == MusicMood.winFamily ? ReleaseMode.release : ReleaseMode.loop);
-      await _music.setVolume(0);
-      await _music.play(AssetSource('music/$track.m4a'));
+      await _music.play(AssetSource('music/$track.m4a'), volume: 0);
       _fadeTo(_musicTarget, const Duration(milliseconds: 2200));
     });
+  }
+
+  /// Il nastro delle scene è inciso a volume pieno: va tenuto sotto gli effetti.
+  double get _sceneVolume => (effectsVolume * 0.6).clamp(0.0, 1.0);
+
+  /// Il sottofondo (pioggia, grilli) sta sotto a tutto.
+  double get _ambienceVolume => (effectsVolume * 0.45).clamp(0.0, 1.0);
+
+  bool _enabled = true;
+  MusicMood? _wanted;
+
+  @override
+  bool get enabled => _enabled;
+
+  /// Spento vuol dire silenzio, subito: musica, sottofondo, scene ed effetti.
+  /// Riacceso, riparte la musica del momento in cui si è.
+  @override
+  set enabled(bool on) {
+    if (on == _enabled) return;
+    _enabled = on;
+    if (!on) {
+      _fade?.cancel();
+      _ticket++;
+      for (final player in [_player, _music, _ambience, ..._shortPlayers]) {
+        player.stop().then<void>((_) {}, onError: _report);
+      }
+      _mood = null;
+      final ambience = _ambienceGroup;
+      _ambienceGroup = null;
+      _resumeAmbience = ambience;
+    } else {
+      final mood = _wanted;
+      if (mood != null) music(mood);
+      final ambience = _resumeAmbience;
+      if (ambience != null) this.ambience(ambience);
+    }
+  }
+
+  FxGroup? _resumeAmbience;
+
+  double _musicVolume = 0.5;
+  double _effectsVolume = 0.8;
+
+  @override
+  double get musicVolume => _musicVolume;
+
+  @override
+  set musicVolume(double volume) {
+    _musicVolume = volume;
+    _fadeTo(_musicTarget, const Duration(milliseconds: 250));
+  }
+
+  @override
+  double get effectsVolume => _effectsVolume;
+
+  @override
+  set effectsVolume(double volume) {
+    _effectsVolume = volume;
+    // Anche quello che sta già suonando si adegua.
+    _ambience.setVolume(_ambienceVolume).then<void>((_) {}, onError: _report);
+    _player.setVolume(_sceneVolume).then<void>((_) {}, onError: _report);
   }
 
   @override
@@ -220,8 +278,7 @@ class DeviceStage extends SoundStage implements VerdictStage {
         await _ready;
         final player = _shortPlayers[_nextShort++ % _shortPlayers.length];
         await player.stop();
-        await player.setVolume(effectsVolume);
-        await player.play(AssetSource(meme.asset));
+        await player.play(AssetSource(meme.asset), volume: effectsVolume);
       } catch (error) {
         _report(error);
       }
@@ -230,6 +287,10 @@ class DeviceStage extends SoundStage implements VerdictStage {
 
   @override
   void ambience(FxGroup? group) {
+    if (!enabled) {
+      _resumeAmbience = group;
+      return;
+    }
     if (group == _ambienceGroup) return;
     _ambienceGroup = group;
     () async {
@@ -242,9 +303,8 @@ class DeviceStage extends SoundStage implements VerdictStage {
         await _ambience.stop();
         if (group == null || !enabled || _ambienceGroup != group) return;
         await _ambience.setReleaseMode(ReleaseMode.loop);
-        await _ambience.setVolume(0);
-        await _ambience.play(AssetSource(group.asset(ambienceTake[group] ?? 1)));
-        final target = (effectsVolume * 0.7).clamp(0.0, 1.0);
+        await _ambience.play(AssetSource(group.asset(ambienceTake[group] ?? 1)), volume: 0);
+        final target = _ambienceVolume;
         for (var v = 0.0; v < target; v += 0.05) {
           if (_ambienceGroup != group) return;
           await _ambience.setVolume(v);
