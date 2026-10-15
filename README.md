@@ -227,8 +227,9 @@ dei ruoli (eccetto il narratore umano, che già li conosce).
   App Store Connect.
 - Serve un Apple ID collegato in Xcode (Settings → Accounts): la firma è
   automatica, Xcode crea da solo certificato e profilo.
-- `flutter build ipa --export-options-plist=ios/ExportOptions.plist` compila,
-  firma e carica la build su App Store Connect.
+- `bundle exec fastlane ios beta` alza il numero di build, compila, firma e
+  carica su TestFlight con la chiave API di App Store Connect. La chiave
+  (`fastlane/AuthKey_*.p8`) e i suoi id (`fastlane/.env`) non vanno in git.
 
 ## Come lanciare il progetto
 
