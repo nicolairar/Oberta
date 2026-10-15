@@ -156,9 +156,13 @@ class _CityBackdropState extends State<CityBackdrop> with TickerProviderStateMix
             child: AnimatedBuilder(
               animation: Listenable.merge([for (final (_, _, controller) in _running) controller]),
               builder: (context, _) => CustomPaint(
-                painter: SkyEventsPainter([
-                  for (final (event, seed, controller) in _running) (event: event, t: controller.value, seed: seed),
-                ]),
+                painter: SkyEventsPainter(
+                  [
+                    for (final (event, seed, controller) in _running) (event: event, t: controller.value, seed: seed),
+                  ],
+                  // Quanto è buio: i fari e le finestre si vedono solo quando serve.
+                  dark: (_current.lights / 0.6).clamp(0.0, 1.0),
+                ),
               ),
             ),
           ),
@@ -210,6 +214,11 @@ class _Sky {
   final double moon;
   final double sun;
 
+  /// Da 0 a 1: quante nuvole passano. [cloudLight] è quanto sono chiare
+  /// (bianche di giorno, rosa all'alba, grigio scuro di notte).
+  final double clouds;
+  final Color cloudColor;
+
   const _Sky({
     required this.top,
     required this.mid,
@@ -222,6 +231,8 @@ class _Sky {
     required this.scrim,
     required this.moon,
     required this.sun,
+    this.clouds = 0,
+    this.cloudColor = const Color(0xFFFFFFFF),
     this.rain = 0,
   });
 
@@ -237,6 +248,8 @@ class _Sky {
     scrim: 0.10,
     moon: 0.78,
     sun: -0.5,
+    clouds: 0.35,
+    cloudColor: Color(0xFF1E2638),
   );
 
   static const dawn = _Sky(
@@ -251,20 +264,24 @@ class _Sky {
     scrim: 0.24,
     moon: -0.3,
     sun: 0.05,
+    clouds: 0.7,
+    cloudColor: Color(0xFFE7A08A),
   );
 
   static const day = _Sky(
-    top: Color(0xFF1E2A3A),
-    mid: Color(0xFF47566A),
-    horizon: Color(0xFFA9967A),
-    far: Color(0xFF3A4654),
-    near: Color(0xFF12171D),
+    top: Color(0xFF2F6DB2),
+    mid: Color(0xFF79AEDD),
+    horizon: Color(0xFFF1DDB4),
+    far: Color(0xFF8C9DB3),
+    near: Color(0xFF2E2B2F),
     stars: 0,
     lights: 0,
-    fog: 0.3,
-    scrim: 0.34,
+    fog: 0.15,
+    scrim: 0.16,
     moon: -0.5,
-    sun: 0.62,
+    sun: 0.78,
+    clouds: 1,
+    cloudColor: Color(0xFFFFFFFF),
   );
 
   static const dusk = _Sky(
@@ -279,6 +296,8 @@ class _Sky {
     scrim: 0.26,
     moon: -0.4,
     sun: 0.02,
+    clouds: 0.8,
+    cloudColor: Color(0xFFD97A55),
   );
 
   static _Sky of(SceneMood mood) => switch (mood) {
@@ -300,6 +319,8 @@ class _Sky {
         scrim: scrim,
         moon: moon,
         sun: sun,
+        clouds: rain > 0 ? 1 : clouds,
+        cloudColor: rain > 0 ? Color.lerp(cloudColor, const Color(0xFF3A3F4A), 0.7)! : cloudColor,
         rain: rain,
       );
 
@@ -317,6 +338,8 @@ class _Sky {
       scrim: mix(a.scrim, b.scrim),
       moon: mix(a.moon, b.moon),
       sun: mix(a.sun, b.sun),
+      clouds: mix(a.clouds, b.clouds),
+      cloudColor: Color.lerp(a.cloudColor, b.cloudColor, t)!,
       rain: mix(a.rain, b.rain),
     );
   }
@@ -356,6 +379,7 @@ class _BackdropPainter extends CustomPainter {
     _stars(canvas, size);
     _moon(canvas, size);
     _sun(canvas, size);
+    _clouds(canvas, size);
     _landmark(canvas, size);
     _layer(canvas, size, seed: 11, far: true);
     _farDetails(canvas, size);
@@ -406,9 +430,58 @@ class _BackdropPainter extends CustomPainter {
   void _sun(Canvas canvas, Size size) {
     if (sky.sun < -0.25) return;
     final center = Offset(size.width * 0.30, size.height * (0.74 - 0.5 * sky.sun));
-    final radius = size.width * 0.10;
-    _glow(canvas, center, radius * 5.5, const Color(0xFFFFC37A).withValues(alpha: 0.45));
-    canvas.drawCircle(center, radius, Paint()..color = const Color(0xFFFFE2A8));
+    final radius = size.width * 0.085;
+    // Basso è arancio e grande di alone; alto è bianco, accecante, con i raggi.
+    final high = ((sky.sun - 0.1) / 0.6).clamp(0.0, 1.0);
+    final disc = Color.lerp(const Color(0xFFFFB25C), const Color(0xFFFFFBEA), high)!;
+    final halo = Color.lerp(const Color(0xFFFF9A4A), const Color(0xFFFFF2B8), high)!;
+    _glow(canvas, center, radius * (5.5 + 2.5 * high), halo.withValues(alpha: 0.42 + 0.2 * high));
+    if (high > 0.05) {
+      final rays = Paint()
+        ..color = const Color(0xFFFFF6D0).withValues(alpha: 0.16 * high)
+        ..strokeWidth = radius * 0.16
+        ..strokeCap = StrokeCap.round;
+      for (var i = 0; i < 12; i++) {
+        final angle = 2 * pi * i / 12 + phase * 2 * pi;
+        final reach = radius * (1.6 + 0.5 * (i.isEven ? 1 : 0) + 0.15 * _wave(4, i / 12));
+        canvas.drawLine(
+          center + Offset(cos(angle), sin(angle)) * radius * 1.25,
+          center + Offset(cos(angle), sin(angle)) * reach,
+          rays,
+        );
+      }
+    }
+    canvas.drawCircle(center, radius, Paint()..color = disc);
+  }
+
+  /// Le nuvole che passano: bianche e gonfie di giorno, rosa all'alba,
+  /// scure e sfilacciate di notte.
+  void _clouds(Canvas canvas, Size size) {
+    if (sky.clouds < 0.02) return;
+    final rng = Random(41);
+    final paint = Paint()..maskFilter = MaskFilter.blur(BlurStyle.normal, size.width * 0.012);
+    final count = (3 + 4 * sky.clouds).round();
+    for (var i = 0; i < count; i++) {
+      final y = size.height * (0.10 + 0.42 * rng.nextDouble());
+      final scale = size.width * (0.10 + 0.12 * rng.nextDouble());
+      // Ogni nuvola attraversa il cielo un numero intero di volte per giro.
+      final turns = 1 + rng.nextInt(2);
+      final x = ((rng.nextDouble() + phase * turns) % 1) * (size.width + scale * 4) - scale * 2;
+      final alpha = sky.clouds * (0.55 + 0.35 * rng.nextDouble());
+      for (final (dx, dy, r) in const [(0.0, 0.0, 0.55), (0.5, -0.18, 0.5), (1.0, 0.0, 0.48), (-0.45, 0.06, 0.38), (0.5, 0.12, 0.6)]) {
+        paint.color = sky.cloudColor.withValues(alpha: alpha * 0.8);
+        canvas.drawOval(
+          Rect.fromCenter(center: Offset(x + dx * scale, y + dy * scale), width: r * scale * 2.2, height: r * scale * 1.2),
+          paint,
+        );
+      }
+      // Il bordo in ombra sotto, per farle sembrare gonfie.
+      paint.color = Color.lerp(sky.cloudColor, Colors.black, 0.25)!.withValues(alpha: alpha * 0.25);
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset(x + 0.5 * scale, y + 0.3 * scale), width: scale * 2.6, height: scale * 0.35),
+        paint,
+      );
+    }
   }
 
   void _glow(Canvas canvas, Offset center, double radius, Color color) {
