@@ -120,6 +120,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     sound.effect(FxGroup.door, volume: 0.45);
     sound.press(Press.chips);
     sound.music(MusicMood.table);
+    // Sotto la musica, il brusio della sala: bicchieri, voci lontane.
+    sound.ambience(FxGroup.bar);
+    sound.atmosphere(FxGroup.chips, after: const Duration(seconds: 4), volume: 0.6);
     final navigator = Navigator.of(context);
     final host = AppStrings.of(context).hostName;
     if (!_still) {
@@ -136,7 +139,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     await navigator.push(_OutOfTheDarkRoute(builder: (_) => LobbyScreen(session: session)));
     dragging.removeListener(reopen);
     // Fuori dalla stanza si torna nel vicolo, con la sua musica.
-    SoundStage.instance.music(MusicMood.menu);
+    SoundStage.instance
+      ..music(MusicMood.menu)
+      ..ambience(null);
     if (!mounted) return;
     setState(() => _leaving = false);
     _iris.reverse();

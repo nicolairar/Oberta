@@ -92,7 +92,22 @@ enum FxGroup {
   gulp(4),
   bubbles(3),
   scrape(3),
-  unsheath(2);
+  unsheath(2),
+  citynight(4),
+  bar(4),
+  chips(3),
+  shuffle(4),
+  clocktick(4),
+  distantdog(4),
+  seagulls(4),
+  bellsfar(4),
+  morningstreet(4),
+  cicadas(4),
+  fireplace(4),
+  windsoft(4),
+  dawnchorus(4),
+  lighter(3),
+  whiskey(3);
 
   /// Quante registrazioni ci sono.
   final int count;

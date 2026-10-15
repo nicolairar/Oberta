@@ -225,7 +225,9 @@ class _GameScreenState extends State<GameScreen> {
           SoundStage.instance.music(MusicMood.day);
           // La piazza di giorno: gli uccelli restano sotto, e dove c'è il
           // campanile suonano le ore, lontane.
-          if (_hasBellTower && _atmosphere.nextBool()) _seenAndHeard(FxGroup.church, volume: 0.6);
+          if (_hasBellTower && _atmosphere.nextBool()) _seenAndHeard(FxGroup.bellsfar, volume: 0.6);
+          // La piazza di giorno: la strada sveglia, piano, sotto la discussione.
+          SoundStage.instance.ambience(FxGroup.morningstreet);
           SoundStage.instance.prepareVerdicts();
           _stage = _Stage.day;
         }
@@ -253,14 +255,28 @@ class _GameScreenState extends State<GameScreen> {
     // si vede, mai a caso.
     final raining = _engine.round.isOdd;
     // Il sottofondo dura tutta la notte: la pioggia se piove, se no grilli o vento.
-    SoundStage.instance.ambience(raining ? FxGroup.rain : _pick(const [FxGroup.crickets, FxGroup.wind]));
+    // Dove fa caldo, le cicale; nelle metropoli, il traffico lontano.
+    final beds = [
+      FxGroup.crickets, FxGroup.windsoft,
+      if (_style == SkylineStyle.metropolis) ...[FxGroup.citynight, FxGroup.citynight],
+      if (_style != SkylineStyle.metropolis) FxGroup.cicadas,
+    ];
+    SoundStage.instance.ambience(raining ? FxGroup.rain : _pick(beds));
+    // Sopra il letto, un rumore lontano che entra piano e se ne va: un cane
+    // in fondo alla valle, i gabbiani del porto, l'orologio della cucina.
+    final far = [
+      FxGroup.distantdog, FxGroup.clocktick,
+      if (_portCity) FxGroup.seagulls,
+      if (_style == SkylineStyle.metropolis) FxGroup.citynight,
+    ];
+    SoundStage.instance.atmosphere(_pick(far), after: const Duration(seconds: 2), volume: 0.7);
     final night = [
       FxGroup.owl, FxGroup.dog, FxGroup.cat, FxGroup.siren, FxGroup.train, FxGroup.carpass,
       if (_portCity) FxGroup.foghorn,
       if (raining) ...[FxGroup.thunder, FxGroup.thunder],
     ];
-    _nightSound(_pick(night), const Duration(milliseconds: 900));
-    if (_atmosphere.nextBool()) _nightSound(_pick(night), const Duration(seconds: 6), volume: 0.7);
+    _nightSound(_pick(night), const Duration(milliseconds: 2500));
+    if (_atmosphere.nextBool()) _nightSound(_pick(night), const Duration(seconds: 8), volume: 0.7);
   }
 
   /// Un rumore della notte. Il tuono porta con sé il suo lampo, che arriva
@@ -274,7 +290,9 @@ class _GameScreenState extends State<GameScreen> {
 
   /// Le città che hanno un porto, o un lago con le navi: lì la sirena della
   /// nebbia ha senso.
-  bool get _hasBellTower => {SkylineStyle.mediterranean, SkylineStyle.volcano}.contains(skylineFor(_script.city.id));
+  bool get _hasBellTower => {SkylineStyle.mediterranean, SkylineStyle.volcano}.contains(_style);
+
+  SkylineStyle get _style => skylineFor(_script.city.id);
 
   bool get _portCity => const {'chicago', 'new-york', 'palermo', 'napoli'}.contains(_script.city.id);
 
@@ -310,13 +328,17 @@ class _GameScreenState extends State<GameScreen> {
     final stage = SoundStage.instance;
     // La notte sfuma negli uccelli: un letto che dura tutta la mattina, e
     // sopra, mentre sale, il gallo. Niente che finisce prima che l'altro cominci.
-    stage.ambience(FxGroup.birds);
+    stage.ambience(FxGroup.dawnchorus);
     CityBackdrop.show(SkyEvent.birds);
+    // La città si sveglia: le saracinesche, una scopa, voci lontane. Al
+    // porto, i gabbiani.
+    stage.atmosphere(_portCity && _atmosphere.nextBool() ? FxGroup.seagulls : FxGroup.morningstreet,
+        after: const Duration(seconds: 4), volume: 0.6);
     _thunders.add(Timer(const Duration(milliseconds: 1200), () {
       if (mounted) _seenAndHeard(FxGroup.rooster, volume: 0.9);
     }));
     // Le campane solo dove c'è un campanile all'orizzonte, lontane.
-    if (_hasBellTower && _atmosphere.nextBool()) stage.atmosphere(FxGroup.church, after: const Duration(seconds: 5), volume: 0.6);
+    if (_hasBellTower && _atmosphere.nextBool()) stage.atmosphere(FxGroup.bellsfar, after: const Duration(seconds: 6), volume: 0.6);
   }
 
   void _afterVerdictScene() => _advance(_enterVerdictPage);
@@ -345,6 +367,7 @@ class _GameScreenState extends State<GameScreen> {
 
   void _enterEnd(Team winner) {
     SoundStage.instance.music(winner == Team.mafia ? MusicMood.winFamily : MusicMood.winTown);
+    SoundStage.instance.ambience(null);
     SoundStage.instance.cue(winner == Team.mafia ? Cue.familyWins : Cue.townWins);
     if (winner == Team.mafia) SoundStage.instance.meme(Meme.catLaugh, after: const Duration(milliseconds: 800));
     _title = _t.endTitle;

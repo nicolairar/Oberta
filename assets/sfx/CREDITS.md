@@ -314,3 +314,60 @@ convertite in AAC mono (scaricate il 15 ottobre 2026).
 | `fx_scrape_3.m4a` | Scraping Stone  | dslrguide | https://freesound.org/people/dslrguide/sounds/321488/ |
 | `fx_unsheath_1.m4a` | unsheath_sword.wav | Qat | https://freesound.org/people/Qat/sounds/107589/ |
 | `fx_unsheath_2.m4a` | Unsheathed blade | deleted_user_2906614 | https://freesound.org/people/deleted_user_2906614/sounds/320521/ |
+| `fx_citynight_1.m4a` | AMB-Night,Quiet,DistantTraffic,Lisbon,Portugal | soundandmelodies | https://freesound.org/people/soundandmelodies/sounds/776263/ |
+| `fx_citynight_2.m4a` | XY_City hum_Night_River_ambience.wav | softwalls | https://freesound.org/people/softwalls/sounds/385104/ |
+| `fx_citynight_3.m4a` | City Ambience, Night | HECKFRICKER | https://freesound.org/people/HECKFRICKER/sounds/723696/ |
+| `fx_citynight_4.m4a` | Downtown LA, Little Tokyo, late night semi distant traffic.wav | janbezouska | https://freesound.org/people/janbezouska/sounds/330427/ |
+| `fx_bar_1.m4a` | R05-22-Bar Sounds.wav | craigsmith | https://freesound.org/people/craigsmith/sounds/480721/ |
+| `fx_bar_2.m4a` | G16-05-Casino Ambience.wav | craigsmith | https://freesound.org/people/craigsmith/sounds/438129/ |
+| `fx_bar_3.m4a` | Bar restaurant closing, chatter, glasses, walla, medium adult murmur.wav | SpliceSound | https://freesound.org/people/SpliceSound/sounds/338101/ |
+| `fx_bar_4.m4a` | Small_Town_Bar_001.wav | conleec | https://freesound.org/people/conleec/sounds/212102/ |
+| `fx_chips_1.m4a` | Poker Chips Handling | Flip_Book | https://freesound.org/people/Flip_Book/sounds/850377/ |
+| `fx_chips_2.m4a` | Poker chips - calm.wav | Yajhaira | https://freesound.org/people/Yajhaira/sounds/562942/ |
+| `fx_chips_3.m4a` | Poker Chips Dropping Playing With | deleted_user_7146007 | https://freesound.org/people/deleted_user_7146007/sounds/383871/ |
+| `fx_shuffle_1.m4a` | shuffling cards | RobertWulfman | https://freesound.org/people/RobertWulfman/sounds/220851/ |
+| `fx_shuffle_2.m4a` | Shuffling Playing Cards.wav | pwausc1 | https://freesound.org/people/pwausc1/sounds/118265/ |
+| `fx_shuffle_3.m4a` | CARD_DECK_SHUFFLE.WAV | dansotak | https://freesound.org/people/dansotak/sounds/137712/ |
+| `fx_shuffle_4.m4a` | Card Shuffling Ruffle | 2create | https://freesound.org/people/2create/sounds/668835/ |
+| `fx_clocktick_1.m4a` | Wall Clock Ticking | Filmscore | https://freesound.org/people/Filmscore/sounds/830193/ |
+| `fx_clocktick_2.m4a` | Old Clock - Loop | vdr3 | https://freesound.org/people/vdr3/sounds/393695/ |
+| `fx_clocktick_3.m4a` | clock_ticking_mono.wav | Greaseball | https://freesound.org/people/Greaseball/sounds/666582/ |
+| `fx_clocktick_4.m4a` | antique clock tick 2.wav | keweldog | https://freesound.org/people/keweldog/sounds/223131/ |
+| `fx_distantdog_1.m4a` | Dogs barking far with echo in a small village at night | felix.blume | https://freesound.org/people/felix.blume/sounds/705299/ |
+| `fx_distantdog_2.m4a` | Distant Dogs | IENBA | https://freesound.org/people/IENBA/sounds/820267/ |
+| `fx_distantdog_3.m4a` | dog-distant barking.wav | alberto59 | https://freesound.org/people/alberto59/sounds/615258/ |
+| `fx_distantdog_4.m4a` | countryside at night with a dog barking afar | philippe b | https://freesound.org/people/philippe b/sounds/165567/ |
+| `fx_seagulls_1.m4a` | Seagulls in a quiet street, 6AM, Harbour City | etienne.leplumey | https://freesound.org/people/etienne.leplumey/sounds/450529/ |
+| `fx_seagulls_2.m4a` | Harbour_Seagulls_Day.WAV | ivolipa | https://freesound.org/people/ivolipa/sounds/328808/ |
+| `fx_seagulls_3.m4a` | seagulls Le Conquet harbour pier | bruno.auzet | https://freesound.org/people/bruno.auzet/sounds/829207/ |
+| `fx_seagulls_4.m4a` | Seagull Swarm at Port | Kinoton | https://freesound.org/people/Kinoton/sounds/468080/ |
+| `fx_bellsfar_1.m4a` | Bells_distant_in_town.wav | ivolipa | https://freesound.org/people/ivolipa/sounds/266525/ |
+| `fx_bellsfar_2.m4a` | Italian bells mid distant.wav | mikewest | https://freesound.org/people/mikewest/sounds/411489/ |
+| `fx_bellsfar_3.m4a` | Southend Distant Church Bells 1 .wav | Cheeseheadburger | https://freesound.org/people/Cheeseheadburger/sounds/244517/ |
+| `fx_bellsfar_4.m4a` | Bells french distant.wav | lazymonk | https://freesound.org/people/lazymonk/sounds/413157/ |
+| `fx_morningstreet_1.m4a` | Boston Street Morning.wav | Dlam1991 | https://freesound.org/people/Dlam1991/sounds/234080/ |
+| `fx_morningstreet_2.m4a` | Rooftop ambience morning city | 20deabril | https://freesound.org/people/20deabril/sounds/686013/ |
+| `fx_morningstreet_3.m4a` | Quiet and sweep the street.wav | rocuma | https://freesound.org/people/rocuma/sounds/565758/ |
+| `fx_morningstreet_4.m4a` | Morning Kitchen Street Cars 200627_0014_01.wav | szegvari | https://freesound.org/people/szegvari/sounds/524030/ |
+| `fx_cicadas_1.m4a` | cicadas.wav | fraska2 | https://freesound.org/people/fraska2/sounds/434675/ |
+| `fx_cicadas_2.m4a` | Cicada2.wav | burkay | https://freesound.org/people/burkay/sounds/322616/ |
+| `fx_cicadas_3.m4a` | Cicadas - Rilke Trail Trieste.aif | svejkut | https://freesound.org/people/svejkut/sounds/197824/ |
+| `fx_cicadas_4.m4a` | Cicadas_Mediterranean.wav | denkmal | https://freesound.org/people/denkmal/sounds/539790/ |
+| `fx_fireplace_1.m4a` | Fireplace crackling wood little flame.wav | BonnyOrbit | https://freesound.org/people/BonnyOrbit/sounds/484338/ |
+| `fx_fireplace_2.m4a` | Crackling Fire | samarobryn | https://freesound.org/people/samarobryn/sounds/414767/ |
+| `fx_fireplace_3.m4a` | Fire crackling in fireplace | Davor | https://freesound.org/people/Davor/sounds/382616/ |
+| `fx_fireplace_4.m4a` | fire-crackling.wav | jmehlferber | https://freesound.org/people/jmehlferber/sounds/370938/ |
+| `fx_windsoft_1.m4a` | Soft Wind | florianreichelt | https://freesound.org/people/florianreichelt/sounds/459977/ |
+| `fx_windsoft_2.m4a` | a gentle breeze, wind 3 | mario1298 | https://freesound.org/people/mario1298/sounds/181252/ |
+| `fx_windsoft_3.m4a` | wind light calm soft breeze deep big gusty.flac | kyles | https://freesound.org/people/kyles/sounds/454360/ |
+| `fx_windsoft_4.m4a` | Looping Gentle Wind Ambience on an Open Desert Plain.wav | dhallcomposer | https://freesound.org/people/dhallcomposer/sounds/697217/ |
+| `fx_dawnchorus_1.m4a` | Birds singing, Dawn chorus | SamsterBirdies | https://freesound.org/people/SamsterBirdies/sounds/578523/ |
+| `fx_dawnchorus_2.m4a` | Dawn chorus.wav | Synge101 | https://freesound.org/people/Synge101/sounds/611453/ |
+| `fx_dawnchorus_3.m4a` | Dawn Chorus Rural UK.wav | dlt | https://freesound.org/people/dlt/sounds/632039/ |
+| `fx_dawnchorus_4.m4a` | Dawn chorus - Hampshire countryside Springtime | richwise | https://freesound.org/people/richwise/sounds/466242/ |
+| `fx_lighter_1.m4a` | Opening, igniting and closing a Zippo lighter | omnomducks | https://freesound.org/people/omnomducks/sounds/338729/ |
+| `fx_lighter_2.m4a` | Zippo Lighter | thedogryan420 | https://freesound.org/people/thedogryan420/sounds/146064/ |
+| `fx_lighter_3.m4a` | Zippo.aif | tutyfruty0024 | https://freesound.org/people/tutyfruty0024/sounds/152547/ |
+| `fx_whiskey_1.m4a` | Whiskey.wav | FunkApache | https://freesound.org/people/FunkApache/sounds/438942/ |
+| `fx_whiskey_2.m4a` | Liquid Pouring With Ice.wav | ericlichtenberg | https://freesound.org/people/ericlichtenberg/sounds/432349/ |
+| `fx_whiskey_3.m4a` | MyBrotherIsHavingAWhiskey.wav | ovemelaa | https://freesound.org/people/ovemelaa/sounds/199727/ |
