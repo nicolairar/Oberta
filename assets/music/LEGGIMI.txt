@@ -1,6 +1,7 @@
 Metti qui le tracce (mp3 o m4a), con questi nomi:
 
   menu.mp3        il vicolo, sottofondo del menu
+  table.mp3       il tavolo: stanza, narratore, carte
   night.mp3       la notte
   day.mp3         la discussione
   win_town.mp3    vincono gli onesti
