@@ -64,7 +64,22 @@ enum FxGroup {
   chuckle(4),
   surprise(1),
   tada(2),
-  harmonica(2);
+  harmonica(2),
+  citynight(4),
+  bar(4),
+  chips(3),
+  shuffle(4),
+  clocktick(4),
+  distantdog(4),
+  seagulls(4),
+  bellsfar(4),
+  morningstreet(4),
+  cicadas(4),
+  fireplace(4),
+  windsoft(4),
+  dawnchorus(4),
+  lighter(3),
+  whiskey(3);
 
   /// Quante registrazioni ci sono.
   final int count;
