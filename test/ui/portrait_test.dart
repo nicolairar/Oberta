@@ -143,20 +143,16 @@ void main() {
       await store.add('Giulia', photo: giuliaPhoto);
       await stage(tester, victim: 'Marco');
 
-      // Per tutto il film ci sono solo sagome; l'unica foto che può comparire
-      // è quella della vittima, nel primo piano di quando si accorge di
-      // qualcosa. Quella di Giulia mai.
-      var closeUps = 0;
+      // Per tutto il film ci sono solo sagome, niente primi piani: la faccia
+      // della vittima arriva solo alla fine, sulla sua carta. Quella di
+      // Giulia mai.
       for (var second = 0; second < 11; second++) {
         await tester.pump(const Duration(seconds: 1));
+        expect(find.byType(FaceCloseUp), findsNothing, reason: 'secondo $second');
         final shown = photos().evaluate().length;
         expect(shown, lessThanOrEqualTo(1), reason: 'secondo $second');
-        if (shown == 1) {
-          closeUps++;
-          expect(shownIn(tester, find.byType(FaceCloseUp)), store.photoOf(marco)!.image, reason: 'secondo $second');
-        }
+        if (shown == 1) expect(shownIn(tester, find.byType(VictimCard)), store.photoOf(marco)!.image, reason: 'secondo $second');
       }
-      expect(closeUps, greaterThan(0), reason: 'il primo piano mostra la vittima');
 
       await tester.pump(DeathScene.length);
       await tester.pump();

@@ -233,7 +233,7 @@ void main() {
     }
   });
 
-  testWidgets('a metà scena la vittima si accorge di qualcosa, e arriva il suo primo piano', (tester) async {
+  testWidgets('nessun primo piano a metà scena: la faccia si vede solo alla fine', (tester) async {
     tester.platformDispatcher.accessibilityFeaturesTestValue =
         const FakeAccessibilityFeatures(disableAnimations: true);
     addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
@@ -242,13 +242,15 @@ void main() {
     ));
     Duration at(double t) => Duration(milliseconds: (filmClock(t) * DeathScene.length.inMilliseconds).round());
 
-    await tester.pump(at(0.30));
-    expect(find.text('?!'), findsNothing, reason: 'all\'inizio la vittima cammina tranquilla');
-    await tester.pump(at(0.43) - at(0.30));
-    expect(find.text('?!'), findsOneWidget);
-    expect(find.byType(NoirAvatar), findsOneWidget, reason: 'solo la faccia della vittima');
-    await tester.pump(at(0.60) - at(0.43));
-    expect(find.text('?!'), findsNothing);
+    var shown = Duration.zero;
+    for (final t in [0.30, 0.43, 0.50, 0.60, 0.80]) {
+      await tester.pump(at(t) - shown);
+      shown = at(t);
+      expect(find.text('?!'), findsNothing, reason: 't=$t');
+      expect(find.byType(NoirAvatar), findsNothing, reason: 'nessuna faccia a t=$t');
+    }
+    await tester.pump(at(0.95) - shown);
+    expect(find.byType(NoirAvatar), findsOneWidget, reason: 'alla fine, la carta della vittima');
     await tester.pumpWidget(const SizedBox());
   });
 }

@@ -10,7 +10,6 @@ import '../../sound/scene_cues.dart';
 import '../../sound/sound_stage.dart';
 import '../theme/app_theme.dart';
 import 'city_backdrop.dart';
-import 'face_close_up.dart';
 import 'noir_avatar.dart';
 import 'particle_sprites.dart';
 import 'victim_card.dart';
@@ -216,21 +215,6 @@ class _DeathSceneState extends State<DeathScene>
     }
   }
 
-  /// Il momento in cui la vittima si accorge di qualcosa, e la cinepresa le
-  /// va addosso: chi guarda in alto lo fa più tardi, gli altri quando si
-  /// girano sotto il lampione.
-  double get _closeUpAt => switch (widget.act) {
-    DeathAct.car ||
-    DeathAct.piano ||
-    DeathAct.safe ||
-    DeathAct.chandelier => 0.465,
-    DeathAct.pot ||
-    DeathAct.manhole ||
-    DeathAct.sniper ||
-    DeathAct.driveBy => 0.465,
-    _ => 0.39,
-  };
-
   /// Rimette il film a tempo col nastro. Lo fa presto, mentre la vittima sta
   /// ancora camminando: lì un fotogramma saltato non lo nota nessuno, mentre
   /// uno sparo fuori tempo lo notano tutti.
@@ -309,17 +293,11 @@ class _DeathSceneState extends State<DeathScene>
                 (widget.caption.length * _span(_film.value, 0.02, 0.20))
                     .round();
             final card = _span(t, 0.86, 0.93);
-            // Chi si salva resta anonimo: niente primo piano.
-            final closeUp = survives
-                ? 0.0
-                : _span(t, _closeUpAt, _closeUpAt + 0.09);
+            // Niente primo piano a metà film: la faccia si vede solo alla
+            // fine, sulla carta della vittima.
             return Stack(
               fit: StackFit.expand,
               children: [
-                Align(
-                  alignment: const Alignment(-0.55, -0.48),
-                  child: FaceCloseUp(name: widget.victimName, life: closeUp),
-                ),
                 Align(
                   alignment: const Alignment(0, 0.93),
                   child: Padding(

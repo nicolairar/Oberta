@@ -152,26 +152,19 @@ void main() {
     expect(finished, 1);
   });
 
-  testWidgets('a metà film arriva il primo piano del condannato, e di nessun altro', (tester) async {
+  testWidgets('a metà film niente primi piani: al massimo la foto del condannato, e di nessun altro', (tester) async {
     usePhone(tester, const Size(393, 852));
-    final marco = await RosterStore.instance.add('Marco', photo: (await tester.runAsync(() => fakePhoto(variant: 0)))!);
+    await RosterStore.instance.add('Marco', photo: (await tester.runAsync(() => fakePhoto(variant: 0)))!);
     await RosterStore.instance.add('Giulia', photo: (await tester.runAsync(() => fakePhoto(variant: 1)))!);
     for (final take in VerdictTake.condemnations) {
       await tester.pumpWidget(sceneOf(take));
       await loadPhotos(tester);
-      var closeUps = 0;
       for (var step = 0; step < 40; step++) {
         await tester.pump(take.length ~/ 40);
-        final shown = photos().evaluate().length;
-        expect(shown, lessThanOrEqualTo(1), reason: '${take.name} passo $step');
-        if (find.text('?!').evaluate().isNotEmpty) {
-          closeUps++;
-          expect(find.byType(FaceCloseUp), findsOneWidget);
-          final image = tester.widget<Image>(find.descendant(of: find.byType(FaceCloseUp), matching: find.byType(Image))).image;
-          expect(image, RosterStore.instance.photoOf(marco)!.image, reason: take.name);
-        }
+        final shown = photos().evaluate();
+        expect(shown.length, lessThanOrEqualTo(1), reason: '${take.name} passo $step');
+        expect(find.byType(FaceCloseUp), findsNothing, reason: '${take.name} passo $step');
       }
-      expect(closeUps, greaterThan(0), reason: '${take.name}: il primo piano c\'è');
       await tester.pumpWidget(const SizedBox());
     }
   });

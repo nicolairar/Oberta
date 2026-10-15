@@ -13,7 +13,6 @@ import '../../sound/sound_stage.dart';
 import '../../sound/verdict_stage.dart';
 import '../theme/app_theme.dart';
 import 'city_backdrop.dart';
-import 'face_close_up.dart';
 import 'mugshot_frame.dart';
 import 'noir_avatar.dart';
 import 'particle_sprites.dart';
@@ -288,15 +287,9 @@ class _VerdictSceneState extends State<VerdictScene> with SingleTickerProviderSt
             final t = _film.value;
             final typed = (caption.length * _span(t, 0.02, 0.18)).round();
             final card = _span(t, VerdictBeats.card, VerdictBeats.card + 0.07);
-            final closeUpAt = _take.closeUpAt;
             return Stack(
               fit: StackFit.expand,
               children: [
-                if (name != null && closeUpAt != null)
-                  Align(
-                    alignment: _closeUpSpot,
-                    child: FaceCloseUp(name: name, life: _span(t, closeUpAt, closeUpAt + 0.10), size: 116),
-                  ),
                 Align(
                   alignment: const Alignment(0, 0.93),
                   child: Padding(
@@ -349,15 +342,6 @@ class _VerdictSceneState extends State<VerdictScene> with SingleTickerProviderSt
       ],
     );
   }
-
-  /// Dove compare il primo piano: vicino alla testa del condannato, ma
-  /// sempre dentro lo schermo.
-  Alignment get _closeUpSpot => switch (_take) {
-        VerdictTake.molo => const Alignment(0.10, -0.50),
-        VerdictTake.cartello => const Alignment(-0.30, -0.48),
-        VerdictTake.treno => const Alignment(-0.25, -0.52),
-        _ => const Alignment(-0.45, -0.48),
-      };
 
   Widget _condemnedCard(AppStrings strings, String name, double reveal) => Column(
         mainAxisAlignment: MainAxisAlignment.center,
