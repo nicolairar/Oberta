@@ -1585,17 +1585,7 @@ class DeathScenePainter extends CustomPainter {
       case _Prop.tommy:
         _drawTommyGun(canvas, hand, along, across, h);
       case _Prop.cup:
-        canvas.drawRRect(
-          RRect.fromRectAndRadius(
-            Rect.fromCenter(
-              center: hand.translate(h * 0.035, -h * 0.02),
-              width: h * 0.065,
-              height: h * 0.055,
-            ),
-            Radius.circular(h * 0.012),
-          ),
-          Paint()..color = AppColors.textPrimary,
-        );
+        _teacup(canvas, hand.translate(h * 0.035, -h * 0.02), h);
       case _Prop.bat:
         _limb(
           canvas,
@@ -2225,12 +2215,18 @@ class DeathScenePainter extends CustomPainter {
 
   void _car(Canvas canvas) {
     final (walkX, walk, stride) = _entrance();
-    final drive = _span(t, 0.47, 0.66);
-    final frontX = _mix(-_w * 0.35, _w * 2.4, Curves.easeIn.transform(drive));
-    final hit = frontX >= _victimX;
+    // A tutta, senza frenare: il muso arriva sulla vittima esattamente al
+    // colpo, e dopo l'urto tira dritto.
+    final speed = _w * 12.0;
+    final frontX = _victimX + speed * (t - strike);
+    final hit = t >= strike;
+    // Dove ricade, dopo il volo sopra il tetto: i piedi qui, la testa
+    // verso il lampione.
+    final landX = _w * 0.97;
+    const landAt = 0.675;
 
     // Prima i fari, in fondo alla strada, da dove la vittima è arrivata.
-    final glare = _span(t, 0.38, 0.50) * (1 - _span(t, 0.50, 0.56));
+    final glare = _span(t, 0.38, 0.50) * (1 - _span(t, 0.50, 0.54));
     if (glare > 0) {
       canvas.drawCircle(
         Offset(-_u * 0.1, _ground - _u * 0.30),
@@ -2241,77 +2237,269 @@ class DeathScenePainter extends CustomPainter {
       );
     }
 
+    // La macchina passa dietro al corpo che vola: così si vede rotolare
+    // sopra il cofano e il tetto.
+    if (frontX > -_u * 2.6 && frontX - _u * 2.1 < _w + _u * 0.5) {
+      final jolt = _u * 0.07 * sin(pi * _span(t, strike, strike + 0.035));
+      canvas.save();
+      canvas.translate(0, -jolt);
+      _sedan(canvas, frontX);
+      _carTrim(canvas, frontX);
+      canvas.restore();
+    }
+
     if (!hit) {
-      final alarm = _span(t, 0.47, 0.52);
-      _victim(
+      // Si gira verso la luce, si ripara gli occhi, e resta lì impietrito.
+      final alarm = _span(t, 0.46, 0.50);
+      final freeze = _span(t, 0.50, 0.53);
+      final shiver = t > 0.50 ? sin(t * 420) * 0.05 : 0.0;
+      _person(
         canvas,
-        x: walkX,
+        feet: Offset(walkX, _ground),
         facing: t < 0.43 ? 1 : -1,
         walk: walk,
         stride: stride,
-        lean: -0.14 * alarm,
-        arm: _mix(0.08, 2.1, alarm),
-        elbow: _mix(0.2, 0.9, alarm),
+        lean: -0.14 * alarm - 0.06 * freeze,
+        crouch: 0.22 * freeze,
+        arm: _mix(0.08, 2.15, alarm) + shiver,
+        elbow: _mix(0.2, 0.95, alarm),
+        backArm: _mix(-0.10, 2.0, freeze) - shiver,
+        backElbow: _mix(0.2, 1.1, freeze),
+        hat: victimHat,
+      );
+      _exclaim(
+        canvas,
+        Offset(walkX + _u * 0.05, _ground - _u * 1.50),
+        _span(t, 0.46, 0.535),
       );
     } else {
-      // La vittima vola via, e restano le scarpe.
-      final flight = _span(t, strike - 0.02, 0.72);
+      // Fuori dalle scarpe, su in aria a girare, e giù oltre la macchina.
+      final flight = _span(t, strike, landAt);
       if (flight < 1) {
-        final arc = sin(pi * flight);
+        final spin = -2.5 * pi * flight;
+        final center = Offset(
+          _mix(_victimX, landX - _u * 0.5, flight),
+          _mix(_ground - _u * 0.5, _ground - _u * 0.08, flight) -
+              _u * 1.6 * 4 * flight * (1 - flight),
+        );
         _person(
           canvas,
-          feet: Offset(
-            _victimX + _u * 2.6 * flight,
-            _ground - _u * (0.2 + 2.2 * arc),
-          ),
+          feet: center + Offset(-_u * 0.5 * sin(spin), _u * 0.5 * cos(spin)),
           facing: -1,
-          tilt: flight * 11,
-          arm: 2.6,
-          elbow: 0.3,
-          backArm: -2.2,
-          crouch: 0.5,
+          tilt: spin,
+          arm: 2.6 + sin(t * 90) * 0.4,
+          elbow: 0.4,
+          backArm: -2.2 + cos(t * 80) * 0.4,
+          backElbow: 0.5,
+          crouch: 0.35,
           hat: victimHat,
           hatOn: false,
         );
+      } else {
+        final bounce = _span(t, landAt, landAt + 0.05);
+        canvas.save();
+        canvas.translate(0, -_u * 0.10 * sin(pi * bounce));
+        _corpse(canvas, landX, -1);
+        canvas.restore();
       }
+      _dust(
+        canvas,
+        Offset(landX - _u * 0.45, _ground),
+        _span(t, landAt, landAt + 0.20),
+        seed: 3,
+        size: 0.9,
+        spread: 1.1,
+      );
+
+      // Le scarpe restano lì, e fumano.
       _shoes(canvas, _victimX);
-      final hatFlight = _span(t, strike - 0.02, 0.86);
+      for (var i = 0; i < 3; i++) {
+        final life = _span(
+          t,
+          strike + 0.02 + i * 0.03,
+          strike + 0.16 + i * 0.03,
+        );
+        _puff(
+          canvas,
+          Offset(
+            _victimX + _u * (0.02 + 0.05 * i),
+            _ground - _u * (0.10 + 0.45 * life),
+          ),
+          life,
+          size: 0.22,
+          color: const Color(0xFF77726C),
+        );
+      }
+      _dust(
+        canvas,
+        Offset(_victimX, _ground),
+        _span(t, strike, strike + 0.16),
+        seed: 4,
+        size: 0.8,
+      );
+
+      // Il cappello va su più in alto di tutti, e torna giù planando.
+      final hatUp = Curves.easeOut.transform(_span(t, strike, 0.62));
+      final hatDown = _span(t, 0.62, 0.80);
       _looseHat(
         canvas,
         Offset(
-          _victimX + _u * 0.9 * hatFlight,
-          _ground -
-              _u * 0.04 -
-              _u *
-                  2.0 *
-                  sin(pi * min(1, hatFlight * 1.15)) *
-                  (1 - hatFlight * 0.3),
+          _victimX +
+              _u * (0.15 * hatUp + 0.25 * hatDown) +
+              sin(hatDown * 9) * _u * 0.14 * (1 - hatDown),
+          hatDown > 0
+              ? _mix(
+                  _ground - _u * 2.3,
+                  _ground - _u * 0.03,
+                  Curves.easeIn.transform(hatDown),
+                )
+              : _mix(_ground - _u * 1.0, _ground - _u * 2.3, hatUp),
         ),
-        hatFlight < 1 ? hatFlight * 14 : 0,
+        hatUp * 4 * pi + 0.45 * sin(hatDown * 9) * (1 - hatDown),
       );
-      _puff(
-        canvas,
-        Offset(_victimX + _u * 0.3, _ground - _u * 0.05),
-        _span(t, strike, 0.74),
-        size: 1.2,
-      );
-    }
 
-    if (drive > 0 && drive < 1) _sedan(canvas, frontX);
-    // I segni della frenata che non c'è stata.
-    if (hit) {
+      // I segni delle gomme dove ha preso la vittima.
       final marks = Paint()
         ..color = Colors.black.withValues(alpha: 0.6)
         ..strokeWidth = _u * 0.02;
       for (final dy in [0.04, 0.10]) {
         canvas.drawLine(
-          Offset(_victimX - _u * 0.4, _ground + _u * dy),
-          Offset(min(frontX, _w + 40), _ground + _u * dy),
+          Offset(_victimX - _u * 0.5, _ground + _u * dy),
+          Offset(min(frontX, _victimX + _u * 1.4), _ground + _u * dy),
           marks,
         );
       }
+      // Il colpo: la stella dell'urto e i vetri del faro.
+      _impactBurst(
+        canvas,
+        Offset(_victimX - _u * 0.10, _ground - _u * 0.45),
+        _span(t, strike, strike + 0.045),
+        size: 1.0,
+      );
+      _debris(
+        canvas,
+        Offset(_victimX, _ground - _u * 0.34),
+        _span(t, strike, strike + 0.15),
+        seed: 12,
+        count: 12,
+        colors: const [Color(0xFFFFF3C4), Color(0xFFD5DAE0)],
+        size: 0.55,
+        drift: 0.9,
+        glints: true,
+      );
     }
-    _flash(canvas, _span(t, strike - 0.03, strike + 0.07), strength: 0.95);
+    _flash(canvas, _span(t, strike, strike + 0.05), strength: 0.7);
+  }
+
+  /// Quello che rende vera la berlina da vicino: cerchioni che girano,
+  /// paraurti cromati, la griglia, il fanale rosso e il fumo di scarico.
+  void _carTrim(Canvas canvas, double front) {
+    final back = front - _u * 2.1;
+    final chrome = Paint()..color = _steel.withValues(alpha: 0.85);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTRB(
+          front - _u * 0.10,
+          _ground - _u * 0.23,
+          front + _u * 0.05,
+          _ground - _u * 0.175,
+        ),
+        Radius.circular(_u * 0.02),
+      ),
+      chrome,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTRB(
+          back - _u * 0.04,
+          _ground - _u * 0.23,
+          back + _u * 0.12,
+          _ground - _u * 0.175,
+        ),
+        Radius.circular(_u * 0.02),
+      ),
+      chrome,
+    );
+    final grille = Paint()
+      ..color = _steel.withValues(alpha: 0.45)
+      ..strokeWidth = _u * 0.012;
+    for (var i = 0; i < 3; i++) {
+      final x = front - _u * (0.07 + 0.03 * i);
+      canvas.drawLine(
+        Offset(x, _ground - _u * 0.37),
+        Offset(x, _ground - _u * 0.25),
+        grille,
+      );
+    }
+    // La maniglia e il profilo della portiera.
+    final trim = Paint()
+      ..color = _rim.withValues(alpha: 0.8)
+      ..strokeWidth = _u * 0.012;
+    canvas.drawLine(
+      Offset(back + _u * 1.26, _ground - _u * 0.50),
+      Offset(back + _u * 1.26, _ground - _u * 0.20),
+      trim,
+    );
+    canvas.drawLine(
+      Offset(back + _u * 1.12, _ground - _u * 0.44),
+      Offset(back + _u * 1.20, _ground - _u * 0.44),
+      trim..strokeWidth = _u * 0.02,
+    );
+    canvas.drawLine(
+      Offset(back + _u * 0.10, _ground - _u * 0.28),
+      Offset(front - _u * 0.12, _ground - _u * 0.28),
+      Paint()
+        ..color = _steel.withValues(alpha: 0.25)
+        ..strokeWidth = _u * 0.01,
+    );
+    final tail = Offset(back + _u * 0.06, _ground - _u * 0.40);
+    canvas.drawCircle(
+      tail,
+      _u * 0.10,
+      Paint()
+        ..color = const Color(0xFFE23A4A).withValues(alpha: 0.35)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, _u * 0.05),
+    );
+    canvas.drawCircle(
+      tail,
+      _u * 0.032,
+      Paint()..color = const Color(0xFFE23A4A),
+    );
+    // I cerchioni: i raggi girano, e a quella velocità si sfumano.
+    final turn = front / (_u * 0.21);
+    final spoke = Paint()
+      ..color = _steel.withValues(alpha: 0.45)
+      ..strokeWidth = _u * 0.016
+      ..strokeCap = StrokeCap.round;
+    for (final x in [back + _u * 0.38, front - _u * 0.36]) {
+      final hub = Offset(x, _ground - _u * 0.13);
+      for (var i = 0; i < 3; i++) {
+        final a = turn + i * pi / 3;
+        final reach = Offset(cos(a), sin(a)) * (_u * 0.115);
+        canvas.drawLine(hub - reach, hub + reach, spoke);
+      }
+      canvas.drawCircle(
+        hub,
+        _u * 0.125,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = _u * 0.012
+          ..color = _steel.withValues(alpha: 0.55),
+      );
+    }
+    for (var i = 0; i < 3; i++) {
+      final life = (t * 40 + i / 3) % 1;
+      _puff(
+        canvas,
+        Offset(
+          back - _u * (0.10 + 0.5 * life),
+          _ground - _u * (0.16 + 0.15 * life),
+        ),
+        life,
+        size: 0.22,
+        color: const Color(0xFF6F6B66),
+      );
+    }
   }
 
   void _sedan(Canvas canvas, double front) {
@@ -2429,216 +2617,651 @@ class DeathScenePainter extends CustomPainter {
 
   void _fallingObject(Canvas canvas) {
     final (walkX, walk, stride) = _entrance();
-    final drop = Curves.easeIn.transform(_span(t, 0.46, strike));
+    // Appeso lassù, la corda scricchiola, cede a [snap] e la caduta accelera
+    // fino al colpo.
+    const snap = 0.50;
     final landed = t >= strike;
-    final bottom = _mix(-_u * 2.2, _ground, drop);
+    final fall = _span(t, snap, strike);
+    final hang = _ground - _u * 2.05;
+    final bottom = landed ? _ground : _mix(hang, _ground, fall * fall);
+    final after = _span(t, strike, strike + 0.10);
+    final chandelier = act == DeathAct.chandelier;
+    final safe = act == DeathAct.safe;
+    final piano = !chandelier && !safe;
+    final half = safe ? 0.44 : (chandelier ? 0.65 : 0.64);
 
     _killerSalute(canvas);
     _wall(canvas);
 
-    // L'ombra che si allarga: la vittima se ne accorge un attimo troppo tardi.
-    final shadow = _span(t, 0.40, strike);
+    // L'ombra che si allarga e si fa scura man mano che arriva.
+    final shadow = _span(t, 0.38, strike);
     if (shadow > 0 && !landed) {
+      final near = fall * fall;
       canvas.drawOval(
         Rect.fromCenter(
           center: Offset(_victimX, _ground + _u * 0.04),
-          width: _u * (0.3 + 1.1 * shadow),
+          width: _u * (0.5 + 0.9 * shadow) * _mix(1, 1.15, near),
           height: _u * 0.12 * (0.4 + shadow),
         ),
-        Paint()..color = Colors.black.withValues(alpha: 0.6 * shadow),
+        Paint()..color = Colors.black.withValues(alpha: 0.25 + 0.45 * near),
       );
     }
 
     if (!landed) {
-      final alarm = _span(t, 0.49, 0.53);
-      _victim(
+      // Lo scricchiolio gli fa alzare gli occhi; quando cede, punta il dito;
+      // all'ultimo si rannicchia con le braccia sulla testa.
+      final glance = _smooth(_span(t, 0.44, 0.47)) * (1 - _span(t, 0.48, snap));
+      final alarm = _span(t, snap, snap + 0.025);
+      final cower = _span(t, 0.53, 0.55);
+      final shiver = cower > 0 ? sin(t * 420) * 0.05 : 0.0;
+      _person(
         canvas,
-        x: walkX,
+        feet: Offset(walkX, _ground),
         walk: walk,
         stride: stride,
-        lean: -0.16 * alarm,
-        arm: _mix(0.08, 2.75, alarm),
-        elbow: _mix(0.2, 0.5, alarm),
+        lean: -0.10 * glance - 0.16 * alarm * (1 - cower) + 0.06 * cower,
+        crouch: 0.30 * cower,
+        arm: _mix(_mix(0.08, 2.75, alarm), 2.95, cower) + shiver,
+        elbow: _mix(_mix(0.2, 0.5, alarm), 1.0, cower),
+        backArm: _mix(-0.10, 2.8, cower) - shiver,
+        backElbow: _mix(0.2, 1.1, cower),
+        hat: victimHat,
       );
-      if (alarm > 0) {
-        final mark = TextPainter(
-          text: TextSpan(
-            text: '!',
-            style: TextStyle(
-              fontFamily: 'Georgia',
-              fontSize: _u * 0.34,
-              fontWeight: FontWeight.w900,
-              color: AppColors.gold,
-            ),
-          ),
-          textDirection: TextDirection.ltr,
-        )..layout();
-        mark.paint(canvas, Offset(_victimX + _u * 0.20, _ground - _u * 1.52));
-      }
+      _exclaim(
+        canvas,
+        Offset(_victimX + _u * 0.30, _ground - _u * 1.40),
+        _span(t, snap, snap + 0.05),
+      );
+    } else if (chandelier) {
+      // Il lampadario è tutto archi: sotto la vittima si vede, stesa.
+      _corpse(canvas, _victimX + _u * 0.45, -1);
+    } else if (piano) {
+      // Sotto la coda c'è luce fra le gambe: lì si vede, schiacciato.
+      canvas.save();
+      canvas.translate(0, _ground);
+      canvas.scale(1, 0.6);
+      canvas.translate(0, -_ground);
+      _corpse(canvas, _victimX - _u * 0.72, 1);
+      canvas.restore();
     } else {
-      // Sotto resta poco: due gambe che spuntano, e un cappello che rotola via.
-      final ink = Paint()..color = _ink;
-      for (final dy in [0.04, 0.12]) {
-        _limb(
-          canvas,
-          Offset(_victimX - _u * 0.36, _ground - _u * dy),
-          Offset(_victimX - _u * 0.80, _ground - _u * dy),
-          _u * 0.05,
-          _u * 0.038,
-          ink,
-        );
-        canvas.drawRRect(
-          RRect.fromRectAndRadius(
-            Rect.fromLTWH(
-              _victimX - _u * 0.87,
-              _ground - _u * (dy + 0.10),
-              _u * 0.07,
-              _u * 0.14,
-            ),
-            Radius.circular(_u * 0.03),
-          ),
-          ink,
-        );
-      }
+      // Le gambe dalla parte del muro, dove la cinepresa le tiene in campo.
+      canvas.save();
+      canvas.translate(_victimX, 0);
+      canvas.scale(-1, 1);
+      canvas.translate(-_victimX, 0);
+      _squashed(canvas, half);
+      canvas.restore();
+    }
+    if (landed) {
       final roll = _span(t, strike, 0.80);
       _looseHat(
         canvas,
-        Offset(_victimX - _u * (0.95 + 0.6 * roll), _ground - _u * 0.03),
+        Offset(
+          _victimX - _u * (0.95 + 0.6 * Curves.easeOut.transform(roll)),
+          _ground - _u * 0.03 - _u * 0.25 * sin(pi * _span(t, strike, 0.62)),
+        ),
         -roll * 9,
       );
     }
 
+    // La corda (o la catena) sopra: tesa finché regge, poi schizza su.
+    final hook = hang - _u * (safe ? 1.20 : (chandelier ? 0.85 : 0.98));
+    final recoil = Curves.easeOut.transform(_span(t, snap, snap + 0.07));
+    final brokenEnd = t < snap ? hook : hook - _u * 1.6 * recoil;
+    if (chandelier) {
+      _chain(
+        canvas,
+        Offset(_victimX, -_h),
+        Offset(_victimX + sin(t * 30) * _u * 0.05 * recoil, brokenEnd),
+      );
+    } else {
+      final rope = Paint()
+        ..color = const Color(0xFFC9B48A)
+        ..strokeWidth = _u * 0.024
+        ..strokeCap = StrokeCap.round;
+      final whip = sin(t * 60) * _u * 0.08 * recoil * (1 - recoil * 0.5);
+      canvas.drawLine(
+        Offset(_victimX, -_h),
+        Offset(_victimX + whip, brokenEnd),
+        rope,
+      );
+      if (t >= snap) _fray(canvas, Offset(_victimX + whip, brokenEnd), -1);
+    }
+    _spray(
+      canvas,
+      Offset(_victimX, hook),
+      _span(t, snap, snap + 0.06),
+      seed: 21,
+      color: chandelier ? _warm : const Color(0xFFC9B48A),
+      count: 8,
+      bias: const Offset(0, -0.4),
+      reach: 0.5,
+    );
+
+    // L'oggetto: dondola appeso, si allunga mentre precipita, si schiaccia
+    // all'urto e rimbalza appena.
+    var sx = 1.0;
+    var sy = 1.0;
+    var lift = 0.0;
+    var tilt = 0.0;
+    if (!landed) {
+      final creak = _span(t, 0.42, snap);
+      tilt = sin(t * 22) * 0.025 + sin(t * 170) * 0.02 * creak + fall * 0.08;
+      sy = 1 + 0.10 * fall * fall;
+      sx = 1 - 0.04 * fall * fall;
+    } else {
+      final amp = chandelier ? 0.10 : (safe ? 0.10 : 0.16);
+      final squash = after < 0.3
+          ? sin(pi * after / 0.3)
+          : -0.35 * sin(pi * _span(after, 0.3, 0.7));
+      sy = 1 - amp * squash;
+      sx = 1 + amp * 0.6 * squash;
+      if (piano) {
+        lift = _u * 0.10 * sin(pi * _span(after, 0.25, 0.6));
+        tilt = 0.10 * _smooth(_span(after, 0.45, 0.9));
+      }
+    }
+    final pivot = Offset(_victimX, bottom - lift);
+    canvas.save();
+    canvas.translate(pivot.dx, pivot.dy);
+    canvas.rotate(tilt);
+    canvas.scale(sx, sy);
+    canvas.translate(-_victimX, -bottom);
+    final top = bottom - _u * (safe ? 0.88 : (chandelier ? 0.85 : 0.66));
+    if (!chandelier) {
+      // L'imbracatura resta legata all'oggetto, col moncone sfilacciato.
+      final slack = landed ? _smooth(_span(after, 0, 0.6)) : 0.0;
+      final knot = Offset(
+        _victimX,
+        _mix(bottom - (hang - hook), top - _u * 0.05, slack),
+      );
+      final sling = Paint()
+        ..color = const Color(0xFFC9B48A)
+        ..strokeWidth = _u * 0.020
+        ..strokeCap = StrokeCap.round
+        ..style = PaintingStyle.stroke;
+      for (final side in [-1.0, 1.0]) {
+        canvas.drawLine(
+          knot,
+          Offset(_victimX + side * _u * half * 0.7, top),
+          sling,
+        );
+      }
+      if (t >= snap) {
+        canvas.drawLine(knot, knot.translate(0, -_u * 0.12), sling);
+        _fray(canvas, knot.translate(0, -_u * 0.12), 1);
+      }
+    } else if (landed) {
+      // Il pezzo di catena rimasto attaccato si affloscia sugli archi.
+      final heap = Curves.easeIn.transform(_span(after, 0, 0.5));
+      final crown = bottom - _u * 0.85 * 0.55;
+      _chain(
+        canvas,
+        Offset(
+          _victimX + _u * 0.45 * heap,
+          _mix(crown - _u * 0.60, bottom - _u * 0.24, heap),
+        ),
+        Offset(_victimX, crown),
+      );
+    } else {
+      _chain(canvas, Offset(_victimX, top - _u * 0.60), Offset(_victimX, top));
+    }
     switch (act) {
       case DeathAct.safe:
-        _safeShape(canvas, bottom);
+        _safeShape(
+          canvas,
+          bottom,
+          dial: landed
+              ? 9 * Curves.easeOut.transform(_span(t, strike, 0.72))
+              : 0,
+        );
       case DeathAct.chandelier:
         _chandelierShape(canvas, bottom, landed);
       default:
-        _pianoShape(canvas, bottom);
+        _pianoShape(canvas, bottom, broken: landed);
     }
-    if (!landed && drop > 0) {
+    canvas.restore();
+
+    if (!landed && fall > 0) {
       final rush = Paint()
-        ..color = Colors.white.withValues(alpha: 0.3)
+        ..color = Colors.white.withValues(alpha: 0.35 * fall)
         ..strokeWidth = _u * 0.012;
       for (final dx in [-0.42, -0.1, 0.25, 0.45]) {
         canvas.drawLine(
-          Offset(_victimX + _u * dx, bottom - _u * 1.05),
-          Offset(_victimX + _u * dx, bottom - _u * 1.55),
+          Offset(_victimX + _u * dx, top - _u * 0.15),
+          Offset(_victimX + _u * dx, top - _u * (0.15 + 0.9 * fall)),
           rush,
         );
       }
     }
 
-    final dust = _span(t, strike, strike + 0.22);
-    _puff(
+    // L'urto: polvere che scappa radente, pezzi che saltano via.
+    final dust = _span(t, strike, strike + 0.26);
+    _dust(
       canvas,
-      Offset(_victimX - _u * 0.6, _ground - _u * 0.05),
+      Offset(_victimX, _ground),
       dust,
-      size: 1.3,
+      seed: act.index,
+      count: 8,
+      size: safe ? 1.6 : (chandelier ? 1.1 : 1.4),
+      spread: 1.5,
     );
-    _puff(
-      canvas,
-      Offset(_victimX + _u * 0.6, _ground - _u * 0.05),
-      dust,
-      size: 1.3,
-    );
-    if (act == DeathAct.chandelier) {
-      _spray(
-        canvas,
-        Offset(_victimX, _ground - _u * 0.2),
-        _span(t, strike, strike + 0.22),
-        seed: 8,
-        color: const Color(0xFFFFF3C4),
-        count: 26,
-        bias: const Offset(0, -1.0),
-        reach: 1.3,
-      );
+    final burst = _span(t, strike, strike + 0.18);
+    switch (act) {
+      case DeathAct.safe:
+        _cracks(canvas, half, _span(t, strike, strike + 0.02));
+        _debris(
+          canvas,
+          Offset(_victimX, _ground - _u * 0.04),
+          burst,
+          seed: 14,
+          count: 14,
+          colors: const [Color(0xFF1A1B20), Color(0xFF34353D)],
+          size: 1.1,
+          reach: 1.3,
+          lift: 0.8,
+        );
+      case DeathAct.chandelier:
+        _debris(
+          canvas,
+          Offset(_victimX, _ground - _u * 0.20),
+          burst,
+          seed: 15,
+          count: 28,
+          colors: const [
+            Color(0xFFE8F4FF),
+            Color(0xFFBFD8F0),
+            Color(0xFFFFF3C4),
+          ],
+          size: 0.6,
+          reach: 1.5,
+          lift: 1.1,
+          glints: true,
+        );
+        _spray(
+          canvas,
+          Offset(_victimX, _ground - _u * 0.25),
+          _span(t, strike, strike + 0.12),
+          seed: 8,
+          color: _warm,
+          count: 14,
+          bias: const Offset(0, -0.8),
+          reach: 0.9,
+        );
+        // Le candele spente fumano ancora un po'.
+        for (var i = 0; i < 5; i++) {
+          final life = _span(
+            t,
+            strike + 0.02 + i * 0.02,
+            strike + 0.24 + i * 0.02,
+          );
+          _puff(
+            canvas,
+            Offset(
+              _victimX + _u * (i - 2) * 0.28,
+              _ground - _u * (0.25 + 0.6 * life),
+            ),
+            life,
+            size: 0.28,
+            color: const Color(0xFF6F6B66),
+          );
+        }
+      default:
+        _debris(
+          canvas,
+          Offset(_victimX - _u * 0.50, _ground - _u * 0.40),
+          burst,
+          seed: 16,
+          count: 16,
+          colors: const [AppColors.textPrimary, _ink, AppColors.textPrimary],
+          size: 0.8,
+          reach: 1.1,
+          lift: 1.1,
+          drift: -0.3,
+        );
+        _debris(
+          canvas,
+          Offset(_victimX + _u * 0.30, _ground - _u * 0.25),
+          burst,
+          seed: 17,
+          count: 8,
+          colors: const [Color(0xFF3A2618), Color(0xFF5B3828)],
+          size: 1.0,
+          reach: 1.0,
+          lift: 0.9,
+          drift: 0.4,
+        );
+        _brokenLeg(canvas, _span(t, strike, strike + 0.14));
+        _notes(canvas);
     }
-    _flash(canvas, _span(t, strike, strike + 0.05), strength: 0.5);
+    _flash(canvas, _span(t, strike, strike + 0.04), strength: 0.4);
   }
 
-  void _pianoShape(Canvas canvas, double bottom) {
+  /// Quello che resta sotto il pianoforte o la cassaforte: due gambe che
+  /// spuntano da una parte, un braccio dall'altra. Scalciano una volta.
+  void _squashed(Canvas canvas, double half) {
     final ink = Paint()..color = _ink;
-    final x = _victimX;
-    for (final dx in [-0.50, 0.06, 0.52]) {
+    final rim = Paint()..color = _rim;
+    final twitch = t > strike + 0.03
+        ? sin(t * 70) * 0.30 * (1 - _span(t, strike + 0.04, strike + 0.14))
+        : 0.0;
+    for (final (dy, phase) in [(0.04, 0.0), (0.12, 1.3)]) {
+      final hipX = _victimX - _u * (half - 0.08);
+      final footX = _victimX - _u * (half + 0.30);
+      for (final (paint, shift) in [(rim, -0.012), (ink, 0.0)]) {
+        _limb(
+          canvas,
+          Offset(hipX, _ground - _u * dy),
+          Offset(footX, _ground - _u * (dy + shift)),
+          _u * 0.05,
+          _u * 0.038,
+          paint,
+        );
+        canvas.save();
+        canvas.translate(footX, _ground - _u * (dy + shift));
+        canvas.rotate(-twitch * (phase == 0 ? 1 : -0.7));
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(-_u * 0.07, -_u * 0.10, _u * 0.07, _u * 0.14),
+            Radius.circular(_u * 0.03),
+          ),
+          paint,
+        );
+        canvas.restore();
+      }
+    }
+    // Il braccio, con la mano aperta che si chiude piano.
+    final close = _span(t, strike + 0.06, strike + 0.20);
+    final from = Offset(_victimX + _u * (half - 0.08), _ground - _u * 0.05);
+    final hand = Offset(_victimX + _u * (half + 0.17), _ground - _u * 0.04);
+    for (final (paint, shift) in [(rim, -0.012), (ink, 0.0)]) {
       _limb(
         canvas,
-        Offset(x + _u * dx, bottom - _u * 0.34),
-        Offset(x + _u * dx, bottom - _u * 0.02),
-        _u * 0.035,
-        _u * 0.02,
-        ink,
+        from.translate(0, _u * shift),
+        hand.translate(0, _u * shift),
+        _u * 0.040,
+        _u * 0.032,
+        paint,
+      );
+      canvas.drawCircle(hand.translate(0, _u * shift), _u * 0.036, paint);
+      for (var i = 0; i < 3; i++) {
+        final a = -0.9 + i * 0.45 + twitch * 0.6;
+        final reach = _u * _mix(0.07, 0.035, close);
+        canvas.drawLine(
+          hand.translate(0, _u * shift),
+          hand.translate(cos(a) * reach, sin(a) * reach + _u * shift),
+          Paint()
+            ..color = paint.color
+            ..strokeWidth = _u * 0.016
+            ..strokeCap = StrokeCap.round,
+        );
+      }
+    }
+  }
+
+  /// Le crepe che la cassaforte apre nell'asfalto.
+  void _cracks(Canvas canvas, double half, double grow) {
+    if (grow <= 0) return;
+    final paint = Paint()
+      ..color = Colors.black
+      ..strokeWidth = _u * 0.016
+      ..style = PaintingStyle.stroke
+      ..strokeJoin = StrokeJoin.round;
+    final rng = Random(5);
+    for (final side in [-1.0, 1.0]) {
+      for (var k = 0; k < 2; k++) {
+        final path = Path()
+          ..moveTo(
+            _victimX + side * _u * (half - 0.1 * k),
+            _ground + _u * 0.01,
+          );
+        var x = _victimX + side * _u * (half - 0.1 * k);
+        var y = _ground + _u * 0.01;
+        for (var i = 0; i < 4; i++) {
+          x += side * _u * (0.08 + rng.nextDouble() * 0.08) * grow;
+          y += _u * (0.012 + rng.nextDouble() * 0.03) * grow;
+          path.lineTo(x, y);
+        }
+        canvas.drawPath(path, paint);
+      }
+    }
+  }
+
+  /// Un moncone di corda sfilacciato: tre fili aperti verso [up] (1 in
+  /// basso, -1 in alto).
+  void _fray(Canvas canvas, Offset end, int up) {
+    final paint = Paint()
+      ..color = const Color(0xFFC9B48A)
+      ..strokeWidth = _u * 0.010
+      ..strokeCap = StrokeCap.round;
+    for (final a in [-0.5, 0.0, 0.5]) {
+      canvas.drawLine(
+        end,
+        end + Offset(sin(a) * _u * 0.05, up * cos(a) * _u * 0.06),
+        paint,
       );
     }
-    // La cassa a coda, il coperchio alzato, la tastiera.
-    canvas.drawPath(
-      Path()
-        ..moveTo(x - _u * 0.64, bottom - _u * 0.30)
-        ..lineTo(x - _u * 0.64, bottom - _u * 0.56)
-        ..quadraticBezierTo(
-          x - _u * 0.20,
-          bottom - _u * 0.66,
-          x + _u * 0.20,
-          bottom - _u * 0.64,
-        )
-        ..quadraticBezierTo(
-          x + _u * 0.66,
-          bottom - _u * 0.62,
-          x + _u * 0.64,
-          bottom - _u * 0.40,
-        )
-        ..quadraticBezierTo(
-          x + _u * 0.62,
-          bottom - _u * 0.30,
-          x + _u * 0.50,
-          bottom - _u * 0.30,
-        )
-        ..close(),
-      ink,
+  }
+
+  /// Una catena di ottone, maglia per maglia, da [from] a [to].
+  void _chain(Canvas canvas, Offset from, Offset to) {
+    final length = (to - from).distance;
+    if (length <= 0) return;
+    final step = _u * 0.06;
+    final count = min(80, (length / step).ceil());
+    final dir = (to - from) / length;
+    final link = Paint()
+      ..color = const Color(0xFFB8913F)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = _u * 0.012;
+    for (var i = 0; i < count; i++) {
+      final c = to - dir * (step * (i + 0.5));
+      canvas.save();
+      canvas.translate(c.dx, c.dy);
+      canvas.rotate(atan2(dir.dy, dir.dx));
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset.zero,
+          width: step * 1.1,
+          height: i.isEven ? _u * 0.035 : _u * 0.012,
+        ),
+        link,
+      );
+      canvas.restore();
+    }
+  }
+
+  /// La gamba del pianoforte che si spezza e vola via.
+  void _brokenLeg(Canvas canvas, double life) {
+    if (life <= 0) return;
+    final x = _victimX + _u * (0.52 + 0.30 * life);
+    // Vola su girando e ricade stesa sull'asfalto.
+    final y =
+        _mix(_ground - _u * 0.18, _ground - _u * 0.035, life) -
+        _u * 0.55 * sin(pi * life);
+    canvas.save();
+    canvas.translate(x, y);
+    canvas.rotate(life * 3.5 * pi);
+    _limb(
+      canvas,
+      Offset(0, -_u * 0.15),
+      Offset(0, _u * 0.15),
+      _u * 0.035,
+      _u * 0.02,
+      Paint()..color = _ink,
     );
-    canvas.drawPath(
-      Path()
-        ..moveTo(x - _u * 0.42, bottom - _u * 0.62)
-        ..lineTo(x + _u * 0.58, bottom - _u * 1.10)
-        ..lineTo(x + _u * 0.62, bottom - _u * 0.60)
-        ..close(),
-      ink,
-    );
+    canvas.restore();
+  }
+
+  /// Le note che escono dal pianoforte schiacciato e salgono a perdersi.
+  void _notes(Canvas canvas) {
+    for (var i = 0; i < 3; i++) {
+      final rise = _span(t, strike + 0.02 + i * 0.04, strike + 0.24 + i * 0.04);
+      if (rise <= 0 || rise >= 1) continue;
+      final note = Offset(
+        _victimX + _u * (-0.3 + 0.3 * i) + sin(rise * 9 + i) * _u * 0.08,
+        _ground - _u * (0.7 + 0.9 * rise),
+      );
+      final paint = Paint()..color = _warm.withValues(alpha: 1 - rise);
+      canvas.drawOval(
+        Rect.fromCenter(center: note, width: _u * 0.08, height: _u * 0.06),
+        paint,
+      );
+      canvas.drawLine(
+        note.translate(_u * 0.035, 0),
+        note.translate(_u * 0.035, -_u * 0.16),
+        paint..strokeWidth = _u * 0.014,
+      );
+      canvas.drawLine(
+        note.translate(_u * 0.035, -_u * 0.16),
+        note.translate(_u * 0.09, -_u * 0.11),
+        paint,
+      );
+    }
+  }
+
+  void _pianoShape(Canvas canvas, double bottom, {bool broken = false}) {
+    final x = _victimX;
+
+    void body(Paint paint) {
+      for (final dx in [-0.50, 0.06, if (!broken) 0.52]) {
+        _limb(
+          canvas,
+          Offset(x + _u * dx, bottom - _u * 0.34),
+          Offset(x + _u * dx, bottom - _u * 0.04),
+          _u * 0.040,
+          _u * 0.022,
+          paint,
+        );
+        canvas.drawCircle(
+          Offset(x + _u * dx, bottom - _u * 0.025),
+          _u * 0.025,
+          paint,
+        );
+      }
+      // La lira dei pedali.
+      canvas.drawRect(
+        Rect.fromLTRB(
+          x - _u * 0.10,
+          bottom - _u * 0.32,
+          x - _u * 0.04,
+          bottom - _u * 0.10,
+        ),
+        paint,
+      );
+      // La cassa a coda, il coperchio alzato.
+      canvas.drawPath(
+        Path()
+          ..moveTo(x - _u * 0.64, bottom - _u * 0.30)
+          ..lineTo(x - _u * 0.64, bottom - _u * 0.56)
+          ..quadraticBezierTo(
+            x - _u * 0.20,
+            bottom - _u * 0.66,
+            x + _u * 0.20,
+            bottom - _u * 0.64,
+          )
+          ..quadraticBezierTo(
+            x + _u * 0.66,
+            bottom - _u * 0.62,
+            x + _u * 0.64,
+            bottom - _u * 0.40,
+          )
+          ..quadraticBezierTo(
+            x + _u * 0.62,
+            bottom - _u * 0.30,
+            x + _u * 0.50,
+            bottom - _u * 0.30,
+          )
+          ..close(),
+        paint,
+      );
+      canvas.drawPath(
+        Path()
+          ..moveTo(x - _u * 0.42, bottom - _u * 0.62)
+          ..lineTo(x + _u * 0.58, bottom - _u * 1.10)
+          ..lineTo(x + _u * 0.62, bottom - _u * 0.60)
+          ..close(),
+        paint,
+      );
+      canvas.drawLine(
+        Offset(x + _u * 0.30, bottom - _u * 0.62),
+        Offset(x + _u * 0.44, bottom - _u * 1.02),
+        Paint()
+          ..color = paint.color
+          ..strokeWidth = _u * 0.018,
+      );
+    }
+
+    // Come le figure: prima il filo di luce, poi il nero sopra.
+    canvas.save();
+    canvas.translate(-_u * 0.014, -_u * 0.012);
+    body(Paint()..color = _rim);
+    canvas.restore();
+    body(Paint()..color = _ink);
+
+    // I pedali d'ottone e il filetto dorato lungo la cassa.
+    for (final dx in [-0.10, -0.07, -0.04]) {
+      canvas.drawRect(
+        Rect.fromLTWH(x + _u * dx, bottom - _u * 0.11, _u * 0.022, _u * 0.03),
+        Paint()..color = AppColors.gold,
+      );
+    }
     canvas.drawLine(
-      Offset(x + _u * 0.30, bottom - _u * 0.62),
-      Offset(x + _u * 0.44, bottom - _u * 1.02),
+      Offset(x - _u * 0.40, bottom - _u * 0.36),
+      Offset(x + _u * 0.48, bottom - _u * 0.36),
       Paint()
-        ..color = _ink
-        ..strokeWidth = _u * 0.018,
+        ..color = AppColors.gold.withValues(alpha: 0.7)
+        ..strokeWidth = _u * 0.010,
     );
+    // La tastiera: avorio e tasti neri a gruppi di due e tre.
     canvas.drawRect(
       Rect.fromLTRB(
-        x - _u * 0.64,
-        bottom - _u * 0.44,
-        x - _u * 0.40,
-        bottom - _u * 0.385,
+        x - _u * 0.66,
+        bottom - _u * 0.45,
+        x - _u * 0.36,
+        bottom - _u * 0.38,
       ),
       Paint()..color = AppColors.textPrimary,
     );
-    for (var i = 1; i < 6; i++) {
+    for (var i = 0; i < 7; i++) {
+      if (i == 2 || i == 6) continue;
       canvas.drawRect(
         Rect.fromLTWH(
-          x - _u * 0.64 + i * _u * 0.04 - _u * 0.008,
-          bottom - _u * 0.44,
-          _u * 0.016,
-          _u * 0.032,
+          x - _u * 0.66 + (i + 0.7) * _u * 0.04,
+          bottom - _u * 0.45,
+          _u * 0.018,
+          _u * 0.040,
         ),
-        ink,
+        Paint()..color = _ink,
       );
     }
   }
 
-  void _safeShape(Canvas canvas, double bottom) {
+  void _safeShape(Canvas canvas, double bottom, {double dial = 0}) {
     final box = Rect.fromLTRB(
       _victimX - _u * 0.44,
       bottom - _u * 0.88,
       _victimX + _u * 0.44,
       bottom,
+    );
+    // I piedini e il filo di luce sul bordo.
+    for (final dx in [-0.36, 0.30]) {
+      canvas.drawRect(
+        Rect.fromLTWH(
+          _victimX + _u * dx,
+          bottom - _u * 0.03,
+          _u * 0.06,
+          _u * 0.03,
+        ),
+        Paint()..color = _ink,
+      );
+    }
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        box.translate(-_u * 0.014, -_u * 0.012),
+        Radius.circular(_u * 0.04),
+      ),
+      Paint()..color = _rim,
     );
     canvas.drawRRect(
       RRect.fromRectAndRadius(box, Radius.circular(_u * 0.04)),
@@ -2655,22 +3278,46 @@ class DeathScenePainter extends CustomPainter {
       ),
       brass,
     );
-    final dial = box.center.translate(-_u * 0.08, 0);
-    canvas.drawCircle(dial, _u * 0.12, brass);
-    for (var i = 0; i < 8; i++) {
-      final spoke = Offset(cos(i * pi / 4), sin(i * pi / 4));
+    // Le cerniere.
+    for (final dy in [-0.24, 0.24]) {
+      canvas.drawRect(
+        Rect.fromCenter(
+          center: box.center.translate(-_u * 0.39, _u * dy),
+          width: _u * 0.04,
+          height: _u * 0.10,
+        ),
+        Paint()..color = AppColors.gold.withValues(alpha: 0.85),
+      );
+    }
+    final dialAt = box.center.translate(-_u * 0.08, 0);
+    canvas.drawCircle(
+      dialAt,
+      _u * 0.12,
+      Paint()..color = const Color(0xFF1C1D22),
+    );
+    canvas.drawCircle(dialAt, _u * 0.12, brass);
+    for (var i = 0; i < 12; i++) {
+      final spoke = Offset(cos(i * pi / 6 + dial), sin(i * pi / 6 + dial));
       canvas.drawLine(
-        dial + spoke * (_u * 0.09),
-        dial + spoke * (_u * 0.12),
+        dialAt + spoke * (_u * (i.isEven ? 0.08 : 0.095)),
+        dialAt + spoke * (_u * 0.12),
         brass,
       );
     }
-    canvas.drawLine(dial, dial.translate(0, -_u * 0.08), brass);
     canvas.drawLine(
-      box.center.translate(_u * 0.18, -_u * 0.10),
-      box.center.translate(_u * 0.18, _u * 0.10),
+      dialAt,
+      dialAt + Offset(sin(dial), -cos(dial)) * (_u * 0.07),
       brass,
     );
+    canvas.drawCircle(dialAt, _u * 0.025, Paint()..color = AppColors.gold);
+    // La maniglia a croce.
+    final handle = box.center.translate(_u * 0.20, 0);
+    for (var i = 0; i < 3; i++) {
+      final a = i * pi / 3 + 0.3;
+      final reach = Offset(cos(a), sin(a)) * (_u * 0.08);
+      canvas.drawLine(handle - reach, handle + reach, brass);
+    }
+    canvas.drawCircle(handle, _u * 0.025, Paint()..color = AppColors.gold);
     for (final corner in [
       box.topLeft,
       box.topRight,
@@ -2687,124 +3334,637 @@ class DeathScenePainter extends CustomPainter {
 
   void _chandelierShape(Canvas canvas, double bottom, bool landed) {
     final x = _victimX;
+    final squash = landed ? 0.55 : 1.0;
+    final brassColor = const Color(0xFFB8913F);
     final ink = Paint()
       ..color = _ink
       ..style = PaintingStyle.stroke
-      ..strokeWidth = _u * 0.04
+      ..strokeWidth = _u * 0.055
       ..strokeCap = StrokeCap.round;
-    if (!landed) {
-      canvas.drawLine(
-        Offset(x, bottom - _u * 0.85),
-        Offset(x, bottom - _u * 2.6),
-        ink,
-      );
-    }
-    final squash = landed ? 0.55 : 1.0;
+    final brass = Paint()
+      ..color = brassColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = _u * 0.026
+      ..strokeCap = StrokeCap.round;
+    // La corona in alto e il fusto.
+    final crown = Offset(x, bottom - _u * 0.85 * squash);
+    canvas.drawLine(crown, Offset(x, bottom - _u * 0.02), ink);
+    canvas.drawLine(crown, Offset(x, bottom - _u * 0.02), brass);
+    canvas.drawOval(
+      Rect.fromCenter(center: crown, width: _u * 0.16, height: _u * 0.08),
+      Paint()..color = brassColor,
+    );
+    final crystal = Paint()..color = const Color(0xFFDCEBFA);
+    final glint = sprites?.glint;
     for (final (width, lift) in [(1.30, 0.20), (0.94, 0.44), (0.56, 0.66)]) {
       final y = bottom - _u * lift * squash;
-      canvas.drawArc(
-        Rect.fromCenter(
-          center: Offset(x, y - _u * 0.10),
-          width: _u * width,
-          height: _u * 0.36 * squash,
-        ),
-        0,
-        pi,
-        false,
-        ink,
+      final arc = Rect.fromCenter(
+        center: Offset(x, y - _u * 0.10),
+        width: _u * width,
+        height: _u * 0.36 * squash,
       );
+      canvas.drawArc(arc, 0, pi, false, ink);
+      canvas.drawArc(arc, 0, pi, false, brass);
       for (var i = 0; i < 6; i++) {
         final cx = x - _u * width / 2 + _u * width * i / 5;
         final candle = Offset(cx, y - _u * 0.12);
-        canvas.drawCircle(
-          candle,
-          _u * 0.03,
-          Paint()..color = _warm.withValues(alpha: landed ? 0.25 : 0.95),
+        // I pendagli di cristallo sotto ogni braccio (dopo l'urto ne
+        // restano pochi).
+        if (!landed || i.isEven) {
+          final drop = Offset(
+            cx,
+            y - _u * 0.10 + _u * 0.18 * squash * sin(pi * i / 5) + _u * 0.05,
+          );
+          canvas.drawPath(
+            Path()
+              ..moveTo(drop.dx, drop.dy - _u * 0.035)
+              ..quadraticBezierTo(
+                drop.dx + _u * 0.025,
+                drop.dy + _u * 0.01,
+                drop.dx,
+                drop.dy + _u * 0.035,
+              )
+              ..quadraticBezierTo(
+                drop.dx - _u * 0.025,
+                drop.dy + _u * 0.01,
+                drop.dx,
+                drop.dy - _u * 0.035,
+              ),
+            crystal,
+          );
+          if (!landed && glint != null) {
+            ParticleSprites.draw(
+              canvas,
+              glint,
+              drop,
+              width: _u * 0.14,
+              height: _u * 0.14,
+              opacity: max(0.0, sin(t * 90 + i * 1.7 + width * 3)),
+            );
+          }
+        }
+        // La candela: il cero bianco e la fiammella, finché è accesa.
+        canvas.drawRect(
+          Rect.fromCenter(
+            center: candle.translate(0, _u * 0.02),
+            width: _u * 0.026,
+            height: _u * 0.07 * squash,
+          ),
+          Paint()..color = AppColors.textPrimary,
         );
         if (!landed) {
+          final flame = candle.translate(0, -_u * 0.04);
           canvas.drawCircle(
-            candle,
+            flame,
             _u * 0.07,
             Paint()
-              ..color = _warm.withValues(alpha: 0.25)
+              ..color = _warm.withValues(alpha: 0.30)
               ..maskFilter = MaskFilter.blur(BlurStyle.normal, _u * 0.03),
+          );
+          canvas.drawOval(
+            Rect.fromCenter(
+              center: flame,
+              width: _u * 0.026,
+              height: _u * 0.05,
+            ),
+            Paint()..color = const Color(0xFFFFE9A8),
           );
         }
       }
     }
+    // Il pendente in fondo.
+    canvas.drawCircle(Offset(x, bottom - _u * 0.02), _u * 0.035, crystal);
+  }
+
+  // ------------------------------------------------ tonfi, schegge e polvere
+
+  /// Dove arriva la mano di una figura ferma (niente passo né rotazione):
+  /// serve a far partire dalle dita quello che cade o vola via.
+  Offset _handAt(
+    Offset feet, {
+    int facing = 1,
+    double lean = 0,
+    double crouch = 0,
+    double arm = 0.08,
+    double elbow = 0.20,
+  }) {
+    final h = _u;
+    final hip = Offset(-h * 0.03 * crouch, -h * (0.50 - 0.13 * crouch));
+    final hand =
+        Offset(h * 0.035, -h * 0.325) +
+        _aim(arm) * (h * 0.185) +
+        _aim(arm + elbow) * (h * 0.175);
+    final turned = Offset(
+      hand.dx * cos(lean) - hand.dy * sin(lean),
+      hand.dx * sin(lean) + hand.dy * cos(lean),
+    );
+    final local = hip + turned;
+    return feet + Offset(local.dx * facing, local.dy);
+  }
+
+  /// La polvere che si alza quando qualcosa di pesante arriva a terra:
+  /// sbuffi che scappano di lato, radenti all'asfalto, e si gonfiano.
+  void _dust(
+    Canvas canvas,
+    Offset at,
+    double life, {
+    int seed = 1,
+    int count = 6,
+    double size = 1,
+    double spread = 1,
+    Color color = const Color(0xFF8F8A84),
+  }) {
+    if (life <= 0 || life >= 1) return;
+    final rng = Random(seed);
+    final ease = Curves.easeOutCubic.transform(life);
+    final fade = (1 - life) * (1 - life * 0.5);
+    final textures = sprites;
+    final grit = textures?.dirt ?? const [];
+    if (grit.isNotEmpty) {
+      ParticleSprites.drawTinted(
+        canvas,
+        grit[seed % grit.length],
+        at.translate(0, -_u * 0.14 * ease),
+        width: _u * size * (0.7 + 1.1 * ease),
+        height: _u * size * (0.45 + 0.6 * ease),
+        opacity: 0.6 * (1 - life),
+        tint: color,
+      );
+    }
+    final puffs = textures?.puffs ?? const [];
+    for (var i = 0; i < count; i++) {
+      final side = i.isEven ? 1.0 : -1.0;
+      final reach = (0.25 + rng.nextDouble() * 0.85) * spread;
+      final rise = 0.02 + rng.nextDouble() * 0.22;
+      final grow = 0.30 + rng.nextDouble() * 0.30;
+      final spin = rng.nextDouble() * 2 * pi;
+      final center =
+          at + Offset(side * _u * reach * ease, -_u * (0.06 + rise * ease));
+      final radius = _u * size * grow * (0.5 + 0.8 * ease);
+      if (puffs.isNotEmpty) {
+        ParticleSprites.drawTinted(
+          canvas,
+          puffs[i % puffs.length],
+          center,
+          width: radius * 2,
+          height: radius * 1.7,
+          opacity: 0.38 * fade,
+          rotation: spin + side * life * 0.8,
+          tint: color,
+        );
+      } else {
+        canvas.drawCircle(
+          center,
+          radius * 0.8,
+          Paint()
+            ..color = color.withValues(alpha: 0.45 * fade)
+            ..maskFilter = MaskFilter.blur(BlurStyle.normal, _u * 0.05),
+        );
+      }
+    }
+  }
+
+  /// Pezzi che saltano via da [origin], ricadono e restano sull'asfalto.
+  void _debris(
+    Canvas canvas,
+    Offset origin,
+    double life, {
+    required int seed,
+    int count = 10,
+    List<Color> colors = const [Color(0xFF1E1F24)],
+    double size = 1,
+    double reach = 1,
+    double lift = 1,
+    double drift = 0,
+    bool glints = false,
+  }) {
+    if (life <= 0) return;
+    final rng = Random(seed);
+    final g = _u * 14.0;
+    final clock = life * 0.9;
+    final glint = glints ? sprites?.glint : null;
+    for (var i = 0; i < count; i++) {
+      final vx = ((rng.nextDouble() * 2 - 1) + drift) * _u * 1.5 * reach;
+      final vy = -(0.5 + rng.nextDouble()) * _u * 2.6 * lift;
+      final spin = (rng.nextDouble() * 2 - 1) * 16;
+      final width = _u * (0.022 + rng.nextDouble() * 0.04) * size;
+      final height = width * (0.35 + rng.nextDouble() * 0.7);
+      final floor = _ground + _u * (0.005 + rng.nextDouble() * 0.05);
+      final twinkle = rng.nextDouble() * 2 * pi;
+      final land =
+          (-vy + sqrt(max(0.0, vy * vy + 2 * g * (floor - origin.dy)))) / g;
+      final time = min(clock, land);
+      var x = origin.dx + vx * time;
+      final y = origin.dy + vy * time + 0.5 * g * time * time;
+      if (clock > land) x += vx * 0.12 * min(1.0, (clock - land) * 8);
+      canvas.save();
+      canvas.translate(x, y);
+      canvas.rotate(spin * time);
+      canvas.drawRect(
+        Rect.fromCenter(center: Offset.zero, width: width, height: height),
+        Paint()..color = colors[i % colors.length],
+      );
+      canvas.restore();
+      if (glint != null) {
+        ParticleSprites.draw(
+          canvas,
+          glint,
+          Offset(x, y),
+          width: width * 5,
+          height: width * 5,
+          opacity: max(0.0, sin(t * 120 + twinkle)) * 0.9,
+        );
+      }
+    }
+  }
+
+  /// La stella frastagliata del fumetto, nel punto esatto dell'urto.
+  void _impactBurst(
+    Canvas canvas,
+    Offset center,
+    double life, {
+    double size = 1,
+    Color color = const Color(0xFFFFE27A),
+  }) {
+    if (life <= 0 || life >= 1) return;
+    final pop = Curves.easeOutBack.transform(min(1.0, life * 3));
+    final fade = 1 - _span(life, 0.45, 1);
+    final r = _u * 0.30 * size * pop;
+    final rng = Random(7);
+    final path = Path();
+    for (var i = 0; i < 20; i++) {
+      final a = i * pi / 10 + 0.2;
+      final rr = i.isEven ? r * (0.85 + rng.nextDouble() * 0.4) : r * 0.45;
+      final p = center + Offset(cos(a), sin(a)) * rr;
+      i == 0 ? path.moveTo(p.dx, p.dy) : path.lineTo(p.dx, p.dy);
+    }
+    path.close();
+    canvas.drawPath(
+      path,
+      Paint()..color = color.withValues(alpha: 0.95 * fade),
+    );
+    canvas.drawPath(
+      path,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = _u * 0.014
+        ..strokeJoin = StrokeJoin.round
+        ..color = _ink.withValues(alpha: 0.8 * fade),
+    );
+    canvas.drawCircle(
+      center,
+      r * 0.35,
+      Paint()..color = Colors.white.withValues(alpha: fade),
+    );
+    final glint = sprites?.glint;
+    if (glint != null) {
+      ParticleSprites.draw(
+        canvas,
+        glint,
+        center,
+        width: r * 3.4,
+        height: r * 3.4,
+        opacity: fade,
+        tint: const Color(0xFFFFF3C4),
+      );
+    }
+  }
+
+  /// Una stellina a cinque punte, col bordo nero del fumetto.
+  void _cartoonStar(
+    Canvas canvas,
+    Offset center,
+    double r,
+    double spin,
+    Color color,
+  ) {
+    final path = Path();
+    for (var i = 0; i < 10; i++) {
+      final a = spin - pi / 2 + i * pi / 5;
+      final p = center + Offset(cos(a), sin(a)) * (i.isEven ? r : r * 0.45);
+      i == 0 ? path.moveTo(p.dx, p.dy) : path.lineTo(p.dx, p.dy);
+    }
+    path.close();
+    canvas.drawPath(
+      path,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = r * 0.35
+        ..strokeJoin = StrokeJoin.round
+        ..color = _ink.withValues(alpha: color.a),
+    );
+    canvas.drawPath(path, Paint()..color = color);
+  }
+
+  /// Le stelline che girano intorno alla testa, in prospettiva: quelle
+  /// dietro più piccole.
+  void _bonkStars(Canvas canvas, Offset head, double life) {
+    if (life <= 0 || life >= 1) return;
+    final fade = 1 - _span(life, 0.7, 1);
+    for (var i = 0; i < 4; i++) {
+      final a = life * 14 + i * pi / 2;
+      final depth = 0.75 + 0.25 * sin(a);
+      _cartoonStar(
+        canvas,
+        head + Offset(cos(a) * _u * 0.26, sin(a) * _u * 0.07),
+        _u * 0.055 * depth,
+        life * 6 + i,
+        AppColors.gold.withValues(alpha: fade),
+      );
+    }
+  }
+
+  /// Fumo nero che sale a sbuffi da [base].
+  void _soot(
+    Canvas canvas,
+    Offset base,
+    double life, {
+    int seed = 1,
+    int count = 6,
+    double size = 1,
+  }) {
+    if (life <= 0 || life >= 1) return;
+    final frames = sprites?.blackSmoke ?? const [];
+    final rng = Random(seed);
+    for (var i = 0; i < count; i++) {
+      final birth = i / count * 0.5;
+      final l = _span(life, birth, birth + 0.5);
+      if (l <= 0 || l >= 1) continue;
+      final sideways = (rng.nextDouble() * 2 - 1) * _u * 0.35;
+      final center =
+          base +
+          Offset(
+            sideways * l + sin(l * 4 + i) * _u * 0.06,
+            -_u * (0.1 + 1.5 * l),
+          );
+      final r = _u * size * (0.35 + 0.65 * l);
+      if (frames.isNotEmpty) {
+        ParticleSprites.draw(
+          canvas,
+          frames[i % frames.length],
+          center,
+          width: r * 2,
+          height: r * 2,
+          opacity: 0.85 * (1 - l),
+          rotation: rng.nextDouble() * 6 + l,
+        );
+      } else {
+        _puff(
+          canvas,
+          center,
+          l,
+          size: size * 0.6,
+          color: const Color(0xFF2A2826),
+        );
+      }
+    }
+  }
+
+  /// Uno sbuffo di fumo del colore giusto (verde di veleno, grigio di
+  /// gomma bruciata) che sale e si allarga.
+  void _haze(
+    Canvas canvas,
+    Offset center,
+    double life, {
+    double size = 1,
+    required Color color,
+  }) {
+    if (life <= 0 || life >= 1) return;
+    final smoke = sprites?.smoke;
+    if (smoke == null) {
+      _puff(canvas, center, life, size: size, color: color);
+      return;
+    }
+    ParticleSprites.drawTinted(
+      canvas,
+      smoke,
+      center,
+      width: _u * size * (0.9 + 0.8 * life),
+      height: _u * size * (0.9 + 0.8 * life),
+      opacity: 0.85 * (1 - life),
+      rotation: life * 1.5,
+      tint: color,
+    );
+  }
+
+  /// Il punto esclamativo che spunta sopra chi ha capito.
+  void _exclaim(Canvas canvas, Offset at, double life) {
+    if (life <= 0 || life >= 1) return;
+    final pop = Curves.easeOutBack.transform(min(1.0, life * 4));
+    final fade = 1 - _span(life, 0.75, 1);
+    final mark = TextPainter(
+      text: TextSpan(
+        text: '!',
+        style: TextStyle(
+          fontFamily: 'Georgia',
+          fontSize: _u * 0.34,
+          fontWeight: FontWeight.w900,
+          color: AppColors.gold.withValues(alpha: fade),
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    canvas.save();
+    canvas.translate(at.dx, at.dy);
+    canvas.scale(pop);
+    mark.paint(canvas, Offset(-mark.width / 2, -mark.height / 2));
+    canvas.restore();
   }
 
   void _blast(Canvas canvas) {
     final (walkX, walk, stride) = _entrance();
-    final boom = _span(t, strike, strike + 0.12);
     final gone = t >= strike;
-    final centre = Offset(_victimX + _u * 0.15, _ground - _u * 0.55);
+    const topple = 0.70;
+    const down = 0.775;
+
+    // Il pacco: portato davanti, accostato all'orecchio e scosso, guardato da
+    // vicino; poi, quando la miccia è agli sgoccioli, tenuto più lontano che
+    // si può.
+    final raise = _smooth(_span(t, 0.36, 0.42));
+    final look = _smooth(_span(t, 0.47, 0.50));
+    final away = _smooth(_span(t, 0.51, 0.54));
+    var arm = _mix(_mix(_mix(0.5, 1.75, raise), 1.2, look), 1.55, away);
+    final elbow = _mix(_mix(_mix(0.6, 1.8, raise), 0.6, look), 0.05, away);
+    final lean = _mix(0.10 * look, -0.20, away);
+    final shake = _span(t, 0.42, 0.47);
+    if (shake > 0 && shake < 1) arm += sin(t * 300) * 0.10;
+    if (away > 0 && !gone) arm += sin(t * 420) * 0.03 * away;
+    final feet = Offset(walkX, _ground);
+    final box =
+        _handAt(feet, lean: lean, arm: arm, elbow: elbow) +
+        Offset(_u * 0.06, -_u * 0.02);
+    final centre =
+        _handAt(
+          Offset(_victimX, _ground),
+          lean: -0.20,
+          arm: 1.55,
+          elbow: 0.05,
+        ) +
+        Offset(_u * 0.06, -_u * 0.02);
 
     _killerSalute(canvas);
     _wall(canvas);
 
     // La bruciatura resta sull'asfalto.
     if (gone) {
+      final scorch = sprites?.scorch;
+      final appear = _span(t, strike, strike + 0.02);
       canvas.drawOval(
         Rect.fromCenter(
-          center: Offset(_victimX, _ground + _u * 0.04),
-          width: _u * 1.6,
+          center: Offset(_victimX + _u * 0.1, _ground + _u * 0.04),
+          width: _u * 1.7,
           height: _u * 0.18,
         ),
-        Paint()..color = Colors.black.withValues(alpha: 0.8),
+        Paint()..color = Colors.black.withValues(alpha: 0.75 * appear),
+      );
+      if (scorch != null) {
+        ParticleSprites.drawTinted(
+          canvas,
+          scorch,
+          Offset(_victimX + _u * 0.1, _ground + _u * 0.03),
+          width: _u * 2.0,
+          height: _u * 0.32,
+          opacity: 0.8 * appear,
+          tint: const Color(0xFF15100C),
+        );
+      }
+      // La colonna di fumo nero: dietro la sagoma, perché si stagli.
+      _soot(
+        canvas,
+        centre.translate(0, -_u * 0.2),
+        _span(t, strike + 0.03, 0.92),
+        seed: 2,
+        count: 8,
+        size: 1.5,
       );
     }
 
     if (!gone) {
-      final curious = _smooth(_span(t, 0.36, 0.44));
-      _victim(
+      _person(
         canvas,
-        x: walkX,
+        feet: feet,
         walk: walk,
         stride: stride,
-        lean: 0.10 * curious,
-        arm: _mix(0.5, 1.15, curious),
-        elbow: _mix(0.6, 0.9, curious),
+        lean: lean,
+        arm: arm,
+        elbow: elbow,
+        hat: victimHat,
         prop: _Prop.box,
       );
-      // La miccia sfrigola: chi guarda capisce prima della vittima.
-      final fuse = _span(t, 0.40, strike);
-      if (fuse > 0) {
-        _star(
+      _fuse(canvas, box);
+      _exclaim(
+        canvas,
+        Offset(walkX - _u * 0.05, _ground - _u * 1.45),
+        _span(t, 0.51, 0.555),
+      );
+    } else if (t < down) {
+      // Annerito, i capelli dritti, fermo com'era: poi va giù tutto d'un
+      // pezzo, come un'asse.
+      final tip = _span(t, topple, down);
+      final tilt = -pi / 2 * 0.96 * Curves.easeIn.transform(tip);
+      final sway = tip == 0 ? sin(t * 60) * 0.02 * _span(t, 0.64, topple) : 0.0;
+      _person(
+        canvas,
+        feet: Offset(_victimX, _ground),
+        tilt: tilt + sway,
+        lean: -0.20,
+        arm: 1.55,
+        elbow: 0.05,
+        backArm: -0.5,
+        backElbow: 0.1,
+        hat: victimHat,
+        hatOn: false,
+      );
+      _frazzle(canvas, Offset(_victimX, _ground), tilt + sway, -0.20);
+      for (var i = 0; i < 3; i++) {
+        final life = ((t - strike) * 9 + i / 3) % 1;
+        final head = Offset(
+          _victimX + _u * 0.98 * sin(tilt + sway),
+          _ground - _u * 0.98 * cos(tilt + sway),
+        );
+        _puff(
           canvas,
-          Offset(_victimX + _u * 0.40, _ground - _u * 0.60),
-          _u * (0.05 + 0.04 * sin(t * 500).abs()),
-          const Color(0xFFFFF3C4)
-              .withValues(alpha: 0.6 + 0.4 * sin(t * 380).abs()),
+          head.translate(_u * (i - 1) * 0.08, -_u * (0.10 + 0.5 * life)),
+          life,
+          size: 0.25,
+          color: const Color(0xFF3A3836),
         );
       }
+    } else {
+      _corpse(canvas, _victimX, -1);
+      _soot(
+        canvas,
+        Offset(_victimX - _u * 0.4, _ground - _u * 0.1),
+        _span(t, down, 0.95),
+        seed: 7,
+        count: 4,
+        size: 0.5,
+      );
     }
+    _dust(
+      canvas,
+      Offset(_victimX - _u * 0.55, _ground),
+      _span(t, down, down + 0.18),
+      seed: 6,
+      size: 0.9,
+    );
 
+    // L'esplosione: il lampo bianco, la palla di fuoco a strati, l'onda
+    // d'urto, i pezzi del pacco e le braci.
+    final boom = _span(t, strike - 0.001, strike + 0.14);
     if (boom > 0 && boom < 1) {
-      final grow = Curves.easeOut.transform(boom);
-      for (final (scale, color) in [
-        (1.0, Color(0xFFFF6A2B)),
-        (0.72, Color(0xFFFFB13B)),
-        (0.42, Color(0xFFFFF3C4)),
-      ]) {
-        canvas.drawCircle(
-          centre,
-          _u * 1.5 * grow * scale,
-          Paint()
-            ..color = color.withValues(alpha: (1 - boom) * 0.95)
-            ..maskFilter = MaskFilter.blur(BlurStyle.normal, _u * 0.05),
-        );
-      }
       final textures = sprites;
       if (textures != null) {
-        ParticleSprites.draw(
-          canvas,
-          textures.explosionAt(boom),
-          centre,
-          width: _u * 3.8 * grow,
-          height: _u * 3.8 * grow,
-          opacity: 0.92 * (1 - boom),
-        );
+        final flare = _span(t, strike - 0.001, strike + 0.035);
+        if (flare < 1 && textures.flashes.isNotEmpty) {
+          final frames = textures.flashes;
+          ParticleSprites.draw(
+            canvas,
+            frames[(flare * frames.length).floor().clamp(0, frames.length - 1)],
+            centre,
+            width: _u * 3.2 * (0.6 + 0.4 * flare),
+            height: _u * 3.2 * (0.6 + 0.4 * flare),
+            opacity: 1 - flare * 0.3,
+          );
+        }
+        for (final (k, rot, dx, dy, scale) in const [
+          (0, 0.0, 0.0, 0.0, 1.0),
+          (1, 1.3, -0.45, 0.25, 0.7),
+          (2, 2.4, 0.45, 0.15, 0.65),
+        ]) {
+          final p = _span(
+            t,
+            strike + 0.002 + k * 0.008,
+            strike + 0.10 + k * 0.012,
+          );
+          if (p <= 0 || p >= 1) continue;
+          ParticleSprites.draw(
+            canvas,
+            textures.explosionAt(p),
+            centre + Offset(dx, dy - 0.3 * p) * _u,
+            width:
+                _u * 3.0 * scale * (0.45 + 0.55 * Curves.easeOut.transform(p)),
+            height:
+                _u * 3.0 * scale * (0.45 + 0.55 * Curves.easeOut.transform(p)),
+            opacity: 1 - _span(p, 0.55, 1),
+            rotation: rot + p * 0.4,
+          );
+        }
+      } else {
+        final grow = Curves.easeOut.transform(boom);
+        for (final (scale, color) in [
+          (1.0, const Color(0xFFFF6A2B)),
+          (0.72, const Color(0xFFFFB13B)),
+          (0.42, const Color(0xFFFFF3C4)),
+        ]) {
+          canvas.drawCircle(
+            centre,
+            _u * 1.5 * grow * scale,
+            Paint()
+              ..color = color.withValues(alpha: (1 - boom) * 0.95)
+              ..maskFilter = MaskFilter.blur(BlurStyle.normal, _u * 0.05),
+          );
+        }
       }
       _spray(
         canvas,
@@ -2812,186 +3972,561 @@ class DeathScenePainter extends CustomPainter {
         boom,
         seed: 5,
         color: const Color(0xFFFFB13B),
-        count: 28,
+        count: 30,
         bias: Offset.zero,
         reach: 2.2,
       );
     }
-    // Il fumo sale, e alla fine dal cielo torna giù il cappello.
-    for (var i = 0; i < 5; i++) {
-      final life = _span(t, strike + 0.04 + i * 0.025, 0.86 + i * 0.02);
-      _puff(
-        canvas,
-        centre +
-            Offset(
-              (i - 2) * _u * 0.22,
-              -_u * (0.2 + 1.3 * life) - i * _u * 0.05,
-            ),
-        life,
-        size: 1.5,
-        color: const Color(0xFF3A3836),
+    final ring = _span(t, strike - 0.001, strike + 0.06);
+    if (ring > 0 && ring < 1) {
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: centre,
+          width: _u * (0.6 + 6.0 * ring),
+          height: _u * (0.5 + 4.0 * ring),
+        ),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = _u * 0.06 * (1 - ring)
+          ..color = Colors.white.withValues(alpha: 0.7 * (1 - ring)),
       );
     }
+    _debris(
+      canvas,
+      centre,
+      _span(t, strike, strike + 0.20),
+      seed: 9,
+      count: 14,
+      colors: const [Color(0xFF7A1B22), AppColors.gold, Color(0xFF4A1015)],
+      size: 1.2,
+      reach: 1.4,
+      lift: 1.2,
+    );
+
+    // Il cappello, sparato in cielo, torna giù e si posa sul petto.
     final fallBack = _span(t, 0.68, 0.80);
     if (fallBack > 0) {
       _looseHat(
         canvas,
         Offset(
-          _victimX - _u * 0.2,
+          _victimX -
+              _u * 0.52 +
+              sin(fallBack * 10) * _u * 0.12 * (1 - fallBack),
           _mix(
             -_u * 1.4,
-            _ground - _u * 0.03,
+            _ground - _u * 0.17,
             Curves.easeIn.transform(fallBack),
           ),
         ),
-        fallBack < 1 ? fallBack * 9 : 0.2,
+        fallBack < 1 ? 0.2 + sin(fallBack * 10) * 0.5 * (1 - fallBack) : 0.2,
       );
-      _shoes(canvas, _victimX + _u * 0.15);
     }
-    _flash(canvas, _span(t, strike, strike + 0.08), strength: 1);
+    _flash(canvas, _span(t, strike - 0.001, strike + 0.06), strength: 1);
+  }
+
+  /// La miccia sul pacco: si accorcia sfrigolando, con le scintille in punta.
+  void _fuse(Canvas canvas, Offset box) {
+    final burn = _span(t, 0.40, strike);
+    final left = 1 - burn;
+    final base = box.translate(_u * 0.05, -_u * 0.075);
+    Offset along(double s) =>
+        base + Offset(_u * 0.07 * s + _u * 0.025 * sin(s * 5), -_u * 0.13 * s);
+    final path = Path()..moveTo(base.dx, base.dy);
+    for (var i = 1; i <= 12; i++) {
+      final p = along(left * i / 12);
+      path.lineTo(p.dx, p.dy);
+    }
+    canvas.drawPath(
+      path,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = _u * 0.014
+        ..strokeCap = StrokeCap.round
+        ..color = const Color(0xFF2A2420),
+    );
+    if (burn <= 0) return;
+    final tip = along(left);
+    final crackle = 0.6 + 0.4 * sin(t * 500).abs();
+    canvas.drawCircle(
+      tip,
+      _u * 0.10 * crackle,
+      Paint()
+        ..color = _warm.withValues(alpha: 0.45)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, _u * 0.04),
+    );
+    _star(
+      canvas,
+      tip,
+      _u * (0.05 + 0.04 * sin(t * 500).abs()),
+      const Color(0xFFFFF3C4).withValues(alpha: crackle),
+    );
+    final rng = Random((t * 900).floor());
+    final spark = Paint()..color = const Color(0xFFFFD27A);
+    for (var i = 0; i < 6; i++) {
+      final a = rng.nextDouble() * 2 * pi;
+      final r = _u * (0.03 + rng.nextDouble() * 0.08);
+      canvas.drawCircle(tip + Offset(cos(a), sin(a)) * r, _u * 0.008, spark);
+    }
+    final wisp = (t * 30) % 1;
+    _puff(
+      canvas,
+      tip.translate(_u * 0.03 * wisp, -_u * 0.25 * wisp),
+      wisp,
+      size: 0.15,
+      color: const Color(0xFF8E8A86),
+    );
+  }
+
+  /// I capelli dritti in testa di chi è appena saltato in aria.
+  void _frazzle(Canvas canvas, Offset feet, double tilt, double lean) {
+    canvas.save();
+    canvas.translate(feet.dx, feet.dy);
+    canvas.rotate(tilt);
+    canvas.translate(0, -_u * 0.50);
+    canvas.rotate(lean);
+    final head = Offset(_u * 0.03, -_u * 0.485);
+    final ink = Paint()
+      ..color = _ink
+      ..strokeWidth = _u * 0.016
+      ..strokeCap = StrokeCap.round;
+    for (var i = 0; i < 7; i++) {
+      final a = -pi / 2 + (i - 3) * 0.32;
+      final from = head + Offset(cos(a), sin(a)) * (_u * 0.07);
+      final to = head + Offset(cos(a), sin(a)) * (_u * (0.14 + 0.02 * (i % 2)));
+      canvas.drawLine(from, to, ink);
+    }
+    canvas.restore();
   }
 
   void _poison(Canvas canvas) {
     final (walkX, walk, stride) = _entrance();
-    final sip = _smooth(_span(t, 0.37, 0.44)) - _smooth(_span(t, 0.48, 0.52));
-    final queasy = _span(t, 0.50, strike + 0.04);
-    final fall = _span(t, strike + 0.04, strike + 0.16);
+    const smash = 0.597;
+    final fall = _span(t, 0.62, 0.72);
+    final stagger = _smooth(_span(t, strike, 0.62));
+    final x = walkX - _u * 0.10 * stagger;
     final dropped = t >= strike;
 
     _killerSalute(canvas);
     _wall(canvas);
 
-    _victim(
-      canvas,
-      x: walkX,
-      walk: walk,
-      stride: stride,
-      fall: fall,
-      lean: queasy > 0 ? sin(t * 110) * 0.16 * queasy : 0,
-      arm: dropped ? 2.5 : _mix(0.9, 2.0, sip),
-      elbow: dropped ? 1.1 : _mix(0.5, 1.2, sip),
-      prop: dropped || t < 0.34 ? _Prop.none : _Prop.cup,
-    );
+    // La pozza verde, che si allarga e fa le bolle.
+    final spot = Offset(_victimX + _u * 0.30, _ground - _u * 0.02);
+    if (t >= smash) {
+      final grown = _span(t, smash, 0.75);
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: spot.translate(0, _u * 0.06),
+          width: _u * 0.50 * Curves.easeOut.transform(grown),
+          height: _u * 0.06,
+        ),
+        Paint()..color = const Color(0xFF6FBF4A).withValues(alpha: 0.85),
+      );
+      for (var i = 0; i < 3; i++) {
+        final pop = ((t - smash) * 14 + i * 0.37) % 1;
+        canvas.drawCircle(
+          spot.translate(
+            _u * (i - 1) * 0.12 * grown,
+            _u * 0.05 - _u * 0.03 * pop,
+          ),
+          _u * 0.018 * pop * grown,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = _u * 0.006
+            ..color = const Color(0xFFB6F08F).withValues(alpha: 1 - pop),
+        );
+      }
+      for (var i = 0; i < 3; i++) {
+        final life = _span(t, smash + 0.02 + i * 0.05, smash + 0.20 + i * 0.05);
+        _haze(
+          canvas,
+          spot.translate(_u * (i - 1) * 0.1, -_u * (0.1 + 0.5 * life)),
+          life,
+          size: 0.35,
+          color: const Color(0xFF6FBF4A),
+        );
+      }
+    }
+
+    if (fall <= 0) {
+      // Il sorso, la tazzina giù al petto, un attimo di quiete; poi la tosse
+      // che lo piega, e le mani alla gola.
+      final raise =
+          _smooth(_span(t, 0.37, 0.42)) - _smooth(_span(t, 0.455, 0.49));
+      final sip = _span(t, 0.42, 0.455);
+      var cough = 0.0;
+      for (final at in const [0.505, 0.525, 0.545]) {
+        final c = _span(t, at, at + 0.016);
+        if (c > 0 && c < 1) cough = max(cough, sin(pi * c));
+      }
+      final choke = _span(t, strike, strike + 0.02);
+      final shiver = dropped ? sin(t * 380) * 0.06 : 0.0;
+      _person(
+        canvas,
+        feet: Offset(x, _ground),
+        walk: dropped ? -t * 140 : walk,
+        stride: dropped ? 0.35 * (1 - _span(t, 0.60, 0.62)) : stride,
+        lean:
+            -0.08 * sin(pi * sip) + 0.28 * cough - 0.10 * choke + shiver * 0.5,
+        crouch: 0.10 * cough + 0.15 * choke,
+        arm: _mix(_mix(0.75, 1.6, raise), 2.0, choke) + shiver,
+        elbow: _mix(_mix(1.6, 2.37, raise), 2.71, choke),
+        backArm: _mix(-0.10, 2.0, choke) - shiver,
+        backElbow: _mix(0.2, 2.71, choke),
+        hat: victimHat,
+        prop: dropped || t < 0.34 ? _Prop.none : _Prop.cup,
+      );
+      // Ogni colpo di tosse, uno sbuffo verde.
+      for (final at in const [0.505, 0.525, 0.545]) {
+        final life = _span(t, at, at + 0.06);
+        _haze(
+          canvas,
+          Offset(
+            x + _u * (0.16 + 0.18 * life),
+            _ground - _u * (0.90 + 0.06 * life),
+          ),
+          life,
+          size: 0.30,
+          color: const Color(0xFF8BD66A),
+        );
+      }
+    } else {
+      // Le ginocchia cedono con le mani ancora alla gola, poi va giù
+      // all'indietro.
+      if (fall >= 1) {
+        _corpse(canvas, x, -1);
+      } else {
+        final buckle = Curves.easeOut.transform(min(1.0, fall * 1.6));
+        final topple = Curves.easeIn.transform(fall);
+        _person(
+          canvas,
+          feet: Offset(x, _ground),
+          crouch: buckle * 0.95,
+          tilt: -(0.10 * buckle + 1.20 * topple),
+          lean: 0.25 * buckle,
+          arm: _mix(2.0, 2.4, topple),
+          elbow: _mix(2.71, 1.2, topple),
+          backArm: _mix(2.0, -1.3, topple),
+          backElbow: _mix(2.71, 0.7, topple),
+          hat: victimHat,
+          hatOn: false,
+        );
+      }
+    }
     if (fall > 0.12) {
-      final flight = _span(t, strike + 0.07, 0.82);
+      final flight = _span(t, 0.635, 0.82);
       _looseHat(
         canvas,
-        Offset(_victimX - _u * (0.30 + 0.90 * flight), _ground - _u * 0.03),
+        Offset(
+          x - _u * (0.30 + 0.90 * flight),
+          _ground -
+              _u * 0.03 -
+              _u * 0.35 * sin(pi * min(1.0, flight * 1.6)) * (1 - flight),
+        ),
         flight < 1 ? -flight * 7 : -0.2,
       );
     }
+    _dust(
+      canvas,
+      Offset(x - _u * 0.5, _ground),
+      _span(t, 0.72, 0.90),
+      seed: 11,
+      size: 0.8,
+    );
 
-    // La tazzina cade, va in pezzi, e quello che c'era dentro non era caffè.
+    // La tazzina scivola di mano, gira, e va in pezzi sull'asfalto.
     if (dropped) {
-      final tumble = Curves.easeIn.transform(_span(t, strike, strike + 0.04));
-      final spot = Offset(_victimX + _u * 0.36, _ground - _u * 0.02);
+      final from =
+          _handAt(Offset(walkX, _ground), arm: 0.75, elbow: 1.6) +
+          Offset(_u * 0.035, -_u * 0.02);
+      final tumble = _span(t, strike, smash);
       if (tumble < 1) {
-        canvas.drawRRect(
-          RRect.fromRectAndRadius(
-            Rect.fromCenter(
-              center: Offset(
-                spot.dx,
-                _mix(_ground - _u * 0.98, spot.dy, tumble),
-              ),
-              width: _u * 0.065,
-              height: _u * 0.055,
-            ),
-            Radius.circular(_u * 0.012),
+        _teacup(
+          canvas,
+          Offset(
+            _mix(from.dx, spot.dx, tumble),
+            _mix(from.dy, spot.dy, tumble * tumble),
           ),
-          Paint()..color = AppColors.textPrimary,
+          _u,
+          spin: tumble * 2.6,
+          steam: false,
         );
       } else {
+        _debris(
+          canvas,
+          spot,
+          _span(t, smash, smash + 0.12),
+          seed: 4,
+          count: 9,
+          colors: const [AppColors.textPrimary, Color(0xFFCFC8BA)],
+          size: 0.55,
+          reach: 0.6,
+          lift: 0.55,
+        );
         _spray(
           canvas,
           spot,
-          _span(t, strike + 0.04, strike + 0.16),
-          seed: 4,
-          color: AppColors.textPrimary,
-          count: 8,
-          bias: const Offset(0, -0.6),
-          reach: 0.5,
-        );
-        canvas.drawOval(
-          Rect.fromCenter(
-            center: spot.translate(0, _u * 0.06),
-            width: _u * 0.46 * _span(t, strike + 0.04, 0.80),
-            height: _u * 0.055,
-          ),
-          Paint()..color = const Color(0xFF6FBF4A).withValues(alpha: 0.85),
+          _span(t, smash, smash + 0.10),
+          seed: 13,
+          color: const Color(0xFF6FBF4A),
+          count: 10,
+          bias: const Offset(0, -0.7),
+          reach: 0.45,
         );
       }
     }
   }
 
+  /// La tazzina avvelenata: porcellana, filo d'oro, e un vapore verdognolo.
+  void _teacup(
+    Canvas canvas,
+    Offset center,
+    double h, {
+    double spin = 0,
+    bool steam = true,
+  }) {
+    final china = Paint()..color = AppColors.textPrimary;
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    canvas.rotate(spin);
+    canvas.drawCircle(
+      Offset(-h * 0.046, -h * 0.004),
+      h * 0.020,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = h * 0.011
+        ..color = AppColors.textPrimary,
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(-h * 0.046, -h * 0.034)
+        ..lineTo(h * 0.046, -h * 0.034)
+        ..quadraticBezierTo(h * 0.044, h * 0.030, 0, h * 0.032)
+        ..quadraticBezierTo(-h * 0.044, h * 0.030, -h * 0.046, -h * 0.034)
+        ..close(),
+      china,
+    );
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(0, -h * 0.034),
+        width: h * 0.092,
+        height: h * 0.018,
+      ),
+      Paint()..color = const Color(0xFF2E4A22),
+    );
+    canvas.drawLine(
+      Offset(-h * 0.044, -h * 0.018),
+      Offset(h * 0.044, -h * 0.018),
+      Paint()
+        ..color = AppColors.gold
+        ..strokeWidth = h * 0.006,
+    );
+    canvas.restore();
+    if (!steam) return;
+    final vapour = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = h * 0.009
+      ..strokeCap = StrokeCap.round
+      ..color = const Color(0xFF8BD66A).withValues(alpha: 0.55);
+    for (final dx in [-0.015, 0.018]) {
+      final path = Path()..moveTo(center.dx + h * dx, center.dy - h * 0.05);
+      for (var i = 1; i <= 5; i++) {
+        path.lineTo(
+          center.dx + h * dx + sin(t * 40 + i * 1.2 + dx * 90) * h * 0.016,
+          center.dy - h * (0.05 + 0.025 * i),
+        );
+      }
+      canvas.drawPath(path, vapour);
+    }
+  }
+
   void _noose(Canvas canvas) {
     final (walkX, walk, stride) = _entrance();
-    final lower = Curves.easeOut.transform(_span(t, 0.37, 0.52));
-    final hoist = _smooth(_span(t, strike, strike + 0.12));
-    final lift = hoist * _u * 0.60;
-    final calm = _span(t, 0.66, 0.86);
-    final sway = sin(t * 26) * 0.12 * hoist * (1 - calm * 0.6);
-    final caught = t >= strike - 0.02;
+    // Scende piano alle sue spalle, gli cade sulla testa, si stringe; poi
+    // tre strattoni lo tirano su.
+    final lower = Curves.easeOut.transform(_span(t, 0.36, 0.50));
+    final drop = Curves.easeIn.transform(_span(t, 0.50, 0.535));
+    final cinch = _span(t, 0.535, 0.55);
+    final hoisted = t >= strike;
+    final lift =
+        _u *
+        (0.25 * Curves.easeOut.transform(_span(t, strike, 0.58)) +
+            0.15 * Curves.easeOut.transform(_span(t, 0.60, 0.62)) +
+            0.12 * Curves.easeOut.transform(_span(t, 0.64, 0.66)));
+    var jolt = 0.0;
+    for (final at in const [strike, 0.60, 0.64]) {
+      final j = _span(t, at, at + 0.05);
+      if (j > 0 && j < 1) jolt += sin(pi * j) * (1 - j);
+    }
+    final calm = _span(t, 0.68, 0.86);
+    final sway = hoisted
+        ? sin((t - strike) * 26) * 0.10 * (1 - calm * 0.7)
+        : 0.0;
+    final kick = hoisted ? 1 - calm : 0.0;
 
     _killerSalute(canvas);
     _wall(canvas);
 
-    final neck = Offset(
-      _victimX + sin(sway) * _u * 0.85,
-      _ground - lift - _u * 0.88,
-    );
     final rope = Paint()
       ..color = const Color(0xFFC9B48A)
       ..strokeWidth = _u * 0.024
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
-    final end = caught
-        ? neck
-        : Offset(_victimX, _mix(-_u * 1.2, _ground - _u * 1.20, lower));
-    canvas.drawLine(Offset(_victimX, -_h), end, rope);
+
+    // Dove sta il cappio: sopra la testa che dondola, poi giù intorno al
+    // collo, poi al collo di uno che sale.
+    final Offset loop;
+    final double loopW;
+    final double loopH;
+    if (hoisted) {
+      loop = Offset(
+        _victimX + sin(sway) * _u * 0.5,
+        _ground - lift - _u * 0.88 - _u * 0.02 * jolt,
+      );
+      loopW = _u * 0.17;
+      loopH = _u * 0.07;
+    } else {
+      final swing = sin(t * 14) * _u * 0.04 * (1 - drop);
+      loop = Offset(
+        _victimX + swing,
+        drop > 0
+            ? _mix(_ground - _u * 1.35, _ground - _u * 0.90, drop)
+            : _mix(-_u * 1.2, _ground - _u * 1.35, lower),
+      );
+      loopW = _u * _mix(_mix(0.30, 0.22, drop), 0.17, cinch);
+      loopH = _u * _mix(_mix(0.30, 0.20, drop), 0.07, cinch);
+    }
+    final knot = loop.translate(0, -loopH / 2);
+
+    if (hoisted) {
+      final tilt = -sway * 0.8;
+      final feet = Offset(
+        loop.dx - _u * 0.88 * sin(tilt),
+        loop.dy + _u * 0.88 * cos(tilt),
+      );
+      final limp = _smooth(_span(t, 0.68, 0.73));
+      _person(
+        canvas,
+        feet: feet,
+        tilt: tilt,
+        dangle: sin(t * 95) * 0.75 * kick + 0.12,
+        arm: _mix(2.75 + 0.2 * sin(t * 70) * kick, 0.15, limp),
+        elbow: _mix(0.6, 0.1, limp),
+        backArm: _mix(2.6 + 0.2 * cos(t * 64) * kick, -0.1, limp),
+        backElbow: _mix(0.7, 0.1, limp),
+        hat: victimHat,
+        hatOn: false,
+      );
+    } else {
+      final grab = _span(t, 0.535, 0.55);
+      final shiver = grab > 0 ? sin(t * 380) * 0.05 : 0.0;
+      if (t < 0.535) {
+        _victim(
+          canvas,
+          x: walkX,
+          walk: walk,
+          stride: stride,
+          smoking: t > 0.37,
+        );
+      } else {
+        _person(
+          canvas,
+          feet: Offset(walkX, _ground),
+          lean: -0.08 * grab,
+          arm: _mix(0.08, 2.9, grab) + shiver,
+          elbow: _mix(0.2, 0.3, grab),
+          backArm: _mix(-0.10, 2.8, grab) - shiver,
+          backElbow: _mix(0.2, 0.4, grab),
+          hat: victimHat,
+        );
+      }
+    }
+
+    // La corda, il nodo a spire e l'anello.
+    canvas.drawLine(Offset(_victimX, -_h), knot.translate(0, -_u * 0.14), rope);
+    for (var i = 0; i < 5; i++) {
+      canvas.drawLine(
+        knot.translate(-_u * 0.035, -_u * (0.025 + 0.025 * i)),
+        knot.translate(_u * 0.035, -_u * (0.025 + 0.025 * i)),
+        rope,
+      );
+    }
     canvas.drawOval(
-      Rect.fromCenter(
-        center: end.translate(0, caught ? 0 : _u * 0.11),
-        width: _u * (caught ? 0.17 : 0.24),
-        height: _u * (caught ? 0.07 : 0.26),
-      ),
+      Rect.fromCenter(center: loop, width: loopW, height: loopH),
       rope,
     );
 
-    if (hoist > 0) {
-      _person(
-        canvas,
-        feet: Offset(walkX + sin(sway) * _u * 0.2, _ground - lift),
-        tilt: sway,
-        dangle: sin(t * 95) * 0.75 * (1 - calm) + 0.12,
-        arm: 2.55,
-        elbow: 1.5,
-        backArm: 2.3,
-        backElbow: 1.6,
-        hat: victimHat,
-        hatOn: hoist < 0.2,
+    // La sigaretta cade di bocca quando arriva il cappio.
+    final butt = _span(t, 0.535, 0.57);
+    if (butt > 0) {
+      final ember = Offset(
+        _mix(_victimX + _u * 0.16, _victimX + _u * 0.30, butt),
+        _mix(_ground - _u * 0.93, _ground - _u * 0.015, butt * butt),
       );
-      if (hoist >= 0.2) {
-        final dropHat = Curves.easeIn.transform(
-          _span(t, strike + 0.03, strike + 0.10),
-        );
-        _looseHat(
-          canvas,
-          Offset(
-            _victimX - _u * 0.40 * dropHat,
-            _mix(_ground - lift - _u, _ground - _u * 0.03, dropHat),
-          ),
-          dropHat < 1 ? dropHat * 5 : 0.15,
-        );
-      }
-    } else {
-      final alarm = _span(t, 0.52, strike);
-      _victim(
+      canvas.drawLine(
+        ember,
+        ember.translate(-_u * 0.06, 0),
+        Paint()
+          ..color = const Color(0xFFE9E4D8)
+          ..strokeWidth = _u * 0.014,
+      );
+      canvas.drawCircle(
+        ember,
+        _u * 0.012,
+        Paint()..color = const Color(0xFFFF7A3B),
+      );
+      if (butt >= 1) _wisp(canvas, ember);
+    }
+
+    // I piedi lasciano terra: un velo di polvere. Al secondo strattone
+    // salta via una scarpa.
+    _dust(
+      canvas,
+      Offset(walkX, _ground),
+      _span(t, strike, strike + 0.14),
+      seed: 9,
+      count: 4,
+      size: 0.6,
+      spread: 0.6,
+    );
+    final shoe = _span(t, 0.60, 0.635);
+    if (shoe > 0) {
+      final at = Offset(
+        _victimX + _u * (0.08 + 0.25 * shoe),
+        _mix(_ground - _u * 0.40, _ground, shoe * shoe),
+      );
+      canvas.save();
+      canvas.translate(at.dx, at.dy);
+      canvas.rotate(shoe < 1 ? shoe * 7 : 0);
+      canvas.drawRRect(
+        RRect.fromRectAndCorners(
+          Rect.fromLTRB(-_u * 0.06, -_u * 0.05, _u * 0.09, 0),
+          topLeft: Radius.circular(_u * 0.02),
+          topRight: Radius.circular(_u * 0.045),
+        ),
+        Paint()..color = _ink,
+      );
+      canvas.restore();
+      _dust(
         canvas,
-        x: walkX,
-        walk: walk,
-        stride: stride,
-        arm: _mix(0.08, 2.3, alarm),
-        elbow: _mix(0.2, 1.4, alarm),
+        Offset(at.dx, _ground),
+        _span(t, 0.635, 0.72),
+        seed: 10,
+        count: 3,
+        size: 0.35,
+        spread: 0.4,
+      );
+    }
+    if (hoisted) {
+      final dropHat = Curves.easeIn.transform(
+        _span(t, strike + 0.01, strike + 0.08),
+      );
+      _looseHat(
+        canvas,
+        Offset(
+          _victimX - _u * 0.40 * dropHat,
+          _mix(_ground - _u * 1.05, _ground - _u * 0.03, dropHat),
+        ),
+        dropHat < 1 ? dropHat * 5 : 0.15,
       );
     }
   }
@@ -3001,6 +4536,8 @@ class DeathScenePainter extends CustomPainter {
     final drag = _smooth(_span(t, strike + 0.03, strike + 0.20));
     final held = t >= strike;
 
+    // Escono in punta di piedi, chinati, le mani avanti; al colpo lo
+    // agguantano, e poi se lo tirano dietro l'angolo.
     for (final (gap, delay) in [(0.40, 0.0), (0.82, 0.035)]) {
       final come = _smooth(_span(t, 0.43 + delay, strike));
       final x = _mix(
@@ -3008,16 +4545,21 @@ class DeathScenePainter extends CustomPainter {
         _hiddenX + _u * gap,
         drag,
       );
-      final moving = (come > 0 && come < 1) || (drag > 0 && drag < 1);
+      final sneaking = come > 0 && come < 1;
+      final moving = sneaking || (drag > 0 && drag < 1);
+      final clamp = held && drag < 1;
       _person(
         canvas,
         feet: Offset(x, _ground),
         facing: drag > 0.05 ? 1 : -1,
-        walk: _prowl + gap * 5,
-        stride: moving ? 0.9 : 0,
-        lean: 0.10 * come * (1 - drag),
-        arm: held && drag < 1 ? 1.45 : 0.1,
-        elbow: held && drag < 1 ? 0.15 : 0.2,
+        walk: sneaking ? _prowl * 0.6 + gap * 5 : _prowl + gap * 5,
+        stride: moving ? (sneaking ? 0.6 : 0.9) : 0,
+        lean: sneaking ? 0.20 : (clamp ? 0.10 : 0),
+        crouch: sneaking ? 0.12 : 0,
+        arm: clamp ? 1.45 : _mix(0.1, 1.75, come),
+        elbow: clamp ? 0.15 : _mix(0.2, -0.25, come),
+        backArm: clamp ? 1.3 : _mix(-0.1, 1.4, come),
+        backElbow: clamp ? 0.3 : _mix(0.2, -0.1, come),
         killer: true,
       );
     }
@@ -3031,14 +4573,18 @@ class DeathScenePainter extends CustomPainter {
         facing: t < 0.37 ? 1 : -1,
         walk: walk,
         stride: stride,
+        smoking: t > 0.37,
       );
     } else {
+      final jerk = sin(pi * _span(t, strike, strike + 0.03));
       _person(
         canvas,
-        feet: Offset(victimX, _ground),
+        feet: Offset(victimX, _ground - _u * 0.08 * jerk),
         facing: -1,
         tilt: 0.45,
         crouch: 0.35,
+        walk: t * 520,
+        stride: drag > 0 && drag < 1 ? 0.8 : 0.3,
         arm: 2.2 + 0.4 * sin(t * 120),
         elbow: 0.5,
         backArm: -1.6 + 0.4 * cos(t * 130),
@@ -3049,8 +4595,37 @@ class DeathScenePainter extends CustomPainter {
     _wall(canvas);
 
     if (held) {
-      _looseHat(canvas, Offset(_victimX - _u * 0.25, _ground - _u * 0.03), 0.2);
-      // I tacchi che strisciano sull'asfalto.
+      // Il cappello salta via, la sigaretta cade e resta lì a fumare.
+      final hat = _span(t, strike, strike + 0.07);
+      _looseHat(
+        canvas,
+        Offset(
+          _mix(_victimX - _u * 0.02, _victimX - _u * 0.25, hat),
+          _mix(_ground - _u * 1.05, _ground - _u * 0.03, hat) -
+              _u * 0.45 * sin(pi * hat),
+        ),
+        hat < 1 ? -hat * 6 : 0.2,
+      );
+      final butt = _span(t, strike, strike + 0.03);
+      final ember = Offset(
+        _mix(_victimX - _u * 0.16, _victimX - _u * 0.45, butt),
+        _mix(_ground - _u * 0.93, _ground - _u * 0.015, butt * butt),
+      );
+      canvas.drawLine(
+        ember,
+        ember.translate(_u * 0.06, 0),
+        Paint()
+          ..color = const Color(0xFFE9E4D8)
+          ..strokeWidth = _u * 0.014,
+      );
+      canvas.drawCircle(
+        ember,
+        _u * (0.011 + 0.005 * sin(t * 160).abs()),
+        Paint()..color = const Color(0xFFFF7A3B),
+      );
+      if (butt >= 1) _wisp(canvas, ember);
+
+      // I tacchi che strisciano sull'asfalto, e la polvere che sollevano.
       final heels = Paint()
         ..color = Colors.black.withValues(alpha: 0.6)
         ..strokeWidth = _u * 0.02;
@@ -3061,21 +4636,62 @@ class DeathScenePainter extends CustomPainter {
           heels,
         );
       }
+      for (var k = 0; k < 4; k++) {
+        final at = strike + 0.04 + k * 0.035;
+        final heel = _mix(
+          walkX,
+          _hiddenX,
+          _smooth(_span(at, strike + 0.03, strike + 0.20)),
+        );
+        if (heel > _cornerX) continue;
+        _dust(
+          canvas,
+          Offset(heel, _ground),
+          _span(t, at, at + 0.08),
+          seed: 20 + k,
+          count: 3,
+          size: 0.35,
+          spread: 0.4,
+        );
+      }
     }
     // Da dietro l'angolo: un tonfo, e la polvere del cemento.
+    const pour = strike + 0.22;
     _puff(
       canvas,
       Offset(_cornerX + _u * 0.05, _ground - _u * 0.25),
-      _span(t, strike + 0.22, strike + 0.36),
+      _span(t, pour, pour + 0.14),
       size: 1.6,
       color: const Color(0xFFB9B4AC),
     );
     _puff(
       canvas,
       Offset(_cornerX + _u * 0.20, _ground - _u * 0.8),
-      _span(t, strike + 0.25, strike + 0.40),
+      _span(t, pour + 0.03, pour + 0.18),
       size: 1.4,
       color: const Color(0xFFB9B4AC),
+    );
+    _dust(
+      canvas,
+      Offset(_cornerX, _ground),
+      _span(t, pour, pour + 0.20),
+      seed: 24,
+      count: 6,
+      size: 1.0,
+      spread: 1.0,
+      color: const Color(0xFFB9B4AC),
+    );
+    _debris(
+      canvas,
+      Offset(_cornerX + _u * 0.05, _ground - _u * 0.3),
+      _span(t, pour, pour + 0.15),
+      seed: 25,
+      count: 8,
+      colors: const [Color(0xFF9C978F), Color(0xFF7A766F)],
+      size: 0.9,
+      reach: 0.8,
+      lift: 0.8,
+      drift: -0.6,
     );
   }
 
@@ -3114,7 +4730,7 @@ class DeathScenePainter extends CustomPainter {
   void _bat(Canvas canvas) {
     final (walkX, walk, stride) = _entrance();
     final peek = _smooth(_span(t, 0.38, 0.46));
-    final dash = Curves.easeIn.transform(_span(t, 0.47, 0.54));
+    final dash = Curves.easeIn.transform(_span(t, 0.47, 0.53));
     final leave = _smooth(_span(t, 0.72, 0.86));
     final killerX = _mix(
       _mix(_mix(_hiddenX, _peekX, peek), _victimX + _u * 0.50, dash),
@@ -3122,27 +4738,66 @@ class DeathScenePainter extends CustomPainter {
       leave,
     );
     final running = (dash > 0 && dash < 1) || (leave > 0 && leave < 1);
-    final windUp = _span(t, 0.46, 0.54);
-    final swing = Curves.easeOut.transform(_span(t, 0.54, strike + 0.015));
-    final follow = _span(t, strike + 0.015, strike + 0.10);
+    // Su la mazza, ancora un po' più indietro (il respiro prima del colpo),
+    // giù di schianto, e il braccio che va oltre; poi se la rimette in spalla.
+    final windUp = _smooth(_span(t, 0.46, 0.52));
+    final cock = _smooth(_span(t, 0.52, 0.545));
+    final swing = Curves.easeIn.transform(_span(t, 0.545, strike));
+    final follow = Curves.easeOut.transform(_span(t, strike, strike + 0.05));
+    final recover = _smooth(_span(t, strike + 0.07, strike + 0.15));
+    double pose(List<double> keys) {
+      var v = _mix(keys[0], keys[1], windUp);
+      v = _mix(v, keys[2], cock);
+      v = _mix(v, keys[3], swing);
+      v = _mix(v, keys[4], follow);
+      return _mix(v, keys[5], recover);
+    }
 
+    final lean =
+        pose(const [0.0, 0.0, -0.12, 0.32, 0.38, 0.04]) +
+        0.10 * dash * (1 - windUp);
     _person(
       canvas,
       feet: Offset(killerX, _ground),
       facing: leave > 0.08 ? 1 : -1,
       walk: _prowl,
       stride: running ? 1 : 0,
-      lean: leave > 0 ? 0.04 : 0.10 * dash + 0.32 * swing * (1 - follow),
-      crouch: 0.15 * swing * (1 - follow),
-      arm: leave > 0 ? 2.5 : _mix(_mix(0.5, 2.6, windUp), 1.20, swing),
-      elbow: leave > 0 ? 1.1 : _mix(_mix(2.3, 0.9, windUp), 0.05, swing),
+      lean: leave > 0 ? 0.04 : lean,
+      crouch: 0.15 * swing * (1 - recover),
+      arm: leave > 0 ? 2.5 : pose(const [0.5, 2.7, 2.9, 1.55, 0.55, 2.5]),
+      elbow: leave > 0 ? 1.1 : pose(const [2.3, 0.6, 0.6, 0.2, 0.3, 1.1]),
       prop: _Prop.bat,
       killer: true,
     );
+    // La scia della mazza: un ventaglio chiaro dietro la punta, da sopra la
+    // testa fino al colpo, che svanisce subito dopo.
+    final smear = _span(t, 0.545, strike + 0.025);
+    if (smear > 0 && smear < 1) {
+      final shoulder = Offset(killerX - _u * 0.04, _ground - _u * 0.89);
+      final reach = _mix(1.5 * pi, pi + 0.15, swing);
+      final fade = t < strike ? 1.0 : 1 - _span(t, strike, strike + 0.025);
+      for (final (radius, width, alpha) in const [
+        (0.62, 0.36, 0.22),
+        (0.74, 0.10, 0.45),
+      ]) {
+        canvas.drawArc(
+          Rect.fromCircle(center: shoulder, radius: _u * radius),
+          reach,
+          1.5 * pi - reach,
+          false,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = _u * width
+            ..color = const Color(0xFFFFE2B0).withValues(alpha: alpha * fade)
+            ..maskFilter = MaskFilter.blur(BlurStyle.normal, _u * 0.02),
+        );
+      }
+    }
     _wall(canvas);
 
     final dazed = _span(t, strike, strike + 0.09);
     final fall = _span(t, strike + 0.08, strike + 0.19);
+    final knock = dazed > 0 ? 0.30 * sin(pi * min(1.0, dazed * 2.5)) : 0.0;
     _victim(
       canvas,
       x: walkX,
@@ -3150,23 +4805,73 @@ class DeathScenePainter extends CustomPainter {
       walk: walk,
       stride: stride,
       fall: fall,
-      lean: dazed > 0 && fall == 0 ? sin(t * 100) * 0.16 : 0,
+      lean: dazed > 0 && fall == 0 ? knock + sin(t * 100) * 0.16 * dazed : 0,
       smoking: t > 0.37 && t < strike,
     );
     _hatOff(canvas, strike, strike + 0.26, height: 1.5);
-    _dizzy(
+
+    // La sigaretta schizza via di bocca e resta a fumare per terra.
+    final butt = _span(t, strike, strike + 0.06);
+    if (butt > 0) {
+      final ember = Offset(
+        _mix(_victimX - _u * 0.16, _victimX - _u * 0.70, butt),
+        _mix(_ground - _u * 0.93, _ground - _u * 0.015, butt * butt) -
+            _u * 0.35 * sin(pi * butt),
+      );
+      canvas.save();
+      canvas.translate(ember.dx, ember.dy);
+      canvas.rotate(butt < 1 ? butt * 9 : 0);
+      canvas.drawLine(
+        Offset.zero,
+        Offset(_u * 0.06, 0),
+        Paint()
+          ..color = const Color(0xFFE9E4D8)
+          ..strokeWidth = _u * 0.014,
+      );
+      canvas.restore();
+      canvas.drawCircle(
+        ember,
+        _u * (0.011 + 0.005 * sin(t * 160).abs()),
+        Paint()..color = const Color(0xFFFF7A3B),
+      );
+      if (butt >= 1) _wisp(canvas, ember);
+    }
+
+    // Il colpo: la stella dell'urto, le schegge di legno, le stelline.
+    final head = Offset(_victimX + _u * 0.02, _ground - _u * 1.0);
+    _impactBurst(canvas, head, _span(t, strike, strike + 0.06), size: 0.9);
+    _debris(
       canvas,
-      Offset(_victimX, _ground - _u * 1.10),
-      _span(t, strike, strike + 0.14),
+      head,
+      _span(t, strike, strike + 0.12),
+      seed: 33,
+      count: 6,
+      colors: const [Color(0xFFC9A26B), Color(0xFF9A7448)],
+      size: 0.5,
+      reach: 0.7,
+      lift: 0.6,
+      drift: -0.4,
     );
     _spray(
       canvas,
-      Offset(_victimX, _ground - _u * 0.95),
+      head.translate(0, _u * 0.05),
       _span(t, strike, strike + 0.10),
       seed: 31,
       color: _warm,
       count: 10,
       reach: 0.8,
+    );
+    _bonkStars(
+      canvas,
+      Offset(_victimX - _u * 0.03, _ground - _u * 1.12),
+      _span(t, strike + 0.01, strike + 0.11),
+    );
+    _dust(
+      canvas,
+      Offset(_victimX - _u * 0.5, _ground),
+      _span(t, strike + 0.19, strike + 0.36),
+      seed: 34,
+      size: 0.8,
     );
     _flash(canvas, _span(t, strike, strike + 0.03), strength: 0.45);
   }

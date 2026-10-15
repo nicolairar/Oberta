@@ -90,17 +90,22 @@ List<SceneCue> sceneCuesFor(DeathAct act, {bool memes = false}) {
           reaction(_s - 0.01, FxGroup.scream),
           const SceneCue.sample(_s, 'metal_heavy', 0.8),
           const SceneCue.sample(_s + 0.01, 'glass_medium', 0.5),
-          // La vittima ricade lontano, dopo il volo.
-          const SceneCue.fx(0.72, FxGroup.faint, 0.6),
+          // La vittima ricade lontano, dopo il volo sopra il tetto.
+          const SceneCue.fx(0.675, FxGroup.faint, 0.6),
         ],
       DeathAct.piano => [
-          const SceneCue.fx(0.47, FxGroup.fallwhist, 0.5),
+          // La corda che scricchiola, poi cede.
+          const SceneCue.sample(0.44, 'creak', 0.45),
+          const SceneCue.fx(0.50, FxGroup.rope, 0.45),
+          const SceneCue.fx(0.505, FxGroup.fallwhist, 0.5),
           const SceneCue.fx(_s, FxGroup.pianocrash, 0.8),
           const SceneCue.fx(_s + 0.01, FxGroup.debris, 0.45),
           reaction(_s + 0.04, FxGroup.ouch),
         ],
       DeathAct.safe => [
-          const SceneCue.fx(0.47, FxGroup.fallwhist, 0.5),
+          const SceneCue.sample(0.44, 'creak', 0.45),
+          const SceneCue.fx(0.50, FxGroup.rope, 0.45),
+          const SceneCue.fx(0.505, FxGroup.fallwhist, 0.5),
           const SceneCue.fx(_s, FxGroup.thud, 0.85),
           const SceneCue.sample(_s + 0.003, 'metal_heavy', 0.7),
           const SceneCue.fx(_s + 0.012, FxGroup.debris, 0.45),
@@ -108,8 +113,8 @@ List<SceneCue> sceneCuesFor(DeathAct act, {bool memes = false}) {
         ],
       DeathAct.chandelier => [
           // La catena che cede, poi i cristalli in pezzi.
-          const SceneCue.fx(0.455, FxGroup.chain, 0.5),
-          const SceneCue.fx(0.47, FxGroup.fallwhist, 0.4),
+          const SceneCue.fx(0.50, FxGroup.chain, 0.5),
+          const SceneCue.fx(0.505, FxGroup.fallwhist, 0.4),
           const SceneCue.fx(_s, FxGroup.glassbreak, 0.8),
           const SceneCue.fx(_s + 0.005, FxGroup.chain, 0.45),
           reaction(_s + 0.03, FxGroup.scream),
@@ -118,14 +123,15 @@ List<SceneCue> sceneCuesFor(DeathAct act, {bool memes = false}) {
           const SceneCue.fx(0.41, FxGroup.fuse, 0.4),
           const SceneCue.fx(_s, FxGroup.explosion, 0.8),
           const SceneCue.fx(_s + 0.03, FxGroup.debris, 0.5),
-          // Il cappello che torna giù dal cielo.
-          const SceneCue.fx(0.80, FxGroup.faint, 0.3),
+          // Annerito, va giù tutto d'un pezzo.
+          const SceneCue.fx(0.775, FxGroup.faint, 0.6),
         ],
       DeathAct.poison => [
           const SceneCue.fx(0.42, FxGroup.gulp, 0.5),
-          const SceneCue.fx(0.51, FxGroup.cough, 0.6),
+          const SceneCue.fx(0.505, FxGroup.cough, 0.6),
+          const SceneCue.fx(0.53, FxGroup.cough, 0.45),
           // La tazzina scivola di mano e va in pezzi sull'asfalto.
-          const SceneCue.fx(_s + 0.04, FxGroup.ceramic, 0.55),
+          const SceneCue.fx(_s + 0.037, FxGroup.ceramic, 0.55),
           reaction(_s + 0.045, FxGroup.groan),
           const SceneCue.fx(_s + 0.16, FxGroup.faint, 0.6),
         ],
@@ -134,6 +140,9 @@ List<SceneCue> sceneCuesFor(DeathAct act, {bool memes = false}) {
           const SceneCue.sample(_s, 'creak', 0.8),
           const SceneCue.fx(_s + 0.01, FxGroup.rope, 0.55),
           reaction(_s + 0.03, FxGroup.gasp),
+          // Gli altri due strattoni.
+          const SceneCue.sample(0.60, 'creak', 0.55),
+          const SceneCue.sample(0.64, 'creak', 0.5),
           const SceneCue.fx(0.70, FxGroup.rope, 0.35),
         ],
       DeathAct.grab => [
@@ -147,7 +156,7 @@ List<SceneCue> sceneCuesFor(DeathAct act, {bool memes = false}) {
           const SceneCue.fx(_s + 0.235, FxGroup.debris, 0.35),
         ],
       DeathAct.bat => [
-          const SceneCue.fx(_s - 0.02, FxGroup.swish, 0.55),
+          const SceneCue.fx(_s - 0.012, FxGroup.swish, 0.55),
           const SceneCue.fx(_s, FxGroup.bathit, 0.85),
           const SceneCue.sample(_s + 0.002, 'wood_heavy', 0.6),
           reaction(_s + 0.04, FxGroup.ouch),
