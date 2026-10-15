@@ -29,6 +29,13 @@ class CityBackdrop extends StatefulWidget {
     this.rain = false,
   });
 
+  /// Ogni volta che cambia, nel cielo di tutti i fondali scoppia un lampo.
+  /// Chi fa sentire un tuono lo chiama un attimo prima, così luce e rombo
+  /// arrivano nell'ordine giusto: prima il lampo, poi il tuono.
+  static final lightning = ValueNotifier<int>(0);
+
+  static void flash() => lightning.value++;
+
   @override
   State<CityBackdrop> createState() => _CityBackdropState();
 }
@@ -36,6 +43,7 @@ class CityBackdrop extends StatefulWidget {
 class _CityBackdropState extends State<CityBackdrop> with TickerProviderStateMixin {
   late final AnimationController _ambient;
   late final AnimationController _shift;
+  late final AnimationController _bolt;
   late _Sky _from;
   late _Sky _to;
   bool _animate = true;
@@ -50,6 +58,21 @@ class _CityBackdropState extends State<CityBackdrop> with TickerProviderStateMix
     _ambient = AnimationController(vsync: this, duration: const Duration(seconds: 24));
     _shift = AnimationController(vsync: this, duration: const Duration(milliseconds: 1800), value: 1);
     _from = _to = _target;
+    _bolt = AnimationController(vsync: this, duration: const Duration(milliseconds: 650));
+    CityBackdrop.lightning.addListener(_strike);
+  }
+
+  void _strike() {
+    if (_animate && mounted) _bolt.forward(from: 0);
+  }
+
+  /// Un lampo vero: un colpo di luce forte, un attimo di buio, un riverbero.
+  static double _glare(double t) {
+    if (t <= 0 || t >= 1) return 0;
+    if (t < 0.12) return t / 0.12;
+    if (t < 0.25) return 1 - (t - 0.12) / 0.13 * 0.85;
+    if (t < 0.35) return 0.15 + (t - 0.25) / 0.10 * 0.45;
+    return 0.6 * (1 - (t - 0.35) / 0.65);
   }
 
   @override
@@ -78,8 +101,10 @@ class _CityBackdropState extends State<CityBackdrop> with TickerProviderStateMix
 
   @override
   void dispose() {
+    CityBackdrop.lightning.removeListener(_strike);
     _ambient.dispose();
     _shift.dispose();
+    _bolt.dispose();
     super.dispose();
   }
 
@@ -94,6 +119,27 @@ class _CityBackdropState extends State<CityBackdrop> with TickerProviderStateMix
             builder: (context, _) => CustomPaint(
               painter: _BackdropPainter(_current, widget.style, _ambient.value),
             ),
+          ),
+        ),
+        IgnorePointer(
+          child: AnimatedBuilder(
+            animation: _bolt,
+            builder: (context, _) {
+              final glare = _glare(_bolt.value);
+              if (glare <= 0) return const SizedBox.shrink();
+              return DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      const Color(0xFFDDE6FF).withValues(alpha: 0.55 * glare),
+                      const Color(0xFFB8C6FF).withValues(alpha: 0.12 * glare),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
         ),
         widget.child,

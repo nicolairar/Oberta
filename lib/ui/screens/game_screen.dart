@@ -24,6 +24,7 @@ import '../widgets/handoff_view.dart';
 import '../widgets/narrator_roles_sheet.dart';
 import '../widgets/player_grid.dart';
 import '../widgets/role_reveal_card.dart';
+import '../widgets/city_backdrop.dart';
 import '../widgets/scene_scaffold.dart';
 import '../widgets/script_card.dart';
 import '../widgets/verdict_scene.dart';
@@ -234,18 +235,36 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   final _atmosphere = Random();
+  final List<Timer> _thunders = [];
 
   T _pick<T>(List<T> options) => options[_atmosphere.nextInt(options.length)];
 
   /// La città di notte: ogni notte un po' diversa, mai la stessa tre volte.
   void _nightAtmosphere() {
-    const night = [
-      FxGroup.crickets, FxGroup.owl, FxGroup.wind, FxGroup.dog, FxGroup.cat, FxGroup.thunder,
-      FxGroup.rain, FxGroup.siren, FxGroup.clock, FxGroup.foghorn, FxGroup.train, FxGroup.carpass,
+    // Pioggia e tuoni solo quando sullo schermo piove: si sente quello che
+    // si vede, mai a caso.
+    final raining = _engine.round.isOdd;
+    final night = [
+      FxGroup.crickets, FxGroup.owl, FxGroup.wind, FxGroup.dog, FxGroup.cat,
+      FxGroup.siren, FxGroup.clock, FxGroup.foghorn, FxGroup.train, FxGroup.carpass,
+      if (raining) ...[FxGroup.rain, FxGroup.thunder, FxGroup.thunder],
     ];
-    final stage = SoundStage.instance;
-    stage.effect(_pick(night), after: const Duration(milliseconds: 900));
-    if (_atmosphere.nextBool()) stage.effect(_pick(night), after: const Duration(seconds: 6), volume: 0.7);
+    _nightSound(_pick(night), const Duration(milliseconds: 900));
+    if (_atmosphere.nextBool()) _nightSound(_pick(night), const Duration(seconds: 6), volume: 0.7);
+  }
+
+  /// Un rumore della notte. Il tuono porta con sé il suo lampo, che arriva
+  /// prima: la luce corre più veloce del suono.
+  void _nightSound(FxGroup group, Duration after, {double volume = 1}) {
+    if (group != FxGroup.thunder) {
+      SoundStage.instance.effect(group, after: after, volume: volume);
+      return;
+    }
+    _thunders.add(Timer(after, () {
+      if (!mounted || _mood != SceneMood.night) return;
+      CityBackdrop.flash();
+      SoundStage.instance.effect(FxGroup.thunder, after: const Duration(milliseconds: 450), volume: volume);
+    }));
   }
 
   /// L'alba: il gallo, gli uccelli, a volte le campane.
@@ -311,6 +330,9 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   void dispose() {
+    for (final thunder in _thunders) {
+      thunder.cancel();
+    }
     // Fuori dalla partita si torna al sottofondo del menu.
     SoundStage.instance.music(MusicMood.menu);
     super.dispose();
