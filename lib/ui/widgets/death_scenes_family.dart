@@ -85,40 +85,40 @@ extension _FamilyFilms on DeathScenePainter {
     canvas.restore();
   }
 
-  /// La palla di fuoco a strati, con gli sprite se ci sono: il lampo, tre
-  /// fiammate sfalsate, l'onda d'urto.
-  void _fireball(Canvas canvas, Offset centre, double from, {double size = 1}) {
-    final boom = _span(t, from - 0.001, from + 0.13);
+  /// Il botto in faccia, da cartone: una vampata stretta intorno alla
+  /// testa, un lampo, un anellino, e subito uno sbuffo di fumo nero.
+  void _faceBlast(Canvas canvas, Offset centre, double from) {
+    final textures = sprites;
+    final boom = _span(t, from - 0.001, from + 0.06);
     if (boom > 0 && boom < 1) {
-      final textures = sprites;
       if (textures != null) {
-        final flare = _span(t, from - 0.001, from + 0.03);
+        final flare = _span(t, from - 0.001, from + 0.018);
         if (flare < 1 && textures.flashes.isNotEmpty) {
           final frames = textures.flashes;
           ParticleSprites.draw(
             canvas,
             frames[(flare * frames.length).floor().clamp(0, frames.length - 1)],
             centre,
-            width: _u * 2.6 * size * (0.6 + 0.4 * flare),
-            height: _u * 2.6 * size * (0.6 + 0.4 * flare),
+            width: _u * 0.95 * (0.6 + 0.4 * flare),
+            height: _u * 0.95 * (0.6 + 0.4 * flare),
             opacity: 1 - flare * 0.3,
           );
         }
         for (final (k, rot, dx, dy, scale) in const [
           (0, 0.0, 0.0, 0.0, 1.0),
-          (1, 1.3, -0.40, 0.20, 0.7),
-          (2, 2.4, 0.40, 0.12, 0.62),
+          (1, 1.3, -0.10, 0.05, 0.7),
+          (2, 2.4, 0.10, -0.04, 0.62),
         ]) {
-          final p = _span(t, from + 0.002 + k * 0.008, from + 0.09 + k * 0.012);
+          final p = _span(t, from + k * 0.005, from + 0.045 + k * 0.006);
           if (p <= 0 || p >= 1) continue;
-          final grow = 0.45 + 0.55 * Curves.easeOut.transform(p);
+          final grow = 0.5 + 0.5 * Curves.easeOut.transform(p);
           ParticleSprites.draw(
             canvas,
             textures.explosionAt(p),
-            centre + Offset(dx, dy - 0.3 * p) * (_u * size),
-            width: _u * 2.4 * size * scale * grow,
-            height: _u * 2.4 * size * scale * grow,
-            opacity: 1 - _span(p, 0.55, 1),
+            centre + Offset(dx, dy - 0.12 * p) * _u,
+            width: _u * 0.80 * scale * grow,
+            height: _u * 0.80 * scale * grow,
+            opacity: 1 - _span(p, 0.5, 1),
             rotation: rot + p * 0.4,
           );
         }
@@ -131,26 +131,37 @@ extension _FamilyFilms on DeathScenePainter {
         ]) {
           canvas.drawCircle(
             centre,
-            _u * 1.2 * size * grow * scale,
+            _u * 0.34 * grow * scale,
             Paint()
               ..color = color.withValues(alpha: (1 - boom) * 0.95)
-              ..maskFilter = MaskFilter.blur(BlurStyle.normal, _u * 0.05),
+              ..maskFilter = MaskFilter.blur(BlurStyle.normal, _u * 0.03),
           );
         }
       }
     }
-    final ring = _span(t, from - 0.001, from + 0.06);
+    final ring = _span(t, from - 0.001, from + 0.03);
     if (ring > 0 && ring < 1) {
       canvas.drawOval(
         Rect.fromCenter(
           center: centre,
-          width: _u * size * (0.5 + 4.6 * ring),
-          height: _u * size * (0.4 + 3.2 * ring),
+          width: _u * (0.25 + 0.8 * ring),
+          height: _u * (0.2 + 0.55 * ring),
         ),
         Paint()
           ..style = PaintingStyle.stroke
-          ..strokeWidth = _u * 0.05 * (1 - ring)
+          ..strokeWidth = _u * 0.03 * (1 - ring)
           ..color = Colors.white.withValues(alpha: 0.7 * (1 - ring)),
+      );
+    }
+    // Lo sbuffo di fumo che sale dalla faccia appena spenta la vampata.
+    for (final (k, dx) in const [(0, 0.0), (1, -0.10), (2, 0.11)]) {
+      final life = _span(t, from + 0.025 + k * 0.006, from + 0.10 + k * 0.008);
+      _puff(
+        canvas,
+        centre + Offset(dx, -0.05 - 0.30 * life) * _u,
+        life,
+        size: 0.34 + 0.24 * life,
+        color: const Color(0xFF2E2C2A),
       );
     }
   }
@@ -529,6 +540,10 @@ extension _FamilyFilms on DeathScenePainter {
     tipX = _mix(tipX, chest.dx + _u * 0.48, coil);
     tipX = _mix(tipX, chest.dx - _u * 0.36, lunge);
     tipX = _mix(tipX, chest.dx + _u * 0.04, pull);
+    // Sfilato il becco, fa un passo avanti col pesce alzato: così, quando
+    // la cinepresa va verso il corpo, chi lancia resta in campo.
+    final step = _smooth(_span(t, 0.635, 0.665));
+    tipX -= _u * 0.45 * step;
     final lean =
         _mix(_mix(0.0, -0.08, guard) - 0.06 * coil, 0.42, lunge) * (1 - pull) +
         0.04 * pull;
@@ -547,7 +562,11 @@ extension _FamilyFilms on DeathScenePainter {
     );
     final fishTip = Offset(
       tipX,
-      chest.dy + _u * 0.10 * (1 - guard) - _u * 0.05 * coil + _u * 0.03 * lunge,
+      chest.dy +
+          _u * 0.10 * (1 - guard) -
+          _u * 0.05 * coil +
+          _u * 0.03 * lunge -
+          _u * 0.42 * step,
     );
     final handX = fishTip.dx + reach;
     var killerX = handX - local.dx;
@@ -557,6 +576,7 @@ extension _FamilyFilms on DeathScenePainter {
     final striding =
         (guard > 0 && guard < 1) ||
         (pull > 0 && pull < 1) ||
+        (step > 0 && step < 1) ||
         (leave > 0 && leave < 1);
     final throwArm = tossing
         ? _mix(arm, 2.6, sin(pi * min(1, toss * 1.4)))
@@ -575,16 +595,18 @@ extension _FamilyFilms on DeathScenePainter {
       backElbow: 0.25,
       killer: true,
     );
+    final (holdHand, _) = _grip(
+      killerFeet,
+      facing: -1,
+      lean: lean,
+      crouch: crouch,
+      arm: arm,
+      elbow: elbow,
+    );
+    final holdDir = fishTip - holdHand;
     if (!tossing) {
-      final (hand, _) = _grip(
-        killerFeet,
-        facing: -1,
-        lean: lean,
-        crouch: crouch,
-        arm: arm,
-        elbow: elbow,
-      );
-      final dir = fishTip - hand;
+      final hand = holdHand;
+      final dir = holdDir;
       final wiggle =
           sin(t * 140) *
           (0.6 * _span(t, 0.40, 0.44) * (1 - guard) + 0.5 * coil * (1 - lunge));
@@ -629,19 +651,15 @@ extension _FamilyFilms on DeathScenePainter {
 
     // Il pesce, a lavoro fatto, glielo lasciano addosso: dorme coi pesci.
     if (tossing) {
-      final (hand, _) = _grip(
-        killerFeet,
-        facing: -1,
-        lean: 0.04,
-        crouch: 0.1,
-        arm: 1.6,
-        elbow: elbow,
-      );
-      final rest = Offset(_victimX - _u * 0.62, _ground - _u * 0.16);
+      // Parte da come lo tiene alzato, e atterra sul corpo, tutto in campo.
+      final rest = Offset(_victimX - _u * 0.30, _ground - _u * 0.16);
       final arc = Curves.easeInOut.transform(toss);
       final grip =
-          Offset.lerp(hand, rest, arc)! - Offset(0, _u * 0.55 * sin(pi * toss));
-      final angle = _mix(pi, pi * 1.06, arc) + 0.6 * sin(pi * toss);
+          Offset.lerp(holdHand, rest, arc)! -
+          Offset(0, _u * 0.55 * sin(pi * toss));
+      var held = atan2(holdDir.dy, holdDir.dx);
+      if (held < 0) held += 2 * pi;
+      final angle = _mix(held, pi * 1.06, arc) + 0.6 * sin(pi * toss);
       final flop = _span(t, 0.76, 0.84);
       _swordfishShape(
         canvas,
@@ -795,9 +813,12 @@ extension _FamilyFilms on DeathScenePainter {
     final kick = t < fire ? 0.0 : sin(pi * _span(t, fire, fire + 0.04));
     final heave =
         _smooth(_span(t, 0.595, 0.615)) * (1 - _smooth(_span(t, 0.70, 0.74)));
+    // Tirato dentro il pesce, arretra dietro l'angolo col fucile.
+    final leave = _smooth(_span(t, 0.74, 0.84));
     final killerX =
         _mix(_mix(_hiddenX, _peekX, peek), _cornerX + _u * 0.10, out) +
-        _u * 0.10 * heave;
+        _u * 0.10 * heave +
+        _u * 0.95 * leave;
     final lean = 0.08 * out - 0.12 * kick - 0.28 * heave;
     final arm = _mix(1.25, 1.50, out) + 0.25 * kick - 0.5 * heave;
     const elbow = 0.10;
@@ -807,7 +828,7 @@ extension _FamilyFilms on DeathScenePainter {
       feet: feet,
       facing: -1,
       walk: _prowl,
-      stride: out > 0 && out < 1 ? 0.7 : 0,
+      stride: (out > 0 && out < 1) || (leave > 0 && leave < 1) ? 0.7 : 0,
       lean: lean,
       crouch: 0.15 * heave,
       arm: arm,
@@ -929,8 +950,14 @@ extension _FamilyFilms on DeathScenePainter {
           ? 0.25 * fly
           : 0.25 * (1 - _smooth(_span(t, _hit, 0.60)));
       final tail = tip - dir / max(dir.distance, 0.001) * (_u * 0.26);
-      if (tail.dx < muzzle.dx - _u * 0.02) _rope(canvas, muzzle, tail, slack);
-      if (stuck.dx < _cornerX || fly < 1) _harpoonSpear(canvas, tip, dir);
+      // La sagola resta tesa dalla canna all'arpione per tutto il traino,
+      // anche quando il corpo finisce sotto il fucile; dietro l'angolo
+      // sparisce con lui.
+      canvas.save();
+      canvas.clipRect(Rect.fromLTRB(-_w, -_h, _cornerX, _h * 2));
+      _rope(canvas, muzzle, tail, slack);
+      _harpoonSpear(canvas, tip, dir);
+      canvas.restore();
       if (fly < 1) {
         _speedLines(canvas, tip, dir, length: 0.35, spread: 0.03, alpha: 0.35);
       }
@@ -960,7 +987,7 @@ extension _FamilyFilms on DeathScenePainter {
 
     // Il cappello e la sigaretta restano lì, dove stava.
     final hatFall = _span(t, 0.605, 0.66);
-    if (hatFall > 0) {
+    if (topple > 0) {
       _looseHat(
         canvas,
         Offset(
@@ -1348,30 +1375,34 @@ extension _FamilyFilms on DeathScenePainter {
       _span(t, splat, splat + 0.06),
     );
 
-    // Il botto, in faccia.
-    final centre = face.translate(_u * 0.08, 0);
-    _fireball(canvas, centre, _hit, size: 0.65);
+    // Il botto, in faccia: centrato sulla testa annerita.
+    final centre = _onBody(
+      const Offset(0.06, -0.47),
+      feet: Offset(_victimX, _ground),
+      lean: -0.12,
+    );
+    _faceBlast(canvas, centre, _hit);
     _spray(
       canvas,
       centre,
-      _span(t, _hit, _hit + 0.14),
+      _span(t, _hit, _hit + 0.08),
       seed: 106,
       color: const Color(0xFFFFB13B),
-      count: 24,
+      count: 12,
       bias: Offset.zero,
-      reach: 1.8,
+      reach: 0.6,
     );
     _spray(
       canvas,
       centre,
-      _span(t, _hit, _hit + 0.20),
+      _span(t, _hit, _hit + 0.12),
       seed: 107,
       color: _cream,
-      count: 16,
+      count: 12,
       bias: const Offset(0, -0.4),
-      reach: 1.4,
+      reach: 0.7,
     );
-    _flash(canvas, _span(t, _hit - 0.001, _hit + 0.06), strength: 0.9);
+    _flash(canvas, _span(t, _hit - 0.001, _hit + 0.04), strength: 0.45);
   }
   // ----------------------------------------------------------------- trombone
 
@@ -2522,7 +2553,7 @@ extension _FamilyFilms on DeathScenePainter {
 
     // Resta il cappello per terra, e una scarpa.
     final hatFall = _span(t, _hit, 0.62);
-    if (hatFall > 0) {
+    if (t >= _hit) {
       _looseHat(
         canvas,
         Offset(
