@@ -196,7 +196,7 @@ class DeviceStage extends SoundStage implements VerdictStage {
   double get _sceneVolume => (effectsVolume * 0.6).clamp(0.0, 1.0);
 
   /// Il sottofondo (pioggia, grilli) sta sotto a tutto.
-  double get _ambienceVolume => (effectsVolume * mix.ambience * (_voiceDuck < 1 ? 0.6 : 1)).clamp(0.0, 1.0);
+  double get _ambienceVolume => (effectsVolume * mix.ambience * (_voiceDuck < 1 ? 0.4 : 1)).clamp(0.0, 1.0);
 
   bool _enabled = true;
   MusicMood? _wanted;
@@ -380,7 +380,8 @@ class DeviceStage extends SoundStage implements VerdictStage {
   final AudioPlayer _voicePlayer = AudioPlayer();
   double _voiceDuck = 1;
 
-  double get _voiceVolume => (effectsVolume * mix.voice).clamp(0.0, 1.0);
+  // La voce è il gioco: sta sopra a tutto, anche con gli effetti bassi.
+  double get _voiceVolume => (0.35 + effectsVolume * mix.voice).clamp(0.0, 1.0);
 
   @override
   void voice(String asset) {
@@ -405,7 +406,7 @@ class DeviceStage extends SoundStage implements VerdictStage {
   /// battuta e l'altra il sottofondo torna a respirare da solo.
   @override
   void duckForVoice(bool ducked) {
-    final duck = ducked ? 0.35 : 1.0;
+    final duck = ducked ? 0.2 : 1.0;
     if (duck == _voiceDuck) return;
     _voiceDuck = duck;
     final fade = Duration(milliseconds: ducked ? 400 : 1400);

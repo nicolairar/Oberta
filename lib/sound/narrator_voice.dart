@@ -44,14 +44,14 @@ class NarratorVoice {
 
   /// Il silenzio dove nella frase c'è il nome di un giocatore: la voce lo
   /// lascia al tavolo, e sullo schermo il nome si accende.
-  static const nameGap = Duration(milliseconds: 520);
+  static const nameGap = Duration(milliseconds: 380);
 
   /// La pausa tra una battuta e l'altra: lì respirano il sottofondo e gli effetti.
-  static const linePause = Duration(milliseconds: 850);
+  static const linePause = Duration(milliseconds: 450);
 
   /// Per una frase che non ha ancora la sua clip: i sottotitoli scorrono lo
   /// stesso, a passo di voce.
-  static const perCharacter = Duration(milliseconds: 62);
+  static const perCharacter = Duration(milliseconds: 58);
 
   final Map<String, Map<String, int>> _index;
 
@@ -124,8 +124,8 @@ class NarratorVoice {
 
   Duration _pauseFor(String display, {required bool wholeLine}) {
     if (wholeLine) return perCharacter * display.length;
-    if (RegExp(r'[.!?…:;]').hasMatch(display)) return const Duration(milliseconds: 260);
-    if (display.contains(',')) return const Duration(milliseconds: 140);
+    if (RegExp(r'[.!?…:;]').hasMatch(display)) return const Duration(milliseconds: 170);
+    if (display.contains(',')) return const Duration(milliseconds: 90);
     return Duration.zero;
   }
 

@@ -47,12 +47,12 @@ VOICES = {
     "it": {"voice": "im_nicola", "lang": "it"},
     "en": {"voice": "am_adam", "lang": "en-us"},
 }
-SPEED = 0.86
-CHAIN = "godfather-1"  # bump when fx.py or the levelling below changes
+SPEED = 0.92
+CHAIN = "godfather-2"  # bump when fx.py or the levelling below changes
 BITRATE = 48000
 
 LEAD_IN = 0.04  # seconds of silence kept before the first word
-TARGET_RMS = 0.11  # loudness of the voiced part, so short and long clips match
+TARGET_RMS = 0.17  # loudness of the voiced part, so short and long clips match
 
 
 def load_words(lang):
