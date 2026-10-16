@@ -10,11 +10,13 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/rules/game_setup.dart';
+import 'package:oberta/rules/knowledge.dart';
 import 'package:oberta/rules/player.dart';
 import 'package:oberta/rules/role.dart';
 import 'package:oberta/rules/role_assignment.dart';
 import 'package:oberta/ui/screens/game_screen.dart';
 import 'package:oberta/ui/theme/app_theme.dart';
+import 'package:oberta/ui/widgets/player_grid.dart';
 
 final out = Platform.environment['OUT'] ?? 'build/render/game';
 
@@ -66,8 +68,8 @@ ThemeData _theme() {
   );
 }
 
-Future<void> _shot(WidgetTester tester, String name) async {
-  await tester.pump(const Duration(milliseconds: 400));
+Future<void> _shot(WidgetTester tester, String name, {bool settle = true}) async {
+  if (settle) await tester.pump(const Duration(milliseconds: 400));
   await tester.runAsync(() async {
     final boundary = _key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
     final image = await boundary.toImage(pixelRatio: 1.5);
@@ -214,6 +216,38 @@ void main() {
         await _round(tester, '${phone}_$count', size, count);
       });
     }
+    testWidgets('rimescolo $phone', (tester) async {
+      addTearDown(tester.view.reset);
+      tester.view.physicalSize = size * 3;
+      tester.view.devicePixelRatio = 3;
+      final players = [for (var i = 0; i < 8; i++) Player(id: 'p$i', name: _names[i])];
+      await tester.pumpWidget(
+        RepaintBoundary(
+          key: _key,
+          child: MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: _theme(),
+            home: Scaffold(
+              body: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 120, 24, 120),
+                child: PlayerGrid(
+                  players: players,
+                  isAlive: (_) => true,
+                  knowledgeOf: (_) => Knowledge.none,
+                  selectable: players,
+                  shuffled: true,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      for (final ms in [0, 200, 400, 600, 800, 1100]) {
+        await tester.pump(Duration(milliseconds: ms == 0 ? 0 : 200));
+        if (ms == 1100) await tester.pump(const Duration(milliseconds: 100));
+        await _shot(tester, '${phone}_shuffle_$ms', settle: false);
+      }
+    });
     testWidgets('finale $phone', (tester) async {
       addTearDown(tester.view.reset);
       const a = Player(id: 'a', name: 'Ada'), b = Player(id: 'b', name: 'Bruno'), c = Player(id: 'c', name: 'Carla');
