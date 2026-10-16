@@ -64,6 +64,10 @@ Wolvesville ma più curata (animazioni, morti, avatar):
   Valore "a parte" sempre vero (stessi prezzi del negozio), 1–2 pacchetti alla
   volta e a tempo; se la skin è già posseduta il pacchetto non si propone.
   Il server verifica l'acquisto e accredita skin e monete insieme.
+- **Rotazioni:** la vetrina (skin e pacchetti in evidenza, date di inizio e
+  fine, prezzi) sta in tabelle Supabase, così cambia senza una build nuova. Le
+  skin nuove arrivano con gli aggiornamenti dell'app (i disegni sono nel
+  codice); il server le fa ruotare nelle settimane dopo.
 - **Regole tecniche:** saldo, inventario ed esperienza li scrive solo il server
   (già oggi l'app non può modificarli); ogni acquisto Apple si verifica lato
   server (App Store Server API) prima di accreditare la valuta; l'esperienza
