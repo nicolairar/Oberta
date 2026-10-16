@@ -6,6 +6,7 @@ import '../ui/widgets/death_scene.dart';
 import '../ui/widgets/verdict_scene.dart';
 import 'app_language.dart';
 import 'app_strings.dart';
+import 'online_strings.dart';
 
 /// L'interfaccia in inglese americano. Le stesse regole del copione: mai il
 /// genere di un giocatore ("they"), nessuno chiude gli occhi, le fazioni
@@ -18,6 +19,9 @@ final class EnglishStrings extends AppStrings {
 
   @override
   NarrationPack get pack => englishPack;
+
+  @override
+  OnlineStrings get online => const EnglishOnlineStrings();
 
   @override
   String get settings => 'Settings';
@@ -35,12 +39,6 @@ final class EnglishStrings extends AppStrings {
   String get hostName => 'You';
   @override
   String get soon => 'COMING SOON';
-  @override
-  String get ownTitle => 'ONE PHONE\nEACH';
-  @override
-  String get ownBlurb => 'Everyone on their own phone, and a four-letter code.';
-  @override
-  String get ownTeaser => 'One phone each needs the network. Sit tight.';
   @override
   String get rankedTitle => 'RANKED';
   @override

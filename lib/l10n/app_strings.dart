@@ -7,6 +7,7 @@ import '../sound/cue_sounds.dart';
 import '../ui/widgets/death_scene.dart';
 import '../ui/widgets/verdict_scene.dart';
 import 'app_language.dart';
+import 'online_strings.dart';
 
 /// Tutti i testi dell'interfaccia in una lingua. Il copione del narratore e
 /// i ruoli stanno nel [pack]: qui ci sono pulsanti, titoli e didascalie.
@@ -32,6 +33,9 @@ abstract class AppStrings {
 
   RoleText role(Role role) => pack.role(role);
 
+  /// I testi del gioco online, nella stessa lingua.
+  OnlineStrings get online;
+
   // Il vicolo.
   String get homeTitle => 'OBERTÀ';
   String get settings;
@@ -42,9 +46,6 @@ abstract class AppStrings {
   String get createRoom;
   String get hostName;
   String get soon;
-  String get ownTitle;
-  String get ownBlurb;
-  String get ownTeaser;
   String get rankedTitle;
   String get rankedBlurb;
   String get rankedTeaser;
@@ -260,9 +261,6 @@ abstract class AppStrings {
     'createRoom': createRoom,
     'hostName': hostName,
     'soon': soon,
-    'ownTitle': ownTitle,
-    'ownBlurb': ownBlurb,
-    'ownTeaser': ownTeaser,
     'rankedTitle': rankedTitle,
     'rankedBlurb': rankedBlurb,
     'rankedTeaser': rankedTeaser,
@@ -440,6 +438,7 @@ abstract class AppStrings {
     'personBookedWatching': personBookedWatching('Marco'),
     'personRemoveTitle': personRemoveTitle('Marco'),
     for (final cue in Cue.values) 'cueName.${cue.name}': cueName(cue),
+    for (final MapEntry(:key, :value) in online.catalog.entries) 'online.$key': value,
   };
 }
 
