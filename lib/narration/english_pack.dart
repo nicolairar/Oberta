@@ -230,10 +230,10 @@ const englishPack = NarrationPack(
   },
   rescues: {
     DeathStory.rescueId: [
-      'A shot from the alley, {name} on the ground. Then running footsteps: the Doc.',
+      'The hit lands, and {name} is on the ground. Then running footsteps: the Doc.',
       'They came to close {name}\'s account. The Doc got there before the priest.',
       '{name} was already down. But the Doc just happened to be passing by.',
-      'One shot, and {name} goes down. A leather bag snaps open: it isn\'t over.',
+      '{name} goes down. Then a leather bag snaps open: it isn\'t over.',
     ],
     DeathStory.defibrillatorId: [
       '{name} on the ground, heart stopped. The Doc rubs the paddles together: clear!',
@@ -257,39 +257,39 @@ const englishPack = NarrationPack(
     ],
   },
   someone: 'someone',
-  savedFact: 'Last night someone got shot, but the Doc made it in time. Who it was stays a secret.',
+  savedFact: 'Last night someone nearly died, but the Doc made it in time. Who it was stays a secret.',
   // Il colpo andato a vuoto: in scena si vede proprio quello che dice la
   // battuta (la fiaschetta, la Bibbia, la buccia di banana...). Il fatto non
   // nomina nessun ruolo: al tavolo resta il dubbio su chi sia.
   shrugs: {
     DeathStory.luckyId: [
-      'A shot. {name} staggers, then pats a breast pocket: a flask, badly dented.',
-      'Bang, then “ding.” {name} pulls out a flask with a brand-new hole.',
-      'A shot from the alley. {name} stays standing: the bullet is in the flask.',
+      '{name} staggers, then pats a breast pocket: a flask, badly dented.',
+      'The blow lands, and goes “ding.” {name} pulls out a dented flask.',
+      '{name} stays standing: the blow stopped on the flask.',
       '{name} feels a thump in the chest. Under the jacket, a flask bent double.',
     ],
     DeathStory.bibleId: [
-      'A shot. {name} pulls a Bible from a breast pocket: the bullet is inside.',
-      'The bullet stops in a pocket Bible. {name} looks up and says thanks.',
+      '{name} pulls a Bible from a breast pocket: the blow stopped right there.',
+      'The blow stops in a pocket Bible. {name} looks up and says thanks.',
       '{name} feels a thump in the chest. In the pocket, a Bible holed halfway through.',
     ],
     DeathStory.jamId: [
-      'The gun points at {name}. “Click.” Another “click.” The killer takes off running.',
-      'The trigger snaps on nothing: the gun has jammed. {name} turns, the killer bolts.',
+      'The weapon points at {name}. “Click.” Another “click.” The killer takes off running.',
+      'The trigger snaps on nothing: the weapon has jammed. {name} turns, the killer bolts.',
       '“Click, click.” {name} rolls up both sleeves, and the alley empties out.',
     ],
     DeathStory.bananaId: [
-      'The killer steps on a banana peel. The shot goes skyward, and {name} walks away.',
-      'A banana peel, a backflip. The shot ends up among the stars: {name} laughs.',
-      'The killer charges at {name}, then meets a banana peel. The shot punches the night.',
+      'The killer steps on a banana peel and flies backwards. {name} walks away.',
+      'A banana peel, a backflip. The killer lands flat on the street: {name} laughs.',
+      'The killer charges at {name}, then meets a banana peel. The rest is a pratfall.',
     ],
     DeathStory.blackCatId: [
       'A black cat leaps onto the killer\'s arm. The shot goes wide, {name} stays standing.',
-      'The killer takes aim at {name}. A black cat sends the gun flying.',
+      'The killer takes aim at {name}. A black cat sends the weapon flying.',
       'Bad luck, they say. But tonight a black cat saved {name}.',
     ],
   },
-  shruggedFact: 'Last night someone got shot at, but the bullet missed. Who it was stays a secret.',
+  shruggedFact: 'Last night someone nearly died, but the blow missed. Who it was stays a secret.',
   methods: [
     StoryPiece('auto', 'Two headlights in the dark. A black sedan doesn\'t brake. {name} turns around: too late.'),
     StoryPiece('pianoforte', 'A rope snaps. A grand piano drops. {name} looks up.'),

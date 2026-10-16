@@ -37,7 +37,7 @@ DawnReport night(
       winner: winner,
     );
 
-/// Una notte in cui hanno sparato a [target], e il colpo non è andato a segno.
+/// Una notte in cui hanno preso di mira [target], e il colpo non è andato a segno.
 DawnReport shrugged(Player target, {AttackSource source = AttackSource.family}) => DawnReport(
       round: 2,
       attacks: [NightAttack(target, source, AttackOutcome.shrugged)],
@@ -569,7 +569,7 @@ void main() {
 
       final lines = script.dawn(report, discussion: threeMinutes, stories: stories);
       final facts = factsOf(lines);
-      expect(facts[0], 'Stanotte hanno sparato a qualcuno, ma il Dottore ha fatto in tempo. Chi fosse, resta un segreto.');
+      expect(facts[0], 'Stanotte hanno provato a uccidere qualcuno, ma il Dottore ha fatto in tempo. Chi fosse, resta un segreto.');
       expect(textOf(lines), isNot(contains('Sara')), reason: 'chi si salva resta anonimo');
       expect(facts[1], 'Stanotte è morta una persona: Luca. Il suo ruolo resta segreto.');
       expect(textOf(lines), isNot(contains('{name}')));
@@ -596,7 +596,7 @@ void main() {
             reason: 'il racconto è quello della variante che va in scena',
           );
           expect(factsOf(lines).first,
-              'Stanotte hanno sparato a qualcuno, ma il colpo è andato a vuoto. Chi fosse, resta un segreto.');
+              'Stanotte hanno provato a uccidere qualcuno, ma il colpo è andato a vuoto. Chi fosse, resta un segreto.');
           final text = textOf(lines).toUpperCase();
           expect(text, isNot(contains('{')));
           expect(text, isNot(contains(italianPack.nobodyDied.toUpperCase())));

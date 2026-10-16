@@ -186,6 +186,9 @@ abstract class AppStrings {
   String get screeningIntro;
   String get screeningCaption;
   String sceneName(DeathAct act);
+
+  /// Il pulsante che rivede un salvataggio sopra un agguato a caso.
+  String get screeningSpliced;
   String get screeningEffects;
   String get screeningVerdicts;
   String get someoneSaved;
@@ -381,6 +384,7 @@ abstract class AppStrings {
     'screeningIntro': screeningIntro,
     'screeningCaption': screeningCaption,
     for (final act in DeathAct.values) 'sceneName.${act.name}': sceneName(act),
+    'screeningSpliced': screeningSpliced,
     'screeningEffects': screeningEffects,
     'screeningVerdicts': screeningVerdicts,
     'someoneSaved': someoneSaved,

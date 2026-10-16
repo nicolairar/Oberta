@@ -314,6 +314,8 @@ final class ItalianStrings extends AppStrings {
   @override
   String get screeningCaption => 'Esterno, notte. Prova generale.';
   @override
+  String get screeningSpliced => 'Sopra un agguato a caso';
+  @override
   String sceneName(DeathAct act) => switch (act) {
     DeathAct.knife => 'Il pugnale',
     DeathAct.gun => 'Il silenziatore',
