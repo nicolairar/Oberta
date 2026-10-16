@@ -157,7 +157,7 @@ void main() {
         )
         .opacity;
 
-    testWidgets('un tavolo da sedici ci sta, e si scorre fino all\'ultimo posto', (tester) async {
+    testWidgets('un tavolo da sedici ci sta tutto, senza scorrere', (tester) async {
       final players = _players(maxRolePlayers);
       Player? picked;
       await pumpGrid(
@@ -173,8 +173,10 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.text(players.first.name), findsOneWidget);
 
-      await tester.scrollUntilVisible(find.text(players.last.name), 200);
-      await tester.pumpAndSettle();
+      for (final player in players) {
+        expect(find.text(player.name).hitTestable(), findsOneWidget, reason: player.name);
+      }
+      expect(find.byType(Scrollable), findsNothing);
       await tester.tap(find.text(players.last.name));
       expect(picked, players.last);
     });
@@ -218,8 +220,8 @@ void main() {
         ),
       );
       expect(opacityOf(tester, players[0]), 1);
-      expect(opacityOf(tester, players[3]), 0.55);
-      expect(opacityOf(tester, dead), 0.38);
+      expect(opacityOf(tester, players[3]), 0.5);
+      expect(opacityOf(tester, dead), 0.4);
       await tester.tap(find.text(dead.name));
       expect(picked, isNull);
     });
@@ -231,7 +233,7 @@ void main() {
         PlayerGrid(players: players, isAlive: (player) => player != players[1], knowledgeOf: (_) => Knowledge.none),
       );
       expect(opacityOf(tester, players[0]), 1);
-      expect(opacityOf(tester, players[1]), 0.38);
+      expect(opacityOf(tester, players[1]), 0.55);
     });
 
     testWidgets('chi ha la bocca cucita porta il segno sul ritratto, finché è in gioco', (tester) async {

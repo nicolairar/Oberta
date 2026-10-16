@@ -259,6 +259,10 @@ final class ItalianStrings extends AppStrings {
   String get plusMinute => '+1 MIN';
   @override
   String get callTheVote => 'AL VOTO';
+  @override
+  String get accusedStamp => 'IMPUTATO';
+  @override
+  String aliveCount(int alive, int total) => '$alive in piedi su $total';
 
   @override
   String get willSeeDawn => 'VEDRÀ L\'ALBA';

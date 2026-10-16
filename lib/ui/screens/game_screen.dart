@@ -21,10 +21,12 @@ import '../../sound/verdict_stage.dart';
 import '../theme/app_theme.dart';
 import '../theme/role_style.dart';
 import '../widgets/avatar_spotlight.dart';
+import '../widgets/day_board.dart';
 import '../widgets/death_scene.dart';
 import '../widgets/handoff_view.dart';
 import '../widgets/narrator_roles_sheet.dart';
 import '../widgets/phase_shift.dart';
+import '../widgets/player_avatar.dart';
 import '../widgets/player_grid.dart';
 import '../widgets/role_reveal_card.dart';
 import '../widgets/city_backdrop.dart';
@@ -33,6 +35,7 @@ import '../widgets/scene_scaffold.dart';
 import '../widgets/spoken_script_card.dart';
 import '../widgets/verdict_scene.dart';
 import '../press.dart';
+import '../seating.dart';
 
 /// La partita su un solo telefono: il copione si legge ad alta voce, di notte
 /// il telefono fa il giro del tavolo, di giorno resta in mezzo.
@@ -41,11 +44,16 @@ class GameScreen extends StatefulWidget {
   final GameSettings settings;
   final Random? random;
 
+  /// Il dado che rimescola i tavoli segreti a ogni turno. Non tocca la
+  /// partita: decide solo dove sta ognuno sullo schermo.
+  final Random? seating;
+
   const GameScreen({
     super.key,
     required this.setup,
     this.settings = const GameSettings(),
     this.random,
+    this.seating,
   });
 
   @override
@@ -118,6 +126,12 @@ class _GameScreenState extends State<GameScreen> {
   int _crime = 0;
   List<ScriptLine> _voteLines = const [];
   List<ScriptLine> _endingLines = const [];
+
+  /// Il tavolo pubblico, sempre nello stesso ordine; e quello segreto di chi
+  /// ha il telefono adesso, rimescolato a ogni turno (vedi `seating.dart`).
+  late final List<Player> _table = publicSeating(widget.setup.players);
+  late final Random _seating = widget.seating ?? Random();
+  List<Player> _seats = const [];
 
   Player? get _narrator => widget.setup.narrator;
 
@@ -522,17 +536,24 @@ class _GameScreenState extends State<GameScreen> {
         _Stage.script => _ScriptView(page: _page, reader: _narrator?.name, strings: _t),
         _Stage.handoff => HandoffView(
             name: _queue[_turn].name,
-            onReady: () => _advance(() => _stage = _Stage.task),
+            onReady: () => _advance(() {
+              // Chi siede accanto non deve poter leggere il bersaglio dal
+              // posto del dito: a ogni turno le facce cambiano posto.
+              _seats = secretSeating(widget.setup.players, _seating, avoid: [_seats, _table]);
+              _stage = _Stage.task;
+            }),
           ),
         _Stage.task => _taskView(_queue[_turn]),
         _Stage.taskDone => _taskDoneView(),
         _Stage.crimeIntro => _crimeIntroView(),
         _Stage.crime || _Stage.verdict => const SizedBox.shrink(),
         _Stage.toNarrator => HandoffView(name: _narrator!.name, onReady: () => _advance(_enterDawn)),
-        _Stage.day => _DayView(
+        _Stage.day => DayBoard(
             strings: _t,
             duration: widget.settings.discussion,
-            grid: _publicGrid(),
+            table: _publicGrid(),
+            alive: _engine.alivePlayers.length,
+            total: widget.setup.players.length,
             onVote: () => _advance(() {
               SoundStage.instance.meme(Meme.dexter);
               _voteLines = _script.voteCall();
@@ -580,14 +601,14 @@ class _GameScreenState extends State<GameScreen> {
         Text(
           _script.taskPrompt(task, _engine.round),
           textAlign: TextAlign.center,
-          style: AppText.display(24, color: AppColors.textPrimary),
+          style: AppText.display(23, color: AppColors.textPrimary),
         ),
-        const SizedBox(height: 8),
-        Text(_script.taskHint(task), textAlign: TextAlign.center, style: AppText.body),
-        const SizedBox(height: 12),
+        const SizedBox(height: 6),
+        Text(_script.taskHint(task), textAlign: TextAlign.center, style: AppText.body.copyWith(fontSize: 14)),
+        const SizedBox(height: 14),
         Expanded(
           child: PlayerGrid(
-            players: widget.setup.players,
+            players: _seats,
             isAlive: _engine.isAlive,
             knowledgeOf: (player) => _engine.knowledgeOf(actor, player),
             viewer: actor,
@@ -630,8 +651,31 @@ class _GameScreenState extends State<GameScreen> {
           Text(_t.nobodyWillKnow, style: AppText.body),
         ] else ...[
           // L'indagine dice da che parte sta; la fossa dice chi era.
-          Icon(found?.icon ?? Icons.search, color: AppColors.gold, size: 56),
-          const SizedBox(height: 20),
+          SizedBox.square(
+            dimension: 150,
+            child: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.center,
+              children: [
+                AvatarSpotlight(seed: finding.subject.name, size: 140, fallen: found != null),
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: found?.color ?? (isMafia ? AppColors.accent : const Color(0xFF1E6B52)),
+                      border: Border.all(color: AppColors.background, width: 3),
+                    ),
+                    child: Icon(found?.icon ?? Icons.search, color: AppColors.textPrimary, size: 26),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
           Text(found == null ? _t.yourInvestigation : _t.inTheGrave, style: AppText.overline),
           const SizedBox(height: 10),
           FittedBox(
@@ -673,12 +717,13 @@ class _GameScreenState extends State<GameScreen> {
   /// La griglia del giorno, uguale per tutti: sta in mezzo al tavolo.
   Widget _publicGrid({List<Player>? selectable}) {
     return PlayerGrid(
-      players: widget.setup.players,
+      players: _table,
       isAlive: _engine.isAlive,
       knowledgeOf: (player) => _engine.knowledgeOf(null, player),
       selectable: selectable,
       selected: _selected,
       silenced: _dawn.silenced,
+      stamp: _t.accusedStamp,
       onSelect: (player) {
         // Il dito punta qualcuno in piazza: sus.
         if (player != _selected) SoundStage.instance.meme(Meme.vineBoom);
@@ -689,10 +734,16 @@ class _GameScreenState extends State<GameScreen> {
 
   Widget _voteView() {
     final selected = _selected;
-    return Column(
+    return LayoutBuilder(
+      builder: (context, box) => Column(
       children: [
-        SpokenScriptCard(reader: _narrator?.name, lines: _voteLines),
-        const SizedBox(height: 12),
+        // Il copione del voto resta in alto e non ruba il tavolo: se è lungo
+        // scorre, e la voce lo segue da sola.
+        ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: box.maxHeight * 0.26),
+          child: SingleChildScrollView(child: SpokenScriptCard(reader: _narrator?.name, lines: _voteLines)),
+        ),
+        const SizedBox(height: 14),
         Expanded(child: _publicGrid(selectable: _engine.alivePlayers)),
         const SizedBox(height: 12),
         Row(
@@ -713,6 +764,7 @@ class _GameScreenState extends State<GameScreen> {
           ],
         ),
       ],
+      ),
     );
   }
 
@@ -745,37 +797,35 @@ class _GameScreenState extends State<GameScreen> {
         SpokenScriptCard(reader: _narrator?.name, lines: _endingLines, leadIn: const Duration(milliseconds: 900)),
         const SizedBox(height: 28),
         Text(_t.whoWasWho, style: AppText.overline),
-        const SizedBox(height: 4),
-        for (final entry in widget.setup.roles.entries)
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: CircleAvatar(
-              backgroundColor: entry.value.color,
-              child: Icon(entry.value.icon, size: 20, color: AppColors.textPrimary),
-            ),
-            title: Text(
-              entry.key.name,
-              style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
-            ),
-            subtitle: Text(
-              _t.role(entry.value).label,
-              style: TextStyle(
-                color: entry.value.team == Team.mafia ? _mafiaRed : AppColors.textSecondary,
-              ),
-            ),
-            trailing: Text(_fateOf(entry.key), style: AppText.body.copyWith(fontSize: 13)),
+        const SizedBox(height: 10),
+        for (final player in _table)
+          RevealRow(
+            name: player.name,
+            role: widget.setup.roleOf(player),
+            roleLabel: _t.role(widget.setup.roleOf(player)).label,
+            fate: _fateOf(player),
+            alive: _engine.isAlive(player),
+            winner: widget.setup.roleOf(player).team == _engine.winner,
           ),
         if (suspects.isNotEmpty) ...[
           const SizedBox(height: 20),
           Text(_t.mostSuspicious, style: AppText.overline),
-          const SizedBox(height: 6),
-          Text(
-            _t.suspicion(
-              suspects.first.key.name,
-              suspects.first.value,
-              rightly: widget.setup.roleOf(suspects.first.key).team == Team.mafia,
-            ),
-            style: AppText.body.copyWith(color: AppColors.textPrimary),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              PlayerAvatar(seed: suspects.first.key.name, size: 52, fallen: !_engine.isAlive(suspects.first.key)),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  _t.suspicion(
+                    suspects.first.key.name,
+                    suspects.first.value,
+                    rightly: widget.setup.roleOf(suspects.first.key).team == Team.mafia,
+                  ),
+                  style: AppText.body.copyWith(color: AppColors.textPrimary),
+                ),
+              ),
+            ],
           ),
         ],
         const SizedBox(height: 28),
@@ -859,6 +909,16 @@ class _ScriptViewState extends State<_ScriptView> {
     _checkAfterLayout();
   }
 
+  /// Più facce ci sono, più piccole; sotto il film del cambio d'ora un po'
+  /// meno, perché lo spazio se lo prende il cielo.
+  static double _portraitSize(_ScriptPage page) {
+    final count = page.portraits.length;
+    final base = page.nightfall != null ? 96.0 : 124.0;
+    if (count <= 1) return base;
+    if (count == 2) return base * 0.8;
+    return base * 0.62;
+  }
+
   @override
   Widget build(BuildContext context) {
     final page = widget.page;
@@ -884,9 +944,11 @@ class _ScriptViewState extends State<_ScriptView> {
         if (page.nightfall != null && page.portraits.isNotEmpty) const SizedBox(height: 12),
         if (page.nightfall != null && page.portraits.isEmpty)
           const SizedBox.shrink()
-        else if (page.portraits.isEmpty)
+        else if (page.portraits.isEmpty && revealed == null)
           Icon(page.icon, color: AppColors.gold, size: 36)
         else
+          // I ritratti di chi è in pagina; al verdetto, accanto, la carta
+          // da girare: faccia e ruolo si guardano.
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -895,22 +957,22 @@ class _ScriptViewState extends State<_ScriptView> {
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: AvatarSpotlight(
                     seed: name,
-                    size: page.portraits.length > 1 ? 72 : 92,
+                    size: _portraitSize(page),
                     fallen: page.portraitsFallen,
                   ),
                 ),
+              if (revealed != null) ...[
+                if (page.portraits.isNotEmpty) const SizedBox(width: 18),
+                RoleRevealCard(role: revealed, faceUp: !cardCovered, height: 150),
+              ],
             ],
           ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         FittedBox(
           fit: BoxFit.scaleDown,
           child: Text(page.title, style: AppText.display(28)),
         ),
-        if (revealed != null) ...[
-          const SizedBox(height: 12),
-          RoleRevealCard(role: revealed, faceUp: !cardCovered),
-        ],
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
         Expanded(
           child: Stack(
             children: [
@@ -963,76 +1025,3 @@ class _ScriptViewState extends State<_ScriptView> {
   }
 }
 
-class _DayView extends StatefulWidget {
-  final AppStrings strings;
-  final Duration duration;
-  final Widget grid;
-  final VoidCallback onVote;
-
-  const _DayView({required this.strings, required this.duration, required this.grid, required this.onVote});
-
-  @override
-  State<_DayView> createState() => _DayViewState();
-}
-
-class _DayViewState extends State<_DayView> {
-  static const _second = Duration(seconds: 1);
-
-  late Duration _left = widget.duration;
-  late final Timer _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer.periodic(_second, (_) {
-      if (_left == Duration.zero) return;
-      setState(() => _left -= _second);
-      if (_left == Duration.zero) {
-        HapticFeedback.heavyImpact();
-        SoundStage.instance.memeMode ? SoundStage.instance.meme(Meme.error) : SoundStage.instance.cue(Cue.timeUp);
-      } else if (_left <= const Duration(seconds: 10)) {
-        SoundStage.instance.cue(Cue.tick);
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final expired = _left == Duration.zero;
-    final minutes = _left.inMinutes;
-    final seconds = (_left.inSeconds % 60).toString().padLeft(2, '0');
-    final t = widget.strings;
-    return Column(
-      children: [
-        Text(
-          '$minutes:$seconds',
-          style: AppText.display(64, color: expired ? AppColors.accent : AppColors.gold),
-        ),
-        Text(expired ? t.timeUp : t.floorIsOpen, style: AppText.overline),
-        const SizedBox(height: 16),
-        Expanded(child: widget.grid),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: pressed(() => setState(() => _left += const Duration(minutes: 1)), Press.chips),
-                child: Text(t.plusMinute),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton(onPressed: pressed(widget.onVote, Press.confirm), child: Text(t.callTheVote)),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
