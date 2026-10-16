@@ -12,6 +12,7 @@ import '../widgets/home_neon_sign.dart';
 import '../widgets/home_posters.dart';
 import '../widgets/home_settings_plate.dart';
 import 'lobby_screen.dart';
+import 'online/online_screen.dart';
 import '../../sound/fx_groups.dart';
 import '../../sound/sound_stage.dart';
 
@@ -19,7 +20,8 @@ double _span(double t, double from, double to) => ((t - from) / (to - from)).cla
 
 /// La schermata iniziale: un vicolo di notte, sotto la pioggia. L'insegna
 /// al neon fa da titolo, i manifesti sul muro fanno da menu: quello di
-/// stasera apre la stanza, gli altri due annunciano le modalità che verranno.
+/// stasera apre la stanza, quello blu porta al gioco online con gli amici,
+/// quello rosso annuncia la classificata.
 ///
 /// L'angolo in alto a destra (vedi [HomeAlleyLayout.slot]) è riservato alle
 /// impostazioni: la targhetta con l'ingranaggio compare solo se qualcuno
@@ -148,6 +150,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _iris.reverse();
   }
 
+  /// Il gioco online: l'ingresso, il profilo, le stanze e gli amici.
+  void _playWithFriends() {
+    HapticFeedback.selectionClick();
+    SoundStage.instance.press(Press.tap);
+    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const OnlineScreen()));
+  }
+
   /// Le modalità che non ci sono ancora: il manifesto dondola e la
   /// didascalia risponde.
   void _notYet(String teaser) {
@@ -254,13 +263,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     tilt: 0.030,
                     at: 2.05,
                     child: HomeSoonPoster(
-                      title: t.ownTitle,
-                      blurb: t.ownBlurb,
-                      strip: t.soon,
+                      title: t.online.posterTitle,
+                      blurb: t.online.posterBlurb,
+                      strip: t.online.posterStrip,
                       emblem: HomeSoonEmblem.phones,
                       paper: const Color(0xFF1C3148),
                       seed: 8,
-                      onTap: () => _notYet(t.ownTeaser),
+                      onTap: _playWithFriends,
                     ),
                   ),
                   _posted(

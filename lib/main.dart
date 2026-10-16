@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'online/online_config.dart';
+import 'online/online_services.dart';
+import 'online/supabase_online.dart';
 import 'roster/device_roster.dart';
 import 'l10n/app_language.dart';
 import 'l10n/app_strings.dart';
@@ -18,6 +21,8 @@ Future<void> main() async {
   installDeviceRoster();
   NarratorVoice.instance = await NarratorVoice.load();
   AppSettings.instance = await AppSettings.open();
+  // L'online c'è solo se l'app è stata compilata con config/supabase.json.
+  OnlineServices.instance = await openSupabaseOnline(OnlineConfig.compiled);
   runApp(const ObertaApp());
   SoundStage.instance.music(MusicMood.menu);
 }

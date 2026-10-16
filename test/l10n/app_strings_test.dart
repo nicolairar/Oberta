@@ -59,7 +59,7 @@ void main() {
     test('le due lingue non si copiano: quasi ogni testo cambia', () {
       final italian = uiOf(AppLanguage.it.strings);
       final english = uiOf(AppLanguage.en.strings);
-      const same = {'plusMinute', 'lobbyDebugAdd', 'lobbyEmptyPlaceholder'};
+      const same = {'plusMinute', 'lobbyDebugAdd', 'lobbyEmptyPlaceholder', 'online.posterStrip'};
       for (final key in italian.keys) {
         if (same.contains(key)) continue;
         expect(english[key], isNot(italian[key]), reason: key);

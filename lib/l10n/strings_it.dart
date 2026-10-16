@@ -6,6 +6,7 @@ import '../ui/widgets/death_scene.dart';
 import '../ui/widgets/verdict_scene.dart';
 import 'app_language.dart';
 import 'app_strings.dart';
+import 'online_strings.dart';
 
 /// L'interfaccia in italiano.
 final class ItalianStrings extends AppStrings {
@@ -16,6 +17,9 @@ final class ItalianStrings extends AppStrings {
 
   @override
   NarrationPack get pack => italianPack;
+
+  @override
+  OnlineStrings get online => const ItalianOnlineStrings();
 
   @override
   String get settings => 'Impostazioni';
@@ -33,12 +37,6 @@ final class ItalianStrings extends AppStrings {
   String get hostName => 'Tu';
   @override
   String get soon => 'PROSSIMAMENTE';
-  @override
-  String get ownTitle => 'UN TELEFONO\nA TESTA';
-  @override
-  String get ownBlurb => 'Ognuno col suo, e un codice di quattro lettere.';
-  @override
-  String get ownTeaser => 'Un telefono a testa: arriva con la rete. Pazienza.';
   @override
   String get rankedTitle => 'CLASSIFICATA';
   @override

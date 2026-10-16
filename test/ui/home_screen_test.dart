@@ -37,9 +37,10 @@ void main() {
       expect(find.text('OBERTÀ'), findsOneWidget);
       expect(find.text('UN TELEFONO PER TUTTI'), findsOneWidget);
       expect(find.text('CREA STANZA'), findsOneWidget);
-      expect(find.text('UN TELEFONO\nA TESTA'), findsOneWidget);
+      expect(find.text('GIOCA\nCON AMICI'), findsOneWidget);
+      expect(find.text('ONLINE'), findsOneWidget);
       expect(find.text('CLASSIFICATA'), findsOneWidget);
-      expect(find.text('PROSSIMAMENTE'), findsNWidgets(2));
+      expect(find.text('PROSSIMAMENTE'), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
     });
   }
@@ -82,7 +83,7 @@ void main() {
     expect(find.text('IL TAVOLO'), findsOneWidget);
   });
 
-  testWidgets('un manifesto «prossimamente» risponde con una didascalia e non porta da nessuna parte',
+  testWidgets('il manifesto «prossimamente» risponde con una didascalia e non porta da nessuna parte',
       (tester) async {
     _usePhone(tester, const Size(393, 852));
     _reduceAnimations(tester);
@@ -92,12 +93,24 @@ void main() {
     await tester.tap(find.text('CLASSIFICATA'));
     await tester.pumpAndSettle();
     expect(find.text('La classificata apre presto. Intanto fatti un nome.'), findsOneWidget);
-
-    await tester.tap(find.text('UN TELEFONO\nA TESTA'));
-    await tester.pumpAndSettle();
-    expect(find.text('Un telefono a testa: arriva con la rete. Pazienza.'), findsOneWidget);
     expect(find.text('CREA STANZA'), findsOneWidget, reason: 'si resta nel vicolo');
     expect(find.text('IL TAVOLO'), findsNothing);
+  });
+
+  testWidgets('«Gioca con amici» porta al gioco online, che senza server dice di non esserci', (tester) async {
+    _usePhone(tester, const Size(393, 852));
+    _reduceAnimations(tester);
+    await tester.pumpWidget(const ObertaApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('GIOCA\nCON AMICI'));
+    await tester.pumpAndSettle();
+    expect(find.text('NON DISPONIBILE'), findsOneWidget);
+    expect(find.textContaining('Un telefono per tutti funziona come sempre'), findsOneWidget);
+
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.text('CREA STANZA'), findsOneWidget);
   });
 
   testWidgets('toccando CREA STANZA il nero si chiude a iride, poi si entra nella lobby', (tester) async {

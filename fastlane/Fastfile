@@ -28,7 +28,12 @@ platform :ios do
 
     # Mai ricaricare un pacchetto vecchio: si parte da zero.
     sh("rm -rf ../build/ios/ipa")
-    sh("cd .. && flutter build ipa --release --export-options-plist=ios/ExportOptionsLocal.plist") rescue nil
+    # Con config/supabase.json (non nel repo) la build ha l'online; senza,
+    # il manifesto «Gioca con amici» dice che non è disponibile.
+    online = File.exist?("../config/supabase.json") ? " --dart-define-from-file=config/supabase.json" : ""
+    UI.important("config/supabase.json mancante: build senza online") if online.empty?
+    sh("cd .. && ruby tool/ios_online_config.rb")
+    sh("cd .. && flutter build ipa --release --export-options-plist=ios/ExportOptionsLocal.plist#{online}") rescue nil
     unless File.exist?("../build/ios/ipa/Oberta.ipa")
       # Se Xcode non ha l'account, l'archivio c'è ma la firma no: la si fa
       # con la chiave API di App Store Connect.

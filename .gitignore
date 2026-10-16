@@ -56,6 +56,10 @@ fastlane/.env
 fastlane/report.xml
 fastlane/README.md
 
+# Online config (Supabase key, Google client ids): see config/supabase.example.json
+/config/supabase.json
+/ios/Flutter/Online.xcconfig
+
 # File da analizzare prima di entrare nel gioco
 incoming/
 

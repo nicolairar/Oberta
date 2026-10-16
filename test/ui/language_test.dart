@@ -29,9 +29,9 @@ void _expectEnglishAlley() {
   expect(find.text('TONIGHT ONLY'), findsOneWidget);
   expect(find.text('ONE PHONE FOR ALL'), findsOneWidget);
   expect(find.text('CREATE ROOM'), findsOneWidget);
-  expect(find.text('ONE PHONE\nEACH'), findsOneWidget);
+  expect(find.text('PLAY WITH\nFRIENDS'), findsOneWidget);
   expect(find.text('RANKED'), findsOneWidget);
-  expect(find.text('COMING SOON'), findsNWidgets(2));
+  expect(find.text('COMING SOON'), findsOneWidget);
   expect(find.text('CREA STANZA'), findsNothing);
 }
 

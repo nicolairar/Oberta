@@ -448,9 +448,9 @@ class _ArrowPainter extends CustomPainter {
 /// Il disegno in cima a un manifesto «prossimamente».
 enum HomeSoonEmblem { phones, laurel }
 
-/// Un manifesto di quello che arriverà: più piccolo, più in ombra, con la
-/// striscia «prossimamente» incollata di traverso. A toccarlo dondola sul
-/// suo nastro, e basta.
+/// Un manifesto più piccolo, più in ombra, con una striscia incollata di
+/// traverso («prossimamente», o «online»). A toccarlo dondola sul suo
+/// nastro, e fa quello che dice [onTap].
 class HomeSoonPoster extends StatefulWidget {
   final String title;
   final String blurb;
@@ -632,12 +632,12 @@ class _EmblemPainter extends CustomPainter {
         Paint()..color = turn == 0 ? const Color(0xFFFFD77A) : const Color(0xFF8A6D1E),
       );
       if (turn == 0) {
-        // Le quattro lettere del codice della stanza.
-        final cell = screen.width * 0.17;
-        for (var i = 0; i < 4; i++) {
+        // I sei caratteri del codice della stanza.
+        final cell = screen.width * 0.12;
+        for (var i = 0; i < 6; i++) {
           canvas.drawRect(
             Rect.fromCenter(
-              center: Offset(screen.left + screen.width * (0.155 + 0.23 * i), screen.center.dy),
+              center: Offset(screen.left + screen.width * (0.12 + 0.152 * i), screen.center.dy),
               width: cell,
               height: cell * 1.3,
             ),

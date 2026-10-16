@@ -2,16 +2,23 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_language.dart';
 import '../../l10n/app_strings.dart';
+import '../../online/online_services.dart';
 import '../../settings/app_settings.dart';
 import '../screens/screening_room_screen.dart';
 import '../theme/app_theme.dart';
 
 /// Le impostazioni, dalla targa smaltata in cima al vicolo: l'audio, la
-/// lingua, e la sala prove dove rivedere le scene.
+/// lingua, la sala prove dove rivedere le scene, e l'uscita dall'account
+/// online per chi è entrato.
 class SettingsSheet extends StatelessWidget {
   final AppSettings settings;
 
-  SettingsSheet({super.key, AppSettings? settings}) : settings = settings ?? AppSettings.instance;
+  /// L'account online, per uscirne. Senza, quello aperto da `main` (se c'è).
+  final OnlineServices? online;
+
+  SettingsSheet({super.key, AppSettings? settings, OnlineServices? online})
+      : settings = settings ?? AppSettings.instance,
+        online = online ?? OnlineServices.instance;
 
   static Future<void> show(BuildContext context, {AppSettings? settings}) => showModalBottomSheet<void>(
         context: context,
@@ -25,8 +32,9 @@ class SettingsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final auth = online?.auth;
     return ListenableBuilder(
-      listenable: settings,
+      listenable: Listenable.merge([settings, ?auth]),
       builder: (context, _) {
         final t = AppStrings.of(context);
         return SafeArea(
@@ -88,6 +96,12 @@ class SettingsSheet extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (auth != null && auth.signedIn)
+                  ListTile(
+                    leading: const Icon(Icons.logout, color: AppColors.gold),
+                    title: Text(t.online.signOut),
+                    onTap: auth.signOut,
+                  ),
                 ListTile(
                   leading: const Icon(Icons.movie_filter, color: AppColors.gold),
                   title: Text(t.rehearsal),

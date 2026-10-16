@@ -32,7 +32,18 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Obertà usa la fotocamera per scattare la foto segnaletica di chi gioca. La foto resta su questo telefono.</string>
+	<string>Obertà usa la fotocamera per scattare la foto segnaletica di chi gioca e per leggere il QR di una stanza online. Le foto restano su questo telefono.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>$(GOOGLE_REVERSED_CLIENT_ID)</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Obertà ti fa scegliere dalla libreria la foto di chi gioca. La foto scelta resta su questo telefono.</string>
 	<key>UIApplicationSceneManifest</key>

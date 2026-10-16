@@ -1,0 +1,3 @@
+/* Permissions Obertà asks for, in English. */
+"NSCameraUsageDescription" = "Obertà uses the camera to take each player's mugshot and to scan the QR code of an online room. Photos stay on this phone.";
+"NSPhotoLibraryUsageDescription" = "Obertà lets you pick a player's photo from your library. The chosen photo stays on this phone.";
