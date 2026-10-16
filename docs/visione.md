@@ -36,6 +36,26 @@ Wolvesville ma più curata (animazioni, morti, avatar):
 - Supabase è il backend (account creato). Con sconosciuti l'autorità deve
   stare sul server: le scelte del motore ("presto" sopra) restano valide.
 
+## Economia e cosmetici (17 ottobre 2026)
+
+- **Cosa si compra:** solo estetica, mai vantaggi di gioco. Facce, capelli,
+  baffi, cappelli, occhiali, vestiti, accessori, skin complete; più avanti
+  cornici, titoli, badge. Il look (`AvatarLook`, colonna `avatar` dei profili)
+  si vede ovunque: al tavolo in prima persona, nei ritratti, nei filmati.
+- **Come si guadagna:** vincendo le partite si prende esperienza, con
+  l'esperienza si sale di livello, e salire di livello dà monete.
+- **Soldi veri:** si compra la valuta con acquisti in-app (StoreKit, obbligatorio
+  su iOS per beni digitali), e con la valuta si comprano i cosmetici.
+- **Proposta da confermare:** due valute, come i giochi del genere: una che si
+  guadagna giocando (monete) e una premium comprata con soldi veri (che a volte
+  si vince anche), così il prezzo dei pezzi rari non dipende dal tempo di gioco.
+- **Regole tecniche:** saldo, inventario ed esperienza li scrive solo il server
+  (già oggi l'app non può modificarli); ogni acquisto Apple si verifica lato
+  server (App Store Server API) prima di accreditare la valuta; l'esperienza
+  della classificata si assegna solo da partite validate dal server.
+- **Da evitare:** casse a sorpresa a pagamento (regole e rating più severi in
+  vari paesi UE); prezzi sempre chiari.
+
 ## Le scelte di fondo
 
 ### Il motore resta Dart puro
