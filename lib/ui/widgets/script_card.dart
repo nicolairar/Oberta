@@ -36,9 +36,10 @@ class ScriptCard extends StatelessWidget {
     final t = AppStrings.of(context);
     return Container(
       width: double.infinity,
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(left: BorderSide(color: AppColors.gold, width: 3)),
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.94),
+        border: const Border(left: BorderSide(color: AppColors.gold, width: 3)),
+        boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 14, offset: Offset(0, 6))],
       ),
       padding: const EdgeInsets.fromLTRB(20, 18, 18, 20),
       child: Column(
