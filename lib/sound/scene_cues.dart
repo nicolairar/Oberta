@@ -229,6 +229,103 @@ List<SceneCue> sceneCuesFor(DeathAct act, {bool memes = false}) {
           reaction(0.62, FxGroup.groan),
           const SceneCue.fx(0.77, FxGroup.faint, 0.6),
         ],
+      DeathAct.bowling => [
+          // La palla che tocca l'asfalto e rotola, i birilli (le caviglie),
+          // il volo, e qualcuno che esulta.
+          const SceneCue.fx(0.518, FxGroup.thud, 0.45),
+          const SceneCue.fx(0.521, FxGroup.scrape, 0.4),
+          const SceneCue.sample(_s, 'wood_heavy', 0.85),
+          const SceneCue.fx(_s + 0.003, FxGroup.punch, 0.5),
+          reaction(_s + 0.02, FxGroup.scream),
+          const SceneCue.fx(0.61, FxGroup.cheer, 0.35),
+          const SceneCue.fx(0.66, FxGroup.faint, 0.7),
+          const SceneCue.fx(0.75, FxGroup.running, 0.3),
+        ],
+      DeathAct.swordfish => [
+          // Il pesce che sbatte la coda, il fendente, l'affondo bagnato; poi
+          // il tonfo del pesce sul corpo.
+          const SceneCue.fx(0.41, FxGroup.splash, 0.3),
+          const SceneCue.fx(_s - 0.014, FxGroup.swish, 0.55),
+          const SceneCue.fx(_s, FxGroup.stab, 0.85),
+          const SceneCue.fx(_s + 0.004, FxGroup.splash, 0.45),
+          reaction(_s + 0.025, FxGroup.ouch),
+          const SceneCue.sample(0.605, 'cloth_2', 0.45),
+          const SceneCue.fx(0.715, FxGroup.faint, 0.7),
+          const SceneCue.fx(0.72, FxGroup.splash, 0.5),
+          const SceneCue.fx(0.77, FxGroup.running, 0.3),
+        ],
+      DeathAct.harpoon => [
+          // L'arpione caricato, il fischio, il colpo; la corda che si tende
+          // e il corpo trascinato oltre l'angolo.
+          const SceneCue.fx(0.47, FxGroup.cock, 0.45),
+          const SceneCue.fx(0.54, FxGroup.whoosh, 0.6),
+          const SceneCue.fx(_s, FxGroup.stab, 0.8),
+          const SceneCue.fx(_s + 0.003, FxGroup.impact, 0.5),
+          reaction(_s + 0.02, FxGroup.gasp),
+          const SceneCue.fx(0.60, FxGroup.rope, 0.6),
+          const SceneCue.fx(0.635, FxGroup.drag, 0.6),
+          const SceneCue.fx(0.65, FxGroup.scrape, 0.4),
+          const SceneCue.fx(0.70, FxGroup.thud, 0.55),
+        ],
+      DeathAct.pie => [
+          // Il lancio, lo spiaccico della panna, una risatina; poi la
+          // levetta della bomba che salta via, e il botto.
+          const SceneCue.fx(0.502, FxGroup.whoosh, 0.45),
+          const SceneCue.fx(0.52, FxGroup.splash, 0.55),
+          const SceneCue.fx(0.525, FxGroup.chuckle, 0.45),
+          const SceneCue.sample(0.538, 'metal_light', 0.6),
+          const SceneCue.fx(_s, FxGroup.explosion, 0.8),
+          const SceneCue.fx(_s + 0.03, FxGroup.debris, 0.45),
+          const SceneCue.fx(0.775, FxGroup.faint, 0.6),
+        ],
+      DeathAct.trombone => [
+          // La marcetta, lo sparo dalla campana, e il trombone triste che
+          // accompagna giù la vittima.
+          const SceneCue.fx(0.42, FxGroup.slidewhist, 0.3),
+          const SceneCue.fx(_s, FxGroup.shotgun, 0.8),
+          reaction(_s + 0.03, FxGroup.ouch),
+          const SceneCue.fx(0.60, FxGroup.trombone, 0.75),
+          const SceneCue.fx(0.765, FxGroup.faint, 0.7),
+          const SceneCue.fx(0.78, FxGroup.running, 0.3),
+        ],
+      DeathAct.tango => [
+          // Il sax che invita, i passi, la giravolta, la lama nel casqué.
+          const SceneCue.sample(0.44, 'sax_13', 0.5),
+          const SceneCue.sample(0.49, 'step_1', 0.5),
+          const SceneCue.sample(0.505, 'step_3', 0.5),
+          const SceneCue.fx(0.53, FxGroup.swish, 0.45),
+          const SceneCue.fx(_s, FxGroup.stab, 0.8),
+          reaction(_s + 0.02, FxGroup.gasp),
+          const SceneCue.fx(0.64, FxGroup.faint, 0.65),
+          const SceneCue.sample(0.71, 'cloth_1', 0.3),
+        ],
+      DeathAct.bouquet => [
+          // La carta del mazzo, il carrello armato tra le rose, la raffica.
+          const SceneCue.sample(0.48, 'cloth_1', 0.45),
+          const SceneCue.fx(0.535, FxGroup.bolt, 0.5),
+          const SceneCue.fx(0.555, FxGroup.tommy, 0.75),
+          const SceneCue.fx(0.58, FxGroup.casing, 0.35),
+          reaction(0.60, FxGroup.scream),
+          const SceneCue.fx(0.715, FxGroup.faint, 0.7),
+          const SceneCue.fx(0.76, FxGroup.running, 0.3),
+        ],
+      DeathAct.laundry => [
+          // Il furgone in retromarcia, la portiera, la presa; la portiera
+          // sbattuta, il furgone che sobbalza e poi riparte.
+          const SceneCue.fx(0.42, FxGroup.engine, 0.5),
+          const SceneCue.fx(0.49, FxGroup.screech, 0.3),
+          const SceneCue.sample(0.505, 'latch', 0.6),
+          const SceneCue.fx(_s, FxGroup.punch, 0.7),
+          reaction(_s + 0.01, FxGroup.gasp),
+          const SceneCue.fx(_s + 0.012, FxGroup.drag, 0.5),
+          const SceneCue.fx(0.606, FxGroup.door, 0.7),
+          const SceneCue.sample(0.61, 'metal_medium', 0.45),
+          const SceneCue.fx(0.635, FxGroup.thud, 0.45),
+          const SceneCue.fx(0.665, FxGroup.thud, 0.35),
+          const SceneCue.fx(0.70, FxGroup.engine, 0.55),
+          const SceneCue.fx(0.705, FxGroup.screech, 0.4),
+          const SceneCue.fx(0.75, FxGroup.bubbles, 0.35),
+        ],
       DeathAct.sniper => [
           // L'otturatore lontano mentre il mirino cerca, poi il colpo con la
           // sua eco, e la pallottola che arriva un attimo dopo.

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/main.dart';
 import 'package:oberta/narration/death_story.dart';
+import 'package:oberta/narration/english_pack.dart';
 import 'package:oberta/narration/italian_pack.dart';
 import 'package:oberta/ui/widgets/city_backdrop.dart';
 import 'package:oberta/ui/widgets/deal_table.dart';
@@ -93,6 +94,24 @@ void main() {
     expect(deathActFor('pugnale'), DeathAct.knife);
     expect(deathActFor('violino'), DeathAct.burst);
     expect(deathActFor('azione-senza-scena'), DeathAct.knife);
+  });
+
+  test('ogni azione della Famiglia ha la sua scena, senza ripiegare sul pugnale', () {
+    for (final pack in [italianPack, englishPack]) {
+      for (final method in pack.methods) {
+        final act = deathActFor(method.id);
+        expect(act.survives, isFalse, reason: method.id);
+        if (method.id != 'pugnale') expect(act, isNot(DeathAct.knife), reason: method.id);
+      }
+    }
+    expect(deathActFor('boccia'), DeathAct.bowling);
+    expect(deathActFor('pescespada'), DeathAct.swordfish);
+    expect(deathActFor('arpione'), DeathAct.harpoon);
+    expect(deathActFor('torta'), DeathAct.pie);
+    expect(deathActFor('trombone'), DeathAct.trombone);
+    expect(deathActFor('tango'), DeathAct.tango);
+    expect(deathActFor('rose'), DeathAct.bouquet);
+    expect(deathActFor('lavanderia'), DeathAct.laundry);
   });
 
   testWidgets('ogni coreografia si disegna dal primo all\'ultimo fotogramma', (tester) async {

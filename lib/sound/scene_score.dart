@@ -287,6 +287,60 @@ class SceneScore {
         _heartbeat(at(0.625), 0.6);
         _heartbeat(at(0.648), 0.3);
         _thud(at(0.77));
+      case DeathAct.bowling:
+        _knock(at(0.505), 140, gain: 0.4);
+        tape.noise(at(0.51), hit - at(0.51), gain: 0.12, lowpass: 500, envelope: Env.hold(0.1));
+        _knock(hit, 260);
+        _crash(hit, pieces: 9, low: 500, high: 1600, spread: 0.25, gain: 0.18);
+        _thud(at(0.66), weight: 1.3);
+      case DeathAct.swordfish:
+        _swoosh(hit - 0.12, 0.14);
+        _stabs(hit, 2);
+        _splash(hit + 0.02);
+        _thud(at(0.72));
+        _splash(at(0.72));
+      case DeathAct.harpoon:
+        _swoosh(at(0.54), hit - at(0.54) + 0.05);
+        _stabs(hit, 1);
+        _creak(at(0.60), 0.4);
+        tape.noise(at(0.605), at(0.70) - at(0.605), gain: 0.16, lowpass: 900, envelope: Env.hold(0.1));
+        _thud(at(0.70), weight: 1.2);
+      case DeathAct.pie:
+        _swoosh(at(0.50), 0.18);
+        _splash(at(0.52));
+        _knock(at(0.538), 2400, gain: 0.2);
+        _boom(hit);
+        _thud(at(0.775));
+      case DeathAct.trombone:
+        for (final (i, note) in const [196.0, 220.0, 246.9, 196.0].indexed) {
+          tape.tone(at(0.42 + i * 0.02), 0.35, note, gain: 0.12, partials: const [(1.0, 1.0), (2.0, 0.6), (3.0, 0.4)], envelope: Env.hold(0.1));
+        }
+        _gunshot(hit, size: 1.2, tail: 0.5, tone: 2400);
+        for (final (i, note) in const [233.1, 220.0, 207.7, 196.0].indexed) {
+          tape.tone(at(0.60 + i * 0.02), i == 3 ? 1.1 : 0.4, note, to: i == 3 ? 185 : note, gain: 0.14, partials: const [(1.0, 1.0), (2.0, 0.6), (3.0, 0.4)], envelope: Env.hold(0.1));
+        }
+        _thud(at(0.72));
+      case DeathAct.tango:
+        for (var step = 0; step < 4; step++) {
+          _knock(at(0.48 + step * 0.014), 900, gain: 0.16);
+        }
+        _swoosh(at(0.535), 0.12);
+        _slash(hit);
+        _thud(at(0.66));
+      case DeathAct.bouquet:
+        tape.noise(at(0.49), 0.25, gain: 0.08, highpass: 3000, envelope: Env.hit(3, 0.05));
+        for (final shot in const [0.555, 0.57, 0.585, 0.60, 0.615]) {
+          _gunshot(at(shot), size: 0.75, tail: 0.14);
+        }
+        _thud(at(0.72));
+      case DeathAct.laundry:
+        _engine(at(0.42), at(0.50) - at(0.42), 90, 70);
+        _knock(at(0.505), 600, gain: 0.3);
+        _scuffle(hit, 3);
+        _clang(at(0.61), 210);
+        _thud(at(0.63));
+        _thud(at(0.66), weight: 0.8);
+        _engine(at(0.70), at(0.80) - at(0.70), 80, 160);
       case DeathAct.sniper:
         _knock(at(0.50), 1900, gain: 0.16);
         _gunshot(hit, size: 0.9, tail: 0.5, tone: 2200);
