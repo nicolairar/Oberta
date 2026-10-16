@@ -59,6 +59,11 @@ Wolvesville ma più curata (animazioni, morti, avatar):
   150 monete a livello + 250 ogni 5 livelli. Obiettivo: primo comune in 2–3
   ore, leggendario in 20–30 ore, mai tutto in poche ore. Numeri in un file di
   configurazione unico + simulatore.
+- **Pacchetti "skin + monete"** (idea del proprietario): si comprano SOLO con
+  soldi veri, es. 9,99 € = skin epica + 1100 monete ("due al prezzo di uno").
+  Valore "a parte" sempre vero (stessi prezzi del negozio), 1–2 pacchetti alla
+  volta e a tempo; se la skin è già posseduta il pacchetto non si propone.
+  Il server verifica l'acquisto e accredita skin e monete insieme.
 - **Regole tecniche:** saldo, inventario ed esperienza li scrive solo il server
   (già oggi l'app non può modificarli); ogni acquisto Apple si verifica lato
   server (App Store Server API) prima di accreditare la valuta; l'esperienza
