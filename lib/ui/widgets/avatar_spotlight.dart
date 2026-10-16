@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
-import 'noir_avatar.dart';
+import 'player_avatar.dart';
 
 /// Un ritratto in primo piano: entra con uno zoom, sotto un alone di luce.
 /// Serve ogni volta che la partita punta il dito su qualcuno.
@@ -35,23 +35,7 @@ class AvatarSpotlight extends StatelessWidget {
             ),
           ],
         ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            NoirAvatar(seed: seed, size: size, faded: fallen),
-            if (fallen)
-              Text(
-                '†',
-                style: TextStyle(
-                  fontFamily: 'Georgia',
-                  fontSize: size * 0.60,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                  shadows: const [Shadow(color: Colors.black, blurRadius: 10)],
-                ),
-              ),
-          ],
-        ),
+        child: PlayerAvatar(seed: seed, size: size, fallen: fallen),
       ),
     );
   }
