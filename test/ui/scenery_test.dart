@@ -1,9 +1,15 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/main.dart';
 import 'package:oberta/narration/death_story.dart';
 import 'package:oberta/narration/english_pack.dart';
 import 'package:oberta/narration/italian_pack.dart';
+import 'package:oberta/narration/narrator_script.dart';
+import 'package:oberta/rules/game_engine.dart';
+import 'package:oberta/rules/player.dart';
+import 'package:oberta/sound/scene_cues.dart';
 import 'package:oberta/ui/widgets/city_backdrop.dart';
 import 'package:oberta/ui/widgets/deal_table.dart';
 import 'package:oberta/ui/widgets/death_scene.dart';
@@ -80,9 +86,7 @@ void main() {
   test('ogni azione del copione ha la sua coreografia', () {
     final staged = {
       for (final method in italianPack.methods) deathActFor(method.id),
-      deathActFor(DeathStory.sniperId),
-      deathActFor(DeathStory.rescueId),
-      deathActFor(DeathStory.luckyId),
+      for (final id in [...DeathStory.sniperIds, ...DeathStory.rescueIds, ...DeathStory.luckyIds]) deathActFor(id),
     };
     expect(staged, DeathAct.values.toSet(), reason: 'nessuna coreografia resta senza copione');
     expect(deathActFor(DeathStory.sniperId), DeathAct.sniper);
@@ -91,12 +95,56 @@ void main() {
     expect(DeathAct.rescue.survives, isTrue);
     expect(DeathAct.lucky.survives, isTrue);
     expect(DeathAct.sniper.survives, isFalse);
+    // Ogni variante ha il suo filmato, diverso dagli altri: chi muore col
+    // Cecchino muore, chi è salvato dal Dottore o dalla fortuna si rialza.
+    final sniper = {for (final id in DeathStory.sniperIds) deathActFor(id)};
+    final rescue = {for (final id in DeathStory.rescueIds) deathActFor(id)};
+    final lucky = {for (final id in DeathStory.luckyIds) deathActFor(id)};
+    expect(sniper, hasLength(DeathStory.sniperIds.length));
+    expect(rescue, hasLength(DeathStory.rescueIds.length));
+    expect(lucky, hasLength(DeathStory.luckyIds.length));
+    expect(sniper.any((act) => act.survives), isFalse);
+    expect(rescue.every((act) => act.survives && act.doctorSaves && !act.luckyEscape), isTrue);
+    expect(lucky.every((act) => act.survives && act.luckyEscape && !act.doctorSaves), isTrue);
+    expect(DeathAct.values.where((act) => act.survives).toSet(), {...rescue, ...lucky},
+        reason: 'si salva solo chi è in una scena di salvataggio');
     expect(deathActFor('pugnale'), DeathAct.knife);
     expect(deathActFor('violino'), DeathAct.burst);
     expect(deathActFor('azione-senza-scena'), DeathAct.knife);
   });
 
-  test('ogni azione della Famiglia ha la sua scena, senza ripiegare sul pugnale', () {
+  test('ogni variante del Cecchino, del Dottore e del colpo a vuoto esce, col racconto giusto', () {
+    for (final pack in [italianPack, englishPack]) {
+      expect(pack.sniperShots.keys.toList(), DeathStory.sniperIds);
+      expect(pack.rescues.keys.toList(), DeathStory.rescueIds);
+      expect(pack.shrugs.keys.toList(), DeathStory.luckyIds);
+    }
+    final script = NarratorScript(random: Random(3));
+    const sara = Player(id: 'sara', name: 'Sara');
+    final seen = <DeathAct>{};
+    for (var round = 0; round < 120; round++) {
+      for (final (outcome, source, lines) in [
+        (AttackOutcome.healed, AttackSource.family, italianPack.rescues),
+        (AttackOutcome.shrugged, AttackSource.family, italianPack.shrugs),
+        (AttackOutcome.killed, AttackSource.sniper, italianPack.sniperShots),
+      ]) {
+        final report = DawnReport(round: round + 1, attacks: [NightAttack(sara, source, outcome)]);
+        final story = script.stage(report).single;
+        final act = deathActFor(story.method.id);
+        seen.add(act);
+        // Il film, i suoni e il racconto sono della stessa variante.
+        expect(lines[story.method.id], contains(story.method.text));
+        expect(act.survives, outcome != AttackOutcome.killed);
+        expect(story.survived, act.survives);
+        expect(sceneCuesFor(act), isNotEmpty);
+      }
+    }
+    expect(seen, {
+      for (final id in [...DeathStory.sniperIds, ...DeathStory.rescueIds, ...DeathStory.luckyIds]) deathActFor(id),
+    }, reason: 'tutte le varianti escono, prima o poi');
+  });
+
+    test('ogni azione della Famiglia ha la sua scena, senza ripiegare sul pugnale', () {
     for (final pack in [italianPack, englishPack]) {
       for (final method in pack.methods) {
         final act = deathActFor(method.id);

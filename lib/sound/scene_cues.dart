@@ -39,6 +39,16 @@ List<SceneCue> _entrance() => [
         SceneCue.sample(0.04 + 0.30 * (step + 0.5) / 9, 'step_${step % 4 + 1}', 0.35),
     ];
 
+/// Il colpo dall'angolo, e il Dottore che arriva di corsa: l'attacco comune
+/// delle varianti del salvataggio.
+List<SceneCue> _doctorRuns() => [
+      const SceneCue.fx(0.505, FxGroup.cock, 0.5),
+      const SceneCue.fx(_s, FxGroup.revolver, 0.75),
+      const SceneCue.fx(_s + 0.07, FxGroup.faint, 0.6),
+      const SceneCue.fx(0.605, FxGroup.running, 0.3),
+      for (var step = 0; step < 6; step++) SceneCue.sample(0.60 + step * 0.011, 'step_${step % 4 + 1}', 0.5),
+    ];
+
 /// Tutti i suoni di una scena, in ordine di tempo. [memes] mette, dove ha
 /// senso, un meme al posto della reazione.
 List<SceneCue> sceneCuesFor(DeathAct act, {bool memes = false}) {
@@ -360,6 +370,138 @@ List<SceneCue> sceneCuesFor(DeathAct act, {bool memes = false}) {
           for (var step = 0; step < 6; step++) SceneCue.sample(0.675 + step * 0.012, 'step_${step % 4 + 1}', 0.45),
           // Un sorso dalla fiaschetta che gli ha salvato la pelle.
           const SceneCue.fx(0.79, FxGroup.gulp, 0.45),
+        ],
+      DeathAct.belfry => [
+          // Un primo rintocco mentre il riflesso brilla lassù; il colpo parte
+          // insieme al secondo, che lo copre. Poi i piccioni che scappano.
+          const SceneCue.fx(0.40, FxGroup.church, 0.35),
+          const SceneCue.fx(0.46, FxGroup.bolt, 0.25),
+          const SceneCue.fx(_s, FxGroup.church, 0.75),
+          const SceneCue.fx(_s, FxGroup.sniper, 0.55),
+          const SceneCue.fx(_s + 0.004, FxGroup.impact, 0.5),
+          const SceneCue.fx(_s + 0.01, FxGroup.whoosh, 0.35),
+          reaction(_s + 0.02, FxGroup.ouch),
+          const SceneCue.fx(_s + 0.11, FxGroup.faint, 0.7),
+          const SceneCue.fx(0.64, FxGroup.church, 0.4),
+        ],
+      DeathAct.phoneBooth => [
+          // Il telefono della cabina che squilla, la cornetta alzata, poi il
+          // vetro che si crepa sotto il colpo e la cornetta che sbatte.
+          const SceneCue.fx(0.25, FxGroup.phone, 0.5),
+          const SceneCue.sample(0.375, 'click', 0.6),
+          const SceneCue.fx(_s, FxGroup.sniper, 0.75),
+          const SceneCue.fx(_s + 0.002, FxGroup.glassbreak, 0.7),
+          const SceneCue.sample(_s + 0.006, 'glass_medium', 0.5),
+          reaction(_s + 0.02, FxGroup.ouch),
+          const SceneCue.sample(_s + 0.05, 'metal_light', 0.45),
+          const SceneCue.fx(_s + 0.10, FxGroup.faint, 0.7),
+          const SceneCue.sample(0.70, 'metal_light', 0.3),
+        ],
+      DeathAct.carDoor => [
+          // Le chiavi, la serratura, la portiera che si apre; il colpo da
+          // lontano e le chiavi che tintinnano sull'asfalto.
+          const SceneCue.sample(0.37, 'chips_handle', 0.4),
+          const SceneCue.sample(0.42, 'latch', 0.6),
+          const SceneCue.fx(0.44, FxGroup.door, 0.45),
+          const SceneCue.fx(_s, FxGroup.sniper, 0.8),
+          const SceneCue.fx(_s + 0.004, FxGroup.impact, 0.5),
+          reaction(_s + 0.02, FxGroup.ouch),
+          const SceneCue.sample(_s + 0.06, 'metal_light', 0.45),
+          const SceneCue.fx(_s + 0.11, FxGroup.faint, 0.7),
+        ],
+      DeathAct.defibrillator => [
+          ..._doctorRuns(),
+          const SceneCue.sample(0.665, 'metal_medium', 0.55),
+          // Le piastre sfregate che si caricano, le due scosse, il cuore.
+          const SceneCue.fx(0.69, FxGroup.spark, 0.45),
+          const SceneCue.fx(0.735, FxGroup.spark, 0.8),
+          const SceneCue.sample(0.736, 'body_fall', 0.35),
+          const SceneCue.fx(0.77, FxGroup.spark, 0.9),
+          const SceneCue.sample(0.771, 'body_fall_2', 0.4),
+          const SceneCue.fx(0.78, FxGroup.heartbeat, 0.75),
+          const SceneCue.fx(0.80, FxGroup.gasp, 0.6),
+        ],
+      DeathAct.pliers => [
+          ..._doctorRuns(),
+          if (memes) const SceneCue.meme(0.665, Meme.applePay) else const SceneCue.sample(0.665, 'bag', 0.7),
+          // Le pinze che frugano, lo strappo, il piombo nella bacinella.
+          const SceneCue.sample(0.70, 'metal_light', 0.35),
+          const SceneCue.fx(0.74, FxGroup.groan, 0.5),
+          const SceneCue.sample(0.786, 'tin', 0.75),
+          const SceneCue.fx(0.79, FxGroup.bandage, 0.5),
+          const SceneCue.fx(0.80, FxGroup.gasp, 0.6),
+        ],
+      DeathAct.ambulance => [
+          const SceneCue.fx(0.505, FxGroup.cock, 0.5),
+          const SceneCue.fx(_s, FxGroup.revolver, 0.75),
+          const SceneCue.fx(_s + 0.07, FxGroup.faint, 0.6),
+          const SceneCue.fx(0.61, FxGroup.running, 0.3),
+          // La sirena da lontano, la frenata, i portelloni, la barella.
+          const SceneCue.fx(0.565, FxGroup.siren, 0.6),
+          const SceneCue.fx(0.63, FxGroup.screech, 0.4),
+          const SceneCue.fx(0.665, FxGroup.door, 0.45),
+          const SceneCue.sample(0.715, 'metal_medium', 0.45),
+          const SceneCue.sample(0.735, 'cloth_1', 0.45),
+          const SceneCue.sample(0.765, 'metal_medium', 0.4),
+          const SceneCue.fx(0.78, FxGroup.gasp, 0.5),
+        ],
+      DeathAct.stitches => [
+          ..._doctorRuns(),
+          if (memes) const SceneCue.meme(0.665, Meme.applePay) else const SceneCue.sample(0.665, 'bag', 0.7),
+          // Ogni punto: l'ago che entra e il filo che tira. Poi le forbici.
+          for (final at in const [0.695, 0.722, 0.749]) ...[
+            SceneCue.sample(at + 0.005, 'cloth_2', 0.4),
+            SceneCue.fx(at + 0.012, FxGroup.swish, 0.3),
+          ],
+          const SceneCue.sample(0.785, 'knife_2', 0.45),
+          const SceneCue.fx(0.80, FxGroup.gasp, 0.6),
+        ],
+      DeathAct.bible => [
+          const SceneCue.fx(0.505, FxGroup.cock, 0.5),
+          const SceneCue.fx(_s, FxGroup.revolver, 0.75),
+          // Il piombo che si pianta nella carta, non sul metallo.
+          const SceneCue.sample(_s + 0.003, 'punch', 0.6),
+          const SceneCue.fx(_s + 0.04, FxGroup.gasp, 0.6),
+          for (var step = 0; step < 6; step++) SceneCue.sample(0.675 + step * 0.012, 'step_${step % 4 + 1}', 0.45),
+          const SceneCue.sample(0.70, 'flip', 0.5),
+          const SceneCue.sample(0.75, 'bell', 0.4),
+        ],
+      DeathAct.jam => [
+          const SceneCue.fx(0.505, FxGroup.cock, 0.55),
+          // Tre volte il grilletto, tre volte niente.
+          const SceneCue.sample(_s, 'click', 0.9),
+          const SceneCue.sample(0.585, 'click', 0.9),
+          const SceneCue.sample(0.615, 'metal_light', 0.45),
+          const SceneCue.sample(0.635, 'click', 0.7),
+          const SceneCue.fx(0.65, FxGroup.gasp, 0.5),
+          const SceneCue.sample(0.66, 'metal_medium', 0.5),
+          const SceneCue.fx(0.665, FxGroup.running, 0.45),
+          const SceneCue.fx(0.73, FxGroup.chuckle, 0.5),
+        ],
+      DeathAct.banana => [
+          for (var step = 0; step < 5; step++) SceneCue.sample(0.47 + step * 0.012, 'step_${step % 4 + 1}', 0.5),
+          // La scivolata, il colpo che parte verso il cielo, la schiena giù.
+          const SceneCue.fx(0.525, FxGroup.slidewhist, 0.6),
+          const SceneCue.fx(_s, FxGroup.revolver, 0.7),
+          const SceneCue.fx(0.578, FxGroup.thud, 0.75),
+          const SceneCue.fx(0.582, FxGroup.ouch, 0.6),
+          const SceneCue.fx(0.60, FxGroup.boing, 0.4),
+          const SceneCue.fx(0.70, FxGroup.running, 0.4),
+          const SceneCue.fx(0.72, FxGroup.laugh, 0.4),
+        ],
+      DeathAct.blackCat => [
+          const SceneCue.fx(0.505, FxGroup.cock, 0.5),
+          // Il gatto che soffia, salta, graffia; il colpo storto, la pistola
+          // che cade sull'asfalto.
+          const SceneCue.fx(0.50, FxGroup.cat, 0.5),
+          const SceneCue.sample(0.535, 'metal_light', 0.5),
+          const SceneCue.fx(0.545, FxGroup.cat, 0.8),
+          const SceneCue.fx(_s, FxGroup.revolver, 0.7),
+          const SceneCue.fx(_s + 0.01, FxGroup.ricochet, 0.4),
+          const SceneCue.fx(0.58, FxGroup.scream, 0.45),
+          const SceneCue.sample(0.63, 'metal_medium', 0.55),
+          const SceneCue.fx(0.65, FxGroup.running, 0.4),
+          const SceneCue.fx(0.76, FxGroup.cat, 0.35),
         ],
     },
   ];

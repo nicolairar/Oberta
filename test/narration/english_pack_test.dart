@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oberta/narration/death_story.dart';
 import 'package:oberta/narration/english_pack.dart';
 import 'package:oberta/narration/italian_pack.dart';
 import 'package:oberta/narration/narration_pack.dart';
@@ -60,9 +61,9 @@ Map<String, List<String>> listsOf(NarrationPack pack) => {
       'nights': pack.nights,
       'quietDawns': pack.quietDawns,
       'secondVictims': pack.secondVictims,
-      'sniperShots': pack.sniperShots,
-      'rescues': pack.rescues,
-      'shrugs': pack.shrugs,
+      'sniperShots': pack.sniperShots.allLines,
+      'rescues': pack.rescues.allLines,
+      'shrugs': pack.shrugs.allLines,
       'methods': [for (final piece in pack.methods) piece.text],
       'epilogues': [for (final piece in pack.epilogues) piece.text],
       'scoops': pack.scoops,
@@ -291,7 +292,7 @@ void main() {
         englishPack.silencedFact,
         ...englishPack.firstNights,
         ...englishPack.nights,
-        ...englishPack.shrugs,
+        ...englishPack.shrugs.allLines,
         ...englishPack.silences,
         ...englishPack.taskPrompts.values,
         ...englishPack.taskHints.values,
@@ -309,9 +310,9 @@ void main() {
     test('ogni azione nomina la vittima, e le battute nuove dicono sempre di chi parlano', () {
       final lines = [
         for (final piece in englishPack.methods) piece.text,
-        ...englishPack.sniperShots,
-        ...englishPack.rescues,
-        ...englishPack.shrugs,
+        ...englishPack.sniperShots.allLines,
+        ...englishPack.rescues.allLines,
+        ...englishPack.shrugs.allLines,
         ...englishPack.silences,
         englishPack.silencedFact,
         ...englishPack.scoops,
@@ -336,8 +337,8 @@ void main() {
         ...englishPack.nights,
         ...englishPack.quietDawns,
         ...englishPack.secondVictims,
-        ...englishPack.sniperShots,
-        ...englishPack.shrugs,
+        ...englishPack.sniperShots.allLines,
+        ...englishPack.shrugs.allLines,
         ...englishPack.scoops,
         ...englishPack.silences,
         ...englishPack.voteCalls,
@@ -353,7 +354,7 @@ void main() {
         final noun = RegExp('\\b${RegExp.escape(name.substring(4))}\\b', caseSensitive: false);
         expect(noun.hasMatch(atmosphere), isFalse, reason: name);
       }
-      expect(englishPack.rescues.join(' ').toLowerCase(), isNot(contains('gravedigger')));
+      expect(englishPack.rescues.allLines.join(' ').toLowerCase(), isNot(contains('gravedigger')));
     });
 
     test('il Dottore si chiama sempre "the Doc", le fazioni "the Family" e "the town"', () {
@@ -364,7 +365,7 @@ void main() {
       expect(all.toLowerCase(), isNot(contains('citizen')));
       expect(all.toLowerCase(), isNot(contains('villager')));
       expect(englishPack.savedFact, contains('the Doc'));
-      expect(englishPack.rescues.where((line) => line.contains(RegExp(r'\b[Tt]he Doc\b'))), isNotEmpty);
+      expect(englishPack.rescues.allLines.where((line) => line.contains(RegExp(r'\b[Tt]he Doc\b'))), isNotEmpty);
       for (final line in [englishPack.howToPlay, englishPack.citizensWinFact, englishPack.mafiaWinsFact]) {
         expect(line, contains('Family'), reason: line);
         expect(line, contains('town'), reason: line);
@@ -375,11 +376,21 @@ void main() {
       expect(englishPack.taskHints[NightTaskKind.investigate], allOf(contains('the Family'), contains('the town')));
     });
 
-    test('il colpo andato a vuoto è una fiaschetta, e non dice chi ha la pelle dura', () {
-      for (final line in englishPack.shrugs) {
-        expect(line, contains('flask'), reason: 'in scena si vede quella');
+    test('il colpo andato a vuoto dice quello che si vede, e non dice chi ha la pelle dura', () {
+      final props = {
+        DeathStory.luckyId: RegExp('flask'),
+        DeathStory.bibleId: RegExp('Bible'),
+        DeathStory.jamId: RegExp('click|jammed', caseSensitive: false),
+        DeathStory.bananaId: RegExp('banana'),
+        DeathStory.blackCatId: RegExp('black cat'),
+      };
+      expect(englishPack.shrugs.keys.toSet(), props.keys.toSet());
+      for (final MapEntry(key: id, value: lines) in englishPack.shrugs.entries) {
+        for (final line in lines) {
+          expect(line, contains(props[id]!), reason: 'in scena si vede quello: $line');
+        }
       }
-      final text = [...englishPack.shrugs, englishPack.shruggedFact].join(' ').toLowerCase();
+      final text = [...englishPack.shrugs.allLines, englishPack.shruggedFact].join(' ').toLowerCase();
       expect(text, isNot(contains('veteran')));
       expect(text, isNot(contains('doc')), reason: 'stavolta il Dottore non c\'entra');
       // Chi si salva resta anonimo: il fatto non fa nomi.
@@ -564,19 +575,23 @@ void main() {
       expect(textOf(lines), isNot(contains('Sara')), reason: 'chi si salva resta anonimo');
       expect(facts[1], 'Last night one person died: Luca. Their role stays secret.');
       expect(
-        englishPack.sniperShots.map((line) => line.replaceAll('{name}', 'Luca')),
+        englishPack.sniperShots.allLines.map((line) => line.replaceAll('{name}', 'Luca')),
         contains(lines[lines.length - 4].text),
       );
       expect(textOf(lines), isNot(contains(englishPack.nobodyDied)));
     });
 
-    test('il colpo andato a vuoto: luogo, fiaschetta, e un fatto che non fa nomi di ruolo', () {
+    test('il colpo andato a vuoto: luogo, la variante, e un fatto che non fa nomi di ruolo', () {
       final script = englishIn('palermo', 6);
       for (final source in AttackSource.values) {
         for (var i = 0; i < 30; i++) {
           final lines = script.dawn(attack(sara, source, AttackOutcome.shrugged), discussion: threeMinutes);
           expect(lines, hasLength(4), reason: 'luogo, azione, fatto, istruzione');
-          expect(lines[1].text, allOf(isNot(contains('Sara')), contains('flask')));
+          expect(lines[1].text, isNot(contains('Sara')));
+          expect(
+            englishPack.shrugs.allLines.map((line) => line.replaceAll('{name}', englishPack.someone).toLowerCase()),
+            contains(lines[1].text.toLowerCase()),
+          );
           expect(
             factsOf(lines).first,
             'Last night someone got shot at, but the bullet missed. Who it was stays a secret.',

@@ -1,5 +1,6 @@
 import '../rules/game_engine.dart';
 import '../rules/role.dart';
+import 'death_story.dart';
 import 'narration_pack.dart';
 
 // Regole per chi scrive:
@@ -201,28 +202,91 @@ const italianPack = NarrationPack(
     'Ma la notte è stata lunga.',
   ],
   victimFact: 'Stanotte è morta una persona: {name}. Il suo ruolo resta segreto.',
-  sniperShots: [
-    'Un colpo solo, da una finestra lontana. {name} non ha sentito niente.',
-    'Un riflesso su un tetto, poi uno sparo. {name} cade prima dell\'eco.',
-    'Qualcuno, da lontano, ha preso la mira con calma. {name} resta sull\'asfalto.',
-    'Nessuno dietro l\'angolo, stavolta. Solo un mirino, e {name} al centro.',
-  ],
-  rescues: [
-    'Uno sparo dal vicolo, {name} a terra. Poi dei passi di corsa: il Dottore.',
-    'Volevano chiudere il conto di {name}. Il Dottore è arrivato prima del prete.',
-    '{name} era già a terra. Ma il Dottore, stanotte, passava proprio di lì.',
-    'Un colpo, e {name} va giù. Una borsa di cuoio si apre: non è finita.',
-  ],
+  // Ogni variante ha il suo filmato: le battute raccontano quello che si vede.
+  sniperShots: {
+    DeathStory.sniperId: [
+      'Un colpo solo, da una finestra lontana. {name} non ha sentito niente.',
+      'Un riflesso su un tetto, poi uno sparo. {name} cade prima dell\'eco.',
+      'Qualcuno, da lontano, ha preso la mira con calma. {name} resta sull\'asfalto.',
+      'Nessuno dietro l\'angolo, stavolta. Solo un mirino, e {name} al centro.',
+    ],
+    DeathStory.belfryId: [
+      'Un riflesso lassù, sul campanile. Poi un rintocco, e {name} non si rialza.',
+      'La campana batte l\'ora e copre lo sparo. {name} resta sul selciato.',
+      'Dal campanile scappa uno stormo di piccioni. {name} è già a terra.',
+    ],
+    DeathStory.phoneBoothId: [
+      'Squilla la cabina del telefono. {name} risponde. Il vetro si crepa a stella.',
+      'Un buco nel vetro della cabina, una ragnatela di crepe. {name} scivola giù.',
+      '{name} alza la cornetta. Dall\'altra parte nessuno parla: arriva solo il colpo.',
+    ],
+    DeathStory.carDoorId: [
+      '{name} apre la portiera dell\'auto. Un colpo da lontano: non salirà.',
+      'Le chiavi in mano, un piede sul predellino. Poi lo sparo, e {name} cade.',
+      '{name} stava per partire. Il motore resta spento, la portiera aperta.',
+    ],
+  },
+  rescues: {
+    DeathStory.rescueId: [
+      'Uno sparo dal vicolo, {name} a terra. Poi dei passi di corsa: il Dottore.',
+      'Volevano chiudere il conto di {name}. Il Dottore è arrivato prima del prete.',
+      '{name} era già a terra. Ma il Dottore, stanotte, passava proprio di lì.',
+      'Un colpo, e {name} va giù. Una borsa di cuoio si apre: non è finita.',
+    ],
+    DeathStory.defibrillatorId: [
+      '{name} a terra, il cuore fermo. Il Dottore sfrega le piastre: libera!',
+      'Una scossa, niente. Un\'altra scossa: il cuore di {name} riparte.',
+      'Il Dottore apre una cassetta piena di fili. Una scarica, e {name} torna a respirare.',
+    ],
+    DeathStory.pliersId: [
+      'Il Dottore fruga con le pinze nella ferita di {name}. Ne tira fuori il piombo.',
+      'Un proiettile stretto nelle pinze, una benda stretta sul petto. {name} respira.',
+      '{name} a terra, il Dottore in ginocchio. «Plin»: il piombo cade nella bacinella.',
+    ],
+    DeathStory.ambulanceId: [
+      'Una sirena in fondo alla strada. L\'ambulanza inchioda: {name} va in barella.',
+      '{name} a terra, poi le sirene. Barella, coperta, e via di corsa.',
+      'L\'ambulanza arriva a fari accesi. Dalla barella, {name} saluta con la mano.',
+    ],
+    DeathStory.stitchesId: [
+      'Sotto il lampione, ago e filo. Il Dottore ricuce {name} punto dopo punto.',
+      'Tre punti, un nodo, un colpo di forbici. {name} si rimette in piedi.',
+      'Il Dottore infila l\'ago alla luce del lampione. {name} non lo sente nemmeno.',
+    ],
+  },
   someone: 'qualcuno',
   savedFact: 'Stanotte hanno sparato a qualcuno, ma il Dottore ha fatto in tempo. Chi fosse, resta un segreto.',
-  // Il colpo fermato dalla fiaschetta: in scena si vede proprio quella. Il
-  // fatto non nomina nessun ruolo: al tavolo resta il dubbio su chi sia.
-  shrugs: [
-    'Uno sparo. {name} barcolla, poi si tocca il taschino: una fiaschetta, ammaccata.',
-    'Il colpo parte, e fa «ding». {name} tira fuori una fiaschetta col buco.',
-    'Uno sparo dal vicolo. {name} resta in piedi: il proiettile è nella fiaschetta.',
-    '{name} sente un colpo al petto. Sotto la giacca, una fiaschetta piegata in due.',
-  ],
+  // Il colpo andato a vuoto: in scena si vede proprio quello che dice la
+  // battuta (la fiaschetta, la Bibbia, la buccia di banana...). Il fatto non
+  // nomina nessun ruolo: al tavolo resta il dubbio su chi sia.
+  shrugs: {
+    DeathStory.luckyId: [
+      'Uno sparo. {name} barcolla, poi si tocca il taschino: una fiaschetta, ammaccata.',
+      'Il colpo parte, e fa «ding». {name} tira fuori una fiaschetta col buco.',
+      'Uno sparo dal vicolo. {name} resta in piedi: il proiettile è nella fiaschetta.',
+      '{name} sente un colpo al petto. Sotto la giacca, una fiaschetta piegata in due.',
+    ],
+    DeathStory.bibleId: [
+      'Uno sparo. {name} tira fuori dal taschino una Bibbia: il proiettile è lì dentro.',
+      'Il colpo si ferma su una Bibbia tascabile. {name} guarda in alto e ringrazia.',
+      '{name} sente un colpo al petto. Nel taschino, una Bibbia col buco a metà.',
+    ],
+    DeathStory.jamId: [
+      'La pistola punta {name}. «Clic». Ancora «clic». Il killer se la dà a gambe.',
+      'Il grilletto scatta a vuoto: la pistola s\'è inceppata. {name} si volta, il killer scappa.',
+      '«Clic, clic». {name} si rimbocca le maniche, e il vicolo si svuota.',
+    ],
+    DeathStory.bananaId: [
+      'Il killer pesta una buccia di banana. Il colpo va in cielo, {name} la scampa.',
+      'Una buccia di banana, un volo all\'indietro. Il colpo finisce tra le stelle: {name} ride.',
+      'Il killer corre verso {name}, poi una buccia di banana. Lo sparo buca la notte.',
+    ],
+    DeathStory.blackCatId: [
+      'Un gatto nero salta sul braccio del killer. Il colpo va storto, {name} resta in piedi.',
+      'Il killer prende la mira su {name}. Un gatto nero gli fa volare via la pistola.',
+      'Porta sfortuna, dicono. Ma stanotte un gatto nero ha salvato {name}.',
+    ],
+  },
   shruggedFact: 'Stanotte hanno sparato a qualcuno, ma il colpo è andato a vuoto. Chi fosse, resta un segreto.',
   methods: [
     StoryPiece('auto', 'Due fari nel buio. Un\'auto nera non frena. {name} si volta: troppo tardi.'),

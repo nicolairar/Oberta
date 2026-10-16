@@ -343,6 +343,17 @@ final class ItalianStrings extends AppStrings {
     DeathAct.sniper => 'Il Cecchino',
     DeathAct.rescue => 'Il Dottore arriva in tempo',
     DeathAct.lucky => 'La fiaschetta',
+    DeathAct.belfry => 'Il Cecchino sul campanile',
+    DeathAct.phoneBooth => 'Il Cecchino e la cabina',
+    DeathAct.carDoor => 'Il Cecchino e la portiera',
+    DeathAct.defibrillator => 'Il Dottore e le piastre',
+    DeathAct.pliers => 'Il Dottore e le pinze',
+    DeathAct.ambulance => 'L\'ambulanza',
+    DeathAct.stitches => 'I punti del Dottore',
+    DeathAct.bible => 'La Bibbia nel taschino',
+    DeathAct.jam => 'La pistola inceppata',
+    DeathAct.banana => 'La buccia di banana',
+    DeathAct.blackCat => 'Il gatto nero',
   };
 
   @override

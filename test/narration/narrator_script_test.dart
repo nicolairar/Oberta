@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/narration/death_story.dart';
 import 'package:oberta/narration/italian_pack.dart';
+import 'package:oberta/narration/narration_pack.dart';
 import 'package:oberta/narration/narrator_script.dart';
 import 'package:oberta/narration/picker.dart';
 import 'package:oberta/rules/game_engine.dart';
@@ -133,9 +134,9 @@ void main() {
         ...italianPack.nights,
         ...italianPack.quietDawns,
         ...italianPack.secondVictims,
-        ...italianPack.sniperShots,
-        ...italianPack.rescues,
-        ...italianPack.shrugs,
+        ...italianPack.sniperShots.allLines,
+        ...italianPack.rescues.allLines,
+        ...italianPack.shrugs.allLines,
         for (final piece in italianPack.methods) piece.text,
         for (final piece in italianPack.epilogues) piece.text,
         ...italianPack.scoops,
@@ -166,7 +167,7 @@ void main() {
       expect(italianPack.shrugs.length, greaterThanOrEqualTo(3));
       expect(italianPack.silences.length, greaterThanOrEqualTo(3));
       final lines = [
-        ...italianPack.shrugs,
+        ...italianPack.shrugs.allLines,
         ...italianPack.silences,
         italianPack.silencedFact,
       ];
@@ -175,11 +176,22 @@ void main() {
       }
     });
 
-    test('il colpo andato a vuoto è una fiaschetta, e non dice chi ha la pelle dura', () {
-      for (final line in italianPack.shrugs) {
-        expect(line, contains('fiaschetta'), reason: 'in scena si vede quella');
+    test('il colpo andato a vuoto dice quello che si vede, e non dice chi ha la pelle dura', () {
+      final props = {
+        DeathStory.luckyId: RegExp('fiaschetta'),
+        DeathStory.bibleId: RegExp('Bibbia'),
+        DeathStory.jamId: RegExp('clic|incepp', caseSensitive: false),
+        DeathStory.bananaId: RegExp('banana'),
+        DeathStory.blackCatId: RegExp('gatto nero'),
+      };
+      expect(italianPack.shrugs.keys.toSet(), props.keys.toSet());
+      for (final MapEntry(key: id, value: lines) in italianPack.shrugs.entries) {
+        expect(lines, isNotEmpty, reason: id);
+        for (final line in lines) {
+          expect(line, contains(props[id]!), reason: 'in scena si vede quello: $line');
+        }
       }
-      final text = [...italianPack.shrugs, italianPack.shruggedFact].join(' ').toUpperCase();
+      final text = [...italianPack.shrugs.allLines, italianPack.shruggedFact].join(' ').toUpperCase();
       expect(text, isNot(contains('REDUCE')));
       expect(text, isNot(contains('DOTTORE')), reason: 'stavolta il Dottore non c\'entra');
       // Chi si salva resta anonimo: il fatto non fa nomi.
@@ -197,8 +209,8 @@ void main() {
         ...italianPack.nights,
         ...italianPack.quietDawns,
         ...italianPack.secondVictims,
-        ...italianPack.sniperShots,
-        ...italianPack.shrugs,
+        ...italianPack.sniperShots.allLines,
+        ...italianPack.shrugs.allLines,
         ...italianPack.silences,
         ...italianPack.voteCalls,
         ...italianPack.noLynch,
@@ -208,7 +220,7 @@ void main() {
       for (final label in labels) {
         expect(atmosphere, isNot(contains(label)), reason: label);
       }
-      expect(italianPack.rescues.join(' ').toLowerCase(), isNot(contains('becchino')));
+      expect(italianPack.rescues.allLines.join(' ').toLowerCase(), isNot(contains('becchino')));
     });
 
     test('chi deve tacere lo sa in modo chiaro: niente parole, ma resta in gioco', () {
@@ -227,7 +239,7 @@ void main() {
         italianPack.silencedFact,
         ...italianPack.firstNights,
         ...italianPack.nights,
-        ...italianPack.shrugs,
+        ...italianPack.shrugs.allLines,
         ...italianPack.silences,
         ...italianPack.taskPrompts.values,
         ...italianPack.taskHints.values,
@@ -262,31 +274,35 @@ void main() {
     test('il Cecchino e il Dottore hanno una scena loro, fuori dal mazzo', () {
       final picker = Picker(Random(6));
       final shot = DeathStory.sniper(picker, italianPack, chicago);
-      expect(shot.method.id, DeathStory.sniperId);
+      expect(DeathStory.sniperIds, contains(shot.method.id));
+      expect(italianPack.sniperShots[shot.method.id], contains(shot.method.text));
       expect(shot.survived, isFalse);
       expect(shot.fact, italianPack.victimFact);
       expect(shot.paragraphs, hasLength(3));
 
       final saved = DeathStory.rescue(picker, italianPack, chicago);
-      expect(saved.method.id, DeathStory.rescueId);
+      expect(DeathStory.rescueIds, contains(saved.method.id));
+      expect(italianPack.rescues[saved.method.id], contains(saved.method.text));
       expect(saved.survived, isTrue);
       expect(saved.fact, italianPack.savedFact);
       expect(saved.paragraphs, hasLength(2), reason: 'niente stacco finale: chiude il fatto');
 
       final lucky = DeathStory.lucky(picker, italianPack, chicago);
-      expect(lucky.method.id, DeathStory.luckyId);
+      expect(DeathStory.luckyIds, contains(lucky.method.id));
+      expect(italianPack.shrugs[lucky.method.id], contains(lucky.method.text));
       expect(lucky.survived, isTrue);
       expect(lucky.fact, italianPack.shruggedFact);
-      expect(italianPack.shrugs, contains(lucky.method.text));
+      expect(italianPack.shrugs.allLines, contains(lucky.method.text));
       expect(chicago.scenes, contains(lucky.scene));
       expect(lucky.paragraphs, hasLength(2), reason: 'niente stacco finale: chiude il fatto');
 
       final ids = italianPack.methods.map((piece) => piece.id);
-      expect(ids, isNot(contains(DeathStory.sniperId)));
-      expect(ids, isNot(contains(DeathStory.rescueId)));
-      expect(ids, isNot(contains(DeathStory.luckyId)));
-      expect({DeathStory.sniperId, DeathStory.rescueId, DeathStory.luckyId}, hasLength(3));
-      for (final line in [...italianPack.sniperShots, ...italianPack.rescues]) {
+      final variants = [...DeathStory.sniperIds, ...DeathStory.rescueIds, ...DeathStory.luckyIds];
+      for (final id in variants) {
+        expect(ids, isNot(contains(id)));
+      }
+      expect(variants.toSet(), hasLength(variants.length));
+      for (final line in [...italianPack.sniperShots.allLines, ...italianPack.rescues.allLines]) {
         expect(line, contains('{name}'), reason: line);
       }
     });
@@ -548,7 +564,8 @@ void main() {
         NightAttack(luca, AttackSource.sniper, AttackOutcome.killed),
       ]);
       final stories = script.stage(report);
-      expect(stories.map((story) => story.method.id), [DeathStory.rescueId, DeathStory.sniperId]);
+      expect(DeathStory.rescueIds, contains(stories[0].method.id));
+      expect(DeathStory.sniperIds, contains(stories[1].method.id));
 
       final lines = script.dawn(report, discussion: threeMinutes, stories: stories);
       final facts = factsOf(lines);
@@ -559,20 +576,25 @@ void main() {
       expect(textOf(lines), isNot(contains(italianPack.nobodyDied)));
     });
 
-    test('il colpo andato a vuoto: luogo, fiaschetta, e un fatto che non fa nomi di ruolo', () {
+    test('il colpo andato a vuoto: luogo, la variante, e un fatto che non fa nomi di ruolo', () {
       final script = scriptIn('palermo', 6);
       final roleNames = [for (final role in Role.values) italianPack.role(role).label.toUpperCase()];
       for (final source in AttackSource.values) {
         for (var i = 0; i < 30; i++) {
           final report = shrugged(sara, source: source);
           final stories = script.stage(report);
-          expect(stories.single.method.id, DeathStory.luckyId, reason: source.name);
+          final variant = stories.single.method.id;
+          expect(DeathStory.luckyIds, contains(variant), reason: source.name);
 
           final lines = script.dawn(report, discussion: threeMinutes, stories: stories);
           expect(lines, hasLength(4), reason: 'luogo, azione, fatto, istruzione');
           expect(lines[0].text, matches(RegExp('^(Esterno|Interno), notte')));
           expect(lines[1].text, isNot(contains('Sara')));
-          expect(lines[1].text, contains('fiaschetta'));
+          expect(
+            italianPack.shrugs[variant]!.map((line) => line.replaceAll('{name}', italianPack.someone).toLowerCase()),
+            contains(lines[1].text.toLowerCase()),
+            reason: 'il racconto è quello della variante che va in scena',
+          );
           expect(factsOf(lines).first,
               'Stanotte hanno sparato a qualcuno, ma il colpo è andato a vuoto. Chi fosse, resta un segreto.');
           final text = textOf(lines).toUpperCase();
@@ -592,14 +614,16 @@ void main() {
         NightAttack(sara, AttackSource.family, AttackOutcome.shrugged),
         NightAttack(luca, AttackSource.sniper, AttackOutcome.killed),
       ]);
-      expect(script.stage(report).map((story) => story.method.id), [DeathStory.luckyId, DeathStory.sniperId]);
+      final night = script.stage(report);
+      expect(DeathStory.luckyIds, contains(night[0].method.id));
+      expect(DeathStory.sniperIds, contains(night[1].method.id));
 
       const other = DawnReport(round: 3, attacks: [
         NightAttack(sara, AttackSource.sniper, AttackOutcome.healed),
         NightAttack(mario, AttackSource.family, AttackOutcome.killed),
       ]);
       final stories = script.stage(other);
-      expect(stories.first.method.id, DeathStory.rescueId);
+      expect(DeathStory.rescueIds, contains(stories.first.method.id));
       expect(italianPack.methods.map((piece) => piece.id), contains(stories.last.method.id));
     });
 

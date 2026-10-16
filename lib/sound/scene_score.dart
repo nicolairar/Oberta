@@ -364,6 +364,64 @@ class SceneScore {
           _footstep(at(0.675 + step * 0.012), 0.7);
         }
         tape.pluck(at(0.72), 1318.5, length: 1.4, gain: 0.25, brightness: 0.9, damping: 0.998);
+      case DeathAct.belfry:
+        _bell(at(0.40), 0.5);
+        _gunshot(hit, size: 0.8, tail: 0.5, tone: 2200);
+        _bell(hit, 1);
+        _bell(at(0.64), 0.7);
+        _thud(at(strike + 0.11));
+      case DeathAct.phoneBooth:
+        for (final ring in const [0.25, 0.29, 0.33]) {
+          tape.tone(at(ring), 0.35, 1400, gain: 0.08, partials: Tape.saw(3), vibrato: 0.04);
+        }
+        _knock(at(0.37), 1800, gain: 0.2);
+        _gunshot(hit, size: 0.9, tail: 0.5, tone: 2200);
+        _crash(hit, pieces: 18, low: 2500, high: 6500, spread: 0.25);
+        _thud(at(strike + 0.10));
+      case DeathAct.carDoor:
+        _knock(at(0.42), 1600, gain: 0.25);
+        _creak(at(0.44), 0.5);
+        _gunshot(hit, size: 0.9, tail: 0.5, tone: 2200);
+        _gunshot(hit + 0.33, size: 0.25, tail: 0.5, tone: 1100);
+        _thud(at(strike + 0.11));
+      case DeathAct.defibrillator || DeathAct.pliers || DeathAct.ambulance || DeathAct.stitches:
+        _gunshot(hit);
+        _thud(at(strike + 0.07));
+        for (var step = 0; step < 6; step++) {
+          _footstep(at(0.60 + step * 0.011), 0.8);
+        }
+        if (act == DeathAct.defibrillator) {
+          _buzz(at(0.69), at(0.728) - at(0.69));
+          _knock(at(0.735), 120, gain: 0.5);
+          _knock(at(0.77), 120, gain: 0.6);
+        }
+        if (act == DeathAct.pliers) _clang(at(0.787), 2400, gain: 0.15);
+        if (act == DeathAct.ambulance) {
+          tape.tone(at(0.56), at(0.80) - at(0.56), 700, to: 950, gain: 0.08, partials: Tape.saw(4), vibrato: 0.12);
+        }
+        if (act == DeathAct.stitches) _knock(at(0.785), 2600, gain: 0.15);
+        for (final (i, beat) in const [0.782, 0.80, 0.82].indexed) {
+          _heartbeat(at(beat), 0.8 + i * 0.15);
+        }
+      case DeathAct.bible:
+        _gunshot(hit, size: 0.9);
+        _knock(hit + 0.01, 300, gain: 0.4);
+        _bell(at(0.75), 0.5);
+      case DeathAct.jam:
+        _knock(hit, 2200, gain: 0.45);
+        _knock(at(0.585), 2200, gain: 0.45);
+        _knock(at(0.635), 2200, gain: 0.3);
+        for (var step = 0; step < 6; step++) {
+          _footstep(at(0.66 + step * 0.01), 0.7);
+        }
+      case DeathAct.banana:
+        _whistle(at(0.525), 0.4, 600, 1600, gain: 0.12);
+        _gunshot(hit, size: 0.8);
+        _thud(at(0.578), weight: 1.3);
+      case DeathAct.blackCat:
+        _scuffle(at(0.545), 3);
+        _gunshot(hit, size: 0.8);
+        _clang(at(0.63), 600, gain: 0.15);
     }
   }
 

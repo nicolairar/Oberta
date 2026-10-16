@@ -16,6 +16,7 @@ import 'particle_sprites.dart';
 import 'victim_card.dart';
 import '../press.dart';
 
+part 'death_scenes_saves.dart';
 part 'death_scenes_family.dart';
 
 /// Le coreografie disponibili per quello che succede di notte.
@@ -55,10 +56,36 @@ enum DeathAct {
   rescue,
 
   /// Un agguato andato a vuoto: il colpo si ferma su qualcosa.
-  lucky;
+  lucky,
+
+  // Le altre varianti del Cecchino, del Dottore e del colpo a vuoto: i
+  // filmati stanno in death_scenes_saves.dart.
+  belfry,
+  phoneBooth,
+  carDoor,
+  defibrillator,
+  pliers,
+  ambulance,
+  stitches,
+  bible,
+  jam,
+  banana,
+  blackCat;
+
+  /// Le scene in cui arriva il Dottore e rimette in piedi chi era a terra.
+  bool get doctorSaves => switch (this) {
+    rescue || defibrillator || pliers || ambulance || stitches => true,
+    _ => false,
+  };
+
+  /// Le scene in cui chi era nel mirino se la cava da solo.
+  bool get luckyEscape => switch (this) {
+    lucky || bible || jam || banana || blackCat => true,
+    _ => false,
+  };
 
   /// Le scene da cui chi era stato preso di mira esce sulle sue gambe.
-  bool get survives => this == rescue || this == lucky;
+  bool get survives => doctorSaves || luckyEscape;
 }
 
 /// La coreografia che mette in scena un'azione del copione. Un'azione senza
@@ -94,6 +121,17 @@ DeathAct deathActFor(String methodId) => switch (methodId) {
   DeathStory.sniperId => DeathAct.sniper,
   DeathStory.rescueId => DeathAct.rescue,
   DeathStory.luckyId => DeathAct.lucky,
+  DeathStory.belfryId => DeathAct.belfry,
+  DeathStory.phoneBoothId => DeathAct.phoneBooth,
+  DeathStory.carDoorId => DeathAct.carDoor,
+  DeathStory.defibrillatorId => DeathAct.defibrillator,
+  DeathStory.pliersId => DeathAct.pliers,
+  DeathStory.ambulanceId => DeathAct.ambulance,
+  DeathStory.stitchesId => DeathAct.stitches,
+  DeathStory.bibleId => DeathAct.bible,
+  DeathStory.jamId => DeathAct.jam,
+  DeathStory.bananaId => DeathAct.banana,
+  DeathStory.blackCatId => DeathAct.blackCat,
   _ => DeathAct.knife,
 };
 
@@ -482,7 +520,11 @@ class DeathScenePainter extends CustomPainter {
   double get _hiddenX => _cornerX + _u * 0.75;
   double get _peekX => _cornerX + _u * 0.17;
 
-  bool get _hasWall => act != DeathAct.car;
+  bool get _hasWall => switch (act) {
+    DeathAct.car || DeathAct.belfry || DeathAct.carDoor => false,
+    DeathAct.banana => false,
+    _ => true,
+  };
 
   bool get _shakes => switch (act) {
     DeathAct.car ||
@@ -505,6 +547,11 @@ class DeathScenePainter extends CustomPainter {
     DeathAct.garrote => true,
     DeathAct.pot || DeathAct.blackout || DeathAct.kiss => true,
     DeathAct.sniper || DeathAct.rescue => true,
+    DeathAct.belfry || DeathAct.carDoor => true,
+    DeathAct.defibrillator ||
+    DeathAct.pliers ||
+    DeathAct.ambulance ||
+    DeathAct.stitches => true,
     DeathAct.bowling || DeathAct.swordfish || DeathAct.trombone => true,
     DeathAct.tango || DeathAct.bouquet => true,
     _ => false,
@@ -518,6 +565,7 @@ class DeathScenePainter extends CustomPainter {
     DeathAct.noose ||
     DeathAct.pot ||
     DeathAct.manhole => false,
+    DeathAct.phoneBooth || DeathAct.carDoor => false,
     DeathAct.laundry => false,
     _ => true,
   };
@@ -529,6 +577,13 @@ class DeathScenePainter extends CustomPainter {
     DeathAct.gun || DeathAct.burst => 0.36,
     DeathAct.lupara => 0.42,
     DeathAct.rescue || DeathAct.lucky => 0.36,
+    DeathAct.defibrillator ||
+    DeathAct.pliers ||
+    DeathAct.ambulance ||
+    DeathAct.stitches => 0.36,
+    DeathAct.bible || DeathAct.jam || DeathAct.blackCat => 0.36,
+    DeathAct.banana => 0.20,
+    DeathAct.carDoor => 0.40,
     DeathAct.driveBy => 0.43,
     DeathAct.bowling || DeathAct.pie => 0.40,
     DeathAct.swordfish || DeathAct.harpoon || DeathAct.trombone => 0.30,
@@ -627,6 +682,28 @@ class DeathScenePainter extends CustomPainter {
         _rescue(canvas);
       case DeathAct.lucky:
         _lucky(canvas);
+      case DeathAct.belfry:
+        _belfry(canvas);
+      case DeathAct.phoneBooth:
+        _phoneBooth(canvas);
+      case DeathAct.carDoor:
+        _carDoor(canvas);
+      case DeathAct.defibrillator:
+        _defibrillator(canvas);
+      case DeathAct.pliers:
+        _pliers(canvas);
+      case DeathAct.ambulance:
+        _ambulance(canvas);
+      case DeathAct.stitches:
+        _stitches(canvas);
+      case DeathAct.bible:
+        _bible(canvas);
+      case DeathAct.jam:
+        _jam(canvas);
+      case DeathAct.banana:
+        _banana(canvas);
+      case DeathAct.blackCat:
+        _blackCat(canvas);
     }
     if (!act.survives) _aftermath(canvas);
     _sfx(canvas);
@@ -670,7 +747,7 @@ class DeathScenePainter extends CustomPainter {
     final push = _smooth(_span(t, 0.30, 0.54));
     // Quando arriva il Dottore la cinepresa si allarga prima, e di più: deve
     // starci anche lui.
-    final rescue = act == DeathAct.rescue;
+    final rescue = act.doctorSaves;
     final settle = _smooth(
       _span(
         t,
@@ -678,7 +755,7 @@ class DeathScenePainter extends CustomPainter {
         strike + (rescue ? 0.14 : 0.28),
       ),
     );
-    final zoom = 1 + 0.22 * push - (rescue ? 0.17 : 0.08) * settle;
+    final zoom = 1 + 0.22 * push - (rescue ? _rescueWiden : 0.08) * settle;
     var focus = _mix(
       _w / 2,
       _mix(_victimX, _cornerX, _fromCorner ? 0.28 : 0.0),
@@ -686,7 +763,7 @@ class DeathScenePainter extends CustomPainter {
     );
     focus = _mix(
       focus,
-      _victimX - (_fallsLeft ? _u * (rescue ? 0.50 : 0.34) : 0),
+      _victimX - (_fallsLeft ? _u * (rescue ? _rescueShift : 0.34) : 0) + _u * _settleNudge,
       settle,
     );
     final horizon = _ground - _u * 0.45;
@@ -6815,6 +6892,17 @@ class DeathScenePainter extends CustomPainter {
       DeathAct.sniper => ('PAM!', strike, 0.12),
       DeathAct.rescue => ('BANG!', strike, 0.10),
       DeathAct.lucky => ('DING!', strike, 0.12),
+      DeathAct.belfry => ('DONG!', strike, 0.14),
+      DeathAct.phoneBooth => ('KRAK!', strike, 0.12),
+      DeathAct.carDoor => ('PAM!', strike, 0.12),
+      DeathAct.defibrillator ||
+      DeathAct.pliers ||
+      DeathAct.ambulance ||
+      DeathAct.stitches => ('BANG!', strike, 0.10),
+      DeathAct.bible => ('THUNK!', strike, 0.12),
+      DeathAct.jam => ('CLICK!', strike, 0.07),
+      DeathAct.banana => ('SLIP!', 0.525, 0.07),
+      DeathAct.blackCat => ('MRAOW!', 0.545, 0.08),
     };
     _word(
       canvas,
@@ -6827,6 +6915,7 @@ class DeathScenePainter extends CustomPainter {
     if (act == DeathAct.rescue) {
       _word(canvas, 'TU-TUM!', 0.765, 0.09, const Color(0xFF8BE0A4));
     }
+    _savesSfx(canvas);
   }
 
   void _word(

@@ -71,6 +71,7 @@ Meme? strikeMeme(DeathAct act) => switch (act) {
       DeathAct.kiss => _one(const [Meme.rizz, Meme.heeHee]),
       DeathAct.rescue => Meme.applePay,
       DeathAct.lucky => null,
+      _ when act.survives => null,
       _ => _dice.nextDouble() < 0.8 ? _one(const [Meme.knocked, Meme.knocked, Meme.vineBoom]) : null,
     };
 
@@ -79,6 +80,7 @@ Meme? reactionMeme(DeathAct act) => switch (act) {
       DeathAct.kiss => _one(const [Meme.animeAhh, Meme.animeGirl]),
       DeathAct.manhole => Meme.lutador,
       DeathAct.rescue || DeathAct.lucky => null,
+      _ when act.survives => null,
       _ => _dice.nextDouble() < 0.9 ? Meme.faaah : null,
     };
 

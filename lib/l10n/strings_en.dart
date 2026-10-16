@@ -345,6 +345,17 @@ final class EnglishStrings extends AppStrings {
     DeathAct.sniper => 'The Sniper',
     DeathAct.rescue => 'The Doc arrives in time',
     DeathAct.lucky => 'The flask',
+    DeathAct.belfry => 'The Sniper in the bell tower',
+    DeathAct.phoneBooth => 'The Sniper and the phone booth',
+    DeathAct.carDoor => 'The Sniper and the open car door',
+    DeathAct.defibrillator => 'The Doc and the paddles',
+    DeathAct.pliers => 'The Doc and the pliers',
+    DeathAct.ambulance => 'The ambulance',
+    DeathAct.stitches => 'The Doc\'s stitches',
+    DeathAct.bible => 'The pocket Bible',
+    DeathAct.jam => 'The jammed gun',
+    DeathAct.banana => 'The banana peel',
+    DeathAct.blackCat => 'The black cat',
   };
 
   @override

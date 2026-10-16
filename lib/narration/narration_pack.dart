@@ -10,6 +10,13 @@ class StoryPiece {
   const StoryPiece(this.id, this.text);
 }
 
+/// Le battute di una scena divise per variante: l'id della variante, e le
+/// frasi che la raccontano.
+extension VariantLines on Map<String, List<String>> {
+  /// Tutte le battute, di qualunque variante.
+  List<String> get allLines => [for (final lines in values) ...lines];
+}
+
 /// Come si presenta un ruolo in una lingua: il nome di scena, la frase che
 /// il personaggio direbbe di sé, e cosa fa, in una riga o due.
 class RoleText {
@@ -70,9 +77,12 @@ class NarrationPack {
   final String victimFact;
 
   /// Quello che succede quando a sparare è il Cecchino, e quando il Dottore
-  /// arriva in tempo. Nominano sempre la persona presa di mira.
-  final List<String> sniperShots;
-  final List<String> rescues;
+  /// arriva in tempo. Nominano sempre la persona presa di mira. Ogni scena
+  /// ha più varianti (il campanile, la cabina, l'ambulanza...), ognuna col
+  /// suo filmato: le battute stanno sotto l'id della variante, così il
+  /// racconto dice sempre quello che si vede.
+  final Map<String, List<String>> sniperShots;
+  final Map<String, List<String>> rescues;
 
   /// Come si chiama, nel racconto, chi si è salvato: nessuno deve sapere chi
   /// fosse, quindi è solo "qualcuno".
@@ -80,8 +90,9 @@ class NarrationPack {
   final String savedFact;
 
   /// Il colpo che non va a segno perché chi era nel mirino ha la pelle
-  /// dura: si ferma sulla fiaschetta nel taschino. Il fatto non dice perché.
-  final List<String> shrugs;
+  /// dura: si ferma sulla fiaschetta nel taschino, la pistola s'inceppa, il
+  /// killer scivola. Anche qui, battute per variante. Il fatto non dice perché.
+  final Map<String, List<String>> shrugs;
   final String shruggedFact;
 
   /// Gli strati di una morte notturna che non dipendono dalla città:

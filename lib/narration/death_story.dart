@@ -12,6 +12,27 @@ class DeathStory {
   static const rescueId = 'dottore';
   static const luckyId = 'fiaschetta';
 
+  /// Le varianti del colpo del Cecchino: ognuna ha il suo filmato e le sue
+  /// battute, e l'id dice quale.
+  static const belfryId = 'cecchino-campanile';
+  static const phoneBoothId = 'cecchino-cabina';
+  static const carDoorId = 'cecchino-auto';
+  static const sniperIds = [sniperId, belfryId, phoneBoothId, carDoorId];
+
+  /// Le varianti del Dottore che arriva in tempo.
+  static const defibrillatorId = 'dottore-defibrillatore';
+  static const pliersId = 'dottore-pinze';
+  static const ambulanceId = 'dottore-ambulanza';
+  static const stitchesId = 'dottore-punti';
+  static const rescueIds = [rescueId, defibrillatorId, pliersId, ambulanceId, stitchesId];
+
+  /// Le varianti del colpo andato a vuoto da solo.
+  static const bibleId = 'bibbia';
+  static const jamId = 'inceppata';
+  static const bananaId = 'banana';
+  static const blackCatId = 'gatto-nero';
+  static const luckyIds = [luckyId, bibleId, jamId, bananaId, blackCatId];
+
   final StoryPiece scene;
   final StoryPiece method;
 
@@ -40,7 +61,7 @@ class DeathStory {
   /// Il colpo del Cecchino: stessa città, stesso finale, un'azione tutta sua.
   factory DeathStory.sniper(Picker picker, NarrationPack pack, CitySetting city) => DeathStory(
         scene: picker.pick('death.scene', city.scenes),
-        method: StoryPiece(sniperId, picker.pick('death.sniper', pack.sniperShots)),
+        method: _variant(picker, 'death.sniper', pack.sniperShots),
         epilogue: picker.pick('death.epilogue', pack.epilogues),
         fact: pack.victimFact,
       );
@@ -48,7 +69,7 @@ class DeathStory {
   /// L'agguato andato a vuoto perché il Dottore è arrivato in tempo.
   factory DeathStory.rescue(Picker picker, NarrationPack pack, CitySetting city) => DeathStory(
         scene: picker.pick('death.scene', city.scenes),
-        method: StoryPiece(rescueId, picker.pick('death.rescue', pack.rescues)),
+        method: _variant(picker, 'death.rescue', pack.rescues),
         epilogue: null,
         fact: pack.savedFact,
       );
@@ -57,10 +78,19 @@ class DeathStory {
   /// mirino ha la pelle dura e resta in piedi.
   factory DeathStory.lucky(Picker picker, NarrationPack pack, CitySetting city) => DeathStory(
         scene: picker.pick('death.scene', city.scenes),
-        method: StoryPiece(luckyId, picker.pick('death.lucky', pack.shrugs)),
+        method: _variant(picker, 'death.lucky', pack.shrugs),
         epilogue: null,
         fact: pack.shruggedFact,
       );
+
+  /// Prima si sorteggia la variante (il filmato), poi una delle sue battute:
+  /// l'id del pezzo è quello della variante, così film, suoni e racconto
+  /// mettono in scena la stessa cosa. Le varianti pesano tutte uguale, anche
+  /// quelle con meno battute, e la stessa non torna subito.
+  static StoryPiece _variant(Picker picker, String pool, Map<String, List<String>> lines) {
+    final id = picker.pick('$pool.variant', lines.keys.toList());
+    return StoryPiece(id, picker.pick('$pool.$id', lines[id]!));
+  }
 
   /// Vero se chi era nel mirino è ancora in gioco.
   bool get survived => epilogue == null;
