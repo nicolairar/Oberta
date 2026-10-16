@@ -127,6 +127,13 @@ class _DealTableState extends State<DealTable> with SingleTickerProviderStateMix
   }
 }
 
+/// Il legno e il panno del tavolo da poker: lo stesso nella sala delle carte
+/// e intorno al quale si sceglie in partita.
+abstract final class PokerFelt {
+  static const wood = [Color(0xFF7A4A24), Color(0xFF3F2412), Color(0xFF5C3519)];
+  static const felt = [Color(0xFF2F8059), Color(0xFF1B5239), Color(0xFF0D2C1F)];
+}
+
 class _TablePainter extends CustomPainter {
   final Rect table;
 
@@ -147,7 +154,7 @@ class _TablePainter extends CustomPainter {
         ..shader = const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF7A4A24), Color(0xFF3F2412), Color(0xFF5C3519)],
+          colors: PokerFelt.wood,
         ).createShader(table.inflate(rim)),
     );
     canvas.drawOval(
@@ -156,7 +163,7 @@ class _TablePainter extends CustomPainter {
         ..shader = const RadialGradient(
           center: Alignment(0, -0.25),
           radius: 0.9,
-          colors: [Color(0xFF2F8059), Color(0xFF1B5239), Color(0xFF0D2C1F)],
+          colors: PokerFelt.felt,
           stops: [0, 0.6, 1],
         ).createShader(table),
     );

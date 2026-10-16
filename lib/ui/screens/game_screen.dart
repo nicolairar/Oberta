@@ -619,6 +619,7 @@ class _GameScreenState extends State<GameScreen> {
             selectable: task.targets,
             selected: selected,
             onSelect: (player) => setState(() => _selected = player),
+            shuffled: true,
           ),
         ),
         const SizedBox(height: 12),

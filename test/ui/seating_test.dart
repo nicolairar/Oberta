@@ -9,6 +9,7 @@ import 'package:oberta/rules/role_assignment.dart';
 import 'package:oberta/ui/screens/game_screen.dart';
 import 'package:oberta/ui/seating.dart';
 import 'package:oberta/ui/theme/app_theme.dart';
+import 'package:oberta/ui/widgets/player_avatar.dart';
 import 'package:oberta/ui/widgets/player_grid.dart';
 
 List<Player> _players(int count) => [for (var i = 0; i < count; i++) Player(id: 'p$i', name: 'Giocatore${16 - i}')];
@@ -117,7 +118,7 @@ void main() {
     expect(table(), orderedEquals(public), reason: 'al voto, lo stesso tavolo del giorno');
   });
 
-  testWidgets('la carta scelta si raddrizza, si accende e si alza sopra le altre', (tester) async {
+  testWidgets('chi viene scelto si alza dalla sedia, sopra tutti, col timbro', (tester) async {
     tester.view.physicalSize = const Size(375, 667) * 3;
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -147,13 +148,128 @@ void main() {
     await tester.pumpAndSettle();
     expect(selected, players[3]);
     expect(find.text('IMPUTATO'), findsOneWidget);
-    final rotation = tester.widget<AnimatedRotation>(
-      find.ancestor(of: find.text(players[3].name), matching: find.byType(AnimatedRotation)),
+    final stack = tester.widget<Stack>(
+      find.descendant(of: find.byType(PlayerGrid), matching: find.byType(Stack)).first,
     );
-    expect(rotation.turns, 0);
+    expect(stack.children.last.key, ValueKey(players[3].id), reason: 'il prescelto sta sopra gli altri');
     await tester.tap(find.text(players[5].name), warnIfMissed: false);
     await tester.pumpAndSettle();
     expect(selected, players[3], reason: 'i morti non si scelgono');
     expect(tester.takeException(), isNull);
+  });
+
+  group('il tavolo da poker', () {
+    const phones = [Size(327, 300), Size(327, 420), Size(345, 560), Size(382, 640)];
+
+    test('da quattro a sedici, tutti ci stanno senza coprirsi, e ogni posto si tocca bene', () {
+      for (final space in phones) {
+        for (var count = 4; count <= maxRolePlayers; count++) {
+          final layout = PokerTableLayout.fit(count, space);
+          final boxes = [for (final seat in layout.seats) PokerTableLayout.footprint(seat.portrait, seat.size)];
+          final why = '$count posti in $space';
+          expect(boxes, hasLength(count), reason: why);
+          for (final (i, box) in boxes.indexed) {
+            expect(box.width, greaterThanOrEqualTo(44), reason: why);
+            expect(box.height, greaterThanOrEqualTo(44), reason: why);
+            expect((Offset.zero & space).inflate(0.5).contains(box.topLeft), isTrue, reason: '$why: $i esce');
+            expect((Offset.zero & space).inflate(0.5).contains(box.bottomRight), isTrue, reason: '$why: $i esce');
+            for (final other in boxes.skip(i + 1)) {
+              final overlap = box.intersect(other);
+              expect(overlap.width <= 1 || overlap.height <= 1, isTrue, reason: '$why: $i si sovrappone');
+            }
+          }
+        }
+      }
+    });
+
+    test('chi siede davanti è più grande di chi siede in fondo', () {
+      final layout = PokerTableLayout.fit(8, const Size(327, 420));
+      final back = layout.seats.first, front = layout.seats[4];
+      expect(back.depth, lessThan(front.depth));
+      expect(back.size, lessThan(front.size));
+      expect(back.portrait.dy, lessThan(front.portrait.dy));
+    });
+
+    testWidgets('i posti non dipendono da chi ci siede', (tester) async {
+      tester.view.physicalSize = const Size(375, 667) * 3;
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.reset);
+      tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
+      addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+      final players = _players(8);
+      Future<Map<int, Offset>> seats(List<Player> order) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: buildAppTheme(),
+            home: Scaffold(
+              body: PlayerGrid(
+                players: order,
+                isAlive: (_) => true,
+                knowledgeOf: (_) => Knowledge.none,
+                selectable: order,
+                shuffled: true,
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+        return {for (final (i, p) in order.indexed) i: tester.getTopLeft(find.text(p.name))};
+      }
+
+      final first = await seats(players);
+      final second = await seats(players.reversed.toList());
+      for (var i = 0; i < players.length; i++) {
+        expect((first[i]! - second[i]!).dx.abs(), lessThan(40), reason: 'il posto $i resta dov\'è');
+      }
+      expect(tester.hasRunningAnimations, isFalse, reason: 'senza animazioni nessuno cammina');
+    });
+
+    testWidgets('al tavolo segreto i giocatori cambiano sedia, poi si fermano', (tester) async {
+      tester.view.physicalSize = const Size(375, 667) * 3;
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.reset);
+      final players = _players(6);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildAppTheme(),
+          home: Scaffold(
+            body: PlayerGrid(
+              players: players,
+              isAlive: (_) => true,
+              knowledgeOf: (_) => Knowledge.none,
+              selectable: players,
+              shuffled: true,
+            ),
+          ),
+        ),
+      );
+      final start = tester.getCenter(find.text(players[0].name));
+      await tester.pump(const Duration(milliseconds: 500));
+      final walking = tester.getCenter(find.text(players[0].name));
+      await tester.pumpAndSettle();
+      final seated = tester.getCenter(find.text(players[0].name));
+      expect((start - seated).distance, greaterThan(50), reason: 'arriva da un\'altra sedia');
+      expect((walking - seated).distance, greaterThan(1));
+      expect(tester.hasRunningAnimations, isFalse);
+    });
+
+    testWidgets('chi non c\'è più lascia la sedia vuota, col pugnale', (tester) async {
+      tester.view.physicalSize = const Size(375, 667) * 3;
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.reset);
+      final players = _players(5);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildAppTheme(),
+          home: Scaffold(
+            body: PlayerGrid(players: players, isAlive: (p) => p != players[2], knowledgeOf: (_) => Knowledge.none),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(PlayerAvatar), findsNWidgets(4), reason: 'la sedia del morto è vuota');
+      expect(find.text(PlayerAvatar.dagger), findsOneWidget);
+      expect(find.text(players[2].name), findsOneWidget, reason: 'la targhetta resta');
+    });
   });
 }
