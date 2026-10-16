@@ -1,8 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../../../l10n/app_strings.dart';
+import '../../../l10n/online_strings.dart';
 import '../../../online/online_services.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/noir_avatar.dart';
@@ -11,6 +13,9 @@ import 'friends_screen.dart';
 import 'join_room_screen.dart';
 import 'online_room_screen.dart';
 import 'online_widgets.dart';
+import 'sign_in_sheet.dart';
+
+enum _HandleCheck { idle, invalid, checking, free, taken }
 
 /// Il portone del gioco online, dal manifesto «Gioca con amici». Chi non è
 /// entrato trova l'ingresso con Apple o Google; chi è entrato la prima
@@ -142,77 +147,42 @@ class _Retry extends StatelessWidget {
       );
 }
 
-/// L'ingresso: Apple, Google, e nient'altro.
-class _Login extends StatefulWidget {
+/// L'ingresso: Apple, Google, e nient'altro (più l'account di prova, nascosto).
+class _Login extends StatelessWidget {
   final OnlineAuth auth;
 
   const _Login({required this.auth});
 
   @override
-  State<_Login> createState() => _LoginState();
+  Widget build(BuildContext context) => OnlineBody(
+        children: [
+          const SizedBox(height: 24),
+          const Center(child: NoirAvatar.drawn(seed: '?', size: 96)),
+          const SizedBox(height: 20),
+          OnlinePanel(child: SignInPanel(auth: auth, sheet: false)),
+        ],
+      );
 }
 
-class _LoginState extends State<_Login> {
-  bool _busy = false;
+/// Il profilo da preparare, da solo su una pagina: ci si arriva dal vicolo
+/// subito dopo il primo accesso (o quando il vecchio nome unico non vale
+/// più). Torna il profilo salvato.
+class ProfileSetupScreen extends StatelessWidget {
+  final OnlineServices services;
+  final Profile profile;
 
-  Future<void> _signIn(Future<void> Function() method) async {
-    if (_busy) return;
-    HapticFeedback.selectionClick();
-    setState(() => _busy = true);
-    try {
-      await method();
-    } on OnlineException catch (error) {
-      if (mounted && error.failure != OnlineFailure.cancelled) showFailure(context, error);
-    } catch (error) {
-      if (mounted) showFailure(context, error);
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
+  const ProfileSetupScreen({super.key, required this.services, required this.profile});
 
   @override
-  Widget build(BuildContext context) {
-    final t = AppStrings.of(context).online;
-    final auth = widget.auth;
-    return OnlineBody(
-      children: [
-        const SizedBox(height: 24),
-        const Center(child: NoirAvatar.drawn(seed: '?', size: 96)),
-        const SizedBox(height: 20),
-        OnlinePanel(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(t.loginBody, textAlign: TextAlign.center, style: AppText.body),
-              const SizedBox(height: 20),
-              if (auth.appleAvailable)
-                SignInWithAppleButton(
-                  text: t.loginApple,
-                  height: 50,
-                  style: SignInWithAppleButtonStyle.white,
-                  borderRadius: const BorderRadius.all(Radius.circular(14)),
-                  onPressed: _busy ? () {} : () => _signIn(auth.signInWithApple),
-                ),
-              // TODO(google): il pulsante segue le regole di Google; oggi è
-              // un pulsante del gioco con la «G», da rivedere col logo ufficiale.
-              if (auth.googleAvailable) ...[
-                if (auth.appleAvailable) const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: _busy ? null : () => _signIn(auth.signInWithGoogle),
-                  icon: const Text('G', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
-                  label: Text(t.loginGoogle),
-                ),
-              ],
-              if (!auth.appleAvailable && !auth.googleAvailable)
-                Text(t.loginNoProvider, textAlign: TextAlign.center, style: AppText.body),
-              const SizedBox(height: 16),
-              Text(t.loginPrivacy, textAlign: TextAlign.center, style: AppText.body.copyWith(fontSize: 12)),
-            ],
-          ),
+  Widget build(BuildContext context) => SceneScaffold(
+        resizeForKeyboard: false,
+        appBar: AppBar(title: Text(AppStrings.of(context).online.setupTitle)),
+        body: ProfileSetup(
+          services: services,
+          profile: profile,
+          onSaved: (profile) => Navigator.of(context).pop(profile),
         ),
-      ],
-    );
-  }
+      );
 }
 
 /// Il profilo da preparare la prima volta: nome unico e nome da mostrare.
@@ -236,19 +206,71 @@ class _ProfileSetupState extends State<ProfileSetup> {
   String? _nameError;
   bool _busy = false;
 
+  /// Il controllo dal vivo del nome unico, mentre lo si scrive.
+  _HandleCheck _check = _HandleCheck.idle;
+  Timer? _debounce;
+  int _asked = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _handle.addListener(_typed);
+    if (_handle.text.isNotEmpty) _typed();
+  }
+
   @override
   void dispose() {
+    _debounce?.cancel();
     _handle.dispose();
     _name.dispose();
     super.dispose();
   }
 
+  String _lastTyped = '';
+
+  /// A ogni lettera si aspetta un attimo, poi si chiede al server se il nome
+  /// è libero. Risponde solo l'ultima domanda: le vecchie si buttano.
+  void _typed() {
+    final handle = Profile.normalizeHandle(_handle.text);
+    if (handle == _lastTyped) return;
+    _lastTyped = handle;
+    _debounce?.cancel();
+    final ask = ++_asked;
+    setState(() {
+      _handleError = null;
+      _check = handle.isEmpty
+          ? _HandleCheck.idle
+          : Profile.handlePattern.hasMatch(handle)
+              ? _HandleCheck.checking
+              : _HandleCheck.invalid;
+    });
+    if (_check != _HandleCheck.checking) return;
+    _debounce = Timer(const Duration(milliseconds: 350), () async {
+      bool? free;
+      try {
+        free = await widget.services.profiles.handleAvailable(handle);
+      } catch (error) {
+        debugPrint('Controllo del nome non riuscito: $error');
+      }
+      if (!mounted || ask != _asked) return;
+      setState(() => _check = switch (free) {
+            true => _HandleCheck.free,
+            false => _HandleCheck.taken,
+            null => _HandleCheck.idle,
+          });
+    });
+  }
+
   Future<void> _save() async {
     final t = AppStrings.of(context);
-    final handle = _handle.text.trim().toLowerCase();
+    final handle = Profile.normalizeHandle(_handle.text);
     final name = _name.text.trim();
     setState(() {
-      _handleError = Profile.handlePattern.hasMatch(handle) ? null : t.online.handleInvalid;
+      _handleError = !Profile.handlePattern.hasMatch(handle)
+          ? t.online.handleInvalid
+          : _check == _HandleCheck.taken
+              ? t.online.failure(OnlineFailure.handleTaken)
+              : null;
       _nameError = name.isEmpty || name.length > Profile.maxDisplayName ? t.online.nameInvalid : null;
     });
     if (_handleError != null || _nameError != null) return;
@@ -259,7 +281,12 @@ class _ProfileSetupState extends State<ProfileSetup> {
     } on OnlineException catch (error) {
       if (!mounted) return;
       if (error.failure == OnlineFailure.handleTaken) {
-        setState(() => _handleError = t.online.failure(error.failure));
+        setState(() {
+          _check = _HandleCheck.taken;
+          _handleError = t.online.failure(error.failure);
+        });
+      } else if (error.failure == OnlineFailure.invalidHandle) {
+        setState(() => _handleError = t.online.handleInvalid);
       } else {
         showFailure(context, error);
       }
@@ -267,6 +294,15 @@ class _ProfileSetupState extends State<ProfileSetup> {
       if (mounted) setState(() => _busy = false);
     }
   }
+
+  /// La riga sotto il nome unico: che regole ha, e se è libero.
+  (String?, Color) _handleHelper(OnlineStrings t) => switch (_check) {
+        _HandleCheck.idle => (t.handleInvalid, AppColors.textSecondary),
+        _HandleCheck.invalid => (t.handleInvalid, AppColors.accent),
+        _HandleCheck.checking => (t.handleChecking, AppColors.textSecondary),
+        _HandleCheck.free => (t.handleFree, const Color(0xFF7FB77E)),
+        _HandleCheck.taken => (t.failure(OnlineFailure.handleTaken), AppColors.accent),
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -292,9 +328,10 @@ class _ProfileSetupState extends State<ProfileSetup> {
                 controller: _handle,
                 autocorrect: false,
                 enableSuggestions: false,
-                maxLength: 20,
+                maxLength: Profile.maxHandle,
+                // Solo lettere: niente cifre, spazi, segni o trattini bassi.
                 inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp('[a-zA-Z0-9_]')),
+                  FilteringTextInputFormatter.allow(RegExp('[a-zA-Z]')),
                   TextInputFormatter.withFunction(
                     (old, value) => value.copyWith(text: value.text.toLowerCase()),
                   ),
@@ -304,6 +341,21 @@ class _ProfileSetupState extends State<ProfileSetup> {
                   hintText: t.handleHint,
                   prefixText: '@',
                   errorText: _handleError,
+                  helperText: _handleHelper(t).$1,
+                  helperMaxLines: 2,
+                  helperStyle: TextStyle(color: _handleHelper(t).$2, fontSize: 12),
+                  suffixIcon: switch (_check) {
+                    _HandleCheck.checking => const Padding(
+                        padding: EdgeInsets.all(14),
+                        child: SizedBox.square(
+                          dimension: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.gold),
+                        ),
+                      ),
+                    _HandleCheck.free => const Icon(Icons.check_circle, color: Color(0xFF7FB77E)),
+                    _HandleCheck.taken || _HandleCheck.invalid => const Icon(Icons.cancel, color: AppColors.accent),
+                    _HandleCheck.idle => null,
+                  },
                 ),
               ),
               const SizedBox(height: 8),

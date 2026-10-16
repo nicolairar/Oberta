@@ -27,6 +27,12 @@ class HomeAlleyLayout {
   /// La targa con il nome del vicolo, in alto a sinistra.
   late final Rect plaque;
 
+  /// La targhetta «Accedi», accanto all'ingranaggio, per chi non è entrato.
+  late final Rect signIn;
+
+  /// Il cartellino di chi è entrato, in alto a sinistra al posto della targa.
+  late final Rect badge;
+
   /// Il riquadro delle lettere al neon (accento compreso) e la loro altezza.
   late final Rect sign;
   late final double cap;
@@ -59,6 +65,9 @@ class HomeAlleyLayout {
 
     slot = Rect.fromLTWH(w - 62, top + 4, 50, 50);
     plaque = Rect.fromLTWH(18, top + 12, min(138, w * 0.36), 34);
+    final signInWidth = min(112.0, slot.left - 8 - plaque.right - 12);
+    signIn = Rect.fromLTWH(slot.left - 8 - signInWidth, slot.center.dy - 17, signInWidth, 34);
+    badge = Rect.fromLTWH(12, top + 4, min(196.0, slot.left - 22), 50);
 
     cap = min((w - 56) / HomeNeonSign.width, usable * 0.118);
     sign = Rect.fromLTWH(
@@ -127,10 +136,15 @@ class HomeAlleyLayout {
 class HomeWallPainter extends CustomPainter {
   final HomeAlleyLayout layout;
 
-  /// Il nome del vicolo, inciso sulla targa.
-  final String plaque;
+  /// Il nome del vicolo, inciso sulla targa. Null quando al suo posto c'è il
+  /// cartellino di chi è entrato.
+  final String? plaque;
 
-  HomeWallPainter(this.layout, {required this.plaque});
+  /// Vero se accanto all'ingranaggio è avvitata la targhetta «Accedi»: i
+  /// colpi sul muro le lasciano posto.
+  final bool signIn;
+
+  HomeWallPainter(this.layout, {required this.plaque, this.signIn = false});
 
   static const _mortar = Color(0xFF07070B);
 
@@ -159,7 +173,7 @@ class HomeWallPainter extends CustomPainter {
     canvas.drawRect(Offset.zero & size, Paint()..color = _mortar);
     _bricks(canvas, w);
     _holes(canvas);
-    _plaque(canvas);
+    if (plaque case final plaque?) _plaque(canvas, plaque);
 
     // Lo sporco che sale dal marciapiede.
     final grime = Rect.fromLTRB(0, layout.ground - layout.cap * 0.9, w, layout.ground);
@@ -211,14 +225,21 @@ class HomeWallPainter extends CustomPainter {
   /// La raffica che ha mancato qualcuno, tanto tempo fa.
   void _holes(Canvas canvas) {
     final r = layout.cap * 0.045;
-    final from = layout.plaque.centerRight;
-    final room = layout.slot.left - from.dx - 14;
+    final from = plaque == null
+        ? Offset(layout.badge.right, layout.plaque.center.dy)
+        : layout.plaque.centerRight;
+    final room = (signIn ? layout.signIn.left : layout.slot.left) - from.dx - 14;
     final crack = Paint()
       ..color = Colors.black.withValues(alpha: 0.7)
       ..strokeWidth = 1
       ..strokeCap = StrokeCap.round;
     final rng = Random(5);
-    for (final (along, drop) in [(0.16, -0.20), (0.40, 0.14), (0.66, -0.06), (0.92, 0.26)]) {
+    // Dove il muro è stretto (la targhetta «Accedi» è avvitata lì) i colpi
+    // sono due, non quattro ammucchiati.
+    final burst = room > r * 40
+        ? const [(0.16, -0.20), (0.40, 0.14), (0.66, -0.06), (0.92, 0.26)]
+        : const [(0.30, -0.16), (0.82, 0.20)];
+    for (final (along, drop) in burst) {
       final center = from + Offset(room * along, layout.plaque.height * drop);
       canvas.drawCircle(center, r * 2.0, Paint()..color = _lit((0.62, 0.50, 0.46), center));
       for (var i = 0; i < 5; i++) {
@@ -231,7 +252,7 @@ class HomeWallPainter extends CustomPainter {
   }
 
   /// La targa di marmo con il nome del vicolo, come agli angoli delle strade.
-  void _plaque(Canvas canvas) {
+  void _plaque(Canvas canvas, String plaque) {
     final plate = layout.plaque;
     final marble = _lit((0.86, 0.84, 0.76), plate.center, gain: 1.25);
     final ink = _lit((0.10, 0.09, 0.09), plate.center);
@@ -290,7 +311,7 @@ class HomeWallPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(HomeWallPainter old) => old.layout != layout || old.plaque != plaque;
+  bool shouldRepaint(HomeWallPainter old) => old.layout != layout || old.plaque != plaque || old.signIn != signIn;
 }
 
 /// Tutto quello che nel vicolo si muove, davanti ai manifesti: la luce del

@@ -27,14 +27,39 @@ class FakeOnline {
 
   OnlineServices get services => OnlineServices(auth: auth, profiles: profiles, friends: friends, rooms: rooms);
 
+  /// Gli account di prova: email → (password, id dell'account).
+  final Map<String, (String, String)> _testAccounts = {};
+
+  /// Se falso, il server finge di avere il provider Email spento.
+  bool emailEnabled = true;
+
   /// Qualcun altro, già con il suo profilo.
   Profile addPlayer(String id, {required String handle, required String displayName}) =>
       _profiles[id] = Profile(id: id, handle: handle, displayName: displayName);
 
   /// Entra già con il profilo pronto, come chi ha giocato altre volte.
-  void signInReady({String handle = 'tu', String displayName = 'Tu'}) {
-    addPlayer(accountId, handle: handle, displayName: displayName);
-    auth._signIn();
+  void signInReady({String handle = 'tu', String displayName = 'Tu', int level = 1, int xp = 0, int coins = 0}) {
+    _profiles[accountId] =
+        Profile(id: accountId, handle: handle, displayName: displayName, level: level, xp: xp, coins: coins);
+    auth._signIn(accountId);
+  }
+
+  /// Quello che solo il server scrive: livello, esperienza, monete.
+  void award(String id, {int? level, int? xp, int? coins}) =>
+      _profiles[id] = _profiles[id]!.copyWith(level: level, xp: xp, coins: coins);
+
+  /// Un vecchio nome unico che con le regole nuove non vale più: come fa la
+  /// migrazione, torna vuoto e il profilo va rifatto.
+  void forgetHandle(String id) {
+    final old = _profiles[id]!;
+    _profiles[id] = Profile(
+      id: id,
+      displayName: old.displayName,
+      language: old.language,
+      level: old.level,
+      xp: old.xp,
+      coins: old.coins,
+    );
   }
 
   /// [playerId] apre una stanza dal suo telefono.
@@ -175,9 +200,13 @@ class FakeAuth extends OnlineAuth {
   /// Se vero, la prossima finestra di accesso viene chiusa senza entrare.
   bool cancelNext = false;
 
-  void _signIn() {
-    _online._profiles.putIfAbsent(_online.accountId, () => Profile(id: _online.accountId));
-    _userId = _online.accountId;
+  /// Se c'è, il prossimo accesso fallisce così (per esempio col provider
+  /// spento sul server).
+  OnlineException? failNext;
+
+  void _signIn(String id) {
+    _online._profiles.putIfAbsent(id, () => Profile(id: id));
+    _userId = id;
     notifyListeners();
   }
 
@@ -187,7 +216,11 @@ class FakeAuth extends OnlineAuth {
       cancelNext = false;
       throw const OnlineException(OnlineFailure.cancelled);
     }
-    _signIn();
+    if (failNext case final failure?) {
+      failNext = null;
+      throw failure;
+    }
+    _signIn(_online.accountId);
   }
 
   @override
@@ -195,6 +228,32 @@ class FakeAuth extends OnlineAuth {
 
   @override
   Future<void> signInWithGoogle() => _provider();
+
+  /// Le stesse regole del server: password di almeno sei caratteri, email
+  /// con la chiocciola, e chi c'era già deve azzeccare la password.
+  @override
+  Future<void> signInWithTestAccount({required String email, required String password}) async {
+    await Future<void>.delayed(Duration.zero);
+    final address = email.trim().toLowerCase();
+    if (!_online.emailEnabled) {
+      throw const OnlineException(OnlineFailure.emailDisabled, null, 'email_provider_disabled · 400');
+    }
+    if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(address)) {
+      throw const OnlineException(OnlineFailure.invalidEmail, null, 'email_address_invalid · 400');
+    }
+    final existing = _online._testAccounts[address];
+    if (existing != null) {
+      if (existing.$1 != password) {
+        throw const OnlineException(OnlineFailure.wrongPassword, null, 'invalid_credentials · 400');
+      }
+      _signIn(existing.$2);
+      return;
+    }
+    if (password.length < 6) throw const OnlineException(OnlineFailure.weakPassword, null, 'weak_password · 422');
+    final id = 'test-${_online._testAccounts.length + 1}';
+    _online._testAccounts[address] = (password, id);
+    _signIn(id);
+  }
 
   @override
   Future<void> signOut() async {
@@ -211,18 +270,23 @@ class FakeProfiles implements ProfileRepository {
   @override
   Future<Profile> me() async => _online._profiles[_online._me]!;
 
+  bool _taken(String handle, String me) => _online._profiles.values
+      .any((profile) => profile.id != me && profile.handle?.toLowerCase() == Profile.normalizeHandle(handle));
+
+  @override
+  Future<bool> handleAvailable(String handle) async => !_taken(handle, _online._me);
+
   @override
   Future<Profile> update({required String handle, required String displayName, AppLanguage? language}) async {
     final me = _online._me;
+    handle = Profile.normalizeHandle(handle);
     if (!Profile.handlePattern.hasMatch(handle) ||
         displayName.trim() != displayName ||
         displayName.isEmpty ||
         displayName.length > Profile.maxDisplayName) {
       throw const OnlineException(OnlineFailure.invalidHandle);
     }
-    if (_online._profiles.values.any((profile) => profile.id != me && profile.handle == handle)) {
-      throw const OnlineException(OnlineFailure.handleTaken);
-    }
+    if (_taken(handle, me)) throw const OnlineException(OnlineFailure.handleTaken);
     return _online._profiles[me] =
         _online._profiles[me]!.copyWith(handle: handle, displayName: displayName, language: language);
   }
@@ -230,7 +294,7 @@ class FakeProfiles implements ProfileRepository {
   @override
   Future<List<Profile>> search(String handlePrefix) async {
     final me = _online._me;
-    final prefix = handlePrefix.toLowerCase().replaceAll(RegExp('[^a-z0-9_]'), '');
+    final prefix = handlePrefix.toLowerCase().replaceAll(RegExp('[^a-z]'), '');
     if (prefix.isEmpty) return const [];
     return [
       for (final profile in _online._profiles.values)

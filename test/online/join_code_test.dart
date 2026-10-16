@@ -20,6 +20,21 @@ void main() {
     expect(JoinCode.fromScan('https://example.com'), isNull);
   });
 
+  test('il link del QR, aperto dalla fotocamera, porta alla stanza', () {
+    expect(JoinCode.fromLink(Uri.parse(JoinCode.qrPayload('XK7P2M'))), 'XK7P2M');
+    expect(JoinCode.fromLink(Uri.parse('oberta://room/xk7p2m')), 'XK7P2M');
+    expect(JoinCode.fromLink(Uri.parse('OBERTA://ROOM/XK7P2M/')), 'XK7P2M');
+    expect(JoinCode.isRoomLink(Uri.parse('oberta://room/')), isTrue);
+    expect(JoinCode.fromLink(Uri.parse('oberta://room/')), isNull, reason: 'una stanza senza codice');
+    expect(JoinCode.fromLink(Uri.parse('oberta://room/XK7P2O')), isNull, reason: 'una O non c\'è');
+    expect(JoinCode.fromLink(Uri.parse('oberta://room/XK7P2M/altro')), isNull);
+    // Gli altri link che arrivano all'app non sono stanze.
+    for (final other in ['oberta://friend/XK7P2M', 'https://oberta.app/room/XK7P2M', 'com.googleusercontent.apps.x:/cb']) {
+      expect(JoinCode.isRoomLink(Uri.parse(other)), isFalse, reason: other);
+      expect(JoinCode.fromLink(Uri.parse(other)), isNull, reason: other);
+    }
+  });
+
   test('l\'alfabeto è quello del server', () {
     expect(JoinCode.alphabet, 'ABCDEFGHJKMNPQRSTUVWXYZ23456789');
   });
