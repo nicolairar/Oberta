@@ -551,14 +551,14 @@
       "text": "stava per partire. Il motore resta spento, la portiera aperta."
     },
     {
-      "key": "289eb76119d3fd0e",
+      "key": "216fa88d513fbbd9",
       "kind": "segment",
-      "text": "Uno sparo dal vicolo,"
+      "text": "L'agguato va a segno,"
     },
     {
-      "key": "8f86ac6fcacb69ac",
+      "key": "ae6232a9b7ee4c05",
       "kind": "segment",
-      "text": "a terra. Poi dei passi di corsa: il Dottore."
+      "text": "è a terra. Poi dei passi di corsa: il Dottore."
     },
     {
       "key": "d5bfcf765ed77f96",
@@ -576,14 +576,9 @@
       "text": "era già a terra. Ma il Dottore, stanotte, passava proprio di lì."
     },
     {
-      "key": "f7cd4c96a4330217",
+      "key": "e29b32199b2db49f",
       "kind": "segment",
-      "text": "Un colpo, e"
-    },
-    {
-      "key": "8b189f7223ca887b",
-      "kind": "segment",
-      "text": "va giù. Una borsa di cuoio si apre: non è finita."
+      "text": "va giù. Poi una borsa di cuoio si apre: non è finita."
     },
     {
       "key": "900f11af1cd268e2",
@@ -691,14 +686,9 @@
       "text": "non lo sente nemmeno."
     },
     {
-      "key": "c50dbe96935ac6af",
+      "key": "43a7b30f4c858214",
       "kind": "segment",
-      "text": "Stanotte hanno sparato a qualcuno, ma il Dottore ha fatto in tempo. Chi fosse, resta un segreto."
-    },
-    {
-      "key": "a1f70a473d0b82b5",
-      "kind": "segment",
-      "text": "Uno sparo."
+      "text": "Stanotte hanno provato a uccidere qualcuno, ma il Dottore ha fatto in tempo. Chi fosse, resta un segreto."
     },
     {
       "key": "ca75c7e8b3ee7e06",
@@ -706,24 +696,19 @@
       "text": "barcolla, poi si tocca il taschino: una fiaschetta, ammaccata."
     },
     {
-      "key": "445d26a318ff82e8",
+      "key": "4e6eb806ad2c1d43",
       "kind": "segment",
-      "text": "Il colpo parte, e fa «ding»."
+      "text": "Il colpo arriva, e fa «ding»."
     },
     {
-      "key": "425895f02e08e578",
+      "key": "b666995f59c1f4df",
       "kind": "segment",
-      "text": "tira fuori una fiaschetta col buco."
+      "text": "tira fuori una fiaschetta ammaccata."
     },
     {
-      "key": "289eb56119d3f9a8",
+      "key": "cf2ca37382596595",
       "kind": "segment",
-      "text": "Uno sparo dal vicolo."
-    },
-    {
-      "key": "a5d6a900a3fd4026",
-      "kind": "segment",
-      "text": "resta in piedi: il proiettile è nella fiaschetta."
+      "text": "resta in piedi: il colpo si è fermato sulla fiaschetta."
     },
     {
       "key": "11f1b2de0d9746d6",
@@ -731,9 +716,9 @@
       "text": "sente un colpo al petto. Sotto la giacca, una fiaschetta piegata in due."
     },
     {
-      "key": "5d38da7fb37bf510",
+      "key": "fe809ae7c8faeed0",
       "kind": "segment",
-      "text": "tira fuori dal taschino una Bibbia: il proiettile è lì dentro."
+      "text": "tira fuori dal taschino una Bibbia: il colpo si è fermato lì dentro."
     },
     {
       "key": "65f35cf34f8d12dc",
@@ -751,9 +736,9 @@
       "text": "sente un colpo al petto. Nel taschino, una Bibbia col buco a metà."
     },
     {
-      "key": "2884f958fc4f215d",
+      "key": "a1afbd81be971de8",
       "kind": "segment",
-      "text": "La pistola punta"
+      "text": "L'arma punta"
     },
     {
       "key": "2ab533f1a105622d",
@@ -761,9 +746,9 @@
       "text": ". «Clic». Ancora «clic». Il killer se la dà a gambe."
     },
     {
-      "key": "6c72cf4fa28efdb6",
+      "key": "8047a4fdd61bc267",
       "kind": "segment",
-      "text": "Il grilletto scatta a vuoto: la pistola s'è inceppata."
+      "text": "Il grilletto scatta a vuoto: l'arma s'è inceppata."
     },
     {
       "key": "7c351348ab484894",
@@ -781,9 +766,9 @@
       "text": "si rimbocca le maniche, e il vicolo si svuota."
     },
     {
-      "key": "a51e9620036198c4",
+      "key": "496a15e55166fc73",
       "kind": "segment",
-      "text": "Il killer pesta una buccia di banana. Il colpo va in cielo,"
+      "text": "Il killer pesta una buccia di banana e vola all'indietro."
     },
     {
       "key": "b4f8e7fed90fc24c",
@@ -791,9 +776,9 @@
       "text": "la scampa."
     },
     {
-      "key": "e72b10ac70d78f46",
+      "key": "b1a040b5e5559af8",
       "kind": "segment",
-      "text": "Una buccia di banana, un volo all'indietro. Il colpo finisce tra le stelle:"
+      "text": "Una buccia di banana, un volo all'indietro. Il killer finisce a terra:"
     },
     {
       "key": "1b6e94ad258bb770",
@@ -806,9 +791,9 @@
       "text": "Il killer corre verso"
     },
     {
-      "key": "f8a4e7dbf813d137",
+      "key": "85d7cf63112732c8",
       "kind": "segment",
-      "text": ", poi una buccia di banana. Lo sparo buca la notte."
+      "text": ", poi una buccia di banana. Il resto è un capitombolo."
     },
     {
       "key": "00413af54358660a",
@@ -826,9 +811,9 @@
       "text": "Il killer prende la mira su"
     },
     {
-      "key": "294871a6447af90f",
+      "key": "67e79e4cb82e0f90",
       "kind": "segment",
-      "text": ". Un gatto nero gli fa volare via la pistola."
+      "text": ". Un gatto nero gli fa volare via l'arma."
     },
     {
       "key": "1b0b972c028ea871",
@@ -836,9 +821,9 @@
       "text": "Porta sfortuna, dicono. Ma stanotte un gatto nero ha salvato"
     },
     {
-      "key": "a082233972f85750",
+      "key": "b7f1415efe8b721f",
       "kind": "segment",
-      "text": "Stanotte hanno sparato a qualcuno, ma il colpo è andato a vuoto. Chi fosse, resta un segreto."
+      "text": "Stanotte hanno provato a uccidere qualcuno, ma il colpo è andato a vuoto. Chi fosse, resta un segreto."
     },
     {
       "key": "03b2d7e78660b1de",
@@ -2343,14 +2328,14 @@
       "text": "was about to drive off. The engine stays cold, the door hangs open."
     },
     {
-      "key": "7ef397d20e313939",
+      "key": "a9849bfadac10e03",
       "kind": "segment",
-      "text": "A shot from the alley,"
+      "text": "The hit lands, and"
     },
     {
-      "key": "6525df65ce4a3f59",
+      "key": "c949a386f79a1229",
       "kind": "segment",
-      "text": "on the ground. Then running footsteps: the Doc."
+      "text": "is on the ground. Then running footsteps: the Doc."
     },
     {
       "key": "fb6ccc0c271a5293",
@@ -2368,14 +2353,9 @@
       "text": "was already down. But the Doc just happened to be passing by."
     },
     {
-      "key": "4b86ea770bf3cdbb",
+      "key": "2ae87ec89a7f5b3e",
       "kind": "segment",
-      "text": "One shot, and"
-    },
-    {
-      "key": "65657e2c36322b17",
-      "kind": "segment",
-      "text": "goes down. A leather bag snaps open: it isn't over."
+      "text": "goes down. Then a leather bag snaps open: it isn't over."
     },
     {
       "key": "3355f3f456033173",
@@ -2483,14 +2463,9 @@
       "text": "doesn't feel a thing."
     },
     {
-      "key": "9c69ba49df8209cb",
+      "key": "fee5599fbf2938ca",
       "kind": "segment",
-      "text": "Last night someone got shot, but the Doc made it in time. Who it was stays a secret."
-    },
-    {
-      "key": "39cb9dac76d1df8f",
-      "kind": "segment",
-      "text": "A shot."
+      "text": "Last night someone nearly died, but the Doc made it in time. Who it was stays a secret."
     },
     {
       "key": "6a610c5b435622a3",
@@ -2498,24 +2473,19 @@
       "text": "staggers, then pats a breast pocket: a flask, badly dented."
     },
     {
-      "key": "8a28c242fb1b8cda",
+      "key": "a4988e361000c3c9",
       "kind": "segment",
-      "text": "Bang, then “ding.”"
+      "text": "The blow lands, and goes “ding.”"
     },
     {
-      "key": "c8525a9988e1f13b",
+      "key": "2a341a34fd70a41e",
       "kind": "segment",
-      "text": "pulls out a flask with a brand-new hole."
+      "text": "pulls out a dented flask."
     },
     {
-      "key": "7ef395d20e3135d3",
+      "key": "bd9af516fb2943db",
       "kind": "segment",
-      "text": "A shot from the alley."
-    },
-    {
-      "key": "4dfac0ec5b4425ca",
-      "kind": "segment",
-      "text": "stays standing: the bullet is in the flask."
+      "text": "stays standing: the blow stopped on the flask."
     },
     {
       "key": "0e22a916f945bd66",
@@ -2523,14 +2493,14 @@
       "text": "feels a thump in the chest. Under the jacket, a flask bent double."
     },
     {
-      "key": "31ff2f06d5a4459e",
+      "key": "5e924ea450ed4a6d",
       "kind": "segment",
-      "text": "pulls a Bible from a breast pocket: the bullet is inside."
+      "text": "pulls a Bible from a breast pocket: the blow stopped right there."
     },
     {
-      "key": "d4304dd4ae4416b8",
+      "key": "a0b8615f434cfc58",
       "kind": "segment",
-      "text": "The bullet stops in a pocket Bible."
+      "text": "The blow stops in a pocket Bible."
     },
     {
       "key": "39a72feb6ba31f27",
@@ -2543,9 +2513,9 @@
       "text": "feels a thump in the chest. In the pocket, a Bible holed halfway through."
     },
     {
-      "key": "fa4e97331a22bd2f",
+      "key": "255c2b9dc16a66f3",
       "kind": "segment",
-      "text": "The gun points at"
+      "text": "The weapon points at"
     },
     {
       "key": "5ce51d3b5cb239a9",
@@ -2553,9 +2523,9 @@
       "text": ". “Click.” Another “click.” The killer takes off running."
     },
     {
-      "key": "b616acdbb16b1c6b",
+      "key": "9aa151ada8af3a47",
       "kind": "segment",
-      "text": "The trigger snaps on nothing: the gun has jammed."
+      "text": "The trigger snaps on nothing: the weapon has jammed."
     },
     {
       "key": "9a3b152cb3151db2",
@@ -2573,9 +2543,9 @@
       "text": "rolls up both sleeves, and the alley empties out."
     },
     {
-      "key": "d2422e9754ba4b23",
+      "key": "6d6c909760b0116e",
       "kind": "segment",
-      "text": "The killer steps on a banana peel. The shot goes skyward, and"
+      "text": "The killer steps on a banana peel and flies backwards."
     },
     {
       "key": "a9859dfb0611ddc4",
@@ -2583,9 +2553,9 @@
       "text": "walks away."
     },
     {
-      "key": "21bc7feee5e19a0f",
+      "key": "c81e4db7bb37b453",
       "kind": "segment",
-      "text": "A banana peel, a backflip. The shot ends up among the stars:"
+      "text": "A banana peel, a backflip. The killer lands flat on the street:"
     },
     {
       "key": "a0dad5bf5a2b15c2",
@@ -2598,9 +2568,9 @@
       "text": "The killer charges at"
     },
     {
-      "key": "cecf69c4aece6ad9",
+      "key": "b2152ad237442a25",
       "kind": "segment",
-      "text": ", then meets a banana peel. The shot punches the night."
+      "text": ", then meets a banana peel. The rest is a pratfall."
     },
     {
       "key": "af375f27d7457fdf",
@@ -2618,9 +2588,9 @@
       "text": "The killer takes aim at"
     },
     {
-      "key": "79c9d7f5407f32e1",
+      "key": "48a42c4b70de4a03",
       "kind": "segment",
-      "text": ". A black cat sends the gun flying."
+      "text": ". A black cat sends the weapon flying."
     },
     {
       "key": "7e0cfa50ebd0247a",
@@ -2628,9 +2598,9 @@
       "text": "Bad luck, they say. But tonight a black cat saved"
     },
     {
-      "key": "db78456a70d2d8f9",
+      "key": "d9afe5fb1861be1b",
       "kind": "segment",
-      "text": "Last night someone got shot at, but the bullet missed. Who it was stays a secret."
+      "text": "Last night someone nearly died, but the blow missed. Who it was stays a secret."
     },
     {
       "key": "ab79be07f066e5a5",

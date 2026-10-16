@@ -71,14 +71,33 @@ class NarratorScript {
   DeathStory composeDeath() =>
       DeathStory.compose(_picker, pack, city, method: _deck.draw(pack.methods));
 
-  /// Una scena per ogni agguato della notte, nell'ordine del rapporto: la
-  /// famiglia pesca dal mazzo; il Cecchino, il Dottore e chi ha la pelle
-  /// dura hanno la loro.
+  /// Un agguato che il Dottore manda a vuoto: l'agguato si pesca dallo
+  /// stesso mazzo delle morti, fra quelli a cui il Dottore sa rimediare.
+  DeathStory composeRescue() => DeathStory.rescue(
+        _picker,
+        pack,
+        city,
+        attack: _deck.draw(pack.methods, where: (method) => DeathStory.rescuesFor(method.id).isNotEmpty),
+      );
+
+  /// Un agguato che va a vuoto per fortuna: dallo stesso mazzo, fra quelli
+  /// che un colpo di fortuna sa fermare.
+  DeathStory composeLucky() => DeathStory.lucky(
+        _picker,
+        pack,
+        city,
+        attack: _deck.draw(pack.methods, where: (method) => DeathStory.luckFor(method.id).isNotEmpty),
+      );
+
+  /// Una scena per ogni agguato della notte, nell'ordine del rapporto: le
+  /// morti della famiglia pescano dal mazzo, e così gli agguati andati a
+  /// vuoto (anche quelli del Cecchino: al tavolo non si capisce chi ha
+  /// sparato). Il Cecchino che va a segno ha i suoi filmati.
   List<DeathStory> stage(DawnReport report) => [
         for (final attack in report.attacks)
           switch (attack.outcome) {
-            AttackOutcome.healed => DeathStory.rescue(_picker, pack, city),
-            AttackOutcome.shrugged => DeathStory.lucky(_picker, pack, city),
+            AttackOutcome.healed => composeRescue(),
+            AttackOutcome.shrugged => composeLucky(),
             AttackOutcome.killed when attack.source == AttackSource.sniper =>
               DeathStory.sniper(_picker, pack, city),
             AttackOutcome.killed => composeDeath(),

@@ -200,7 +200,9 @@ class _GameScreenState extends State<GameScreen> {
       // storia va prima in scena e poi nel copione del narratore.
       _dawn = _engine.resolveNight();
       _deaths = _script.stage(_dawn);
-      SoundStage.instance.prepare([for (final story in _deaths) deathActFor(story.method.id)]);
+      SoundStage.instance.prepare([
+        for (final story in _deaths) ...[filmFor(story).act, ?filmFor(story).save],
+      ]);
       if (_deaths.isNotEmpty) {
         _crime = 0;
         _stage = _Stage.crimeIntro;
@@ -472,13 +474,15 @@ class _GameScreenState extends State<GameScreen> {
     if (_stage == _Stage.crime) {
       // Il delitto va in scena a tutto schermo, senza barre né pulsanti.
       final story = _deaths[_crime];
+      final film = filmFor(story);
       return PopScope(
         canPop: false,
         child: Scaffold(
           backgroundColor: Colors.black,
           body: DeathScene(
             key: ValueKey('crime-$_step'),
-            act: deathActFor(story.method.id),
+            act: film.act,
+            save: film.save,
             victimName: _dawn.attacks[_crime].isFatal ? _dawn.attacks[_crime].target.name : _t.someoneSaved,
             caption: story.scene.text,
             epilogue: story.epilogue?.id ?? '',

@@ -320,6 +320,8 @@ final class EnglishStrings extends AppStrings {
   @override
   String get screeningCaption => 'Exterior, night. Dress rehearsal.';
   @override
+  String get screeningSpliced => 'Over a random ambush';
+  @override
   String sceneName(DeathAct act) => switch (act) {
     DeathAct.knife => 'The dagger',
     DeathAct.gun => 'The silencer',

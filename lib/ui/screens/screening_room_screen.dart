@@ -29,8 +29,9 @@ class _ScreeningRoomScreenState extends State<ScreeningRoomScreen> {
   final _random = Random();
   int _screenings = 0;
 
-  void _screen(DeathAct act) {
-    SoundStage.instance.prepare([act]);
+  /// Proietta [act]; con [save], l'agguato di [act] che [save] manda a vuoto.
+  void _screen(DeathAct act, {DeathAct? save}) {
+    SoundStage.instance.prepare([act, ?save]);
     final caption = AppStrings.of(context).screeningCaption;
     final take = _screenings++;
     Navigator.of(context).push(
@@ -39,6 +40,7 @@ class _ScreeningRoomScreenState extends State<ScreeningRoomScreen> {
           backgroundColor: Colors.black,
           body: DeathScene(
             act: act,
+            save: save,
             victimName: _extras[_random.nextInt(_extras.length)],
             caption: caption,
             epilogue: _endings[take % _endings.length],
@@ -48,6 +50,17 @@ class _ScreeningRoomScreenState extends State<ScreeningRoomScreen> {
         ),
       ),
     );
+  }
+
+  /// Un salvataggio o un colpo di fortuna sopra uno degli agguati della
+  /// famiglia che sa mandare a vuoto, pescato a caso.
+  void _screenSpliced(DeathAct save) {
+    final attacks = [
+      for (final act in DeathAct.values)
+        if (canSpare(act, save) && spliceOf(act, save) != Splice.alone) act,
+    ];
+    if (attacks.isEmpty) return _screen(save);
+    _screen(attacks[_random.nextInt(attacks.length)], save: save);
   }
 
   void _screenVerdict(VerdictTake take) {
@@ -97,6 +110,13 @@ class _ScreeningRoomScreenState extends State<ScreeningRoomScreen> {
                       ),
                       const SizedBox(width: 14),
                       Expanded(child: Text(t.sceneName(act), style: const TextStyle(letterSpacing: 0.5))),
+                      if (act.survives)
+                        IconButton(
+                          icon: const Icon(Icons.shuffle, size: 20),
+                          tooltip: t.screeningSpliced,
+                          visualDensity: VisualDensity.compact,
+                          onPressed: pressed(() => _screenSpliced(act), Press.tap),
+                        ),
                       const Icon(Icons.play_arrow, size: 20),
                     ],
                   ),

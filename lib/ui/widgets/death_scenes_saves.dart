@@ -36,6 +36,22 @@ extension _SaveFilms on DeathScenePainter {
     _ => 0,
   };
 
+  /// L'arma del killer nei colpi a vuoto: la pistola, o quella dell'agguato
+  /// che la fortuna sta mandando a vuoto.
+  _Prop get _weapon => switch (_armedWith) {
+    DeathAct.knife => _Prop.knife,
+    DeathAct.bat => _Prop.bat,
+    DeathAct.lupara => _Prop.lupara,
+    DeathAct.burst => _Prop.tommy,
+    _ => _Prop.pistol,
+  };
+
+  /// Vero se l'arma spara: il colpo parte lo stesso, ma va in cielo.
+  bool get _fires => switch (_weapon) {
+    _Prop.pistol || _Prop.lupara || _Prop.tommy => true,
+    _ => false,
+  };
+
   /// Le scritte da fumetto che si aggiungono a quella del colpo.
   void _savesSfx(Canvas canvas) {
     switch (act) {
@@ -207,12 +223,15 @@ extension _SaveFilms on DeathScenePainter {
   /// Il killer all'angolo, il muro, il cappello che vola e gli schizzi del
   /// colpo: l'agguato che il Dottore poi rimedia.
   void _ambush(Canvas canvas) {
+    // Sopra un agguato della famiglia, l'agguato c'è già.
+    if (_cut == _Cut.rescue) return;
     _gunman(canvas, leaveAt: 0.60);
     _wall(canvas);
     _hatOff(canvas, _sStrike + 0.01, _sStrike + 0.20, height: 0.9);
   }
 
   void _ambushSpray(Canvas canvas) {
+    if (_cut == _Cut.rescue) return;
     _spray(canvas, Offset(_victimX, _ground - _u * 0.74), _span(t, _sStrike, _sStrike + 0.16), seed: 95, count: 9);
     _flash(canvas, _span(t, _sStrike, _sStrike + 0.025), strength: 0.4);
   }
@@ -638,11 +657,14 @@ extension _SaveFilms on DeathScenePainter {
   /// dalla barella, saluta.
   void _ambulance(Canvas canvas) {
     _ambush(canvas);
-    final arrive = Curves.easeOutCubic.transform(_span(t, 0.585, 0.655));
+    // Sopra un agguato il furgone arriva più tardi, a cose fatte, e
+    // inchioda più di scatto.
+    final late = _cut == _Cut.rescue;
+    final arrive = Curves.easeOutCubic.transform(_span(t, late ? 0.625 : 0.585, 0.655));
     final vanFront = _mix(-_w * 0.2, _victimX + _u * 0.30, arrive);
     final stopped = arrive >= 1;
     final nod = stopped ? sin(pi * _span(t, 0.655, 0.675)) * 0.025 : 0.0;
-    final siren = _span(t, 0.56, 0.60);
+    final siren = _span(t, late ? 0.59 : 0.56, late ? 0.63 : 0.60);
     _sirenGlow(canvas, Offset(vanFront - _u * 0.62, _ground - _u * 1.03), siren);
 
     // Chi è a terra, la barella e chi la porta.
@@ -1754,7 +1776,7 @@ extension _SaveFilms on DeathScenePainter {
       _mark(canvas, '?!', Offset(killerX - _u * 0.05, _ground - _u * 1.52));
     }
 
-    final facing = t < 0.37 ? 1 : (t < 0.512 ? -1 : 1);
+    final facing = _luckyFacing(t < 0.37 ? 1 : (t < 0.512 ? -1 : 1));
     final stagger = sin(pi * _span(t, _sStrike, _sStrike + 0.09));
     final back = _u * 0.12 * Curves.easeOut.transform(_span(t, _sStrike, _sStrike + 0.05));
     final clutch = _smooth(_span(t, _sStrike + 0.005, _sStrike + 0.03)) - _smooth(_span(t, 0.625, 0.65));
@@ -1888,7 +1910,12 @@ extension _SaveFilms on DeathScenePainter {
     }
     final shake = inspect > 0.5 ? sin(t * 600) * 0.12 : 0.0;
     final fleeing = flee > 0;
-    final killerX = fleeing
+    // Sopra un agguato della famiglia, il killer è il suo: qui restano solo
+    // i clic, il dubbio e chi era nel mirino.
+    final alone = _cut != _Cut.rescue;
+    final killerX = !alone
+        ? _handover!.killer?.dx ?? _cornerX
+        : fleeing
         ? _mix(_cornerX, _hiddenX + _u * 0.5, Curves.easeIn.transform(flee))
         : _mix(_mix(_hiddenX, _peekX, peek), _cornerX, out);
     final double arm;
@@ -1904,6 +1931,74 @@ extension _SaveFilms on DeathScenePainter {
       );
     }
     final dropped = t >= 0.652;
+    if (alone) {
+      _jammedGunman(
+        canvas,
+        killerX,
+        fleeing: fleeing,
+        out: out,
+        kick: kick,
+        inspect: inspect,
+        panic: panic,
+        arm: arm,
+        elbow: elbow,
+        dropped: dropped,
+        clicks: clicks,
+      );
+    }
+    if (inspect > 0.3) _mark(canvas, '?', Offset(killerX - _u * 0.05, _ground - _u * 1.45));
+    _exclaim(canvas, Offset(killerX, _ground - _u * 1.45), _span(t, 0.642, 0.665));
+
+    // Chi era nel mirino: si ripara, poi capisce, poi alza i pugni.
+    final facing = _luckyFacing(t < 0.37 ? 1 : (t < 0.512 ? -1 : 1));
+    final flinch = _smooth(_span(t, _sStrike - 0.004, _sStrike + 0.008)) - _smooth(_span(t, 0.605, 0.625));
+    final square = _smooth(_span(t, 0.628, 0.65)) - _smooth(_span(t, 0.74, 0.76));
+    final advance = _smooth(_span(t, 0.64, 0.675));
+    final tipHat = _smooth(_span(t, 0.765, 0.785));
+    final x = walkX + _u * 0.28 * advance;
+    final punch = square > 0.5 ? sin(t * 260) * 0.12 : 0.0;
+    if (t < 0.50) {
+      _victim(canvas, x: x, facing: facing, walk: walk, stride: stride, smoking: t > 0.37);
+    } else if (!_victimOffstage) {
+      _person(
+        canvas,
+        feet: Offset(x, _ground),
+        facing: facing,
+        walk: t * 300,
+        stride: advance > 0 && advance < 1 ? 0.8 : 0,
+        crouch: 0.25 * flinch + 0.15 * square,
+        lean: -0.18 * flinch + 0.12 * square,
+        arm: _mix(_mix(_mix(0.08, 2.45, flinch), 1.15 + punch, square), 2.35, tipHat),
+        elbow: _mix(_mix(_mix(0.2, 0.9, flinch), 1.65, square), 1.25, tipHat),
+        backArm: _mix(_mix(-0.1, 2.2, flinch), 1.0 - punch, square),
+        backElbow: _mix(_mix(0.2, 0.9, flinch), 1.75, square),
+        hat: victimHat,
+        smoking: t < _sStrike,
+      );
+    }
+    _droppedCigarette(
+      canvas,
+      _onBody(const Offset(0.11, -0.435), feet: Offset(walkX, _ground), facing: 1),
+      _span(t, _sStrike + 0.005, _sStrike + 0.055),
+    );
+    if (alone) _dust(canvas, Offset(_cornerX + _u * 0.1, _ground), _span(t, 0.66, 0.74), size: 0.5);
+  }
+
+  /// Il killer della pistola inceppata: clic, la guarda, la scuote, la molla
+  /// e scappa.
+  void _jammedGunman(
+    Canvas canvas,
+    double killerX, {
+    required bool fleeing,
+    required double out,
+    required double kick,
+    required double inspect,
+    required double panic,
+    required double arm,
+    required double elbow,
+    required bool dropped,
+    required List<double> clicks,
+  }) {
     _person(
       canvas,
       feet: Offset(killerX, _ground),
@@ -1926,8 +2021,6 @@ extension _SaveFilms on DeathScenePainter {
       _drawPistol(canvas, at, along, Offset(-along.dy, along.dx), _u * 1.08);
     }
     _wall(canvas);
-    if (inspect > 0.3) _mark(canvas, '?', Offset(killerX - _u * 0.05, _ground - _u * 1.45));
-    _exclaim(canvas, Offset(killerX, _ground - _u * 1.45), _span(t, 0.642, 0.665));
     // Ogni clic: solo un filo di polvere dalla canna, niente fiammata.
     if (!fleeing && panic <= 0) {
       final (hand, along) = _handOf(
@@ -1943,40 +2036,6 @@ extension _SaveFilms on DeathScenePainter {
         _puff(canvas, muzzle, _span(t, at, at + 0.05), size: 0.12, color: const Color(0xFFB8B2AA));
       }
     }
-
-    // Chi era nel mirino: si ripara, poi capisce, poi alza i pugni.
-    final facing = t < 0.37 ? 1 : (t < 0.512 ? -1 : 1);
-    final flinch = _smooth(_span(t, _sStrike - 0.004, _sStrike + 0.008)) - _smooth(_span(t, 0.605, 0.625));
-    final square = _smooth(_span(t, 0.628, 0.65)) - _smooth(_span(t, 0.74, 0.76));
-    final advance = _smooth(_span(t, 0.64, 0.675));
-    final tipHat = _smooth(_span(t, 0.765, 0.785));
-    final x = walkX + _u * 0.28 * advance;
-    final punch = square > 0.5 ? sin(t * 260) * 0.12 : 0.0;
-    if (t < 0.50) {
-      _victim(canvas, x: x, facing: facing, walk: walk, stride: stride, smoking: t > 0.37);
-    } else {
-      _person(
-        canvas,
-        feet: Offset(x, _ground),
-        facing: facing,
-        walk: t * 300,
-        stride: advance > 0 && advance < 1 ? 0.8 : 0,
-        crouch: 0.25 * flinch + 0.15 * square,
-        lean: -0.18 * flinch + 0.12 * square,
-        arm: _mix(_mix(_mix(0.08, 2.45, flinch), 1.15 + punch, square), 2.35, tipHat),
-        elbow: _mix(_mix(_mix(0.2, 0.9, flinch), 1.65, square), 1.25, tipHat),
-        backArm: _mix(_mix(-0.1, 2.2, flinch), 1.0 - punch, square),
-        backElbow: _mix(_mix(0.2, 0.9, flinch), 1.75, square),
-        hat: victimHat,
-        smoking: t < _sStrike,
-      );
-    }
-    _droppedCigarette(
-      canvas,
-      _onBody(const Offset(0.11, -0.435), feet: Offset(walkX, _ground), facing: 1),
-      _span(t, _sStrike + 0.005, _sStrike + 0.055),
-    );
-    _dust(canvas, Offset(_cornerX + _u * 0.1, _ground), _span(t, 0.66, 0.74), size: 0.5);
   }
 
   // ---------------------------------------------------------------- banana
@@ -1998,8 +2057,11 @@ extension _SaveFilms on DeathScenePainter {
     var lean = 0.15;
     var facing = -1;
     var stride2 = 0.0;
-    var arm = pi / 2;
-    var elbow = 0.03;
+    // Chi spara corre con l'arma puntata; chi colpisce, col braccio su.
+    final weapon = _weapon;
+    final (aimArm, aimElbow) = _fires ? (pi / 2, 0.03) : (weapon == _Prop.bat ? (2.7, 0.6) : (2.85, 0.5));
+    var arm = aimArm;
+    var elbow = aimElbow;
     var backArm = -0.1;
     if (t < 0.525) {
       feet = Offset(_mix(_w + _u * 0.5, peelX, run), _ground);
@@ -2010,7 +2072,7 @@ extension _SaveFilms on DeathScenePainter {
       feet = Offset(_mix(peelX, slideX, air), _ground - sin(pi * air) * _u * 0.32);
       tilt = 1.45 * spin;
       lean = 0.15 - 0.4 * spin;
-      arm = _mix(pi / 2, 2.9, spin);
+      arm = _mix(aimArm, 2.9, spin);
       elbow = 0.1;
       backArm = _mix(-0.1, 2.4, spin);
     } else if (up <= 0) {
@@ -2050,12 +2112,13 @@ extension _SaveFilms on DeathScenePainter {
       elbow: elbow,
       backArm: backArm,
       backElbow: 0.3,
-      prop: _Prop.pistol,
+      prop: _fires || t < 0.525 ? weapon : _Prop.none,
       killer: true,
     );
     // Il colpo parte mentre è in aria: dritto verso il cielo.
     final bang = _span(t, _sStrike, _sStrike + 0.03);
-    if (bang > 0 && bang < 1) {
+    if (!_fires) _thrownWeapon(canvas, weapon, peelX, aimArm, aimElbow);
+    if (bang > 0 && bang < 1 && _fires) {
       final (hand, along) = _handOf(
         feet: feet,
         facing: facing,
@@ -2065,8 +2128,8 @@ extension _SaveFilms on DeathScenePainter {
         elbow: elbow,
         killer: true,
       );
-      final muzzle = _muzzleOf(hand, along, _Prop.pistol);
-      _muzzleFlash(canvas, muzzle, bang, toward: along, size: 0.7);
+      final muzzle = _muzzleOf(hand, along, weapon);
+      _muzzleFlash(canvas, muzzle, bang, toward: along, size: weapon == _Prop.pistol ? 0.7 : 1.1);
       _tracer(canvas, muzzle, muzzle + along * (_u * 2.6), bang);
       _flash(canvas, bang, strength: 0.3);
     }
@@ -2122,6 +2185,32 @@ extension _SaveFilms on DeathScenePainter {
     );
   }
 
+  /// Il pugnale o la mazza che, alla scivolata, volano di mano al killer:
+  /// su in alto girando, e giù dietro di lui. Il pugnale si pianta
+  /// nell'asfalto, la mazza rimbalza e resta lì.
+  void _thrownWeapon(Canvas canvas, _Prop weapon, double peelX, double arm, double elbow) {
+    if (t < 0.525) return;
+    final (hand, _) = _handOf(
+      feet: Offset(peelX, _ground),
+      facing: -1,
+      lean: 0.15,
+      arm: arm,
+      elbow: elbow,
+      killer: true,
+    );
+    final knife = weapon == _Prop.knife;
+    final fly = _span(t, 0.525, 0.605);
+    final land = Offset(peelX + _u * 0.62, _ground - _u * (knife ? 0.20 : 0.035));
+    final bounce = knife ? 0.0 : sin(pi * _span(t, 0.605, 0.625)) * _u * 0.08;
+    final at = fly < 1
+        ? Offset(_mix(hand.dx, land.dx, fly), _mix(hand.dy, land.dy, fly) - sin(pi * fly) * _u * 1.3)
+        : land.translate(0, -bounce);
+    // Gira in aria; il pugnale atterra di punta, la mazza di piatto.
+    final rest = knife ? atan2(1.0, 0.18) : 0.04;
+    final spin = fly < 1 ? -pi / 2 + fly * (4 * pi + rest + pi / 2) : rest;
+    _held(canvas, at, Offset(cos(spin), sin(spin)), _u * 1.08, weapon);
+  }
+
   /// La buccia di banana, con le falde aperte.
   void _peel(Canvas canvas, Offset at, double spin) {
     canvas.save();
@@ -2166,10 +2255,17 @@ extension _SaveFilms on DeathScenePainter {
         ? _mix(_cornerX, _hiddenX + _u * 0.5, Curves.easeIn.transform(flee))
         : _mix(_mix(_hiddenX, _peekX, peek), _cornerX, out);
     final thrash = flail > 0 && flail < 1 ? sin(t * 420) : 0.0;
+    // La lupara e il mitra si puntano a due mani.
+    final weapon = _weapon;
+    final (aimArm, aimElbow, aimBack) = switch (weapon) {
+      _Prop.lupara => (1.38, 0.18, 1.50),
+      _Prop.tommy => (0.55, 1.05, 1.25),
+      _ => (pi / 2, 0.03, -0.1),
+    };
     final arm = fleeing
         ? 0.5 + sin(t * 300) * 0.5
-        : (flail > 0 ? 2.5 + 0.4 * thrash : _mix(_mix(0.2, pi / 2, out), 2.75, yank));
-    final elbow = fleeing ? 0.6 : (flail > 0 ? 0.6 : _mix(0.03, 0.15, yank));
+        : (flail > 0 ? 2.5 + 0.4 * thrash : _mix(_mix(0.2, aimArm, out), 2.75, yank));
+    final elbow = fleeing ? 0.6 : (flail > 0 ? 0.6 : _mix(_mix(0.2, aimElbow, out), 0.15, yank));
     final lean = fleeing ? 0.25 : 0.10 * out - 0.15 * yank - 0.1 * thrash.abs();
     final killerFeet = Offset(killerX, _ground);
     final hasGun = t < 0.566;
@@ -2182,10 +2278,12 @@ extension _SaveFilms on DeathScenePainter {
       lean: lean,
       arm: arm,
       elbow: elbow,
-      backArm: flail > 0 && !fleeing ? 2.4 - 0.4 * thrash : -0.1,
+      backArm: flail > 0 && !fleeing
+          ? 2.4 - 0.4 * thrash
+          : (fleeing ? -0.1 : _mix(_mix(-0.1, aimBack, out), -0.1, yank)),
       backElbow: 0.6,
       hatOn: t < 0.575,
-      prop: hasGun ? _Prop.pistol : _Prop.none,
+      prop: hasGun ? weapon : _Prop.none,
       killer: true,
     );
     final (hand, along) = _handOf(feet: killerFeet, facing: -1, lean: lean, arm: arm, elbow: elbow, killer: true);
@@ -2252,8 +2350,8 @@ extension _SaveFilms on DeathScenePainter {
     // Il colpo storto, verso il cielo; la pistola vola via e cade.
     final bang = _span(t, _sStrike, _sStrike + 0.03);
     if (bang > 0 && bang < 1) {
-      final muzzle = _muzzleOf(hand, along, _Prop.pistol);
-      _muzzleFlash(canvas, muzzle, bang, toward: along, size: 0.7);
+      final muzzle = _muzzleOf(hand, along, weapon);
+      _muzzleFlash(canvas, muzzle, bang, toward: along, size: weapon == _Prop.pistol ? 0.7 : 1.1);
       _star(canvas, muzzle, _u * 0.08 * (1 - bang), const Color(0xFFFFF3C4).withValues(alpha: 1 - bang));
       _tracer(canvas, muzzle, muzzle + along * (_u * 2.4), bang);
       _flash(canvas, bang, strength: 0.3);
@@ -2267,8 +2365,7 @@ extension _SaveFilms on DeathScenePainter {
           ? Offset(_mix(from.dx, land.dx, fly), _mix(from.dy, land.dy, fly) - sin(pi * fly) * _u * 0.55)
           : land.translate(-_u * 0.10 * slide, 0);
       final spin = fly < 1 ? fly * 15 : pi;
-      final dir = Offset(cos(spin), sin(spin));
-      _drawPistol(canvas, at, dir, Offset(-dir.dy, dir.dx), _u * 1.08);
+      _held(canvas, at, Offset(cos(spin), sin(spin)), _u * 1.08, weapon);
       if (fly >= 1) _dust(canvas, land, _span(t, 0.625, 0.68), size: 0.3, seed: 9);
     }
     // Il ciuffo di pelo nero che resta in aria.

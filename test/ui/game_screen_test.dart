@@ -314,7 +314,7 @@ void main() {
     expect(find.byIcon(Role.becchino.icon), findsOneWidget);
   });
 
-  testWidgets('il Reduce incassa il primo colpo: va in scena la fiaschetta, e resta in gioco', (tester) async {
+  testWidgets('il Reduce incassa il primo colpo: va in scena un agguato che va a vuoto, e resta in gioco', (tester) async {
     await pumpGame(tester, deal: {
       ada: Role.mafioso,
       bruno: Role.reduce,
@@ -337,7 +337,9 @@ void main() {
     expect(find.text('Telefono\nsul tavolo'), findsOneWidget);
     await tester.tap(find.text('BUIO IN SALA'));
     await tester.pump(const Duration(milliseconds: 500));
-    expect(tester.widget<DeathScene>(find.byType(DeathScene)).act, DeathAct.lucky);
+    final scene = tester.widget<DeathScene>(find.byType(DeathScene));
+    expect(scene.save?.luckyEscape, isTrue, reason: 'lo manda a vuoto un colpo di fortuna');
+    expect(canSpare(scene.act, scene.save!), isTrue, reason: 'sopra un agguato della famiglia');
     await tap(tester, 'SALTA');
     expect(find.text('BRUNO'), findsNothing, reason: 'chi si salva resta anonimo');
     expect(find.text('QUALCUNO'), findsOneWidget);
@@ -346,10 +348,18 @@ void main() {
 
     expect(find.text('Tutti vivi'), findsOneWidget);
     expect(
-      find.text('Stanotte hanno sparato a qualcuno, ma il colpo è andato a vuoto. Chi fosse, resta un segreto.'),
+      find.text('Stanotte hanno provato a uccidere qualcuno, ma il colpo è andato a vuoto. Chi fosse, resta un segreto.'),
       findsOneWidget,
     );
-    expect(find.textContaining('fiaschetta'), findsOneWidget);
+    // Il racconto dice il colpo di fortuna che si è visto.
+    final luck = switch (scene.save) {
+      DeathAct.lucky => 'fiaschetta',
+      DeathAct.bible => 'Bibbia',
+      DeathAct.jam => 'lic',
+      DeathAct.banana => 'banana',
+      _ => 'gatto nero',
+    };
+    expect(find.textContaining(luck), findsOneWidget);
     expect(find.textContaining('Reduce'), findsNothing, reason: 'il tavolo non deve sapere perché');
     expect(find.text('Stanotte non è morto nessuno.'), findsNothing, reason: 'l\'agguato c\'è stato');
     await tap(tester, 'APRI LA DISCUSSIONE');
