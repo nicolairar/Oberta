@@ -46,9 +46,15 @@ Wolvesville ma più curata (animazioni, morti, avatar):
   l'esperienza si sale di livello, e salire di livello dà monete.
 - **Soldi veri:** si compra la valuta con acquisti in-app (StoreKit, obbligatorio
   su iOS per beni digitali), e con la valuta si comprano i cosmetici.
-- **Proposta da confermare:** due valute, come i giochi del genere: una che si
-  guadagna giocando (monete) e una premium comprata con soldi veri (che a volte
-  si vince anche), così il prezzo dei pezzi rari non dipende dal tempo di gioco.
+- **Una valuta sola: le monete** (deciso il 17 ottobre). Si guadagnano solo
+  salendo di livello; si sale di livello vincendo. Con soldi veri si comprano
+  monete.
+- **Bilanciamento di partenza** (da tarare con i dati): vittoria 100 XP,
+  sconfitta 30 XP, prima vittoria del giorno +100; dal livello L al successivo
+  servono 150 + 25·L XP; 100 monete a livello + 250 ogni 5 livelli. Prezzi:
+  comune 100, raro 300, epico 800, leggendario 2000. Obiettivo: primo pezzo
+  dopo circa un'ora, mai "tutto sbloccato" in poche ore, mai decine di ore per
+  un pezzo comune. Numeri in un file di configurazione unico + simulatore.
 - **Regole tecniche:** saldo, inventario ed esperienza li scrive solo il server
   (già oggi l'app non può modificarli); ogni acquisto Apple si verifica lato
   server (App Store Server API) prima di accreditare la valuta; l'esperienza
