@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import '../l10n/app_language.dart';
 
 /// Un profilo online: chi è una persona per gli altri giocatori, su ogni
@@ -5,8 +7,8 @@ import '../l10n/app_language.dart';
 class Profile {
   final String id;
 
-  /// Il nome unico per farsi trovare, in minuscolo. Vuoto finché la persona
-  /// non ha finito di prepararsi il profilo.
+  /// Il nome unico per farsi trovare: solo lettere, in minuscolo. Vuoto
+  /// finché la persona non ha finito di prepararsi il profilo.
   final String? handle;
   final String? displayName;
   final AppLanguage language;
@@ -14,12 +16,22 @@ class Profile {
   /// L'aspetto indossato, per id di catalogo: `{base, hat, glasses, ...}`.
   final Map<String, String> avatar;
 
+  /// Livello, esperienza verso il prossimo livello e monete. Li scrive solo
+  /// il server, e solo il padrone del profilo li legge (vedi `my_profile()`
+  /// nel database): nei profili degli altri restano ai valori di partenza.
+  final int level;
+  final int xp;
+  final int coins;
+
   const Profile({
     required this.id,
     this.handle,
     this.displayName,
     this.language = AppLanguage.it,
     this.avatar = const {},
+    this.level = 1,
+    this.xp = 0,
+    this.coins = 0,
   });
 
   /// Senza nome unico e nome da mostrare non si entra nelle stanze.
@@ -31,12 +43,23 @@ class Profile {
   /// Il seme del ritratto disegnato: sempre la stessa faccia per lo stesso account.
   String get avatarSeed => avatar['base'] ?? handle ?? id;
 
-  Profile copyWith({String? handle, String? displayName, AppLanguage? language}) => Profile(
+  /// Quanta esperienza serve per passare dal livello [level] al seguente.
+  /// Provvisorio: quando il server darà l'esperienza deciderà lui la scala.
+  static int xpToNext(int level) => 100 * max(1, level);
+
+  /// Quanto manca al prossimo livello, da 0 a 1: la barra del profilo.
+  double get levelProgress => (xp / xpToNext(level)).clamp(0.0, 1.0);
+
+  Profile copyWith({String? handle, String? displayName, AppLanguage? language, int? level, int? xp, int? coins}) =>
+      Profile(
         id: id,
         handle: handle ?? this.handle,
         displayName: displayName ?? this.displayName,
         language: language ?? this.language,
         avatar: avatar,
+        level: level ?? this.level,
+        xp: xp ?? this.xp,
+        coins: coins ?? this.coins,
       );
 
   factory Profile.fromJson(Map<String, dynamic> json) => Profile(
@@ -48,10 +71,20 @@ class Profile {
           for (final MapEntry(:key, :value) in ((json['avatar'] as Map?) ?? const {}).entries)
             if (value is String) key as String: value,
         },
+        level: (json['level'] as num?)?.toInt() ?? 1,
+        xp: (json['xp'] as num?)?.toInt() ?? 0,
+        coins: (json['coins'] as num?)?.toInt() ?? 0,
       );
 
-  /// Un nome unico valido: da 3 a 20 fra lettere minuscole, cifre e trattini bassi.
-  static final handlePattern = RegExp(r'^[a-z0-9_]{3,20}$');
+  static const minHandle = 3;
+  static const maxHandle = 16;
+
+  /// Un nome unico valido: da 3 a 16 lettere, senza cifre, spazi o segni.
+  /// Si salva in minuscolo, così «Marco» e «marco» sono lo stesso nome.
+  static final handlePattern = RegExp('^[a-z]{$minHandle,$maxHandle}\$');
+
+  /// Il nome unico come lo si salva: in minuscolo, senza spazi intorno.
+  static String normalizeHandle(String typed) => typed.trim().toLowerCase();
 
   static const maxDisplayName = 24;
 }
@@ -111,6 +144,19 @@ class RoomMember {
 /// Che cosa è andato storto, in parole che la UI sa tradurre.
 enum OnlineFailure {
   notSignedIn,
+
+  /// Il server non ha acceso questo modo di entrare (Supabase, Authentication
+  /// → Providers).
+  appleDisabled,
+  googleDisabled,
+  emailDisabled,
+
+  /// L'account di prova: password sbagliata, troppo debole, email storta,
+  /// o il server vuole la conferma via email.
+  wrongPassword,
+  weakPassword,
+  invalidEmail,
+  emailNotConfirmed,
   profileIncomplete,
   handleTaken,
   invalidHandle,
@@ -129,8 +175,16 @@ class OnlineException implements Exception {
   final OnlineFailure failure;
   final Object? cause;
 
-  const OnlineException(this.failure, [this.cause]);
+  /// Il motivo tecnico (codice e messaggio di Apple, Google o Supabase), da
+  /// mostrare in piccolo sotto il messaggio gentile: chi prova l'app in
+  /// TestFlight lo può copiare in una segnalazione.
+  final String? detail;
+
+  const OnlineException(this.failure, [this.cause, this.detail]);
+
+  /// Il motivo tecnico, se c'è.
+  String? get reason => detail ?? cause?.toString();
 
   @override
-  String toString() => 'OnlineException(${failure.name}${cause == null ? '' : ': $cause'})';
+  String toString() => 'OnlineException(${failure.name}${reason == null ? '' : ': $reason'})';
 }

@@ -63,13 +63,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Questo nome unico è già preso.'), findsOneWidget);
 
-    await tester.enterText(find.byKey(const Key('online.handle')), 'Anna_R');
-    expect(find.text('anna_r'), findsOneWidget, reason: 'il nome unico si scrive in minuscolo');
+    await tester.enterText(find.byKey(const Key('online.handle')), 'Anna_R2');
+    expect(find.text('annar'), findsOneWidget, reason: 'solo lettere, in minuscolo');
     await tester.tap(find.text('SALVA'));
     await tester.pumpAndSettle();
     expect(find.text('GIOCA CON AMICI'), findsOneWidget);
     expect(find.text('APRI UNA STANZA'), findsOneWidget);
-    expect(online.profileOf('me')!.handle, 'anna_r');
+    expect(online.profileOf('me')!.handle, 'annar');
   });
 
   testWidgets('senza Apple né Google sul telefono lo dice', (tester) async {

@@ -1,0 +1,323 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:oberta/l10n/app_language.dart';
+import 'package:oberta/main.dart';
+import 'package:oberta/online/fake_online.dart';
+import 'package:oberta/online/incoming_links.dart';
+import 'package:oberta/online/online_services.dart';
+
+/// Il vicolo con l'online: la targhetta «Accedi», il suggerimento sul
+/// manifesto, il cartellino di chi è entrato, l'account di prova e i link
+/// delle stanze aperti dalla fotocamera.
+void main() {
+  late FakeOnline online;
+
+  setUp(() {
+    online = FakeOnline()..addPlayer('bruno', handle: 'bruno', displayName: 'Bruno');
+    online.auth.googleAvailable = false;
+    OnlineServices.instance = online.services;
+  });
+
+  Future<void> openAlley(WidgetTester tester) async {
+    tester.view.physicalSize = const Size(393, 852);
+    tester.view.devicePixelRatio = 1;
+    tester.view.padding = const FakeViewPadding(top: 59, bottom: 34);
+    addTearDown(tester.view.reset);
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+    await tester.pumpWidget(const ObertaApp());
+    await tester.pumpAndSettle();
+  }
+
+  /// Il profilo nuovo, appena entrati: nome unico e nome da mostrare.
+  Future<void> fillProfile(WidgetTester tester, {String handle = 'anna', String name = 'Anna'}) async {
+    expect(find.text('IL TUO PROFILO'), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('online.handle')), handle);
+    await tester.enterText(find.byKey(const Key('online.name')), name);
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('SALVA'));
+    await tester.pumpAndSettle();
+  }
+
+  group('chi non è entrato', () {
+    testWidgets('trova la targhetta «Accedi» in alto, fuori dai manifesti', (tester) async {
+      await openAlley(tester);
+      final plate = tester.getRect(find.byKey(const Key('home.signIn')));
+      final settings = tester.getRect(find.byTooltip('Impostazioni'));
+      expect(find.text('ACCEDI'), findsOneWidget);
+      expect(plate.top, greaterThanOrEqualTo(59), reason: 'sotto la tacca');
+      expect(plate.right, lessThanOrEqualTo(settings.left), reason: 'l\'ingranaggio resta dov\'è');
+      expect(plate.height, greaterThanOrEqualTo(34), reason: 'abbastanza grande per un dito');
+      expect(tester.getRect(find.text('OBERTÀ')).top, greaterThanOrEqualTo(plate.bottom - 1));
+      expect(find.byKey(const Key('home.badge')), findsNothing);
+    });
+
+    testWidgets('«Gioca con amici» non porta via: spegne il vicolo e indica «Accedi»', (tester) async {
+      await openAlley(tester);
+      await tester.tap(find.text('GIOCA\nCON AMICI'));
+      await tester.pumpAndSettle();
+      expect(find.text('Accedi per giocare online'), findsOneWidget);
+      expect(find.text('CHI SEI?'), findsNothing, reason: 'niente pagina online');
+      expect(find.text('CREA STANZA'), findsOneWidget, reason: 'si resta nel vicolo');
+
+      // Toccando altrove il vicolo si riaccende, e non succede altro.
+      await tester.tapAt(const Offset(200, 700));
+      await tester.pumpAndSettle();
+      expect(find.text('Accedi per giocare online'), findsNothing);
+      expect(find.text('IL TAVOLO'), findsNothing);
+      expect(find.text('CHI SEI?'), findsNothing);
+    });
+
+    testWidgets('toccando la luce si entra; poi il nome unico, poi il cartellino', (tester) async {
+      await openAlley(tester);
+      await tester.tap(find.text('GIOCA\nCON AMICI'));
+      await tester.pumpAndSettle();
+      await tester.tapAt(tester.getCenter(find.byKey(const Key('home.signIn'))));
+      await tester.pumpAndSettle();
+      expect(find.text('CHI SEI?'), findsOneWidget, reason: 'il foglio dell\'accesso');
+      expect(find.text('Entra con Google'), findsNothing, reason: 'Google non è configurato');
+
+      await tester.tap(find.text('Entra con Apple'));
+      await tester.pumpAndSettle();
+      expect(online.auth.signedIn, isTrue);
+
+      // Il nome unico: solo lettere, e si vede subito se è libero.
+      await tester.enterText(find.byKey(const Key('online.handle')), 'Bruno');
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
+      expect(find.text('Questo nome unico è già preso.'), findsOneWidget);
+      await tester.enterText(find.byKey(const Key('online.handle')), 'an_na 7!');
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
+      final field = tester.widget<TextField>(find.byKey(const Key('online.handle')));
+      expect(field.controller!.text, 'anna', reason: 'cifre, spazi e segni non entrano');
+      expect(find.text('Libero: è tuo, se lo vuoi.'), findsOneWidget);
+      await tester.enterText(find.byKey(const Key('online.name')), 'Anna');
+      await tester.tap(find.text('SALVA'));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('home.badge')), findsOneWidget);
+      expect(find.text('Anna'), findsOneWidget);
+      expect(find.text('LIV. 1'), findsOneWidget);
+      expect(find.text('ACCEDI'), findsNothing);
+      expect(online.profileOf('me')!.handle, 'anna');
+    });
+
+    testWidgets('se Apple non va, il messaggio gentile e sotto il motivo tecnico', (tester) async {
+      await openAlley(tester);
+      online.auth.failNext = const OnlineException(
+        OnlineFailure.appleDisabled,
+        null,
+        'validation_failed · 400 · Unsupported provider: provider is not enabled',
+      );
+      await tester.tap(find.text('ACCEDI'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Entra con Apple'));
+      await tester.pumpAndSettle();
+      expect(find.text('Accesso con Apple non attivo sul server.'), findsOneWidget);
+      expect(find.textContaining('Unsupported provider: provider is not enabled'), findsOneWidget);
+      expect(online.auth.signedIn, isFalse);
+    });
+
+    testWidgets('chi chiude la finestra di Apple non vede errori', (tester) async {
+      await openAlley(tester);
+      online.auth.cancelNext = true;
+      await tester.tap(find.text('ACCEDI'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Entra con Apple'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('online.failure')), findsNothing);
+    });
+  });
+
+  group('l\'account di prova', () {
+    testWidgets('i giocatori non lo vedono: solo Apple', (tester) async {
+      await openAlley(tester);
+      await tester.tap(find.text('ACCEDI'));
+      await tester.pumpAndSettle();
+      expect(find.text('Entra con Apple'), findsOneWidget);
+      expect(find.byKey(const Key('online.testEmail')), findsNothing);
+      expect(find.textContaining('Account di prova', findRichText: true), findsNothing);
+    });
+
+    testWidgets('tenendo premuto «Accedi» si apre; la prima volta crea l\'account', (tester) async {
+      await openAlley(tester);
+      await tester.longPress(find.text('ACCEDI'));
+      await tester.pumpAndSettle();
+      expect(find.text('ACCOUNT DI PROVA'), findsOneWidget);
+
+      await tester.enterText(find.byKey(const Key('online.testEmail')), 'prova@oberta.test');
+      await tester.enterText(find.byKey(const Key('online.testPassword')), '123');
+      await tester.tap(find.byKey(const Key('online.testSubmit')));
+      await tester.pumpAndSettle();
+      expect(find.text('Password troppo debole: almeno 6 caratteri.'), findsOneWidget);
+
+      await tester.enterText(find.byKey(const Key('online.testPassword')), 'segreta');
+      await tester.tap(find.byKey(const Key('online.testSubmit')));
+      await tester.pumpAndSettle();
+      expect(online.auth.signedIn, isTrue);
+      await fillProfile(tester, handle: 'prova', name: 'Prova');
+      expect(find.byKey(const Key('home.badge')), findsOneWidget);
+    });
+
+    testWidgets('dal foglio dell\'accesso, tenendo premuto il titolo; password sbagliata', (tester) async {
+      await tester.runAsync(() async {
+        await online.auth.signInWithTestAccount(email: 'prova@oberta.test', password: 'segreta');
+        await online.auth.signOut();
+      });
+      await openAlley(tester);
+      await tester.tap(find.text('ACCEDI'));
+      await tester.pumpAndSettle();
+      await tester.longPress(find.byKey(const Key('online.signInTitle')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('online.testEmail')), 'prova@oberta.test');
+      await tester.enterText(find.byKey(const Key('online.testPassword')), 'sbagliata');
+      await tester.tap(find.byKey(const Key('online.testSubmit')));
+      await tester.pumpAndSettle();
+      expect(find.text('Password sbagliata per questa email.'), findsOneWidget);
+      expect(online.auth.signedIn, isFalse);
+    });
+
+    testWidgets('col provider Email spento il server lo dice chiaro', (tester) async {
+      online.emailEnabled = false;
+      await openAlley(tester);
+      await tester.longPress(find.text('ACCEDI'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('online.testEmail')), 'prova@oberta.test');
+      await tester.enterText(find.byKey(const Key('online.testPassword')), 'segreta');
+      await tester.tap(find.byKey(const Key('online.testSubmit')));
+      await tester.pumpAndSettle();
+      expect(find.text('Accesso con email non attivo sul server.'), findsOneWidget);
+      expect(find.textContaining('email_provider_disabled'), findsOneWidget);
+    });
+  });
+
+  group('chi è entrato', () {
+    testWidgets('ha il cartellino in alto a sinistra, e dal cartellino il profilo', (tester) async {
+      online
+        ..signInReady(handle: 'anna', displayName: 'Anna')
+        ..award('me', level: 4, xp: 200, coins: 75);
+      await openAlley(tester);
+      final badge = tester.getRect(find.byKey(const Key('home.badge')));
+      final settings = tester.getRect(find.byTooltip('Impostazioni'));
+      expect(badge.left, lessThan(40), reason: 'in alto a sinistra');
+      expect(badge.right, lessThan(settings.left), reason: 'l\'ingranaggio resta dov\'è');
+      expect(find.text('LIV. 4'), findsOneWidget);
+      expect(find.text('75'), findsOneWidget);
+      expect(find.text('ACCEDI'), findsNothing);
+
+      await tester.tap(find.byKey(const Key('home.badge')));
+      await tester.pumpAndSettle();
+      expect(find.text('@anna'), findsOneWidget);
+      expect(find.text('LIVELLO'), findsOneWidget);
+      expect(find.text('MONETE'), findsOneWidget);
+      expect(find.text('200 su 400 punti esperienza'), findsOneWidget);
+      final bar = tester.widget<LinearProgressIndicator>(find.byKey(const Key('profile.xp')));
+      expect(bar.value, closeTo(0.5, 1e-9));
+
+      await tester.tap(find.text('Esci dall\'account'));
+      await tester.pumpAndSettle();
+      expect(online.auth.signedIn, isFalse);
+      expect(find.text('ACCEDI'), findsOneWidget);
+      expect(find.byKey(const Key('home.badge')), findsNothing);
+    });
+
+    testWidgets('«Gioca con amici» porta alla sala online', (tester) async {
+      online.signInReady(handle: 'anna', displayName: 'Anna');
+      await openAlley(tester);
+      await tester.tap(find.text('GIOCA\nCON AMICI'));
+      await tester.pumpAndSettle();
+      expect(find.text('APRI UNA STANZA'), findsOneWidget);
+    });
+
+    testWidgets('chi aveva un nome che non vale più se lo rifà, poi il cartellino', (tester) async {
+      online
+        ..signInReady(handle: 'anna', displayName: 'Anna')
+        ..forgetHandle('me');
+      await openAlley(tester);
+      await fillProfile(tester, handle: 'annetta', name: 'Anna');
+      expect(find.byKey(const Key('home.badge')), findsOneWidget);
+      expect(online.profileOf('me')!.handle, 'annetta');
+    });
+  });
+
+  group('il QR di una stanza, aperto dalla fotocamera', () {
+    testWidgets('chi è entrato va dritto al tavolo', (tester) async {
+      online.signInReady(handle: 'anna', displayName: 'Anna');
+      final room = online.openRoomAs('bruno', AppLanguage.it);
+      await openAlley(tester);
+      IncomingLinks.instance.deliver(Uri.parse('oberta://room/${room.code}'));
+      await tester.pumpAndSettle();
+      expect(find.text('LA STANZA'), findsOneWidget);
+      expect(find.text('2 su 16 al tavolo'), findsOneWidget);
+    });
+
+    testWidgets('il link d\'avvio aspetta il vicolo', (tester) async {
+      online.signInReady(handle: 'anna', displayName: 'Anna');
+      final room = online.openRoomAs('bruno', AppLanguage.it);
+      IncomingLinks.instance.deliver(Uri.parse('oberta://room/${room.code}'));
+      await openAlley(tester);
+      expect(find.text('LA STANZA'), findsOneWidget);
+    });
+
+    testWidgets('chi non è entrato prima entra e si fa il profilo, poi siede', (tester) async {
+      final room = online.openRoomAs('bruno', AppLanguage.it);
+      await openAlley(tester);
+      IncomingLinks.instance.deliver(Uri.parse('oberta://room/${room.code.toLowerCase()}'));
+      await tester.pumpAndSettle();
+      expect(find.text('Accedi per entrare nella stanza ${room.code}.'), findsOneWidget);
+      await tester.tap(find.text('Entra con Apple'));
+      await tester.pumpAndSettle();
+      await fillProfile(tester);
+      expect(find.text('LA STANZA'), findsOneWidget);
+      expect(find.text('2 su 16 al tavolo'), findsOneWidget);
+    });
+
+    testWidgets('chi chiude l\'accesso resta nel vicolo, e il link si dimentica', (tester) async {
+      final room = online.openRoomAs('bruno', AppLanguage.it);
+      await openAlley(tester);
+      IncomingLinks.instance.deliver(Uri.parse('oberta://room/${room.code}'));
+      await tester.pumpAndSettle();
+      await tester.tapAt(const Offset(200, 100));
+      await tester.pumpAndSettle();
+      online.signInReady(handle: 'anna', displayName: 'Anna');
+      await tester.pumpAndSettle();
+      expect(find.text('LA STANZA'), findsNothing);
+      expect(find.text('CREA STANZA'), findsOneWidget);
+    });
+
+    testWidgets('un link storto o una stanza chiusa: due parole, e si resta nel vicolo', (tester) async {
+      online.signInReady(handle: 'anna', displayName: 'Anna');
+      await openAlley(tester);
+      IncomingLinks.instance.deliver(Uri.parse('oberta://room/NOPE'));
+      await tester.pumpAndSettle();
+      expect(find.text('Questo link non porta a nessuna stanza.'), findsOneWidget);
+
+      final room = online.openRoomAs('bruno', AppLanguage.it);
+      online.leaveAs('bruno', room.id);
+      IncomingLinks.instance.deliver(Uri.parse('oberta://room/${room.code}'));
+      await tester.pumpAndSettle();
+      expect(find.text('Nessuna stanza con questo codice.'), findsOneWidget);
+      expect(find.text('CREA STANZA'), findsOneWidget);
+    });
+
+    testWidgets('senza server il link lo dice, e il vicolo non ha «Accedi»', (tester) async {
+      OnlineServices.instance = null;
+      await openAlley(tester);
+      expect(find.text('ACCEDI'), findsNothing);
+      IncomingLinks.instance.deliver(Uri.parse('oberta://room/XK7P2M'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Il gioco online non è disponibile'), findsOneWidget);
+    });
+
+    testWidgets('gli altri link (gli accessi di Google) non sono affar del vicolo', (tester) async {
+      online.signInReady(handle: 'anna', displayName: 'Anna');
+      await openAlley(tester);
+      IncomingLinks.instance.deliver(Uri.parse('com.googleusercontent.apps.x:/oauth2redirect?code=1'));
+      await tester.pumpAndSettle();
+      expect(find.byType(SnackBar), findsNothing);
+    });
+  });
+}

@@ -21,6 +21,19 @@ abstract final class JoinCode {
     return code;
   }
 
+  /// Vero se il link è di una stanza (`oberta://room/...`), valido o no:
+  /// gli altri link che arrivano all'app (gli accessi di Google, per
+  /// esempio) non sono affar nostro.
+  static bool isRoomLink(Uri uri) => uri.scheme.toLowerCase() == 'oberta' && uri.host.toLowerCase() == 'room';
+
+  /// Il codice di un link di stanza aperto da fuori (la fotocamera del
+  /// telefono, un messaggio). Null se il link non è di una stanza valida.
+  static String? fromLink(Uri uri) {
+    if (!isRoomLink(uri)) return null;
+    final segments = uri.pathSegments.where((segment) => segment.isNotEmpty).toList();
+    return segments.length == 1 ? normalize(segments.single) : null;
+  }
+
   /// Il codice letto da un QR: quello della stanza, o un codice nudo.
   static String? fromScan(String raw) {
     final text = raw.trim();

@@ -44,6 +44,102 @@ void main() {
       expect([for (final p in await online.profiles.search('b')) p.handle], ['bruno']);
       expect(await online.profiles.search('anna'), isEmpty, reason: 'non si trova sé stessi');
     });
+
+    test('il nome unico è fatto solo di lettere, da 3 a 16', () async {
+      await online.auth.signInWithApple();
+      for (final bad in ['ab', 'anna1', 'an_na', 'an na', 'anna!', 'ànna', 'abcdefghijklmnopq', '']) {
+        await expectLater(
+          online.profiles.update(handle: bad, displayName: 'Anna'),
+          _fails(OnlineFailure.invalidHandle),
+          reason: bad,
+        );
+      }
+      expect(Profile.handlePattern.hasMatch('abc'), isTrue);
+      expect(Profile.handlePattern.hasMatch('abcdefghijklmnop'), isTrue);
+      final profile = await online.profiles.update(handle: 'Anna', displayName: 'Anna');
+      expect(profile.handle, 'anna', reason: 'si salva in minuscolo');
+    });
+
+    test('maiuscole o minuscole, un nome preso resta preso; e si sa prima di salvare', () async {
+      await online.auth.signInWithApple();
+      expect(await online.profiles.handleAvailable('bruno'), isFalse);
+      expect(await online.profiles.handleAvailable('BRUNO'), isFalse);
+      expect(await online.profiles.handleAvailable('anna'), isTrue);
+      await expectLater(online.profiles.update(handle: 'Bruno', displayName: 'Io'), _fails(OnlineFailure.handleTaken));
+      await online.profiles.update(handle: 'anna', displayName: 'Anna');
+      expect(await online.profiles.handleAvailable('anna'), isTrue, reason: 'il proprio nome non è «preso»');
+    });
+
+    test('un vecchio nome che non vale più si rifà al prossimo accesso', () async {
+      online.signInReady(handle: 'anna', displayName: 'Anna');
+      online.forgetHandle('me');
+      final profile = await online.profiles.me();
+      expect(profile.isComplete, isFalse);
+      expect(profile.displayName, 'Anna');
+    });
+
+    test('livello, esperienza e monete li scrive il server; il profilo li legge', () async {
+      online.signInReady(handle: 'anna', displayName: 'Anna');
+      var profile = await online.profiles.me();
+      expect((profile.level, profile.xp, profile.coins), (1, 0, 0));
+      online.award('me', level: 3, xp: 150, coins: 40);
+      profile = await online.profiles.me();
+      expect((profile.level, profile.xp, profile.coins), (3, 150, 40));
+      expect(profile.levelProgress, closeTo(0.5, 1e-9));
+      profile = await online.profiles.update(handle: 'anna', displayName: 'Anna B');
+      expect(profile.coins, 40, reason: 'salvare il nome non tocca le monete');
+    });
+
+    test('un accesso rifiutato dal server porta il motivo tecnico', () async {
+      online.auth.failNext = const OnlineException(OnlineFailure.appleDisabled, null, 'provider is not enabled');
+      await expectLater(
+        online.auth.signInWithApple(),
+        throwsA(isA<OnlineException>()
+            .having((e) => e.failure, 'failure', OnlineFailure.appleDisabled)
+            .having((e) => e.reason, 'reason', contains('provider is not enabled'))),
+      );
+      expect(online.auth.signedIn, isFalse);
+      await online.auth.signInWithApple();
+      expect(online.auth.signedIn, isTrue, reason: 'il guasto vale una volta sola');
+    });
+  });
+
+  group('l\'account di prova', () {
+    test('la prima volta crea l\'account, poi ci rientra con la stessa password', () async {
+      await online.auth.signInWithTestAccount(email: 'prova@oberta.test', password: 'segreta');
+      final first = online.auth.userId;
+      expect(first, isNotNull);
+      expect(first, isNot('me'), reason: 'è un altro account, non quello di Apple');
+      await online.auth.signOut();
+      await online.auth.signInWithTestAccount(email: ' Prova@Oberta.test ', password: 'segreta');
+      expect(online.auth.userId, first);
+    });
+
+    test('password sbagliata, password debole, email storta', () async {
+      await online.auth.signInWithTestAccount(email: 'prova@oberta.test', password: 'segreta');
+      await online.auth.signOut();
+      await expectLater(
+        online.auth.signInWithTestAccount(email: 'prova@oberta.test', password: 'sbagliata'),
+        _fails(OnlineFailure.wrongPassword),
+      );
+      await expectLater(
+        online.auth.signInWithTestAccount(email: 'altra@oberta.test', password: '123'),
+        _fails(OnlineFailure.weakPassword),
+      );
+      await expectLater(
+        online.auth.signInWithTestAccount(email: 'non-una-email', password: 'segreta'),
+        _fails(OnlineFailure.invalidEmail),
+      );
+      expect(online.auth.signedIn, isFalse);
+    });
+
+    test('col provider Email spento sul server non si entra', () async {
+      online.emailEnabled = false;
+      await expectLater(
+        online.auth.signInWithTestAccount(email: 'prova@oberta.test', password: 'segreta'),
+        _fails(OnlineFailure.emailDisabled),
+      );
+    });
   });
 
   group('le stanze', () {
@@ -84,7 +180,7 @@ void main() {
       final room = await online.rooms.create(AppLanguage.it);
       for (var i = 0; i < 15; i++) {
         online
-          ..addPlayer('p$i', handle: 'player$i', displayName: 'P$i')
+          ..addPlayer('p$i', handle: 'player${String.fromCharCode(97 + i)}', displayName: 'P$i')
           ..joinAs('p$i', room.code);
       }
       expect(() => online.joinAs('bruno', room.code), _fails(OnlineFailure.roomFull));

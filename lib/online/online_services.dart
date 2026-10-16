@@ -29,14 +29,23 @@ abstract class OnlineAuth extends ChangeNotifier {
 
   Future<void> signInWithGoogle();
 
+  /// L'account di prova, con email e password, per chi prova l'app da un
+  /// secondo telefono: entra, o crea l'account se non c'è ancora. Nascosto
+  /// ai giocatori (si apre tenendo premuto «Accedi»); sul server va acceso
+  /// il provider Email, con la conferma via email spenta.
+  Future<void> signInWithTestAccount({required String email, required String password});
+
   Future<void> signOut();
 }
 
 abstract class ProfileRepository {
-  /// Il profilo di chi è entrato.
+  /// Il profilo di chi è entrato, con livello, esperienza e monete.
   Future<Profile> me();
 
   Future<Profile> update({required String handle, required String displayName, AppLanguage? language});
+
+  /// Vero se nessun altro ha già questo nome unico (in qualunque maiuscola).
+  Future<bool> handleAvailable(String handle);
 
   /// I profili il cui nome unico comincia così, tranne il proprio.
   Future<List<Profile>> search(String handlePrefix);

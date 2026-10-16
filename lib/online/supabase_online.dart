@@ -32,13 +32,72 @@ Future<OnlineServices?> openSupabaseOnline(OnlineConfig config) async {
   );
 }
 
+/// Da che porta si stava entrando: dice quale provider manca, se manca.
+enum SignInDoor { apple, google, email }
+
+/// Il motivo tecnico di un errore, corto e leggibile: codice e messaggio.
+String? technicalReason(Object error) => switch (error) {
+      OnlineException(:final reason) => reason,
+      AuthException(:final code, :final statusCode, :final message) =>
+        [?code, ?statusCode, message].join(' · '),
+      PostgrestException(:final code, :final message) => [?code, message].join(' · '),
+      SignInWithAppleAuthorizationException(:final code, :final message) => 'apple ${code.name} · $message',
+      SignInWithAppleException() => 'apple · $error',
+      GoogleSignInException(:final code, :final description) => ['google ${code.name}', ?description].join(' · '),
+      _ => error.toString(),
+    };
+
+/// Un errore di accesso di Supabase, nelle parole della UI.
+OnlineFailure? _authFailure(AuthException error, SignInDoor? door) {
+  final code = error.code ?? '';
+  final message = error.message.toLowerCase();
+  final disabled = code == 'provider_disabled' ||
+      code == 'email_provider_disabled' ||
+      code == 'signup_disabled' ||
+      message.contains('provider is not enabled') ||
+      message.contains('unsupported provider') ||
+      message.contains('logins are disabled') ||
+      message.contains('signups not allowed');
+  if (disabled) {
+    return switch (door) {
+      SignInDoor.google => OnlineFailure.googleDisabled,
+      SignInDoor.email => OnlineFailure.emailDisabled,
+      _ => OnlineFailure.appleDisabled,
+    };
+  }
+  if (error is AuthWeakPasswordException || code == 'weak_password') return OnlineFailure.weakPassword;
+  if (code == 'invalid_credentials' || message.contains('invalid login credentials')) {
+    return OnlineFailure.wrongPassword;
+  }
+  if (code == 'user_already_exists' || code == 'email_exists') return OnlineFailure.wrongPassword;
+  if (code == 'email_address_invalid' || message.contains('unable to validate email')) {
+    return OnlineFailure.invalidEmail;
+  }
+  if (code == 'email_not_confirmed') return OnlineFailure.emailNotConfirmed;
+  if (error is AuthRetryableFetchException) return OnlineFailure.network;
+  return null;
+}
+
 /// Traduce gli errori del server nelle parole della UI. Le funzioni del
 /// database alzano eccezioni col nome del problema (`room_full`, ...).
-OnlineException _translate(Object error) {
+/// Il motivo tecnico resta attaccato, e finisce anche nel log.
+OnlineException translateOnlineError(Object error, [SignInDoor? door]) => _translate(error, door);
+
+OnlineException _translate(Object error, [SignInDoor? door]) {
   if (error is OnlineException) return error;
+  final translated = _classify(error, door);
+  debugPrint('Online: ${translated.failure.name} ← ${translated.reason}');
+  return translated;
+}
+
+OnlineException _classify(Object error, SignInDoor? door) {
+  final detail = technicalReason(error);
+  if (error is AuthException) {
+    return OnlineException(_authFailure(error, door) ?? OnlineFailure.unknown, error, detail);
+  }
   if (error is PostgrestException) {
-    if (error.code == '23505') return OnlineException(OnlineFailure.handleTaken, error);
-    if (error.code == '23514') return OnlineException(OnlineFailure.invalidHandle, error);
+    if (error.code == '23505') return OnlineException(OnlineFailure.handleTaken, error, detail);
+    if (error.code == '23514') return OnlineException(OnlineFailure.invalidHandle, error, detail);
     final failure = switch (error.message) {
       'not_signed_in' => OnlineFailure.notSignedIn,
       'profile_incomplete' => OnlineFailure.profileIncomplete,
@@ -50,22 +109,24 @@ OnlineException _translate(Object error) {
       'request_not_found' => OnlineFailure.requestNotFound,
       _ => OnlineFailure.unknown,
     };
-    return OnlineException(failure, error);
+    return OnlineException(failure, error, detail);
   }
-  if (error is SocketException || error is TimeoutException || error is AuthRetryableFetchException) {
-    return OnlineException(OnlineFailure.network, error);
+  if (error is SocketException || error is TimeoutException) {
+    return OnlineException(OnlineFailure.network, error, detail);
   }
-  return OnlineException(OnlineFailure.unknown, error);
+  return OnlineException(OnlineFailure.unknown, error, detail);
 }
 
-Future<T> _guard<T>(Future<T> Function() call) async {
+Future<T> _guard<T>(Future<T> Function() call, [SignInDoor? door]) async {
   try {
     return await call();
   } catch (error) {
-    throw _translate(error);
+    throw _translate(error, door);
   }
 }
 
+/// Le colonne pubbliche di un profilo: livello, esperienza e monete no,
+/// quelle le legge solo il padrone con `my_profile()`.
 const _profileColumns = 'id, handle, display_name, language, avatar';
 
 /// Un valore casuale da usare una volta sola: Supabase controlla che il
@@ -123,7 +184,7 @@ class SupabaseAuth extends OnlineAuth {
         final name = [credential.givenName, credential.familyName].whereType<String>().join(' ').trim();
         if (name.isNotEmpty) _suggestedName = name;
         await _client.auth.signInWithIdToken(provider: OAuthProvider.apple, idToken: idToken, nonce: rawNonce);
-      });
+      }, SignInDoor.apple);
 
   @override
   Future<void> signInWithGoogle() => _guard(() async {
@@ -155,7 +216,28 @@ class SupabaseAuth extends OnlineAuth {
           accessToken: authorization?.accessToken,
           nonce: rawNonce,
         );
-      });
+      }, SignInDoor.google);
+
+  @override
+  Future<void> signInWithTestAccount({required String email, required String password}) => _guard(() async {
+        final address = email.trim();
+        try {
+          await _client.auth.signInWithPassword(email: address, password: password);
+          return;
+        } on AuthException catch (error) {
+          // Credenziali sbagliate vuol dire anche «account che non c'è»:
+          // si prova a crearlo, e se c'era già era la password.
+          if (_authFailure(error, SignInDoor.email) != OnlineFailure.wrongPassword) rethrow;
+        }
+        final created = await _client.auth.signUp(email: address, password: password);
+        if (created.session == null) {
+          throw const OnlineException(
+            OnlineFailure.emailNotConfirmed,
+            null,
+            'signUp returned no session: turn off "Confirm email" in Supabase',
+          );
+        }
+      }, SignInDoor.email);
 
   @override
   Future<void> signOut() => _guard(() async {
@@ -179,35 +261,44 @@ class SupabaseProfiles implements ProfileRepository {
 
   @override
   Future<Profile> me() => _guard(() async {
-        final row = await _client.from('profiles').select(_profileColumns).eq('id', _me).single();
-        return Profile.fromJson(row);
+        if (_client.auth.currentUser == null) throw const OnlineException(OnlineFailure.notSignedIn);
+        // Livello, esperienza e monete non sono colonne pubbliche: il proprio
+        // profilo intero arriva solo da questa funzione.
+        final rows = await _client.rpc<List<dynamic>>('my_profile');
+        if (rows.isEmpty) throw const OnlineException(OnlineFailure.notSignedIn, null, 'my_profile returned no row');
+        return Profile.fromJson(rows.first as Map<String, dynamic>);
       });
 
   @override
   Future<Profile> update({required String handle, required String displayName, AppLanguage? language}) =>
       _guard(() async {
-        final row = await _client
+        await _client.from('profiles').update({
+          'handle': Profile.normalizeHandle(handle),
+          'display_name': displayName,
+          if (language != null) 'language': language.name,
+        }).eq('id', _me);
+        return me();
+      });
+
+  @override
+  Future<bool> handleAvailable(String handle) => _guard(() async {
+        final rows = await _client
             .from('profiles')
-            .update({
-              'handle': handle,
-              'display_name': displayName,
-              if (language != null) 'language': language.name,
-            })
-            .eq('id', _me)
-            .select(_profileColumns)
-            .single();
-        return Profile.fromJson(row);
+            .select('id')
+            .eq('handle', Profile.normalizeHandle(handle))
+            .neq('id', _me)
+            .limit(1);
+        return rows.isEmpty;
       });
 
   @override
   Future<List<Profile>> search(String handlePrefix) => _guard(() async {
-        final prefix = handlePrefix.toLowerCase().replaceAll(RegExp('[^a-z0-9_]'), '');
+        final prefix = handlePrefix.toLowerCase().replaceAll(RegExp('[^a-z]'), '');
         if (prefix.isEmpty) return const <Profile>[];
-        // Il trattino basso nei nomi è anche il jolly di LIKE: va protetto.
         final rows = await _client
             .from('profiles')
             .select(_profileColumns)
-            .like('handle', '${prefix.replaceAll('_', r'\_')}%')
+            .like('handle', '$prefix%')
             .neq('id', _me)
             .order('handle')
             .limit(20);

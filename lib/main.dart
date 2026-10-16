@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'online/device_links.dart';
+import 'online/incoming_links.dart';
 import 'online/online_config.dart';
 import 'online/online_services.dart';
 import 'online/supabase_online.dart';
@@ -23,6 +25,8 @@ Future<void> main() async {
   AppSettings.instance = await AppSettings.open();
   // L'online c'è solo se l'app è stata compilata con config/supabase.json.
   OnlineServices.instance = await openSupabaseOnline(OnlineConfig.compiled);
+  // Il QR di una stanza inquadrato con la fotocamera apre l'app su quella stanza.
+  listenToDeviceLinks(IncomingLinks.instance);
   runApp(const ObertaApp());
   SoundStage.instance.music(MusicMood.menu);
 }

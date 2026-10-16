@@ -24,6 +24,25 @@ abstract class OnlineStrings {
   String get loginNoProvider;
   String get loginPrivacy;
 
+  // L'account nel vicolo: la targhetta, il suggerimento, il cartellino.
+  String get signIn;
+  String get coachSignIn;
+  String roomLinkSignIn(String code);
+  String get roomLinkInvalid;
+  String get technicalReason;
+  String get pickHandle;
+  String levelShort(int level);
+  String get level;
+  String get coins;
+  String xpProgress(int xp, int next);
+
+  // L'account di prova, nascosto.
+  String get testAccount;
+  String get testAccountBody;
+  String get emailLabel;
+  String get passwordLabel;
+  String get testAccountSubmit;
+
   // Il profilo.
   String get setupTitle;
   String get setupBody;
@@ -32,6 +51,8 @@ abstract class OnlineStrings {
   String get nameLabel;
   String get save;
   String get handleInvalid;
+  String get handleChecking;
+  String get handleFree;
   String get nameInvalid;
 
   // La sala d'ingresso.
@@ -90,6 +111,21 @@ abstract class OnlineStrings {
     'loginGoogle': loginGoogle,
     'loginNoProvider': loginNoProvider,
     'loginPrivacy': loginPrivacy,
+    'signIn': signIn,
+    'coachSignIn': coachSignIn,
+    'roomLinkSignIn': roomLinkSignIn('ABC234'),
+    'roomLinkInvalid': roomLinkInvalid,
+    'technicalReason': technicalReason,
+    'pickHandle': pickHandle,
+    'levelShort': levelShort(3),
+    'level': level,
+    'coins': coins,
+    'xpProgress': xpProgress(40, 300),
+    'testAccount': testAccount,
+    'testAccountBody': testAccountBody,
+    'emailLabel': emailLabel,
+    'passwordLabel': passwordLabel,
+    'testAccountSubmit': testAccountSubmit,
     'setupTitle': setupTitle,
     'setupBody': setupBody,
     'handleLabel': handleLabel,
@@ -97,6 +133,8 @@ abstract class OnlineStrings {
     'nameLabel': nameLabel,
     'save': save,
     'handleInvalid': handleInvalid,
+    'handleChecking': handleChecking,
+    'handleFree': handleFree,
     'nameInvalid': nameInvalid,
     'hubTitle': hubTitle,
     'signedInAs': signedInAs('Sara'),
@@ -167,19 +205,56 @@ final class ItalianOnlineStrings extends OnlineStrings {
   String get loginPrivacy => 'L\'account serve solo al tuo profilo di gioco. Un telefono per tutti resta senza account.';
 
   @override
+  String get signIn => 'ACCEDI';
+  @override
+  String get coachSignIn => 'Accedi per giocare online';
+  @override
+  String roomLinkSignIn(String code) => 'Accedi per entrare nella stanza $code.';
+  @override
+  String get roomLinkInvalid => 'Questo link non porta a nessuna stanza.';
+  @override
+  String get technicalReason => 'Motivo tecnico';
+  @override
+  String get pickHandle => 'Scegli il tuo nome';
+  @override
+  String levelShort(int level) => 'LIV. $level';
+  @override
+  String get level => 'LIVELLO';
+  @override
+  String get coins => 'MONETE';
+  @override
+  String xpProgress(int xp, int next) => '$xp su $next punti esperienza';
+
+  @override
+  String get testAccount => 'Account di prova';
+  @override
+  String get testAccountBody =>
+      'Solo per provare l\'app da un altro telefono: entra con email e password, o crea l\'account se non c\'è.';
+  @override
+  String get emailLabel => 'Indirizzo email';
+  @override
+  String get passwordLabel => 'Password (almeno 6 caratteri)';
+  @override
+  String get testAccountSubmit => 'ENTRA O CREA';
+
+  @override
   String get setupTitle => 'IL TUO PROFILO';
   @override
   String get setupBody => 'Gli amici ti cercano col nome unico; al tavolo vedono il nome da mostrare.';
   @override
   String get handleLabel => 'Nome unico';
   @override
-  String get handleHint => 'es. marco_rossi';
+  String get handleHint => 'es. marcorossi';
   @override
   String get nameLabel => 'Nome da mostrare';
   @override
   String get save => 'SALVA';
   @override
-  String get handleInvalid => 'Da 3 a 20 fra lettere minuscole, cifre e _.';
+  String get handleInvalid => 'Da 3 a 16 lettere, senza numeri, spazi o segni.';
+  @override
+  String get handleChecking => 'Controllo se è libero…';
+  @override
+  String get handleFree => 'Libero: è tuo, se lo vuoi.';
   @override
   String get nameInvalid => 'Scrivi un nome, al massimo 24 caratteri.';
 
@@ -258,6 +333,13 @@ final class ItalianOnlineStrings extends OnlineStrings {
   @override
   String failure(OnlineFailure failure) => switch (failure) {
         OnlineFailure.notSignedIn => 'Prima bisogna entrare con un account.',
+        OnlineFailure.appleDisabled => 'Accesso con Apple non attivo sul server.',
+        OnlineFailure.googleDisabled => 'Accesso con Google non attivo sul server.',
+        OnlineFailure.emailDisabled => 'Accesso con email non attivo sul server.',
+        OnlineFailure.wrongPassword => 'Password sbagliata per questa email.',
+        OnlineFailure.weakPassword => 'Password troppo debole: almeno 6 caratteri.',
+        OnlineFailure.invalidEmail => 'Questa email non sembra valida.',
+        OnlineFailure.emailNotConfirmed => 'Il server chiede di confermare l\'email: per le prove va spento.',
         OnlineFailure.profileIncomplete => 'Prima finisci il tuo profilo.',
         OnlineFailure.handleTaken => 'Questo nome unico è già preso.',
         OnlineFailure.invalidHandle => 'Nome non valido.',
@@ -302,19 +384,56 @@ final class EnglishOnlineStrings extends OnlineStrings {
   String get loginPrivacy => 'The account is only for your game profile. One phone for all needs no account.';
 
   @override
+  String get signIn => 'SIGN IN';
+  @override
+  String get coachSignIn => 'Sign in to play online';
+  @override
+  String roomLinkSignIn(String code) => 'Sign in to join room $code.';
+  @override
+  String get roomLinkInvalid => 'This link does not lead to any room.';
+  @override
+  String get technicalReason => 'Technical reason';
+  @override
+  String get pickHandle => 'Pick your handle';
+  @override
+  String levelShort(int level) => 'LV. $level';
+  @override
+  String get level => 'LEVEL';
+  @override
+  String get coins => 'COINS';
+  @override
+  String xpProgress(int xp, int next) => '$xp of $next experience points';
+
+  @override
+  String get testAccount => 'Test account';
+  @override
+  String get testAccountBody =>
+      'Only for trying the app from another phone: sign in with email and password, or create the account if missing.';
+  @override
+  String get emailLabel => 'Email address';
+  @override
+  String get passwordLabel => 'Password (at least 6 characters)';
+  @override
+  String get testAccountSubmit => 'SIGN IN OR CREATE';
+
+  @override
   String get setupTitle => 'YOUR PROFILE';
   @override
   String get setupBody => 'Friends find you by your handle; at the table they see your display name.';
   @override
   String get handleLabel => 'Handle';
   @override
-  String get handleHint => 'like mark_smith';
+  String get handleHint => 'like marksmith';
   @override
   String get nameLabel => 'Display name';
   @override
   String get save => 'SAVE';
   @override
-  String get handleInvalid => '3 to 20 lowercase letters, digits or _.';
+  String get handleInvalid => '3 to 16 letters, no digits, spaces or symbols.';
+  @override
+  String get handleChecking => 'Checking if it is free…';
+  @override
+  String get handleFree => 'Free: it is yours if you want it.';
   @override
   String get nameInvalid => 'Enter a name, 24 characters at most.';
 
@@ -393,6 +512,13 @@ final class EnglishOnlineStrings extends OnlineStrings {
   @override
   String failure(OnlineFailure failure) => switch (failure) {
         OnlineFailure.notSignedIn => 'Sign in with an account first.',
+        OnlineFailure.appleDisabled => 'Sign in with Apple is not enabled on the server.',
+        OnlineFailure.googleDisabled => 'Sign in with Google is not enabled on the server.',
+        OnlineFailure.emailDisabled => 'Email sign-in is not enabled on the server.',
+        OnlineFailure.wrongPassword => 'Wrong password for this email.',
+        OnlineFailure.weakPassword => 'Password too weak: at least 6 characters.',
+        OnlineFailure.invalidEmail => 'That email does not look valid.',
+        OnlineFailure.emailNotConfirmed => 'The server wants the email confirmed: turn that off for testing.',
         OnlineFailure.profileIncomplete => 'Finish your profile first.',
         OnlineFailure.handleTaken => 'That handle is already taken.',
         OnlineFailure.invalidHandle => 'Invalid name.',
