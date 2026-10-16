@@ -748,14 +748,17 @@ class DeathScenePainter extends CustomPainter {
     // Quando arriva il Dottore la cinepresa si allarga prima, e di più: deve
     // starci anche lui.
     final rescue = act.doctorSaves;
+    // Nei filmati dove la vittima vola via (la boccia, il casquè del tango)
+    // la cinepresa si allarga subito, prima della caduta, se no la taglia.
+    final early = rescue || act == DeathAct.bowling || act == DeathAct.tango;
     final settle = _smooth(
       _span(
         t,
-        strike + (rescue ? 0.04 : 0.10),
-        strike + (rescue ? 0.14 : 0.28),
+        strike + (early ? -0.03 : 0.10),
+        strike + (early ? 0.08 : 0.28),
       ),
     );
-    final zoom = 1 + 0.22 * push - (rescue ? _rescueWiden : 0.08) * settle;
+    final zoom = 1 + 0.22 * push - (rescue ? _rescueWiden : early ? 0.24 : 0.08) * settle;
     var focus = _mix(
       _w / 2,
       _mix(_victimX, _cornerX, _fromCorner ? 0.28 : 0.0),
@@ -763,7 +766,7 @@ class DeathScenePainter extends CustomPainter {
     );
     focus = _mix(
       focus,
-      _victimX - (_fallsLeft ? _u * (rescue ? _rescueShift : 0.34) : 0) + _u * _settleNudge,
+      _victimX - (_fallsLeft ? _u * (rescue ? _rescueShift : early ? 0.9 : 0.34) : 0) + _u * _settleNudge,
       settle,
     );
     final horizon = _ground - _u * 0.45;
