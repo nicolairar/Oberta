@@ -49,12 +49,16 @@ Wolvesville ma più curata (animazioni, morti, avatar):
 - **Una valuta sola: le monete** (deciso il 17 ottobre). Si guadagnano solo
   salendo di livello; si sale di livello vincendo. Con soldi veri si comprano
   monete.
-- **Bilanciamento di partenza** (da tarare con i dati): vittoria 100 XP,
-  sconfitta 30 XP, prima vittoria del giorno +100; dal livello L al successivo
-  servono 150 + 25·L XP; 100 monete a livello + 250 ogni 5 livelli. Prezzi:
-  comune 100, raro 300, epico 800, leggendario 2000. Obiettivo: primo pezzo
-  dopo circa un'ora, mai "tutto sbloccato" in poche ore, mai decine di ore per
-  un pezzo comune. Numeri in un file di configurazione unico + simulatore.
+- **Classi e prezzi** (deciso il 17 ottobre, prezzi in euro voluti dal
+  proprietario): comune (baffi, cravatta) 350 monete ≈ 3–4 €; raro (cappello,
+  occhiali, capelli) 700 ≈ 7 €; epico (vestito completo) 1100 ≈ 11 €;
+  leggendario (skin intera) 1800 ≈ 15–20 €.
+- **Pacchetti:** 4,99 € = 500, 9,99 € = 1050, 19,99 € = 2200, 49,99 € = 6000.
+- **Guadagno giocando** (da tarare con i dati): vittoria 100 XP, sconfitta 30,
+  prima vittoria del giorno +100; dal livello L al successivo 150 + 25·L XP;
+  150 monete a livello + 250 ogni 5 livelli. Obiettivo: primo comune in 2–3
+  ore, leggendario in 20–30 ore, mai tutto in poche ore. Numeri in un file di
+  configurazione unico + simulatore.
 - **Regole tecniche:** saldo, inventario ed esperienza li scrive solo il server
   (già oggi l'app non può modificarli); ogni acquisto Apple si verifica lato
   server (App Store Server API) prima di accreditare la valuta; l'esperienza
