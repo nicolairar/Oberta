@@ -16,6 +16,8 @@ import 'particle_sprites.dart';
 import 'victim_card.dart';
 import '../press.dart';
 
+part 'death_scenes_family.dart';
+
 /// Le coreografie disponibili per quello che succede di notte.
 enum DeathAct {
   knife,
@@ -37,6 +39,14 @@ enum DeathAct {
   manhole,
   blackout,
   kiss,
+  bowling,
+  swordfish,
+  harpoon,
+  pie,
+  trombone,
+  tango,
+  bouquet,
+  laundry,
 
   /// Il colpo del Cecchino: da lontano, senza nessuno dietro l'angolo.
   sniper,
@@ -73,6 +83,14 @@ DeathAct deathActFor(String methodId) => switch (methodId) {
   'tombino' => DeathAct.manhole,
   'buio' => DeathAct.blackout,
   'bacio' => DeathAct.kiss,
+  'boccia' => DeathAct.bowling,
+  'pescespada' => DeathAct.swordfish,
+  'arpione' => DeathAct.harpoon,
+  'torta' => DeathAct.pie,
+  'trombone' => DeathAct.trombone,
+  'tango' => DeathAct.tango,
+  'rose' => DeathAct.bouquet,
+  'lavanderia' => DeathAct.laundry,
   DeathStory.sniperId => DeathAct.sniper,
   DeathStory.rescueId => DeathAct.rescue,
   DeathStory.luckyId => DeathAct.lucky,
@@ -473,6 +491,7 @@ class DeathScenePainter extends CustomPainter {
     DeathAct.chandelier ||
     DeathAct.blast => true,
     DeathAct.bat || DeathAct.lupara || DeathAct.pot => true,
+    DeathAct.bowling || DeathAct.pie => true,
     _ => false,
   };
 
@@ -486,6 +505,8 @@ class DeathScenePainter extends CustomPainter {
     DeathAct.garrote => true,
     DeathAct.pot || DeathAct.blackout || DeathAct.kiss => true,
     DeathAct.sniper || DeathAct.rescue => true,
+    DeathAct.bowling || DeathAct.swordfish || DeathAct.trombone => true,
+    DeathAct.tango || DeathAct.bouquet => true,
     _ => false,
   };
 
@@ -497,6 +518,7 @@ class DeathScenePainter extends CustomPainter {
     DeathAct.noose ||
     DeathAct.pot ||
     DeathAct.manhole => false,
+    DeathAct.laundry => false,
     _ => true,
   };
 
@@ -508,6 +530,10 @@ class DeathScenePainter extends CustomPainter {
     DeathAct.lupara => 0.42,
     DeathAct.rescue || DeathAct.lucky => 0.36,
     DeathAct.driveBy => 0.43,
+    DeathAct.bowling || DeathAct.pie => 0.40,
+    DeathAct.swordfish || DeathAct.harpoon || DeathAct.trombone => 0.30,
+    DeathAct.bouquet => 0.30,
+    DeathAct.laundry => 0.40,
     _ => 0.50,
   };
 
@@ -579,6 +605,22 @@ class DeathScenePainter extends CustomPainter {
         _blackout(canvas);
       case DeathAct.kiss:
         _kiss(canvas);
+      case DeathAct.bowling:
+        _bowling(canvas);
+      case DeathAct.swordfish:
+        _swordfish(canvas);
+      case DeathAct.harpoon:
+        _harpoon(canvas);
+      case DeathAct.pie:
+        _pie(canvas);
+      case DeathAct.trombone:
+        _trombone(canvas);
+      case DeathAct.tango:
+        _tango(canvas);
+      case DeathAct.bouquet:
+        _bouquet(canvas);
+      case DeathAct.laundry:
+        _laundry(canvas);
       case DeathAct.sniper:
         _sniper(canvas);
       case DeathAct.rescue:
@@ -6762,6 +6804,14 @@ class DeathScenePainter extends CustomPainter {
       DeathAct.manhole => ('CLANG!', strike + 0.17, 0.12),
       DeathAct.blackout => ('ZAC!', strike, 0.10),
       DeathAct.kiss => ('SMACK!', strike, 0.12),
+      DeathAct.bowling => ('STRIKE!', strike, 0.14),
+      DeathAct.swordfish => ('SPLOSH!', strike, 0.12),
+      DeathAct.harpoon => ('THUNK!', strike, 0.12),
+      DeathAct.pie => ('BOOM!', strike, 0.16),
+      DeathAct.trombone => ('BLAM!', strike, 0.12),
+      DeathAct.tango => ('OLÉ!', strike, 0.12),
+      DeathAct.bouquet => ('RATATATA!', 0.555, 0.14),
+      DeathAct.laundry => ('MMPH!', strike, 0.12),
       DeathAct.sniper => ('PAM!', strike, 0.12),
       DeathAct.rescue => ('BANG!', strike, 0.10),
       DeathAct.lucky => ('DING!', strike, 0.12),
