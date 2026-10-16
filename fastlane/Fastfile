@@ -33,22 +33,32 @@ platform :ios do
     online = File.exist?("../config/supabase.json") ? " --dart-define-from-file=config/supabase.json" : ""
     UI.important("config/supabase.json mancante: build senza online") if online.empty?
     sh("cd .. && ruby tool/ios_online_config.rb")
-    sh("cd .. && flutter build ipa --release --export-options-plist=ios/ExportOptionsLocal.plist#{online}") rescue nil
-    unless File.exist?("../build/ios/ipa/Oberta.ipa")
-      # Se Xcode non ha l'account, l'archivio c'è ma la firma no: la si fa
-      # con la chiave API di App Store Connect.
-      sh(
-        "cd .. && xcodebuild -exportArchive -archivePath build/ios/archive/Runner.xcarchive " \
-        "-exportPath build/ios/ipa -exportOptionsPlist ios/ExportOptionsLocal.plist " \
-        "-allowProvisioningUpdates " \
-        "-authenticationKeyPath #{File.expand_path(ENV.fetch('ASC_KEY_PATH'), '..')} " \
-        "-authenticationKeyID #{ENV.fetch('ASC_KEY_ID')} " \
-        "-authenticationKeyIssuerID #{ENV.fetch('ASC_ISSUER_ID')}"
-      )
-      ipa = Dir["../build/ios/ipa/*.ipa"].first
-      UI.user_error!("Nessun pacchetto firmato") unless ipa
-      File.rename(ipa, "../build/ios/ipa/Oberta.ipa") unless ipa.end_with?("/Oberta.ipa")
-    end
+    # Flutter prepara il progetto (codice Dart compilato, dart-define); poi
+    # archivio ed esportazione li fa xcodebuild con la chiave API di App Store
+    # Connect, così i profili includono i permessi (Accedi con Apple) anche
+    # senza un account in Xcode.
+    auth = "-allowProvisioningUpdates " \
+           "-authenticationKeyPath #{File.expand_path(ENV.fetch('ASC_KEY_PATH'), '..')} " \
+           "-authenticationKeyID #{ENV.fetch('ASC_KEY_ID')} " \
+           "-authenticationKeyIssuerID #{ENV.fetch('ASC_ISSUER_ID')}"
+    sh("cd .. && flutter build ios --release --config-only#{online}")
+    sh("rm -rf ../build/ios/archive/Runner.xcarchive")
+    sh(
+      "cd .. && xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release " \
+      "-destination generic/platform=iOS -archivePath build/ios/archive/Runner.xcarchive archive #{auth} | tail -5"
+    )
+    sh(
+      "cd .. && xcodebuild -exportArchive -archivePath build/ios/archive/Runner.xcarchive " \
+      "-exportPath build/ios/ipa -exportOptionsPlist ios/ExportOptionsLocal.plist #{auth}"
+    )
+    ipa = Dir["../build/ios/ipa/*.ipa"].first
+    UI.user_error!("Nessun pacchetto firmato") unless ipa
+    File.rename(ipa, "../build/ios/ipa/Oberta.ipa") unless ipa.end_with?("/Oberta.ipa")
+
+    # Senza il permesso di Accedi con Apple il login non funzionerebbe: meglio
+    # fermarsi che caricare una build rotta.
+    sh("cd ../build/ios/ipa && rm -rf Payload && unzip -qo Oberta.ipa && " \
+       "codesign -d --entitlements - --xml Payload/Runner.app | grep -q com.apple.developer.applesignin && rm -rf Payload")
 
     upload_to_testflight(
       ipa: "build/ios/ipa/Oberta.ipa",
