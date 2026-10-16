@@ -11,3 +11,5 @@ alter default privileges for role postgres in schema public
 
 alter default privileges for role postgres in schema public
   revoke all on functions from anon, authenticated;
+
+-- Applied by the Supabase GitHub integration on every push to main.
