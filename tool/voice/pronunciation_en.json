@@ -1,0 +1,21 @@
+{
+  "_comment": "Applied only to the text sent to the English voice (am_adam), never to what the screen shows. Whole words, case-sensitive, longest first. Respellings are lowercase English letters (capitals get spelled out letter by letter) that the US phonemizer reads close to the Italian; check one with tool/voice/generate.py --lang en --say '...'. Numbers are spelled out by spoken_numbers.py (years as 'nineteen twenty-nine').",
+  "words": {
+    "Obertà": "oh-bair-tah",
+    "Vucciria": "voochee-reeah",
+    "Teatro Massimo": "teh-ahtro mahsseemo",
+    "Quattro Canti": "kwahtro kahntee",
+    "La Cala": "lah kahlah",
+    "Ballarò": "bah-lah-ro",
+    "Foro Italico": "foro ee-tahleeko",
+    "Galleria Umberto": "gahlleh-reeah oom-bairto",
+    "Beverello": "bevveh-rello",
+    "Spaccanapoli": "spahkka-nahpolee",
+    "Teatro San Carlo": "teh-ahtro sahn karlo",
+    "Castel dell'Ovo": "kahstell dell ohvo",
+    "Chiaia": "kyah-yah",
+    "Via dei Tribunali": "veeah day treeboo-nahlee",
+    "Palermo": "pah-lair-mo",
+    "En garde": "on gard"
+  }
+}

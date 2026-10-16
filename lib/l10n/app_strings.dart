@@ -103,6 +103,9 @@ abstract class AppStrings {
   String get innocentBadge;
   String get readAloud;
   String readerReadsAloud(String reader);
+
+  /// Sopra il copione, quando a leggerlo è la voce del telefono.
+  String get narratorSpeaks;
   String get narratorOnly;
   String get holdToSeeRoles;
 
@@ -308,6 +311,7 @@ abstract class AppStrings {
     'innocentBadge': innocentBadge,
     'readAloud': readAloud,
     'readerReadsAloud': readerReadsAloud('Sara'),
+    'narratorSpeaks': narratorSpeaks,
     'narratorOnly': narratorOnly,
     'holdToSeeRoles': holdToSeeRoles,
     'nightTitle': nightTitle(2),

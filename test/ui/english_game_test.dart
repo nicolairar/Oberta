@@ -76,7 +76,7 @@ void main() {
     await pumpGame(tester, AppLanguage.en);
 
     expect(find.text('NIGHT 1'), findsOneWidget);
-    expect(find.text('READ IT OUT LOUD'), findsOneWidget);
+    expect(find.text('THE NARRATOR SPEAKS'), findsOneWidget);
     expect(find.textContaining(RegExp(r'^(Chicago|New York|Palermo|Naples|Las Vegas), 19\d\d$')), findsOneWidget);
     expect(find.textContaining('At night the Family eliminates one person.'), findsOneWidget);
     expect(find.textContaining('Pass the phone around.'), findsOneWidget);
@@ -190,13 +190,13 @@ void main() {
       (tester) async {
     await pumpGame(tester, AppLanguage.it);
     expect(find.text('NOTTE 1'), findsOneWidget);
-    expect(find.text('LEGGETE AD ALTA VOCE'), findsOneWidget);
+    expect(find.text('PARLA IL NARRATORE'), findsOneWidget);
 
     await tester.pumpWidget(appIn(AppLanguage.en, _launcher()));
     await tester.pumpAndSettle();
     expect(find.text('NOTTE 1'), findsOneWidget);
-    expect(find.text('LEGGETE AD ALTA VOCE'), findsOneWidget, reason: 'anche il copione resta com\'era');
-    expect(find.text('READ IT OUT LOUD'), findsNothing);
+    expect(find.text('PARLA IL NARRATORE'), findsOneWidget, reason: 'anche il copione resta com\'era');
+    expect(find.text('THE NARRATOR SPEAKS'), findsNothing);
 
     await tap(tester, 'COMINCIA LA NOTTE', readOn: 'CONTINUA A LEGGERE');
     expect(find.text('PASSA IL TELEFONO A'), findsOneWidget);

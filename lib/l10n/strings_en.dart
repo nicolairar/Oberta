@@ -150,6 +150,8 @@ final class EnglishStrings extends AppStrings {
   @override
   String readerReadsAloud(String reader) => '${reader.toUpperCase()} READS IT OUT LOUD';
   @override
+  String get narratorSpeaks => 'THE NARRATOR SPEAKS';
+  @override
   String get narratorOnly => 'NARRATOR ONLY';
   @override
   String get holdToSeeRoles => 'Press and hold to see every role';

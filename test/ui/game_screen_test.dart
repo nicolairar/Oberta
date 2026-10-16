@@ -105,7 +105,7 @@ void main() {
 
     expect(find.text('NOTTE 1'), findsOneWidget);
     expect(find.text('CALA LA NOTTE'), findsOneWidget);
-    expect(find.text('LEGGETE AD ALTA VOCE'), findsOneWidget);
+    expect(find.text('PARLA IL NARRATORE'), findsOneWidget);
     expect(find.textContaining(RegExp(r'^(Chicago|New York|Palermo|Napoli|Las Vegas), 19\d\d$')), findsOneWidget);
     expect(find.textContaining('Di notte la famiglia elimina una persona.'), findsOneWidget);
     expect(find.textContaining('Passatevi il telefono.'), findsOneWidget);

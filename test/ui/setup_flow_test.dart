@@ -74,7 +74,7 @@ void main() {
     }
 
     expect(find.text('NOTTE 1'), findsOneWidget);
-    expect(find.text('LEGGETE AD ALTA VOCE'), findsOneWidget);
+    expect(find.text('PARLA IL NARRATORE'), findsOneWidget);
   });
 
   testWidgets('narratore sorteggiato: non gioca ed è lui a leggere il copione', (tester) async {

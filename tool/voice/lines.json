@@ -1,0 +1,3601 @@
+{
+  "it": [
+    {
+      "key": "af9c9d8ceaeefa24",
+      "kind": "segment",
+      "text": "Chicago, 1929. Il proibizionismo ha chiuso i bar, e ha aperto tutto il resto."
+    },
+    {
+      "key": "a93e96650db2e65f",
+      "kind": "segment",
+      "text": "Chicago, 1929. La città del vento: porta via i cappelli, e a volte chi li indossa."
+    },
+    {
+      "key": "6ca668996afb158f",
+      "kind": "segment",
+      "text": "Esterno, notte. Sotto la sopraelevata del Loop passa un treno."
+    },
+    {
+      "key": "a378bb111e65c5d7",
+      "kind": "segment",
+      "text": "Interno, notte. Union Station, la sala d'attesa deserta."
+    },
+    {
+      "key": "35053b82e19cfd87",
+      "kind": "segment",
+      "text": "Esterno, notte. Il Navy Pier, nebbia sul lago Michigan."
+    },
+    {
+      "key": "58a0b59d190b919f",
+      "kind": "segment",
+      "text": "Interno, notte. Il Green Mill: fumo, e un sassofono."
+    },
+    {
+      "key": "154671c60ec31454",
+      "kind": "segment",
+      "text": "Esterno, notte. Un ponte levatoio sul fiume Chicago."
+    },
+    {
+      "key": "896b56eb7cb4780d",
+      "kind": "segment",
+      "text": "Esterno, notte. Il mercato di Maxwell Street, a banchi chiusi."
+    },
+    {
+      "key": "42ac1917805f848a",
+      "kind": "segment",
+      "text": "Interno, notte. Un bar clandestino del South Side."
+    },
+    {
+      "key": "94e857e72a228136",
+      "kind": "segment",
+      "text": "Interno, notte. L'atrio del Lexington Hotel, nessuno alla reception."
+    },
+    {
+      "key": "832ed0cbba36cf6d",
+      "kind": "segment",
+      "text": "New York, 1947. Otto milioni di persone, e nessuna ha visto niente."
+    },
+    {
+      "key": "42a2efc6f3b862f8",
+      "kind": "segment",
+      "text": "New York, 1947. La città che non dorme mai. Stanotte farebbe meglio a provarci."
+    },
+    {
+      "key": "5ea9749213e5286c",
+      "kind": "segment",
+      "text": "Esterno, notte. Mulberry Street, Little Italy, sotto le insegne al neon."
+    },
+    {
+      "key": "1ad721acb62a6316",
+      "kind": "segment",
+      "text": "Esterno, notte. Sotto il ponte di Brooklyn, nebbia sull'East River."
+    },
+    {
+      "key": "8757115c049516dd",
+      "kind": "segment",
+      "text": "Interno, notte. Grand Central: l'orologio segna le tre."
+    },
+    {
+      "key": "52fbb05ae8e8ef0d",
+      "kind": "segment",
+      "text": "Esterno, notte. Il mercato del pesce di Fulton, tra le casse."
+    },
+    {
+      "key": "9929f85d1a942ff7",
+      "kind": "segment",
+      "text": "Esterno, notte. Coney Island fuori stagione, la ruota ferma."
+    },
+    {
+      "key": "c52d0dac7f22977b",
+      "kind": "segment",
+      "text": "Esterno, notte. Un molo sull'Hudson, un mercantile senza nome."
+    },
+    {
+      "key": "b9d042797a24801a",
+      "kind": "segment",
+      "text": "Interno, notte. Una tavola calda a due passi da Times Square."
+    },
+    {
+      "key": "6710b01b70696a5a",
+      "kind": "segment",
+      "text": "Esterno, notte. Central Park, un solo lampione acceso."
+    },
+    {
+      "key": "b637bf4d091ad9f2",
+      "kind": "segment",
+      "text": "Palermo, 1955. Il sole più bello del mondo, e certe ombre lunghissime."
+    },
+    {
+      "key": "8139b3909d41a2b3",
+      "kind": "segment",
+      "text": "Palermo, 1955. Qui tutti sanno tutto. Per questo nessuno dice niente."
+    },
+    {
+      "key": "99aefb6d59e3a361",
+      "kind": "segment",
+      "text": "Esterno, notte. Il mercato della Vucciria, a banchi chiusi."
+    },
+    {
+      "key": "e763a231672b3579",
+      "kind": "segment",
+      "text": "Esterno, notte. La scalinata del Teatro Massimo, tra i due leoni."
+    },
+    {
+      "key": "be7013b13e90ae76",
+      "kind": "segment",
+      "text": "Esterno, notte. I Quattro Canti, deserti. Solo le statue."
+    },
+    {
+      "key": "5f4cf1de0a27f57b",
+      "kind": "segment",
+      "text": "Esterno, notte. La Cala, il porto vecchio. Barche che dondolano."
+    },
+    {
+      "key": "60e00a19808319cf",
+      "kind": "segment",
+      "text": "Esterno, notte. Un vicolo di Ballarò, panni stesi."
+    },
+    {
+      "key": "b9b3d48e1bc3dd1e",
+      "kind": "segment",
+      "text": "Esterno, notte. La spiaggia di Mondello, fuori stagione."
+    },
+    {
+      "key": "282404772b02fcbf",
+      "kind": "segment",
+      "text": "Esterno, notte. Il Foro Italico, sul lungomare, tra le palme."
+    },
+    {
+      "key": "9965355cb91dbb5b",
+      "kind": "segment",
+      "text": "Interno, notte. Una pasticceria del centro, a saracinesca abbassata."
+    },
+    {
+      "key": "4b182336d15d32b0",
+      "kind": "segment",
+      "text": "Napoli, 1950. Il Vesuvio fuma, il caffè scotta, e qualcuno stanotte non dorme."
+    },
+    {
+      "key": "9abfa57d5b3e20e3",
+      "kind": "segment",
+      "text": "Napoli, 1950. Qui si canta sempre. Parlare, è un altro discorso."
+    },
+    {
+      "key": "09eb5f4c705787aa",
+      "kind": "segment",
+      "text": "Esterno, notte. Un vicolo dei Quartieri Spagnoli."
+    },
+    {
+      "key": "36dc52a7c76e847c",
+      "kind": "segment",
+      "text": "Interno, notte. La Galleria Umberto I, vuota. I passi rimbombano."
+    },
+    {
+      "key": "fd8da4a7efe78aca",
+      "kind": "segment",
+      "text": "Esterno, notte. Il Molo Beverello, i traghetti fermi."
+    },
+    {
+      "key": "80f7eefa7d13b033",
+      "kind": "segment",
+      "text": "Esterno, notte. Spaccanapoli, dritta come una lama."
+    },
+    {
+      "key": "b1c82067a3c91fd1",
+      "kind": "segment",
+      "text": "Interno, notte. Il Teatro San Carlo, a sala vuota."
+    },
+    {
+      "key": "eda57b192d341ab8",
+      "kind": "segment",
+      "text": "Esterno, notte. Il lungomare, sotto Castel dell'Ovo."
+    },
+    {
+      "key": "ca2acae26a7ef4e0",
+      "kind": "segment",
+      "text": "Interno, notte. La funicolare di Chiaia, ultima corsa."
+    },
+    {
+      "key": "2d22005bc799e024",
+      "kind": "segment",
+      "text": "Interno, notte. Una pizzeria di via dei Tribunali, a forno spento."
+    },
+    {
+      "key": "159ab9bfcd5cbc60",
+      "kind": "segment",
+      "text": "Las Vegas, 1955. Un milione di lampadine nel deserto, per nascondere il resto."
+    },
+    {
+      "key": "2ce984e38d885ca1",
+      "kind": "segment",
+      "text": "Las Vegas, 1955. Qui il banco vince sempre. Stanotte scoprirete chi è il banco."
+    },
+    {
+      "key": "9c73b59528cc3f86",
+      "kind": "segment",
+      "text": "Esterno, notte. Fremont Street: mille luci, nessun testimone."
+    },
+    {
+      "key": "40fb220ffb5eaa88",
+      "kind": "segment",
+      "text": "Interno, notte. Il casinò del Flamingo, all'ora di chiusura."
+    },
+    {
+      "key": "2ce41bcadc12a80e",
+      "kind": "segment",
+      "text": "Esterno, notte. Il deserto del Mojave. Due fari, una pala."
+    },
+    {
+      "key": "c3a0bfa7241537fe",
+      "kind": "segment",
+      "text": "Interno, notte. Il retro del Golden Nugget, un tavolo da poker."
+    },
+    {
+      "key": "3335171573e48d72",
+      "kind": "segment",
+      "text": "Esterno, notte. Il parcheggio di un motel sulla Strip."
+    },
+    {
+      "key": "61bb598c2122f7b1",
+      "kind": "segment",
+      "text": "Esterno, notte. La diga di Hoover. Sotto, duecento metri di vuoto."
+    },
+    {
+      "key": "e157e639d5975827",
+      "kind": "segment",
+      "text": "Interno, notte. Il camerino di un cantante, dopo lo spettacolo."
+    },
+    {
+      "key": "b75d0ee2af93cbf4",
+      "kind": "segment",
+      "text": "Interno, notte. Una cappella per matrimoni aperta tutta la notte."
+    },
+    {
+      "key": "dd6ab6469e9a98c4",
+      "kind": "segment",
+      "text": "Di notte la famiglia elimina una persona. Di giorno votate tutti chi eliminare. Gli onesti vincono se eliminano tutta la famiglia; la famiglia vince se li pareggia."
+    },
+    {
+      "key": "2ace0abb1a2a91c1",
+      "kind": "segment",
+      "text": "Cala la prima notte su Chicago."
+    },
+    {
+      "key": "1785250e50c87f98",
+      "kind": "segment",
+      "text": "Cala la prima notte su New York."
+    },
+    {
+      "key": "97a53f37abcca617",
+      "kind": "segment",
+      "text": "Cala la prima notte su Palermo."
+    },
+    {
+      "key": "5f105ba56c0c4b0a",
+      "kind": "segment",
+      "text": "Cala la prima notte su Napoli."
+    },
+    {
+      "key": "b81762e6b757d4b3",
+      "kind": "segment",
+      "text": "Cala la prima notte su Las Vegas."
+    },
+    {
+      "key": "09b02f1484aecdb5",
+      "kind": "segment",
+      "text": "Su Chicago scende il buio. È la prima notte."
+    },
+    {
+      "key": "067cb65fd9299df6",
+      "kind": "segment",
+      "text": "Su New York scende il buio. È la prima notte."
+    },
+    {
+      "key": "bbd74e802e00f3ff",
+      "kind": "segment",
+      "text": "Su Palermo scende il buio. È la prima notte."
+    },
+    {
+      "key": "3e8d718e22a3dc50",
+      "kind": "segment",
+      "text": "Su Napoli scende il buio. È la prima notte."
+    },
+    {
+      "key": "e8a77df4a5520bd3",
+      "kind": "segment",
+      "text": "Su Las Vegas scende il buio. È la prima notte."
+    },
+    {
+      "key": "5eff20e40962a290",
+      "kind": "segment",
+      "text": "Prima notte. Chi ha la coscienza pulita dorma pure."
+    },
+    {
+      "key": "ddbbdbb439342ebf",
+      "kind": "segment",
+      "text": "Scende di nuovo la notte su Chicago."
+    },
+    {
+      "key": "6d1562097f283786",
+      "kind": "segment",
+      "text": "Scende di nuovo la notte su New York."
+    },
+    {
+      "key": "bf28438dfd950ead",
+      "kind": "segment",
+      "text": "Scende di nuovo la notte su Palermo."
+    },
+    {
+      "key": "1c6e8bb9ce3ec04c",
+      "kind": "segment",
+      "text": "Scende di nuovo la notte su Napoli."
+    },
+    {
+      "key": "883f91ee50fd9b69",
+      "kind": "segment",
+      "text": "Scende di nuovo la notte su Las Vegas."
+    },
+    {
+      "key": "e5f7cd8cc7dd370f",
+      "kind": "segment",
+      "text": "Si spengono i lampioni. Qualcuno ha da fare."
+    },
+    {
+      "key": "aeb08fe56ed4d21e",
+      "kind": "segment",
+      "text": "È notte. Qualcuno ha un appuntamento, e non è galante."
+    },
+    {
+      "key": "cef680326a58a9b6",
+      "kind": "segment",
+      "text": "Un'altra notte. A Chicago ormai si dorme vestiti."
+    },
+    {
+      "key": "0ab624ca87a1d05d",
+      "kind": "segment",
+      "text": "Un'altra notte. A New York ormai si dorme vestiti."
+    },
+    {
+      "key": "b7f094568c7ea3fc",
+      "kind": "segment",
+      "text": "Un'altra notte. A Palermo ormai si dorme vestiti."
+    },
+    {
+      "key": "49ccbf75d8f1e187",
+      "kind": "segment",
+      "text": "Un'altra notte. A Napoli ormai si dorme vestiti."
+    },
+    {
+      "key": "7144f63e8e6fbef0",
+      "kind": "segment",
+      "text": "Un'altra notte. A Las Vegas ormai si dorme vestiti."
+    },
+    {
+      "key": "0a7bd9978f22abff",
+      "kind": "segment",
+      "text": "Cala il buio. I cani hanno smesso di abbaiare."
+    },
+    {
+      "key": "3ef6cacc432be2b5",
+      "kind": "segment",
+      "text": "Notte fonda. Le pompe funebri fanno gli straordinari."
+    },
+    {
+      "key": "a87855c777092c02",
+      "kind": "segment",
+      "text": "Passatevi il telefono. Ognuno fa la sua mossa in segreto, poi lo passa."
+    },
+    {
+      "key": "112b6c46b021bf32",
+      "kind": "segment",
+      "text": "Stanotte non è morto nessuno."
+    },
+    {
+      "key": "8a883c54e74edb28",
+      "kind": "segment",
+      "text": "Le pompe funebri esprimono viva preoccupazione."
+    },
+    {
+      "key": "cb352b3415fddd76",
+      "kind": "segment",
+      "text": "Guardatevi in faccia: qualcuno, qui, è deluso."
+    },
+    {
+      "key": "fdd2112e8fe0e81b",
+      "kind": "segment",
+      "text": "Non rilassatevi. Di solito è così che comincia."
+    },
+    {
+      "key": "79937636b9bea980",
+      "kind": "segment",
+      "text": "Il custode del cimitero ha dormito otto ore, e non sa cosa pensare."
+    },
+    {
+      "key": "225cd2de7cf18dc0",
+      "kind": "segment",
+      "text": "E non è finita."
+    },
+    {
+      "key": "1105f0424118262c",
+      "kind": "segment",
+      "text": "Cambio di scena."
+    },
+    {
+      "key": "409651394e0a9d96",
+      "kind": "segment",
+      "text": "Ma la notte è stata lunga."
+    },
+    {
+      "key": "6ab661292e306326",
+      "kind": "segment",
+      "text": "Stanotte è morta una persona:"
+    },
+    {
+      "key": "10869defe5883655",
+      "kind": "segment",
+      "text": ". Il suo ruolo resta segreto."
+    },
+    {
+      "key": "8575757e2e6fdc33",
+      "kind": "segment",
+      "text": "Un colpo solo, da una finestra lontana."
+    },
+    {
+      "key": "d3434c08be3c650b",
+      "kind": "segment",
+      "text": "non ha sentito niente."
+    },
+    {
+      "key": "f438ce9a5d01e266",
+      "kind": "segment",
+      "text": "Un riflesso su un tetto, poi uno sparo."
+    },
+    {
+      "key": "fc31246cec6b0f85",
+      "kind": "segment",
+      "text": "cade prima dell'eco."
+    },
+    {
+      "key": "d779e63001f3e564",
+      "kind": "segment",
+      "text": "Qualcuno, da lontano, ha preso la mira con calma."
+    },
+    {
+      "key": "17ab6cd8f1d0344c",
+      "kind": "segment",
+      "text": "resta sull'asfalto."
+    },
+    {
+      "key": "d2bb3398f22d27b6",
+      "kind": "segment",
+      "text": "Nessuno dietro l'angolo, stavolta. Solo un mirino, e"
+    },
+    {
+      "key": "7e1fe5dafc68bcb8",
+      "kind": "segment",
+      "text": "al centro."
+    },
+    {
+      "key": "ee7fff1c0850b21a",
+      "kind": "segment",
+      "text": "Un riflesso lassù, sul campanile. Poi un rintocco, e"
+    },
+    {
+      "key": "ab5321e925355440",
+      "kind": "segment",
+      "text": "non si rialza."
+    },
+    {
+      "key": "a48b87e8a027e55b",
+      "kind": "segment",
+      "text": "La campana batte l'ora e copre lo sparo."
+    },
+    {
+      "key": "ff84ab996d04ea21",
+      "kind": "segment",
+      "text": "resta sul selciato."
+    },
+    {
+      "key": "6910cb6c8546f712",
+      "kind": "segment",
+      "text": "Dal campanile scappa uno stormo di piccioni."
+    },
+    {
+      "key": "ab2bd9647e0a983b",
+      "kind": "segment",
+      "text": "è già a terra."
+    },
+    {
+      "key": "c8350389aa5fd0e7",
+      "kind": "segment",
+      "text": "Squilla la cabina del telefono."
+    },
+    {
+      "key": "effc58c143eeaeb0",
+      "kind": "segment",
+      "text": "risponde. Il vetro si crepa a stella."
+    },
+    {
+      "key": "e22ea62151a90488",
+      "kind": "segment",
+      "text": "Un buco nel vetro della cabina, una ragnatela di crepe."
+    },
+    {
+      "key": "4d4faa29c0b13a6f",
+      "kind": "segment",
+      "text": "scivola giù."
+    },
+    {
+      "key": "6bcd367db6c09a30",
+      "kind": "segment",
+      "text": "alza la cornetta. Dall'altra parte nessuno parla: arriva solo il colpo."
+    },
+    {
+      "key": "c0f53e2d5138dc6f",
+      "kind": "segment",
+      "text": "apre la portiera dell'auto. Un colpo da lontano: non salirà."
+    },
+    {
+      "key": "f672826916ccd5c4",
+      "kind": "segment",
+      "text": "Le chiavi in mano, un piede sul predellino. Poi lo sparo, e"
+    },
+    {
+      "key": "addc40db0ea8e56b",
+      "kind": "segment",
+      "text": "cade."
+    },
+    {
+      "key": "3b657e47bc1e8574",
+      "kind": "segment",
+      "text": "stava per partire. Il motore resta spento, la portiera aperta."
+    },
+    {
+      "key": "289eb76119d3fd0e",
+      "kind": "segment",
+      "text": "Uno sparo dal vicolo,"
+    },
+    {
+      "key": "8f86ac6fcacb69ac",
+      "kind": "segment",
+      "text": "a terra. Poi dei passi di corsa: il Dottore."
+    },
+    {
+      "key": "d5bfcf765ed77f96",
+      "kind": "segment",
+      "text": "Volevano chiudere il conto di"
+    },
+    {
+      "key": "5b683ba166a83db3",
+      "kind": "segment",
+      "text": ". Il Dottore è arrivato prima del prete."
+    },
+    {
+      "key": "c85a5cf3f42bfdc0",
+      "kind": "segment",
+      "text": "era già a terra. Ma il Dottore, stanotte, passava proprio di lì."
+    },
+    {
+      "key": "f7cd4c96a4330217",
+      "kind": "segment",
+      "text": "Un colpo, e"
+    },
+    {
+      "key": "8b189f7223ca887b",
+      "kind": "segment",
+      "text": "va giù. Una borsa di cuoio si apre: non è finita."
+    },
+    {
+      "key": "900f11af1cd268e2",
+      "kind": "segment",
+      "text": "a terra, il cuore fermo. Il Dottore sfrega le piastre: libera!"
+    },
+    {
+      "key": "c392424b4ea7c7f1",
+      "kind": "segment",
+      "text": "Una scossa, niente. Un'altra scossa: il cuore di"
+    },
+    {
+      "key": "3db5cb907e5872bb",
+      "kind": "segment",
+      "text": "riparte."
+    },
+    {
+      "key": "49371d746ddb76a3",
+      "kind": "segment",
+      "text": "Il Dottore apre una cassetta piena di fili. Una scarica, e"
+    },
+    {
+      "key": "1e255e4e2dad07b4",
+      "kind": "segment",
+      "text": "torna a respirare."
+    },
+    {
+      "key": "072fbf6a1a3aa900",
+      "kind": "segment",
+      "text": "Il Dottore fruga con le pinze nella ferita di"
+    },
+    {
+      "key": "0240aeae7124f377",
+      "kind": "segment",
+      "text": ". Ne tira fuori il piombo."
+    },
+    {
+      "key": "dc21a8a32b0d10d2",
+      "kind": "segment",
+      "text": "Un proiettile stretto nelle pinze, una benda stretta sul petto."
+    },
+    {
+      "key": "63a06b35ad11e3de",
+      "kind": "segment",
+      "text": "respira."
+    },
+    {
+      "key": "bb6cbeb58cf2ea5b",
+      "kind": "segment",
+      "text": "a terra, il Dottore in ginocchio. «Plin»: il piombo cade nella bacinella."
+    },
+    {
+      "key": "37790fefb2ffacc9",
+      "kind": "segment",
+      "text": "Una sirena in fondo alla strada. L'ambulanza inchioda:"
+    },
+    {
+      "key": "0558587f0bc9dccb",
+      "kind": "segment",
+      "text": "va in barella."
+    },
+    {
+      "key": "a87ffa228694f2f1",
+      "kind": "segment",
+      "text": "a terra, poi le sirene. Barella, coperta, e via di corsa."
+    },
+    {
+      "key": "a8b110f14a723b31",
+      "kind": "segment",
+      "text": "L'ambulanza arriva a fari accesi. Dalla barella,"
+    },
+    {
+      "key": "f4669f0809f44246",
+      "kind": "segment",
+      "text": "saluta con la mano."
+    },
+    {
+      "key": "12e982ae18ef1c96",
+      "kind": "segment",
+      "text": "Sotto il lampione, ago e filo. Il Dottore ricuce"
+    },
+    {
+      "key": "9bd0773d16514e1a",
+      "kind": "segment",
+      "text": "punto dopo punto."
+    },
+    {
+      "key": "64e756249566d711",
+      "kind": "segment",
+      "text": "Tre punti, un nodo, un colpo di forbici."
+    },
+    {
+      "key": "08528edc549a5bd2",
+      "kind": "segment",
+      "text": "si rimette in piedi."
+    },
+    {
+      "key": "6d9e4ea134bc736a",
+      "kind": "segment",
+      "text": "Il Dottore infila l'ago alla luce del lampione."
+    },
+    {
+      "key": "c9a058f5319773f6",
+      "kind": "segment",
+      "text": "non lo sente nemmeno."
+    },
+    {
+      "key": "c50dbe96935ac6af",
+      "kind": "segment",
+      "text": "Stanotte hanno sparato a qualcuno, ma il Dottore ha fatto in tempo. Chi fosse, resta un segreto."
+    },
+    {
+      "key": "a1f70a473d0b82b5",
+      "kind": "segment",
+      "text": "Uno sparo."
+    },
+    {
+      "key": "ca75c7e8b3ee7e06",
+      "kind": "segment",
+      "text": "barcolla, poi si tocca il taschino: una fiaschetta, ammaccata."
+    },
+    {
+      "key": "445d26a318ff82e8",
+      "kind": "segment",
+      "text": "Il colpo parte, e fa «ding»."
+    },
+    {
+      "key": "425895f02e08e578",
+      "kind": "segment",
+      "text": "tira fuori una fiaschetta col buco."
+    },
+    {
+      "key": "289eb56119d3f9a8",
+      "kind": "segment",
+      "text": "Uno sparo dal vicolo."
+    },
+    {
+      "key": "a5d6a900a3fd4026",
+      "kind": "segment",
+      "text": "resta in piedi: il proiettile è nella fiaschetta."
+    },
+    {
+      "key": "11f1b2de0d9746d6",
+      "kind": "segment",
+      "text": "sente un colpo al petto. Sotto la giacca, una fiaschetta piegata in due."
+    },
+    {
+      "key": "5d38da7fb37bf510",
+      "kind": "segment",
+      "text": "tira fuori dal taschino una Bibbia: il proiettile è lì dentro."
+    },
+    {
+      "key": "65f35cf34f8d12dc",
+      "kind": "segment",
+      "text": "Il colpo si ferma su una Bibbia tascabile."
+    },
+    {
+      "key": "aca4da2c26eff887",
+      "kind": "segment",
+      "text": "guarda in alto e ringrazia."
+    },
+    {
+      "key": "1458eaafeab64ba4",
+      "kind": "segment",
+      "text": "sente un colpo al petto. Nel taschino, una Bibbia col buco a metà."
+    },
+    {
+      "key": "2884f958fc4f215d",
+      "kind": "segment",
+      "text": "La pistola punta"
+    },
+    {
+      "key": "2ab533f1a105622d",
+      "kind": "segment",
+      "text": ". «Clic». Ancora «clic». Il killer se la dà a gambe."
+    },
+    {
+      "key": "6c72cf4fa28efdb6",
+      "kind": "segment",
+      "text": "Il grilletto scatta a vuoto: la pistola s'è inceppata."
+    },
+    {
+      "key": "7c351348ab484894",
+      "kind": "segment",
+      "text": "si volta, il killer scappa."
+    },
+    {
+      "key": "ed9887fd5a185f4a",
+      "kind": "segment",
+      "text": "«Clic, clic»."
+    },
+    {
+      "key": "880eb8624c193036",
+      "kind": "segment",
+      "text": "si rimbocca le maniche, e il vicolo si svuota."
+    },
+    {
+      "key": "a51e9620036198c4",
+      "kind": "segment",
+      "text": "Il killer pesta una buccia di banana. Il colpo va in cielo,"
+    },
+    {
+      "key": "b4f8e7fed90fc24c",
+      "kind": "segment",
+      "text": "la scampa."
+    },
+    {
+      "key": "e72b10ac70d78f46",
+      "kind": "segment",
+      "text": "Una buccia di banana, un volo all'indietro. Il colpo finisce tra le stelle:"
+    },
+    {
+      "key": "1b6e94ad258bb770",
+      "kind": "segment",
+      "text": "ride."
+    },
+    {
+      "key": "8704009b10443736",
+      "kind": "segment",
+      "text": "Il killer corre verso"
+    },
+    {
+      "key": "f8a4e7dbf813d137",
+      "kind": "segment",
+      "text": ", poi una buccia di banana. Lo sparo buca la notte."
+    },
+    {
+      "key": "00413af54358660a",
+      "kind": "segment",
+      "text": "Un gatto nero salta sul braccio del killer. Il colpo va storto,"
+    },
+    {
+      "key": "93c8b2607850ad4d",
+      "kind": "segment",
+      "text": "resta in piedi."
+    },
+    {
+      "key": "265353ebaf465910",
+      "kind": "segment",
+      "text": "Il killer prende la mira su"
+    },
+    {
+      "key": "294871a6447af90f",
+      "kind": "segment",
+      "text": ". Un gatto nero gli fa volare via la pistola."
+    },
+    {
+      "key": "1b0b972c028ea871",
+      "kind": "segment",
+      "text": "Porta sfortuna, dicono. Ma stanotte un gatto nero ha salvato"
+    },
+    {
+      "key": "a082233972f85750",
+      "kind": "segment",
+      "text": "Stanotte hanno sparato a qualcuno, ma il colpo è andato a vuoto. Chi fosse, resta un segreto."
+    },
+    {
+      "key": "03b2d7e78660b1de",
+      "kind": "segment",
+      "text": "Due fari nel buio. Un'auto nera non frena."
+    },
+    {
+      "key": "b23c153cc9234d86",
+      "kind": "segment",
+      "text": "si volta: troppo tardi."
+    },
+    {
+      "key": "ef65d59e66cc1865",
+      "kind": "segment",
+      "text": "Una corda si spezza. Un pianoforte precipita."
+    },
+    {
+      "key": "28a9f37fd4b4e8dc",
+      "kind": "segment",
+      "text": "alza gli occhi."
+    },
+    {
+      "key": "a70fb7e42c1e14bd",
+      "kind": "segment",
+      "text": "beve l'ultimo sorso di caffè. Una smorfia. Veleno."
+    },
+    {
+      "key": "1af1360b5d216ccb",
+      "kind": "segment",
+      "text": "Un'ombra alle spalle di"
+    },
+    {
+      "key": "e4317313d3712dbc",
+      "kind": "segment",
+      "text": ". Una lama. Un colpo solo."
+    },
+    {
+      "key": "722c202cf19b7774",
+      "kind": "segment",
+      "text": "Due uomini bloccano"
+    },
+    {
+      "key": "09d2dbb3fda0a93d",
+      "kind": "segment",
+      "text": ". Un terzo mescola il cemento."
+    },
+    {
+      "key": "a25da9e1794133e4",
+      "kind": "segment",
+      "text": "Un cappio cala dal buio alle spalle di"
+    },
+    {
+      "key": "b63a7f685c8aa04c",
+      "kind": "segment",
+      "text": ". Si stringe."
+    },
+    {
+      "key": "aa55283f265bb0ff",
+      "kind": "segment",
+      "text": "Un colpo attutito, come un tappo di spumante."
+    },
+    {
+      "key": "558e2a34a38775ca",
+      "kind": "segment",
+      "text": "scivola a terra."
+    },
+    {
+      "key": "0f4305f2b8835a42",
+      "kind": "segment",
+      "text": "apre un pacco regalo. Dentro, un ticchettio. Poi un boato."
+    },
+    {
+      "key": "ee771904b760d480",
+      "kind": "segment",
+      "text": "Un cigolio. Un lampadario di cristallo si stacca sopra"
+    },
+    {
+      "key": "b170cab7d6ef8926",
+      "kind": "segment",
+      "text": "Una custodia di violino si apre. Non c'è un violino."
+    },
+    {
+      "key": "e169f06dbfac0ba5",
+      "kind": "segment",
+      "text": "Dall'alto, una cassaforte."
+    },
+    {
+      "key": "9c4870e548fb2a2e",
+      "kind": "segment",
+      "text": "fa in tempo a leggere la marca."
+    },
+    {
+      "key": "966e7ef1bcc54d3e",
+      "kind": "segment",
+      "text": "accende un sigaro avuto in regalo. Il sigaro fa «bum»."
+    },
+    {
+      "key": "942fda5c211c0e57",
+      "kind": "segment",
+      "text": "Dall'angolo, una mazza da baseball. Un colpo secco."
+    },
+    {
+      "key": "31b4a047c77dfd78",
+      "kind": "segment",
+      "text": "vede le stelle."
+    },
+    {
+      "key": "1a3a21708f0478cc",
+      "kind": "segment",
+      "text": "Due canne mozze spuntano dal buio. Un boato."
+    },
+    {
+      "key": "1d6b91dcfe845444",
+      "kind": "segment",
+      "text": "vola all'indietro."
+    },
+    {
+      "key": "6e4981257e34432a",
+      "kind": "segment",
+      "text": "Un'auto rallenta. Dal finestrino, un mitra."
+    },
+    {
+      "key": "eacc4999834cdabd",
+      "kind": "segment",
+      "text": "non fa in tempo a voltarsi."
+    },
+    {
+      "key": "cf8a6b1f8f9d8f27",
+      "kind": "segment",
+      "text": "Un filo d'acciaio, due mani guantate."
+    },
+    {
+      "key": "0cef6c12412a1e4e",
+      "kind": "segment",
+      "text": "scalcia, poi smette."
+    },
+    {
+      "key": "09fe561aad54c79e",
+      "kind": "segment",
+      "text": "Dal terzo piano cade un vaso di gerani. Non per caso."
+    },
+    {
+      "key": "fb0e6782393d59b8",
+      "kind": "segment",
+      "text": "non lo vede."
+    },
+    {
+      "key": "503f024e294ed2fd",
+      "kind": "segment",
+      "text": "Il tombino si apre sotto i piedi di"
+    },
+    {
+      "key": "df0609c7b06cb696",
+      "kind": "segment",
+      "text": ". Poi si richiude, con cura."
+    },
+    {
+      "key": "3b8905f67877ebc9",
+      "kind": "segment",
+      "text": "Il lampione si spegne. Un rumore. Quando si riaccende,"
+    },
+    {
+      "key": "e9d79e2b34b168fc",
+      "kind": "segment",
+      "text": "è a terra."
+    },
+    {
+      "key": "dd62d443d84439d8",
+      "kind": "segment",
+      "text": "Una sconosciuta, un bacio, un rossetto che non perdona."
+    },
+    {
+      "key": "aebfd7a7454e7c15",
+      "kind": "segment",
+      "text": "sorride, poi cade."
+    },
+    {
+      "key": "63fb520952399f9b",
+      "kind": "segment",
+      "text": "Una palla da bowling rotola fuori dal buio."
+    },
+    {
+      "key": "14d1da5e2e026cd0",
+      "kind": "segment",
+      "text": "vola via come un birillo. Strike."
+    },
+    {
+      "key": "de13a9fcce4f97e2",
+      "kind": "segment",
+      "text": "Dall'angolo spunta un pesce spada. In guardia, affondo."
+    },
+    {
+      "key": "892fda46e54c29fc",
+      "kind": "segment",
+      "text": "ora dorme coi pesci."
+    },
+    {
+      "key": "24baf1dec420eeef",
+      "kind": "segment",
+      "text": "Un arpione fischia nel buio e la corda si tende."
+    },
+    {
+      "key": "273e8cef9aa650e0",
+      "kind": "segment",
+      "text": "sparisce dietro l'angolo."
+    },
+    {
+      "key": "e230b8cc8e7ba84f",
+      "kind": "segment",
+      "text": "Una torta alla panna in faccia a"
+    },
+    {
+      "key": "716124762f3993f1",
+      "kind": "segment",
+      "text": ". Tutti ridono. Dentro la panna, una bomba."
+    },
+    {
+      "key": "5222825160b4fd96",
+      "kind": "segment",
+      "text": "Dal vicolo, un trombone suona una marcetta. Dalla campana parte un colpo."
+    },
+    {
+      "key": "9a1e0d8bdc6484c9",
+      "kind": "segment",
+      "text": "stona."
+    },
+    {
+      "key": "7a064e543480d5de",
+      "kind": "segment",
+      "text": "Una sconosciuta invita"
+    },
+    {
+      "key": "844826b61cb5ead2",
+      "kind": "segment",
+      "text": "a ballare un tango. Una giravolta, un casqué, un pugnale."
+    },
+    {
+      "key": "8aeefa5b86360171",
+      "kind": "segment",
+      "text": "Un mazzo di rose rosse per"
+    },
+    {
+      "key": "f05e65846e0cb5a2",
+      "kind": "segment",
+      "text": ". Tra le rose, una canna. Petali ovunque."
+    },
+    {
+      "key": "57b0c4880e7753ea",
+      "kind": "segment",
+      "text": "Un furgone della lavanderia accosta. La porta scorre, due braccia."
+    },
+    {
+      "key": "55917d2f1c5f2418",
+      "kind": "segment",
+      "text": "non torna più."
+    },
+    {
+      "key": "d1edda85bd0d22b2",
+      "kind": "segment",
+      "text": "Un gatto ha visto tutto. Non parlerà."
+    },
+    {
+      "key": "c42e8ca3d3173fac",
+      "kind": "segment",
+      "text": "Da qualche parte, una radio suona un mambo."
+    },
+    {
+      "key": "48fc39386d320221",
+      "kind": "segment",
+      "text": "Chicago dorme. O fa finta."
+    },
+    {
+      "key": "51afd0db6145bcc6",
+      "kind": "segment",
+      "text": "New York dorme. O fa finta."
+    },
+    {
+      "key": "d0428c2232770377",
+      "kind": "segment",
+      "text": "Palermo dorme. O fa finta."
+    },
+    {
+      "key": "4b580dc1cf68a46c",
+      "kind": "segment",
+      "text": "Napoli dorme. O fa finta."
+    },
+    {
+      "key": "284bb56b35407653",
+      "kind": "segment",
+      "text": "Las Vegas dorme. O fa finta."
+    },
+    {
+      "key": "6f9d3aa8d387f483",
+      "kind": "segment",
+      "text": "A terra, una carta da gioco. Titoli di coda."
+    },
+    {
+      "key": "2fae6dd1d631e6a5",
+      "kind": "segment",
+      "text": "Una finestra si accende, poi si spegne."
+    },
+    {
+      "key": "3f07a3339827b124",
+      "kind": "segment",
+      "text": "Cala il sipario. Nessuno applaude."
+    },
+    {
+      "key": "e165580cda445077",
+      "kind": "segment",
+      "text": "Una voce fuori campo: «Niente di personale»."
+    },
+    {
+      "key": "027ff8788b80dac3",
+      "kind": "segment",
+      "text": "Sirene in lontananza. Arrivano sempre tardi."
+    },
+    {
+      "key": "4e686d485584ef3e",
+      "kind": "segment",
+      "text": "Un cappello rotola per terra. Stacco."
+    },
+    {
+      "key": "5ed23b39aee37d53",
+      "kind": "segment",
+      "text": "Sullo schermo, una scritta: «Continua»."
+    },
+    {
+      "key": "d215818d6488d766",
+      "kind": "segment",
+      "text": "Edizione straordinaria! In prima pagina c'è"
+    },
+    {
+      "key": "7088ff93ac462f25",
+      "kind": "segment",
+      "text": "In edicola c'è la fila: il giornale parla di"
+    },
+    {
+      "key": "ff2c957c0b1aa6db",
+      "kind": "segment",
+      "text": "Gli strilloni gridano un nome solo:"
+    },
+    {
+      "key": "5fd6a2e771c8e3bd",
+      "kind": "segment",
+      "text": "Il giornale lo scrive chiaro:"
+    },
+    {
+      "key": "3a99969e7bae43bd",
+      "kind": "segment",
+      "text": "sta con la famiglia."
+    },
+    {
+      "key": "27a312c8efb116c8",
+      "kind": "segment",
+      "text": "è innocente."
+    },
+    {
+      "key": "5e1d933e34be31bd",
+      "kind": "segment",
+      "text": "Ago, filo, e un lavoro di fino: stamattina"
+    },
+    {
+      "key": "0814ff28a0c38691",
+      "kind": "segment",
+      "text": "ha la bocca cucita."
+    },
+    {
+      "key": "c0e58162230d47c6",
+      "kind": "segment",
+      "text": "Qualcuno ha fatto visita a"
+    },
+    {
+      "key": "1607357016a627a1",
+      "kind": "segment",
+      "text": ", stanotte. Con un ago e un consiglio."
+    },
+    {
+      "key": "790ee2bc0f1bbadd",
+      "kind": "segment",
+      "text": "Sul cuscino di"
+    },
+    {
+      "key": "6e0813801361a942",
+      "kind": "segment",
+      "text": ", un rocchetto di filo nero. Il messaggio è arrivato."
+    },
+    {
+      "key": "4a026a75df03f702",
+      "kind": "segment",
+      "text": "Oggi"
+    },
+    {
+      "key": "8bc302f55f7444f2",
+      "kind": "segment",
+      "text": "non può parlare durante la discussione. Vota a gesti, e resta tra chi potete eliminare."
+    },
+    {
+      "key": "73369f3d97abcacd",
+      "kind": "segment",
+      "text": "Avete"
+    },
+    {
+      "key": "4d2f4ba8964c62c2",
+      "kind": "segment",
+      "text": "per discutere. Poi votate chi eliminare."
+    },
+    {
+      "key": "34e4a3f044710eeb",
+      "kind": "segment",
+      "text": "un minuto"
+    },
+    {
+      "key": "cb6d441ce57c9370",
+      "kind": "segment",
+      "text": "minuti"
+    },
+    {
+      "key": "f595e487f93fd05b",
+      "kind": "segment",
+      "text": "Tempo scaduto. La piazza vuole un colpevole."
+    },
+    {
+      "key": "4ce8d6b4d74fdcb4",
+      "kind": "segment",
+      "text": "Basta chiacchiere. Chicago vuole un nome."
+    },
+    {
+      "key": "7c44415f07f91cf5",
+      "kind": "segment",
+      "text": "Basta chiacchiere. New York vuole un nome."
+    },
+    {
+      "key": "78b8d93531c3201e",
+      "kind": "segment",
+      "text": "Basta chiacchiere. Palermo vuole un nome."
+    },
+    {
+      "key": "4ed66d023456ec0f",
+      "kind": "segment",
+      "text": "Basta chiacchiere. Napoli vuole un nome."
+    },
+    {
+      "key": "819be457a8fa90d2",
+      "kind": "segment",
+      "text": "Basta chiacchiere. Las Vegas vuole un nome."
+    },
+    {
+      "key": "bcbed535a4c61dfb",
+      "kind": "segment",
+      "text": "La folla rumoreggia. Il boia si scalda le mani."
+    },
+    {
+      "key": "778c037f56b546d5",
+      "kind": "segment",
+      "text": "Si vota. Cercate di non sbagliare. Di nuovo."
+    },
+    {
+      "key": "2e43ec4be50f80f3",
+      "kind": "segment",
+      "text": "Decidete a voce chi eliminare. Potete anche non eliminare nessuno."
+    },
+    {
+      "key": "29f8a1154a2b0539",
+      "kind": "segment",
+      "text": "sale i gradini del patibolo. La ghigliottina brilla al sole."
+    },
+    {
+      "key": "80a1458a7e89bd4f",
+      "kind": "segment",
+      "text": "cammina verso il cappio, a testa alta. Rullo di tamburi."
+    },
+    {
+      "key": "ed5695012b477e88",
+      "kind": "segment",
+      "text": "Un treno merci, un biglietto di sola andata."
+    },
+    {
+      "key": "3690438bbe4a8c07",
+      "kind": "segment",
+      "text": "lascia Chicago."
+    },
+    {
+      "key": "de85e194343d212e",
+      "kind": "segment",
+      "text": "lascia New York."
+    },
+    {
+      "key": "429cd0bdc0cae875",
+      "kind": "segment",
+      "text": "lascia Palermo."
+    },
+    {
+      "key": "7f3c63cea944af34",
+      "kind": "segment",
+      "text": "lascia Napoli."
+    },
+    {
+      "key": "bb9bb688c8777d91",
+      "kind": "segment",
+      "text": "lascia Las Vegas."
+    },
+    {
+      "key": "e5da1213902c71c1",
+      "kind": "segment",
+      "text": "La botola del municipio cigola."
+    },
+    {
+      "key": "43bf2264c969fbcb",
+      "kind": "segment",
+      "text": "guarda la folla un'ultima volta."
+    },
+    {
+      "key": "45ea4bf9e4103241",
+      "kind": "segment",
+      "text": "chiede un'ultima sigaretta. Il boia gliela accende."
+    },
+    {
+      "key": "56a00597877b26fd",
+      "kind": "segment",
+      "text": "Primo piano sulle mani legate di"
+    },
+    {
+      "key": "36c172d46f839aaa",
+      "kind": "segment",
+      "text": ". Tutta Chicago guarda."
+    },
+    {
+      "key": "68838a74e40cd5b3",
+      "kind": "segment",
+      "text": ". Tutta New York guarda."
+    },
+    {
+      "key": "9dae581c32670990",
+      "kind": "segment",
+      "text": ". Tutta Palermo guarda."
+    },
+    {
+      "key": "87902c6393aeb889",
+      "kind": "segment",
+      "text": ". Tutta Napoli guarda."
+    },
+    {
+      "key": "0356c5964d9a682c",
+      "kind": "segment",
+      "text": ". Tutta Las Vegas guarda."
+    },
+    {
+      "key": "24f944f5a321917f",
+      "kind": "segment",
+      "text": "La carta si gira."
+    },
+    {
+      "key": "3ab73c7938ac8b76",
+      "kind": "segment",
+      "text": "era…"
+    },
+    {
+      "key": "6606e9456c81553e",
+      "kind": "segment",
+      "text": "Stava con la famiglia."
+    },
+    {
+      "key": "04126d8e7bbd7755",
+      "kind": "segment",
+      "text": "Stava con gli onesti."
+    },
+    {
+      "key": "db63abc8f458059d",
+      "kind": "segment",
+      "text": "Complimenti a tutti. Davvero."
+    },
+    {
+      "key": "bb1c606c0838f9c9",
+      "kind": "segment",
+      "text": "Qualcuno, tra voi, trattiene un sorriso."
+    },
+    {
+      "key": "b2278aaa1034f870",
+      "kind": "segment",
+      "text": "La famiglia ringrazia per la collaborazione."
+    },
+    {
+      "key": "2e9443bd7c98661a",
+      "kind": "segment",
+      "text": "Il boia chiede scusa. Ma si fa pagare lo stesso."
+    },
+    {
+      "key": "8a9e37ab4c696526",
+      "kind": "segment",
+      "text": "Uno in meno. Ma gli amici degli amici hanno buona memoria."
+    },
+    {
+      "key": "bcb3651fd220a3ee",
+      "kind": "segment",
+      "text": "Qualcuno ha perso un socio, e non può andare al funerale."
+    },
+    {
+      "key": "6be279c9d296c881",
+      "kind": "segment",
+      "text": "Bel colpo. Stanotte la famiglia sarà di pessimo umore."
+    },
+    {
+      "key": "23730733c466df7b",
+      "kind": "segment",
+      "text": "Ed era l'ultimo. Le campane suonano a festa."
+    },
+    {
+      "key": "0e610f59f8019f25",
+      "kind": "segment",
+      "text": "Era l'ultimo. A Chicago, finalmente, qualcuno ha parlato."
+    },
+    {
+      "key": "e64c34d03a6d70d0",
+      "kind": "segment",
+      "text": "Era l'ultimo. A New York, finalmente, qualcuno ha parlato."
+    },
+    {
+      "key": "8fecb6a26ef8641b",
+      "kind": "segment",
+      "text": "Era l'ultimo. A Palermo, finalmente, qualcuno ha parlato."
+    },
+    {
+      "key": "5e612bde6b2d982a",
+      "kind": "segment",
+      "text": "Era l'ultimo. A Napoli, finalmente, qualcuno ha parlato."
+    },
+    {
+      "key": "387deb0242a160d7",
+      "kind": "segment",
+      "text": "Era l'ultimo. A Las Vegas, finalmente, qualcuno ha parlato."
+    },
+    {
+      "key": "9ffa355127596f99",
+      "kind": "segment",
+      "text": "Il boia torna a casa presto, per una volta."
+    },
+    {
+      "key": "2e126af326dcd807",
+      "kind": "segment",
+      "text": "Qualcuno tira un sospiro di sollievo. Chissà chi."
+    },
+    {
+      "key": "69c3a3ac222c99f4",
+      "kind": "segment",
+      "text": "A Chicago non mettersi d'accordo è la normalità."
+    },
+    {
+      "key": "898b87f0e5b0d365",
+      "kind": "segment",
+      "text": "A New York non mettersi d'accordo è la normalità."
+    },
+    {
+      "key": "bdbe14297f7d168a",
+      "kind": "segment",
+      "text": "A Palermo non mettersi d'accordo è la normalità."
+    },
+    {
+      "key": "0cef9cac2ef88263",
+      "kind": "segment",
+      "text": "A Napoli non mettersi d'accordo è la normalità."
+    },
+    {
+      "key": "52966475af08f25e",
+      "kind": "segment",
+      "text": "A Las Vegas non mettersi d'accordo è la normalità."
+    },
+    {
+      "key": "6f832a9ada063a2f",
+      "kind": "segment",
+      "text": "Oggi non viene eliminato nessuno."
+    },
+    {
+      "key": "220ae5128f8d4a05",
+      "kind": "segment",
+      "text": "Chicago è libera. Da domani si dorme con le finestre aperte. Titoli di coda."
+    },
+    {
+      "key": "a040da0b0b4c2554",
+      "kind": "segment",
+      "text": "New York è libera. Da domani si dorme con le finestre aperte. Titoli di coda."
+    },
+    {
+      "key": "8c04173a16843357",
+      "kind": "segment",
+      "text": "Palermo è libera. Da domani si dorme con le finestre aperte. Titoli di coda."
+    },
+    {
+      "key": "ba9d645806dc7dd6",
+      "kind": "segment",
+      "text": "Napoli è libera. Da domani si dorme con le finestre aperte. Titoli di coda."
+    },
+    {
+      "key": "a3673ad9ae017f5b",
+      "kind": "segment",
+      "text": "Las Vegas è libera. Da domani si dorme con le finestre aperte. Titoli di coda."
+    },
+    {
+      "key": "4f206d67b928928c",
+      "kind": "segment",
+      "text": "In piazza ci si guarda di nuovo in faccia. Sullo schermo: «Fine»."
+    },
+    {
+      "key": "7c861e76b8c49fc3",
+      "kind": "segment",
+      "text": "Vincono gli onesti: tutta la famiglia è stata eliminata."
+    },
+    {
+      "key": "c63a2e96361df44a",
+      "kind": "segment",
+      "text": "Chicago ha dei nuovi padroni: erano seduti a questo tavolo. Titoli di coda."
+    },
+    {
+      "key": "9e245a8cd4f80803",
+      "kind": "segment",
+      "text": "New York ha dei nuovi padroni: erano seduti a questo tavolo. Titoli di coda."
+    },
+    {
+      "key": "6c23e57873cc8100",
+      "kind": "segment",
+      "text": "Palermo ha dei nuovi padroni: erano seduti a questo tavolo. Titoli di coda."
+    },
+    {
+      "key": "78fbc798ca97b019",
+      "kind": "segment",
+      "text": "Napoli ha dei nuovi padroni: erano seduti a questo tavolo. Titoli di coda."
+    },
+    {
+      "key": "f3b5d8f491b6b95c",
+      "kind": "segment",
+      "text": "Las Vegas ha dei nuovi padroni: erano seduti a questo tavolo. Titoli di coda."
+    },
+    {
+      "key": "5f000f4b62aa2ba4",
+      "kind": "segment",
+      "text": "A Chicago nessuno ha visto niente. Come sempre. Dissolvenza in nero."
+    },
+    {
+      "key": "161529293574fc55",
+      "kind": "segment",
+      "text": "A New York nessuno ha visto niente. Come sempre. Dissolvenza in nero."
+    },
+    {
+      "key": "a6a04017a5a3f772",
+      "kind": "segment",
+      "text": "A Palermo nessuno ha visto niente. Come sempre. Dissolvenza in nero."
+    },
+    {
+      "key": "8473cbe475eda073",
+      "kind": "segment",
+      "text": "A Napoli nessuno ha visto niente. Come sempre. Dissolvenza in nero."
+    },
+    {
+      "key": "999ce0198ce10ca6",
+      "kind": "segment",
+      "text": "A Las Vegas nessuno ha visto niente. Come sempre. Dissolvenza in nero."
+    },
+    {
+      "key": "7d72398fa4f29d20",
+      "kind": "segment",
+      "text": "Vince la famiglia: gli onesti non sono più in maggioranza."
+    },
+    {
+      "key": "5265221cb1855434",
+      "kind": "segment",
+      "text": "qualcuno"
+    },
+    {
+      "key": "8f3fc9e46c9b87b3",
+      "kind": "role",
+      "text": "Il Picciotto"
+    },
+    {
+      "key": "3d245cbf1c2432c6",
+      "kind": "role",
+      "text": "Il Padrino"
+    },
+    {
+      "key": "b46637d2bb4c6bfe",
+      "kind": "role",
+      "text": "Il Sarto"
+    },
+    {
+      "key": "b3d8fc37a075a895",
+      "kind": "role",
+      "text": "L'Onesto"
+    },
+    {
+      "key": "77b876b86f4259db",
+      "kind": "role",
+      "text": "Il Commissario"
+    },
+    {
+      "key": "0e96726b8b893622",
+      "kind": "role",
+      "text": "Il Dottore"
+    },
+    {
+      "key": "16a5c63fa902b7c9",
+      "kind": "role",
+      "text": "Il Cecchino"
+    },
+    {
+      "key": "f1b4d3e347be2e9c",
+      "kind": "role",
+      "text": "Il Cronista"
+    },
+    {
+      "key": "c249e73e36a63a48",
+      "kind": "role",
+      "text": "Il Becchino"
+    },
+    {
+      "key": "0af31fa442c49332",
+      "kind": "role",
+      "text": "Il Guardaspalle"
+    },
+    {
+      "key": "4145b6485c9ed135",
+      "kind": "role",
+      "text": "Il Reduce"
+    },
+    {
+      "key": "2a665c132a74f781",
+      "kind": "role",
+      "text": "Il Pregiudicato"
+    },
+    {
+      "key": "2822e8c596bcbdef",
+      "kind": "number",
+      "text": "1"
+    },
+    {
+      "key": "2822e9c596bcbfa2",
+      "kind": "number",
+      "text": "2"
+    },
+    {
+      "key": "2822eac596bcc155",
+      "kind": "number",
+      "text": "3"
+    },
+    {
+      "key": "2822e3c596bcb570",
+      "kind": "number",
+      "text": "4"
+    },
+    {
+      "key": "2822e4c596bcb723",
+      "kind": "number",
+      "text": "5"
+    },
+    {
+      "key": "2822e5c596bcb8d6",
+      "kind": "number",
+      "text": "6"
+    },
+    {
+      "key": "2822e6c596bcba89",
+      "kind": "number",
+      "text": "7"
+    },
+    {
+      "key": "2822efc596bcc9d4",
+      "kind": "number",
+      "text": "8"
+    },
+    {
+      "key": "2822f0c596bccb87",
+      "kind": "number",
+      "text": "9"
+    },
+    {
+      "key": "f00f66bf22b6a1ed",
+      "kind": "number",
+      "text": "10"
+    },
+    {
+      "key": "f00f65bf22b6a03a",
+      "kind": "number",
+      "text": "11"
+    },
+    {
+      "key": "f00f64bf22b69e87",
+      "kind": "number",
+      "text": "12"
+    },
+    {
+      "key": "f00f63bf22b69cd4",
+      "kind": "number",
+      "text": "13"
+    },
+    {
+      "key": "f00f62bf22b69b21",
+      "kind": "number",
+      "text": "14"
+    },
+    {
+      "key": "f00f61bf22b6996e",
+      "kind": "number",
+      "text": "15"
+    },
+    {
+      "key": "f00f60bf22b697bb",
+      "kind": "number",
+      "text": "16"
+    },
+    {
+      "key": "f00f5fbf22b69608",
+      "kind": "number",
+      "text": "17"
+    },
+    {
+      "key": "f00f5ebf22b69455",
+      "kind": "number",
+      "text": "18"
+    },
+    {
+      "key": "f00f5dbf22b692a2",
+      "kind": "number",
+      "text": "19"
+    },
+    {
+      "key": "f012ccbf22b98516",
+      "kind": "number",
+      "text": "20"
+    },
+    {
+      "key": "42fff2a9ace66937",
+      "kind": "title",
+      "text": "Chicago, 1929"
+    },
+    {
+      "key": "32fa3d8aeee31e2e",
+      "kind": "title",
+      "text": "New York, 1947"
+    },
+    {
+      "key": "3e2b953220452d9e",
+      "kind": "title",
+      "text": "Palermo, 1955"
+    },
+    {
+      "key": "dfe55a90e35150c0",
+      "kind": "title",
+      "text": "Napoli, 1950"
+    },
+    {
+      "key": "987d8d06600b84a2",
+      "kind": "title",
+      "text": "Las Vegas, 1955"
+    }
+  ],
+  "en": [
+    {
+      "key": "c9d947cf09a4179b",
+      "kind": "segment",
+      "text": "Chicago, 1929. Prohibition closed the bars and opened everything else."
+    },
+    {
+      "key": "9da30204522aac31",
+      "kind": "segment",
+      "text": "Chicago, 1929. The Windy City. It takes your hat, and sometimes whoever's under it."
+    },
+    {
+      "key": "d648a371c410cc55",
+      "kind": "segment",
+      "text": "Exterior, night. Under the L tracks in the Loop. A train rattles overhead."
+    },
+    {
+      "key": "aa0e934c433db8a1",
+      "kind": "segment",
+      "text": "Interior, night. Union Station. The waiting room is empty."
+    },
+    {
+      "key": "d53e8d7241720eca",
+      "kind": "segment",
+      "text": "Exterior, night. Navy Pier. Fog on Lake Michigan."
+    },
+    {
+      "key": "a6d06ee69b9f5a2a",
+      "kind": "segment",
+      "text": "Interior, night. The Green Mill: smoke, and a saxophone."
+    },
+    {
+      "key": "217f4d4ca8fcb505",
+      "kind": "segment",
+      "text": "Exterior, night. A drawbridge over the Chicago River."
+    },
+    {
+      "key": "2cc7bb3d5e52f3ab",
+      "kind": "segment",
+      "text": "Exterior, night. The Maxwell Street Market, every stall closed."
+    },
+    {
+      "key": "3de1747f2b681583",
+      "kind": "segment",
+      "text": "Interior, night. A speakeasy on the South Side."
+    },
+    {
+      "key": "7737f3726b2d88e2",
+      "kind": "segment",
+      "text": "Interior, night. The Lexington Hotel lobby. Nobody at the front desk."
+    },
+    {
+      "key": "75e897c4caffbebb",
+      "kind": "segment",
+      "text": "New York, 1947. Eight million people, and not one of them saw a thing."
+    },
+    {
+      "key": "ac8b8735d9fd928b",
+      "kind": "segment",
+      "text": "New York, 1947. The city that never sleeps. Tonight it really ought to try."
+    },
+    {
+      "key": "501f3300da60f093",
+      "kind": "segment",
+      "text": "Exterior, night. Mulberry Street, Little Italy, under the neon signs."
+    },
+    {
+      "key": "42c27fac2e19dd31",
+      "kind": "segment",
+      "text": "Exterior, night. Under the Brooklyn Bridge. Fog on the East River."
+    },
+    {
+      "key": "09a91b8d6d7cdcfe",
+      "kind": "segment",
+      "text": "Interior, night. Grand Central. The clock says three."
+    },
+    {
+      "key": "7bfac34c8d672a94",
+      "kind": "segment",
+      "text": "Exterior, night. The Fulton Fish Market, among the crates."
+    },
+    {
+      "key": "d4cdb7723bfaceb1",
+      "kind": "segment",
+      "text": "Exterior, night. Coney Island, off season. The Wonder Wheel stands still."
+    },
+    {
+      "key": "f506ec60805b50fd",
+      "kind": "segment",
+      "text": "Exterior, night. A pier on the Hudson. A freighter with no name."
+    },
+    {
+      "key": "b7203c438f87b565",
+      "kind": "segment",
+      "text": "Interior, night. A diner one block from Times Square."
+    },
+    {
+      "key": "4e0e578e115a3855",
+      "kind": "segment",
+      "text": "Exterior, night. Central Park. One streetlamp still burning."
+    },
+    {
+      "key": "6c381530f14f7387",
+      "kind": "segment",
+      "text": "Palermo, 1955. The finest sunshine in the world, and some very long shadows."
+    },
+    {
+      "key": "4b036a28a520fdcd",
+      "kind": "segment",
+      "text": "Palermo, 1955. Everybody here knows everything. That's why nobody says a word."
+    },
+    {
+      "key": "9146beb5cfd35aa9",
+      "kind": "segment",
+      "text": "Exterior, night. The Vucciria market, shuttered for the night."
+    },
+    {
+      "key": "236045a70f4c86d4",
+      "kind": "segment",
+      "text": "Exterior, night. The steps of the Teatro Massimo, between the two lions."
+    },
+    {
+      "key": "24b77a0141b517be",
+      "kind": "segment",
+      "text": "Exterior, night. The Quattro Canti, deserted. Nobody but the statues."
+    },
+    {
+      "key": "c3ea5f00f120450e",
+      "kind": "segment",
+      "text": "Exterior, night. La Cala, the old harbor. Boats rocking."
+    },
+    {
+      "key": "5db57b7ec66db2cc",
+      "kind": "segment",
+      "text": "Exterior, night. An alley in Ballarò, laundry on the lines."
+    },
+    {
+      "key": "ed8b62b40e8fea13",
+      "kind": "segment",
+      "text": "Exterior, night. Mondello beach, off season."
+    },
+    {
+      "key": "7f350caddb18cf2c",
+      "kind": "segment",
+      "text": "Exterior, night. The Foro Italico, on the seafront, among the palms."
+    },
+    {
+      "key": "b9dd246c25f5c700",
+      "kind": "segment",
+      "text": "Interior, night. A pastry shop in the historic center, shutters down."
+    },
+    {
+      "key": "d8177654be7ad7fd",
+      "kind": "segment",
+      "text": "Naples, 1950. Vesuvius smokes, the coffee scalds, and somebody isn't sleeping tonight."
+    },
+    {
+      "key": "e7a711f29afd19b0",
+      "kind": "segment",
+      "text": "Naples, 1950. Everybody here sings. Just never to the cops."
+    },
+    {
+      "key": "ab31d54a4e573b18",
+      "kind": "segment",
+      "text": "Exterior, night. An alley in the Spanish Quarter."
+    },
+    {
+      "key": "7033e48db84dbe79",
+      "kind": "segment",
+      "text": "Interior, night. The Galleria Umberto, empty. Every footstep echoes."
+    },
+    {
+      "key": "0cb1ba0126a5e412",
+      "kind": "segment",
+      "text": "Exterior, night. The Beverello pier. The ferries aren't running."
+    },
+    {
+      "key": "41575a26ec61c183",
+      "kind": "segment",
+      "text": "Exterior, night. Spaccanapoli, straight as a blade."
+    },
+    {
+      "key": "4191912b828479b8",
+      "kind": "segment",
+      "text": "Interior, night. The Teatro San Carlo, every seat empty."
+    },
+    {
+      "key": "fcd67570dca8c6b6",
+      "kind": "segment",
+      "text": "Exterior, night. The seafront, below Castel dell'Ovo."
+    },
+    {
+      "key": "b20585e44998e6c9",
+      "kind": "segment",
+      "text": "Interior, night. The Chiaia funicular, last ride of the night."
+    },
+    {
+      "key": "1d1eb7315cfb4d60",
+      "kind": "segment",
+      "text": "Interior, night. A pizzeria on Via dei Tribunali, the oven gone cold."
+    },
+    {
+      "key": "dd65add18271ddb1",
+      "kind": "segment",
+      "text": "Las Vegas, 1955. A million light bulbs in the desert, to hide everything else."
+    },
+    {
+      "key": "236cd26107d7b0f7",
+      "kind": "segment",
+      "text": "Las Vegas, 1955. The house always wins. Tonight you find out who the house is."
+    },
+    {
+      "key": "3681dde43a6949a6",
+      "kind": "segment",
+      "text": "Exterior, night. Fremont Street: a thousand lights, not one witness."
+    },
+    {
+      "key": "64bd0bd1ec44f055",
+      "kind": "segment",
+      "text": "Interior, night. The casino floor of the Flamingo, in the small hours."
+    },
+    {
+      "key": "58c0b629afbccc50",
+      "kind": "segment",
+      "text": "Exterior, night. The Mojave Desert. Two headlights, one shovel."
+    },
+    {
+      "key": "f8207ec7904cd4c8",
+      "kind": "segment",
+      "text": "Interior, night. The back room of the Golden Nugget. A poker table."
+    },
+    {
+      "key": "2844ab859c83a4bb",
+      "kind": "segment",
+      "text": "Exterior, night. A motel parking lot on the Strip."
+    },
+    {
+      "key": "71de7ed13b6b8175",
+      "kind": "segment",
+      "text": "Exterior, night. Hoover Dam. Below, seven hundred feet of nothing."
+    },
+    {
+      "key": "f1b51cb0380920db",
+      "kind": "segment",
+      "text": "Interior, night. A singer's dressing room, after the show."
+    },
+    {
+      "key": "b275915cab47170a",
+      "kind": "segment",
+      "text": "Interior, night. An all-night wedding chapel."
+    },
+    {
+      "key": "ce1ea52183a9f4d2",
+      "kind": "segment",
+      "text": "At night the Family eliminates one person. By day everyone votes on who to eliminate. The town wins by eliminating the whole Family; the Family wins once it's no longer outnumbered."
+    },
+    {
+      "key": "e0c751d9bd0283b6",
+      "kind": "segment",
+      "text": "The first night falls on Chicago."
+    },
+    {
+      "key": "62e93d4903428011",
+      "kind": "segment",
+      "text": "The first night falls on New York."
+    },
+    {
+      "key": "6f8de2b3977653a0",
+      "kind": "segment",
+      "text": "The first night falls on Palermo."
+    },
+    {
+      "key": "e7180985d84aa6f9",
+      "kind": "segment",
+      "text": "The first night falls on Naples."
+    },
+    {
+      "key": "1dbdac791714514c",
+      "kind": "segment",
+      "text": "The first night falls on Las Vegas."
+    },
+    {
+      "key": "3c2e2871086efa07",
+      "kind": "segment",
+      "text": "Darkness settles over Chicago. It's the first night."
+    },
+    {
+      "key": "26c9760d36eee19e",
+      "kind": "segment",
+      "text": "Darkness settles over New York. It's the first night."
+    },
+    {
+      "key": "e038b151b4003165",
+      "kind": "segment",
+      "text": "Darkness settles over Palermo. It's the first night."
+    },
+    {
+      "key": "695fda846009d2c2",
+      "kind": "segment",
+      "text": "Darkness settles over Naples. It's the first night."
+    },
+    {
+      "key": "e003387da4185c01",
+      "kind": "segment",
+      "text": "Darkness settles over Las Vegas. It's the first night."
+    },
+    {
+      "key": "0b48d99c0ca2c3f8",
+      "kind": "segment",
+      "text": "First night. Sleep well, if your conscience lets you."
+    },
+    {
+      "key": "12b6790500a71172",
+      "kind": "segment",
+      "text": "Night falls on Chicago once again."
+    },
+    {
+      "key": "e49a82d7981dff4d",
+      "kind": "segment",
+      "text": "Night falls on New York once again."
+    },
+    {
+      "key": "d109e91087b7cd28",
+      "kind": "segment",
+      "text": "Night falls on Palermo once again."
+    },
+    {
+      "key": "6b563ed6168083b5",
+      "kind": "segment",
+      "text": "Night falls on Naples once again."
+    },
+    {
+      "key": "a2394f60750b8a64",
+      "kind": "segment",
+      "text": "Night falls on Las Vegas once again."
+    },
+    {
+      "key": "e5bd3b6829d20b7e",
+      "kind": "segment",
+      "text": "The streetlamps go out. Somebody has work to do."
+    },
+    {
+      "key": "377aefdba8cb9d7f",
+      "kind": "segment",
+      "text": "It's night. Somebody has a date. The flowers come later."
+    },
+    {
+      "key": "c845d3ece15bff7a",
+      "kind": "segment",
+      "text": "Another night. In Chicago, folks have started sleeping with their shoes on."
+    },
+    {
+      "key": "8c15b641c544d7af",
+      "kind": "segment",
+      "text": "Another night. In New York, folks have started sleeping with their shoes on."
+    },
+    {
+      "key": "b0867c0c2f470284",
+      "kind": "segment",
+      "text": "Another night. In Palermo, folks have started sleeping with their shoes on."
+    },
+    {
+      "key": "2d61eadd9975ca5b",
+      "kind": "segment",
+      "text": "Another night. In Naples, folks have started sleeping with their shoes on."
+    },
+    {
+      "key": "3ca1ec3333bac3a8",
+      "kind": "segment",
+      "text": "Another night. In Las Vegas, folks have started sleeping with their shoes on."
+    },
+    {
+      "key": "b29a11d4d3622f70",
+      "kind": "segment",
+      "text": "Darkness falls. Even the dogs have stopped barking."
+    },
+    {
+      "key": "ba60878e22bd9d03",
+      "kind": "segment",
+      "text": "Dead of night. The funeral parlor is working overtime."
+    },
+    {
+      "key": "430324c347d7c453",
+      "kind": "segment",
+      "text": "Pass the phone around. Everyone makes their move in secret, then passes it on."
+    },
+    {
+      "key": "c24f866f9357d2a5",
+      "kind": "segment",
+      "text": "Nobody died last night."
+    },
+    {
+      "key": "cd51cb23b04dc054",
+      "kind": "segment",
+      "text": "The funeral parlor expresses its deep concern."
+    },
+    {
+      "key": "f87bc58c47b6f63b",
+      "kind": "segment",
+      "text": "Look around the table: somebody here is disappointed."
+    },
+    {
+      "key": "1caa5dd03098e72b",
+      "kind": "segment",
+      "text": "Don't get comfortable. This is usually how it starts."
+    },
+    {
+      "key": "e16b8cb33355c758",
+      "kind": "segment",
+      "text": "The cemetery night watchman slept eight straight hours, and doesn't trust it."
+    },
+    {
+      "key": "164ae57dcc481e0a",
+      "kind": "segment",
+      "text": "And that's not all."
+    },
+    {
+      "key": "71d98f1c86d35ccb",
+      "kind": "segment",
+      "text": "Change of scene."
+    },
+    {
+      "key": "7c8e4fab3c08af2e",
+      "kind": "segment",
+      "text": "But it was a long night."
+    },
+    {
+      "key": "29b95f1742d10c19",
+      "kind": "segment",
+      "text": "Last night one person died:"
+    },
+    {
+      "key": "3e5707a00dd27b84",
+      "kind": "segment",
+      "text": ". Their role stays secret."
+    },
+    {
+      "key": "5b19f694b2d8175b",
+      "kind": "segment",
+      "text": "A single shot, from a faraway window."
+    },
+    {
+      "key": "05c1b87f544d20a7",
+      "kind": "segment",
+      "text": "never heard a thing."
+    },
+    {
+      "key": "04369ffe7163379e",
+      "kind": "segment",
+      "text": "A glint on a rooftop, then a shot."
+    },
+    {
+      "key": "674f2c36fae65f59",
+      "kind": "segment",
+      "text": "drops before the echo."
+    },
+    {
+      "key": "fda4ae5525853f8c",
+      "kind": "segment",
+      "text": "Somebody far away took their time aiming."
+    },
+    {
+      "key": "e3dc6350989b56ae",
+      "kind": "segment",
+      "text": "stays on the pavement."
+    },
+    {
+      "key": "289d3d0f2283b83c",
+      "kind": "segment",
+      "text": "Nobody around the corner this time. Just crosshairs, with"
+    },
+    {
+      "key": "e155c1dc237f33fd",
+      "kind": "segment",
+      "text": "dead center."
+    },
+    {
+      "key": "f738eff158b1a5ea",
+      "kind": "segment",
+      "text": "A glint up in the bell tower. Then a toll, and"
+    },
+    {
+      "key": "5561ce80639bdb3d",
+      "kind": "segment",
+      "text": "doesn't get up."
+    },
+    {
+      "key": "a119f48fd997a636",
+      "kind": "segment",
+      "text": "The bell strikes the hour and swallows the shot."
+    },
+    {
+      "key": "7b37186f8d033656",
+      "kind": "segment",
+      "text": "stays on the cobbles."
+    },
+    {
+      "key": "24fbcc6281f33afb",
+      "kind": "segment",
+      "text": "A flock of pigeons bursts out of the bell tower."
+    },
+    {
+      "key": "1fa3d9ff699f8cc4",
+      "kind": "segment",
+      "text": "is already down."
+    },
+    {
+      "key": "8760782e81c1db58",
+      "kind": "segment",
+      "text": "The phone booth rings."
+    },
+    {
+      "key": "04106afef5036138",
+      "kind": "segment",
+      "text": "picks up. The glass cracks into a star."
+    },
+    {
+      "key": "012002fe355c5108",
+      "kind": "segment",
+      "text": "A hole in the booth's glass, a web of cracks."
+    },
+    {
+      "key": "a784580a3982e87a",
+      "kind": "segment",
+      "text": "slides down."
+    },
+    {
+      "key": "36fe79595b36ded4",
+      "kind": "segment",
+      "text": "lifts the receiver. Nobody speaks on the other end: only the shot."
+    },
+    {
+      "key": "8c08bbdc569e77bc",
+      "kind": "segment",
+      "text": "opens the car door. A shot from far away: that ride never starts."
+    },
+    {
+      "key": "f322e39479b9c950",
+      "kind": "segment",
+      "text": "Keys in hand, one foot on the running board. Then the shot, and"
+    },
+    {
+      "key": "44b7fb46288b8966",
+      "kind": "segment",
+      "text": "falls."
+    },
+    {
+      "key": "c42e54695302c87b",
+      "kind": "segment",
+      "text": "was about to drive off. The engine stays cold, the door hangs open."
+    },
+    {
+      "key": "7ef397d20e313939",
+      "kind": "segment",
+      "text": "A shot from the alley,"
+    },
+    {
+      "key": "6525df65ce4a3f59",
+      "kind": "segment",
+      "text": "on the ground. Then running footsteps: the Doc."
+    },
+    {
+      "key": "fb6ccc0c271a5293",
+      "kind": "segment",
+      "text": "They came to close"
+    },
+    {
+      "key": "d2ddf8932cfb8575",
+      "kind": "segment",
+      "text": "'s account. The Doc got there before the priest."
+    },
+    {
+      "key": "369d47208f7c5e18",
+      "kind": "segment",
+      "text": "was already down. But the Doc just happened to be passing by."
+    },
+    {
+      "key": "4b86ea770bf3cdbb",
+      "kind": "segment",
+      "text": "One shot, and"
+    },
+    {
+      "key": "65657e2c36322b17",
+      "kind": "segment",
+      "text": "goes down. A leather bag snaps open: it isn't over."
+    },
+    {
+      "key": "3355f3f456033173",
+      "kind": "segment",
+      "text": "on the ground, heart stopped. The Doc rubs the paddles together: clear!"
+    },
+    {
+      "key": "d3fec1c82b15b384",
+      "kind": "segment",
+      "text": "One jolt, nothing. Another jolt:"
+    },
+    {
+      "key": "33ff2ac4e8964575",
+      "kind": "segment",
+      "text": "'s heart kicks back in."
+    },
+    {
+      "key": "eef730afa0d0a268",
+      "kind": "segment",
+      "text": "The Doc opens a box full of wires. One spark, and"
+    },
+    {
+      "key": "c528d86d729fdfc6",
+      "kind": "segment",
+      "text": "breathes again."
+    },
+    {
+      "key": "190f984314973f12",
+      "kind": "segment",
+      "text": "The Doc digs into"
+    },
+    {
+      "key": "5d495f9bb980d170",
+      "kind": "segment",
+      "text": "'s wound with a pair of pliers. Out comes the lead."
+    },
+    {
+      "key": "4c4c9a3dc2b4f9ec",
+      "kind": "segment",
+      "text": "A bullet in the pliers, a bandage on the chest."
+    },
+    {
+      "key": "5d07732e43be1ddc",
+      "kind": "segment",
+      "text": "is still breathing."
+    },
+    {
+      "key": "c909851d5d095fe8",
+      "kind": "segment",
+      "text": "on the ground, the Doc on both knees. “Plink”: the slug hits the tray."
+    },
+    {
+      "key": "211331033ad53821",
+      "kind": "segment",
+      "text": "A siren down the street. The ambulance slams on the brakes:"
+    },
+    {
+      "key": "5c6a784673edf742",
+      "kind": "segment",
+      "text": "goes on a stretcher."
+    },
+    {
+      "key": "29e6f0b3c2caf887",
+      "kind": "segment",
+      "text": "on the ground, then the sirens. Stretcher, blanket, and off they race."
+    },
+    {
+      "key": "0f2975355f013546",
+      "kind": "segment",
+      "text": "The ambulance pulls up, lights flashing. From the stretcher,"
+    },
+    {
+      "key": "381e85d16af8c1fa",
+      "kind": "segment",
+      "text": "waves."
+    },
+    {
+      "key": "32100790d7eb21d5",
+      "kind": "segment",
+      "text": "Under the streetlamp, needle and thread. The Doc sews"
+    },
+    {
+      "key": "e29bc35b0cd27606",
+      "kind": "segment",
+      "text": "up, stitch by stitch."
+    },
+    {
+      "key": "fa640a4273030a92",
+      "kind": "segment",
+      "text": "Three stitches, a knot, a snip of the scissors."
+    },
+    {
+      "key": "c356491aad27e34f",
+      "kind": "segment",
+      "text": "gets back up."
+    },
+    {
+      "key": "ba54d0ce68fd705f",
+      "kind": "segment",
+      "text": "The Doc threads the needle by lamplight."
+    },
+    {
+      "key": "a3ae04dafbab967b",
+      "kind": "segment",
+      "text": "doesn't feel a thing."
+    },
+    {
+      "key": "9c69ba49df8209cb",
+      "kind": "segment",
+      "text": "Last night someone got shot, but the Doc made it in time. Who it was stays a secret."
+    },
+    {
+      "key": "39cb9dac76d1df8f",
+      "kind": "segment",
+      "text": "A shot."
+    },
+    {
+      "key": "6a610c5b435622a3",
+      "kind": "segment",
+      "text": "staggers, then pats a breast pocket: a flask, badly dented."
+    },
+    {
+      "key": "8a28c242fb1b8cda",
+      "kind": "segment",
+      "text": "Bang, then “ding.”"
+    },
+    {
+      "key": "c8525a9988e1f13b",
+      "kind": "segment",
+      "text": "pulls out a flask with a brand-new hole."
+    },
+    {
+      "key": "7ef395d20e3135d3",
+      "kind": "segment",
+      "text": "A shot from the alley."
+    },
+    {
+      "key": "4dfac0ec5b4425ca",
+      "kind": "segment",
+      "text": "stays standing: the bullet is in the flask."
+    },
+    {
+      "key": "0e22a916f945bd66",
+      "kind": "segment",
+      "text": "feels a thump in the chest. Under the jacket, a flask bent double."
+    },
+    {
+      "key": "31ff2f06d5a4459e",
+      "kind": "segment",
+      "text": "pulls a Bible from a breast pocket: the bullet is inside."
+    },
+    {
+      "key": "d4304dd4ae4416b8",
+      "kind": "segment",
+      "text": "The bullet stops in a pocket Bible."
+    },
+    {
+      "key": "39a72feb6ba31f27",
+      "kind": "segment",
+      "text": "looks up and says thanks."
+    },
+    {
+      "key": "4e35cfb866ec1d95",
+      "kind": "segment",
+      "text": "feels a thump in the chest. In the pocket, a Bible holed halfway through."
+    },
+    {
+      "key": "fa4e97331a22bd2f",
+      "kind": "segment",
+      "text": "The gun points at"
+    },
+    {
+      "key": "5ce51d3b5cb239a9",
+      "kind": "segment",
+      "text": ". “Click.” Another “click.” The killer takes off running."
+    },
+    {
+      "key": "b616acdbb16b1c6b",
+      "kind": "segment",
+      "text": "The trigger snaps on nothing: the gun has jammed."
+    },
+    {
+      "key": "9a3b152cb3151db2",
+      "kind": "segment",
+      "text": "turns, the killer bolts."
+    },
+    {
+      "key": "838a7905595d4d67",
+      "kind": "segment",
+      "text": "“Click, click.”"
+    },
+    {
+      "key": "974a824ddac11517",
+      "kind": "segment",
+      "text": "rolls up both sleeves, and the alley empties out."
+    },
+    {
+      "key": "d2422e9754ba4b23",
+      "kind": "segment",
+      "text": "The killer steps on a banana peel. The shot goes skyward, and"
+    },
+    {
+      "key": "a9859dfb0611ddc4",
+      "kind": "segment",
+      "text": "walks away."
+    },
+    {
+      "key": "21bc7feee5e19a0f",
+      "kind": "segment",
+      "text": "A banana peel, a backflip. The shot ends up among the stars:"
+    },
+    {
+      "key": "a0dad5bf5a2b15c2",
+      "kind": "segment",
+      "text": "laughs."
+    },
+    {
+      "key": "05fbb9db71da0372",
+      "kind": "segment",
+      "text": "The killer charges at"
+    },
+    {
+      "key": "cecf69c4aece6ad9",
+      "kind": "segment",
+      "text": ", then meets a banana peel. The shot punches the night."
+    },
+    {
+      "key": "af375f27d7457fdf",
+      "kind": "segment",
+      "text": "A black cat leaps onto the killer's arm. The shot goes wide,"
+    },
+    {
+      "key": "096cd0e74c1a9106",
+      "kind": "segment",
+      "text": "stays standing."
+    },
+    {
+      "key": "639aecfd44cc885e",
+      "kind": "segment",
+      "text": "The killer takes aim at"
+    },
+    {
+      "key": "79c9d7f5407f32e1",
+      "kind": "segment",
+      "text": ". A black cat sends the gun flying."
+    },
+    {
+      "key": "7e0cfa50ebd0247a",
+      "kind": "segment",
+      "text": "Bad luck, they say. But tonight a black cat saved"
+    },
+    {
+      "key": "db78456a70d2d8f9",
+      "kind": "segment",
+      "text": "Last night someone got shot at, but the bullet missed. Who it was stays a secret."
+    },
+    {
+      "key": "ab79be07f066e5a5",
+      "kind": "segment",
+      "text": "Two headlights in the dark. A black sedan doesn't brake."
+    },
+    {
+      "key": "f6c5698c5d1444e3",
+      "kind": "segment",
+      "text": "turns around: too late."
+    },
+    {
+      "key": "1315a5b51cd84fb4",
+      "kind": "segment",
+      "text": "A rope snaps. A grand piano drops."
+    },
+    {
+      "key": "beec3f479f9e2b03",
+      "kind": "segment",
+      "text": "looks up."
+    },
+    {
+      "key": "626dbd94ea5762cd",
+      "kind": "segment",
+      "text": "takes the last sip of coffee. Makes a face. Poison."
+    },
+    {
+      "key": "099649e48c639d6d",
+      "kind": "segment",
+      "text": "A shadow behind"
+    },
+    {
+      "key": "4381a74936102b88",
+      "kind": "segment",
+      "text": ". A blade. Once is enough."
+    },
+    {
+      "key": "84dc81b816351d59",
+      "kind": "segment",
+      "text": "Two goons hold"
+    },
+    {
+      "key": "808b1ee4291c802c",
+      "kind": "segment",
+      "text": "still. A third one stirs the cement."
+    },
+    {
+      "key": "25ba1318e996c027",
+      "kind": "segment",
+      "text": "A noose drops out of the dark behind"
+    },
+    {
+      "key": "dd25e34fed746e8f",
+      "kind": "segment",
+      "text": ". It tightens."
+    },
+    {
+      "key": "cb2e76c6acc5d4fa",
+      "kind": "segment",
+      "text": "A muffled pop, like a champagne cork."
+    },
+    {
+      "key": "b8488abacfd3dfa5",
+      "kind": "segment",
+      "text": "slides to the ground."
+    },
+    {
+      "key": "7b04d65aa8ee90a7",
+      "kind": "segment",
+      "text": "unwraps a present. Inside, something ticks. Then something booms."
+    },
+    {
+      "key": "078d923d58587c76",
+      "kind": "segment",
+      "text": "A creak. A crystal chandelier lets go, right above"
+    },
+    {
+      "key": "50f7db960ac8bc0b",
+      "kind": "segment",
+      "text": "A violin case opens. There is no violin in it."
+    },
+    {
+      "key": "a0defa18af11abc6",
+      "kind": "segment",
+      "text": "drops."
+    },
+    {
+      "key": "d0b32cc85f0a01a7",
+      "kind": "segment",
+      "text": "From above, a safe."
+    },
+    {
+      "key": "2937a7790b16c89f",
+      "kind": "segment",
+      "text": "has just enough time to read the brand name."
+    },
+    {
+      "key": "bfd2e015b318e4b1",
+      "kind": "segment",
+      "text": "lights a cigar that came as a gift. The cigar goes “boom.”"
+    },
+    {
+      "key": "889d2e8eae4cdef5",
+      "kind": "segment",
+      "text": "Around the corner, a baseball bat. One swing."
+    },
+    {
+      "key": "5511570d69861379",
+      "kind": "segment",
+      "text": "sees stars, then nothing."
+    },
+    {
+      "key": "ef3783d176055fa3",
+      "kind": "segment",
+      "text": "Two sawed-off barrels poke out of the dark. A roar."
+    },
+    {
+      "key": "261d2af28792ef9a",
+      "kind": "segment",
+      "text": "flies backward."
+    },
+    {
+      "key": "6d82cd741f108335",
+      "kind": "segment",
+      "text": "A car slows. Out the window, a tommy gun."
+    },
+    {
+      "key": "30fdc3b3faf2b03d",
+      "kind": "segment",
+      "text": "never turns around in time."
+    },
+    {
+      "key": "8b2470c0906f325e",
+      "kind": "segment",
+      "text": "A steel wire, two gloved hands."
+    },
+    {
+      "key": "fd945236812d544b",
+      "kind": "segment",
+      "text": "kicks, then stops."
+    },
+    {
+      "key": "4e5712819996a1a6",
+      "kind": "segment",
+      "text": "A pot of geraniums drops from the third floor. No accident."
+    },
+    {
+      "key": "a7e1361f2e68aa55",
+      "kind": "segment",
+      "text": "never sees it."
+    },
+    {
+      "key": "d10fdcdd65a797b8",
+      "kind": "segment",
+      "text": "A manhole opens under"
+    },
+    {
+      "key": "dc0592eaf606be40",
+      "kind": "segment",
+      "text": "'s feet. Then it closes again, carefully."
+    },
+    {
+      "key": "2c82975e9b59af99",
+      "kind": "segment",
+      "text": "The streetlamp goes dark. A thud. When it comes back,"
+    },
+    {
+      "key": "9ef61bc9324db1df",
+      "kind": "segment",
+      "text": "is on the ground."
+    },
+    {
+      "key": "5976f191e073d90e",
+      "kind": "segment",
+      "text": "A stranger, a kiss, a lipstick to die for."
+    },
+    {
+      "key": "04f14cb90e3cc679",
+      "kind": "segment",
+      "text": "smiles, then does."
+    },
+    {
+      "key": "8c5b0ee2dc518eb2",
+      "kind": "segment",
+      "text": "A bowling ball rolls out of the dark."
+    },
+    {
+      "key": "17fc3fbf215f126c",
+      "kind": "segment",
+      "text": "goes flying like a pin. Strike."
+    },
+    {
+      "key": "84609b2d2135d3d0",
+      "kind": "segment",
+      "text": "A swordfish pokes around the corner. En garde, lunge."
+    },
+    {
+      "key": "0df759468b31ed99",
+      "kind": "segment",
+      "text": "sleeps with the fishes now."
+    },
+    {
+      "key": "26fee02373de118d",
+      "kind": "segment",
+      "text": "A harpoon whistles through the dark and the rope goes taut."
+    },
+    {
+      "key": "32f02dc3c79bfa24",
+      "kind": "segment",
+      "text": "vanishes around the corner."
+    },
+    {
+      "key": "4b7ee076cb02abc8",
+      "kind": "segment",
+      "text": "A cream pie, right in"
+    },
+    {
+      "key": "127468b5ade0188e",
+      "kind": "segment",
+      "text": "'s face. Everyone laughs. Inside the cream, a grenade."
+    },
+    {
+      "key": "6999e14b6041fe7b",
+      "kind": "segment",
+      "text": "A trombone plays in the alley. The bell fires a shot."
+    },
+    {
+      "key": "8e767b66edbfd1b6",
+      "kind": "segment",
+      "text": "hits a sour note."
+    },
+    {
+      "key": "8491b7c4be17d3fd",
+      "kind": "segment",
+      "text": "A stranger asks"
+    },
+    {
+      "key": "a9b2718e6fef9c59",
+      "kind": "segment",
+      "text": "for a tango. A spin, a dip, a dagger."
+    },
+    {
+      "key": "23e5a20285d60639",
+      "kind": "segment",
+      "text": "A bouquet of red roses for"
+    },
+    {
+      "key": "7d9b9d79706d6a8b",
+      "kind": "segment",
+      "text": ". Among the roses, a gun barrel. Petals everywhere."
+    },
+    {
+      "key": "ad398129c73470f8",
+      "kind": "segment",
+      "text": "A laundry van pulls up. A door slides open, two arms."
+    },
+    {
+      "key": "957756e551ae3e3a",
+      "kind": "segment",
+      "text": "never comes back."
+    },
+    {
+      "key": "462bedc248fb75a2",
+      "kind": "segment",
+      "text": "A cat saw the whole thing. It isn't talking."
+    },
+    {
+      "key": "1571ad6b58f262d8",
+      "kind": "segment",
+      "text": "Somewhere, a radio is playing a mambo."
+    },
+    {
+      "key": "5e6fae453466194f",
+      "kind": "segment",
+      "text": "Chicago sleeps. Or pretends to."
+    },
+    {
+      "key": "4c5ca950cfe81fb2",
+      "kind": "segment",
+      "text": "New York sleeps. Or pretends to."
+    },
+    {
+      "key": "b90f21ebf4a8c419",
+      "kind": "segment",
+      "text": "Palermo sleeps. Or pretends to."
+    },
+    {
+      "key": "638df16c4c3c98ae",
+      "kind": "segment",
+      "text": "Naples sleeps. Or pretends to."
+    },
+    {
+      "key": "e81fcd3e1a127ff5",
+      "kind": "segment",
+      "text": "Las Vegas sleeps. Or pretends to."
+    },
+    {
+      "key": "1f7a9e29069f41c5",
+      "kind": "segment",
+      "text": "On the ground, a playing card. Roll credits."
+    },
+    {
+      "key": "3011f422d9ad7c66",
+      "kind": "segment",
+      "text": "A window lights up, then goes dark."
+    },
+    {
+      "key": "985a0c5c7cb726fc",
+      "kind": "segment",
+      "text": "The curtain falls. Nobody applauds."
+    },
+    {
+      "key": "bb7178868f388ff7",
+      "kind": "segment",
+      "text": "A voice off-screen: “Nothing personal.”"
+    },
+    {
+      "key": "389354796001fc84",
+      "kind": "segment",
+      "text": "Sirens in the distance. They're always late."
+    },
+    {
+      "key": "94e7c2770b4bb9e9",
+      "kind": "segment",
+      "text": "A hat rolls across the ground. Cut."
+    },
+    {
+      "key": "f51acf8e6c3c5b2b",
+      "kind": "segment",
+      "text": "On the screen, three words: “To be continued.”"
+    },
+    {
+      "key": "1d1e125e5a1767fc",
+      "kind": "segment",
+      "text": "Extra! Extra!"
+    },
+    {
+      "key": "a1e19419a94e6378",
+      "kind": "segment",
+      "text": "is on the front page."
+    },
+    {
+      "key": "1bd54b1009c5212f",
+      "kind": "segment",
+      "text": "There's a line at the newsstand: the paper is all about"
+    },
+    {
+      "key": "446c9ef605c79d76",
+      "kind": "segment",
+      "text": "The newsboys are all shouting one name:"
+    },
+    {
+      "key": "a37f2e181572d8a7",
+      "kind": "segment",
+      "text": "The paper spells it out:"
+    },
+    {
+      "key": "688d30676ca991af",
+      "kind": "segment",
+      "text": "is with the Family."
+    },
+    {
+      "key": "68b751c6711a71aa",
+      "kind": "segment",
+      "text": "is innocent."
+    },
+    {
+      "key": "794021b9f700ef76",
+      "kind": "segment",
+      "text": "Needle, thread, fine workmanship: this morning"
+    },
+    {
+      "key": "91dd11d010cbf250",
+      "kind": "segment",
+      "text": "'s lips are stitched shut."
+    },
+    {
+      "key": "dbb905bcf9d26e88",
+      "kind": "segment",
+      "text": "Somebody paid"
+    },
+    {
+      "key": "8f155f0cbbf9380e",
+      "kind": "segment",
+      "text": "a visit last night. Brought a needle and a word of advice."
+    },
+    {
+      "key": "79ae54bf257d6bbb",
+      "kind": "segment",
+      "text": "On"
+    },
+    {
+      "key": "8cc63db560fb7df9",
+      "kind": "segment",
+      "text": "'s pillow, a spool of black thread. Message received."
+    },
+    {
+      "key": "f23c479b24f738f3",
+      "kind": "segment",
+      "text": "Today"
+    },
+    {
+      "key": "3648271962a233f5",
+      "kind": "segment",
+      "text": "can't talk during the discussion."
+    },
+    {
+      "key": "2ffed58b93aafe79",
+      "kind": "segment",
+      "text": "votes with gestures and can still be eliminated."
+    },
+    {
+      "key": "f9df010e7a653949",
+      "kind": "segment",
+      "text": "You have"
+    },
+    {
+      "key": "83d5d8a4e508f170",
+      "kind": "segment",
+      "text": "to discuss. Then vote on who to eliminate."
+    },
+    {
+      "key": "0572d24cec253eea",
+      "kind": "segment",
+      "text": "one minute"
+    },
+    {
+      "key": "0bad1d03b2e0d9bf",
+      "kind": "segment",
+      "text": "minutes"
+    },
+    {
+      "key": "b31630e662da5fbf",
+      "kind": "segment",
+      "text": "Time's up. The crowd wants somebody to blame."
+    },
+    {
+      "key": "ad7bb41b52c187c9",
+      "kind": "segment",
+      "text": "Enough talk. Chicago wants a name."
+    },
+    {
+      "key": "ae3522b4ab7867e4",
+      "kind": "segment",
+      "text": "Enough talk. New York wants a name."
+    },
+    {
+      "key": "d494dd19e2e315c7",
+      "kind": "segment",
+      "text": "Enough talk. Palermo wants a name."
+    },
+    {
+      "key": "97540d8d6966caf8",
+      "kind": "segment",
+      "text": "Enough talk. Naples wants a name."
+    },
+    {
+      "key": "372124ece19977c3",
+      "kind": "segment",
+      "text": "Enough talk. Las Vegas wants a name."
+    },
+    {
+      "key": "53352e688fd0fd63",
+      "kind": "segment",
+      "text": "The crowd is restless. The executioner is limbering up."
+    },
+    {
+      "key": "bf21071edc7c76b5",
+      "kind": "segment",
+      "text": "Time to vote. Try not to get it wrong. Again."
+    },
+    {
+      "key": "523f62e3f131edac",
+      "kind": "segment",
+      "text": "Decide out loud who to eliminate. You can also choose to eliminate nobody."
+    },
+    {
+      "key": "4ddbb010eaf10756",
+      "kind": "segment",
+      "text": "climbs the steps of the scaffold. The guillotine gleams in the sun."
+    },
+    {
+      "key": "a28828bddc597a92",
+      "kind": "segment",
+      "text": "walks to the noose, head held high. Drumroll."
+    },
+    {
+      "key": "9619ac6773415937",
+      "kind": "segment",
+      "text": "A freight train, a one-way ticket."
+    },
+    {
+      "key": "b310270dd64d7374",
+      "kind": "segment",
+      "text": "is leaving Chicago."
+    },
+    {
+      "key": "03917d2528da7eff",
+      "kind": "segment",
+      "text": "is leaving New York."
+    },
+    {
+      "key": "5e407993b4ac378e",
+      "kind": "segment",
+      "text": "is leaving Palermo."
+    },
+    {
+      "key": "880a7d82dea7b93b",
+      "kind": "segment",
+      "text": "is leaving Naples."
+    },
+    {
+      "key": "9886e60b63292fe2",
+      "kind": "segment",
+      "text": "is leaving Las Vegas."
+    },
+    {
+      "key": "f45a8f06ee4f76c2",
+      "kind": "segment",
+      "text": "The trapdoor at city hall creaks."
+    },
+    {
+      "key": "cbc3f3b87182a436",
+      "kind": "segment",
+      "text": "takes one last look at the crowd."
+    },
+    {
+      "key": "0ae35588f4605455",
+      "kind": "segment",
+      "text": "asks for one last cigarette. The executioner offers a light."
+    },
+    {
+      "key": "dbcbfc81613526ad",
+      "kind": "segment",
+      "text": "Close-up on"
+    },
+    {
+      "key": "263a88a9477e139f",
+      "kind": "segment",
+      "text": "'s tied hands. All of Chicago is watching."
+    },
+    {
+      "key": "6189a8a89ceb5c18",
+      "kind": "segment",
+      "text": "'s tied hands. All of New York is watching."
+    },
+    {
+      "key": "af93573fc522065d",
+      "kind": "segment",
+      "text": "'s tied hands. All of Palermo is watching."
+    },
+    {
+      "key": "552e5e97006f5154",
+      "kind": "segment",
+      "text": "'s tied hands. All of Naples is watching."
+    },
+    {
+      "key": "c6b08da0101e3171",
+      "kind": "segment",
+      "text": "'s tied hands. All of Las Vegas is watching."
+    },
+    {
+      "key": "955721b4809455d9",
+      "kind": "segment",
+      "text": "The card flips."
+    },
+    {
+      "key": "35dfc6b732bd0ae5",
+      "kind": "segment",
+      "text": "was…"
+    },
+    {
+      "key": "b3a93c46c489dc41",
+      "kind": "segment",
+      "text": "On the Family's side."
+    },
+    {
+      "key": "bccc7443d577782d",
+      "kind": "segment",
+      "text": "On the town's side."
+    },
+    {
+      "key": "1c4a080aab151508",
+      "kind": "segment",
+      "text": "Nice work, everybody. Really."
+    },
+    {
+      "key": "ebcce186bd68f5f2",
+      "kind": "segment",
+      "text": "Somebody at this table is trying not to smile."
+    },
+    {
+      "key": "a03f26eeb8007d2a",
+      "kind": "segment",
+      "text": "The Family thanks you for your cooperation."
+    },
+    {
+      "key": "43a74e8236e8621e",
+      "kind": "segment",
+      "text": "The executioner apologizes, and charges full price anyway."
+    },
+    {
+      "key": "f29b6bac95125094",
+      "kind": "segment",
+      "text": "One down. But this one had friends, and friends have long memories."
+    },
+    {
+      "key": "99c61c0ff849edde",
+      "kind": "segment",
+      "text": "Somebody just lost a partner, and can't even go to the funeral."
+    },
+    {
+      "key": "97f447e3c5376ced",
+      "kind": "segment",
+      "text": "Nice shot. Tonight the Family will be in a foul mood."
+    },
+    {
+      "key": "1532f55e5b994cc6",
+      "kind": "segment",
+      "text": "And that was the last of them. Every bell in the city is ringing."
+    },
+    {
+      "key": "f305ac996a2696e6",
+      "kind": "segment",
+      "text": "That was the last one. In Chicago, at long last, somebody talked."
+    },
+    {
+      "key": "bcc0938005a83fff",
+      "kind": "segment",
+      "text": "That was the last one. In New York, at long last, somebody talked."
+    },
+    {
+      "key": "20bdb05305655748",
+      "kind": "segment",
+      "text": "That was the last one. In Palermo, at long last, somebody talked."
+    },
+    {
+      "key": "57d1b3a1ca9a96bb",
+      "kind": "segment",
+      "text": "That was the last one. In Naples, at long last, somebody talked."
+    },
+    {
+      "key": "2e145560823ecf84",
+      "kind": "segment",
+      "text": "That was the last one. In Las Vegas, at long last, somebody talked."
+    },
+    {
+      "key": "bcb53b8c6e64e34f",
+      "kind": "segment",
+      "text": "The executioner gets home early, for once."
+    },
+    {
+      "key": "39a3735b63db2985",
+      "kind": "segment",
+      "text": "Somebody breathes a sigh of relief. Wonder who."
+    },
+    {
+      "key": "1f3fa9b138e28325",
+      "kind": "segment",
+      "text": "In Chicago, not agreeing on anything is business as usual."
+    },
+    {
+      "key": "02aeee14f584b5f2",
+      "kind": "segment",
+      "text": "In New York, not agreeing on anything is business as usual."
+    },
+    {
+      "key": "c8155b97ca51e4bb",
+      "kind": "segment",
+      "text": "In Palermo, not agreeing on anything is business as usual."
+    },
+    {
+      "key": "b5db5fdfebf67d6e",
+      "kind": "segment",
+      "text": "In Naples, not agreeing on anything is business as usual."
+    },
+    {
+      "key": "87bfa8853bfcd767",
+      "kind": "segment",
+      "text": "In Las Vegas, not agreeing on anything is business as usual."
+    },
+    {
+      "key": "0a2e28e07bdd9daa",
+      "kind": "segment",
+      "text": "Nobody is eliminated today."
+    },
+    {
+      "key": "e53f5165bad73c66",
+      "kind": "segment",
+      "text": "Chicago is free. Starting tomorrow, people sleep with the windows open. Roll credits."
+    },
+    {
+      "key": "d57c25b1f1b63c07",
+      "kind": "segment",
+      "text": "New York is free. Starting tomorrow, people sleep with the windows open. Roll credits."
+    },
+    {
+      "key": "fdfa331ae1c0a364",
+      "kind": "segment",
+      "text": "Palermo is free. Starting tomorrow, people sleep with the windows open. Roll credits."
+    },
+    {
+      "key": "9f7a0335b04e932b",
+      "kind": "segment",
+      "text": "Naples is free. Starting tomorrow, people sleep with the windows open. Roll credits."
+    },
+    {
+      "key": "e0c941506638bff8",
+      "kind": "segment",
+      "text": "Las Vegas is free. Starting tomorrow, people sleep with the windows open. Roll credits."
+    },
+    {
+      "key": "968c4ecb303f5239",
+      "kind": "segment",
+      "text": "On the street, people look each other in the eye again. On screen: “The End.”"
+    },
+    {
+      "key": "b8057f20d83f6454",
+      "kind": "segment",
+      "text": "The town wins: the whole Family has been eliminated."
+    },
+    {
+      "key": "e34a77aab3d30707",
+      "kind": "segment",
+      "text": "Chicago has new bosses, and they were sitting right at this table. Roll credits."
+    },
+    {
+      "key": "d4cb9a68c2422d84",
+      "kind": "segment",
+      "text": "New York has new bosses, and they were sitting right at this table. Roll credits."
+    },
+    {
+      "key": "f15b37f34f351321",
+      "kind": "segment",
+      "text": "Palermo has new bosses, and they were sitting right at this table. Roll credits."
+    },
+    {
+      "key": "dd3e0705703fc8d0",
+      "kind": "segment",
+      "text": "Naples has new bosses, and they were sitting right at this table. Roll credits."
+    },
+    {
+      "key": "069d5de13d5b65cd",
+      "kind": "segment",
+      "text": "Las Vegas has new bosses, and they were sitting right at this table. Roll credits."
+    },
+    {
+      "key": "21271a18a22f1600",
+      "kind": "segment",
+      "text": "In Chicago, nobody saw a thing. As usual. Fade to black."
+    },
+    {
+      "key": "306701a950a31cbb",
+      "kind": "segment",
+      "text": "In New York, nobody saw a thing. As usual. Fade to black."
+    },
+    {
+      "key": "66d971dc0d49cc9e",
+      "kind": "segment",
+      "text": "In Palermo, nobody saw a thing. As usual. Fade to black."
+    },
+    {
+      "key": "939cd9e4d71c73cf",
+      "kind": "segment",
+      "text": "In Naples, nobody saw a thing. As usual. Fade to black."
+    },
+    {
+      "key": "83ff6941c5951c02",
+      "kind": "segment",
+      "text": "In Las Vegas, nobody saw a thing. As usual. Fade to black."
+    },
+    {
+      "key": "8fffae26d5696e1d",
+      "kind": "segment",
+      "text": "The Family wins: the town no longer outnumbers them."
+    },
+    {
+      "key": "cdfc170d0cbf0c32",
+      "kind": "segment",
+      "text": "someone"
+    },
+    {
+      "key": "ad772b66c787a153",
+      "kind": "role",
+      "text": "The Soldier"
+    },
+    {
+      "key": "4af69294144873cd",
+      "kind": "role",
+      "text": "The Godfather"
+    },
+    {
+      "key": "7d1f1e0880e73b40",
+      "kind": "role",
+      "text": "The Tailor"
+    },
+    {
+      "key": "86f6f51350f24aa0",
+      "kind": "role",
+      "text": "The Honest One"
+    },
+    {
+      "key": "d04ecd5f9feb40b9",
+      "kind": "role",
+      "text": "The Commissioner"
+    },
+    {
+      "key": "3c8e46b386433e37",
+      "kind": "role",
+      "text": "The Doc"
+    },
+    {
+      "key": "93423b69ef8c88e8",
+      "kind": "role",
+      "text": "The Sniper"
+    },
+    {
+      "key": "1343cbe265cd3dde",
+      "kind": "role",
+      "text": "The Reporter"
+    },
+    {
+      "key": "32fbda043967cc4e",
+      "kind": "role",
+      "text": "The Gravedigger"
+    },
+    {
+      "key": "3cd2f72f9485c6d8",
+      "kind": "role",
+      "text": "The Bodyguard"
+    },
+    {
+      "key": "36dce2114435cf32",
+      "kind": "role",
+      "text": "The Veteran"
+    },
+    {
+      "key": "320176db6b3ad047",
+      "kind": "role",
+      "text": "The Ex-Con"
+    },
+    {
+      "key": "91406e605da800c9",
+      "kind": "number",
+      "text": "1"
+    },
+    {
+      "key": "91406b605da7fbb0",
+      "kind": "number",
+      "text": "2"
+    },
+    {
+      "key": "91406c605da7fd63",
+      "kind": "number",
+      "text": "3"
+    },
+    {
+      "key": "914071605da805e2",
+      "kind": "number",
+      "text": "4"
+    },
+    {
+      "key": "914072605da80795",
+      "kind": "number",
+      "text": "5"
+    },
+    {
+      "key": "91406f605da8027c",
+      "kind": "number",
+      "text": "6"
+    },
+    {
+      "key": "914070605da8042f",
+      "kind": "number",
+      "text": "7"
+    },
+    {
+      "key": "914075605da80cae",
+      "kind": "number",
+      "text": "8"
+    },
+    {
+      "key": "914076605da80e61",
+      "kind": "number",
+      "text": "9"
+    },
+    {
+      "key": "787c86bf2479a71b",
+      "kind": "number",
+      "text": "10"
+    },
+    {
+      "key": "787c85bf2479a568",
+      "kind": "number",
+      "text": "11"
+    },
+    {
+      "key": "787c88bf2479aa81",
+      "kind": "number",
+      "text": "12"
+    },
+    {
+      "key": "787c87bf2479a8ce",
+      "kind": "number",
+      "text": "13"
+    },
+    {
+      "key": "787c8abf2479ade7",
+      "kind": "number",
+      "text": "14"
+    },
+    {
+      "key": "787c89bf2479ac34",
+      "kind": "number",
+      "text": "15"
+    },
+    {
+      "key": "787c8cbf2479b14d",
+      "kind": "number",
+      "text": "16"
+    },
+    {
+      "key": "787c8bbf2479af9a",
+      "kind": "number",
+      "text": "17"
+    },
+    {
+      "key": "787c7ebf24799983",
+      "kind": "number",
+      "text": "18"
+    },
+    {
+      "key": "787c7dbf247997d0",
+      "kind": "number",
+      "text": "19"
+    },
+    {
+      "key": "7871f4bf24705a80",
+      "kind": "number",
+      "text": "20"
+    },
+    {
+      "key": "7fb2cbdca0642e0d",
+      "kind": "title",
+      "text": "Chicago, 1929"
+    },
+    {
+      "key": "b9a51ac52fe52d3c",
+      "kind": "title",
+      "text": "New York, 1947"
+    },
+    {
+      "key": "85e630b71b172e38",
+      "kind": "title",
+      "text": "Palermo, 1955"
+    },
+    {
+      "key": "982045ba2f5537f4",
+      "kind": "title",
+      "text": "Naples, 1950"
+    },
+    {
+      "key": "3c062b05112614d4",
+      "kind": "title",
+      "text": "Las Vegas, 1955"
+    }
+  ]
+}

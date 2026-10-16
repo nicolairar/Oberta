@@ -20,6 +20,7 @@ const mix = (
   press: 0.35,
   atmosphere: 0.3,
   ambience: 0.2,
+  voice: 1.0,
 );
 
 
@@ -77,6 +78,16 @@ class SoundStage {
 
   /// Abbassa la musica mentre va in scena un filmato, e la rialza dopo.
   void duckMusic(bool ducked) {}
+
+  /// Una clip del narratore automatico (`assets/<asset>`), sul suo lettore:
+  /// una alla volta, la nuova ferma la vecchia. Suona col volume degli effetti.
+  void voice(String asset) {}
+
+  /// Zittisce il narratore, subito.
+  void stopVoice() {}
+
+  /// Mentre parla il narratore, la musica e il sottofondo si fanno da parte.
+  void duckForVoice(bool ducked) {}
 
   /// Un effetto registrato di [group], una registrazione a caso (mai la
   /// stessa due volte di fila). [after] lo ritarda.

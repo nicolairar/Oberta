@@ -11,7 +11,24 @@ class ScriptCard extends StatelessWidget {
   final String? reader;
   final List<ScriptLine> lines;
 
-  const ScriptCard({super.key, required this.reader, required this.lines});
+  /// I sottotitoli della voce (vedi `SpokenScriptCard`): per ogni battuta il
+  /// testo a pezzi, già colorato, e quanto si vede. Senza, il testo è tutto lì.
+  final List<InlineSpan>? spans;
+  final List<bool>? shown;
+  final List<Key>? lineKeys;
+
+  /// Vero quando a leggere è la voce del telefono.
+  final bool spoken;
+
+  const ScriptCard({
+    super.key,
+    required this.reader,
+    required this.lines,
+    this.spans,
+    this.shown,
+    this.lineKeys,
+    this.spoken = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -29,53 +46,75 @@ class ScriptCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.record_voice_over, color: AppColors.gold, size: 16),
+              Icon(spoken ? Icons.graphic_eq : Icons.record_voice_over, color: AppColors.gold, size: 16),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  reader == null ? t.readAloud : t.readerReadsAloud(reader),
+                  spoken ? t.narratorSpeaks : (reader == null ? t.readAloud : t.readerReadsAloud(reader)),
                   style: AppText.overline.copyWith(color: AppColors.gold),
                 ),
               ),
             ],
           ),
-          for (final line in lines) ...[
+          for (var i = 0; i < lines.length; i++) ...[
             const SizedBox(height: 14),
-            if (line.isFact) _FactLine(line.text) else _StoryLine(line.text),
+            _line(i),
           ],
         ],
       ),
     );
   }
+
+  Widget _line(int i) {
+    final line = lines[i];
+    final span = spans?[i];
+    final Widget child = line.isFact ? _FactLine(line.text, span: span) : _StoryLine(line.text, span: span);
+    final shown = this.shown?[i] ?? true;
+    return KeyedSubtree(
+      key: lineKeys?[i],
+      child: shown ? child : Opacity(opacity: 0, child: child),
+    );
+  }
 }
+
+/// Lo stile del racconto e quello dei fatti: servono anche ai sottotitoli.
+const storyStyle = TextStyle(
+  fontFamily: 'Georgia',
+  fontFamilyFallback: ['serif'],
+  fontSize: 18,
+  height: 1.45,
+  color: AppColors.textPrimary,
+);
+
+const factStyle = TextStyle(
+  fontSize: 17,
+  height: 1.4,
+  fontWeight: FontWeight.w700,
+  color: AppColors.textPrimary,
+);
 
 class _StoryLine extends StatelessWidget {
   final String text;
+  final InlineSpan? span;
 
-  const _StoryLine(this.text);
+  const _StoryLine(this.text, {this.span});
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontFamily: 'Georgia',
-        fontFamilyFallback: ['serif'],
-        fontSize: 18,
-        height: 1.45,
-        color: AppColors.textPrimary,
-      ),
-    );
+    final span = this.span;
+    return span == null ? Text(text, style: storyStyle) : Text.rich(span, style: storyStyle);
   }
 }
 
 class _FactLine extends StatelessWidget {
   final String text;
+  final InlineSpan? span;
 
-  const _FactLine(this.text);
+  const _FactLine(this.text, {this.span});
 
   @override
   Widget build(BuildContext context) {
+    final span = this.span;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -84,15 +123,7 @@ class _FactLine extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: AppColors.gold.withValues(alpha: 0.5)),
       ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 17,
-          height: 1.4,
-          fontWeight: FontWeight.w700,
-          color: AppColors.textPrimary,
-        ),
-      ),
+      child: span == null ? Text(text, style: factStyle) : Text.rich(span, style: factStyle),
     );
   }
 }

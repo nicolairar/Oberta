@@ -15,6 +15,7 @@ import '../../rules/role.dart';
 import '../../sound/cue_sounds.dart';
 import '../../sound/fx_groups.dart';
 import '../../sound/memes.dart';
+import '../../sound/narrator_voice.dart';
 import '../../sound/sound_stage.dart';
 import '../../sound/verdict_stage.dart';
 import '../theme/app_theme.dart';
@@ -29,7 +30,7 @@ import '../widgets/role_reveal_card.dart';
 import '../widgets/city_backdrop.dart';
 import '../widgets/sky_events.dart';
 import '../widgets/scene_scaffold.dart';
-import '../widgets/script_card.dart';
+import '../widgets/spoken_script_card.dart';
 import '../widgets/verdict_scene.dart';
 import '../press.dart';
 
@@ -131,6 +132,8 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _advance(VoidCallback change) {
+    // Si va avanti: se il narratore automatico stava ancora parlando, tace.
+    NarratorVoice.instance.hush();
     setState(() {
       change();
       _selected = null;
@@ -417,6 +420,7 @@ class _GameScreenState extends State<GameScreen> {
       thunder.cancel();
     }
     SoundStage.instance.ambience(null);
+    NarratorVoice.instance.hush();
     // La musica del vicolo la rimette il vicolo, quando ci si torna.
     super.dispose();
   }
@@ -687,7 +691,7 @@ class _GameScreenState extends State<GameScreen> {
     final selected = _selected;
     return Column(
       children: [
-        ScriptCard(reader: _narrator?.name, lines: _voteLines),
+        SpokenScriptCard(reader: _narrator?.name, lines: _voteLines),
         const SizedBox(height: 12),
         Expanded(child: _publicGrid(selectable: _engine.alivePlayers)),
         const SizedBox(height: 12),
@@ -738,7 +742,7 @@ class _GameScreenState extends State<GameScreen> {
           style: AppText.display(36, color: mafiaWon ? _mafiaRed : AppColors.gold),
         ),
         const SizedBox(height: 20),
-        ScriptCard(reader: _narrator?.name, lines: _endingLines),
+        SpokenScriptCard(reader: _narrator?.name, lines: _endingLines, leadIn: const Duration(milliseconds: 900)),
         const SizedBox(height: 28),
         Text(_t.whoWasWho, style: AppText.overline),
         const SizedBox(height: 4),
@@ -860,7 +864,10 @@ class _ScriptViewState extends State<_ScriptView> {
     final page = widget.page;
     final revealed = page.revealed;
     final cardCovered = revealed != null && !_cardTurned;
-    final (label, onPressed) = _moreBelow
+    // Quando legge la voce, il gobbo la segue da solo: il pulsante resta
+    // quello della pagina, e toccarlo la fa tacere.
+    final followsVoice = SpokenScriptCard.speaksIn(context, widget.reader) && !MediaQuery.disableAnimationsOf(context);
+    final (label, onPressed) = _moreBelow && !followsVoice
         ? (widget.strings.keepReading, _readOn)
         : cardCovered
             ? (widget.strings.flipTheCard, _turnCard)
@@ -913,9 +920,11 @@ class _ScriptViewState extends State<_ScriptView> {
                   onNotification: (notification) => _update(notification.metrics),
                   child: SingleChildScrollView(
                     controller: _scroll,
-                    child: ScriptCard(
+                    child: SpokenScriptCard(
                       reader: widget.reader,
                       lines: cardCovered ? page.lines.sublist(0, 1) : page.lines,
+                      // Al cambio d'ora prima parte il tramonto (o l'alba), poi la voce.
+                      leadIn: Duration(milliseconds: page.nightfall != null ? 1900 : 450),
                     ),
                   ),
                 ),

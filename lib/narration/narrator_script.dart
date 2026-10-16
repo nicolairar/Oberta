@@ -7,6 +7,9 @@ import 'italian_pack.dart';
 import 'method_deck.dart';
 import 'narration_pack.dart';
 import 'picker.dart';
+import 'voice_lines.dart';
+
+export 'voice_lines.dart' show VoicePart;
 
 /// Una battuta del copione. Quelle d'atmosfera raccontano; quelle [isFact]
 /// dicono in parole semplici cosa è successo o cosa si fa adesso, e vanno
@@ -15,8 +18,12 @@ class ScriptLine {
   final String text;
   final bool isFact;
 
-  const ScriptLine(this.text) : isFact = false;
-  const ScriptLine.fact(this.text) : isFact = true;
+  /// La stessa battuta a pezzi, per la voce del narratore automatico: messi
+  /// in fila ridanno [text]. Vuota per le battute che nessuno ha inciso.
+  final List<VoicePart> voice;
+
+  const ScriptLine(this.text, {this.voice = const []}) : isFact = false;
+  const ScriptLine.fact(this.text, {this.voice = const []}) : isFact = true;
 }
 
 /// Il copione del narratore: per ogni momento della partita compone le
@@ -118,10 +125,9 @@ class NarratorScript {
     }
 
     if (report.winner == null) {
-      final minutes = discussion.inMinutes == 1
-          ? pack.oneMinute
-          : pack.manyMinutes.replaceAll('{minutes}', '${discussion.inMinutes}');
-      lines.add(_fact(pack.dayInstruction.replaceAll('{minutes}', minutes)));
+      final count = discussion.inMinutes;
+      final minutes = count == 1 ? [VoicePart.spoken(pack.oneMinute)] : _parts(pack.manyMinutes, count: count);
+      lines.add(_fact(pack.dayInstruction, minutes: minutes));
     }
     return lines;
   }
@@ -151,10 +157,12 @@ class NarratorScript {
     }
     return [
       _story(_picker.pick('lynch.scene', pack.lynchScenes), name: condemned.name),
-      _fact(
-        '${pack.cardTurns.replaceAll('{role}', pack.role(role).label.toUpperCase())} '
-        '${isMafia ? pack.wasMafia : pack.wasCitizen}',
-        name: condemned.name,
+      _line(
+        [
+          ..._parts(pack.cardTurns, name: condemned.name, role: pack.role(role).label),
+          VoicePart.spoken(' ${isMafia ? pack.wasMafia : pack.wasCitizen}'),
+        ],
+        fact: true,
       ),
       _story(reaction),
     ];
@@ -175,15 +183,38 @@ class NarratorScript {
 
   String taskHint(NightTask task) => pack.taskHints[task.kind]!;
 
-  ScriptLine _story(String template, {String? name}) => ScriptLine(_fill(template, name));
+  ScriptLine _story(String template, {String? name}) => _line(_parts(template, name: name));
 
-  ScriptLine _fact(String template, {String? name}) => ScriptLine.fact(_fill(template, name));
+  ScriptLine _fact(String template, {String? name, List<VoicePart>? minutes}) =>
+      _line(_parts(template, name: name, minutes: minutes), fact: true);
 
-  String _fill(String template, String? name) {
-    final text = template.replaceAll('{city}', city.name);
-    if (name == null) return text;
-    final filled = text.replaceAll('{name}', name);
-    // "qualcuno" a inizio frase va maiuscolo.
-    return template.startsWith('{name}') && filled.isNotEmpty ? filled[0].toUpperCase() + filled.substring(1) : filled;
+  /// Il testo della battuta è quello che si vede dei suoi pezzi, in fila.
+  ScriptLine _line(List<VoicePart> parts, {bool fact = false}) {
+    final text = parts.map((part) => part.display).join();
+    return fact ? ScriptLine.fact(text, voice: parts) : ScriptLine(text, voice: parts);
+  }
+
+  /// Riempie un testo del pacchetto e lo spezza per la voce: la città è già
+  /// nella frase incisa; il nome resta al tavolo; il ruolo, i minuti e il
+  /// loro numero hanno le loro clip. Quello che manca resta com'è.
+  List<VoicePart> _parts(String template, {String? name, String? role, List<VoicePart>? minutes, int? count}) {
+    final pieces = splitTemplate(template.replaceAll('{city}', city.name));
+    return [
+      for (var i = 0; i < pieces.length; i++)
+        ...switch (pieces[i]) {
+          '{name}' when name != null => [_name(name, first: i == 0)],
+          '{role}' when role != null => [VoicePart.spoken(role.toUpperCase(), say: role)],
+          '{minutes}' when minutes != null => minutes,
+          '{minutes}' when count != null => [VoicePart.spoken('$count')],
+          final piece when dynamicPlaceholders.contains(piece) => [VoicePart.spoken(piece, say: '')],
+          final piece => [VoicePart.spoken(piece)],
+        },
+    ];
+  }
+
+  /// Un giocatore non si pronuncia; "qualcuno" sì, ed è maiuscolo se apre la frase.
+  VoicePart _name(String name, {required bool first}) {
+    final shown = first && name.isNotEmpty ? name[0].toUpperCase() + name.substring(1) : name;
+    return name == pack.someone ? VoicePart.spoken(shown, say: name) : VoicePart.name(shown);
   }
 }

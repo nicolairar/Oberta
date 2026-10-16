@@ -58,3 +58,7 @@ fastlane/README.md
 
 # File da analizzare prima di entrare nel gioco
 incoming/
+
+# Voice generator: local venv and Kokoro model files (see tool/voice/README.md)
+/tool/voice/.venv
+/tool/voice/models/

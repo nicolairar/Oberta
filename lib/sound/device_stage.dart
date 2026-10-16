@@ -196,7 +196,7 @@ class DeviceStage extends SoundStage implements VerdictStage {
   double get _sceneVolume => (effectsVolume * 0.6).clamp(0.0, 1.0);
 
   /// Il sottofondo (pioggia, grilli) sta sotto a tutto.
-  double get _ambienceVolume => (effectsVolume * mix.ambience).clamp(0.0, 1.0);
+  double get _ambienceVolume => (effectsVolume * mix.ambience * (_voiceDuck < 1 ? 0.6 : 1)).clamp(0.0, 1.0);
 
   bool _enabled = true;
   MusicMood? _wanted;
@@ -216,7 +216,7 @@ class DeviceStage extends SoundStage implements VerdictStage {
       }
       _memeTimer?.cancel();
       _memeDuck = 1;
-      for (final player in [_player, _memePlayer, ..._shortPlayers, for (final deck in [..._musicDecks, ..._ambienceDecks, ..._atmosphereDecks]) deck.player]) {
+      for (final player in [_player, _memePlayer, _voicePlayer, ..._shortPlayers, for (final deck in [..._musicDecks, ..._ambienceDecks, ..._atmosphereDecks]) deck.player]) {
         player.stop().then<void>((_) {}, onError: _report);
       }
       _mood = null;
@@ -254,6 +254,7 @@ class DeviceStage extends SoundStage implements VerdictStage {
     // Anche quello che sta già suonando si adegua.
     _ambienceDeck.fadeTo(_ambienceGroup == null ? 0 : _ambienceVolume, const Duration(milliseconds: 250));
     _player.setVolume(_sceneVolume).then<void>((_) {}, onError: _report);
+    _voicePlayer.setVolume(_voiceVolume).then<void>((_) {}, onError: _report);
   }
 
   @override
@@ -375,7 +376,44 @@ class DeviceStage extends SoundStage implements VerdictStage {
     _musicDeck.fadeTo(_musicTarget, const Duration(milliseconds: 600));
   }
 
-  double get _musicTarget => enabled ? (musicVolume * _duck * _memeDuck).clamp(0.0, 1.0) : 0;
+  /// Il lettore del narratore automatico: una clip alla volta.
+  final AudioPlayer _voicePlayer = AudioPlayer();
+  double _voiceDuck = 1;
+
+  double get _voiceVolume => (effectsVolume * mix.voice).clamp(0.0, 1.0);
+
+  @override
+  void voice(String asset) {
+    if (!enabled || effectsVolume <= 0) return;
+    () async {
+      try {
+        await _ready;
+        await _voicePlayer.stop();
+        await _voicePlayer.play(AssetSource(asset), volume: _voiceVolume);
+      } catch (error) {
+        _report(error);
+      }
+    }();
+  }
+
+  @override
+  void stopVoice() {
+    _voicePlayer.stop().then<void>((_) {}, onError: _report);
+  }
+
+  /// La voce scende veloce sotto la musica e la riporta su piano: tra una
+  /// battuta e l'altra il sottofondo torna a respirare da solo.
+  @override
+  void duckForVoice(bool ducked) {
+    final duck = ducked ? 0.35 : 1.0;
+    if (duck == _voiceDuck) return;
+    _voiceDuck = duck;
+    final fade = Duration(milliseconds: ducked ? 400 : 1400);
+    _musicDeck.fadeTo(_musicTarget, fade);
+    if (_ambienceGroup != null) _ambienceDeck.fadeTo(_ambienceVolume, fade);
+  }
+
+  double get _musicTarget => enabled ? (musicVolume * _duck * _memeDuck * _voiceDuck).clamp(0.0, 1.0) : 0;
 
   final AudioPlayer _memePlayer = AudioPlayer();
   DateTime _memeUntil = DateTime(0);

@@ -200,7 +200,7 @@ void main() {
       await tester.pumpAndSettle();
     }
     expect(find.text('NIGHT 1'), findsOneWidget);
-    expect(find.text('READ IT OUT LOUD'), findsOneWidget);
+    expect(find.text('THE NARRATOR SPEAKS'), findsOneWidget);
   });
 
   testWidgets('in inglese la sala prove e le sue scene parlano inglese', (tester) async {

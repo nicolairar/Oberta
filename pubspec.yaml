@@ -68,6 +68,10 @@ flutter:
     - assets/music/
     - assets/meme/
     - assets/particles/
+    # La voce del narratore automatico, incisa da tool/voice/regenerate.sh.
+    - assets/voice/
+    - assets/voice/it/
+    - assets/voice/en/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -148,6 +148,8 @@ final class ItalianStrings extends AppStrings {
   @override
   String readerReadsAloud(String reader) => 'LEGGE ${reader.toUpperCase()}, AD ALTA VOCE';
   @override
+  String get narratorSpeaks => 'PARLA IL NARRATORE';
+  @override
   String get narratorOnly => 'SOLO PER IL NARRATORE';
   @override
   String get holdToSeeRoles => 'Tieni premuto per vedere tutti i ruoli';

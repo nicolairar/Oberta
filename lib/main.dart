@@ -6,6 +6,7 @@ import 'l10n/app_language.dart';
 import 'l10n/app_strings.dart';
 import 'settings/app_settings.dart';
 import 'sound/device_stage.dart';
+import 'sound/narrator_voice.dart';
 import 'sound/sound_stage.dart';
 import 'ui/screens/home_screen.dart';
 import 'ui/theme/app_theme.dart';
@@ -15,6 +16,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SoundStage.instance = DeviceStage();
   installDeviceRoster();
+  NarratorVoice.instance = await NarratorVoice.load();
   AppSettings.instance = await AppSettings.open();
   runApp(const ObertaApp());
   SoundStage.instance.music(MusicMood.menu);
