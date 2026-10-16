@@ -36,6 +36,16 @@ Wolvesville ma più curata (animazioni, morti, avatar):
 - Supabase è il backend (account creato). Con sconosciuti l'autorità deve
   stare sul server: le scelte del motore ("presto" sopra) restano valide.
 
+## Bot per provare (17 ottobre 2026)
+
+La partita online va costruita insieme ai bot: il proprietario ha due
+telefoni, e per provare una partita da 8–16 servono giocatori finti. Nelle
+build di prova la stanza ha "+ BOT"; ogni bot riceve solo la sua `PlayerView`
+e manda `PlayerIntent` validate dal motore come quelle dei giocatori veri (si
+parte da `test/support/random_game.dart`, che già sceglie le mosse dalla vista
+del posto). Prima scelte a caso tra le mosse permesse, poi qualche regola
+furba; votano anche di giorno.
+
 ## Economia e cosmetici (17 ottobre 2026)
 
 - **Cosa si compra:** solo estetica, mai vantaggi di gioco. Facce, capelli,
