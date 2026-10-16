@@ -16,6 +16,26 @@ L'ordine 2 → 3 è voluto: il protocollo della partita (chi manda cosa, chi
 vede cosa) è lo stesso per il locale e per l'online. Fatto bene una volta
 in locale, l'online cambia solo il trasporto.
 
+## Aggiornamento (16 ottobre 2026): niente rete locale, tutto online
+
+Il proprietario ha fatto un passo indietro sulla modalità in rete locale
+(host sul Wi-Fi o sull'hotspot). La direzione nuova, sul modello di
+Wolvesville ma più curata (animazioni, morti, avatar):
+
+- **Gioca con amici:** stanza online con QR o codice. I profili si collegano:
+  richiesta d'amicizia, oppure si entra nella partita e da lì si aggiungono
+  gli amici.
+- **Classificata:** partite con sconosciuti, divise per lingua (server/code
+  italiano e inglese). Serve una **chat** fatta bene, con moderazione, perché
+  i giocatori non si conoscono.
+- **Un telefono per tutti** resta com'è.
+- **UI della partita da rifare:** scelta dei giocatori con gli avatar in
+  evidenza, e **posizioni mescolate per ogni telefono e ogni turno**: se uno
+  è sempre in alto a sinistra, chi guarda il dito del vicino capisce chi
+  sta per essere ucciso.
+- Supabase è il backend (account creato). Con sconosciuti l'autorità deve
+  stare sul server: le scelte del motore ("presto" sopra) restano valide.
+
 ## Le scelte di fondo
 
 ### Il motore resta Dart puro
