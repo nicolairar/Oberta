@@ -19,7 +19,7 @@ class HandoffView extends StatelessWidget {
     return Column(
       children: [
         const Spacer(),
-        AvatarSpotlight(seed: name, size: 140),
+        AvatarSpotlight(seed: name, size: 176),
         const SizedBox(height: 28),
         Text(t.passThePhoneTo, style: AppText.overline),
         const SizedBox(height: 10),

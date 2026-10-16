@@ -2,8 +2,11 @@ import 'dart:math';
 
 import 'game_settings.dart';
 import 'game_setup.dart';
+import 'game_snapshot.dart';
+import 'intent.dart';
 import 'knowledge.dart';
 import 'player.dart';
+import 'player_view.dart';
 import 'role.dart';
 import 'vote.dart';
 
@@ -108,18 +111,44 @@ class RoundRecord {
   const RoundRecord({required this.round, required this.nightVictims, this.lynched});
 }
 
-typedef _Choice = ({NightTaskKind kind, Player? target});
+/// La mossa notturna di qualcuno: cosa faceva e su chi (`null`: ha passato).
+typedef NightChoice = ({NightTaskKind kind, Player? target});
 
 /// Il motore di una partita: riceve intenzioni ("di notte scelgo Marco",
 /// "la piazza condanna Sara") e decide cosa succede. Niente rete, niente UI.
+///
+/// Il motore conosce solo i **posti**: per lui `Player.id` è l'id del posto
+/// in partita. Chi siede dove, con quale nome o profilo, sta fuori dal
+/// motore (vedi `Seating`).
+///
+/// Si guida in due modi, che si possono mescolare:
+/// - **un telefono per tutti:** [taskFor], [submitNightChoice],
+///   [resolveNight], [lynch]. Una mossa non valida lancia un errore;
+/// - **un'autorità in rete** (il telefono host, o il server): [apply] riceve
+///   una [PlayerIntent] da un client, non lancia mai e risponde con un
+///   [IntentResult]; [viewFor] calcola cosa mandare a ciascun posto, e
+///   [publicView] cosa può mostrare lo schermo di tutti.
+///
+/// Con un seme la partita si fotografa ([snapshot]), si riprende
+/// ([GameEngine.fromSnapshot]) e si rigioca ([GameEngine.replay]).
 class GameEngine {
   final GameSetup setup;
   final GameSettings settings;
   final Random _random;
 
+  /// Il seme del sorteggio. `null` se il [Random] è arrivato da fuori: la
+  /// partita gira lo stesso, ma non si può fotografare.
+  final int? seed;
+
+  /// Il `max` di ogni `nextInt` chiesto a [_random], in ordine: con il seme
+  /// basta a riportare il generatore esattamente dov'era.
+  final List<int> _draws = [];
+  final List<GameCommand> _log = [];
+
   final List<Player> _alive;
   final List<Fact> _facts = [];
-  final Map<Player, _Choice> _choices = {};
+  final Map<Player, NightChoice> _choices = {};
+  final Map<Player, Player?> _dayVotes = {};
   final Map<Player, int> _suspicion = {};
   final List<RoundRecord> _history = [];
 
@@ -129,13 +158,22 @@ class GameEngine {
   bool _scoopSpent = false;
   Player? _lastProtected;
   Player? _lastSilenced;
+  DawnReport? _lastDawn;
+  LynchReport? _lastLynch;
 
   /// I Reduci che hanno già incassato il loro colpo: il prossimo va a segno.
   final Set<Player> _scarred = {};
   Team? _winner;
 
-  GameEngine(this.setup, {this.settings = const GameSettings(), Random? random})
-      : _random = random ?? Random(),
+  /// [random] e [seed] si escludono. Senza nessuno dei due il motore tira un
+  /// seme a caso, e la partita resta fotografabile.
+  factory GameEngine(GameSetup setup, {GameSettings settings = const GameSettings(), Random? random, int? seed}) {
+    if (random != null && seed != null) throw ArgumentError('random e seed si escludono');
+    return GameEngine._start(setup, settings, random, random != null ? null : seed ?? Random().nextInt(1 << 32));
+  }
+
+  GameEngine._start(this.setup, this.settings, Random? random, this.seed)
+      : _random = random ?? Random(seed),
         _alive = setup.players {
     final mafiosi = {
       for (final player in _alive)
@@ -150,6 +188,105 @@ class GameEngine {
         visibility: isMafia ? Visibility.team : Visibility.private,
         audience: isMafia ? mafiosi : {player},
       ));
+    }
+  }
+
+  /// Riprende una partita da una sua fotografia: da qui in poi va avanti
+  /// esattamente come sarebbe andata quella da cui è stata scattata.
+  GameEngine.fromSnapshot(GameSnapshot snapshot)
+      : setup = snapshot.setup,
+        settings = snapshot.settings,
+        seed = snapshot.seed,
+        _random = Random(snapshot.seed),
+        _alive = [...snapshot.alive] {
+    snapshot.draws.forEach(_draw);
+    _log.addAll(snapshot.log);
+    _facts.addAll(snapshot.facts);
+    for (final choice in snapshot.nightChoices) {
+      _choices[choice.seat] = (kind: choice.kind, target: choice.target);
+    }
+    for (final vote in snapshot.dayVotes) {
+      _dayVotes[vote.voter] = vote.target;
+    }
+    _suspicion.addAll(snapshot.suspicion);
+    _history.addAll(snapshot.history);
+    _scarred.addAll(snapshot.scarred);
+    _phase = snapshot.phase;
+    _round = snapshot.round;
+    _winner = snapshot.winner;
+    _sniperSpent = snapshot.sniperSpent;
+    _scoopSpent = snapshot.scoopSpent;
+    _lastProtected = snapshot.lastProtected;
+    _lastSilenced = snapshot.lastSilenced;
+    _lastDawn = snapshot.lastDawn;
+    _lastLynch = snapshot.lastLynch;
+  }
+
+  /// Rigioca una partita dal principio: stesso tavolo, stesso seme, stessi
+  /// comandi ([log]). Lancia uno [StateError] se un comando non sta in piedi.
+  factory GameEngine.replay(
+    GameSetup setup, {
+    GameSettings settings = const GameSettings(),
+    required int seed,
+    required List<GameCommand> log,
+  }) {
+    final engine = GameEngine(setup, settings: settings, seed: seed);
+    log.forEach(engine.run);
+    return engine;
+  }
+
+  /// La partita così com'è adesso, pronta per il JSON. Serve un seme.
+  GameSnapshot snapshot() {
+    final seed = this.seed;
+    if (seed == null) {
+      throw StateError('una partita con un Random esterno non si può fotografare: usa seed');
+    }
+    return GameSnapshot(
+      setup: setup,
+      settings: settings,
+      seed: seed,
+      draws: List.unmodifiable(_draws),
+      phase: _phase,
+      round: _round,
+      winner: _winner,
+      alive: List.unmodifiable(_alive),
+      nightChoices: [
+        for (final entry in _choices.entries) (seat: entry.key, kind: entry.value.kind, target: entry.value.target),
+      ],
+      dayVotes: [for (final entry in _dayVotes.entries) (voter: entry.key, target: entry.value)],
+      facts: List.unmodifiable(_facts),
+      suspicion: Map.unmodifiable(_suspicion),
+      history: List.unmodifiable(_history),
+      sniperSpent: _sniperSpent,
+      scoopSpent: _scoopSpent,
+      lastProtected: _lastProtected,
+      lastSilenced: _lastSilenced,
+      scarred: Set.unmodifiable(_scarred),
+      lastDawn: _lastDawn,
+      lastLynch: _lastLynch,
+      log: List.unmodifiable(_log),
+    );
+  }
+
+  /// Tutto quello che è successo, in ordine: le intenzioni accettate e i
+  /// comandi dell'autorità. Con il seme basta a rigiocare la partita.
+  List<GameCommand> get log => List.unmodifiable(_log);
+
+  /// Esegue un comando del registro, come fa [GameEngine.replay].
+  void run(GameCommand command) {
+    switch (command) {
+      case IntentCommand(:final intent):
+        if (apply(intent) case IntentRejected(:final error, :final message)) {
+          throw StateError('intenzione rifiutata (${error.name}): $message');
+        }
+      case ResolveNightCommand():
+        resolveNight();
+      case CloseDayVoteCommand():
+        closeDayVote();
+      case LynchCommand(:final seat):
+        final condemned = seat == null ? null : _seat(seat);
+        if (seat != null && condemned == null) throw StateError('posto sconosciuto: $seat');
+        lynch(condemned);
     }
   }
 
@@ -245,6 +382,13 @@ class GameEngine {
       throw ArgumentError.value(target.name, 'target', 'non può essere scelto da ${actor.name}');
     }
     _choices[actor] = (kind: task.kind, target: target);
+    _log.add(
+      IntentCommand(switch ((task.kind, target)) {
+        (_, null) => Pass(actor.id),
+        (NightTaskKind.kill, final target?) => MafiaVote(actor.id, target.id),
+        (_, final target?) => NightAction(actor.id, target.id),
+      }),
+    );
     if (target == null) return null;
 
     if (task.kind == NightTaskKind.decoy) {
@@ -299,6 +443,7 @@ class GameEngine {
   /// silenzio del Sarto si annuncia solo se chi deve tacere ha visto l'alba.
   DawnReport resolveNight() {
     if (!nightComplete) throw StateError('la notte non è finita: manca qualcuno');
+    _log.add(const ResolveNightCommand());
 
     final protected = _targetOf(NightTaskKind.protect);
     final guard = _actorOf(NightTaskKind.guard);
@@ -351,7 +496,7 @@ class GameEngine {
     _history.add(RoundRecord(round: _round, nightVictims: victims));
     _phase = _updateWinner() ? GamePhase.ended : GamePhase.day;
 
-    return DawnReport(
+    return _lastDawn = DawnReport(
       round: _round,
       attacks: attacks,
       scoop: scoop,
@@ -360,13 +505,37 @@ class GameEngine {
     );
   }
 
+  /// I voti della piazza finora, in ordine di voto. `null` è un'astensione.
+  Map<Player, Player?> get dayVotes => Map.unmodifiable(_dayVotes);
+
+  /// Chi, tra i vivi, non ha ancora votato oggi.
+  List<Player> get pendingDayVoters => [
+        for (final player in _alive)
+          if (!_dayVotes.containsKey(player)) player,
+      ];
+
+  /// Chiude il voto della piazza e condanna il più votato. Con un pareggio,
+  /// o se si astengono tutti, non si condanna nessuno. Chi non ha votato
+  /// conta come astenuto: l'autorità può chiudere allo scadere del tempo.
+  LynchReport closeDayVote() {
+    _require(GamePhase.day);
+    final leaders = tallyVotes(_dayVotes).leaders;
+    _log.add(const CloseDayVoteCommand());
+    return _lynch(leaders.length == 1 ? leaders.single : null);
+  }
+
   /// Applica il verdetto della piazza; `condemned` nullo significa nessuna condanna.
   LynchReport lynch(Player? condemned) {
     _require(GamePhase.day);
     if (condemned != null && !isAlive(condemned)) {
       throw ArgumentError.value(condemned.name, 'condemned', 'non è più in gioco');
     }
+    _log.add(LynchCommand(condemned?.id));
+    return _lynch(condemned);
+  }
 
+  LynchReport _lynch(Player? condemned) {
+    _dayVotes.clear();
     Role? role;
     if (condemned != null) {
       role = setup.roleOf(condemned);
@@ -385,7 +554,7 @@ class GameEngine {
       lynched: condemned,
     ));
 
-    final report = LynchReport(
+    final report = _lastLynch = LynchReport(
       round: _round,
       condemned: condemned,
       role: role,
@@ -427,7 +596,14 @@ class GameEngine {
     if (leaders.isEmpty) return null;
     if (leaders.length == 1) return leaders.single;
     if (settings.mafiaTieBreak == TieBreak.nobody) return null;
-    return leaders[_random.nextInt(leaders.length)];
+    return leaders[_draw(leaders.length)];
+  }
+
+  /// Un numero a caso in `[0, max)`, annotato perché la fotografia possa
+  /// riportare il generatore allo stesso punto.
+  int _draw(int max) {
+    _draws.add(max);
+    return _random.nextInt(max);
   }
 
   /// La mafia vince quando non può più essere messa in minoranza.
@@ -440,6 +616,160 @@ class GameEngine {
             ? Team.mafia
             : null;
     return _winner != null;
+  }
+
+  /// I posti al tavolo, per id. Il narratore umano non ha un posto: non gioca.
+  late final Map<String, Player> _seats = {for (final player in setup.players) player.id: player};
+
+  Player? _seat(String id) => _seats[id];
+
+  /// Valida l'intenzione di un posto e, se sta nelle regole, la applica.
+  /// Non lancia mai: una mossa non valida torna come [IntentRejected], e la
+  /// partita resta com'era.
+  ///
+  /// Di notte un'indagine o uno scavo riuscito tornano in
+  /// [IntentAccepted.finding], da mandare solo a chi ha agito.
+  IntentResult apply(PlayerIntent intent) {
+    if (_phase == GamePhase.ended) return const IntentRejected(IntentError.gameOver, 'la partita è finita');
+    final actor = _seat(intent.seat);
+    if (actor == null) return IntentRejected(IntentError.unknownSeat, 'il posto ${intent.seat} non gioca');
+    if (!isAlive(actor)) return IntentRejected(IntentError.deadSeat, '${actor.id} non è più in gioco');
+    return _phase == GamePhase.night ? _applyNight(actor, intent) : _applyDay(actor, intent);
+  }
+
+  IntentResult _applyNight(Player actor, PlayerIntent intent) {
+    if (intent is DayVote) return const IntentRejected(IntentError.wrongPhase, 'di notte la piazza non vota');
+    if (_choices.containsKey(actor)) {
+      return IntentRejected(IntentError.alreadyActed, '${actor.id} ha già fatto la sua mossa stanotte');
+    }
+    final task = taskFor(actor);
+    final killing = task.kind == NightTaskKind.kill;
+    final targetSeat = switch (intent) {
+      NightAction(:final target) when !killing => target,
+      MafiaVote(:final target) when killing => target,
+      Pass() => null,
+      _ => '',
+    };
+    if (targetSeat == '') {
+      return IntentRejected(
+        IntentError.notYourAction,
+        killing
+            ? 'stanotte ${actor.id} vota l\'agguato: serve un MafiaVote'
+            : 'stanotte ${actor.id} non vota l\'agguato: il suo compito è ${task.kind.name}',
+      );
+    }
+    Player? target;
+    if (targetSeat != null) {
+      target = _seat(targetSeat);
+      if (target == null || !task.targets.contains(target)) {
+        return IntentRejected(IntentError.targetNotAllowed, '${actor.id} non può scegliere $targetSeat');
+      }
+    }
+    return IntentAccepted(submitNightChoice(actor, target));
+  }
+
+  IntentResult _applyDay(Player actor, PlayerIntent intent) {
+    Player? target;
+    switch (intent) {
+      case NightAction() || MafiaVote():
+        return const IntentRejected(IntentError.wrongPhase, 'di giorno non si fanno mosse notturne');
+      case DayVote(target: final seat):
+        target = _seat(seat);
+        if (target == null || !isAlive(target) || target == actor) {
+          return IntentRejected(IntentError.targetNotAllowed, '${actor.id} non può votare $seat');
+        }
+      case Pass():
+        break;
+    }
+    // Il voto si può cambiare: conta l'ultimo, nell'ordine dell'ultimo dato.
+    _dayVotes.remove(actor);
+    _dayVotes[actor] = target;
+    _log.add(IntentCommand(intent));
+    return const IntentAccepted();
+  }
+
+  /// Quello che lo schermo di tutti può mostrare adesso.
+  PublicView publicView() => PublicView(
+        round: _round,
+        phase: _phase,
+        winner: _winner,
+        seats: setup.players,
+        alive: alivePlayers,
+        revealed: [
+          for (final player in setup.players)
+            if (knowledgeOf(null, player) case final known when !known.isEmpty) SeatKnowledge(player, known),
+        ],
+        history: history,
+        lastDawn: _lastDawn,
+        lastLynch: _lastLynch,
+        nightPending: _phase == GamePhase.night ? pendingNightPlayers.length : 0,
+        dayVotes: _phase == GamePhase.day
+            ? [for (final entry in _dayVotes.entries) (voter: entry.key, target: entry.value)]
+            : const [],
+        finalRoles: _phase == GamePhase.ended ? setup.roles : const {},
+      );
+
+  /// Quello che il posto [seat], e solo lui, ha diritto di vedere adesso.
+  /// Tutto passa dai fatti ([knowledgeOf]): un ruolo altrui compare solo se
+  /// un fatto visibile a questo posto lo concede.
+  PlayerView viewFor(String seat) {
+    final viewer = _seat(seat);
+    if (viewer == null) throw ArgumentError.value(seat, 'seat', 'non gioca');
+    final role = setup.roleOf(viewer);
+    final alive = isAlive(viewer);
+    final family = alive && _phase == GamePhase.night && role.team == Team.mafia;
+    return PlayerView(
+      seat: viewer,
+      alive: alive,
+      role: role,
+      team: role.team,
+      teammates: [
+        for (final player in setup.players)
+          if (player != viewer &&
+              _facts.any(
+                (fact) => fact.subject == player && fact.visibility == Visibility.team && fact.visibleTo(viewer),
+              ))
+            player,
+      ],
+      known: [
+        for (final player in setup.players)
+          if (player != viewer)
+            if (knowledgeOf(viewer, player) case final known when !known.isEmpty) SeatKnowledge(player, known),
+      ],
+      action: _optionFor(viewer),
+      nightChoice: _phase == GamePhase.night ? _choices[viewer] : null,
+      familyVotes: [
+        if (family)
+          for (final entry in _choices.entries)
+            if (entry.value.kind == NightTaskKind.kill) (voter: entry.key, target: entry.value.target),
+      ],
+      board: publicView(),
+    );
+  }
+
+  ActionOption? _optionFor(Player viewer) {
+    if (!isAlive(viewer)) return null;
+    switch (_phase) {
+      case GamePhase.night:
+        if (_choices.containsKey(viewer)) return null;
+        final task = taskFor(viewer);
+        return ActionOption(
+          type: task.kind == NightTaskKind.kill ? ActionType.mafiaVote : ActionType.nightAction,
+          kind: task.kind,
+          targets: task.targets,
+        );
+      case GamePhase.day:
+        return ActionOption(
+          type: ActionType.dayVote,
+          targets: [
+            for (final player in _alive)
+              if (player != viewer) player,
+          ],
+          current: _dayVotes[viewer],
+        );
+      case GamePhase.ended:
+        return null;
+    }
   }
 
   void _require(GamePhase expected) {

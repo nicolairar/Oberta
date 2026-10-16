@@ -257,6 +257,10 @@ final class ItalianStrings extends AppStrings {
   String get plusMinute => '+1 MIN';
   @override
   String get callTheVote => 'AL VOTO';
+  @override
+  String get accusedStamp => 'IMPUTATO';
+  @override
+  String aliveCount(int alive, int total) => '$alive in piedi su $total';
 
   @override
   String get willSeeDawn => 'VEDRÀ L\'ALBA';
@@ -311,6 +315,8 @@ final class ItalianStrings extends AppStrings {
   String get screeningIntro => 'Tutte le scene della notte. Toccane una per rivederla.';
   @override
   String get screeningCaption => 'Esterno, notte. Prova generale.';
+  @override
+  String get screeningSpliced => 'Sopra un agguato a caso';
   @override
   String sceneName(DeathAct act) => switch (act) {
     DeathAct.knife => 'Il pugnale',

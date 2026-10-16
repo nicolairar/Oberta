@@ -259,6 +259,10 @@ final class EnglishStrings extends AppStrings {
   String get plusMinute => '+1 MIN';
   @override
   String get callTheVote => 'CALL THE VOTE';
+  @override
+  String get accusedStamp => 'ACCUSED';
+  @override
+  String aliveCount(int alive, int total) => '$alive of $total still standing';
 
   @override
   String get willSeeDawn => 'WILL SEE THE DAWN';
@@ -313,6 +317,8 @@ final class EnglishStrings extends AppStrings {
   String get screeningIntro => 'Every scene of the night. Tap one to watch it again.';
   @override
   String get screeningCaption => 'Exterior, night. Dress rehearsal.';
+  @override
+  String get screeningSpliced => 'Over a random ambush';
   @override
   String sceneName(DeathAct act) => switch (act) {
     DeathAct.knife => 'The dagger',

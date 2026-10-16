@@ -1678,7 +1678,7 @@ extension _FamilyFilms on DeathScenePainter {
       toward: const Offset(-1, 0),
       size: 1.3,
     );
-    if (bang > 0 && bang < 1) {
+    if (bang > 0 && bang < 1 && !_holdsFire) {
       _star(
         canvas,
         bell,
@@ -1697,7 +1697,7 @@ extension _FamilyFilms on DeathScenePainter {
     }
     for (var i = 0; i < 5; i++) {
       final life = _span(t, _hit, _hit + 0.10 + i * 0.01);
-      if (life <= 0 || life >= 1) continue;
+      if (life <= 0 || life >= 1 || _holdsFire) continue;
       final a = -pi / 2 + (i - 2) * 0.55;
       _musicNote(
         canvas,

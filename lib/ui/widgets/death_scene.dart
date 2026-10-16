@@ -18,6 +18,7 @@ import '../press.dart';
 
 part 'death_scenes_saves.dart';
 part 'death_scenes_family.dart';
+part 'death_scenes_spliced.dart';
 
 /// Le coreografie disponibili per quello che succede di notte.
 enum DeathAct {
@@ -135,6 +136,17 @@ DeathAct deathActFor(String methodId) => switch (methodId) {
   _ => DeathAct.knife,
 };
 
+/// Il filmato di una storia della notte: la coreografia dell'agguato e,
+/// se è andato a vuoto, chi l'ha mandato a vuoto. Le storie senza agguato
+/// della famiglia (il Cecchino, i salvataggi di una volta) hanno un filmato
+/// solo.
+({DeathAct act, DeathAct? save}) filmFor(DeathStory story) {
+  final attack = story.attack;
+  final act = deathActFor(story.method.id);
+  if (attack == null) return (act: act, save: null);
+  return (act: deathActFor(attack.id), save: act);
+}
+
 const _knots = [
   (0.0, 0.0),
   (0.23, 0.34),
@@ -186,6 +198,10 @@ class DeathScene extends StatefulWidget {
   static const length = Duration(seconds: 14);
 
   final DeathAct act;
+
+  /// Chi manda a vuoto l'agguato di [act]: il Dottore (in una delle sue
+  /// varianti) o un colpo di fortuna. Senza, l'agguato va come va [act].
+  final DeathAct? save;
   final String victimName;
 
   /// La didascalia sotto la scena, come il cartello di un film muto.
@@ -200,6 +216,7 @@ class DeathScene extends StatefulWidget {
   const DeathScene({
     super.key,
     required this.act,
+    this.save,
     required this.victimName,
     required this.caption,
     required this.onFinished,
@@ -216,6 +233,7 @@ class _DeathSceneState extends State<DeathScene>
   late final AnimationController _film;
   late final List<SceneCue> _cues = sceneCuesFor(
     widget.act,
+    save: widget.save,
     memes: SoundStage.instance.memeMode,
   );
   int _nextCue = 0;
@@ -318,7 +336,7 @@ class _DeathSceneState extends State<DeathScene>
   @override
   Widget build(BuildContext context) {
     final hat = avatarHeadFor(widget.victimName);
-    final survives = widget.act.survives;
+    final survives = (widget.save ?? widget.act).survives;
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -335,6 +353,7 @@ class _DeathSceneState extends State<DeathScene>
               painter: DeathScenePainter(
                 t: filmTime(_film.value),
                 act: widget.act,
+                save: widget.save,
                 victimHat: hat,
                 epilogue: widget.epilogue,
                 sprites: snapshot.data,
@@ -492,13 +511,41 @@ class DeathScenePainter extends CustomPainter {
   final String epilogue;
   final ParticleSprites? sprites;
 
+  /// Chi manda a vuoto l'agguato di [act]: una variante del Dottore o del
+  /// colpo andato a vuoto. Senza, [act] si vede com'è.
+  final DeathAct? save;
+
+  /// Quale parte del filmato composto disegna questo pittore.
+  final _Cut _cut;
+
+  /// Quello che l'agguato fa sapere a chi lo manda a vuoto.
+  final _Handover? _handover;
+
+  /// Nelle varianti del colpo a vuoto girate con l'arma di un altro
+  /// agguato: chi le porta.
+  final DeathAct? _armedWith;
+
   DeathScenePainter({
     required this.t,
     required this.act,
+    this.save,
     this.victimHat = AvatarHead.fedora,
     this.epilogue = '',
     this.sprites,
-  });
+  }) : _cut = _Cut.whole,
+       _handover = null,
+       _armedWith = null;
+
+  DeathScenePainter._part(
+    this._cut, {
+    required this.t,
+    required this.act,
+    this.save,
+    this._handover,
+    this._armedWith,
+    this.victimHat = AvatarHead.fedora,
+    this.sprites,
+  }) : epilogue = '';
 
   /// Il momento del colpo, uguale per tutte le coreografie.
   static const strike = 0.56;
@@ -595,7 +642,7 @@ class DeathScenePainter extends CustomPainter {
   /// Quanta luce fa il lampione: nel buio improvviso salta, e la raffica
   /// dall'auto in corsa se lo porta via.
   double get _lampPower {
-    if (act == DeathAct.driveBy) return t < 0.63 ? 1 : 0;
+    if (act == DeathAct.driveBy) return t < 0.63 || _holdsFire ? 1 : 0;
     if (act != DeathAct.blackout) return 1;
     const dying = [1.0, 0.35, 1.0, 0.25, 0.7, 0.0];
     const waking = [0.0, 0.5, 0.2, 1.0];
@@ -608,6 +655,21 @@ class DeathScenePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    _frame(size);
+    if (save != null) return _paintSpliced(canvas, size);
+    canvas.save();
+    _camera(canvas);
+    _quake(canvas);
+    _street(canvas);
+    _stage(canvas);
+    if (!act.survives) _aftermath(canvas);
+    _sfx(canvas);
+    canvas.restore();
+    _closing(canvas, size, survives: act.survives);
+  }
+
+  /// Le misure della scena, prese sullo schermo.
+  void _frame(Size size) {
     _w = size.width;
     _h = size.height;
     _ground = _h * 0.76;
@@ -616,15 +678,19 @@ class DeathScenePainter extends CustomPainter {
     _u = min(_h * 0.30, _w * 0.50);
     _victimX = _w * _standAt;
     _cornerX = _w * 0.84;
+  }
 
-    canvas.save();
-    _camera(canvas);
+  /// Il colpo che scuote la cinepresa, nelle scene che fanno tremare tutto.
+  void _quake(Canvas canvas) {
     final quake = _span(t, strike, strike + 0.10);
     if (_shakes && quake > 0 && quake < 1) {
       final force = (1 - quake) * _u * 0.06;
       canvas.translate(sin(t * 900) * force, cos(t * 760) * force);
     }
-    _street(canvas);
+  }
+
+  /// La coreografia vera e propria.
+  void _stage(Canvas canvas) {
     switch (act) {
       case DeathAct.knife:
         _knife(canvas);
@@ -705,16 +771,16 @@ class DeathScenePainter extends CustomPainter {
       case DeathAct.blackCat:
         _blackCat(canvas);
     }
-    if (!act.survives) _aftermath(canvas);
-    _sfx(canvas);
-    canvas.restore();
+  }
 
-    // Il finale: chi muore chiude sul rosso (o sul sipario, se il copione lo
-    // chiama), chi si salva su un nero che lascia leggere il nome.
+  /// Il finale: chi muore chiude sul rosso (o sul sipario, se il copione lo
+  /// chiama), chi si salva su un nero che lascia leggere il nome. Poi le
+  /// bande nere del cinema.
+  void _closing(Canvas canvas, Size size, {required bool survives}) {
     final rect = Offset.zero & size;
     final close = _span(t, 0.82, 0.92);
     if (close > 0) {
-      if (act.survives) {
+      if (survives) {
         canvas.drawRect(
           rect,
           Paint()..color = Colors.black.withValues(alpha: close * 0.80),
@@ -742,8 +808,20 @@ class DeathScenePainter extends CustomPainter {
 
   /// La cinepresa: parte larga, stringe piano mentre cresce la tensione, e
   /// dopo il colpo si sistema su quello che resta.
-  void _camera(Canvas canvas) {
-    if (act == DeathAct.car || act == DeathAct.driveBy) return;
+  void _camera(Canvas canvas) => _shoot(canvas, _lens);
+
+  /// Punta la cinepresa: [lens] è quanto stringe, e su che punto.
+  void _shoot(Canvas canvas, (double, double) lens) {
+    final (zoom, focus) = lens;
+    final horizon = _ground - _u * 0.45;
+    canvas.translate(_w / 2, horizon);
+    canvas.scale(zoom);
+    canvas.translate(-focus, -horizon);
+  }
+
+  /// Quanto stringe la cinepresa, e su che punto della strada.
+  (double, double) get _lens {
+    if (act == DeathAct.car || act == DeathAct.driveBy) return (1, _w / 2);
     final push = _smooth(_span(t, 0.30, 0.54));
     // Quando arriva il Dottore la cinepresa si allarga prima, e di più: deve
     // starci anche lui.
@@ -769,10 +847,7 @@ class DeathScenePainter extends CustomPainter {
       _victimX - (_fallsLeft ? _u * (rescue ? _rescueShift : early ? 0.9 : 0.34) : 0) + _u * _settleNudge,
       settle,
     );
-    final horizon = _ground - _u * 0.45;
-    canvas.translate(_w / 2, horizon);
-    canvas.scale(zoom);
-    canvas.translate(-focus, -horizon);
+    return (zoom, focus);
   }
 
   // ---------------------------------------------------------------- scenografia
@@ -872,7 +947,7 @@ class DeathScenePainter extends CustomPainter {
   /// Il muro dietro cui aspetta il killer. Va disegnato dopo di lui: è così
   /// che lo si vede spuntare dall'angolo.
   void _wall(Canvas canvas) {
-    if (!_hasWall) return;
+    if (!_hasWall || _cut == _Cut.rescue) return;
     final wall = Rect.fromLTRB(_cornerX, -_h, _w * 2, _ground);
     canvas.drawRect(wall, Paint()..color = const Color(0xFF0A0A0D));
     final mortar = Paint()
@@ -1023,6 +1098,7 @@ class DeathScenePainter extends CustomPainter {
     bool smoking = false,
     Color? cloth,
   }) {
+    if (killer && _spared) _handover!.killer = feet;
     final h = killer ? _u * 1.08 : _u;
     canvas.save();
     canvas.translate(feet.dx, feet.dy);
@@ -1799,6 +1875,12 @@ class DeathScenePainter extends CustomPainter {
     _Prop prop = _Prop.none,
     bool smoking = false,
   }) {
+    if (_yields(x, facing) || _victimOffstage) return;
+    if (_doctorLayer) {
+      // Il Dottore lavora su chi l'agguato ha messo a terra, quando c'è.
+      if (_handover!.downAt != null) _corpse(canvas, _victimX, -1);
+      return;
+    }
     if (fall >= 1) return _corpse(canvas, x, fallTo);
     if (fall <= 0) {
       // Il tempo di accendersela: la mano sale al viso, il fiammifero fa luce.
@@ -1845,6 +1927,11 @@ class DeathScenePainter extends CustomPainter {
 
   /// Il corpo a terra, con i piedi in [feetX] e la testa verso [toward].
   void _corpse(Canvas canvas, double feetX, int toward) {
+    if (_spared && _handover!.splice == Splice.doctor) {
+      // Steso a terra: da qui lo disegna il Dottore.
+      _handover.downAt = feetX;
+      return;
+    }
     canvas.save();
     canvas.translate(feetX, _ground);
     canvas.scale(toward.toDouble(), 1);
@@ -1939,6 +2026,7 @@ class DeathScenePainter extends CustomPainter {
 
   /// Un cappello caduto, che rotola o resta lì.
   void _looseHat(Canvas canvas, Offset center, double spin) {
+    if (_missed) return;
     final ink = Paint()..color = _ink;
     canvas.save();
     canvas.translate(center.dx, center.dy);
@@ -1999,7 +2087,7 @@ class DeathScenePainter extends CustomPainter {
     Offset bias = const Offset(-0.5, -0.9),
     double reach = 1,
   }) {
-    if (life <= 0 || life >= 1) return;
+    if (life <= 0 || life >= 1 || _missed) return;
     final rng = Random(seed);
     final paint = Paint();
     for (var i = 0; i < count; i++) {
@@ -2020,7 +2108,7 @@ class DeathScenePainter extends CustomPainter {
   }
 
   void _pool(Canvas canvas, Offset center, double grown) {
-    if (grown <= 0) return;
+    if (grown <= 0 || _spared) return;
     canvas.drawOval(
       Rect.fromCenter(
         center: center,
@@ -2038,7 +2126,7 @@ class DeathScenePainter extends CustomPainter {
     double size = 1,
     Color color = const Color(0xFF8E8A86),
   }) {
-    if (life <= 0 || life >= 1) return;
+    if (life <= 0 || life >= 1 || _holdsFire) return;
     final textures = sprites;
     if (textures != null) {
       ParticleSprites.draw(
@@ -2069,7 +2157,8 @@ class DeathScenePainter extends CustomPainter {
   }
 
   void _flash(Canvas canvas, double life, {double strength = 0.8}) {
-    if (life <= 0 || life >= 1) return;
+    // Il lampo del colpo è uno solo: quello dell'agguato.
+    if (life <= 0 || life >= 1 || _holdsFire || (_cut == _Cut.rescue && act.luckyEscape)) return;
     canvas.drawRect(
       Rect.fromLTWH(-_w, -_h, _w * 3, _h * 3),
       Paint()
@@ -2080,6 +2169,7 @@ class DeathScenePainter extends CustomPainter {
   }
 
   void _star(Canvas canvas, Offset center, double radius, Color color) {
+    if (_holdsFire) return;
     final textures = sprites;
     if (textures != null) {
       ParticleSprites.draw(
@@ -2113,7 +2203,7 @@ class DeathScenePainter extends CustomPainter {
     Offset toward = const Offset(-1, 0),
     double size = 1,
   }) {
-    if (bang <= 0 || bang >= 1) return;
+    if (bang <= 0 || bang >= 1 || _holdsFire) return;
     final dir = toward / max(toward.distance, 0.001);
     final length = _u * 0.46 * size * (1 - 0.3 * bang);
     final fade = 1 - bang;
@@ -2322,6 +2412,7 @@ class DeathScenePainter extends CustomPainter {
 
   /// Il killer che, a cose fatte, si affaccia dall'angolo e si tocca il cappello.
   void _killerSalute(Canvas canvas) {
+    if (_spared) return;
     final out = _smooth(_span(t, 0.69, 0.75)) - _smooth(_span(t, 0.82, 0.86));
     if (out <= 0) return;
     _person(
@@ -2582,7 +2673,7 @@ class DeathScenePainter extends CustomPainter {
 
   /// La scia di un colpo, da [from] a [to], che si spegne con [life].
   void _tracer(Canvas canvas, Offset from, Offset to, double life) {
-    if (life <= 0 || life >= 1) return;
+    if (life <= 0 || life >= 1 || _holdsFire) return;
     final delta = to - from;
     final texture = sprites?.tracer;
     if (texture == null) {
@@ -3868,7 +3959,8 @@ class DeathScenePainter extends CustomPainter {
     double spread = 1,
     Color color = const Color(0xFF8F8A84),
   }) {
-    if (life <= 0 || life >= 1) return;
+    // Chi la scampa per fortuna non cade: niente polvere dove sarebbe caduto.
+    if (life <= 0 || life >= 1 || _missed) return;
     final rng = Random(seed);
     final ease = Curves.easeOutCubic.transform(life);
     final fade = (1 - life) * (1 - life * 0.5);
@@ -5108,7 +5200,7 @@ class DeathScenePainter extends CustomPainter {
   /// Il cappello che salta via quando la vittima va giù.
   void _hatOff(Canvas canvas, double from, double to, {double height = 0.9}) {
     final flight = _span(t, from, to);
-    if (flight <= 0) return;
+    if (flight <= 0 || _doctorLayer) return;
     _looseHat(
       canvas,
       Offset(
@@ -5316,7 +5408,7 @@ class DeathScenePainter extends CustomPainter {
       Offset(_victimX - drift - _u * 0.50, _ground + _u * 0.04),
       _smooth(_span(t, strike + 0.16, strike + 0.32)),
     );
-    if (blown <= 0 || blown >= 1) {
+    if (blown <= 0 || blown >= 1 || _missed) {
       _victim(
         canvas,
         x: walkX - drift,
@@ -5370,7 +5462,7 @@ class DeathScenePainter extends CustomPainter {
     final muzzle = _muzzleOf(aimHand, aimAlong, _Prop.lupara);
     final blaze = _span(t, strike, strike + 0.032);
     _muzzleFlash(canvas, smoking, blaze, toward: along, size: 1.25);
-    if (bang > 0 && bang < 1) {
+    if (bang > 0 && bang < 1 && !_holdsFire) {
       _star(
         canvas,
         smoking,
@@ -6907,13 +6999,18 @@ class DeathScenePainter extends CustomPainter {
       DeathAct.banana => ('SLIP!', 0.525, 0.07),
       DeathAct.blackCat => ('MRAOW!', 0.545, 0.08),
     };
-    _word(
-      canvas,
-      word,
-      from,
-      length,
-      act == DeathAct.kiss ? const Color(0xFFFF7AA8) : const Color(0xFFFFE27A),
-    );
+    // In un filmato composto la scritta del colpo è una sola: quella
+    // dell'agguato se va a segno, quella della fortuna se va a vuoto.
+    final silent = (_missed) || _doctorLayer;
+    if (!silent) {
+      _word(
+        canvas,
+        word,
+        from,
+        length,
+        act == DeathAct.kiss ? const Color(0xFFFF7AA8) : const Color(0xFFFFE27A),
+      );
+    }
     // Il cuore che riparte.
     if (act == DeathAct.rescue) {
       _word(canvas, 'TU-TUM!', 0.765, 0.09, const Color(0xFF8BE0A4));
@@ -7051,6 +7148,8 @@ class DeathScenePainter extends CustomPainter {
   /// Chi spara da dietro l'angolo con la pistola, e poi sparisce a [leaveAt].
   /// Restituisce dove si trova, per chi deve disegnargli qualcosa addosso.
   double _gunman(Canvas canvas, {required double leaveAt, double puzzled = 0}) {
+    // Sopra un agguato, il killer è quello dell'agguato.
+    if (_cut == _Cut.rescue) return _handover!.killer?.dx ?? _cornerX;
     final peek = _smooth(_span(t, 0.38, 0.46));
     final out = _smooth(_span(t, 0.46, 0.53));
     final leave = _smooth(_span(t, leaveAt, leaveAt + 0.08));
@@ -7399,14 +7498,16 @@ class DeathScenePainter extends CustomPainter {
           ..strokeCap = StrokeCap.round,
       );
     }
-    _spray(
-      canvas,
-      Offset(_victimX, _ground - _u * 0.74),
-      _span(t, strike, strike + 0.16),
-      seed: 95,
-      count: 9,
-    );
-    _flash(canvas, bang, strength: 0.4);
+    if (_cut != _Cut.rescue) {
+      _spray(
+        canvas,
+        Offset(_victimX, _ground - _u * 0.74),
+        _span(t, strike, strike + 0.16),
+        seed: 95,
+        count: 9,
+      );
+      _flash(canvas, bang, strength: 0.4);
+    }
 
     // La cura: una croce che pulsa sopra il petto, e le scintille intorno.
     final cure = _span(t, 0.745, 0.80);
@@ -7460,7 +7561,7 @@ class DeathScenePainter extends CustomPainter {
     }
 
     // Sente il cane armarsi e si gira: il colpo lo prende in pieno petto.
-    final facing = t < 0.37 ? 1 : (t < 0.512 ? -1 : 1);
+    final facing = _luckyFacing(t < 0.37 ? 1 : (t < 0.512 ? -1 : 1));
     final stagger = sin(pi * _span(t, strike, strike + 0.09));
     final back =
         _u * 0.12 * Curves.easeOut.transform(_span(t, strike, strike + 0.05));
@@ -7625,6 +7726,7 @@ class DeathScenePainter extends CustomPainter {
   bool shouldRepaint(DeathScenePainter old) =>
       old.t != t ||
       old.act != act ||
+      old.save != save ||
       old.victimHat != victimHat ||
       old.epilogue != epilogue;
 }

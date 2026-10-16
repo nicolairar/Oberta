@@ -571,7 +571,7 @@ void main() {
       ]);
       final lines = script.dawn(report, discussion: threeMinutes);
       final facts = factsOf(lines);
-      expect(facts[0], 'Last night someone got shot, but the Doc made it in time. Who it was stays a secret.');
+      expect(facts[0], 'Last night someone nearly died, but the Doc made it in time. Who it was stays a secret.');
       expect(textOf(lines), isNot(contains('Sara')), reason: 'chi si salva resta anonimo');
       expect(facts[1], 'Last night one person died: Luca. Their role stays secret.');
       expect(
@@ -594,7 +594,7 @@ void main() {
           );
           expect(
             factsOf(lines).first,
-            'Last night someone got shot at, but the bullet missed. Who it was stays a secret.',
+            'Last night someone nearly died, but the blow missed. Who it was stays a secret.',
           );
           final text = textOf(lines).toLowerCase();
           for (final name in englishRoleNames.values) {

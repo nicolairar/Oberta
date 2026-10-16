@@ -162,6 +162,8 @@ abstract class AppStrings {
   String get floorIsOpen;
   String get plusMinute;
   String get callTheVote;
+  String get accusedStamp;
+  String aliveCount(int alive, int total);
 
   // La scena del delitto.
   String get willSeeDawn;
@@ -187,6 +189,9 @@ abstract class AppStrings {
   String get screeningIntro;
   String get screeningCaption;
   String sceneName(DeathAct act);
+
+  /// Il pulsante che rivede un salvataggio sopra un agguato a caso.
+  String get screeningSpliced;
   String get screeningEffects;
   String get screeningVerdicts;
   String get someoneSaved;
@@ -364,6 +369,8 @@ abstract class AppStrings {
     'floorIsOpen': floorIsOpen,
     'plusMinute': plusMinute,
     'callTheVote': callTheVote,
+    'accusedStamp': accusedStamp,
+    'aliveCount': aliveCount(6, 8),
     'willSeeDawn': willSeeDawn,
     'wontSeeDawn': wontSeeDawn,
     'next': next,
@@ -379,6 +386,7 @@ abstract class AppStrings {
     'screeningIntro': screeningIntro,
     'screeningCaption': screeningCaption,
     for (final act in DeathAct.values) 'sceneName.${act.name}': sceneName(act),
+    'screeningSpliced': screeningSpliced,
     'screeningEffects': screeningEffects,
     'screeningVerdicts': screeningVerdicts,
     'someoneSaved': someoneSaved,

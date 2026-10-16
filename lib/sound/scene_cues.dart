@@ -28,6 +28,11 @@ class SceneCue {
       : fx = null,
         sample = null,
         gain = 1;
+
+  const SceneCue._(this.t, this.fx, this.sample, this.meme, this.gain);
+
+  /// Lo stesso suono, spostato a [t].
+  SceneCue at(double t) => SceneCue._(t, fx, sample, meme, gain);
 }
 
 const _s = DeathScenePainter.strike;
@@ -50,8 +55,84 @@ List<SceneCue> _doctorRuns() => [
     ];
 
 /// Tutti i suoni di una scena, in ordine di tempo. [memes] mette, dove ha
-/// senso, un meme al posto della reazione.
-List<SceneCue> sceneCuesFor(DeathAct act, {bool memes = false}) {
+/// senso, un meme al posto della reazione. Con [save] la scena è un agguato
+/// che va a vuoto: i suoni dell'agguato finché va come deve, poi quelli di
+/// chi lo manda a vuoto.
+List<SceneCue> sceneCuesFor(DeathAct act, {DeathAct? save, bool memes = false}) {
+  if (save == null) return _cuesOf(act, memes: memes);
+  final splice = spliceOf(act, save);
+  final attack = _cuesOf(act, memes: memes);
+  final rescue = _cuesOf(save, memes: memes);
+  bool entrance(SceneCue cue) => cue.t < 0.34 && (cue.sample?.startsWith('step_') ?? false);
+  final cues = switch (splice) {
+    // L'agguato fino a quando la vittima è a terra (al passo del filmato
+    // composto), più il killer che scappa; poi il Dottore, senza lo sparo
+    // con cui nei suoi filmati comincia tutto.
+    Splice.doctor => [
+        for (final cue in attack)
+          if (cue.t <= _downOf(act) || cue.fx == FxGroup.running) cue.at(spliceTime(act, save, cue.t)),
+        for (final cue in rescue)
+          if (!entrance(cue) && !_ambush(cue))
+            // Sopra un agguato l'ambulanza arriva più tardi, e inchioda lì.
+            save == DeathAct.ambulance && cue.fx == FxGroup.screech ? cue.at(0.65) : cue,
+      ],
+    // L'agguato fino al colpo; poi il colpo che si ferma nel taschino.
+    Splice.stopped => [
+        for (final cue in attack)
+          if (cue.t <= _s + 0.005 || cue.fx == FxGroup.running || cue.fx == FxGroup.trombone) cue,
+        for (final cue in rescue)
+          if (cue.t > _s + 0.001) cue,
+      ],
+    // L'agguato fino a quando l'arma dovrebbe sparare; poi i clic, il
+    // dubbio, la risata. Il killer se ne va coi passi suoi.
+    Splice.jammed => [
+        for (final cue in attack)
+          if (cue.t < _s - 0.02 || cue.fx == FxGroup.running || cue.fx == FxGroup.trombone) cue,
+        for (final cue in rescue)
+          if (cue.t >= _s && cue.fx != FxGroup.running && cue.sample != 'metal_medium') cue,
+      ],
+    // Il colpo a vuoto com'è, con l'arma dell'agguato al posto della pistola.
+    Splice.armed => [for (final cue in rescue) ..._armed(cue, act)],
+    Splice.alone || null => rescue,
+  };
+  return cues..sort((a, b) => a.t.compareTo(b.t));
+}
+
+/// Quando la vittima di [act] è a terra, nel tempo del suo filmato: i suoni
+/// dell'agguato fin lì (il tonfo compreso) restano.
+double _downOf(DeathAct act) => spliceClock(act, DeathAct.rescue, 0.645) + 0.02;
+
+/// I suoni con cui cominciano i filmati del Dottore: il cane armato, lo
+/// sparo dal vicolo, il corpo che cade. Sopra un agguato non servono.
+bool _ambush(SceneCue cue) =>
+    cue.t < 0.645 &&
+    (cue.fx == FxGroup.cock || cue.fx == FxGroup.revolver || cue.fx == FxGroup.faint || cue.meme != null);
+
+/// Un suono del colpo a vuoto, rifatto per l'arma con cui arriva il killer.
+List<SceneCue> _armed(SceneCue cue, DeathAct weapon) {
+  final shot = cue.fx == FxGroup.revolver;
+  final cocked = cue.fx == FxGroup.cock;
+  return switch (weapon) {
+    DeathAct.lupara when shot => [SceneCue.fx(cue.t, FxGroup.shotgun, cue.gain)],
+    DeathAct.burst when shot => [SceneCue.fx(cue.t, FxGroup.tommy, cue.gain)],
+    DeathAct.burst when cocked => [SceneCue.fx(cue.t, FxGroup.bolt, cue.gain)],
+    // Il pugnale e la mazza non sparano: fischiano in aria, e cadono.
+    DeathAct.knife when shot => [
+        SceneCue.fx(cue.t, FxGroup.whoosh, 0.6),
+        SceneCue.fx(0.605, FxGroup.stab, 0.6),
+      ],
+    DeathAct.bat when shot => [
+        SceneCue.fx(cue.t, FxGroup.swish, 0.6),
+        const SceneCue.sample(0.605, 'wood_heavy', 0.6),
+        const SceneCue.sample(0.625, 'wood_heavy', 0.35),
+      ],
+    DeathAct.knife || DeathAct.bat when cocked => [],
+    _ => [cue],
+  };
+}
+
+/// Tutti i suoni del filmato di [act], da solo.
+List<SceneCue> _cuesOf(DeathAct act, {required bool memes}) {
   SceneCue reaction(double t, FxGroup fx, [double gain = 0.8]) {
     if (memes) {
       final meme = reactionMeme(act);

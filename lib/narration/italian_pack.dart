@@ -228,10 +228,10 @@ const italianPack = NarrationPack(
   },
   rescues: {
     DeathStory.rescueId: [
-      'Uno sparo dal vicolo, {name} a terra. Poi dei passi di corsa: il Dottore.',
+      'L\'agguato va a segno, {name} è a terra. Poi dei passi di corsa: il Dottore.',
       'Volevano chiudere il conto di {name}. Il Dottore è arrivato prima del prete.',
       '{name} era già a terra. Ma il Dottore, stanotte, passava proprio di lì.',
-      'Un colpo, e {name} va giù. Una borsa di cuoio si apre: non è finita.',
+      '{name} va giù. Poi una borsa di cuoio si apre: non è finita.',
     ],
     DeathStory.defibrillatorId: [
       '{name} a terra, il cuore fermo. Il Dottore sfrega le piastre: libera!',
@@ -255,39 +255,39 @@ const italianPack = NarrationPack(
     ],
   },
   someone: 'qualcuno',
-  savedFact: 'Stanotte hanno sparato a qualcuno, ma il Dottore ha fatto in tempo. Chi fosse, resta un segreto.',
+  savedFact: 'Stanotte hanno provato a uccidere qualcuno, ma il Dottore ha fatto in tempo. Chi fosse, resta un segreto.',
   // Il colpo andato a vuoto: in scena si vede proprio quello che dice la
   // battuta (la fiaschetta, la Bibbia, la buccia di banana...). Il fatto non
   // nomina nessun ruolo: al tavolo resta il dubbio su chi sia.
   shrugs: {
     DeathStory.luckyId: [
-      'Uno sparo. {name} barcolla, poi si tocca il taschino: una fiaschetta, ammaccata.',
-      'Il colpo parte, e fa «ding». {name} tira fuori una fiaschetta col buco.',
-      'Uno sparo dal vicolo. {name} resta in piedi: il proiettile è nella fiaschetta.',
+      '{name} barcolla, poi si tocca il taschino: una fiaschetta, ammaccata.',
+      'Il colpo arriva, e fa «ding». {name} tira fuori una fiaschetta ammaccata.',
+      '{name} resta in piedi: il colpo si è fermato sulla fiaschetta.',
       '{name} sente un colpo al petto. Sotto la giacca, una fiaschetta piegata in due.',
     ],
     DeathStory.bibleId: [
-      'Uno sparo. {name} tira fuori dal taschino una Bibbia: il proiettile è lì dentro.',
+      '{name} tira fuori dal taschino una Bibbia: il colpo si è fermato lì dentro.',
       'Il colpo si ferma su una Bibbia tascabile. {name} guarda in alto e ringrazia.',
       '{name} sente un colpo al petto. Nel taschino, una Bibbia col buco a metà.',
     ],
     DeathStory.jamId: [
-      'La pistola punta {name}. «Clic». Ancora «clic». Il killer se la dà a gambe.',
-      'Il grilletto scatta a vuoto: la pistola s\'è inceppata. {name} si volta, il killer scappa.',
+      'L\'arma punta {name}. «Clic». Ancora «clic». Il killer se la dà a gambe.',
+      'Il grilletto scatta a vuoto: l\'arma s\'è inceppata. {name} si volta, il killer scappa.',
       '«Clic, clic». {name} si rimbocca le maniche, e il vicolo si svuota.',
     ],
     DeathStory.bananaId: [
-      'Il killer pesta una buccia di banana. Il colpo va in cielo, {name} la scampa.',
-      'Una buccia di banana, un volo all\'indietro. Il colpo finisce tra le stelle: {name} ride.',
-      'Il killer corre verso {name}, poi una buccia di banana. Lo sparo buca la notte.',
+      'Il killer pesta una buccia di banana e vola all\'indietro. {name} la scampa.',
+      'Una buccia di banana, un volo all\'indietro. Il killer finisce a terra: {name} ride.',
+      'Il killer corre verso {name}, poi una buccia di banana. Il resto è un capitombolo.',
     ],
     DeathStory.blackCatId: [
       'Un gatto nero salta sul braccio del killer. Il colpo va storto, {name} resta in piedi.',
-      'Il killer prende la mira su {name}. Un gatto nero gli fa volare via la pistola.',
+      'Il killer prende la mira su {name}. Un gatto nero gli fa volare via l\'arma.',
       'Porta sfortuna, dicono. Ma stanotte un gatto nero ha salvato {name}.',
     ],
   },
-  shruggedFact: 'Stanotte hanno sparato a qualcuno, ma il colpo è andato a vuoto. Chi fosse, resta un segreto.',
+  shruggedFact: 'Stanotte hanno provato a uccidere qualcuno, ma il colpo è andato a vuoto. Chi fosse, resta un segreto.',
   methods: [
     StoryPiece('auto', 'Due fari nel buio. Un\'auto nera non frena. {name} si volta: troppo tardi.'),
     StoryPiece('pianoforte', 'Una corda si spezza. Un pianoforte precipita. {name} alza gli occhi.'),
