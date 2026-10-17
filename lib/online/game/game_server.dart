@@ -154,6 +154,13 @@ class ServerGame {
   /// Quando ogni bot agisce, nella fase in corso.
   final Map<String, DateTime> botDue;
 
+  /// Al voto e di notte, dopo un voto o un'azione la fase resta aperta
+  /// almeno fino a qui: così l'ultimo voto si vede prima della chiusura.
+  DateTime? settleUntil;
+
+  /// Quanto resta visibile l'ultimo voto prima che la fase chiuda.
+  static const settle = Duration(milliseconds: 2500);
+
   /// I posti umani offline adesso, e quelli che hanno lasciato la città.
   final Set<String> offline;
   final List<String> departed;
@@ -175,6 +182,7 @@ class ServerGame {
     Map<String, DateTime>? botDue,
     Set<String>? offline,
     List<String>? departed,
+    this.settleUntil,
   })  : _random = random,
         offline = offline ?? {},
         departed = departed ?? [],
@@ -236,6 +244,9 @@ class ServerGame {
       },
       offline: {for (final seat in (json['offline'] as List<Object?>? ?? const [])) seat as String},
       departed: [for (final seat in (json['departed'] as List<Object?>? ?? const [])) seat as String],
+      settleUntil: json['settleUntil'] == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch((json['settleUntil'] as num).toInt()),
     );
   }
 
@@ -255,6 +266,7 @@ class ServerGame {
         'botDue': {for (final MapEntry(:key, :value) in botDue.entries) key: value.millisecondsSinceEpoch},
         'offline': [...offline]..sort(),
         'departed': departed,
+        if (settleUntil != null) 'settleUntil': settleUntil!.millisecondsSinceEpoch,
       };
 
   static int _seatNumber(String seat) => int.tryParse(seat.substring(1)) ?? 0;
@@ -289,7 +301,9 @@ class ServerGame {
         if (envelope.intent['stage'] == window.key) acks.add(envelope.seat);
         continue;
       }
-      receipts[envelope.seat] = {'id': envelope.id, 'result': _apply(envelope).toJson()};
+      final result = _apply(envelope);
+      if (result.accepted) _settle(now);
+      receipts[envelope.seat] = {'id': envelope.id, 'result': result.toJson()};
     }
     final gone = _presence(now, seen, pacing);
     if (gone.changed) changed = true;
@@ -297,15 +311,20 @@ class ServerGame {
         ? null
         : {for (final occupant in seating.occupants) if (!offline.contains(occupant.seat)) occupant.seat};
     while (!finished) {
+      // L'attesa passata non trattiene più niente (e non è un appuntamento).
+      if (settleUntil case final hold? when !now.isBefore(hold)) settleUntil = null;
       _scheduleBots(pacing);
       final bot = _dueBot(now);
       if (bot != null) {
         _botActs(bot);
+        _settle(now);
         changed = true;
         continue;
       }
       final timedOut = !now.isBefore(window.due(pacing));
       if (timedOut || _everyoneDone(connected)) {
+        final hold = settleUntil;
+        if (hold != null && now.isBefore(hold)) break;
         _close(now, pacing, timedOut: timedOut);
         changed = true;
         continue;
@@ -428,6 +447,8 @@ class ServerGame {
     for (final due in botDue.values) {
       if (due.isBefore(soonest)) soonest = due;
     }
+    final hold = settleUntil;
+    if (hold != null && hold.isBefore(soonest)) soonest = hold;
     return soonest;
   }
 
@@ -475,6 +496,15 @@ class ServerGame {
     window = StageWindow.open(next, engine.round, now, length, pacing);
     acks.clear();
     botDue.clear();
+    settleUntil = null;
+  }
+
+  /// Un voto o un'azione appena applicati: la fase non chiude prima di
+  /// [settle], perché tutti lo vedano.
+  void _settle(DateTime now) {
+    if (stage != Stage.vote && stage != Stage.night) return;
+    final until = now.add(settle);
+    if (settleUntil == null || settleUntil!.isBefore(until)) settleUntil = until;
   }
 
   /// Chiude la fase in corso e apre la prossima, con il suo anticipo.
@@ -554,7 +584,7 @@ class ServerGame {
           ? _between(pacing.botNightMin, pacing.botNightMax)
           : _between(pacing.botVoteMin, pacing.botVoteMax);
       final due = window.startsAt.add(think);
-      final latest = window.endsAt.subtract(const Duration(seconds: 1));
+      final latest = window.endsAt.subtract(const Duration(seconds: 3));
       botDue[seat] = due.isAfter(latest) ? latest : due;
     }
   }

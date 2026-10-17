@@ -96,7 +96,8 @@ abstract class GameBackend {
 
   /// Scrive nella chat [channel] della stanza. Il server controlla chi può
   /// scrivere dove e quando, e le parole.
-  Future<void> sendChat(String roomId, ChatChannel channel, String body);
+  /// Restituisce l'id del messaggio appena scritto.
+  Future<int> sendChat(String roomId, ChatChannel channel, String body);
 
   /// I messaggi che questo telefono può leggere, dal più vecchio al più nuovo.
   Stream<List<ChatMessage>> watchChat(String roomId);

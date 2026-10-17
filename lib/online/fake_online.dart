@@ -666,7 +666,7 @@ class FakeGame implements GameBackend {
   }
 
   @override
-  Future<void> sendChat(String roomId, ChatChannel channel, String body) async {
+  Future<int> sendChat(String roomId, ChatChannel channel, String body) async {
     await _online._network();
     final me = _me;
     final text = body.trim();
@@ -715,6 +715,7 @@ class FakeGame implements GameBackend {
       ),
     ));
     _online._notifyGame(roomId);
+    return _online._chatIds;
   }
 
   /// Come la policy di game_chat: stanza e piazza per chi è nella stanza,

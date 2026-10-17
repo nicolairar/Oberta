@@ -1,7 +1,7 @@
 -- Online games run on the server: who may read and write what.
 -- Run with: supabase test db
 begin;
-select plan(66);
+select plan(69);
 
 -- Anna hosts, Bruno and Carla play, Dario is in another room.
 insert into auth.users (id) values
@@ -192,6 +192,10 @@ select is((select count(*)::int from public.game_intents), 0, 'handled intents a
 select is((select status from public.rooms where id = (select id from r)), 'lobby', 'the lobby opens again');
 select is((select next_due_at from internal.game_state where room_id = (select id from r)), null::timestamptz,
   'and the server stops looking at the game');
+
+select ok(not public._chat_blocked('qualcun tra voi mente'), 'words across tokens are not blocked');
+select ok(not public._chat_blocked('uccidi il medico'), 'game talk is allowed in chat');
+select ok(public._chat_blocked('porca madonna'), 'blasphemy is still blocked');
 
 select * from finish();
 rollback;
