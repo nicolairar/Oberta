@@ -88,7 +88,8 @@ const users = {
 };
 type Who = keyof typeof users;
 
-Deno.test('the runner plays a whole game in Postgres: phones see only their own seat', async () => {
+/** Every migration in a fresh PGlite, three players in a room with three bots, the game started. */
+async function startedGame() {
   const pg = new PGlite();
   await pg.exec(await Deno.readTextFile(new URL('functions/tests/pglite_prelude.sql', root)));
   const migrations = [...Deno.readDirSync(new URL('migrations/', root))].map((e) => e.name).sort();
@@ -117,6 +118,11 @@ Deno.test('the runner plays a whole game in Postgres: phones see only their own 
   await as('carla', `select public.join_room($1)`, [code]);
   await as('anna', `select public.set_room_bots($1, 3)`, [room]);
   await as('anna', `select public.start_game($1)`, [room]);
+  return { pg, db, as, room };
+}
+
+Deno.test('the runner plays a whole game in Postgres: phones see only their own seat', async () => {
+  const { pg, db, as, room } = await startedGame();
   const [{ calls }] = await pg.query<{ calls: number }>(`select count(*)::int as calls from net.calls`).then((r) => r.rows);
   assert(calls >= 1, 'starting wakes the function');
 
@@ -181,5 +187,39 @@ Deno.test('the runner plays a whole game in Postgres: phones see only their own 
     }
     assert(refused, `${who} cannot read the engine state`);
   }
+  await pg.close();
+});
+
+Deno.test('runs that overlap never step a game twice from the same state, and a stale step is refused', async () => {
+  const { pg, db, as, room } = await startedGame();
+  const now = Number((await pg.query<{ now: number }>(`select extract(epoch from now()) * 1000 as now`)).rows[0].now);
+  await runDue(db, step, { now, room });
+  const version = async () =>
+    Number((await pg.query<{ v: number }>(`select version as v from public.game_public where room_id = $1`, [room])).rows[0].v);
+  const before = await version();
+
+  // Three phones confirm their card while two runs (a wake and a tick) go at once.
+  const seats: Record<Who, string> = { anna: 's1', bruno: 's2', carla: 's3' };
+  for (const who of Object.keys(users) as Who[]) {
+    await as(who, `select public.submit_intent($1, $2::jsonb)`, [room, JSON.stringify({ type: 'ack', seat: seats[who], stage: 'reveal-1' })]);
+  }
+  const [a, b] = await Promise.all([runDue(db, step, { now, room }), runDue(db, step, { now, room })]);
+  assertEquals(a + b, 1, 'only one of the runs stepped the game');
+  assertEquals(await version(), before + 1);
+  const [{ left }] = (await pg.query<{ left: number }>(`select count(*)::int as left from public.game_intents`)).rows;
+  assertEquals(left, 0, 'no intent was lost');
+  const [board] = await as<{ view: { schedule: { stage: string } } }>('anna', `select view from public.game_public`);
+  assertEquals(board.view.schedule.stage, 'night', 'every acknowledgement counted');
+
+  // A step computed from an old snapshot can never overwrite a newer one.
+  const stale = { changed: true, state: { stale: true }, board: {}, seatViews: {}, chat: { mode: 'closed', seats: {} } };
+  let refused = '';
+  try {
+    await pg.query(`select internal.game_commit($1::uuid, $2::jsonb)`, [room, JSON.stringify({ ...stale, version: before })]);
+  } catch (error) {
+    refused = String(error);
+  }
+  assert(refused.includes('stale_version'), refused);
+  assertEquals(await version(), before + 1);
   await pg.close();
 });
