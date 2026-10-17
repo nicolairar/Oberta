@@ -73,15 +73,14 @@ class OnlineGameScreen extends StatefulWidget {
   State<OnlineGameScreen> createState() => _OnlineGameScreenState();
 }
 
-class _OnlineGameScreenState extends State<OnlineGameScreen> {
+class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBindingObserver {
   static const _mafiaRed = Color(0xFFE5606A);
   static const _cleanGreen = Color(0xFF6FBF9A);
 
-  late final GameClient _client = GameClient(
-    backend: widget.services.game,
-    roomId: widget.room.id,
-    clock: widget.clock,
-  );
+  late GameClient _client = _connect();
+
+  GameClient _connect() =>
+      GameClient(backend: widget.services.game, roomId: widget.room.id, clock: widget.clock)..addListener(_changed);
   late final AppStrings _t = widget.room.language.strings;
   late final Random _shuffle = widget.seating ?? Random();
   Timer? _ticker;
@@ -97,7 +96,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
 
   /// La fase già vista da qui: al cambio, musica e suoni.
   String? _stageShown;
-  int _departedShown = 0;
+
+  /// Quanti addii sono già stati annunciati (null: non si è ancora visto il
+  /// tavolo; chi rientra non si sente ripetere quelli vecchi).
+  int? _departedShown;
 
   /// Le scene degli agguati di ogni alba: le stesse per il film e per la
   /// cronaca, e su ogni telefono (stesso seme).
@@ -106,7 +108,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
   @override
   void initState() {
     super.initState();
-    _client.addListener(_changed);
+    WidgetsBinding.instance.addObserver(this);
+    _client;
     // Il cronometro, l'inizio dei film e la fine delle fasi.
     _ticker = Timer.periodic(const Duration(milliseconds: 250), (_) {
       if (mounted) setState(() {});
@@ -116,10 +119,28 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
   @override
   void dispose() {
     _ticker?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     _client.removeListener(_changed);
     _client.dispose();
     SoundStage.instance.ambience(null);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Di ritorno dallo sfondo il collegamento può essersi perso: ci si
+    // risiede, e il server ridà subito il tavolo com'è adesso.
+    if (state == AppLifecycleState.resumed && (_client.error != null || !_client.ready || _serverSilent)) _rejoin();
+  }
+
+  /// Rientra al tavolo: un collegamento nuovo, che riparte dalla versione
+  /// attuale della partita. La fase già vista resta vista.
+  void _rejoin() {
+    final old = _client;
+    old.removeListener(_changed);
+    _client = _connect();
+    old.dispose();
+    if (mounted) setState(() {});
   }
 
   OnlineBoard get _board => _client.board!;
@@ -180,13 +201,14 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
   /// dice a tutti, con la sua carta.
   void _announceDepartures() {
     final departed = _board.departed;
-    if (departed.length <= _departedShown) return;
-    for (final seat in departed.skip(_departedShown)) {
+    final shown = _departedShown;
+    _departedShown = departed.length;
+    if (shown == null || departed.length <= shown) return;
+    for (final seat in departed.skip(shown)) {
       final player = _board.seating.occupantOf(seat);
       final role = _public.revealed.where((k) => k.seat.id == seat).firstOrNull?.knowledge.role;
       if (player != null) showNote(context, _t.online.leftTown(player.name, role == null ? '?' : _t.role(role).label));
     }
-    _departedShown = departed.length;
   }
 
   // ---------------------------------------------------------------------
@@ -244,7 +266,11 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     setState(() {});
   }
 
-  bool get _acked => _client.ackedHere || (_client.seat?.acked ?? false);
+  /// La conferma è partita da qui (il pulsante si spegne)…
+  bool get _acked => _client.ackedHere || _ackReceived;
+
+  /// …ed è arrivata al server (solo allora «registrato»).
+  bool get _ackReceived => _client.seat?.acked ?? false;
 
   Knowledge _knowledgeOf(Player player) {
     final view = _view;
@@ -356,7 +382,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
             child: Column(
               children: [
-                if (ready && _serverSilent) _banner(_t.online.serverSilent, const Key('online.serverSilent')),
+                ?_connectionBanner(),
                 Expanded(
                   child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 350),
@@ -374,10 +400,47 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     );
   }
 
-  Widget _banner(String text, Key key) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Text(text, key: key, textAlign: TextAlign.center, style: AppText.body),
-      );
+  /// Il collegamento che non va: il server tace, la rete ha dato errore, o
+  /// il server non sente più questo telefono. Si rientra al tavolo con un
+  /// tocco. Chi ha lasciato la città lo sa, e guarda soltanto.
+  Widget? _connectionBanner() {
+    if (!_client.ready) return null;
+    final String text;
+    final Key key;
+    var rejoin = true;
+    if (_board.departed.contains(_view.seat.id)) {
+      text = _t.online.youLeftTown;
+      key = const Key('online.youLeftTown');
+      rejoin = false;
+    } else if (_client.error != null) {
+      text = _t.online.connectionLost;
+      key = const Key('online.connectionLost');
+    } else if (_serverSilent) {
+      text = _t.online.serverSilent;
+      key = const Key('online.serverSilent');
+    } else if (_board.offline.contains(_view.seat.id)) {
+      text = _t.online.youLookOffline;
+      key = const Key('online.youLookOffline');
+    } else {
+      return null;
+    }
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Expanded(child: Text(text, key: key, style: AppText.body.copyWith(fontSize: 13))),
+          if (rejoin) ...[
+            const SizedBox(width: 8),
+            TextButton(
+              key: const Key('online.reconnect'),
+              onPressed: pressed(_rejoin, Press.tap),
+              child: Text(_t.online.rejoin),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 
   String _title() => switch (_stage) {
         Stage.reveal => _t.online.yourCard,
@@ -406,9 +469,21 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const CircularProgressIndicator(color: AppColors.gold),
-            const SizedBox(height: 18),
-            Text(_t.online.gameConnecting, style: AppText.body),
+            if (_client.error == null) ...[
+              const CircularProgressIndicator(color: AppColors.gold),
+              const SizedBox(height: 18),
+              Text(_t.online.gameConnecting, style: AppText.body),
+            ] else ...[
+              const Icon(Icons.wifi_off, color: AppColors.gold, size: 48),
+              const SizedBox(height: 18),
+              Text(_t.online.connectionLost, key: const Key('online.connectionLost'), style: AppText.body),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                key: const Key('online.reconnect'),
+                onPressed: pressed(_rejoin, Press.confirm),
+                child: Text(_t.online.rejoin),
+              ),
+            ],
           ],
         ),
       );
@@ -432,14 +507,17 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
       );
 
   /// Il pulsante della conferma: «pronto», poi l'attesa degli altri.
-  Widget _readyButton({bool enabled = true}) => SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          key: const Key('online.ready'),
-          onPressed: pressed(_acked || !enabled || !_view.alive ? null : _ack, Press.confirm),
-          child: Text(_acked ? _t.online.readyWaiting : _t.online.ready),
-        ),
-      );
+  /// Chi è fuori dal gioco non conferma niente: il server non lo aspetta.
+  Widget _readyButton({bool enabled = true}) => !_view.alive
+      ? const SizedBox.shrink()
+      : SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            key: const Key('online.ready'),
+            onPressed: pressed(_acked || !enabled || !_open ? null : _ack, Press.confirm),
+            child: Text(_ackReceived ? _t.online.readyWaiting : _acked ? _t.online.sending : _t.online.ready),
+          ),
+        );
 
   // ---------------------------------------------------------------------
   // La carta.
@@ -509,7 +587,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
               runSpacing: 4,
               children: [
                 for (final vote in votes)
-                  _Pizzino(text: '${vote.voter.name} → ${vote.target?.name ?? '—'}', color: _mafiaRed),
+                  _Pizzino(text: '${vote.voter.name} → ${vote.target?.name ?? _t.online.abstainTag}', color: _mafiaRed),
               ],
             ),
           ),
@@ -605,6 +683,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
           const Icon(Icons.visibility, color: AppColors.gold, size: 48),
           const SizedBox(height: 16),
           Text(_t.online.youAreOut, textAlign: TextAlign.center, style: AppText.body),
+        ] else if (finding == null && view.nightChoice == null) ...[
+          const Icon(Icons.hourglass_empty, color: AppColors.gold, size: 48),
         ] else if (finding == null) ...[
           const Icon(Icons.check_circle_outline, color: AppColors.gold, size: 48),
           const SizedBox(height: 12),
@@ -852,16 +932,17 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     final option = view.action;
     final votes = _public.dayVotes;
     final mine = [for (final vote in votes) if (vote.voter == view.seat) vote].firstOrNull;
+    // Il pizzino di ogni votante (chi accusa, o che si astiene) e i voti di
+    // ogni accusato, dal vivo. Le righe restano al loro posto: niente
+    // salti sotto il dito mentre si sceglie.
     final tally = <Player, int>{};
-    final accusing = <Player, Player>{};
+    final pizzini = <Player, String>{};
     for (final vote in votes) {
       final target = vote.target;
-      if (target == null) continue;
-      tally[target] = (tally[target] ?? 0) + 1;
-      accusing[vote.voter] = target;
+      pizzini[vote.voter] = '${vote.voter.name} → ${target?.name ?? _t.online.abstainTag}';
+      if (target != null) tally[target] = (tally[target] ?? 0) + 1;
     }
-    final table = [for (final p in publicSeating(_public.seats)) if (_isAlive(p)) p]
-      ..sort((a, b) => (tally[b] ?? 0).compareTo(tally[a] ?? 0));
+    final table = [for (final p in publicSeating(_public.seats)) if (_isAlive(p)) p];
     final canVote = option != null && _open && !_client.busy;
     final selected = mine?.target;
     return Column(
@@ -887,10 +968,13 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
                   player: player,
                   votes: tally[player] ?? 0,
                   votesLabel: _t.online.votesFor(tally[player] ?? 0),
-                  accuses: accusing[player]?.name,
+                  pizzino: pizzini[player],
                   offline: _offline(player) ? _t.online.offlineBadge : null,
                   silenced: _public.lastDawn?.silenced == player && _public.lastDawn?.round == _public.round,
-                  revealed: _publicKnowledge(player).role,
+                  revealed: switch (_publicKnowledge(player).role) {
+                    final role? => _t.role(role).label,
+                    null => null,
+                  },
                   selected: player == selected,
                   onTap: canVote && option.targets.contains(player) && player != selected
                       ? () => _send(DayVote(view.seat.id, player.id))
@@ -930,7 +1014,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
   // ---------------------------------------------------------------------
 
   String _fateOf(Player player) {
-    if (_board.departed.contains(player.id)) return _t.online.leftTown(player.name, '').split('.').first;
+    if (_board.departed.contains(player.id)) return _t.online.fateLeft;
     for (final record in _public.history) {
       if (record.nightVictims.contains(player)) return _t.fateNight(record.round);
       if (record.lynched == player) return _t.fateGallows(record.round);
@@ -994,7 +1078,7 @@ class _Pizzino extends StatelessWidget {
   final String text;
   final Color color;
 
-  const _Pizzino({required this.text, this.color = AppColors.gold});
+  const _Pizzino({super.key, required this.text, this.color = AppColors.gold});
 
   @override
   Widget build(BuildContext context) => DecoratedBox(
@@ -1018,10 +1102,10 @@ class _VoteRow extends StatelessWidget {
   final Player player;
   final int votes;
   final String votesLabel;
-  final String? accuses;
+  final String? pizzino;
   final String? offline;
   final bool silenced;
-  final Role? revealed;
+  final String? revealed;
   final bool selected;
   final VoidCallback? onTap;
 
@@ -1030,7 +1114,7 @@ class _VoteRow extends StatelessWidget {
     required this.player,
     required this.votes,
     required this.votesLabel,
-    required this.accuses,
+    required this.pizzino,
     required this.offline,
     required this.silenced,
     required this.revealed,
@@ -1061,17 +1145,17 @@ class _VoteRow extends StatelessWidget {
                           [player.name, ?offline, if (silenced) '🤐'].join(' · '),
                           style: AppText.body.copyWith(color: AppColors.textPrimary, fontSize: 15),
                         ),
-                        if (accuses != null) ...[
+                        if (pizzino != null) ...[
                           const SizedBox(height: 2),
-                          _Pizzino(text: '→ $accuses'),
+                          _Pizzino(key: ValueKey('pizzino-${player.id}'), text: pizzino!),
                         ],
                       ],
                     ),
                   ),
                   if (votes > 0)
-                    Text(votesLabel, style: AppText.display(16, color: AppColors.accent))
+                    Text(votesLabel, key: ValueKey('votes-${player.id}'), style: AppText.display(16, color: AppColors.accent))
                   else if (revealed != null)
-                    Text(revealed!.name, style: AppText.body.copyWith(fontSize: 12)),
+                    Text(revealed!, style: AppText.body.copyWith(fontSize: 12)),
                 ],
               ),
             ),

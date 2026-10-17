@@ -49,6 +49,10 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> {
   bool _inGame = false;
   bool _busy = false;
 
+  /// Vero se si è usciti dalla partita mentre era ancora in corso: allora
+  /// non ci si risiede da soli, si rientra col pulsante.
+  bool _stayedOut = false;
+
   /// Meno di così non si danno le carte.
   static const minPlayers = 4;
 
@@ -91,8 +95,11 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> {
     try {
       final room = await widget.services.rooms.fetch(_room.id);
       if (room != null && mounted) {
-        setState(() => _room = room);
-        if (room.status == RoomStatus.playing && !_inGame) _joinGame();
+        setState(() {
+          _room = room;
+          if (room.status != RoomStatus.playing) _stayedOut = false;
+        });
+        if (room.status == RoomStatus.playing && !_inGame && !_stayedOut) _joinGame();
       }
     } catch (_) {}
   }
@@ -142,6 +149,7 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> {
   Future<void> _joinGame() async {
     if (_inGame || !mounted) return;
     _inGame = true;
+    _stayedOut = false;
     await _showGame();
   }
 
@@ -152,8 +160,15 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> {
     _inGame = false;
     try {
       final room = await widget.services.rooms.fetch(_room.id);
-      if (room != null && mounted) setState(() => _room = room);
-    } catch (_) {}
+      if (room != null && mounted) {
+        setState(() {
+          _room = room;
+          _stayedOut = room.status == RoomStatus.playing;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _stayedOut = _room.status == RoomStatus.playing);
+    }
   }
 
   @override
@@ -346,7 +361,14 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> {
               ),
             ],
             const SizedBox(height: 24),
-            if (_isHost) ...[
+            if (_room.status == RoomStatus.playing && !_inGame)
+              ElevatedButton.icon(
+                key: const Key('online.rejoinTable'),
+                onPressed: _joinGame,
+                icon: const Icon(Icons.login),
+                label: Text(t.rejoin),
+              )
+            else if (_isHost) ...[
               ElevatedButton(
                 key: const Key('online.start'),
                 onPressed: _busy || _members.length + _room.bots < minPlayers ? null : _start,
