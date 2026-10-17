@@ -38,7 +38,7 @@ void main() {
       expect(find.text('UN TELEFONO PER TUTTI'), findsOneWidget);
       expect(find.text('CREA STANZA'), findsOneWidget);
       expect(find.text('GIOCA\nCON AMICI'), findsOneWidget);
-      expect(find.text('ONLINE'), findsOneWidget);
+      expect(find.text('ONLINE'), findsNothing, reason: 'la fascia ONLINE è stata tolta');
       expect(find.text('CLASSIFICATA'), findsOneWidget);
       expect(find.text('PROSSIMAMENTE'), findsOneWidget);
       await tester.pumpWidget(const SizedBox());

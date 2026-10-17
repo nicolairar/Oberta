@@ -78,7 +78,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   late final GameClient _client = _connect();
 
   GameClient _connect() =>
-      GameClient(backend: widget.services.game, roomId: widget.room.id, clock: widget.clock)..addListener(_changed);
+      GameClient(backend: widget.services.game, roomId: widget.room.id, clock: widget.clock, me: widget.me.id)..addListener(_changed);
   late final AppStrings _t = widget.room.language.strings;
   late final Random _shuffle = widget.seating ?? Random();
   Timer? _ticker;
