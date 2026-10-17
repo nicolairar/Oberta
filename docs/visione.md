@@ -55,8 +55,8 @@ furba; votano anche di giorno.
   rivelato, controllo di vittoria immediato. Ogni abbandono è registrato dal server.
 - Penalità solo in classificata: prime 2 volte avviso, alla 3ª 5 minuti senza
   giocare, poi 15, 30, 60; ogni partita finita senza abbandoni toglie un
-  abbandono, 24 ore pulite azzerano. Tra amici nessuna penalità a tempo, solo il
-  conteggio nel profilo.
+  abbandono, 24 ore pulite azzerano. Tra amici nessuna penalità. Il conteggio degli
+  abbandoni non si mostra da nessuna parte: serve solo al server per le penalità.
 
 ## Economia e cosmetici (17 ottobre 2026)
 
