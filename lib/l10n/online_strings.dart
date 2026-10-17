@@ -124,6 +124,11 @@ abstract class OnlineStrings {
   String get offlineBadge;
   String leftTown(String name, String role);
   String get gameClosed;
+  String get fateLeft;
+  String get youLeftTown;
+  String get youLookOffline;
+  String get connectionLost;
+  String get abstainTag;
   String votesFor(int votes);
   String get nightTitleOnline;
   String get discussionTitle;
@@ -252,6 +257,11 @@ abstract class OnlineStrings {
     'offlineBadge': offlineBadge,
     'leftTown': leftTown('sara', 'Medico'),
     'gameClosed': gameClosed,
+    'fateLeft': fateLeft,
+    'youLeftTown': youLeftTown,
+    'youLookOffline': youLookOffline,
+    'connectionLost': connectionLost,
+    'abstainTag': abstainTag,
     'votesFor': votesFor(2),
     'nightTitleOnline': nightTitleOnline,
     'discussionTitle': discussionTitle,
@@ -485,11 +495,11 @@ final class ItalianOnlineStrings extends OnlineStrings {
   @override
   String get ready => 'PRONTO';
   @override
-  String get readyWaiting => 'Pronto. Aspettiamo gli altri.';
+  String get readyWaiting => 'Registrato ✓ Aspettiamo gli altri.';
   @override
-  String get moveRegistered => 'Mossa registrata.';
+  String get moveRegistered => 'Registrato ✓';
   @override
-  String get voteRegistered => 'Voto registrato';
+  String get voteRegistered => 'registrato ✓';
   @override
   String get sending => 'Invio…';
   @override
@@ -498,6 +508,16 @@ final class ItalianOnlineStrings extends OnlineStrings {
   String leftTown(String name, String role) => '$name ha lasciato la città. Era $role.';
   @override
   String get gameClosed => 'La partita è stata chiusa: non giocava più nessuno.';
+  @override
+  String get fateLeft => 'Ha lasciato la città';
+  @override
+  String get youLeftTown => 'Sei rimasto via troppo: hai lasciato la città. Guarda come va a finire.';
+  @override
+  String get youLookOffline => 'Il server non ti sente: per gli altri sei assente.';
+  @override
+  String get connectionLost => 'Connessione persa.';
+  @override
+  String get abstainTag => 'astenuto';
   @override
   String votesFor(int votes) => votes == 1 ? '1 voto' : '$votes voti';
   @override
@@ -782,11 +802,11 @@ final class EnglishOnlineStrings extends OnlineStrings {
   @override
   String get ready => 'READY';
   @override
-  String get readyWaiting => 'Ready. Waiting for the others.';
+  String get readyWaiting => 'Registered ✓ Waiting for the others.';
   @override
-  String get moveRegistered => 'Move registered.';
+  String get moveRegistered => 'Registered ✓';
   @override
-  String get voteRegistered => 'Vote registered';
+  String get voteRegistered => 'registered ✓';
   @override
   String get sending => 'Sending…';
   @override
@@ -795,6 +815,16 @@ final class EnglishOnlineStrings extends OnlineStrings {
   String leftTown(String name, String role) => '$name left town. They were $role.';
   @override
   String get gameClosed => 'The game was closed: nobody was playing any more.';
+  @override
+  String get fateLeft => 'Left town';
+  @override
+  String get youLeftTown => 'You were away too long and left town. Watch how it ends.';
+  @override
+  String get youLookOffline => 'The server cannot hear you: the others see you as offline.';
+  @override
+  String get connectionLost => 'Connection lost.';
+  @override
+  String get abstainTag => 'abstains';
   @override
   String votesFor(int votes) => votes == 1 ? '1 vote' : '$votes votes';
   @override

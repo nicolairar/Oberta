@@ -79,8 +79,13 @@ void main() {
     await tester.pump(const Duration(milliseconds: 600));
     await hold.up();
     await tester.pump(const Duration(milliseconds: 600));
+    // Prima dell'inizio comune non si conferma niente.
+    expect(tester.widget<ElevatedButton>(find.byKey(const Key('online.ready'))).onPressed, isNull);
+    clock.elapse(const Duration(seconds: 2));
+    await flush(tester);
     await tester.tap(find.byKey(const Key('online.ready')));
     await flush(tester);
+    expect(find.textContaining('Registrato ✓'), findsOneWidget, reason: 'la conferma è arrivata al server');
     await settled(tester, online.gameAs('anna').sendAck(room.id, 's1', 'reveal-1'));
     await flush(tester);
     clock.elapse(const Duration(seconds: 2));
@@ -156,6 +161,121 @@ void main() {
     expect(find.byKey(const Key('online.card')), findsOneWidget);
     expect(host.roomOf(mine.id)!.status, RoomStatus.playing);
     expect(host.published, greaterThan(0), reason: 'il server ha dato le carte');
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('al voto i pizzini dicono chi accusa chi, e «registrato» arriva solo dal server', (tester) async {
+    _usePhone(tester);
+    final clock = ManualClock();
+    final online = FakeOnline(accountId: 'bruno', clock: clock)
+      ..signInReady(handle: 'bruno')
+      ..addPlayer('anna', handle: 'anna');
+    final room = online.openRoomAs('anna', AppLanguage.it);
+    online.joinAs('bruno', room.code);
+    await settled(tester, online.gameAs('anna').setBots(room.id, 3));
+    await settled(tester, online.gameAs('anna').startGame(room.id));
+    final me = await settled(tester, online.services.profiles.me());
+    await tester.pumpWidget(_app(OnlineGameScreen(services: online.services, room: room, me: me, clock: clock)));
+    await flush(tester);
+
+    // Le scadenze portano al voto; da vivo, Bruno ha la sua riga per votare.
+    var voting = false;
+    for (var i = 0; i < 400 && online.roomOf(room.id)!.status == RoomStatus.playing; i++) {
+      if (find.byKey(const Key('online.vote')).evaluate().isNotEmpty &&
+          find.byKey(const Key('online.abstain')).evaluate().isNotEmpty) {
+        final start = clock.now();
+        // Si aspetta l'inizio comune del voto.
+        clock.elapse(const Duration(seconds: 2));
+        await flush(tester);
+        voting = clock.now().isAfter(start) && find.byKey(const Key('online.vote')).evaluate().isNotEmpty;
+        if (voting) break;
+      }
+      clock.fireNext();
+      await flush(tester);
+    }
+    expect(voting, isTrue, reason: 'Bruno arriva vivo al voto');
+
+    final rows = find.descendant(of: find.byKey(const Key('online.vote')), matching: find.byType(InkWell));
+    final target = [
+      for (final row in rows.evaluate())
+        if ((row.widget as InkWell).onTap != null) row,
+    ].first;
+    await tester.tap(find.byWidget(target.widget));
+    await tester.pump();
+    expect(find.byKey(const Key('online.voteRegistered')), findsNothing, reason: 'prima della risposta, niente ✓');
+    await flush(tester);
+    expect(find.byKey(const Key('online.voteRegistered')), findsOneWidget);
+    expect(find.textContaining('registrato ✓'), findsOneWidget);
+    expect(find.textContaining('bruno → '), findsOneWidget, reason: 'il pizzino di Bruno è sul tavolo di tutti');
+    expect(find.text('1 voto').evaluate().length + find.text('2 voti').evaluate().length, greaterThan(0));
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('chi sparisce risulta assente, poi lascia la città', (tester) async {
+    _usePhone(tester);
+    final clock = ManualClock();
+    final online = FakeOnline(accountId: 'bruno', clock: clock)
+      ..signInReady(handle: 'bruno')
+      ..addPlayer('anna', handle: 'anna')
+      ..trackPresence = true;
+    final room = online.openRoomAs('anna', AppLanguage.it);
+    online.joinAs('bruno', room.code);
+    await settled(tester, online.gameAs('anna').setBots(room.id, 3));
+    await settled(tester, online.gameAs('anna').startGame(room.id));
+    final me = await settled(tester, online.services.profiles.me());
+    await tester.pumpWidget(_app(OnlineGameScreen(services: online.services, room: room, me: me, clock: clock)));
+    await flush(tester);
+
+    // Anna non si fa più sentire; Bruno sì (il suo telefono bussa da solo).
+    var announced = false;
+    final start = clock.now();
+    for (var i = 0; i < 400 && clock.now().difference(start) < const Duration(minutes: 3); i++) {
+      if (find.textContaining('anna ha lasciato la città').evaluate().isNotEmpty) {
+        announced = true;
+        break;
+      }
+      clock.fireNext();
+      await flush(tester);
+    }
+    expect(announced, isTrue);
+    expect(find.byKey(const Key('online.youLookOffline')), findsNothing, reason: 'Bruno è collegato');
+    expect(find.byKey(const Key('online.youLeftTown')), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('chi esce dalla partita in corso ci rientra col pulsante, non da solo', (tester) async {
+    _usePhone(tester);
+    final online = FakeOnline(accountId: 'bruno', clock: ManualClock())
+      ..signInReady(handle: 'bruno')
+      ..addPlayer('anna', handle: 'anna');
+    final room = online.openRoomAs('anna', AppLanguage.it);
+    online.joinAs('bruno', room.code);
+    await settled(tester, online.gameAs('anna').setBots(room.id, 3));
+    await settled(tester, online.gameAs('anna').startGame(room.id));
+    final me = await settled(tester, online.services.profiles.me());
+    final playing = online.roomOf(room.id)!;
+    await tester.pumpWidget(_app(OnlineRoomScreen(services: online.services, room: playing, me: me)));
+    await flush(tester);
+    await flush(tester);
+    expect(find.byType(OnlineGameScreen), findsOneWidget, reason: 'chi entra in una stanza che gioca si siede');
+
+    await tester.tap(find.byTooltip('Abbandona la partita'));
+    await flush(tester);
+    await tester.tap(find.text('ESCI'));
+    await flush(tester);
+    await flush(tester);
+    expect(find.byType(OnlineGameScreen), findsNothing);
+    expect(find.byKey(const Key('online.rejoinTable')), findsOneWidget);
+
+    await flush(tester);
+    expect(find.byType(OnlineGameScreen), findsNothing, reason: 'non lo si rimette a sedere da solo');
+
+    await tester.ensureVisible(find.byKey(const Key('online.rejoinTable')));
+    await tester.tap(find.byKey(const Key('online.rejoinTable')));
+    await flush(tester);
+    await flush(tester);
+    expect(find.byType(OnlineGameScreen), findsOneWidget);
+    expect(find.byKey(const Key('online.card')), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 }
