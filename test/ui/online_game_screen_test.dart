@@ -7,7 +7,8 @@ import 'package:oberta/online/online_services.dart';
 import 'package:oberta/ui/screens/online/online_game_screen.dart';
 import 'package:oberta/ui/screens/online/online_room_screen.dart';
 import 'package:oberta/ui/widgets/death_scene.dart';
-import 'package:oberta/ui/widgets/flip_role_card.dart';
+import 'package:oberta/ui/screens/online/game/noir_role_card.dart';
+import 'package:oberta/ui/screens/online/game/noir_ui.dart';
 import 'package:oberta/ui/widgets/verdict_scene.dart';
 
 import '../support/languages.dart';
@@ -74,18 +75,18 @@ void main() {
 
     // La carta si gira, poi «pronto»; quando conferma anche Anna, è notte.
     // La carta si guarda tenendola premuta.
-    final hold = await tester.startGesture(tester.getCenter(find.byType(FlipRoleCard)));
+    final hold = await tester.startGesture(tester.getCenter(find.byType(NoirRoleCard)));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
     await hold.up();
     await tester.pump(const Duration(milliseconds: 600));
     // Prima dell'inizio comune non si conferma niente.
-    expect(tester.widget<ElevatedButton>(find.byKey(const Key('online.ready'))).onPressed, isNull);
+    expect(tester.widget<NoirButton>(find.byKey(const Key('online.ready'))).onPressed, isNull);
     clock.elapse(const Duration(seconds: 2));
     await flush(tester);
     await tester.tap(find.byKey(const Key('online.ready')));
     await flush(tester);
-    expect(find.textContaining('Registrato ✓'), findsOneWidget, reason: 'la conferma è arrivata al server');
+    expect(find.textContaining(RegExp('registrato ✓', caseSensitive: false)), findsOneWidget, reason: 'la conferma è arrivata al server');
     await settled(tester, online.gameAs('anna').sendAck(room.id, 's1', 'reveal-1'));
     await flush(tester);
     clock.elapse(const Duration(seconds: 2));
@@ -206,8 +207,8 @@ void main() {
     await flush(tester);
     expect(find.byKey(const Key('online.voteRegistered')), findsOneWidget);
     expect(find.textContaining('registrato ✓'), findsOneWidget);
-    expect(find.textContaining('bruno → '), findsOneWidget, reason: 'il pizzino di Bruno è sul tavolo di tutti');
-    expect(find.text('1 voto').evaluate().length + find.text('2 voti').evaluate().length, greaterThan(0));
+    expect(find.textContaining('→ '), findsWidgets, reason: 'il pizzino di Bruno è sul tavolo di tutti');
+    expect(find.text('1').evaluate().length + find.text('2').evaluate().length, greaterThan(0), reason: 'il bollo con i voti');
     await tester.pumpWidget(const SizedBox());
   });
 
