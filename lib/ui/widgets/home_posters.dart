@@ -454,7 +454,8 @@ enum HomeSoonEmblem { phones, laurel }
 class HomeSoonPoster extends StatefulWidget {
   final String title;
   final String blurb;
-  final String strip;
+  /// La fascetta di traverso («presto»); null: niente fascetta.
+  final String? strip;
   final HomeSoonEmblem emblem;
   final Color paper;
   final int seed;
@@ -464,7 +465,7 @@ class HomeSoonPoster extends StatefulWidget {
     super.key,
     required this.title,
     required this.blurb,
-    required this.strip,
+    this.strip,
     required this.emblem,
     required this.paper,
     required this.seed,
@@ -540,6 +541,7 @@ class _HomeSoonPosterState extends State<HomeSoonPoster> with SingleTickerProvid
                 ),
               ),
             ),
+            if (widget.strip != null)
             Positioned(
               left: -5,
               right: -5,
@@ -557,7 +559,7 @@ class _HomeSoonPosterState extends State<HomeSoonPoster> with SingleTickerProvid
                     fit: BoxFit.scaleDown,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 6),
-                      child: Text(widget.strip, style: _print(10, color: _red, spacing: 2.2)),
+                      child: Text(widget.strip!, style: _print(10, color: _red, spacing: 2.2)),
                     ),
                   ),
                 ),

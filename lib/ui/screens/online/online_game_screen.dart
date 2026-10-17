@@ -22,6 +22,7 @@ import '../../../sound/cue_sounds.dart';
 import '../../../sound/sound_stage.dart';
 import '../../../sound/verdict_stage.dart';
 import '../../press.dart';
+import '../../avatar/avatar_look.dart';
 import '../../seating.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/avatar_spotlight.dart';
@@ -91,6 +92,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   Exposure? _finding;
   int? _findingFor;
 
+  /// Gli ultimi voti della piazza visti al voto: il verdetto li ricorda
+  /// (il tavolo pubblico li cancella appena il voto si chiude).
+  List<SeatVote> _lastVotes = const [];
+
   /// La fase già vista da qui: al cambio, musica e suoni.
   String? _stageShown;
 
@@ -151,6 +156,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       _finding = finding;
     }
     if (_client.ready) {
+      if (_stage == Stage.vote) _lastVotes = _public.dayVotes;
       _enterStage();
       _announceDepartures();
     }
@@ -325,7 +331,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     return Localizations.override(context: context, locale: _t.language.locale, child: screen);
   }
 
-  /// Prima dell'inizio comune della fase: il cartello «si parte insieme».
+  /// Prima dell'inizio comune della fase (l'orologio non corre ancora).
   bool get _beforeStart => _client.ready && _client.elapsed < Duration.zero;
 
   Widget _screen() {
@@ -369,7 +375,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                     children: [
                       Positioned.fill(
                         child: Padding(
-                          padding: const EdgeInsets.fromLTRB(14, 4, 14, 10),
+                          padding: const EdgeInsets.fromLTRB(10, 4, 10, 8),
                           child: AnimatedSwitcher(
                             duration: const Duration(milliseconds: 350),
                             child: KeyedSubtree(
@@ -379,12 +385,6 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                           ),
                         ),
                       ),
-                      if (_beforeStart && !_board.abandoned && _stage != Stage.ended)
-                        Positioned.fill(
-                          child: IgnorePointer(
-                            child: StageCurtain(key: ValueKey('curtain-${_window?.key}'), title: _title(), subtitle: _ribbon()),
-                          ),
-                        ),
                     ],
                   ),
                 ),
@@ -567,6 +567,11 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   /// I nomi brevi sui pizzini.
   String _short(Player? player) => player == null ? _t.online.abstainTag : player.name;
 
+  SeatHand _handOf(Player voter, int from, int to, Color accent) {
+    final look = AvatarLook.fallback(voter.name);
+    return (from: from, to: to, sleeve: look.outfit.coat, skin: look.base.skin, mine: voter == _view.seat, accent: accent);
+  }
+
   Widget _table({
     required List<Player> players,
     Set<Player> selectable = const {},
@@ -576,8 +581,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     Color voteColor = Saloon.blood,
     bool showDead = true,
     Widget? center,
+    Animation<double>? arrival,
   }) {
-    final seats = [for (final p in players) if (showDead || _isAlive(p)) p];
+    final present = [for (final p in players) if (showDead || _isAlive(p)) p];
+    // Il proprio posto è sempre in basso al centro: si gira il tavolo.
+    final mine = present.indexOf(_view.seat);
+    final seats = mine <= 0 ? present : [...present.skip(mine), ...present.take(mine)];
     final tally = <Player, int>{};
     for (final vote in votes) {
       if (vote.target case final target?) tally[target] = (tally[target] ?? 0) + 1;
@@ -589,10 +598,11 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     return SaloonTable(
       count: seats.length,
       center: center,
-      arrows: [
+      leading: leading == null ? null : index[leading],
+      hands: [
         for (final vote in votes)
           if (vote.target != null && index.containsKey(vote.voter) && index.containsKey(vote.target))
-            (from: index[vote.voter]!, to: index[vote.target]!, color: vote.voter == _view.seat ? Saloon.brass : voteColor),
+            _handOf(vote.voter, index[vote.voter]!, index[vote.target]!, voteColor),
       ],
       seatBuilder: (context, i, width) {
         final player = seats[i];
@@ -600,7 +610,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         final role = _publicKnowledge(player).role ?? (player == _view.seat ? null : _knowledgeOf(player).role);
         final silenced = _public.lastDawn?.silenced == player && _public.lastDawn?.round == _public.round;
         final can = selectable.contains(player);
-        return SeatCard(
+        final seat = SeatCard(
           key: ValueKey('seat-${player.id}'),
           name: player.name,
           width: width,
@@ -625,6 +635,26 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
           dimmed: selectable.isNotEmpty && !can && _isAlive(player) && player != selected && player != _view.seat,
           onTap: can && onTap != null ? () => onTap(player) : null,
         );
+        if (arrival == null) return seat;
+        // L'arrivo: ognuno entra dal bordo dello schermo dietro il suo posto
+        // e si siede, uno dopo l'altro.
+        final direction = pi / 2 + 2 * pi * i / seats.length;
+        final delay = 0.5 * i / seats.length;
+        return AnimatedBuilder(
+          animation: arrival,
+          builder: (context, child) {
+            final t = Curves.easeOutBack.transform(((arrival.value - delay) / 0.45).clamp(0.0, 1.0));
+            final away = (1 - t) * 260;
+            return Opacity(
+              opacity: ((arrival.value - delay) / 0.2).clamp(0.0, 1.0),
+              child: Transform.translate(
+                offset: Offset(cos(direction) * away, sin(direction) * away),
+                child: Transform.scale(scale: 0.9 + 0.1 * t, child: child),
+              ),
+            );
+          },
+          child: seat,
+        );
       },
     );
   }
@@ -632,7 +662,25 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   // ---------------------------------------------------------------------
   // La carta.
 
+  /// L'inizio della partita, una volta sola su questo telefono: i giocatori
+  /// arrivano e si siedono, poi si danno le carte, poi la propria carta.
+  /// Chi arriva tardi (o vuole meno movimento) va dritto alla carta.
+  bool? _introPlayed;
+
   Widget _cardView() {
+    _introPlayed ??= MediaQuery.disableAnimationsOf(context) || _client.elapsed > const Duration(seconds: 3);
+    if (_introPlayed == false) {
+      return _RevealIntro(
+        key: const Key('online.arrival'),
+        table: (arrival) => _table(players: publicSeating(_public.seats), arrival: arrival),
+        dealing: DealingTable(status: _city.title),
+        onDone: () => setState(() => _introPlayed = true),
+      );
+    }
+    return _roleCardView();
+  }
+
+  Widget _roleCardView() {
     final view = _view;
     final opening = _script('night-1').opening(online: true);
     return Column(
@@ -791,22 +839,21 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   // ---------------------------------------------------------------------
   // I film, per tutti nello stesso momento.
 
-  Widget _waitingFilm() => StageCurtain(title: _title(), subtitle: _t.online.startingSoon);
+  /// Prima del film (l'attimo dell'inizio comune): solo il buio, niente
+  /// cartelli. Il film poi si vede tutto: nessuna conferma anticipata, il
+  /// server passa oltre solo allo scadere, e intanto resta l'ultima scena.
+  Widget _waitingFilm() => const ColoredBox(color: Colors.black, child: SizedBox.expand());
 
   Widget _dawnFilm() {
     final dawn = _public.lastDawn;
     if (dawn == null || dawn.attacks.isEmpty) return _waitingFilm();
     final elapsed = _client.elapsed;
     if (elapsed < Duration.zero) return _waitingFilm();
-    final index = elapsed.inMilliseconds ~/ DeathScene.length.inMilliseconds;
-    if (index >= dawn.attacks.length) {
-      // Visti tutti: lo si dice al server, e si aspetta l'alba.
-      if (!_client.ackedHere) scheduleMicrotask(_client.ack);
-      return _waitingFilm();
-    }
+    final index = min(elapsed.inMilliseconds ~/ DeathScene.length.inMilliseconds, dawn.attacks.length - 1);
     final story = _storiesOf(dawn)[index];
     final film = filmFor(story);
     final attack = dawn.attacks[index];
+    final into = elapsed - DeathScene.length * index;
     return DeathScene(
       key: ValueKey('online-crime-${dawn.round}-$index'),
       act: film.act,
@@ -815,9 +862,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       caption: story.scene.text,
       epilogue: story.epilogue?.id ?? '',
       style: _style,
-      startAt: elapsed - DeathScene.length * index,
+      startAt: into > DeathScene.length ? DeathScene.length : into,
       onFinished: () {
-        if (index == dawn.attacks.length - 1) _client.ack();
         if (mounted) setState(() {});
       },
     );
@@ -828,26 +874,22 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     final elapsed = _client.elapsed;
     if (report == null || elapsed < Duration.zero) return _waitingFilm();
     final length = OnlinePacing.verdictFilm(condemns: report.condemned != null);
-    if (elapsed >= length) {
-      if (!_client.ackedHere) scheduleMicrotask(_client.ack);
-      return _waitingFilm();
-    }
+    final startAt = elapsed > length ? length : elapsed;
     final condemned = report.condemned;
     void done() {
-      _client.ack();
       if (mounted) setState(() {});
     }
 
     final key = ValueKey('online-verdict-${report.round}');
     return condemned == null
-        ? VerdictScene.acquittal(key: key, style: _style, startAt: elapsed, onFinished: done)
+        ? VerdictScene.acquittal(key: key, style: _style, startAt: startAt, onFinished: done)
         : VerdictScene(
             key: key,
             condemnedName: condemned.name,
             variant: VerdictScene.variants[Random(_board.narrationSeed + report.round).nextInt(VerdictScene.variants.length)],
             town: _city.name,
             style: _style,
-            startAt: elapsed,
+            startAt: startAt,
             onFinished: done,
           );
   }
@@ -862,6 +904,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     List<String> portraits = const [],
     bool fallen = false,
     Role? revealed,
+    String? footnote,
   }) =>
       Column(
         key: key,
@@ -903,6 +946,16 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
+                          if (footnote != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: Text(
+                                footnote,
+                                key: const Key('online.verdictVotes'),
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontFamily: 'Courier', color: Saloon.paperInk, fontSize: 13, height: 1.35, fontWeight: FontWeight.w700),
+                              ),
+                            ),
                           for (final line in lines)
                             Padding(
                               padding: const EdgeInsets.only(bottom: 9),
@@ -957,6 +1010,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       portraits: [if (condemned != null) condemned.name],
       fallen: condemned != null,
       revealed: report.role,
+      footnote: _lastVotes.isEmpty
+          ? null
+          : [for (final vote in _lastVotes) '${vote.voter.name} → ${_short(vote.target)}'].join('  ·  '),
     );
   }
 
@@ -1012,11 +1068,16 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
           decoration: Saloon.scrim(radius: 12),
           child: Row(
             children: [
-              for (var i = 0; i < alive; i++)
-                Padding(
-                  padding: const EdgeInsets.only(right: 2),
-                  child: Icon(Icons.person, size: 16, color: i < cast ? Saloon.blood : const Color(0xFF4A423C)),
+              Expanded(
+                child: Wrap(
+                  spacing: 1,
+                  runSpacing: 1,
+                  children: [
+                    for (var i = 0; i < alive; i++)
+                      Icon(Icons.person, size: alive > 10 ? 13 : 16, color: i < cast ? Saloon.blood : const Color(0xFF4A423C)),
+                  ],
                 ),
+              ),
               const SizedBox(width: 6),
               Text(_t.online.votesCast(cast, alive), style: AppText.overline.copyWith(color: AppColors.textPrimary, fontSize: 11)),
             ],
@@ -1139,4 +1200,53 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       ],
     );
   }
+}
+
+/// L'arrivo al tavolo e la distribuzione delle carte, prima della propria.
+class _RevealIntro extends StatefulWidget {
+  final Widget Function(Animation<double> arrival) table;
+  final Widget dealing;
+  final VoidCallback onDone;
+
+  const _RevealIntro({super.key, required this.table, required this.dealing, required this.onDone});
+
+  @override
+  State<_RevealIntro> createState() => _RevealIntroState();
+}
+
+class _RevealIntroState extends State<_RevealIntro> with SingleTickerProviderStateMixin {
+  /// L'arrivo dura così, poi le carte.
+  static const _arrive = Duration(milliseconds: 2300);
+  static const _deal = Duration(milliseconds: 1700);
+
+  late final _arrival = AnimationController(vsync: this, duration: _arrive)..forward();
+  Timer? _dealt;
+  bool _dealing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _arrival.addStatusListener((status) {
+      if (status != AnimationStatus.completed || !mounted) return;
+      setState(() => _dealing = true);
+      _dealt = Timer(_deal, () {
+        if (mounted) widget.onDone();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _dealt?.cancel();
+    _arrival.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedSwitcher(
+        duration: const Duration(milliseconds: 380),
+        child: _dealing
+            ? KeyedSubtree(key: const ValueKey('deal'), child: widget.dealing)
+            : KeyedSubtree(key: const ValueKey('arrive'), child: widget.table(_arrival)),
+      );
 }

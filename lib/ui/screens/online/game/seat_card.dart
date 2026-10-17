@@ -72,7 +72,7 @@ class SeatCard extends StatelessWidget {
         : accused
             ? [BoxShadow(color: Saloon.blood.withValues(alpha: 0.6), blurRadius: 16, spreadRadius: 1)]
             : const [BoxShadow(color: Color(0xAA000000), blurRadius: 10, offset: Offset(0, 5))];
-    final plateHeight = max(20.0, width * 0.24);
+    final plateHeight = max(20.0, width * 0.27);
     final card = Stack(
       clipBehavior: Clip.none,
       children: [
@@ -123,29 +123,22 @@ class SeatCard extends StatelessWidget {
               border: Border.all(color: me ? Saloon.brass : Saloon.brassDeep, width: me ? 1.6 : 1),
               boxShadow: const [BoxShadow(color: Colors.black, blurRadius: 6, offset: Offset(0, 2))],
             ),
-            padding: EdgeInsets.symmetric(horizontal: plateHeight * 0.35),
+            padding: EdgeInsets.symmetric(horizontal: plateHeight * 0.28),
             child: Row(
               children: [
                 Expanded(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      name.toUpperCase(),
-                      maxLines: 1,
-                      style: AppText.display(plateHeight * 0.52, color: fallen ? AppColors.textSecondary : AppColors.textPrimary)
-                          .copyWith(letterSpacing: 1),
-                    ),
+                  child: _PlateName(
+                    name,
+                    style: AppText.display(plateHeight * 0.64, color: fallen ? AppColors.textSecondary : AppColors.textPrimary)
+                        .copyWith(letterSpacing: 0.6, height: 1.05),
                   ),
                 ),
-                if (!fallen) ...[
-                  SizedBox(width: plateHeight * 0.15),
+                if (offline && !fallen) ...[
+                  SizedBox(width: plateHeight * 0.12),
                   Container(
-                    width: plateHeight * 0.3,
-                    height: plateHeight * 0.3,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: offline ? const Color(0xFF6B635C) : Saloon.online,
-                    ),
+                    width: plateHeight * 0.26,
+                    height: plateHeight * 0.26,
+                    decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF6B635C)),
                   ),
                 ],
               ],
@@ -231,6 +224,38 @@ class SeatCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Il nome sulla targhetta: grande; se non ci sta si stringe fino a due
+/// terzi, poi si taglia con i puntini.
+class _PlateName extends StatelessWidget {
+  final String text;
+  final TextStyle style;
+
+  const _PlateName(this.text, {required this.style});
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(builder: (context, box) {
+        final label = text.toUpperCase();
+        final painter = TextPainter(
+          text: TextSpan(text: label, style: style),
+          textDirection: TextDirection.ltr,
+          maxLines: 1,
+          textScaler: MediaQuery.textScalerOf(context),
+        )..layout();
+        final fit = painter.width <= 0 ? 1.0 : (box.maxWidth / painter.width).clamp(0.66, 1.0);
+        painter.dispose();
+        return Center(
+          child: Text(
+            label,
+            maxLines: 1,
+            softWrap: false,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: style.copyWith(fontSize: style.fontSize! * fit),
+          ),
+        );
+      });
 }
 
 /// Il bollo di ceralacca con il numero dei voti.
