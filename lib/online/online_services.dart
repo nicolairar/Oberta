@@ -42,7 +42,7 @@ abstract class ProfileRepository {
   /// Il profilo di chi è entrato, con livello, esperienza e monete.
   Future<Profile> me();
 
-  Future<Profile> update({required String handle, required String displayName, AppLanguage? language});
+  Future<Profile> update({required String handle, AppLanguage? language});
 
   /// Vero se nessun altro ha già questo nome unico (in qualunque maiuscola).
   Future<bool> handleAvailable(String handle);

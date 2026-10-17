@@ -13,7 +13,7 @@ void main() {
   late FakeOnline online;
 
   setUp(() {
-    online = FakeOnline()..addPlayer('bruno', handle: 'bruno', displayName: 'Bruno');
+    online = FakeOnline()..addPlayer('bruno', handle: 'bruno');
     online.auth.googleAvailable = false;
     OnlineServices.instance = online.services;
   });
@@ -30,11 +30,11 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// Il profilo nuovo, appena entrati: nome unico e nome da mostrare.
-  Future<void> fillProfile(WidgetTester tester, {String handle = 'anna', String name = 'Anna'}) async {
+  /// Il profilo nuovo, appena entrati: il nome unico, l'unico nome.
+  Future<void> fillProfile(WidgetTester tester, {String handle = 'anna'}) async {
     expect(find.text('IL TUO PROFILO'), findsOneWidget);
+    expect(find.byKey(const Key('online.name')), findsNothing, reason: 'niente nome da mostrare a parte');
     await tester.enterText(find.byKey(const Key('online.handle')), handle);
-    await tester.enterText(find.byKey(const Key('online.name')), name);
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
     await tester.tap(find.text('SALVA'));
@@ -83,26 +83,33 @@ void main() {
       await tester.pumpAndSettle();
       expect(online.auth.signedIn, isTrue);
 
-      // Il nome unico: solo lettere, e si vede subito se è libero.
+      // Il nome unico: si vede subito se è libero, e cosa non va.
       await tester.enterText(find.byKey(const Key('online.handle')), 'Bruno');
       await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
       expect(find.text('Questo nome unico è già preso.'), findsOneWidget);
-      await tester.enterText(find.byKey(const Key('online.handle')), 'an_na 7!');
+      await tester.enterText(find.byKey(const Key('online.handle')), '.anna');
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
+      expect(find.text('Non può iniziare con un punto o un trattino basso.'), findsOneWidget);
+      await tester.enterText(find.byKey(const Key('online.handle')), 'str0nz0');
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
+      expect(find.text('Nome non consentito.'), findsOneWidget);
+      await tester.enterText(find.byKey(const Key('online.handle')), 'An_na 7!');
       await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
       final field = tester.widget<TextField>(find.byKey(const Key('online.handle')));
-      expect(field.controller!.text, 'anna', reason: 'cifre, spazi e segni non entrano');
+      expect(field.controller!.text, 'an_na7', reason: 'sempre minuscolo; spazi e segni non entrano');
       expect(find.text('Libero: è tuo, se lo vuoi.'), findsOneWidget);
-      await tester.enterText(find.byKey(const Key('online.name')), 'Anna');
       await tester.tap(find.text('SALVA'));
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('home.badge')), findsOneWidget);
-      expect(find.text('Anna'), findsOneWidget);
+      expect(find.text('an_na7'), findsOneWidget);
       expect(find.text('LIV. 1'), findsOneWidget);
       expect(find.text('ACCEDI'), findsNothing);
-      expect(online.profileOf('me')!.handle, 'anna');
+      expect(online.profileOf('me')!.handle, 'an_na7');
     });
 
     testWidgets('se Apple non va, il messaggio gentile e sotto il motivo tecnico', (tester) async {
@@ -158,7 +165,7 @@ void main() {
       await tester.tap(find.byKey(const Key('online.testSubmit')));
       await tester.pumpAndSettle();
       expect(online.auth.signedIn, isTrue);
-      await fillProfile(tester, handle: 'prova', name: 'Prova');
+      await fillProfile(tester, handle: 'prova');
       expect(find.byKey(const Key('home.badge')), findsOneWidget);
     });
 
@@ -197,7 +204,7 @@ void main() {
   group('chi è entrato', () {
     testWidgets('ha il cartellino in alto a sinistra, e dal cartellino il profilo', (tester) async {
       online
-        ..signInReady(handle: 'anna', displayName: 'Anna')
+        ..signInReady(handle: 'anna')
         ..award('me', level: 4, xp: 200, coins: 75);
       await openAlley(tester);
       final badge = tester.getRect(find.byKey(const Key('home.badge')));
@@ -210,7 +217,7 @@ void main() {
 
       await tester.tap(find.byKey(const Key('home.badge')));
       await tester.pumpAndSettle();
-      expect(find.text('@anna'), findsOneWidget);
+      expect(find.text('anna'), findsNWidgets(2), reason: 'sul cartellino e sul profilo, sempre il nome unico');
       expect(find.text('LIVELLO'), findsOneWidget);
       expect(find.text('MONETE'), findsOneWidget);
       expect(find.text('200 su 400 punti esperienza'), findsOneWidget);
@@ -225,7 +232,7 @@ void main() {
     });
 
     testWidgets('«Gioca con amici» porta alla sala online', (tester) async {
-      online.signInReady(handle: 'anna', displayName: 'Anna');
+      online.signInReady(handle: 'anna');
       await openAlley(tester);
       await tester.tap(find.text('GIOCA\nCON AMICI'));
       await tester.pumpAndSettle();
@@ -234,10 +241,10 @@ void main() {
 
     testWidgets('chi aveva un nome che non vale più se lo rifà, poi il cartellino', (tester) async {
       online
-        ..signInReady(handle: 'anna', displayName: 'Anna')
+        ..signInReady(handle: 'anna')
         ..forgetHandle('me');
       await openAlley(tester);
-      await fillProfile(tester, handle: 'annetta', name: 'Anna');
+      await fillProfile(tester, handle: 'annetta');
       expect(find.byKey(const Key('home.badge')), findsOneWidget);
       expect(online.profileOf('me')!.handle, 'annetta');
     });
@@ -245,7 +252,7 @@ void main() {
 
   group('il QR di una stanza, aperto dalla fotocamera', () {
     testWidgets('chi è entrato va dritto al tavolo', (tester) async {
-      online.signInReady(handle: 'anna', displayName: 'Anna');
+      online.signInReady(handle: 'anna');
       final room = online.openRoomAs('bruno', AppLanguage.it);
       await openAlley(tester);
       IncomingLinks.instance.deliver(Uri.parse('oberta://room/${room.code}'));
@@ -255,7 +262,7 @@ void main() {
     });
 
     testWidgets('il link d\'avvio aspetta il vicolo', (tester) async {
-      online.signInReady(handle: 'anna', displayName: 'Anna');
+      online.signInReady(handle: 'anna');
       final room = online.openRoomAs('bruno', AppLanguage.it);
       IncomingLinks.instance.deliver(Uri.parse('oberta://room/${room.code}'));
       await openAlley(tester);
@@ -282,14 +289,14 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tapAt(const Offset(200, 100));
       await tester.pumpAndSettle();
-      online.signInReady(handle: 'anna', displayName: 'Anna');
+      online.signInReady(handle: 'anna');
       await tester.pumpAndSettle();
       expect(find.text('LA STANZA'), findsNothing);
       expect(find.text('CREA STANZA'), findsOneWidget);
     });
 
     testWidgets('un link storto o una stanza chiusa: due parole, e si resta nel vicolo', (tester) async {
-      online.signInReady(handle: 'anna', displayName: 'Anna');
+      online.signInReady(handle: 'anna');
       await openAlley(tester);
       IncomingLinks.instance.deliver(Uri.parse('oberta://room/NOPE'));
       await tester.pumpAndSettle();
@@ -313,7 +320,7 @@ void main() {
     });
 
     testWidgets('gli altri link (gli accessi di Google) non sono affar del vicolo', (tester) async {
-      online.signInReady(handle: 'anna', displayName: 'Anna');
+      online.signInReady(handle: 'anna');
       await openAlley(tester);
       IncomingLinks.instance.deliver(Uri.parse('com.googleusercontent.apps.x:/oauth2redirect?code=1'));
       await tester.pumpAndSettle();

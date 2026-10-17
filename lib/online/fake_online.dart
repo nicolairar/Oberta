@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import '../l10n/app_language.dart';
+import 'handle_rules.dart';
 import 'join_code.dart';
 import 'online_services.dart';
 
@@ -34,13 +35,11 @@ class FakeOnline {
   bool emailEnabled = true;
 
   /// Qualcun altro, già con il suo profilo.
-  Profile addPlayer(String id, {required String handle, required String displayName}) =>
-      _profiles[id] = Profile(id: id, handle: handle, displayName: displayName);
+  Profile addPlayer(String id, {required String handle}) => _profiles[id] = Profile(id: id, handle: handle);
 
   /// Entra già con il profilo pronto, come chi ha giocato altre volte.
-  void signInReady({String handle = 'tu', String displayName = 'Tu', int level = 1, int xp = 0, int coins = 0}) {
-    _profiles[accountId] =
-        Profile(id: accountId, handle: handle, displayName: displayName, level: level, xp: xp, coins: coins);
+  void signInReady({String handle = 'tu', int level = 1, int xp = 0, int coins = 0}) {
+    _profiles[accountId] = Profile(id: accountId, handle: handle, level: level, xp: xp, coins: coins);
     auth._signIn(accountId);
   }
 
@@ -54,7 +53,6 @@ class FakeOnline {
     final old = _profiles[id]!;
     _profiles[id] = Profile(
       id: id,
-      displayName: old.displayName,
       language: old.language,
       level: old.level,
       xp: old.xp,
@@ -279,24 +277,27 @@ class FakeProfiles implements ProfileRepository {
   Future<bool> handleAvailable(String handle) async => !_taken(handle, _online._me);
 
   @override
-  Future<Profile> update({required String handle, required String displayName, AppLanguage? language}) async {
+  Future<Profile> update({required String handle, AppLanguage? language}) async {
     final me = _online._me;
     handle = Profile.normalizeHandle(handle);
-    if (!Profile.handlePattern.hasMatch(handle) ||
-        displayName.trim() != displayName ||
-        displayName.isEmpty ||
-        displayName.length > Profile.maxDisplayName) {
-      throw const OnlineException(OnlineFailure.invalidHandle);
+    // Come il database: la forma è un vincolo (23514), le parole e i nomi
+    // dei bot un trigger (handle_not_allowed).
+    switch (HandleRules.check(handle)) {
+      case null:
+        break;
+      case HandleProblem.notAllowed || HandleProblem.botName:
+        throw const OnlineException(OnlineFailure.handleNotAllowed);
+      case _:
+        throw const OnlineException(OnlineFailure.invalidHandle);
     }
     if (_taken(handle, me)) throw const OnlineException(OnlineFailure.handleTaken);
-    return _online._profiles[me] =
-        _online._profiles[me]!.copyWith(handle: handle, displayName: displayName, language: language);
+    return _online._profiles[me] = _online._profiles[me]!.copyWith(handle: handle, language: language);
   }
 
   @override
   Future<List<Profile>> search(String handlePrefix) async {
     final me = _online._me;
-    final prefix = handlePrefix.toLowerCase().replaceAll(RegExp('[^a-z]'), '');
+    final prefix = handlePrefix.toLowerCase().replaceAll(RegExp('[^a-z0-9._]'), '');
     if (prefix.isEmpty) return const [];
     return [
       for (final profile in _online._profiles.values)

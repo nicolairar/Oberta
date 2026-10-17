@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../../l10n/app_strings.dart';
 import '../../../l10n/online_strings.dart';
+import '../../../online/handle_rules.dart';
 import '../../../online/online_services.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/noir_avatar.dart';
@@ -185,7 +186,8 @@ class ProfileSetupScreen extends StatelessWidget {
       );
 }
 
-/// Il profilo da preparare la prima volta: nome unico e nome da mostrare.
+/// Il profilo da preparare la prima volta: il nome unico, che è anche il
+/// nome che tutti vedono.
 class ProfileSetup extends StatefulWidget {
   final OnlineServices services;
   final Profile profile;
@@ -199,15 +201,12 @@ class ProfileSetup extends StatefulWidget {
 
 class _ProfileSetupState extends State<ProfileSetup> {
   late final _handle = TextEditingController(text: widget.profile.handle ?? '');
-  late final _name = TextEditingController(
-    text: widget.profile.displayName ?? widget.services.auth.suggestedName ?? '',
-  );
   String? _handleError;
-  String? _nameError;
   bool _busy = false;
 
   /// Il controllo dal vivo del nome unico, mentre lo si scrive.
   _HandleCheck _check = _HandleCheck.idle;
+  HandleProblem? _problem;
   Timer? _debounce;
   int _asked = 0;
 
@@ -222,25 +221,28 @@ class _ProfileSetupState extends State<ProfileSetup> {
   void dispose() {
     _debounce?.cancel();
     _handle.dispose();
-    _name.dispose();
     super.dispose();
   }
 
   String _lastTyped = '';
 
-  /// A ogni lettera si aspetta un attimo, poi si chiede al server se il nome
-  /// è libero. Risponde solo l'ultima domanda: le vecchie si buttano.
+  /// A ogni lettera si controllano le regole qui, subito; se vanno bene si
+  /// aspetta un attimo e si chiede al server se il nome è libero. Risponde
+  /// solo l'ultima domanda: le vecchie si buttano.
   void _typed() {
     final handle = Profile.normalizeHandle(_handle.text);
     if (handle == _lastTyped) return;
     _lastTyped = handle;
     _debounce?.cancel();
     final ask = ++_asked;
+    final problem = handle.isEmpty ? null : HandleRules.check(handle);
     setState(() {
       _handleError = null;
-      _check = handle.isEmpty
+      // Mentre si scrive, «troppo corto» non è ancora un errore.
+      _problem = problem == HandleProblem.tooShort ? null : problem;
+      _check = handle.isEmpty || problem == HandleProblem.tooShort
           ? _HandleCheck.idle
-          : Profile.handlePattern.hasMatch(handle)
+          : problem == null
               ? _HandleCheck.checking
               : _HandleCheck.invalid;
     });
@@ -264,19 +266,18 @@ class _ProfileSetupState extends State<ProfileSetup> {
   Future<void> _save() async {
     final t = AppStrings.of(context);
     final handle = Profile.normalizeHandle(_handle.text);
-    final name = _name.text.trim();
+    final problem = HandleRules.check(handle);
     setState(() {
-      _handleError = !Profile.handlePattern.hasMatch(handle)
-          ? t.online.handleInvalid
+      _handleError = problem != null
+          ? t.online.handleProblem(problem)
           : _check == _HandleCheck.taken
               ? t.online.failure(OnlineFailure.handleTaken)
               : null;
-      _nameError = name.isEmpty || name.length > Profile.maxDisplayName ? t.online.nameInvalid : null;
     });
-    if (_handleError != null || _nameError != null) return;
+    if (_handleError != null) return;
     setState(() => _busy = true);
     try {
-      final profile = await widget.services.profiles.update(handle: handle, displayName: name, language: t.language);
+      final profile = await widget.services.profiles.update(handle: handle, language: t.language);
       widget.onSaved(profile);
     } on OnlineException catch (error) {
       if (!mounted) return;
@@ -285,8 +286,8 @@ class _ProfileSetupState extends State<ProfileSetup> {
           _check = _HandleCheck.taken;
           _handleError = t.online.failure(error.failure);
         });
-      } else if (error.failure == OnlineFailure.invalidHandle) {
-        setState(() => _handleError = t.online.handleInvalid);
+      } else if (error.failure == OnlineFailure.invalidHandle || error.failure == OnlineFailure.handleNotAllowed) {
+        setState(() => _handleError = t.online.failure(error.failure));
       } else {
         showFailure(context, error);
       }
@@ -295,10 +296,10 @@ class _ProfileSetupState extends State<ProfileSetup> {
     }
   }
 
-  /// La riga sotto il nome unico: che regole ha, e se è libero.
+  /// La riga sotto il nome unico: che regole ha, cosa non va, e se è libero.
   (String?, Color) _handleHelper(OnlineStrings t) => switch (_check) {
         _HandleCheck.idle => (t.handleInvalid, AppColors.textSecondary),
-        _HandleCheck.invalid => (t.handleInvalid, AppColors.accent),
+        _HandleCheck.invalid => (_problem == null ? t.handleInvalid : t.handleProblem(_problem!), AppColors.accent),
         _HandleCheck.checking => (t.handleChecking, AppColors.textSecondary),
         _HandleCheck.free => (t.handleFree, const Color(0xFF7FB77E)),
         _HandleCheck.taken => (t.failure(OnlineFailure.handleTaken), AppColors.accent),
@@ -329,12 +330,14 @@ class _ProfileSetupState extends State<ProfileSetup> {
                 autocorrect: false,
                 enableSuggestions: false,
                 maxLength: Profile.maxHandle,
-                // Solo lettere: niente cifre, spazi, segni o trattini bassi.
+                textCapitalization: TextCapitalization.none,
+                keyboardType: TextInputType.visiblePassword,
+                // Sempre minuscolo, mentre si scrive: lettere, cifre, «.» e «_».
                 inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp('[a-zA-Z]')),
                   TextInputFormatter.withFunction(
                     (old, value) => value.copyWith(text: value.text.toLowerCase()),
                   ),
+                  FilteringTextInputFormatter.allow(HandleRules.allowedCharacters),
                 ],
                 decoration: InputDecoration(
                   labelText: t.handleLabel,
@@ -357,14 +360,6 @@ class _ProfileSetupState extends State<ProfileSetup> {
                     _HandleCheck.idle => null,
                   },
                 ),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                key: const Key('online.name'),
-                controller: _name,
-                maxLength: Profile.maxDisplayName,
-                textCapitalization: TextCapitalization.words,
-                decoration: InputDecoration(labelText: t.nameLabel, errorText: _nameError),
                 onSubmitted: (_) => _save(),
               ),
               const SizedBox(height: 16),

@@ -80,7 +80,7 @@ class OnlineSection extends StatelessWidget {
       );
 }
 
-/// Una riga con la faccia, il nome e il nome unico di un profilo.
+/// Una riga con la faccia e il nome unico di un profilo.
 class ProfileRow extends StatelessWidget {
   final Profile profile;
   final List<Widget> badges;
@@ -106,8 +106,6 @@ class ProfileRow extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600),
                 ),
-                if (profile.handle case final handle?)
-                  Text('@$handle', style: AppText.body.copyWith(fontSize: 13)),
                 if (badges.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Wrap(spacing: 6, runSpacing: 4, children: badges),

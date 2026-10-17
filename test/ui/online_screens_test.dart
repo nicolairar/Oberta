@@ -26,8 +26,8 @@ void main() {
 
   setUp(() {
     online = FakeOnline()
-      ..addPlayer('bruno', handle: 'bruno', displayName: 'Bruno')
-      ..addPlayer('carla', handle: 'carla', displayName: 'Carla');
+      ..addPlayer('bruno', handle: 'bruno')
+      ..addPlayer('carla', handle: 'carla');
   });
 
   Future<void> open(WidgetTester tester, Widget screen, {AppLanguage language = AppLanguage.it}) async {
@@ -57,20 +57,20 @@ void main() {
     await tester.tap(find.text('Entra con Google'));
     await tester.pumpAndSettle();
     expect(find.text('IL TUO PROFILO'), findsOneWidget);
-    expect(find.text('Anna Rossi'), findsOneWidget, reason: 'il nome dato da Google è già scritto');
+    expect(find.text('Anna Rossi'), findsNothing, reason: 'un solo nome: il nome unico, scelto da chi gioca');
 
     await tester.enterText(find.byKey(const Key('online.handle')), 'bruno');
     await tester.tap(find.text('SALVA'));
     await tester.pumpAndSettle();
     expect(find.text('Questo nome unico è già preso.'), findsOneWidget);
 
-    await tester.enterText(find.byKey(const Key('online.handle')), 'Anna_R2');
-    expect(find.text('annar'), findsOneWidget, reason: 'solo lettere, in minuscolo');
+    await tester.enterText(find.byKey(const Key('online.handle')), 'Anna_R2!');
+    expect(find.text('anna_r2'), findsOneWidget, reason: 'in minuscolo, senza segni vietati');
     await tester.tap(find.text('SALVA'));
     await tester.pumpAndSettle();
     expect(find.text('GIOCA CON AMICI'), findsOneWidget);
     expect(find.text('APRI UNA STANZA'), findsOneWidget);
-    expect(online.profileOf('me')!.handle, 'annar');
+    expect(online.profileOf('me')!.handle, 'anna_r2');
   });
 
   testWidgets('senza Apple né Google sul telefono lo dice', (tester) async {
@@ -91,7 +91,7 @@ void main() {
   });
 
   testWidgets('la stanza: codice grande, QR, chi entra arriva dal vivo, e si chiede l\'amicizia', (tester) async {
-    online.signInReady(handle: 'anna', displayName: 'Anna');
+    online.signInReady(handle: 'anna');
     await open(tester, OnlineScreen(services: online.services));
     await tester.tap(find.text('APRI UNA STANZA'));
     await tester.pumpAndSettle();
@@ -107,12 +107,12 @@ void main() {
     online.joinAs('bruno', code);
     await tester.pumpAndSettle();
     expect(find.text('2 su 16 al tavolo'), findsOneWidget);
-    expect(find.text('Bruno'), findsOneWidget);
+    expect(find.text('bruno'), findsOneWidget);
 
     await tester.scrollUntilVisible(find.byTooltip('Chiedi l\'amicizia'), 100, scrollable: find.byType(Scrollable).first);
     await tester.tap(find.byTooltip('Chiedi l\'amicizia'));
     await tester.pumpAndSettle();
-    expect(find.text('Richiesta mandata a Bruno.'), findsOneWidget);
+    expect(find.text('Richiesta mandata a bruno.'), findsOneWidget);
     expect(find.byTooltip('Chiedi l\'amicizia'), findsNothing);
 
     final start = tester.widget<ElevatedButton>(find.widgetWithText(ElevatedButton, 'INIZIA · PRESTO'));
@@ -130,7 +130,7 @@ void main() {
   });
 
   testWidgets('chi esce da solo conferma, e la stanza vuota sparisce', (tester) async {
-    online.signInReady(handle: 'anna', displayName: 'Anna');
+    online.signInReady(handle: 'anna');
     await open(tester, OnlineScreen(services: online.services));
     await tester.tap(find.text('APRI UNA STANZA'));
     await tester.pumpAndSettle();
@@ -153,7 +153,7 @@ void main() {
   });
 
   testWidgets('entrare con un codice, scritto o letto dal QR', (tester) async {
-    online.signInReady(handle: 'anna', displayName: 'Anna');
+    online.signInReady(handle: 'anna');
     final room = online.openRoomAs('bruno', AppLanguage.it);
 
     final me = online.profileOf('me')!;
@@ -177,22 +177,22 @@ void main() {
 
   testWidgets('gli amici: cercare, chiedere, rispondere', (tester) async {
     online
-      ..signInReady(handle: 'anna', displayName: 'Anna')
+      ..signInReady(handle: 'anna')
       ..requestFrom('carla');
     await open(tester, FriendsScreen(services: online.services));
     expect(find.text('RICHIESTE'), findsOneWidget);
-    expect(find.text('Carla'), findsOneWidget);
+    expect(find.text('carla'), findsOneWidget);
     expect(find.textContaining('Nessun amico, per ora'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Accetta'));
     await tester.pumpAndSettle();
     expect(find.text('RICHIESTE'), findsNothing);
-    expect(find.text('Tu e Carla ora siete amici.'), findsOneWidget);
+    expect(find.text('Tu e carla ora siete amici.'), findsOneWidget);
 
     await tester.enterText(find.byKey(const Key('online.search')), 'bru');
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
-    expect(find.text('@bruno'), findsOneWidget);
+    expect(find.text('bruno'), findsOneWidget);
     await tester.tap(find.text('Aggiungi'));
     await tester.pumpAndSettle();
     expect(find.text('IN ATTESA'), findsOneWidget);

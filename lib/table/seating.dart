@@ -5,19 +5,19 @@ class Occupant {
   /// L'id del posto in questa partita (es. `s3`): è tutto ciò che il motore
   /// conosce, e tutto ciò che viaggia nelle intenzioni e nelle viste.
   final String seat;
-  final String displayName;
+  final String name;
 
   /// L'account, quando chi gioca ne ha uno. Facoltativo: un ospite non ce
   /// l'ha, e al tavolo di un telefono solo non serve.
   final String? profileId;
 
-  const Occupant({required this.seat, required this.displayName, this.profileId});
+  const Occupant({required this.seat, required this.name, this.profileId});
 
-  Map<String, Object?> toJson() => {'seat': seat, 'displayName': displayName, 'profileId': profileId};
+  Map<String, Object?> toJson() => {'seat': seat, 'name': name, 'profileId': profileId};
 
   factory Occupant.fromJson(Map<String, Object?> json) => Occupant(
         seat: json['seat'] as String,
-        displayName: json['displayName'] as String,
+        name: json['name'] as String,
         profileId: json['profileId'] as String?,
       );
 }
@@ -42,9 +42,9 @@ class Seating {
   }
 
   /// Dà un posto nuovo a ciascuno, nell'ordine in cui arrivano.
-  factory Seating.open(List<({String displayName, String? profileId})> guests) => Seating([
+  factory Seating.open(List<({String name, String? profileId})> guests) => Seating([
         for (final (index, guest) in guests.indexed)
-          Occupant(seat: 's${index + 1}', displayName: guest.displayName, profileId: guest.profileId),
+          Occupant(seat: 's${index + 1}', name: guest.name, profileId: guest.profileId),
       ]);
 
   Occupant? occupantOf(String seat) {
@@ -68,7 +68,7 @@ class Seating {
   Player playerAt(String seat) {
     final occupant = occupantOf(seat);
     if (occupant == null) throw ArgumentError.value(seat, 'seat', 'posto vuoto');
-    return Player(id: seat, name: occupant.displayName);
+    return Player(id: seat, name: occupant.name);
   }
 
   /// I giocatori da passare al motore, in ordine di posto.

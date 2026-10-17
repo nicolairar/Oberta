@@ -103,7 +103,7 @@ void main() {
   for (final MapEntry(key: phone, value: (size, top, bottom)) in phones.entries) {
     testWidgets('vicolo $phone', (tester) async {
       addTearDown(tester.view.reset);
-      final online = FakeOnline()..addPlayer('bruno', handle: 'bruno', displayName: 'Bruno');
+      final online = FakeOnline()..addPlayer('bruno', handle: 'bruno');
       online.auth.googleAvailable = false;
       await _pump(tester, size, top, bottom, online.services);
       await _shot(tester, '${phone}_1_signed_out');

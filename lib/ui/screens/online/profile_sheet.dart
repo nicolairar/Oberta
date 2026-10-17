@@ -52,8 +52,6 @@ class _ProfileCard extends StatelessWidget {
             textAlign: TextAlign.center,
             style: AppText.display(22, color: AppColors.textPrimary),
           ),
-          if (profile.handle case final handle?)
-            Text('@$handle', textAlign: TextAlign.center, style: AppText.body.copyWith(fontSize: 14)),
           const SizedBox(height: 18),
           Row(
             children: [

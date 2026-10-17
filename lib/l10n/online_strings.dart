@@ -1,3 +1,4 @@
+import '../online/handle_rules.dart';
 import '../online/online_models.dart';
 
 /// I testi del gioco online: il manifesto, l'ingresso, il profilo, le
@@ -48,12 +49,13 @@ abstract class OnlineStrings {
   String get setupBody;
   String get handleLabel;
   String get handleHint;
-  String get nameLabel;
   String get save;
   String get handleInvalid;
   String get handleChecking;
   String get handleFree;
-  String get nameInvalid;
+
+  /// Che cosa non va nel nome unico, regola per regola.
+  String handleProblem(HandleProblem problem);
 
   // La sala d'ingresso.
   String get hubTitle;
@@ -136,12 +138,11 @@ abstract class OnlineStrings {
     'setupBody': setupBody,
     'handleLabel': handleLabel,
     'handleHint': handleHint,
-    'nameLabel': nameLabel,
     'save': save,
     'handleInvalid': handleInvalid,
     'handleChecking': handleChecking,
     'handleFree': handleFree,
-    'nameInvalid': nameInvalid,
+    for (final value in HandleProblem.values) 'handleProblem.${value.name}': handleProblem(value),
     'hubTitle': hubTitle,
     'signedInAs': signedInAs('Sara'),
     'hubCreate': hubCreate,
@@ -252,23 +253,31 @@ final class ItalianOnlineStrings extends OnlineStrings {
   @override
   String get setupTitle => 'IL TUO PROFILO';
   @override
-  String get setupBody => 'Gli amici ti cercano col nome unico; al tavolo vedono il nome da mostrare.';
+  String get setupBody => 'Il tuo nome unico è anche il nome che tutti vedono: nella stanza, al tavolo e tra gli amici.';
   @override
   String get handleLabel => 'Nome unico';
   @override
-  String get handleHint => 'es. marcorossi';
-  @override
-  String get nameLabel => 'Nome da mostrare';
+  String get handleHint => 'es. marco.rossi';
   @override
   String get save => 'SALVA';
   @override
-  String get handleInvalid => 'Da 3 a 16 lettere, senza numeri, spazi o segni.';
+  String get handleInvalid => 'Da 3 a 12 caratteri: lettere minuscole, cifre, punto e trattino basso.';
   @override
   String get handleChecking => 'Controllo se è libero…';
   @override
   String get handleFree => 'Libero: è tuo, se lo vuoi.';
   @override
-  String get nameInvalid => 'Scrivi un nome, al massimo 24 caratteri.';
+  String handleProblem(HandleProblem problem) => switch (problem) {
+        HandleProblem.tooShort => 'Almeno 3 caratteri.',
+        HandleProblem.tooLong => 'Al massimo 12 caratteri.',
+        HandleProblem.characters => 'Solo lettere minuscole, cifre, punto e trattino basso.',
+        HandleProblem.start => 'Non può iniziare con un punto o un trattino basso.',
+        HandleProblem.endsWithDot => 'Non può finire con un punto.',
+        HandleProblem.doubleDot => 'Niente due punti di fila.',
+        HandleProblem.tooManySymbols => 'Al massimo tre segni di fila.',
+        HandleProblem.botName => 'I nomi che cominciano con «bot» sono dei bot.',
+        HandleProblem.notAllowed => 'Nome non consentito.',
+      };
 
   @override
   String get hubTitle => 'GIOCA CON AMICI';
@@ -367,6 +376,7 @@ final class ItalianOnlineStrings extends OnlineStrings {
         OnlineFailure.profileIncomplete => 'Prima finisci il tuo profilo.',
         OnlineFailure.handleTaken => 'Questo nome unico è già preso.',
         OnlineFailure.invalidHandle => 'Nome non valido.',
+        OnlineFailure.handleNotAllowed => 'Nome non consentito.',
         OnlineFailure.roomNotFound => 'Nessuna stanza con questo codice.',
         OnlineFailure.roomClosed => 'In quella stanza si gioca già.',
         OnlineFailure.roomFull => 'La stanza è piena.',
@@ -444,23 +454,31 @@ final class EnglishOnlineStrings extends OnlineStrings {
   @override
   String get setupTitle => 'YOUR PROFILE';
   @override
-  String get setupBody => 'Friends find you by your handle; at the table they see your display name.';
+  String get setupBody => 'Your handle is also the name everyone sees: in the room, at the table and among friends.';
   @override
   String get handleLabel => 'Handle';
   @override
-  String get handleHint => 'like marksmith';
-  @override
-  String get nameLabel => 'Display name';
+  String get handleHint => 'like mark.smith';
   @override
   String get save => 'SAVE';
   @override
-  String get handleInvalid => '3 to 16 letters, no digits, spaces or symbols.';
+  String get handleInvalid => '3 to 12 characters: lowercase letters, digits, dot and underscore.';
   @override
   String get handleChecking => 'Checking if it is free…';
   @override
   String get handleFree => 'Free: it is yours if you want it.';
   @override
-  String get nameInvalid => 'Enter a name, 24 characters at most.';
+  String handleProblem(HandleProblem problem) => switch (problem) {
+        HandleProblem.tooShort => 'At least 3 characters.',
+        HandleProblem.tooLong => '12 characters at most.',
+        HandleProblem.characters => 'Only lowercase letters, digits, dot and underscore.',
+        HandleProblem.start => 'It cannot start with a dot or an underscore.',
+        HandleProblem.endsWithDot => 'It cannot end with a dot.',
+        HandleProblem.doubleDot => 'No two dots in a row.',
+        HandleProblem.tooManySymbols => 'At most three symbols in a row.',
+        HandleProblem.botName => 'Names starting with "bot" belong to bots.',
+        HandleProblem.notAllowed => 'Name not allowed.',
+      };
 
   @override
   String get hubTitle => 'PLAY WITH FRIENDS';
@@ -559,6 +577,7 @@ final class EnglishOnlineStrings extends OnlineStrings {
         OnlineFailure.profileIncomplete => 'Finish your profile first.',
         OnlineFailure.handleTaken => 'That handle is already taken.',
         OnlineFailure.invalidHandle => 'Invalid name.',
+        OnlineFailure.handleNotAllowed => 'Name not allowed.',
         OnlineFailure.roomNotFound => 'No room with that code.',
         OnlineFailure.roomClosed => 'That room is already playing.',
         OnlineFailure.roomFull => 'The room is full.',

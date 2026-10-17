@@ -101,6 +101,7 @@ OnlineException _classify(Object error, SignInDoor? door) {
     final failure = switch (error.message) {
       'not_signed_in' => OnlineFailure.notSignedIn,
       'profile_incomplete' => OnlineFailure.profileIncomplete,
+      'handle_not_allowed' => OnlineFailure.handleNotAllowed,
       'room_not_found' => OnlineFailure.roomNotFound,
       'room_closed' => OnlineFailure.roomClosed,
       'room_full' => OnlineFailure.roomFull,
@@ -128,7 +129,7 @@ Future<T> _guard<T>(Future<T> Function() call, [SignInDoor? door]) async {
 
 /// Le colonne pubbliche di un profilo: livello, esperienza e monete no,
 /// quelle le legge solo il padrone con `my_profile()`.
-const _profileColumns = 'id, handle, display_name, language, avatar';
+const _profileColumns = 'id, handle, language, avatar';
 
 /// Un valore casuale da usare una volta sola: Supabase controlla che il
 /// token di Apple o Google porti la sua impronta, così un token rubato non
@@ -271,11 +272,9 @@ class SupabaseProfiles implements ProfileRepository {
       });
 
   @override
-  Future<Profile> update({required String handle, required String displayName, AppLanguage? language}) =>
-      _guard(() async {
+  Future<Profile> update({required String handle, AppLanguage? language}) => _guard(() async {
         await _client.from('profiles').update({
           'handle': Profile.normalizeHandle(handle),
-          'display_name': displayName,
           if (language != null) 'language': language.name,
         }).eq('id', _me);
         return me();
@@ -294,12 +293,12 @@ class SupabaseProfiles implements ProfileRepository {
 
   @override
   Future<List<Profile>> search(String handlePrefix) => _guard(() async {
-        final prefix = handlePrefix.toLowerCase().replaceAll(RegExp('[^a-z]'), '');
+        final prefix = handlePrefix.toLowerCase().replaceAll(RegExp('[^a-z0-9._]'), '');
         if (prefix.isEmpty) return const <Profile>[];
         final rows = await _client
             .from('profiles')
             .select(_profileColumns)
-            .like('handle', '$prefix%')
+            .like('handle', '${prefix.replaceAll('_', r'\_')}%')
             .neq('id', _me)
             .order('handle')
             .limit(20);

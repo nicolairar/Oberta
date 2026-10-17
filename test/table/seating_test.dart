@@ -5,9 +5,9 @@ import 'package:oberta/table/seating.dart';
 
 void main() {
   final seating = Seating.open([
-    (displayName: 'Anna', profileId: 'profile-anna'),
-    (displayName: 'Bruno', profileId: null),
-    (displayName: 'Carla', profileId: 'profile-carla'),
+    (name: 'Anna', profileId: 'profile-anna'),
+    (name: 'Bruno', profileId: null),
+    (name: 'Carla', profileId: 'profile-carla'),
   ]);
 
   test('i posti si danno in ordine e non dicono chi c\'è seduto', () {
@@ -31,13 +31,13 @@ void main() {
 
   test('un posto per persona, un posto per profilo', () {
     expect(
-      () => Seating([const Occupant(seat: 's1', displayName: 'A'), const Occupant(seat: 's1', displayName: 'B')]),
+      () => Seating([const Occupant(seat: 's1', name: 'A'), const Occupant(seat: 's1', name: 'B')]),
       throwsArgumentError,
     );
     expect(
       () => Seating([
-        const Occupant(seat: 's1', displayName: 'A', profileId: 'p'),
-        const Occupant(seat: 's2', displayName: 'B', profileId: 'p'),
+        const Occupant(seat: 's1', name: 'A', profileId: 'p'),
+        const Occupant(seat: 's2', name: 'B', profileId: 'p'),
       ]),
       throwsArgumentError,
     );

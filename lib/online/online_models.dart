@@ -1,16 +1,17 @@
 import 'dart:math';
 
 import '../l10n/app_language.dart';
+import 'handle_rules.dart';
 
 /// Un profilo online: chi è una persona per gli altri giocatori, su ogni
 /// telefono dove entra con lo stesso account.
 class Profile {
   final String id;
 
-  /// Il nome unico per farsi trovare: solo lettere, in minuscolo. Vuoto
-  /// finché la persona non ha finito di prepararsi il profilo.
+  /// Il nome unico, ed è l'unico nome: quello che gli altri vedono nella
+  /// stanza, al tavolo e tra gli amici, così nessuno si spaccia per un altro.
+  /// Regole in [HandleRules]. Vuoto finché la persona non l'ha scelto.
   final String? handle;
-  final String? displayName;
   final AppLanguage language;
 
   /// L'aspetto indossato, per id di catalogo: `{base, hat, glasses, ...}`.
@@ -26,7 +27,6 @@ class Profile {
   const Profile({
     required this.id,
     this.handle,
-    this.displayName,
     this.language = AppLanguage.it,
     this.avatar = const {},
     this.level = 1,
@@ -34,11 +34,11 @@ class Profile {
     this.coins = 0,
   });
 
-  /// Senza nome unico e nome da mostrare non si entra nelle stanze.
-  bool get isComplete => handle != null && (displayName?.isNotEmpty ?? false);
+  /// Senza nome unico non si entra nelle stanze.
+  bool get isComplete => handle != null;
 
-  /// Il nome da mostrare, o il nome unico se manca.
-  String get name => displayName ?? handle ?? '';
+  /// Il nome che vedono tutti: il nome unico.
+  String get name => handle ?? '';
 
   /// Il seme del ritratto disegnato: sempre la stessa faccia per lo stesso account.
   String get avatarSeed => avatar['base'] ?? handle ?? id;
@@ -50,11 +50,9 @@ class Profile {
   /// Quanto manca al prossimo livello, da 0 a 1: la barra del profilo.
   double get levelProgress => (xp / xpToNext(level)).clamp(0.0, 1.0);
 
-  Profile copyWith({String? handle, String? displayName, AppLanguage? language, int? level, int? xp, int? coins}) =>
-      Profile(
+  Profile copyWith({String? handle, AppLanguage? language, int? level, int? xp, int? coins}) => Profile(
         id: id,
         handle: handle ?? this.handle,
-        displayName: displayName ?? this.displayName,
         language: language ?? this.language,
         avatar: avatar,
         level: level ?? this.level,
@@ -65,7 +63,6 @@ class Profile {
   factory Profile.fromJson(Map<String, dynamic> json) => Profile(
         id: json['id'] as String,
         handle: json['handle'] as String?,
-        displayName: json['display_name'] as String?,
         language: json['language'] == 'en' ? AppLanguage.en : AppLanguage.it,
         avatar: {
           for (final MapEntry(:key, :value) in ((json['avatar'] as Map?) ?? const {}).entries)
@@ -76,17 +73,11 @@ class Profile {
         coins: (json['coins'] as num?)?.toInt() ?? 0,
       );
 
-  static const minHandle = 3;
-  static const maxHandle = 16;
-
-  /// Un nome unico valido: da 3 a 16 lettere, senza cifre, spazi o segni.
-  /// Si salva in minuscolo, così «Marco» e «marco» sono lo stesso nome.
-  static final handlePattern = RegExp('^[a-z]{$minHandle,$maxHandle}\$');
+  static const minHandle = HandleRules.minLength;
+  static const maxHandle = HandleRules.maxLength;
 
   /// Il nome unico come lo si salva: in minuscolo, senza spazi intorno.
-  static String normalizeHandle(String typed) => typed.trim().toLowerCase();
-
-  static const maxDisplayName = 24;
+  static String normalizeHandle(String typed) => HandleRules.normalize(typed);
 }
 
 enum FriendStatus { pending, accepted, blocked }
@@ -160,6 +151,9 @@ enum OnlineFailure {
   profileIncomplete,
   handleTaken,
   invalidHandle,
+
+  /// Il nome offende, finge di essere lo staff o un bot.
+  handleNotAllowed,
   roomNotFound,
   roomClosed,
   roomFull,

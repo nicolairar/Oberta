@@ -12,8 +12,8 @@ void main() {
 
   setUp(() {
     online = FakeOnline()
-      ..addPlayer('bruno', handle: 'bruno', displayName: 'Bruno')
-      ..addPlayer('carla', handle: 'carla', displayName: 'Carla');
+      ..addPlayer('bruno', handle: 'bruno')
+      ..addPlayer('carla', handle: 'carla');
   });
 
   group('l\'account', () {
@@ -36,28 +36,26 @@ void main() {
 
     test('il nome unico è unico e ben fatto', () async {
       await online.auth.signInWithApple();
-      await expectLater(online.profiles.update(handle: 'bruno', displayName: 'Io'), _fails(OnlineFailure.handleTaken));
-      await expectLater(online.profiles.update(handle: 'No!', displayName: 'Io'), _fails(OnlineFailure.invalidHandle));
-      final profile = await online.profiles.update(handle: 'anna', displayName: 'Anna', language: AppLanguage.en);
+      await expectLater(online.profiles.update(handle: 'bruno'), _fails(OnlineFailure.handleTaken));
+      await expectLater(online.profiles.update(handle: 'No!'), _fails(OnlineFailure.invalidHandle));
+      final profile = await online.profiles.update(handle: 'anna', language: AppLanguage.en);
       expect(profile.isComplete, isTrue);
       expect(profile.language, AppLanguage.en);
       expect([for (final p in await online.profiles.search('b')) p.handle], ['bruno']);
       expect(await online.profiles.search('anna'), isEmpty, reason: 'non si trova sé stessi');
     });
 
-    test('il nome unico è fatto solo di lettere, da 3 a 16', () async {
+    test('il nome unico segue le regole: forma, parole vietate, nomi dei bot', () async {
       await online.auth.signInWithApple();
-      for (final bad in ['ab', 'anna1', 'an_na', 'an na', 'anna!', 'ànna', 'abcdefghijklmnopq', '']) {
-        await expectLater(
-          online.profiles.update(handle: bad, displayName: 'Anna'),
-          _fails(OnlineFailure.invalidHandle),
-          reason: bad,
-        );
+      for (final bad in ['ab', 'an na', 'anna!', 'ànna', '.anna', 'anna.', 'an..na', 'a_._.b', 'abcdefghijklm', '']) {
+        await expectLater(online.profiles.update(handle: bad), _fails(OnlineFailure.invalidHandle), reason: bad);
       }
-      expect(Profile.handlePattern.hasMatch('abc'), isTrue);
-      expect(Profile.handlePattern.hasMatch('abcdefghijklmnop'), isTrue);
-      final profile = await online.profiles.update(handle: 'Anna', displayName: 'Anna');
-      expect(profile.handle, 'anna', reason: 'si salva in minuscolo');
+      for (final bad in ['str0nz0', 'f.u.c.k', 'admin', 'bot.alfa']) {
+        await expectLater(online.profiles.update(handle: bad), _fails(OnlineFailure.handleNotAllowed), reason: bad);
+      }
+      final profile = await online.profiles.update(handle: 'Anna.R_92');
+      expect(profile.handle, 'anna.r_92', reason: 'si salva in minuscolo');
+      expect(profile.name, 'anna.r_92', reason: 'il nome unico è il nome che si vede');
     });
 
     test('maiuscole o minuscole, un nome preso resta preso; e si sa prima di salvare', () async {
@@ -65,28 +63,28 @@ void main() {
       expect(await online.profiles.handleAvailable('bruno'), isFalse);
       expect(await online.profiles.handleAvailable('BRUNO'), isFalse);
       expect(await online.profiles.handleAvailable('anna'), isTrue);
-      await expectLater(online.profiles.update(handle: 'Bruno', displayName: 'Io'), _fails(OnlineFailure.handleTaken));
-      await online.profiles.update(handle: 'anna', displayName: 'Anna');
+      await expectLater(online.profiles.update(handle: 'Bruno'), _fails(OnlineFailure.handleTaken));
+      await online.profiles.update(handle: 'anna');
       expect(await online.profiles.handleAvailable('anna'), isTrue, reason: 'il proprio nome non è «preso»');
     });
 
     test('un vecchio nome che non vale più si rifà al prossimo accesso', () async {
-      online.signInReady(handle: 'anna', displayName: 'Anna');
+      online.signInReady(handle: 'anna');
       online.forgetHandle('me');
       final profile = await online.profiles.me();
       expect(profile.isComplete, isFalse);
-      expect(profile.displayName, 'Anna');
+      expect(profile.name, isEmpty);
     });
 
     test('livello, esperienza e monete li scrive il server; il profilo li legge', () async {
-      online.signInReady(handle: 'anna', displayName: 'Anna');
+      online.signInReady(handle: 'anna');
       var profile = await online.profiles.me();
       expect((profile.level, profile.xp, profile.coins), (1, 0, 0));
       online.award('me', level: 3, xp: 150, coins: 40);
       profile = await online.profiles.me();
       expect((profile.level, profile.xp, profile.coins), (3, 150, 40));
       expect(profile.levelProgress, closeTo(0.5, 1e-9));
-      profile = await online.profiles.update(handle: 'anna', displayName: 'Anna B');
+      profile = await online.profiles.update(handle: 'anna');
       expect(profile.coins, 40, reason: 'salvare il nome non tocca le monete');
     });
 
@@ -143,7 +141,7 @@ void main() {
   });
 
   group('le stanze', () {
-    setUp(() => online.signInReady(handle: 'anna', displayName: 'Anna'));
+    setUp(() => online.signInReady(handle: 'anna'));
 
     test('senza profilo finito non si apre niente', () async {
       final fresh = FakeOnline();
@@ -180,7 +178,7 @@ void main() {
       final room = await online.rooms.create(AppLanguage.it);
       for (var i = 0; i < 15; i++) {
         online
-          ..addPlayer('p$i', handle: 'player${String.fromCharCode(97 + i)}', displayName: 'P$i')
+          ..addPlayer('p$i', handle: 'player${String.fromCharCode(97 + i)}')
           ..joinAs('p$i', room.code);
       }
       expect(() => online.joinAs('bruno', room.code), _fails(OnlineFailure.roomFull));
@@ -198,7 +196,7 @@ void main() {
   });
 
   group('gli amici', () {
-    setUp(() => online.signInReady(handle: 'anna', displayName: 'Anna'));
+    setUp(() => online.signInReady(handle: 'anna'));
 
     test('una richiesta, poi accettata dall\'altra parte', () async {
       expect(await online.friends.request('bruno'), FriendStatus.pending);
