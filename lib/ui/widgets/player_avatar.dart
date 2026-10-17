@@ -1,5 +1,10 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
+import '../../roster/portrait_registry.dart';
+import '../avatar/avatar_look.dart';
+import '../avatar/look_painter.dart';
 import '../theme/app_theme.dart';
 import 'noir_avatar.dart';
 
@@ -31,9 +36,16 @@ abstract class AvatarLayer {
 /// Il ritratto di un giocatore, ovunque compaia in partita: la faccia, quello
 /// che indossa e, se è morto, il pugnale. Chi mostra un giocatore passa da
 /// qui, così il guardaroba arriva dappertutto in un colpo solo.
+///
+/// La persona è la stessa che siede al tavolo ([AvatarLook], disegnata da
+/// [LookPainter]) a mezzo busto in una moneta; chi si è fatto fotografare
+/// compare con la sua foto.
 class PlayerAvatar extends StatelessWidget {
   final String seed;
   final double size;
+
+  /// Il look da indossare; senza, quello che spetta a [seed].
+  final AvatarLook? look;
 
   /// Chi è morto compare sbiadito, con il pugnale sopra.
   final bool fallen;
@@ -46,6 +58,7 @@ class PlayerAvatar extends StatelessWidget {
     this.size = 64,
     this.fallen = false,
     this.dress = AvatarDress.none,
+    this.look,
   });
 
   // Il pugnale tipografico, non la croce: iOS disegna "✝" come emoji.
@@ -61,7 +74,15 @@ class PlayerAvatar extends StatelessWidget {
         children: [
           for (final layer in dress.layers)
             if (!layer.inFront) Positioned.fill(child: layer.build(context, size)),
-          NoirAvatar(seed: seed, size: size, faded: fallen),
+          ListenableBuilder(
+            listenable: PortraitRegistry.instance,
+            builder: (context, _) => PortraitRegistry.instance.photoOf(seed) != null
+                ? NoirAvatar(seed: seed, size: size, faded: fallen)
+                : CustomPaint(
+                    size: Size.square(size),
+                    painter: AvatarBustPainter(look ?? AvatarLook.fallback(seed), faded: fallen),
+                  ),
+          ),
           for (final layer in dress.layers)
             if (layer.inFront) Positioned.fill(child: layer.build(context, size)),
           if (fallen)
@@ -80,4 +101,72 @@ class PlayerAvatar extends StatelessWidget {
       ),
     );
   }
+}
+
+/// La moneta del ritratto: il fondo nel colore del vezzo, le righe
+/// dell'altezza, la persona a mezzo busto e la cornice d'oro.
+class AvatarBustPainter extends CustomPainter {
+  final AvatarLook look;
+  final bool faded;
+
+  AvatarBustPainter(this.look, {this.faded = false});
+
+  static const _grey = ColorFilter.matrix([
+    0.30, 0.55, 0.15, 0, 0, //
+    0.30, 0.55, 0.15, 0, 0,
+    0.30, 0.55, 0.15, 0, 0,
+    0, 0, 0, 0.75, 0,
+  ]);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final s = size.shortestSide;
+    final bounds = Offset.zero & Size.square(s);
+    final background = look.outfit.accent;
+    if (faded) canvas.saveLayer(bounds, Paint()..colorFilter = _grey);
+    canvas.save();
+    canvas.clipPath(Path()..addOval(bounds));
+    canvas.drawRect(
+      bounds,
+      Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(-0.25, -0.55),
+          radius: 1.15,
+          colors: [
+            Color.lerp(background, Colors.white, 0.22)!,
+            Color.lerp(background, Colors.black, 0.2)!,
+            Color.lerp(background, Colors.black, 0.7)!,
+          ],
+          stops: const [0, 0.45, 1],
+        ).createShader(bounds),
+    );
+    final ruler = Paint()
+      ..color = Colors.black.withValues(alpha: 0.16)
+      ..strokeWidth = max(0.6, s * 0.008);
+    for (var i = 1; i < 8; i++) {
+      canvas.drawLine(Offset(0, s * i / 8), Offset(i.isEven ? s : s * 0.16, s * i / 8), ruler);
+    }
+    LookPainter.bust(canvas, look, s);
+    canvas.restore();
+    canvas.drawCircle(
+      bounds.center,
+      s / 2 - s * 0.012,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = s * 0.05
+        ..color = Colors.black.withValues(alpha: 0.55),
+    );
+    canvas.drawCircle(
+      bounds.center,
+      s / 2 - max(0.75, s * 0.012),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = max(1.5, s * 0.024)
+        ..color = AppColors.gold.withValues(alpha: 0.9),
+    );
+    if (faded) canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(AvatarBustPainter old) => old.look != look || old.faded != faded;
 }

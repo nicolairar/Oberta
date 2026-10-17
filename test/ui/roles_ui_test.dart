@@ -140,6 +140,9 @@ void main() {
   group('PlayerGrid', () {
     Future<void> pumpGrid(WidgetTester tester, PlayerGrid grid) async {
       _useScreen(tester, const Size(393, 852));
+      // Al tavolo chi aspetta respira e fuma: senza animazioni sta fermo.
+      tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
+      addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
       await tester.pumpWidget(
         MaterialApp(
           theme: buildAppTheme(),

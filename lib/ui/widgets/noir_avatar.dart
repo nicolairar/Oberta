@@ -61,6 +61,23 @@ enum AvatarHead { fedora, bowler, coppola, slicked, bob, bun, wideBrim }
 /// persona altrove, per esempio come sagoma in una scena.
 AvatarHead avatarHeadFor(String seed) => _Look.from(seed).head;
 
+/// Quello che il ritratto disegnato mostra di [seed], per nome: chi veste la
+/// stessa persona altrove (il guardaroba, `AvatarLook`) parte da qui, così la
+/// faccia al tavolo e quella nella moneta sono la stessa.
+({int tint, AvatarHead head, String face, String extra, String collar}) avatarTraitsFor(String seed) {
+  final look = _Look.from(seed);
+  return (
+    tint: _Look._backgrounds.indexOf(look.background),
+    head: look.head,
+    face: look.face.name,
+    extra: look.extra.name,
+    collar: look.collar.name,
+  );
+}
+
+/// I colori dei fondali dei ritratti, nell'ordine di [avatarTraitsFor].
+const avatarTints = _Look._backgrounds;
+
 enum _Face { eyes, mustache, lips, scar, glasses, monocle, shades }
 
 enum _Extra { none, cigarette, earring, toothpick, none2 }

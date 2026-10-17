@@ -218,6 +218,8 @@ void main() {
     }
     testWidgets('rimescolo $phone', (tester) async {
       addTearDown(tester.view.reset);
+      // Qui il giro si deve vedere: le partite prima spengono le animazioni.
+      tester.platformDispatcher.clearAccessibilityFeaturesTestValue();
       tester.view.physicalSize = size * 3;
       tester.view.devicePixelRatio = 3;
       final players = [for (var i = 0; i < 8; i++) Player(id: 'p$i', name: _names[i])];

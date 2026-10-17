@@ -7,6 +7,7 @@ import 'package:oberta/rules/knowledge.dart';
 import 'package:oberta/rules/player.dart';
 import 'package:oberta/rules/role_assignment.dart';
 import 'package:oberta/ui/screens/game_screen.dart';
+import 'package:oberta/ui/avatar/seated_character.dart';
 import 'package:oberta/ui/seating.dart';
 import 'package:oberta/ui/theme/app_theme.dart';
 import 'package:oberta/ui/widgets/player_avatar.dart';
@@ -118,10 +119,16 @@ void main() {
     expect(table(), orderedEquals(public), reason: 'al voto, lo stesso tavolo del giorno');
   });
 
-  testWidgets('chi viene scelto si alza dalla sedia, sopra tutti, col timbro', (tester) async {
+  void still(WidgetTester tester) {
+    tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+  }
+
+  testWidgets('chi viene scelto si alza dalla sedia, sopra tutti, col timbro sul petto', (tester) async {
     tester.view.physicalSize = const Size(375, 667) * 3;
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
+    still(tester);
     final players = _players(6);
     Player? selected;
     await tester.pumpWidget(
@@ -152,6 +159,14 @@ void main() {
       find.descendant(of: find.byType(PlayerGrid), matching: find.byType(Stack)).first,
     );
     expect(stack.children.last.key, ValueKey(players[3].id), reason: 'il prescelto sta sopra gli altri');
+
+    // Il timbro sta sul petto di chi si è alzato: la faccia resta scoperta.
+    final seat = PokerTableLayout.fit(6, tester.getSize(find.byType(PlayerGrid))).seats[3];
+    final grid = tester.getTopLeft(find.byType(PlayerGrid));
+    final stamp = tester.getRect(find.text('IMPUTATO'));
+    final chin = grid.dy + seat.base.dy - seat.size * (0.64 + 0.42);
+    expect(stamp.top, greaterThan(chin), reason: 'il timbro non copre la faccia');
+
     await tester.tap(find.text(players[5].name), warnIfMissed: false);
     await tester.pumpAndSettle();
     expect(selected, players[3], reason: 'i morti non si scelgono');
@@ -159,43 +174,54 @@ void main() {
   });
 
   group('il tavolo da poker', () {
-    const phones = [Size(327, 300), Size(327, 420), Size(345, 560), Size(382, 640)];
+    // Il più piccolo è il voto su un telefono piccolo, il più grande la notte su uno grande.
+    const phones = [Size(327, 350), Size(327, 405), Size(345, 560), Size(382, 640)];
+
+    void fits(PokerTableLayout layout, Size space, String why) {
+      final boxes = [for (final seat in layout.seats) PokerTableLayout.footprint(seat)];
+      if (layout.own != null) boxes.add(layout.own!);
+      for (final (i, box) in boxes.indexed) {
+        expect(box.width, greaterThanOrEqualTo(44), reason: why);
+        expect(box.height, greaterThanOrEqualTo(44), reason: why);
+        expect((Offset.zero & space).inflate(0.5).contains(box.topLeft), isTrue, reason: '$why: $i esce');
+        expect((Offset.zero & space).inflate(0.5).contains(box.bottomRight), isTrue, reason: '$why: $i esce');
+        for (final other in boxes.skip(i + 1)) {
+          final overlap = box.intersect(other);
+          expect(overlap.width <= 1 || overlap.height <= 1, isTrue, reason: '$why: $i si sovrappone');
+        }
+      }
+    }
 
     test('da quattro a sedici, tutti ci stanno senza coprirsi, e ogni posto si tocca bene', () {
       for (final space in phones) {
         for (var count = 4; count <= maxRolePlayers; count++) {
           final layout = PokerTableLayout.fit(count, space);
-          final boxes = [for (final seat in layout.seats) PokerTableLayout.footprint(seat.portrait, seat.size)];
-          final why = '$count posti in $space';
-          expect(boxes, hasLength(count), reason: why);
-          for (final (i, box) in boxes.indexed) {
-            expect(box.width, greaterThanOrEqualTo(44), reason: why);
-            expect(box.height, greaterThanOrEqualTo(44), reason: why);
-            expect((Offset.zero & space).inflate(0.5).contains(box.topLeft), isTrue, reason: '$why: $i esce');
-            expect((Offset.zero & space).inflate(0.5).contains(box.bottomRight), isTrue, reason: '$why: $i esce');
-            for (final other in boxes.skip(i + 1)) {
-              final overlap = box.intersect(other);
-              expect(overlap.width <= 1 || overlap.height <= 1, isTrue, reason: '$why: $i si sovrappone');
-            }
-          }
+          expect(layout.seats, hasLength(count));
+          fits(layout, space, '$count posti in $space');
+          // Chi tiene il telefono siede qui davanti: di fronte uno di meno.
+          // Il tavolo personale, di notte, ha sempre un po' più di spazio.
+          if (space.height < 400) continue;
+          final mine = PokerTableLayout.fit(count - 1, space, own: true);
+          expect(mine.seats, hasLength(count - 1));
+          fits(mine, space, '$count posti in $space, col proprio');
         }
       }
     });
 
-    test('chi siede davanti è più grande di chi siede in fondo', () {
-      final layout = PokerTableLayout.fit(8, const Size(327, 420));
-      final back = layout.seats.first, front = layout.seats[4];
-      expect(back.depth, lessThan(front.depth));
-      expect(back.size, lessThan(front.size));
-      expect(back.portrait.dy, lessThan(front.portrait.dy));
+    test('chi siede ai lati è più vicino e più grande di chi siede di fronte', () {
+      final layout = PokerTableLayout.fit(8, const Size(345, 560));
+      final side = layout.seats.first, across = layout.seats[4];
+      expect(side.depth, greaterThan(across.depth));
+      expect(side.size, greaterThan(across.size * 1.3));
+      expect(side.base.dy, greaterThan(across.base.dy));
+      expect(side.base.dx, lessThan(layout.seats.last.base.dx), reason: 'si va da sinistra a destra');
     });
 
     testWidgets('i posti non dipendono da chi ci siede', (tester) async {
       tester.view.physicalSize = const Size(375, 667) * 3;
       tester.view.devicePixelRatio = 3;
       addTearDown(tester.view.reset);
-      tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
-      addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+      still(tester);
       final players = _players(8);
       Future<Map<int, Offset>> seats(List<Player> order) async {
         await tester.pumpWidget(
@@ -213,15 +239,15 @@ void main() {
           ),
         );
         await tester.pump();
-        return {for (final (i, p) in order.indexed) i: tester.getTopLeft(find.text(p.name))};
+        return {for (final (i, p) in order.indexed) i: tester.getCenter(find.text(p.name))};
       }
 
       final first = await seats(players);
       final second = await seats(players.reversed.toList());
       for (var i = 0; i < players.length; i++) {
-        expect((first[i]! - second[i]!).dx.abs(), lessThan(40), reason: 'il posto $i resta dov\'è');
+        expect((first[i]! - second[i]!).distance, lessThan(1), reason: 'il posto $i resta dov\'è');
       }
-      expect(tester.hasRunningAnimations, isFalse, reason: 'senza animazioni nessuno cammina');
+      expect(tester.hasRunningAnimations, isFalse, reason: 'senza animazioni nessuno si muove');
     });
 
     testWidgets('al tavolo segreto i giocatori cambiano sedia, poi si fermano', (tester) async {
@@ -244,19 +270,54 @@ void main() {
         ),
       );
       final start = tester.getCenter(find.text(players[0].name));
-      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(milliseconds: 600));
       final walking = tester.getCenter(find.text(players[0].name));
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 1500));
       final seated = tester.getCenter(find.text(players[0].name));
+      await tester.pump(const Duration(seconds: 3));
+      expect(tester.getCenter(find.text(players[0].name)), seated, reason: 'seduto, resta al suo posto');
       expect((start - seated).distance, greaterThan(50), reason: 'arriva da un\'altra sedia');
       expect((walking - seated).distance, greaterThan(1));
-      expect(tester.hasRunningAnimations, isFalse);
+    });
+
+    testWidgets('chi tiene il telefono guarda dalla sua sedia, qui davanti', (tester) async {
+      tester.view.physicalSize = const Size(375, 667) * 3;
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.reset);
+      still(tester);
+      final players = _players(6);
+      Player? picked;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildAppTheme(),
+          home: Scaffold(
+            body: PlayerGrid(
+              players: players,
+              isAlive: (_) => true,
+              knowledgeOf: (_) => Knowledge.none,
+              viewer: players[2],
+              selectable: players,
+              onSelect: (player) => picked = player,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('TU'), findsOneWidget);
+      final mine = tester.getCenter(find.text(players[2].name));
+      for (final other in players) {
+        if (other == players[2]) continue;
+        expect(tester.getCenter(find.text(other.name)).dy, lessThan(mine.dy), reason: 'gli altri sono di là dal tavolo');
+      }
+      await tester.tap(find.text(players[2].name));
+      expect(picked, players[2], reason: 'ci si può scegliere, se il ruolo lo permette');
     });
 
     testWidgets('chi non c\'è più lascia la sedia vuota, col pugnale', (tester) async {
       tester.view.physicalSize = const Size(375, 667) * 3;
       tester.view.devicePixelRatio = 3;
       addTearDown(tester.view.reset);
+      still(tester);
       final players = _players(5);
       await tester.pumpWidget(
         MaterialApp(
@@ -267,7 +328,12 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.byType(PlayerAvatar), findsNWidgets(4), reason: 'la sedia del morto è vuota');
+      final painters = [
+        for (final paint in tester.widgetList<CustomPaint>(find.byType(CustomPaint)))
+          if (paint.painter case final SeatedCharacterPainter painter) painter,
+      ];
+      expect(painters, hasLength(5));
+      expect(painters.where((painter) => painter.empty), hasLength(1), reason: 'la sedia del morto è vuota');
       expect(find.text(PlayerAvatar.dagger), findsOneWidget);
       expect(find.text(players[2].name), findsOneWidget, reason: 'la targhetta resta');
     });
