@@ -67,7 +67,7 @@ export async function stepRoom(db: Db, engine: Engine, room: string, now?: numbe
       seen,
     };
     const out = engine(input);
-    await tx.query(`select internal.game_commit($1::uuid, $2::jsonb)`, [room, JSON.stringify(out)]);
+    await tx.query(`select internal.game_commit($1::uuid, $2::text::jsonb)`, [room, JSON.stringify(out)]);
     return true;
   });
 }
