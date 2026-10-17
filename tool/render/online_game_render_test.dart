@@ -101,7 +101,11 @@ Future<T> _settled<T>(WidgetTester tester, Future<T> future) async {
 }
 
 void main() {
-  testWidgets('partita online', (tester) async {
+  testWidgets('partita online', (tester) => _play(tester, bots: 6, prefix: ''));
+  testWidgets('partita online a quindici', (tester) => _play(tester, bots: 13, prefix: 'big_', voteOnly: true));
+}
+
+Future<void> _play(WidgetTester tester, {required int bots, required String prefix, bool voteOnly = false}) async {
     await tester.runAsync(_loadFonts);
     tester.view.physicalSize = const Size(390, 844) * 3;
     tester.view.devicePixelRatio = 3;
@@ -111,7 +115,7 @@ void main() {
       ..addPlayer('anna', handle: 'anna');
     final room = online.openRoomAs('anna', AppLanguage.it);
     online.joinAs('bruno', room.code);
-    await _settled(tester, online.gameAs('anna').setBots(room.id, 6));
+    await _settled(tester, online.gameAs('anna').setBots(room.id, bots));
     await _settled(tester, online.gameAs('anna').startGame(room.id));
     final me = await _settled(tester, online.services.profiles.me());
     await tester.pumpWidget(RepaintBoundary(
@@ -131,13 +135,17 @@ void main() {
       ),
     ));
     await _flush(tester);
-    await _shot(tester, '00_curtain');
+    await tester.pump(const Duration(milliseconds: 900));
+    await _shot(tester, '${prefix}00_arrival', settle: false);
+    await tester.pump(const Duration(milliseconds: 1800));
+    await _shot(tester, '${prefix}00_dealing');
+    await tester.pump(const Duration(seconds: 2));
     clock.elapse(const Duration(seconds: 2));
     await _flush(tester);
-    await _shot(tester, '01_card_back');
+    await _shot(tester, '${prefix}01_card_back');
     final hold = await tester.startGesture(tester.getCenter(find.byType(NoirRoleCard)));
     await tester.pump(const Duration(milliseconds: 700));
-    await _shot(tester, '02_card_face', settle: false);
+    await _shot(tester, '${prefix}02_card_face', settle: false);
     await hold.up();
     await tester.pump(const Duration(milliseconds: 700));
     final shot = <String>{};
@@ -150,8 +158,12 @@ void main() {
         if (find.byKey(Key(key)).evaluate().isEmpty) continue;
         shot.add(name);
         if (name == 'discussion') {
-          await _settled(tester, online.gameAs('anna').sendChat(room.id, ChatChannel.day, 'Stanotte ho sentito dei passi vicino al porto.'));
-          await _settled(tester, online.services.game.sendChat(room.id, ChatChannel.day, "Chi era fuori a quell'ora?"));
+          for (final (game, text) in [
+            (online.gameAs('anna'), 'Stanotte ho sentito dei passi vicino al porto.'),
+            (online.services.game, "Chi era fuori a quell'ora?"),
+          ]) {
+            await _settled(tester, game.sendChat(room.id, ChatChannel.day, text).then((_) => true, onError: (_) => false));
+          }
           await _flush(tester);
         }
         if (name == 'vote') {
@@ -164,7 +176,8 @@ void main() {
             await _flush(tester);
           }
         }
-        await _shot(tester, 'stage_${shot.length}_$name');
+        await _shot(tester, '${prefix}stage_${shot.length}_$name');
+        if (voteOnly && name == 'vote') return;
       }
       clock.fireNext();
       await _flush(tester);
@@ -176,6 +189,5 @@ void main() {
     }
     clock.elapse(const Duration(seconds: 2));
     await _flush(tester);
-    await _shot(tester, 'stage_9_end');
-  });
+    await _shot(tester, '${prefix}stage_9_end');
 }

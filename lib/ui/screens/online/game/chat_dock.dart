@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import '../../../../online/online_services.dart';
@@ -70,18 +72,22 @@ class ChatDock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final last = messages.length > 3 ? messages.sublist(messages.length - 3) : messages;
+    final last = messages.length > 2 ? messages.sublist(messages.length - 2) : messages;
     return GestureDetector(
       key: const Key('chat.dock'),
       behavior: HitTestBehavior.opaque,
       onTap: pressed(() => _open(context), Press.tap),
       child: Container(
+        // Sollevata dal bordo: sopra la barra di sistema e lontana dagli
+        // angoli, con un margine comodo.
+        margin: EdgeInsets.fromLTRB(10, 4, 10, max(MediaQuery.viewPaddingOf(context).bottom, 8) + 8),
         decoration: BoxDecoration(
-          color: Saloon.ink.withValues(alpha: 0.94),
-          border: Border(top: BorderSide(color: view.accent.withValues(alpha: 0.8), width: 1.4)),
-          boxShadow: const [BoxShadow(color: Colors.black, blurRadius: 14, offset: Offset(0, -4))],
+          color: Saloon.ink.withValues(alpha: 0.95),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: view.accent.withValues(alpha: 0.8), width: 1.3),
+          boxShadow: const [BoxShadow(color: Colors.black, blurRadius: 14, offset: Offset(0, 4))],
         ),
-        padding: const EdgeInsets.fromLTRB(14, 8, 10, 8),
+        padding: const EdgeInsets.fromLTRB(14, 9, 10, 9),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -94,7 +100,7 @@ class ChatDock extends StatelessWidget {
                     children: [
                       Icon(view.note == null ? Icons.chat_bubble : Icons.lock, size: 13, color: view.accent),
                       const SizedBox(width: 6),
-                      Text(view.title.toUpperCase(), style: AppText.overline.copyWith(color: view.accent, fontSize: 11)),
+                      Text(view.title.toUpperCase(), style: AppText.overline.copyWith(color: view.accent, fontSize: 12)),
                       if (view.note != null) ...[
                         const SizedBox(width: 8),
                         Flexible(
@@ -176,6 +182,10 @@ class _ChatSheetState extends State<ChatSheet> {
   final _text = TextEditingController();
   bool _sending = false;
 
+  /// Perché l'ultimo messaggio non è partito: si legge qui, nel foglio (un
+  /// avviso in fondo allo schermo resterebbe nascosto dietro).
+  String? _failure;
+
   @override
   void dispose() {
     _text.dispose();
@@ -185,12 +195,15 @@ class _ChatSheetState extends State<ChatSheet> {
   Future<void> _send() async {
     final body = _text.text.trim();
     if (body.isEmpty || _sending) return;
-    setState(() => _sending = true);
+    setState(() {
+      _sending = true;
+      _failure = null;
+    });
     try {
       await widget.onSend(body);
       _text.clear();
     } catch (error) {
-      if (mounted) showFailure(context, error);
+      if (mounted) setState(() => _failure = failureText(context, error));
     } finally {
       if (mounted) setState(() => _sending = false);
     }
@@ -242,6 +255,12 @@ class _ChatSheetState extends State<ChatSheet> {
                       ),
               ),
               const SizedBox(height: 8),
+              if (_failure case final failure? when view.note == null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Text(failure, key: const Key('chat.failure'), textAlign: TextAlign.center,
+                      style: AppText.body.copyWith(color: const Color(0xFFFF8A80), fontSize: 13)),
+                ),
               if (view.note case final note?)
                 Container(
                   padding: const EdgeInsets.all(12),

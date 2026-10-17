@@ -461,7 +461,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     child: HomeSoonPoster(
                       title: t.online.posterTitle,
                       blurb: t.online.posterBlurb,
-                      strip: t.online.posterStrip,
                       emblem: HomeSoonEmblem.phones,
                       paper: const Color(0xFF1C3148),
                       seed: 8,

@@ -399,21 +399,33 @@ class _DeathSceneState extends State<DeathScene>
             return Stack(
               fit: StackFit.expand,
               children: [
-                Align(
-                  alignment: const Alignment(0, 0.93),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 28),
-                    child: Opacity(
-                      opacity: 1 - _span(t, 0.80, 0.86),
-                      child: Text(
-                        widget.caption.substring(0, typed),
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontFamily: 'Courier',
-                          fontFamilyFallback: ['monospace'],
-                          color: AppColors.textPrimary,
-                          fontSize: 14,
-                          height: 1.3,
+                SafeArea(
+                  minimum: const EdgeInsets.only(bottom: 18),
+                  child: Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(22, 0, 22, 14),
+                      child: Opacity(
+                        opacity: 1 - _span(t, 0.80, 0.86),
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: typed == 0 ? 0 : 0.55),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            child: Text(
+                              widget.caption.substring(0, typed),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontFamily: 'Courier',
+                                fontFamilyFallback: ['monospace'],
+                                color: AppColors.textPrimary,
+                                fontSize: 15,
+                                height: 1.35,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ),
