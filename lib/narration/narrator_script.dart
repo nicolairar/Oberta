@@ -56,14 +56,17 @@ class NarratorScript {
     );
   }
 
-  List<ScriptLine> opening() => [
+  /// [online]: la partita in cui ognuno è a casa sua col suo telefono. Lì
+  /// il copione è solo il racconto: niente istruzioni pensate per il
+  /// telefono che gira al tavolo (le fasi le scandisce il server).
+  List<ScriptLine> opening({bool online = false}) => [
         _story(_picker.pick('opening', city.openings)),
-        _fact(pack.howToPlay),
+        if (!online) _fact(pack.howToPlay),
       ];
 
-  List<ScriptLine> nightFalls(int round) => [
+  List<ScriptLine> nightFalls(int round, {bool online = false}) => [
         _story(round == 1 ? _picker.pick('night.first', pack.firstNights) : _picker.pick('night', pack.nights)),
-        _fact(pack.nightInstruction),
+        if (!online) _fact(pack.nightInstruction),
       ];
 
   /// Sorteggia come è morta una vittima. Chi mette in scena il delitto e chi
@@ -110,6 +113,7 @@ class NarratorScript {
     DawnReport report, {
     required Duration discussion,
     List<DeathStory>? stories,
+    bool online = false,
   }) {
     final lines = <ScriptLine>[];
     final scenes = stories ?? stage(report);
@@ -140,10 +144,10 @@ class NarratorScript {
     final silenced = report.silenced;
     if (silenced != null && report.winner == null) {
       lines.add(_story(_picker.pick('silence', pack.silences), name: silenced.name));
-      lines.add(_fact(pack.silencedFact, name: silenced.name));
+      lines.add(_fact(online ? pack.silencedFactOnline : pack.silencedFact, name: silenced.name));
     }
 
-    if (report.winner == null) {
+    if (report.winner == null && !online) {
       final count = discussion.inMinutes;
       final minutes = count == 1 ? [VoicePart.spoken(pack.oneMinute)] : _parts(pack.manyMinutes, count: count);
       lines.add(_fact(pack.dayInstruction, minutes: minutes));

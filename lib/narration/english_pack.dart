@@ -346,6 +346,7 @@ const englishPack = NarrationPack(
   ],
   silencedFact:
       'Today {name} can\'t talk during the discussion. {name} votes with gestures and can still be eliminated.',
+  silencedFactOnline: 'Today {name} can\'t write in the town chat. {name} still votes and can still be eliminated.',
   dayInstruction: 'You have {minutes} to discuss. Then vote on who to eliminate.',
   oneMinute: 'one minute',
   manyMinutes: '{minutes} minutes',

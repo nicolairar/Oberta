@@ -344,6 +344,7 @@ const italianPack = NarrationPack(
   ],
   silencedFact:
       'Oggi {name} non può parlare durante la discussione. Vota a gesti, e resta tra chi potete eliminare.',
+  silencedFactOnline: 'Oggi {name} non può scrivere nella piazza. Vota come tutti, e resta tra chi si può eliminare.',
   dayInstruction: 'Avete {minutes} per discutere. Poi votate chi eliminare.',
   oneMinute: 'un minuto',
   manyMinutes: '{minutes} minuti',

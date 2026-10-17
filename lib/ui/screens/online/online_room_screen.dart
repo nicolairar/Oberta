@@ -6,11 +6,11 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../l10n/app_strings.dart';
 import '../../../online/game/bot_brain.dart';
-import '../../../online/game/game_authority.dart';
 import '../../../online/join_code.dart';
 import '../../../online/online_services.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/scene_scaffold.dart';
+import 'chat_panel.dart';
 import 'online_game_screen.dart';
 import 'online_widgets.dart';
 
@@ -19,6 +19,8 @@ import 'online_widgets.dart';
 /// Da qui si chiede l'amicizia a chi siede al tavolo. Il padrone di casa
 /// mette i bot di prova e dà le carte; a chi aspetta, la partita si apre da
 /// sola quando comincia.
+///
+/// Sotto, la chat della stanza.
 ///
 /// Uscendo dalla schermata si esce anche dalla stanza.
 class OnlineRoomScreen extends StatefulWidget {
@@ -36,6 +38,8 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> {
   late Room _room = widget.room;
   List<RoomMember> _members = const [];
   StreamSubscription<List<RoomMember>>? _watch;
+  StreamSubscription<List<ChatMessage>>? _chatWatch;
+  List<ChatMessage> _chat = const [];
 
   /// Con chi c'è già un legame (amici o richiesta in corso): niente pulsante.
   final Set<String> _linked = {};
@@ -59,6 +63,12 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> {
             if (mounted) showFailure(context, error);
           },
         );
+    _chatWatch = widget.services.game.watchChat(_room.id).listen(
+      (messages) {
+        if (mounted) setState(() => _chat = [for (final m in messages) if (m.channel == ChatChannel.lobby) m]);
+      },
+      onError: (Object _) {},
+    );
     _loadFriends();
     // Chi rientra in una stanza che sta già giocando torna al tavolo.
     if (_room.status == RoomStatus.playing) {
@@ -104,23 +114,17 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> {
     }
   }
 
-  /// Il padrone di casa dà le carte: da qui il suo telefono tiene la partita.
+  /// Il padrone di casa apre la partita: le carte le dà il server, e da lì
+  /// in poi il suo telefono è uno come gli altri.
   Future<void> _start() async {
     if (_busy || _inGame) return;
     HapticFeedback.mediumImpact();
-    // Da subito: la stanza che passa a «si gioca» non deve aprire una
-    // seconda partita mentre questa si prepara.
+    // Da subito: la stanza che passa a «si gioca» non deve aprire la
+    // partita due volte.
     _inGame = true;
     setState(() => _busy = true);
-    GameAuthority authority;
     try {
-      authority = await GameAuthority.start(
-        backend: widget.services.game,
-        roomId: _room.id,
-        members: _members,
-        bots: _room.bots,
-        language: _room.language,
-      );
+      await widget.services.game.startGame(_room.id);
     } catch (error) {
       _inGame = false;
       if (mounted) {
@@ -129,35 +133,21 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> {
       }
       return;
     }
-    if (!mounted) {
-      authority.dispose();
-      return;
-    }
+    if (!mounted) return;
     setState(() => _busy = false);
-    await _showGame(authority);
+    await _showGame();
   }
 
-  /// La partita è cominciata (o si rientra): chi la tiene la riprende, gli
-  /// altri si siedono.
+  /// La partita è cominciata (o si rientra): ci si siede.
   Future<void> _joinGame() async {
     if (_inGame || !mounted) return;
     _inGame = true;
-    GameAuthority? authority;
-    try {
-      authority = await GameAuthority.resume(backend: widget.services.game, roomId: _room.id);
-    } catch (error) {
-      debugPrint('Nessuna partita da riprendere: $error');
-    }
-    if (!mounted) {
-      authority?.dispose();
-      return;
-    }
-    await _showGame(authority);
+    await _showGame();
   }
 
-  Future<void> _showGame(GameAuthority? authority) async {
+  Future<void> _showGame() async {
     await Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => OnlineGameScreen(services: widget.services, room: _room, me: widget.me, authority: authority),
+      builder: (_) => OnlineGameScreen(services: widget.services, room: _room, me: widget.me),
     ));
     _inGame = false;
     try {
@@ -169,6 +159,7 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> {
   @override
   void dispose() {
     _watch?.cancel();
+    _chatWatch?.cancel();
     // Uscita senza un gesto (l'app che si chiude): la stanza passa da sola
     // al primo arrivato, nessuno resta senza padrone di casa.
     if (!_left) widget.services.rooms.leave(_room.id, autoHeir: true).ignore();
@@ -367,6 +358,21 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> {
               ],
             ] else
               Text(t.waitingForHost, key: const Key('online.waitingForHost'), textAlign: TextAlign.center, style: AppText.body),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 220,
+              child: ChatPanel(
+                key: const Key('online.lobbyChat'),
+                title: t.chatLobby,
+                messages: _chat,
+                myId: widget.me.id,
+                note: _room.status == RoomStatus.lobby ? null : t.chatNightClosed,
+                hint: t.chatHint,
+                empty: t.chatEmpty,
+                sendLabel: t.chatSend,
+                onSend: (body) => widget.services.game.sendChat(_room.id, ChatChannel.lobby, body),
+              ),
+            ),
             const SizedBox(height: 12),
             OutlinedButton(onPressed: _askToLeave, child: Text(t.leaveRoom)),
           ],

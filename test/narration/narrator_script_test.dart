@@ -721,4 +721,24 @@ void main() {
       expect(seen.take(deck).toSet(), hasLength(deck), reason: 'tutte le azioni escono prima che una si ripeta');
     });
   });
+
+  group('online', () {
+    test('solo il racconto: niente telefono da passare, niente minuti, niente a voce', () {
+      for (var seed = 0; seed < 20; seed++) {
+        final script = scriptIn('chicago', seed);
+        final lines = [
+          ...script.opening(online: true),
+          ...script.nightFalls(1, online: true),
+          ...script.nightFalls(2, online: true),
+          ...script.dawn(night(1, [sara], silenced: luca), discussion: threeMinutes, online: true),
+          ...script.dawn(night(2, const []), discussion: threeMinutes, online: true),
+        ].map((line) => line.text).join('\n');
+        expect(lines, isNot(contains(italianPack.nightInstruction)));
+        expect(lines, isNot(contains(italianPack.howToPlay)));
+        expect(lines, isNot(contains('minut')));
+        expect(lines, isNot(contains('gesti')));
+        expect(lines, contains('Luca non può scrivere'));
+      }
+    });
+  });
 }

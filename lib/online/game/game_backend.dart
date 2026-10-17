@@ -1,7 +1,7 @@
 import '../../rules/intent.dart';
 
-/// Un posto per la partita, come lo manda chi la apre: un giocatore della
-/// stanza (con il suo profilo) o un bot (senza).
+/// Un posto della partita, come lo registra il server quando la apre: un
+/// giocatore della stanza (con il suo profilo) o un bot (senza).
 class SeatPlan {
   final String seat;
   final String? profileId;
@@ -12,6 +12,9 @@ class SeatPlan {
   bool get isBot => profileId == null;
 
   Map<String, Object?> toJson() => {'seat': seat, 'profile_id': profileId, 'name': name};
+
+  factory SeatPlan.fromJson(Map<String, Object?> json) =>
+      SeatPlan(seat: json['seat'] as String, profileId: json['profile_id'] as String?, name: json['name'] as String);
 }
 
 /// Una versione del tavolo pubblico, come la legge chiunque sia nella stanza.
@@ -40,64 +43,90 @@ class GameFeed {
   const GameFeed({this.board, this.seat});
 }
 
-/// Un'intenzione arrivata all'autorità: chi l'ha mandata (il posto lo mette
-/// il server, non il client) e cosa chiede.
+/// Un'intenzione arrivata al server: chi l'ha mandata (il posto lo mette
+/// il database, non il client) e cosa chiede.
 class IntentEnvelope {
   final int id;
   final String seat;
   final Map<String, Object?> intent;
 
   const IntentEnvelope({required this.id, required this.seat, required this.intent});
+
+  Map<String, Object?> toJson() => {'id': id, 'seat': seat, 'intent': intent};
+
+  factory IntentEnvelope.fromJson(Map<String, Object?> json) => IntentEnvelope(
+        id: (json['id'] as num).toInt(),
+        seat: json['seat'] as String,
+        intent: (json['intent'] as Map).cast<String, Object?>(),
+      );
 }
 
-/// Una pubblicazione dell'autorità: il tavolo pubblico, una vista per ogni
-/// posto umano, lo stato salvato per riprendere la partita, l'ultima
-/// intenzione gestita. Va sul server tutta insieme, o niente.
-class GamePublication {
-  final int version;
-  final Map<String, Object?> board;
-  final Map<String, Map<String, Object?>> seatViews;
-  final Map<String, Object?> hostState;
-  final int? lastIntent;
-  final bool finished;
-
-  const GamePublication({
-    required this.version,
-    required this.board,
-    required this.seatViews,
-    required this.hostState,
-    this.lastIntent,
-    this.finished = false,
-  });
-}
-
-/// Il tubo della partita online. Il server non conosce le regole: controlla
-/// solo chi può leggere e scrivere cosa (vedi la migrazione
-/// `20261017160000_online_games.sql`). Ogni chiamata agisce per l'account
-/// che è entrato su questo telefono.
+/// Il tubo della partita online, visto da un telefono. La partita gira sul
+/// server (la Edge Function `game`, vedi `game_server.dart`): il telefono
+/// non conosce i ruoli degli altri, nemmeno quello del padrone di casa.
+/// Ogni chiamata agisce per l'account che è entrato su questo telefono.
 abstract class GameBackend {
   /// Il padrone di casa mette (o toglie) i bot di prova nella stanza.
   Future<void> setBots(String roomId, int count);
 
-  /// Il padrone di casa apre la partita: chi siede dove. Da qui il suo
-  /// telefono è l'autorità della partita.
-  Future<void> startGame(String roomId, List<SeatPlan> seats);
-
-  /// Solo l'autorità: una nuova versione della partita.
-  Future<void> publish(String roomId, GamePublication publication);
-
-  /// Solo l'autorità: le intenzioni ancora da gestire, aggiornate a ogni
-  /// arrivo (e subito, all'ascolto: chi riprende la partita le ritrova).
-  Stream<List<IntentEnvelope>> watchIntents(String roomId);
-
-  /// Solo l'autorità: lo stato salvato all'ultima pubblicazione.
-  Future<Map<String, Object?>?> loadHostState(String roomId);
+  /// Il padrone di casa apre la partita. I posti li decide il server (le
+  /// persone nell'ordine della stanza, poi i bot), e le carte le dà lui.
+  Future<void> startGame(String roomId);
 
   /// Il tavolo pubblico e la propria vista, ogni volta che cambiano; subito
   /// la versione attuale, così chi ricarica l'app riprende da dove era.
   Stream<GameFeed> watchGame(String roomId);
 
   /// Manda un'intenzione per il proprio posto. Torna il suo numero: la
-  /// risposta dell'autorità arriva nella vista con lo stesso numero.
+  /// risposta del server arriva nella vista con lo stesso numero.
   Future<int> sendIntent(String roomId, PlayerIntent intent);
+
+  /// Conferma al server di aver finito la fase [stage] (`dawn-2`): carta
+  /// vista, film finito, letto.
+  Future<void> sendAck(String roomId, String seat, String stage);
+
+  /// «Ci sono»: il telefono lo dice ogni pochi secondi finché è in partita.
+  /// Torna l'ora del server, in millisecondi.
+  Future<int> ping(String roomId);
+
+  /// Scrive nella chat [channel] della stanza. Il server controlla chi può
+  /// scrivere dove e quando, e le parole.
+  Future<void> sendChat(String roomId, ChatChannel channel, String body);
+
+  /// I messaggi che questo telefono può leggere, dal più vecchio al più nuovo.
+  Stream<List<ChatMessage>> watchChat(String roomId);
+}
+
+/// Le chat di una stanza: quella della stanza prima della partita, quella
+/// della piazza di giorno (per i vivi), quella della famiglia di notte.
+enum ChatChannel { lobby, day, family }
+
+class ChatMessage {
+  final int id;
+  final ChatChannel channel;
+  final String profileId;
+  final String? seat;
+  final String name;
+  final String body;
+  final DateTime at;
+
+  const ChatMessage({
+    required this.id,
+    required this.channel,
+    required this.profileId,
+    required this.seat,
+    required this.name,
+    required this.body,
+    required this.at,
+  });
+
+  factory ChatMessage.fromJson(Map<String, Object?> json) => ChatMessage(
+        id: (json['id'] as num).toInt(),
+        channel: ChatChannel.values.byName(json['channel'] as String),
+        profileId: json['profile_id'] as String,
+        seat: json['seat'] as String?,
+        name: json['name'] as String,
+        body: json['body'] as String,
+        at: DateTime.parse(json['created_at'] as String),
+      );
 }

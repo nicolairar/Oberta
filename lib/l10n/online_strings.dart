@@ -112,9 +112,34 @@ abstract class OnlineStrings {
   String votesCast(int votes, int alive);
   String closesIn(String time);
   String get rejected;
-  String get hostSilent;
-  String get hostLeaveWarning;
+  String get serverSilent;
   String get backToRoom;
+  String timeLeft(String time);
+  String get startingSoon;
+  String get ready;
+  String get readyWaiting;
+  String get moveRegistered;
+  String get voteRegistered;
+  String get sending;
+  String get offlineBadge;
+  String leftTown(String name, String role);
+  String get gameClosed;
+  String votesFor(int votes);
+  String get nightTitleOnline;
+  String get discussionTitle;
+  String get discussionHint;
+  String get verdictWaiting;
+
+  // La chat.
+  String get chatHint;
+  String get chatLobby;
+  String get chatTown;
+  String get chatFamily;
+  String get chatEmpty;
+  String get chatNightClosed;
+  String get chatDead;
+  String get chatSilenced;
+  String get chatSend;
 
   // Gli amici.
   String get searchHint;
@@ -215,9 +240,32 @@ abstract class OnlineStrings {
     'votesCast': votesCast(3, 7),
     'closesIn': closesIn('1:30'),
     'rejected': rejected,
-    'hostSilent': hostSilent,
-    'hostLeaveWarning': hostLeaveWarning,
+    'serverSilent': serverSilent,
     'backToRoom': backToRoom,
+    'timeLeft': timeLeft('0:30'),
+    'startingSoon': startingSoon,
+    'ready': ready,
+    'readyWaiting': readyWaiting,
+    'moveRegistered': moveRegistered,
+    'voteRegistered': voteRegistered,
+    'sending': sending,
+    'offlineBadge': offlineBadge,
+    'leftTown': leftTown('sara', 'Medico'),
+    'gameClosed': gameClosed,
+    'votesFor': votesFor(2),
+    'nightTitleOnline': nightTitleOnline,
+    'discussionTitle': discussionTitle,
+    'discussionHint': discussionHint,
+    'verdictWaiting': verdictWaiting,
+    'chatHint': chatHint,
+    'chatLobby': chatLobby,
+    'chatTown': chatTown,
+    'chatFamily': chatFamily,
+    'chatEmpty': chatEmpty,
+    'chatNightClosed': chatNightClosed,
+    'chatDead': chatDead,
+    'chatSilenced': chatSilenced,
+    'chatSend': chatSend,
     'searchHint': searchHint,
     'requests': requests,
     'yourFriends': yourFriends,
@@ -427,11 +475,57 @@ final class ItalianOnlineStrings extends OnlineStrings {
   @override
   String get rejected => 'Mossa non valida: riprova.';
   @override
-  String get hostSilent => 'Il padrone di casa non risponde. Se ha chiuso l\'app, la partita riprende quando rientra.';
-  @override
-  String get hostLeaveWarning => 'La partita gira sul tuo telefono: se esci, si ferma per tutti.';
+  String get serverSilent => 'Il server non risponde: controlla la connessione.';
   @override
   String get backToRoom => 'TORNA ALLA STANZA';
+  @override
+  String timeLeft(String time) => 'Mancano $time';
+  @override
+  String get startingSoon => 'Si parte tutti insieme…';
+  @override
+  String get ready => 'PRONTO';
+  @override
+  String get readyWaiting => 'Pronto. Aspettiamo gli altri.';
+  @override
+  String get moveRegistered => 'Mossa registrata.';
+  @override
+  String get voteRegistered => 'Voto registrato';
+  @override
+  String get sending => 'Invio…';
+  @override
+  String get offlineBadge => 'assente';
+  @override
+  String leftTown(String name, String role) => '$name ha lasciato la città. Era $role.';
+  @override
+  String get gameClosed => 'La partita è stata chiusa: non giocava più nessuno.';
+  @override
+  String votesFor(int votes) => votes == 1 ? '1 voto' : '$votes voti';
+  @override
+  String get nightTitleOnline => 'LA NOTTE';
+  @override
+  String get discussionTitle => 'SI DISCUTE IN PIAZZA';
+  @override
+  String get discussionHint => 'Dite la vostra in chat. Poi si vota.';
+  @override
+  String get verdictWaiting => 'La piazza ha deciso.';
+  @override
+  String get chatHint => 'Scrivi…';
+  @override
+  String get chatLobby => 'STANZA';
+  @override
+  String get chatTown => 'PIAZZA';
+  @override
+  String get chatFamily => 'FAMIGLIA';
+  @override
+  String get chatEmpty => 'Ancora nessun messaggio.';
+  @override
+  String get chatNightClosed => 'Di notte la piazza tace.';
+  @override
+  String get chatDead => 'Dall\'aldilà si legge soltanto.';
+  @override
+  String get chatSilenced => 'Il Sarto ti ha cucito la bocca: oggi leggi e voti, ma non scrivi.';
+  @override
+  String get chatSend => 'Invia';
 
   @override
   String get searchHint => 'Cerca per nome unico';
@@ -477,6 +571,9 @@ final class ItalianOnlineStrings extends OnlineStrings {
         OnlineFailure.playerNotFound => 'Giocatore non trovato.',
         OnlineFailure.notAllowed => 'Non si può.',
         OnlineFailure.requestNotFound => 'La richiesta non c\'è più.',
+        OnlineFailure.messageBlocked => 'Questo messaggio non si può mandare.',
+        OnlineFailure.tooManyMessages => 'Piano: troppi messaggi di fila.',
+        OnlineFailure.chatClosed => 'Adesso non puoi scrivere qui.',
         OnlineFailure.cancelled => 'Accesso annullato.',
         OnlineFailure.network => 'Niente rete. Riprova fra poco.',
         OnlineFailure.unknown => 'Qualcosa è andato storto. Riprova.',
@@ -675,11 +772,57 @@ final class EnglishOnlineStrings extends OnlineStrings {
   @override
   String get rejected => 'That move is not allowed: try again.';
   @override
-  String get hostSilent => 'The host is not answering. If they closed the app, the game resumes when they are back.';
-  @override
-  String get hostLeaveWarning => 'The game runs on your phone: if you leave, it stops for everyone.';
+  String get serverSilent => 'The server is not answering: check your connection.';
   @override
   String get backToRoom => 'BACK TO THE ROOM';
+  @override
+  String timeLeft(String time) => '$time left';
+  @override
+  String get startingSoon => 'Starting together…';
+  @override
+  String get ready => 'READY';
+  @override
+  String get readyWaiting => 'Ready. Waiting for the others.';
+  @override
+  String get moveRegistered => 'Move registered.';
+  @override
+  String get voteRegistered => 'Vote registered';
+  @override
+  String get sending => 'Sending…';
+  @override
+  String get offlineBadge => 'offline';
+  @override
+  String leftTown(String name, String role) => '$name left town. They were $role.';
+  @override
+  String get gameClosed => 'The game was closed: nobody was playing any more.';
+  @override
+  String votesFor(int votes) => votes == 1 ? '1 vote' : '$votes votes';
+  @override
+  String get nightTitleOnline => 'THE NIGHT';
+  @override
+  String get discussionTitle => 'THE TOWN TALKS';
+  @override
+  String get discussionHint => 'Have your say in the chat. Then you vote.';
+  @override
+  String get verdictWaiting => 'The town has decided.';
+  @override
+  String get chatHint => 'Write…';
+  @override
+  String get chatLobby => 'ROOM';
+  @override
+  String get chatTown => 'TOWN';
+  @override
+  String get chatFamily => 'FAMILY';
+  @override
+  String get chatEmpty => 'No messages yet.';
+  @override
+  String get chatNightClosed => 'At night the town is silent.';
+  @override
+  String get chatDead => 'From the afterlife you can only read.';
+  @override
+  String get chatSilenced => 'The Tailor sewed your lips: today you read and vote, but you cannot write.';
+  @override
+  String get chatSend => 'Send';
 
   @override
   String get searchHint => 'Search by handle';
@@ -725,6 +868,9 @@ final class EnglishOnlineStrings extends OnlineStrings {
         OnlineFailure.playerNotFound => 'Player not found.',
         OnlineFailure.notAllowed => 'Not allowed.',
         OnlineFailure.requestNotFound => 'That request is gone.',
+        OnlineFailure.messageBlocked => 'That message can\'t be sent.',
+        OnlineFailure.tooManyMessages => 'Easy: too many messages in a row.',
+        OnlineFailure.chatClosed => 'You can\'t write here right now.',
         OnlineFailure.cancelled => 'Sign-in cancelled.',
         OnlineFailure.network => 'No connection. Try again shortly.',
         OnlineFailure.unknown => 'Something went wrong. Try again.',

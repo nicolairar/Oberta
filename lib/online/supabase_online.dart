@@ -112,6 +112,9 @@ OnlineException _classify(Object error, SignInDoor? door) {
       'not_allowed' => OnlineFailure.notAllowed,
       'request_not_found' => OnlineFailure.requestNotFound,
       'invalid_seats' || 'not_your_seat' || 'stale_version' || 'too_many_intents' => OnlineFailure.notAllowed,
+      'message_blocked' => OnlineFailure.messageBlocked,
+      'too_many_messages' => OnlineFailure.tooManyMessages,
+      'silenced' || 'chat_closed' || 'invalid_message' => OnlineFailure.chatClosed,
       _ => OnlineFailure.unknown,
     };
     return OnlineException(failure, error, detail);
@@ -452,8 +455,9 @@ class SupabaseRooms implements RoomRepository {
 }
 
 /// La partita online su Supabase: tre tabelle lette con le policy (il
-/// tavolo, la propria vista, le intenzioni per l'host) e le funzioni che
-/// scrivono. Ogni cambio arriva con Realtime e si rilegge per intero:
+/// tavolo, la propria vista, la chat) e le funzioni che scrivono. La
+/// partita la manda avanti il server (la Edge Function `game`). Ogni
+/// cambio arriva con Realtime e si rilegge per intero:
 /// così l'ordine degli eventi non conta, e chi si ricollega riparte dalla
 /// versione attuale.
 class SupabaseGame implements GameBackend {
@@ -466,31 +470,7 @@ class SupabaseGame implements GameBackend {
       _guard(() => _client.rpc<void>('set_room_bots', params: {'room': roomId, 'count': count}));
 
   @override
-  Future<void> startGame(String roomId, List<SeatPlan> seats) => _guard(
-        () => _client.rpc<void>('start_game', params: {
-          'room': roomId,
-          'seats': [for (final seat in seats) seat.toJson()],
-        }),
-      );
-
-  @override
-  Future<void> publish(String roomId, GamePublication publication) => _guard(
-        () => _client.rpc<void>('publish_game', params: {
-          'room': roomId,
-          'new_version': publication.version,
-          'public_view': publication.board,
-          'seat_views': publication.seatViews,
-          'host_state': publication.hostState,
-          'last_intent': publication.lastIntent,
-          'finished': publication.finished,
-        }),
-      );
-
-  @override
-  Future<Map<String, Object?>?> loadHostState(String roomId) => _guard(() async {
-        final row = await _client.from('game_host_state').select('state').eq('room_id', roomId).maybeSingle();
-        return (row?['state'] as Map?)?.cast<String, Object?>();
-      });
+  Future<void> startGame(String roomId) => _guard(() => _client.rpc<void>('start_game', params: {'room': roomId}));
 
   /// Un canale Realtime su [tables] della stanza: a ogni cambio (e a ogni
   /// ricollegamento) si chiama [refresh].
@@ -532,19 +512,6 @@ class SupabaseGame implements GameBackend {
   }
 
   @override
-  Stream<List<IntentEnvelope>> watchIntents(String roomId) => _watch('game-intents', ['game_intents'], roomId, () async {
-        final rows = await _client.from('game_intents').select('id, seat, intent').eq('room_id', roomId).order('id');
-        return [
-          for (final row in rows)
-            IntentEnvelope(
-              id: (row['id'] as num).toInt(),
-              seat: row['seat'] as String,
-              intent: (row['intent'] as Map).cast<String, Object?>(),
-            ),
-        ];
-      });
-
-  @override
   Stream<GameFeed> watchGame(String roomId) =>
       _watch('game-feed', ['game_public', 'game_seat_views'], roomId, () async {
         final board = await _client.from('game_public').select('version, view').eq('room_id', roomId).maybeSingle();
@@ -573,5 +540,37 @@ class SupabaseGame implements GameBackend {
   Future<int> sendIntent(String roomId, PlayerIntent intent) => _guard(() async {
         final id = await _client.rpc<num>('submit_intent', params: {'room': roomId, 'intent': intent.toJson()});
         return id.toInt();
+      });
+
+  @override
+  Future<void> sendAck(String roomId, String seat, String stage) => _guard(() => _client.rpc<num>(
+        'submit_intent',
+        params: {
+          'room': roomId,
+          'intent': {'type': 'ack', 'seat': seat, 'stage': stage},
+        },
+      ));
+
+  @override
+  Future<int> ping(String roomId) => _guard(() async {
+        final now = await _client.rpc<num>('game_ping', params: {'room': roomId});
+        return now.toInt();
+      });
+
+  @override
+  Future<void> sendChat(String roomId, ChatChannel channel, String body) => _guard(
+        () => _client.rpc<num>('send_chat', params: {'room': roomId, 'channel': channel.name, 'body': body}),
+      );
+
+  @override
+  Stream<List<ChatMessage>> watchChat(String roomId) => _watch('game-chat', ['game_chat'], roomId, () async {
+        // Le policy lasciano leggere solo i canali di questo telefono.
+        final rows = await _client
+            .from('game_chat')
+            .select('id, channel, profile_id, seat, name, body, created_at')
+            .eq('room_id', roomId)
+            .order('id', ascending: false)
+            .limit(100);
+        return [for (final row in rows.reversed) ChatMessage.fromJson(row)];
       });
 }

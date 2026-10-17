@@ -7,9 +7,10 @@ import 'package:flutter/services.dart';
 import '../../../l10n/app_strings.dart';
 import '../../../narration/death_story.dart';
 import '../../../narration/narrator_script.dart';
-import '../../../online/game/game_authority.dart';
 import '../../../online/game/game_client.dart';
-import '../../../online/game/game_protocol.dart';
+import '../../../online/game/game_clock.dart';
+import '../../../online/game/game_feed.dart';
+import '../../../online/game/game_schedule.dart';
 import '../../../online/online_services.dart';
 import '../../../rules/game_engine.dart';
 import '../../../rules/intent.dart';
@@ -18,7 +19,6 @@ import '../../../rules/player.dart';
 import '../../../rules/player_view.dart';
 import '../../../rules/role.dart';
 import '../../../sound/cue_sounds.dart';
-import '../../../sound/narrator_voice.dart';
 import '../../../sound/sound_stage.dart';
 import '../../../sound/verdict_stage.dart';
 import '../../press.dart';
@@ -31,40 +31,42 @@ import '../../widgets/death_scene.dart';
 import '../../widgets/flip_role_card.dart';
 import '../../widgets/player_avatar.dart';
 import '../../widgets/player_grid.dart';
+import '../../widgets/role_reveal_card.dart';
 import '../../widgets/scene_scaffold.dart';
-import '../../widgets/script_page_view.dart';
 import '../../widgets/verdict_scene.dart';
+import 'chat_panel.dart';
 import 'online_widgets.dart';
 
-/// Che cosa mostra il telefono adesso. Le prime sono momenti da guardare
-/// (si va avanti col pulsante o a filmato finito); le altre seguono la
-/// partita dal vivo.
-enum _Stage { connecting, card, page, film, verdictFilm, task, waiting, vote, end }
-
-/// La partita online, vista dal proprio telefono: la propria carta, le
-/// proprie mosse, il narratore automatico e i filmati dal tavolo pubblico.
-/// Lo schermo conosce solo il [GameClient]: la vista del proprio posto e il
-/// tavolo di tutti. Anche sul telefono del padrone di casa, dove intanto
-/// gira l'[authority], che qui si tiene solo in vita.
+/// La partita online, vista dal proprio telefono. Tutto segue l'orologio del
+/// server: ogni fase ([Stage]) ha un inizio e una fine pubblicati sul tavolo,
+/// e lo schermo cambia da solo a quelle ore, per tutti insieme. Niente
+/// pulsanti per andare avanti: si conferma (carta vista, letto, pronto) e,
+/// se hanno confermato tutti, il server passa prima alla fase dopo.
+///
+/// Online non c'è il narratore: niente voce e niente istruzioni da leggere
+/// al tavolo. Del copione resta solo il racconto (la scena, cosa è successo,
+/// il verdetto), come cronaca della fase.
+///
+/// Lo schermo conosce solo il [GameClient]: il tavolo di tutti, la vista del
+/// proprio posto e la chat. Nessun telefono sa i ruoli degli altri.
 class OnlineGameScreen extends StatefulWidget {
   final OnlineServices services;
   final Room room;
   final Profile me;
 
-  /// Solo sul telefono del padrone di casa: la partita, che vive finché
-  /// vive questa schermata. Non si legge mai.
-  final GameAuthority? authority;
-
   /// Il dado dei tavoli segreti (per i test).
   final Random? seating;
+
+  /// L'orologio di questo telefono (per i test).
+  final GameClock clock;
 
   const OnlineGameScreen({
     super.key,
     required this.services,
     required this.room,
     required this.me,
-    this.authority,
     this.seating,
+    this.clock = const SystemGameClock(),
   });
 
   @override
@@ -75,44 +77,39 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
   static const _mafiaRed = Color(0xFFE5606A);
   static const _cleanGreen = Color(0xFF6FBF9A);
 
-  late final GameClient _client = GameClient(backend: widget.services.game, roomId: widget.room.id);
+  late final GameClient _client = GameClient(
+    backend: widget.services.game,
+    roomId: widget.room.id,
+    clock: widget.clock,
+  );
   late final AppStrings _t = widget.room.language.strings;
   late final Random _shuffle = widget.seating ?? Random();
   Timer? _ticker;
 
-  _Stage _stage = _Stage.connecting;
-  int _step = 0;
-
-  // Fin dove questo telefono ha già mostrato la partita.
-  bool _first = true;
-  bool _cardSeen = false;
-  int _nightShown = 0;
-
-  /// L'ultimo fatto già raccontato: l'alba del giro r vale 2r, il verdetto 2r+1.
-  int _eventShown = 0;
-
-  ScriptPage? _page;
-  List<DeathStory> _stories = const [];
-  DawnReport? _dawn;
-  int _film = 0;
-  LynchReport? _verdict;
-  String _verdictTake = VerdictScene.variants.first;
-
   Player? _selected;
   List<Player> _secret = const [];
   String? _secretTurn;
+  bool _cardTurned = false;
 
   /// Quello che l'ultima mossa ha scoperto (un'indagine, una fossa).
   Exposure? _finding;
   int? _findingFor;
 
+  /// La fase già vista da qui: al cambio, musica e suoni.
+  String? _stageShown;
+  int _departedShown = 0;
+
+  /// Le scene degli agguati di ogni alba: le stesse per il film e per la
+  /// cronaca, e su ogni telefono (stesso seme).
+  final Map<int, List<DeathStory>> _stories = {};
+
   @override
   void initState() {
     super.initState();
     _client.addListener(_changed);
-    // Il cronometro del voto, e l'occhio sul padrone di casa che tace.
-    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted && (_stage == _Stage.vote || _stage == _Stage.waiting || _stage == _Stage.task)) setState(() {});
+    // Il cronometro, l'inizio dei film e la fine delle fasi.
+    _ticker = Timer.periodic(const Duration(milliseconds: 250), (_) {
+      if (mounted) setState(() {});
     });
   }
 
@@ -121,8 +118,6 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     _ticker?.cancel();
     _client.removeListener(_changed);
     _client.dispose();
-    widget.authority?.dispose();
-    NarratorVoice.instance.hush();
     SoundStage.instance.ambience(null);
     super.dispose();
   }
@@ -130,8 +125,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
   OnlineBoard get _board => _client.board!;
   PlayerView get _view => _client.seat!.view;
   PublicView get _public => _board.view;
-
-  bool get _live => const {_Stage.connecting, _Stage.task, _Stage.waiting, _Stage.vote}.contains(_stage);
+  StageWindow? get _window => _board.schedule;
+  Stage get _stage => _window?.stage ?? Stage.ended;
 
   void _changed() {
     if (!mounted) return;
@@ -141,13 +136,61 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
       _findingFor = id;
       _finding = finding;
     }
-    setState(() {
-      if (_live) _route();
-    });
+    if (_client.ready) {
+      _enterStage();
+      _announceDepartures();
+    }
+    setState(() {});
+  }
+
+  void _enterStage() {
+    final window = _window;
+    if (window == null || window.key == _stageShown) return;
+    _stageShown = window.key;
+    _selected = null;
+    final stage = SoundStage.instance;
+    switch (window.stage) {
+      case Stage.reveal || Stage.night:
+        stage.music(MusicMood.night);
+        if (window.stage == Stage.night) stage.cue(Cue.nightfall);
+      case Stage.dawnFilms:
+        final dawn = _public.lastDawn;
+        if (dawn != null) {
+          stage.prepare([
+            for (final story in _storiesOf(dawn)) ...[filmFor(story).act, ?filmFor(story).save],
+          ]);
+        }
+      case Stage.verdictFilm:
+        stage.prepareVerdicts();
+      case Stage.discussion || Stage.vote:
+        stage.music(MusicMood.day);
+        stage.ambience(null);
+      case Stage.ended:
+        final winner = _public.winner;
+        if (winner != null) {
+          stage.music(winner == Team.mafia ? MusicMood.winFamily : MusicMood.winTown);
+          stage.cue(winner == Team.mafia ? Cue.familyWins : Cue.townWins);
+        }
+      case Stage.dawn || Stage.verdict:
+        break;
+    }
+  }
+
+  /// Chi ha lasciato la città (telefono spento oltre la tolleranza): lo si
+  /// dice a tutti, con la sua carta.
+  void _announceDepartures() {
+    final departed = _board.departed;
+    if (departed.length <= _departedShown) return;
+    for (final seat in departed.skip(_departedShown)) {
+      final player = _board.seating.occupantOf(seat);
+      final role = _public.revealed.where((k) => k.seat.id == seat).firstOrNull?.knowledge.role;
+      if (player != null) showNote(context, _t.online.leftTown(player.name, role == null ? '?' : _t.role(role).label));
+    }
+    _departedShown = departed.length;
   }
 
   // ---------------------------------------------------------------------
-  // Il copione: lo stesso su ogni telefono, dallo stesso seme.
+  // Il racconto: lo stesso su ogni telefono, dallo stesso seme.
 
   late final _city = _t.pack.cities[(_board.narrationSeed) % _t.pack.cities.length];
 
@@ -161,155 +204,27 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
 
   SkylineStyle get _style => skylineFor(_city.id);
 
+  List<DeathStory> _storiesOf(DawnReport dawn) =>
+      _stories.putIfAbsent(dawn.round, () => _script('dawn-${dawn.round}').stage(dawn));
+
   // ---------------------------------------------------------------------
-  // Dove si va: il prossimo momento da mostrare.
+  // Il tempo.
 
-  void _go(_Stage stage) {
-    NarratorVoice.instance.hush();
-    _stage = stage;
-    _selected = null;
-    _step++;
+  /// La fase è aperta adesso (dopo il suo inizio, prima della sua fine).
+  bool get _open => _client.elapsed >= Duration.zero && _client.timeLeft > Duration.zero;
+
+  String _clock(Duration left) {
+    final seconds = (left.inMilliseconds / 1000).ceil();
+    return '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}';
   }
 
-  void _next() => setState(_route);
-
-  void _route() {
-    if (!_client.ready) {
-      _stage = _Stage.connecting;
-      return;
-    }
-    final board = _public;
-    final dawnKey = board.lastDawn == null ? 0 : board.lastDawn!.round * 2;
-    final lynchKey = board.lastLynch == null ? 0 : board.lastLynch!.round * 2 + 1;
-    if (_first) {
-      _first = false;
-      final fresh = board.round == 1 && board.phase == GamePhase.night && board.lastDawn == null;
-      if (!fresh) {
-        // Chi rientra riparte da adesso: niente filmati vecchi.
-        _eventShown = max(dawnKey, lynchKey);
-        _nightShown = board.round;
-      }
-    }
-    if (!_cardSeen) {
-      if (_stage != _Stage.card) _go(_Stage.card);
-      return;
-    }
-    final pending = [
-      if (dawnKey > _eventShown) dawnKey,
-      if (lynchKey > _eventShown) lynchKey,
-    ]..sort();
-    if (pending.isNotEmpty) {
-      final key = pending.first;
-      if (key.isEven) {
-        _startDawn(board.lastDawn!);
-      } else {
-        _startVerdict(board.lastLynch!);
-      }
-      return;
-    }
-    switch (board.phase) {
-      case GamePhase.night:
-        if (_nightShown < board.round) {
-          _nightShown = board.round;
-          _nightPage(board.round);
-          return;
-        }
-        final next = _view.action != null ? _Stage.task : _Stage.waiting;
-        if (_stage != next) _go(next);
-      case GamePhase.day:
-        if (_stage != _Stage.vote) {
-          _go(_Stage.vote);
-          SoundStage.instance.music(MusicMood.day);
-          SoundStage.instance.ambience(null);
-        }
-      case GamePhase.ended:
-        if (_stage != _Stage.end) {
-          _go(_Stage.end);
-          final winner = board.winner!;
-          SoundStage.instance.music(winner == Team.mafia ? MusicMood.winFamily : MusicMood.winTown);
-          SoundStage.instance.cue(winner == Team.mafia ? Cue.familyWins : Cue.townWins);
-        }
-    }
+  /// Il server tace da ben oltre la fine della fase: forse manca la rete.
+  bool get _serverSilent {
+    final window = _window;
+    return window != null &&
+        _stage != Stage.ended &&
+        _client.serverNow.isAfter(window.endsAt.add(const Duration(seconds: 12)));
   }
-
-  void _nightPage(int round) {
-    final script = _script('night-$round');
-    SoundStage.instance.music(MusicMood.night);
-    SoundStage.instance.cue(Cue.nightfall);
-    _page = ScriptPage(
-      icon: Icons.nightlight_round,
-      title: round == 1 ? script.city.title : _t.nightFalls,
-      lines: [if (round == 1) ...script.opening(), ...script.nightFalls(round)],
-      nightfall: true,
-      action: _t.startTheNight,
-      onAction: _next,
-    );
-    _go(_Stage.page);
-  }
-
-  void _startDawn(DawnReport dawn) {
-    final script = _script('dawn-${dawn.round}');
-    _dawn = dawn;
-    _stories = script.stage(dawn);
-    final lines = script.dawn(dawn, discussion: _board.settings.discussion, stories: _stories);
-    SoundStage.instance.prepare([
-      for (final story in _stories) ...[filmFor(story).act, ?filmFor(story).save],
-    ]);
-    _page = ScriptPage(
-      icon: Icons.wb_twilight,
-      nightfall: false,
-      title: dawn.victims.isEmpty ? _t.everyoneAlive : _t.crimePage,
-      lines: lines,
-      portraits: [for (final attack in dawn.attacks) if (attack.isFatal) attack.target.name],
-      portraitsFallen: dawn.victims.isNotEmpty,
-      action: dawn.winner != null ? _t.finale : _t.openTheFloor,
-      onAction: () {
-        _eventShown = dawn.round * 2;
-        _next();
-      },
-    );
-    if (_stories.isEmpty) {
-      _go(_Stage.page);
-    } else {
-      _film = 0;
-      _go(_Stage.film);
-    }
-  }
-
-  void _afterFilm() => setState(() {
-        if (_film + 1 < _stories.length) {
-          _film++;
-          _step++;
-        } else {
-          _go(_Stage.page);
-        }
-      });
-
-  void _startVerdict(LynchReport report) {
-    _verdict = report;
-    _verdictTake = VerdictScene.variants[Random(_board.narrationSeed + report.round).nextInt(VerdictScene.variants.length)];
-    SoundStage.instance.prepareVerdicts();
-    _go(_Stage.verdictFilm);
-  }
-
-  void _afterVerdictFilm() => setState(() {
-        final report = _verdict!;
-        final condemned = report.condemned;
-        if (report.role != null) SoundStage.instance.cue(Cue.drumroll);
-        _page = ScriptPage(
-          icon: Icons.gavel,
-          title: condemned?.name ?? _t.noConviction,
-          lines: _script('lynch-${report.round}').lynch(report),
-          portraits: [if (condemned != null) condemned.name],
-          revealed: report.role,
-          action: report.winner != null ? _t.finale : _t.continueLabel,
-          onAction: () {
-            _eventShown = report.round * 2 + 1;
-            _next();
-          },
-        );
-        _go(_Stage.page);
-      });
 
   // ---------------------------------------------------------------------
   // Le mosse.
@@ -323,6 +238,14 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     }
   }
 
+  void _ack() {
+    HapticFeedback.selectionClick();
+    _client.ack();
+    setState(() {});
+  }
+
+  bool get _acked => _client.ackedHere || (_client.seat?.acked ?? false);
+
   Knowledge _knowledgeOf(Player player) {
     final view = _view;
     if (player == view.seat) return Knowledge(role: view.role, team: view.team);
@@ -332,7 +255,16 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     return const Knowledge();
   }
 
+  Knowledge _publicKnowledge(Player player) {
+    for (final known in _public.revealed) {
+      if (known.seat == player) return known.knowledge;
+    }
+    return const Knowledge();
+  }
+
   bool _isAlive(Player player) => _public.alive.contains(player);
+
+  bool _offline(Player player) => _board.offline.contains(player.id);
 
   /// Il tavolo segreto di questo turno: rimescolato a ogni notte, e diverso
   /// dal tavolo pubblico.
@@ -348,17 +280,16 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
   // ---------------------------------------------------------------------
 
   Future<void> _confirmExit() async {
-    if (_stage == _Stage.end) {
+    if (_stage == Stage.ended || (_client.ready && _board.abandoned)) {
       Navigator.of(context).pop();
       return;
     }
-    final host = widget.authority != null;
     final leave = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface,
         title: Text(_t.leaveQuestion),
-        content: Text(host ? _t.online.hostLeaveWarning : _t.leaveWarning),
+        content: Text(_t.leaveWarning),
         actions: [
           TextButton(onPressed: pressed(() => Navigator.of(context).pop(false), Press.back), child: Text(_t.stay)),
           TextButton(onPressed: pressed(() => Navigator.of(context).pop(true), Press.tap), child: Text(_t.leave)),
@@ -376,53 +307,20 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
   }
 
   Widget _screen() {
-    if (_stage == _Stage.film) {
-      final story = _stories[_film];
-      final film = filmFor(story);
-      final attack = _dawn!.attacks[_film];
-      return PopScope(
-        canPop: false,
-        child: Scaffold(
-          backgroundColor: Colors.black,
-          body: DeathScene(
-            key: ValueKey('online-crime-$_step'),
-            act: film.act,
-            save: film.save,
-            victimName: attack.isFatal ? attack.target.name : _t.someoneSaved,
-            caption: story.scene.text,
-            epilogue: story.epilogue?.id ?? '',
-            style: _style,
-            onFinished: _afterFilm,
-          ),
-        ),
-      );
-    }
-    if (_stage == _Stage.verdictFilm) {
-      final condemned = _verdict!.condemned;
-      return PopScope(
-        canPop: false,
-        child: Scaffold(
-          backgroundColor: Colors.black,
-          body: condemned == null
-              ? VerdictScene.acquittal(key: ValueKey('online-verdict-$_step'), style: _style, onFinished: _afterVerdictFilm)
-              : VerdictScene(
-                  key: ValueKey('online-verdict-$_step'),
-                  condemnedName: condemned.name,
-                  variant: _verdictTake,
-                  town: _city.name,
-                  style: _style,
-                  onFinished: _afterVerdictFilm,
-                ),
-        ),
-      );
-    }
     final ready = _client.ready;
+    if (ready && !_board.abandoned && (_stage == Stage.dawnFilms || _stage == Stage.verdictFilm)) {
+      return PopScope(
+        canPop: false,
+        child: Scaffold(backgroundColor: Colors.black, body: _stage == Stage.dawnFilms ? _dawnFilm() : _verdictFilm()),
+      );
+    }
     final mood = !ready
         ? SceneMood.night
-        : switch (_public.phase) {
-            GamePhase.night => _stage == _Stage.page && _page?.nightfall == false ? SceneMood.dawn : SceneMood.night,
-            GamePhase.day => SceneMood.day,
-            GamePhase.ended => _public.winner == Team.mafia ? SceneMood.night : SceneMood.dawn,
+        : switch (_stage) {
+            Stage.reveal || Stage.night => SceneMood.night,
+            Stage.dawn => SceneMood.dawn,
+            Stage.ended => _public.winner == Team.mafia ? SceneMood.night : SceneMood.dawn,
+            _ => SceneMood.day,
           };
     return PopScope(
       canPop: false,
@@ -439,17 +337,33 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
             onPressed: pressed(_confirmExit, Press.back),
           ),
           title: Text(ready ? _title() : widget.room.code),
+          actions: [
+            if (ready && _stage != Stage.ended && !_board.abandoned)
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 16),
+                  child: Text(
+                    _client.elapsed < Duration.zero ? '…' : _clock(_client.timeLeft),
+                    key: const Key('online.countdown'),
+                    style: AppText.display(20, color: AppColors.textPrimary),
+                  ),
+                ),
+              ),
+          ],
         ),
         body: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
             child: Column(
               children: [
-                if (ready && _hostSilent) _banner(_t.online.hostSilent),
+                if (ready && _serverSilent) _banner(_t.online.serverSilent, const Key('online.serverSilent')),
                 Expanded(
                   child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 350),
-                    child: KeyedSubtree(key: ValueKey(_step), child: _stageView()),
+                    child: KeyedSubtree(
+                      key: ValueKey(ready ? '${_window?.key}-${_board.abandoned}' : 'connecting'),
+                      child: _stageView(),
+                    ),
                   ),
                 ),
               ],
@@ -460,35 +374,33 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     );
   }
 
-  /// Il padrone di casa tace da ben oltre la scadenza: forse ha chiuso l'app.
-  bool get _hostSilent {
-    final deadline = _board.deadline;
-    return deadline != null && DateTime.now().isAfter(deadline.add(const Duration(seconds: 45)));
-  }
-
-  Widget _banner(String text) => Padding(
+  Widget _banner(String text, Key key) => Padding(
         padding: const EdgeInsets.only(bottom: 8),
-        child: Text(text, key: const Key('online.hostSilent'), textAlign: TextAlign.center, style: AppText.body),
+        child: Text(text, key: key, textAlign: TextAlign.center, style: AppText.body),
       );
 
   String _title() => switch (_stage) {
-        _Stage.card => _t.online.yourCard,
-        _Stage.end => _t.endTitle,
-        _Stage.vote => _t.dayTitle(_public.round),
-        _ when _public.phase == GamePhase.night => _t.nightTitle(_public.round),
-        _ => _t.dawnTitle,
+        Stage.reveal => _t.online.yourCard,
+        Stage.night => _t.nightTitle(_public.round),
+        Stage.dawn || Stage.dawnFilms => _t.dawnTitle,
+        Stage.discussion || Stage.vote || Stage.verdict || Stage.verdictFilm => _t.dayTitle(_public.round),
+        Stage.ended => _t.endTitle,
       };
 
-  Widget _stageView() => switch (_stage) {
-        _Stage.connecting => _connectingView(),
-        _Stage.card => _cardView(),
-        _Stage.page => ScriptPageView(page: _page!, reader: null, strings: _t),
-        _Stage.task => _taskView(),
-        _Stage.waiting => _waitingView(),
-        _Stage.vote => _voteView(),
-        _Stage.end => _endView(),
-        _Stage.film || _Stage.verdictFilm => const SizedBox.shrink(),
-      };
+  Widget _stageView() {
+    if (!_client.ready) return _connectingView();
+    if (_board.abandoned) return _closedView();
+    return switch (_stage) {
+      Stage.reveal => _cardView(),
+      Stage.night => _nightView(),
+      Stage.dawn => _dawnView(),
+      Stage.discussion => _discussionView(),
+      Stage.vote => _voteView(),
+      Stage.verdict => _verdictView(),
+      Stage.ended => _endView(),
+      Stage.dawnFilms || Stage.verdictFilm => const SizedBox.shrink(),
+    };
+  }
 
   Widget _connectingView() => Center(
         child: Column(
@@ -501,18 +413,51 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
         ),
       );
 
-  bool _cardTurned = false;
+  Widget _closedView() => Column(
+        key: const Key('online.closed'),
+        children: [
+          const Spacer(),
+          const Icon(Icons.door_back_door_outlined, color: AppColors.gold, size: 56),
+          const SizedBox(height: 16),
+          Text(_t.online.gameClosed, textAlign: TextAlign.center, style: AppText.body),
+          const Spacer(),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: pressed(() => Navigator.of(context).pop(), Press.confirm),
+              child: Text(_t.online.backToRoom),
+            ),
+          ),
+        ],
+      );
+
+  /// Il pulsante della conferma: «pronto», poi l'attesa degli altri.
+  Widget _readyButton({bool enabled = true}) => SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          key: const Key('online.ready'),
+          onPressed: pressed(_acked || !enabled || !_view.alive ? null : _ack, Press.confirm),
+          child: Text(_acked ? _t.online.readyWaiting : _t.online.ready),
+        ),
+      );
+
+  // ---------------------------------------------------------------------
+  // La carta.
 
   Widget _cardView() {
     final view = _view;
+    final opening = _script('night-1').opening(online: true);
     return Column(
       key: const Key('online.card'),
       children: [
-        Text(widget.me.name.toUpperCase(), style: AppText.display(24, color: AppColors.textPrimary)),
+        Text(_city.title, textAlign: TextAlign.center, style: AppText.display(22, color: AppColors.textPrimary)),
+        const SizedBox(height: 6),
+        for (final line in opening)
+          Text(line.text, textAlign: TextAlign.center, style: AppText.body.copyWith(fontSize: 14)),
         Expanded(
           child: Center(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
               child: FlipRoleCard(
                 role: view.role,
                 teammates: view.teammates,
@@ -522,21 +467,64 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
           ),
         ),
         Text(_t.online.yourCardHint, textAlign: TextAlign.center, style: AppText.body),
-        const SizedBox(height: 20),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            key: const Key('online.cardSeen'),
-            onPressed: pressed(
-              _cardTurned
-                  ? () {
-                      _cardSeen = true;
-                      _next();
-                    }
-                  : null,
-              Press.confirm,
+        const SizedBox(height: 16),
+        _readyButton(enabled: _cardTurned),
+      ],
+    );
+  }
+
+  // ---------------------------------------------------------------------
+  // La notte.
+
+  bool get _inFamilyChat => _view.alive && _view.team == Team.mafia;
+
+  Widget _nightView() {
+    final story = _script('night-${_public.round}').nightFalls(_public.round, online: true);
+    final acting = _view.action != null;
+    return Column(
+      key: const Key('online.night'),
+      children: [
+        for (final line in story)
+          Text(line.text, textAlign: TextAlign.center, style: AppText.body.copyWith(fontSize: 14)),
+        const SizedBox(height: 8),
+        Expanded(flex: 3, child: acting ? _taskView() : _waitingView()),
+        if (_inFamilyChat) ...[
+          const SizedBox(height: 10),
+          Expanded(flex: 2, child: _familyPanel()),
+        ],
+      ],
+    );
+  }
+
+  Widget _familyPanel() {
+    final votes = _view.familyVotes;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (votes.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: [
+                for (final vote in votes)
+                  _Pizzino(text: '${vote.voter.name} → ${vote.target?.name ?? '—'}', color: _mafiaRed),
+              ],
             ),
-            child: Text(_t.gotIt),
+          ),
+        Expanded(
+          child: ChatPanel(
+            key: const Key('online.familyChat'),
+            title: _t.online.chatFamily,
+            accent: _mafiaRed,
+            messages: [for (final m in _client.chat) if (m.channel == ChatChannel.family) m],
+            myId: widget.me.id,
+            note: null,
+            hint: _t.online.chatHint,
+            empty: _t.online.chatEmpty,
+            sendLabel: _t.online.chatSend,
+            onSend: (body) => _client.sendChat(ChatChannel.family, body),
           ),
         ),
       ],
@@ -548,17 +536,17 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     final task = NightTask(option.kind!, option.targets);
     final script = _script('task');
     final selected = _selected;
-    final busy = _client.busy;
+    final busy = _client.busy || !_open;
     return Column(
       children: [
         Text(
           script.taskPrompt(task, _public.round),
           textAlign: TextAlign.center,
-          style: AppText.display(23, color: AppColors.textPrimary),
+          style: AppText.display(21, color: AppColors.textPrimary),
         ),
-        const SizedBox(height: 6),
-        Text(script.taskHint(task), textAlign: TextAlign.center, style: AppText.body.copyWith(fontSize: 14)),
-        const SizedBox(height: 14),
+        const SizedBox(height: 4),
+        Text(script.taskHint(task), textAlign: TextAlign.center, style: AppText.body.copyWith(fontSize: 13)),
+        const SizedBox(height: 8),
         Expanded(
           child: PlayerGrid(
             players: _secretTable(),
@@ -571,7 +559,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
             shuffled: true,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
+        if (_client.busy) Text(_t.online.sending, style: AppText.body.copyWith(fontSize: 13)),
+        if (_client.elapsed < Duration.zero) Text(_t.online.startingSoon, style: AppText.body.copyWith(fontSize: 13)),
         Row(
           children: [
             Expanded(
@@ -609,28 +599,28 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     final isMafia = finding?.team == Team.mafia;
     return Column(
       key: const Key('online.waiting'),
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Spacer(),
         if (!view.alive) ...[
-          const Icon(Icons.visibility, color: AppColors.gold, size: 56),
-          const SizedBox(height: 20),
+          const Icon(Icons.visibility, color: AppColors.gold, size: 48),
+          const SizedBox(height: 16),
           Text(_t.online.youAreOut, textAlign: TextAlign.center, style: AppText.body),
         ] else if (finding == null) ...[
-          const Icon(Icons.check_circle_outline, color: AppColors.gold, size: 56),
-          const SizedBox(height: 20),
-          Text(_t.doneTitle, style: AppText.display(36)),
+          const Icon(Icons.check_circle_outline, color: AppColors.gold, size: 48),
           const SizedBox(height: 12),
+          Text(_t.online.moveRegistered, key: const Key('online.moveRegistered'), style: AppText.display(26)),
+          const SizedBox(height: 8),
           Text(_t.nobodyWillKnow, style: AppText.body),
         ] else ...[
-          AvatarSpotlight(seed: finding.subject.name, size: 130, fallen: found != null),
-          const SizedBox(height: 18),
+          AvatarSpotlight(seed: finding.subject.name, size: 110, fallen: found != null),
+          const SizedBox(height: 12),
           Text(found == null ? _t.yourInvestigation : _t.inTheGrave, style: AppText.overline),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           FittedBox(
             fit: BoxFit.scaleDown,
-            child: Text(finding.subject.name.toUpperCase(), style: AppText.display(32, color: AppColors.textPrimary)),
+            child: Text(finding.subject.name.toUpperCase(), style: AppText.display(30, color: AppColors.textPrimary)),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Text(
             found != null
                 ? _t.wasRole(_t.role(found).label)
@@ -640,87 +630,307 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
             style: AppText.display(20, color: isMafia ? _mafiaRed : _cleanGreen),
           ),
         ],
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
         if (_public.phase == GamePhase.night && _public.nightPending > 0)
           Text(_t.online.waitingForOthers(_public.nightPending), textAlign: TextAlign.center, style: AppText.body),
-        const Spacer(),
       ],
     );
   }
 
-  String _clock(Duration left) {
-    final seconds = max(0, left.inSeconds);
-    return '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}';
+  // ---------------------------------------------------------------------
+  // I film, per tutti nello stesso momento.
+
+  Widget _waitingFilm() => Center(
+        child: Text(_t.online.startingSoon, key: const Key('online.filmSoon'), style: AppText.body),
+      );
+
+  Widget _dawnFilm() {
+    final dawn = _public.lastDawn;
+    if (dawn == null || dawn.attacks.isEmpty) return _waitingFilm();
+    final elapsed = _client.elapsed;
+    if (elapsed < Duration.zero) return _waitingFilm();
+    final index = elapsed.inMilliseconds ~/ DeathScene.length.inMilliseconds;
+    if (index >= dawn.attacks.length) {
+      // Visti tutti: lo si dice al server, e si aspetta l'alba.
+      if (!_client.ackedHere) scheduleMicrotask(_client.ack);
+      return _waitingFilm();
+    }
+    final story = _storiesOf(dawn)[index];
+    final film = filmFor(story);
+    final attack = dawn.attacks[index];
+    return DeathScene(
+      key: ValueKey('online-crime-${dawn.round}-$index'),
+      act: film.act,
+      save: film.save,
+      victimName: attack.isFatal ? attack.target.name : _t.someoneSaved,
+      caption: story.scene.text,
+      epilogue: story.epilogue?.id ?? '',
+      style: _style,
+      startAt: elapsed - DeathScene.length * index,
+      onFinished: () {
+        if (index == dawn.attacks.length - 1) _client.ack();
+        if (mounted) setState(() {});
+      },
+    );
   }
+
+  Widget _verdictFilm() {
+    final report = _public.lastLynch;
+    final elapsed = _client.elapsed;
+    if (report == null || elapsed < Duration.zero) return _waitingFilm();
+    final length = OnlinePacing.verdictFilm(condemns: report.condemned != null);
+    if (elapsed >= length) {
+      if (!_client.ackedHere) scheduleMicrotask(_client.ack);
+      return _waitingFilm();
+    }
+    final condemned = report.condemned;
+    void done() {
+      _client.ack();
+      if (mounted) setState(() {});
+    }
+
+    final key = ValueKey('online-verdict-${report.round}');
+    return condemned == null
+        ? VerdictScene.acquittal(key: key, style: _style, startAt: elapsed, onFinished: done)
+        : VerdictScene(
+            key: key,
+            condemnedName: condemned.name,
+            variant: VerdictScene.variants[Random(_board.narrationSeed + report.round).nextInt(VerdictScene.variants.length)],
+            town: _city.name,
+            style: _style,
+            startAt: elapsed,
+            onFinished: done,
+          );
+  }
+
+  // ---------------------------------------------------------------------
+  // La cronaca: l'alba e il verdetto, solo il racconto.
+
+  Widget _chronicle({
+    required Key key,
+    required String title,
+    required List<ScriptLine> lines,
+    List<String> portraits = const [],
+    bool fallen = false,
+    Role? revealed,
+  }) =>
+      Column(
+        key: key,
+        children: [
+          if (portraits.isNotEmpty || revealed != null)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                for (final name in portraits)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    child: AvatarSpotlight(seed: name, size: portraits.length > 1 ? 80 : 110, fallen: fallen),
+                  ),
+                if (revealed != null) ...[
+                  const SizedBox(width: 14),
+                  RoleRevealCard(role: revealed, faceUp: true, height: 140),
+                ],
+              ],
+            ),
+          const SizedBox(height: 10),
+          FittedBox(fit: BoxFit.scaleDown, child: Text(title, style: AppText.display(26))),
+          const SizedBox(height: 12),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final line in lines)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Text(
+                        line.text,
+                        textAlign: TextAlign.center,
+                        style: line.isFact
+                            ? AppText.body.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w700)
+                            : AppText.body.copyWith(fontStyle: FontStyle.italic),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _readyButton(),
+        ],
+      );
+
+  Widget _dawnView() {
+    final dawn = _public.lastDawn;
+    if (dawn == null) return _connectingView();
+    final lines = _script('dawn-${dawn.round}')
+        .dawn(dawn, discussion: _board.settings.discussion, stories: _storiesOf(dawn), online: true);
+    return _chronicle(
+      key: const Key('online.dawn'),
+      title: dawn.victims.isEmpty ? _t.everyoneAlive : _t.crimePage,
+      lines: lines,
+      portraits: [for (final attack in dawn.attacks) if (attack.isFatal) attack.target.name],
+      fallen: dawn.victims.isNotEmpty,
+    );
+  }
+
+  Widget _verdictView() {
+    final report = _public.lastLynch;
+    if (report == null) return _connectingView();
+    final condemned = report.condemned;
+    return _chronicle(
+      key: const Key('online.verdict'),
+      title: condemned?.name ?? _t.noConviction,
+      lines: _script('lynch-${report.round}').lynch(report),
+      portraits: [if (condemned != null) condemned.name],
+      revealed: report.role,
+    );
+  }
+
+  // ---------------------------------------------------------------------
+  // Il giorno: si discute in chat, poi si vota a viso aperto.
+
+  String? get _townChatNote {
+    if (!_view.alive) return _t.online.chatDead;
+    if (_public.lastDawn?.silenced == _view.seat && _public.lastDawn?.round == _public.round) {
+      return _t.online.chatSilenced;
+    }
+    return null;
+  }
+
+  Widget _townChat() => ChatPanel(
+        key: const Key('online.townChat'),
+        title: _t.online.chatTown,
+        messages: [for (final m in _client.chat) if (m.channel == ChatChannel.day) m],
+        myId: widget.me.id,
+        note: _townChatNote,
+        hint: _t.online.chatHint,
+        empty: _t.online.chatEmpty,
+        sendLabel: _t.online.chatSend,
+        onSend: (body) => _client.sendChat(ChatChannel.day, body),
+      );
+
+  Widget _discussionView() => Column(
+        key: const Key('online.discussion'),
+        children: [
+          Text(_t.online.discussionTitle, style: AppText.display(24)),
+          const SizedBox(height: 4),
+          Text(_t.online.discussionHint, textAlign: TextAlign.center, style: AppText.body.copyWith(fontSize: 14)),
+          const SizedBox(height: 8),
+          SizedBox(height: 64, child: _seatStrip()),
+          const SizedBox(height: 8),
+          Expanded(child: _townChat()),
+          const SizedBox(height: 10),
+          _readyButton(),
+        ],
+      );
+
+  /// I vivi in fila, con chi è offline.
+  Widget _seatStrip() => ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          for (final player in publicSeating(_public.seats))
+            if (_isAlive(player))
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: Column(
+                  children: [
+                    Opacity(opacity: _offline(player) ? 0.4 : 1, child: PlayerAvatar(seed: player.name, size: 36)),
+                    const SizedBox(height: 2),
+                    Text(
+                      _offline(player) ? _t.online.offlineBadge : player.name,
+                      style: AppText.body.copyWith(fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+        ],
+      );
 
   Widget _voteView() {
     final view = _view;
     final option = view.action;
-    final table = publicSeating(_public.seats);
     final votes = _public.dayVotes;
     final mine = [for (final vote in votes) if (vote.voter == view.seat) vote].firstOrNull;
-    final deadline = _board.deadline;
-    final selected = option?.current;
+    final tally = <Player, int>{};
+    final accusing = <Player, Player>{};
+    for (final vote in votes) {
+      final target = vote.target;
+      if (target == null) continue;
+      tally[target] = (tally[target] ?? 0) + 1;
+      accusing[vote.voter] = target;
+    }
+    final table = [for (final p in publicSeating(_public.seats)) if (_isAlive(p)) p]
+      ..sort((a, b) => (tally[b] ?? 0).compareTo(tally[a] ?? 0));
+    final canVote = option != null && _open && !_client.busy;
+    final selected = mine?.target;
     return Column(
       key: const Key('online.vote'),
       children: [
-        Text(_t.online.voteTitle, style: AppText.display(26)),
-        const SizedBox(height: 6),
+        Text(_t.online.voteTitle, style: AppText.display(24)),
+        const SizedBox(height: 4),
         Text(
           view.alive ? _t.online.voteHint : _t.online.youAreOut,
           textAlign: TextAlign.center,
-          style: AppText.body.copyWith(fontSize: 14),
+          style: AppText.body.copyWith(fontSize: 13),
+        ),
+        const SizedBox(height: 4),
+        Text(_t.online.votesCast(votes.length, _public.alive.length), style: AppText.overline),
+        const SizedBox(height: 6),
+        Expanded(
+          flex: 3,
+          child: ListView(
+            children: [
+              for (final player in table)
+                _VoteRow(
+                  key: ValueKey('vote-${player.id}'),
+                  player: player,
+                  votes: tally[player] ?? 0,
+                  votesLabel: _t.online.votesFor(tally[player] ?? 0),
+                  accuses: accusing[player]?.name,
+                  offline: _offline(player) ? _t.online.offlineBadge : null,
+                  silenced: _public.lastDawn?.silenced == player && _public.lastDawn?.round == _public.round,
+                  revealed: _publicKnowledge(player).role,
+                  selected: player == selected,
+                  onTap: canVote && option.targets.contains(player) && player != selected
+                      ? () => _send(DayVote(view.seat.id, player.id))
+                      : null,
+                ),
+            ],
+          ),
         ),
         const SizedBox(height: 6),
-        Text(
-          [
-            _t.online.votesCast(votes.length, _public.alive.length),
-            if (deadline != null) _t.online.closesIn(_clock(deadline.difference(DateTime.now()))),
-          ].join(' · '),
-          style: AppText.overline,
-        ),
-        const SizedBox(height: 10),
-        Expanded(
-          child: PlayerGrid(
-            players: table,
-            isAlive: _isAlive,
-            knowledgeOf: (player) {
-              for (final known in _public.revealed) {
-                if (known.seat == player) return known.knowledge;
-              }
-              return const Knowledge();
-            },
-            selectable: option == null ? const [] : option.targets,
-            selected: selected,
-            silenced: _public.lastDawn?.silenced,
-            stamp: _t.accusedStamp,
-            onSelect: (player) {
-              if (option == null || _client.busy || player == selected) return;
-              _send(DayVote(view.seat.id, player.id));
-            },
-          ),
-        ),
-        const SizedBox(height: 8),
-        if (mine != null)
+        if (_client.busy)
+          Text(_t.online.sending, style: AppText.body.copyWith(fontSize: 13))
+        else if (mine != null)
           Text(
-            mine.target == null ? _t.online.abstained : _t.online.votedFor(mine.target!.name),
-            style: AppText.body.copyWith(color: AppColors.textPrimary),
+            mine.target == null
+                ? '${_t.online.abstained} · ${_t.online.voteRegistered}'
+                : '${_t.online.votedFor(mine.target!.name)} · ${_t.online.voteRegistered}',
+            key: const Key('online.voteRegistered'),
+            style: AppText.body.copyWith(color: AppColors.textPrimary, fontSize: 14),
           ),
-        const SizedBox(height: 8),
         if (option != null)
           SizedBox(
             width: double.infinity,
             child: OutlinedButton(
               key: const Key('online.abstain'),
-              onPressed: pressed(_client.busy ? null : () => _send(Pass(view.seat.id)), Press.tap),
+              onPressed: pressed(canVote && mine?.target != null || canVote && mine == null
+                  ? () => _send(Pass(view.seat.id))
+                  : null, Press.tap),
               child: Text(_t.online.abstain),
             ),
           ),
+        const SizedBox(height: 8),
+        Expanded(flex: 2, child: _townChat()),
       ],
     );
   }
 
+  // ---------------------------------------------------------------------
+
   String _fateOf(Player player) {
+    if (_board.departed.contains(player.id)) return _t.online.leftTown(player.name, '').split('.').first;
     for (final record in _public.history) {
       if (record.nightVictims.contains(player)) return _t.fateNight(record.round);
       if (record.lynched == player) return _t.fateGallows(record.round);
@@ -777,4 +987,95 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
       ],
     );
   }
+}
+
+/// Il bigliettino di chi ha votato: «→ marco».
+class _Pizzino extends StatelessWidget {
+  final String text;
+  final Color color;
+
+  const _Pizzino({required this.text, this.color = AppColors.gold});
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+        decoration: BoxDecoration(
+          color: const Color(0xFFEDE2C8),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: color.withValues(alpha: 0.6)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          child: Text(
+            text,
+            style: const TextStyle(fontFamily: 'Courier', color: Color(0xFF14110F), fontSize: 12, fontWeight: FontWeight.w700),
+          ),
+        ),
+      );
+}
+
+/// Una riga del voto della piazza: chi è, quanti voti ha, chi accusa lui.
+class _VoteRow extends StatelessWidget {
+  final Player player;
+  final int votes;
+  final String votesLabel;
+  final String? accuses;
+  final String? offline;
+  final bool silenced;
+  final Role? revealed;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  const _VoteRow({
+    super.key,
+    required this.player,
+    required this.votes,
+    required this.votesLabel,
+    required this.accuses,
+    required this.offline,
+    required this.silenced,
+    required this.revealed,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Material(
+          color: selected ? AppColors.accent.withValues(alpha: 0.25) : AppColors.surface,
+          borderRadius: BorderRadius.circular(10),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              child: Row(
+                children: [
+                  Opacity(opacity: offline != null ? 0.4 : 1, child: PlayerAvatar(seed: player.name, size: 34)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          [player.name, ?offline, if (silenced) '🤐'].join(' · '),
+                          style: AppText.body.copyWith(color: AppColors.textPrimary, fontSize: 15),
+                        ),
+                        if (accuses != null) ...[
+                          const SizedBox(height: 2),
+                          _Pizzino(text: '→ $accuses'),
+                        ],
+                      ],
+                    ),
+                  ),
+                  if (votes > 0)
+                    Text(votesLabel, style: AppText.display(16, color: AppColors.accent))
+                  else if (revealed != null)
+                    Text(revealed!.name, style: AppText.body.copyWith(fontSize: 12)),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
 }
