@@ -133,7 +133,9 @@ class FakeOnline {
     final room = _rooms[roomId];
     if (room == null || room.seats.remove(id) == null) return;
     if (room.seats.isEmpty) {
+      // Come il server: la stanza vuota sparisce.
       room.room = _copy(room.room, status: RoomStatus.ended);
+      _rooms.remove(roomId);
     } else if (room.room.hostId == id) {
       room.room = _copy(room.room, hostId: room.seats.keys.first);
     }
@@ -375,7 +377,16 @@ class FakeRooms implements RoomRepository {
   Future<Room> join(String code) async => _online._join(_online._me, code);
 
   @override
-  Future<void> leave(String roomId) async => _online._leave(roomId, _online._me);
+  Future<void> leave(String roomId, {String? newHostId, bool autoHeir = false}) async {
+    final room = _online._rooms[roomId];
+    final me = _online._me;
+    if (room != null && room.room.hostId == me && room.seats.length > 1 && !autoHeir) {
+      if (newHostId == null) throw const OnlineException(OnlineFailure.hostMustChoose);
+      if (newHostId == me || !room.seats.containsKey(newHostId)) throw const OnlineException(OnlineFailure.notAllowed);
+      room.room = _online._copy(room.room, hostId: newHostId);
+    }
+    _online._leave(roomId, me);
+  }
 
   @override
   Future<Room?> fetch(String roomId) async {

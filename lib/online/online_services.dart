@@ -69,7 +69,10 @@ abstract class RoomRepository {
 
   Future<Room> join(String code);
 
-  Future<void> leave(String roomId);
+  /// Esce dalla stanza. Il padrone di casa, se c'è altra gente, deve dire a
+  /// chi lasciarla ([newHostId]); [autoHeir] la passa al primo arrivato, per
+  /// quando si esce senza un gesto (l'app che si chiude).
+  Future<void> leave(String roomId, {String? newHostId, bool autoHeir = false});
 
   /// La stanza com'è adesso, o null se non la si vede più.
   Future<Room?> fetch(String roomId);

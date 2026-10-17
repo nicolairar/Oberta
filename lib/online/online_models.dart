@@ -163,6 +163,10 @@ enum OnlineFailure {
   roomNotFound,
   roomClosed,
   roomFull,
+
+  /// Il padrone di casa esce mentre altri sono seduti: prima deve scegliere
+  /// a chi lasciare la stanza.
+  hostMustChoose,
   playerNotFound,
   notAllowed,
   requestNotFound,

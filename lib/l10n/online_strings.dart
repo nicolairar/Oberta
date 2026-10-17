@@ -83,6 +83,12 @@ abstract class OnlineStrings {
   String nowFriends(String name);
   String get startSoon;
   String get leaveRoom;
+  String get leaveConfirmTitle;
+  String get leaveConfirmBody;
+  String get leaveConfirm;
+  String get stay;
+  String get chooseHostTitle;
+  String get chooseHostBody;
 
   // Gli amici.
   String get searchHint;
@@ -159,6 +165,12 @@ abstract class OnlineStrings {
     'nowFriends': nowFriends('Sara'),
     'startSoon': startSoon,
     'leaveRoom': leaveRoom,
+    'leaveConfirmTitle': leaveConfirmTitle,
+    'leaveConfirmBody': leaveConfirmBody,
+    'leaveConfirm': leaveConfirm,
+    'stay': stay,
+    'chooseHostTitle': chooseHostTitle,
+    'chooseHostBody': chooseHostBody,
     'searchHint': searchHint,
     'requests': requests,
     'yourFriends': yourFriends,
@@ -306,6 +318,18 @@ final class ItalianOnlineStrings extends OnlineStrings {
   String get startSoon => 'INIZIA · PRESTO';
   @override
   String get leaveRoom => 'ESCI DALLA STANZA';
+  @override
+  String get leaveConfirmTitle => 'Esci dalla stanza?';
+  @override
+  String get leaveConfirmBody => 'Il tuo posto al tavolo si libera.';
+  @override
+  String get leaveConfirm => 'ESCI';
+  @override
+  String get stay => 'RESTA';
+  @override
+  String get chooseHostTitle => 'A chi lasci la stanza?';
+  @override
+  String get chooseHostBody => 'Sei il padrone di casa: scegli chi prende il tuo posto, poi esci.';
 
   @override
   String get searchHint => 'Cerca per nome unico';
@@ -346,6 +370,7 @@ final class ItalianOnlineStrings extends OnlineStrings {
         OnlineFailure.roomNotFound => 'Nessuna stanza con questo codice.',
         OnlineFailure.roomClosed => 'In quella stanza si gioca già.',
         OnlineFailure.roomFull => 'La stanza è piena.',
+        OnlineFailure.hostMustChoose => 'Prima scegli a chi lasciare la stanza.',
         OnlineFailure.playerNotFound => 'Giocatore non trovato.',
         OnlineFailure.notAllowed => 'Non si può.',
         OnlineFailure.requestNotFound => 'La richiesta non c\'è più.',
@@ -485,6 +510,18 @@ final class EnglishOnlineStrings extends OnlineStrings {
   String get startSoon => 'START · SOON';
   @override
   String get leaveRoom => 'LEAVE THE ROOM';
+  @override
+  String get leaveConfirmTitle => 'Leave the room?';
+  @override
+  String get leaveConfirmBody => 'Your seat at the table opens up.';
+  @override
+  String get leaveConfirm => 'LEAVE';
+  @override
+  String get stay => 'STAY';
+  @override
+  String get chooseHostTitle => 'Who takes over the room?';
+  @override
+  String get chooseHostBody => 'You are the host: pick who takes your place, then leave.';
 
   @override
   String get searchHint => 'Search by handle';
@@ -525,6 +562,7 @@ final class EnglishOnlineStrings extends OnlineStrings {
         OnlineFailure.roomNotFound => 'No room with that code.',
         OnlineFailure.roomClosed => 'That room is already playing.',
         OnlineFailure.roomFull => 'The room is full.',
+        OnlineFailure.hostMustChoose => 'First pick who takes over the room.',
         OnlineFailure.playerNotFound => 'Player not found.',
         OnlineFailure.notAllowed => 'Not allowed.',
         OnlineFailure.requestNotFound => 'That request is gone.',
