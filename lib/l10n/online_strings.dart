@@ -134,6 +134,7 @@ abstract class OnlineStrings {
   String get discussionTitle;
   String get discussionHint;
   String get verdictWaiting;
+  String get accusedTag;
 
   // La chat.
   String get chatHint;
@@ -266,6 +267,7 @@ abstract class OnlineStrings {
     'nightTitleOnline': nightTitleOnline,
     'discussionTitle': discussionTitle,
     'discussionHint': discussionHint,
+    'accusedTag': accusedTag,
     'verdictWaiting': verdictWaiting,
     'chatHint': chatHint,
     'chatLobby': chatLobby,
@@ -526,6 +528,8 @@ final class ItalianOnlineStrings extends OnlineStrings {
   String get discussionTitle => 'SI DISCUTE IN PIAZZA';
   @override
   String get discussionHint => 'Dite la vostra in chat. Poi si vota.';
+  @override
+  String get accusedTag => 'ACCUSATO';
   @override
   String get verdictWaiting => 'La piazza ha deciso.';
   @override
@@ -833,6 +837,8 @@ final class EnglishOnlineStrings extends OnlineStrings {
   String get discussionTitle => 'THE TOWN TALKS';
   @override
   String get discussionHint => 'Have your say in the chat. Then you vote.';
+  @override
+  String get accusedTag => 'ACCUSED';
   @override
   String get verdictWaiting => 'The town has decided.';
   @override

@@ -1,0 +1,315 @@
+import 'dart:math';
+
+import 'package:flutter/material.dart';
+
+import '../../../theme/app_theme.dart';
+import '../../../widgets/player_avatar.dart';
+import 'noir_ui.dart';
+
+/// Un posto al tavolo: un ritratto ad arco con la targhetta del nome.
+/// Tutti i posti sono grandi uguali. Sopra, quello che serve al gioco:
+/// scelto (alone d'oro), accusato (bordo rosso e nastro), quanti voti ha,
+/// il pizzino con chi accusa, morto (grigio, con il garofano).
+class SeatCard extends StatelessWidget {
+  final String name;
+  final double width;
+  final bool fallen;
+  final bool offline;
+  final bool selected;
+  final bool me;
+
+  /// Il più accusato: bordo rosso e il nastro [accusedLabel].
+  final bool accused;
+  final String accusedLabel;
+
+  /// Quanti voti ha (zero: nessun bollo).
+  final int votes;
+
+  /// Chi accusa questo giocatore, scritto sul suo pizzino.
+  final String? pizzino;
+  final Key? pizzinoKey;
+  final Color pizzinoColor;
+
+  /// Una riga sotto il nome (un ruolo scoperto, «offline»).
+  final String? note;
+  final Color noteColor;
+
+  /// Spento: non si può scegliere (resta leggibile).
+  final bool dimmed;
+  final VoidCallback? onTap;
+
+  const SeatCard({
+    super.key,
+    required this.name,
+    required this.width,
+    this.fallen = false,
+    this.offline = false,
+    this.selected = false,
+    this.me = false,
+    this.accused = false,
+    this.accusedLabel = '',
+    this.votes = 0,
+    this.pizzino,
+    this.pizzinoKey,
+    this.pizzinoColor = Saloon.blood,
+    this.note,
+    this.noteColor = Saloon.brass,
+    this.dimmed = false,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final height = width * 1.32;
+    final arch = BorderRadius.vertical(top: Radius.circular(width / 2), bottom: Radius.circular(width * 0.12));
+    final border = accused
+        ? Saloon.blood
+        : selected
+            ? Saloon.brass
+            : Saloon.brassDeep;
+    final glow = selected
+        ? [BoxShadow(color: Saloon.brass.withValues(alpha: 0.75), blurRadius: 18, spreadRadius: 2)]
+        : accused
+            ? [BoxShadow(color: Saloon.blood.withValues(alpha: 0.6), blurRadius: 16, spreadRadius: 1)]
+            : const [BoxShadow(color: Color(0xAA000000), blurRadius: 10, offset: Offset(0, 5))];
+    final plateHeight = max(20.0, width * 0.24);
+    final card = Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // Il ritratto ad arco.
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 0,
+          bottom: plateHeight * 0.45,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            decoration: BoxDecoration(
+              borderRadius: arch,
+              border: Border.all(color: border, width: selected || accused ? 2.6 : 1.4),
+              boxShadow: glow,
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: accused
+                    ? const [Color(0xFF7A1018), Color(0xFF2A0508)]
+                    : fallen
+                        ? const [Color(0xFF2A2725), Color(0xFF121110)]
+                        : const [Color(0xFF3A2A1E), Color(0xFF120C08)],
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: arch,
+              child: Align(
+                alignment: const Alignment(0, -0.1),
+                child: Opacity(
+                  opacity: offline ? 0.5 : 1,
+                  child: PlayerAvatar(seed: name, size: width * 0.86, fallen: fallen),
+                ),
+              ),
+            ),
+          ),
+        ),
+        // La targhetta del nome.
+        Positioned(
+          left: width * 0.04,
+          right: width * 0.04,
+          bottom: 0,
+          height: plateHeight,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Saloon.ink,
+              borderRadius: BorderRadius.circular(plateHeight / 2),
+              border: Border.all(color: me ? Saloon.brass : Saloon.brassDeep, width: me ? 1.6 : 1),
+              boxShadow: const [BoxShadow(color: Colors.black, blurRadius: 6, offset: Offset(0, 2))],
+            ),
+            padding: EdgeInsets.symmetric(horizontal: plateHeight * 0.35),
+            child: Row(
+              children: [
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      name.toUpperCase(),
+                      maxLines: 1,
+                      style: AppText.display(plateHeight * 0.52, color: fallen ? AppColors.textSecondary : AppColors.textPrimary)
+                          .copyWith(letterSpacing: 1),
+                    ),
+                  ),
+                ),
+                if (!fallen) ...[
+                  SizedBox(width: plateHeight * 0.15),
+                  Container(
+                    width: plateHeight * 0.3,
+                    height: plateHeight * 0.3,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: offline ? const Color(0xFF6B635C) : Saloon.online,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+        if (fallen)
+          Positioned(
+            right: width * 0.02,
+            top: height * 0.5,
+            child: CustomPaint(size: Size.square(width * 0.3), painter: _CarnationPainter()),
+          ),
+        if (accused && accusedLabel.isNotEmpty)
+          Positioned(
+            left: -width * 0.06,
+            right: -width * 0.06,
+            top: height * 0.44,
+            child: Center(
+              child: Transform.rotate(
+                angle: -0.2,
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: width * 0.06, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Saloon.enamel,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: const Color(0xFFFFC9B0), width: 1),
+                    boxShadow: const [BoxShadow(color: Colors.black, blurRadius: 6)],
+                  ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      accusedLabel.toUpperCase(),
+                      style: AppText.display(max(10, width * 0.13), color: const Color(0xFFFFEBD6)).copyWith(letterSpacing: 1.4),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        if (votes > 0)
+          Positioned(
+            right: -width * 0.06,
+            top: -width * 0.02,
+            child: _WaxSeal(votes, size: max(24, width * 0.3)),
+          ),
+        if (pizzino != null)
+          Positioned(
+            left: -width * 0.05,
+            right: -width * 0.05,
+            bottom: -plateHeight * 0.95,
+            child: Center(child: _Pizzino(key: pizzinoKey, text: pizzino!, color: pizzinoColor, size: max(10, width * 0.12))),
+          ),
+        if (note != null)
+          Positioned(
+            left: -width * 0.05,
+            right: -width * 0.05,
+            top: -plateHeight * 0.2,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                decoration: Saloon.scrim(radius: 6, border: noteColor),
+                child: Text(note!, maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: noteColor, fontSize: max(9, width * 0.11), fontWeight: FontWeight.w700, letterSpacing: 0.8)),
+              ),
+            ),
+          ),
+      ],
+    );
+    return AnimatedScale(
+      duration: const Duration(milliseconds: 200),
+      scale: selected ? 1.06 : 1,
+      child: Opacity(
+        opacity: dimmed ? 0.62 : 1,
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            onTap: onTap,
+            customBorder: RoundedRectangleBorder(borderRadius: arch),
+            splashColor: Saloon.brass.withValues(alpha: 0.2),
+            child: SizedBox(width: width, height: height, child: card),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Il bollo di ceralacca con il numero dei voti.
+class _WaxSeal extends StatelessWidget {
+  final int votes;
+  final double size;
+
+  const _WaxSeal(this.votes, {required this.size});
+
+  @override
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
+        key: ValueKey(votes),
+        tween: Tween(begin: 1.5, end: 1),
+        duration: const Duration(milliseconds: 260),
+        curve: Curves.easeOutBack,
+        builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
+        child: Container(
+          width: size,
+          height: size,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: const RadialGradient(center: Alignment(-0.3, -0.3), colors: [Color(0xFFE0343F), Color(0xFF7A0A12)]),
+            border: Border.all(color: const Color(0xFF3A0508), width: 1.5),
+            boxShadow: const [BoxShadow(color: Colors.black, blurRadius: 6, offset: Offset(0, 2))],
+          ),
+          child: Text('$votes', style: AppText.display(size * 0.55, color: Colors.white).copyWith(letterSpacing: 0)),
+        ),
+      );
+}
+
+/// Il bigliettino di chi ha votato: «→ MARCO».
+class _Pizzino extends StatelessWidget {
+  final String text;
+  final Color color;
+  final double size;
+
+  const _Pizzino({super.key, required this.text, required this.color, required this.size});
+
+  @override
+  Widget build(BuildContext context) => Transform.rotate(
+        angle: 0.04,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+          decoration: BoxDecoration(
+            color: Saloon.paper,
+            borderRadius: BorderRadius.circular(2),
+            border: Border(left: BorderSide(color: color, width: 3)),
+            boxShadow: const [BoxShadow(color: Colors.black, blurRadius: 4, offset: Offset(0, 2))],
+          ),
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontFamily: 'Courier', color: Saloon.paperInk, fontSize: size, fontWeight: FontWeight.w700),
+          ),
+        ),
+      );
+}
+
+/// Il garofano sul posto di chi non c'è più.
+class _CarnationPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final s = size.shortestSide;
+    final stem = Paint()
+      ..color = const Color(0xFF3F6B3A)
+      ..strokeWidth = s * 0.08
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(Offset(s * 0.5, s * 0.45), Offset(s * 0.3, s * 0.98), stem);
+    final petal = Paint()..color = const Color(0xFFC0182A);
+    final center = Offset(s * 0.52, s * 0.35);
+    for (var i = 0; i < 7; i++) {
+      final a = 2 * pi * i / 7;
+      canvas.drawCircle(center + Offset(cos(a), sin(a)) * s * 0.16, s * 0.15, petal);
+    }
+    canvas.drawCircle(center, s * 0.12, Paint()..color = const Color(0xFF8A0F1C));
+  }
+
+  @override
+  bool shouldRepaint(_CarnationPainter old) => false;
+}
