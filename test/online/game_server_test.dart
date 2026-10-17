@@ -166,6 +166,53 @@ void main() {
     expect(server.schedule['endsAt'], server.now + 1500 + 30000);
   });
 
+  test('l\'ultimo voto si vede: la fase chiude solo dopo una breve attesa', () {
+    final server = ServerHarness(table(humans: 5, bots: 0), seed: 2);
+    final random = Random(2);
+    server.step();
+    final held = <Stage>{};
+    for (var i = 0; i < 400 && server.last['finished'] != true && held.length < 2; i++) {
+      final stage = server.stage;
+      final key = server.schedule['key'];
+      if (!humansAct(server, random)) {
+        server.now = server.last['nextDue'] as int;
+        server.step();
+        continue;
+      }
+      server.step();
+      if (stage != Stage.vote && stage != Stage.night) continue;
+      final hold = server.state!['settleUntil'] as int?;
+      expect(hold, server.now + 2500, reason: 'un voto accettato tiene aperta la fase');
+      expect(server.schedule['key'], key, reason: 'non chiude nello stesso passo del voto');
+      expect(server.last['nextDue'], lessThanOrEqualTo(hold!));
+      server.now = hold - 1;
+      server.step();
+      expect(server.schedule['key'], key, reason: 'prima dell\'attesa resta aperta');
+      server.now = hold;
+      server.step();
+      if (server.schedule['key'] != key) {
+        held.add(stage);
+        expect(server.state!['settleUntil'], isNull, reason: 'la fase nuova riparte senza attesa');
+      }
+    }
+    expect(held, containsAll([Stage.night, Stage.vote]));
+    expect(server.leaks, isEmpty);
+  });
+
+  test('i bot votano almeno 3 secondi prima della fine, e anche il loro voto si vede', () {
+    final server = ServerHarness(table(humans: 1, bots: 4), seed: 5);
+    server.step();
+    for (var i = 0; i < 200 && server.stage != Stage.vote; i++) {
+      if (!humansAct(server, Random(1))) server.now = server.last['nextDue'] as int;
+      server.step();
+    }
+    expect(server.stage, Stage.vote);
+    final endsAt = server.schedule['endsAt'] as int;
+    final botDue = (server.state!['botDue'] as Map).values.cast<int>().where((d) => d != 0);
+    expect(botDue, isNotEmpty);
+    expect(botDue.every((d) => d <= endsAt - 3000), isTrue);
+  });
+
   test('una conferma sola non basta, e chi non è collegato non blocca', () {
     final server = ServerHarness(table(humans: 3, bots: 1));
     server.step();

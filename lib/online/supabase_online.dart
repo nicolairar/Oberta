@@ -479,9 +479,10 @@ class SupabaseGame implements GameBackend {
 
   /// Un canale Realtime su [tables] della stanza: a ogni cambio (e a ogni
   /// ricollegamento) si chiama [refresh].
-  Stream<T> _watch<T>(String name, List<String> tables, String roomId, Future<T?> Function() read) {
+  Stream<T> _watch<T>(String name, List<String> tables, String roomId, Future<T?> Function() read, {Duration? poll}) {
     late final StreamController<T> controller;
     RealtimeChannel? channel;
+    Timer? timer;
 
     Future<void> refresh() async {
       try {
@@ -513,8 +514,11 @@ class SupabaseGame implements GameBackend {
           if (status != RealtimeSubscribeStatus.closed) refresh();
         });
         refresh();
+        // Riserva: se Realtime non consegna i cambi, si rilegge lo stesso.
+        if (poll != null) timer = Timer.periodic(poll, (_) => refresh());
       },
       onCancel: () async {
+        timer?.cancel();
         if (channel case final channel?) await _client.removeChannel(channel);
       },
     );
@@ -589,9 +593,10 @@ class SupabaseGame implements GameBackend {
       });
 
   @override
-  Future<void> sendChat(String roomId, ChatChannel channel, String body) => _guard(
-        () => _client.rpc<num>('send_chat', params: {'room': roomId, 'channel': channel.name, 'body': body}),
-      );
+  Future<int> sendChat(String roomId, ChatChannel channel, String body) => _guard(() async {
+        final id = await _client.rpc<num>('send_chat', params: {'room': roomId, 'channel': channel.name, 'body': body});
+        return id.toInt();
+      });
 
   @override
   Stream<List<ChatMessage>> watchChat(String roomId) => _watch('game-chat', ['game_chat'], roomId, () async {
@@ -603,7 +608,7 @@ class SupabaseGame implements GameBackend {
             .order('id', ascending: false)
             .limit(100);
         return [for (final row in rows.reversed) ChatMessage.fromJson(row)];
-      });
+      }, poll: const Duration(seconds: 5));
 }
 
 /// La bottega sul server: il catalogo e la vetrina si leggono, comprare e

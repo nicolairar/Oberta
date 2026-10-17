@@ -20,6 +20,13 @@ class GameClient extends ChangeNotifier {
   /// Ogni quanto il telefono dice al server «ci sono».
   final Duration heartbeat;
 
+  /// Il profilo di questo telefono, per mostrare subito i propri messaggi.
+  final String? me;
+
+  /// I propri messaggi già scritti e non ancora arrivati dal feed.
+  final Map<int, ChatMessage> _sent = {};
+  List<ChatMessage> _fed = const [];
+
   StreamSubscription<GameFeed>? _feed;
   StreamSubscription<List<ChatMessage>>? _chatFeed;
   GameTimer? _beat;
@@ -49,6 +56,7 @@ class GameClient extends ChangeNotifier {
     required this.roomId,
     this.clock = const SystemGameClock(),
     this.heartbeat = const Duration(seconds: 5),
+    this.me,
   }) {
     _listen();
     _ping();
@@ -61,7 +69,8 @@ class GameClient extends ChangeNotifier {
       notifyListeners();
     });
     _chatFeed = backend.watchChat(roomId).listen((messages) {
-      _chat = messages;
+      _fed = messages;
+      _mergeChat();
       notifyListeners();
     }, onError: (Object _) {});
   }
@@ -229,7 +238,34 @@ class GameClient extends ChangeNotifier {
   /// Vero se da qui si è già confermata la fase in corso.
   bool get ackedHere => schedule != null && _acked.contains(schedule!.key);
 
-  Future<void> sendChat(ChatChannel channel, String body) => backend.sendChat(roomId, channel, body);
+  /// Manda un messaggio e lo mostra subito, senza aspettare il feed (che
+  /// poi lo sostituisce, stesso id). [name] e [profileId] facoltativi: di
+  /// norma il nome del proprio posto e [me].
+  Future<int> sendChat(ChatChannel channel, String body, {String? name, String? profileId}) async {
+    final id = await backend.sendChat(roomId, channel, body);
+    final author = profileId ?? me;
+    final view = _seat?.view;
+    if (_disposed || author == null) return id;
+    final lobby = channel == ChatChannel.lobby;
+    _sent[id] = ChatMessage(
+      id: id,
+      channel: channel,
+      profileId: author,
+      seat: lobby ? null : view?.seat.id,
+      name: name ?? view?.seat.name ?? '',
+      body: body.trim(),
+      at: serverNow,
+    );
+    _mergeChat();
+    notifyListeners();
+    return id;
+  }
+
+  void _mergeChat() {
+    final fed = {for (final message in _fed) message.id};
+    _sent.removeWhere((id, _) => fed.contains(id));
+    _chat = [..._fed, ..._sent.values]..sort((a, b) => a.id.compareTo(b.id));
+  }
 
   @override
   void dispose() {
