@@ -104,6 +104,7 @@ OnlineException _classify(Object error, SignInDoor? door) {
       'room_not_found' => OnlineFailure.roomNotFound,
       'room_closed' => OnlineFailure.roomClosed,
       'room_full' => OnlineFailure.roomFull,
+      'host_must_choose' => OnlineFailure.hostMustChoose,
       'player_not_found' => OnlineFailure.playerNotFound,
       'not_allowed' => OnlineFailure.notAllowed,
       'request_not_found' => OnlineFailure.requestNotFound,
@@ -367,7 +368,9 @@ class SupabaseRooms implements RoomRepository {
       });
 
   @override
-  Future<void> leave(String roomId) => _guard(() => _client.rpc<void>('leave_room', params: {'room': roomId}));
+  Future<void> leave(String roomId, {String? newHostId, bool autoHeir = false}) => _guard(
+        () => _client.rpc<void>('leave_room', params: {'room': roomId, 'new_host': newHostId, 'auto_heir': autoHeir}),
+      );
 
   @override
   Future<Room?> fetch(String roomId) => _guard(() async {

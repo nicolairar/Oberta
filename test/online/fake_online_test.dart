@@ -186,10 +186,11 @@ void main() {
       expect(() => online.joinAs('bruno', room.code), _fails(OnlineFailure.roomFull));
     });
 
-    test('se il padrone di casa esce passa la mano; l\'ultimo chiude', () async {
+    test('il padrone di casa sceglie a chi lasciare la stanza; l\'ultimo la cancella', () async {
       final room = await online.rooms.create(AppLanguage.it);
       online.joinAs('bruno', room.code);
-      await online.rooms.leave(room.id);
+      await expectLater(online.rooms.leave(room.id), _fails(OnlineFailure.hostMustChoose));
+      await online.rooms.leave(room.id, newHostId: 'bruno');
       expect(await online.rooms.fetch(room.id), isNull, reason: 'chi esce non vede più la stanza');
       online.leaveAs('bruno', room.id);
       await expectLater(online.rooms.join(room.code), _fails(OnlineFailure.roomNotFound));

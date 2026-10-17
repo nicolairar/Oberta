@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/l10n/app_language.dart';
 import 'package:oberta/online/fake_online.dart';
+import 'package:oberta/online/online_models.dart';
 import 'package:oberta/ui/screens/online/friends_screen.dart';
 import 'package:oberta/ui/screens/online/join_room_screen.dart';
 import 'package:oberta/ui/screens/online/online_screen.dart';
@@ -120,8 +121,35 @@ void main() {
     await tester.scrollUntilVisible(find.text('ESCI DALLA STANZA'), 100, scrollable: find.byType(Scrollable).first);
     await tester.tap(find.text('ESCI DALLA STANZA'));
     await tester.pumpAndSettle();
+    // Padrone di casa con altra gente al tavolo: prima sceglie a chi lasciarla.
+    expect(find.text('A chi lasci la stanza?'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('online.heir.bruno')));
+    await tester.pumpAndSettle();
     expect(find.text('APRI UNA STANZA'), findsOneWidget);
     expect(online.joinAs('bruno', code).hostId, 'bruno', reason: 'chi resta fa da padrone di casa');
+  });
+
+  testWidgets('chi esce da solo conferma, e la stanza vuota sparisce', (tester) async {
+    online.signInReady(handle: 'anna', displayName: 'Anna');
+    await open(tester, OnlineScreen(services: online.services));
+    await tester.tap(find.text('APRI UNA STANZA'));
+    await tester.pumpAndSettle();
+    final code = tester.widget<SelectableText>(find.byKey(const Key('online.roomCode'))).data!;
+
+    await tester.scrollUntilVisible(find.text('ESCI DALLA STANZA'), 100, scrollable: find.byType(Scrollable).first);
+    await tester.tap(find.text('ESCI DALLA STANZA'));
+    await tester.pumpAndSettle();
+    expect(find.text('Esci dalla stanza?'), findsOneWidget);
+    await tester.tap(find.text('RESTA'));
+    await tester.pumpAndSettle();
+    expect(find.text('LA STANZA'), findsOneWidget, reason: 'resta chi ci ripensa');
+
+    await tester.tap(find.text('ESCI DALLA STANZA'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('online.leaveConfirm')));
+    await tester.pumpAndSettle();
+    expect(find.text('APRI UNA STANZA'), findsOneWidget);
+    await expectLater(online.rooms.join(code), throwsA(isA<OnlineException>()), reason: 'stanza vuota cancellata');
   });
 
   testWidgets('entrare con un codice, scritto o letto dal QR', (tester) async {
