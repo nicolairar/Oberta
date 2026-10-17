@@ -105,6 +105,9 @@ class Room {
   final RoomStatus status;
   final int maxPlayers;
 
+  /// I bot di prova che il padrone di casa ha messo al tavolo.
+  final int bots;
+
   const Room({
     required this.id,
     required this.code,
@@ -112,6 +115,7 @@ class Room {
     required this.language,
     this.status = RoomStatus.lobby,
     this.maxPlayers = 16,
+    this.bots = 0,
   });
 
   factory Room.fromJson(Map<String, dynamic> json) => Room(
@@ -121,6 +125,17 @@ class Room {
         language: json['language'] == 'en' ? AppLanguage.en : AppLanguage.it,
         status: RoomStatus.values.byName(json['status'] as String),
         maxPlayers: (json['max_players'] as num).toInt(),
+        bots: (json['bots'] as num?)?.toInt() ?? 0,
+      );
+
+  Room copyWith({String? hostId, RoomStatus? status, int? bots}) => Room(
+        id: id,
+        code: code,
+        hostId: hostId ?? this.hostId,
+        language: language,
+        status: status ?? this.status,
+        maxPlayers: maxPlayers,
+        bots: bots ?? this.bots,
       );
 }
 

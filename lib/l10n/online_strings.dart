@@ -83,7 +83,6 @@ abstract class OnlineStrings {
   String get addFriend;
   String friendRequestSent(String name);
   String nowFriends(String name);
-  String get startSoon;
   String get leaveRoom;
   String get leaveConfirmTitle;
   String get leaveConfirmBody;
@@ -91,6 +90,31 @@ abstract class OnlineStrings {
   String get stay;
   String get chooseHostTitle;
   String get chooseHostBody;
+  String get addBot;
+  String get removeBot;
+  String get botBadge;
+  String get startGame;
+  String startNeeds(int players);
+  String get waitingForHost;
+  String get rejoin;
+
+  // La partita online.
+  String get gameConnecting;
+  String get yourCard;
+  String get yourCardHint;
+  String waitingForOthers(int pending);
+  String get youAreOut;
+  String get voteTitle;
+  String get voteHint;
+  String get abstain;
+  String votedFor(String name);
+  String get abstained;
+  String votesCast(int votes, int alive);
+  String closesIn(String time);
+  String get rejected;
+  String get hostSilent;
+  String get hostLeaveWarning;
+  String get backToRoom;
 
   // Gli amici.
   String get searchHint;
@@ -164,7 +188,6 @@ abstract class OnlineStrings {
     'addFriend': addFriend,
     'friendRequestSent': friendRequestSent('Sara'),
     'nowFriends': nowFriends('Sara'),
-    'startSoon': startSoon,
     'leaveRoom': leaveRoom,
     'leaveConfirmTitle': leaveConfirmTitle,
     'leaveConfirmBody': leaveConfirmBody,
@@ -172,6 +195,29 @@ abstract class OnlineStrings {
     'stay': stay,
     'chooseHostTitle': chooseHostTitle,
     'chooseHostBody': chooseHostBody,
+    'addBot': addBot,
+    'removeBot': removeBot,
+    'botBadge': botBadge,
+    'startGame': startGame,
+    'startNeeds': startNeeds(4),
+    'waitingForHost': waitingForHost,
+    'rejoin': rejoin,
+    'gameConnecting': gameConnecting,
+    'yourCard': yourCard,
+    'yourCardHint': yourCardHint,
+    'waitingForOthers': waitingForOthers(3),
+    'youAreOut': youAreOut,
+    'voteTitle': voteTitle,
+    'voteHint': voteHint,
+    'abstain': abstain,
+    'votedFor': votedFor('sara'),
+    'abstained': abstained,
+    'votesCast': votesCast(3, 7),
+    'closesIn': closesIn('1:30'),
+    'rejected': rejected,
+    'hostSilent': hostSilent,
+    'hostLeaveWarning': hostLeaveWarning,
+    'backToRoom': backToRoom,
     'searchHint': searchHint,
     'requests': requests,
     'yourFriends': yourFriends,
@@ -324,7 +370,6 @@ final class ItalianOnlineStrings extends OnlineStrings {
   @override
   String nowFriends(String name) => 'Tu e $name ora siete amici.';
   @override
-  String get startSoon => 'INIZIA · PRESTO';
   @override
   String get leaveRoom => 'ESCI DALLA STANZA';
   @override
@@ -339,6 +384,54 @@ final class ItalianOnlineStrings extends OnlineStrings {
   String get chooseHostTitle => 'A chi lasci la stanza?';
   @override
   String get chooseHostBody => 'Sei il padrone di casa: scegli chi prende il tuo posto, poi esci.';
+  @override
+  String get addBot => '+ BOT';
+  @override
+  String get removeBot => 'Togli il bot';
+  @override
+  String get botBadge => 'BOT DI PROVA';
+  @override
+  String get startGame => 'INIZIA LA PARTITA';
+  @override
+  String startNeeds(int players) => 'Servono almeno $players al tavolo: fai entrare qualcuno o aggiungi un bot.';
+  @override
+  String get waitingForHost => 'Aspettiamo che il padrone di casa dia le carte.';
+  @override
+  String get rejoin => 'RIENTRA AL TAVOLO';
+
+  @override
+  String get gameConnecting => 'Ci si siede al tavolo…';
+  @override
+  String get yourCard => 'LA TUA CARTA';
+  @override
+  String get yourCardHint => 'Tienila per te: gli altri vedono solo la loro.';
+  @override
+  String waitingForOthers(int pending) =>
+      pending == 1 ? 'Aspettiamo l\'ultimo che deve ancora scegliere.' : 'Aspettiamo gli altri: ne mancano $pending.';
+  @override
+  String get youAreOut => 'Sei fuori dal gioco. Guarda come va a finire, e zitto.';
+  @override
+  String get voteTitle => 'IL VOTO DELLA PIAZZA';
+  @override
+  String get voteHint => 'Tocca chi vuoi condannare. Puoi cambiare idea finché il voto è aperto.';
+  @override
+  String get abstain => 'MI ASTENGO';
+  @override
+  String votedFor(String name) => 'Hai votato $name';
+  @override
+  String get abstained => 'Ti sei astenuto';
+  @override
+  String votesCast(int votes, int alive) => '$votes voti su $alive';
+  @override
+  String closesIn(String time) => 'Il voto si chiude tra $time';
+  @override
+  String get rejected => 'Mossa non valida: riprova.';
+  @override
+  String get hostSilent => 'Il padrone di casa non risponde. Se ha chiuso l\'app, la partita riprende quando rientra.';
+  @override
+  String get hostLeaveWarning => 'La partita gira sul tuo telefono: se esci, si ferma per tutti.';
+  @override
+  String get backToRoom => 'TORNA ALLA STANZA';
 
   @override
   String get searchHint => 'Cerca per nome unico';
@@ -525,7 +618,6 @@ final class EnglishOnlineStrings extends OnlineStrings {
   @override
   String nowFriends(String name) => 'You and $name are now friends.';
   @override
-  String get startSoon => 'START · SOON';
   @override
   String get leaveRoom => 'LEAVE THE ROOM';
   @override
@@ -540,6 +632,54 @@ final class EnglishOnlineStrings extends OnlineStrings {
   String get chooseHostTitle => 'Who takes over the room?';
   @override
   String get chooseHostBody => 'You are the host: pick who takes your place, then leave.';
+  @override
+  String get addBot => '+ BOT';
+  @override
+  String get removeBot => 'Remove the bot';
+  @override
+  String get botBadge => 'TEST BOT';
+  @override
+  String get startGame => 'START THE GAME';
+  @override
+  String startNeeds(int players) => 'At least $players at the table: let someone in or add a bot.';
+  @override
+  String get waitingForHost => 'Waiting for the host to deal the cards.';
+  @override
+  String get rejoin => 'BACK TO THE TABLE';
+
+  @override
+  String get gameConnecting => 'Taking a seat…';
+  @override
+  String get yourCard => 'YOUR CARD';
+  @override
+  String get yourCardHint => 'Keep it to yourself: the others only see theirs.';
+  @override
+  String waitingForOthers(int pending) =>
+      pending == 1 ? 'Waiting for the last one to choose.' : 'Waiting for the others: $pending still to choose.';
+  @override
+  String get youAreOut => 'You are out of the game. Watch how it ends, and keep quiet.';
+  @override
+  String get voteTitle => 'THE TOWN VOTES';
+  @override
+  String get voteHint => 'Tap who you want to condemn. You can change your mind while the vote is open.';
+  @override
+  String get abstain => 'I ABSTAIN';
+  @override
+  String votedFor(String name) => 'You voted for $name';
+  @override
+  String get abstained => 'You abstained';
+  @override
+  String votesCast(int votes, int alive) => '$votes votes of $alive';
+  @override
+  String closesIn(String time) => 'The vote closes in $time';
+  @override
+  String get rejected => 'That move is not allowed: try again.';
+  @override
+  String get hostSilent => 'The host is not answering. If they closed the app, the game resumes when they are back.';
+  @override
+  String get hostLeaveWarning => 'The game runs on your phone: if you leave, it stops for everyone.';
+  @override
+  String get backToRoom => 'BACK TO THE ROOM';
 
   @override
   String get searchHint => 'Search by handle';

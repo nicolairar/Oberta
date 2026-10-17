@@ -10,6 +10,7 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../l10n/app_language.dart';
+import '../rules/intent.dart';
 import 'online_config.dart';
 import 'online_services.dart';
 
@@ -29,6 +30,7 @@ Future<OnlineServices?> openSupabaseOnline(OnlineConfig config) async {
     profiles: SupabaseProfiles(client),
     friends: SupabaseFriends(client),
     rooms: SupabaseRooms(client),
+    game: SupabaseGame(client),
   );
 }
 
@@ -109,6 +111,7 @@ OnlineException _classify(Object error, SignInDoor? door) {
       'player_not_found' => OnlineFailure.playerNotFound,
       'not_allowed' => OnlineFailure.notAllowed,
       'request_not_found' => OnlineFailure.requestNotFound,
+      'invalid_seats' || 'not_your_seat' || 'stale_version' || 'too_many_intents' => OnlineFailure.notAllowed,
       _ => OnlineFailure.unknown,
     };
     return OnlineException(failure, error, detail);
@@ -394,6 +397,13 @@ class SupabaseRooms implements RoomRepository {
   }
 
   @override
+  Future<Room?> current() => _guard(() async {
+        // La policy lascia vedere solo le stanze in cui si siede.
+        final row = await _client.from('rooms').select().order('created_at', ascending: false).limit(1).maybeSingle();
+        return row == null ? null : Room.fromJson(row);
+      });
+
+  @override
   Stream<List<RoomMember>> watchMembers(String roomId) {
     late final StreamController<List<RoomMember>> controller;
     RealtimeChannel? channel;
@@ -420,6 +430,14 @@ class SupabaseRooms implements RoomRepository {
               filter: PostgresChangeFilter(type: PostgresChangeFilterType.eq, column: 'room_id', value: roomId),
               callback: (_) => refresh(),
             )
+            // La stanza stessa: i bot, la partita che comincia.
+            .onPostgresChanges(
+              event: PostgresChangeEvent.update,
+              schema: 'public',
+              table: 'rooms',
+              filter: PostgresChangeFilter(type: PostgresChangeFilterType.eq, column: 'id', value: roomId),
+              callback: (_) => refresh(),
+            )
             .subscribe((status, _) {
               if (status == RealtimeSubscribeStatus.subscribed) refresh();
             });
@@ -431,4 +449,129 @@ class SupabaseRooms implements RoomRepository {
     );
     return controller.stream;
   }
+}
+
+/// La partita online su Supabase: tre tabelle lette con le policy (il
+/// tavolo, la propria vista, le intenzioni per l'host) e le funzioni che
+/// scrivono. Ogni cambio arriva con Realtime e si rilegge per intero:
+/// così l'ordine degli eventi non conta, e chi si ricollega riparte dalla
+/// versione attuale.
+class SupabaseGame implements GameBackend {
+  final SupabaseClient _client;
+
+  SupabaseGame(this._client);
+
+  @override
+  Future<void> setBots(String roomId, int count) =>
+      _guard(() => _client.rpc<void>('set_room_bots', params: {'room': roomId, 'count': count}));
+
+  @override
+  Future<void> startGame(String roomId, List<SeatPlan> seats) => _guard(
+        () => _client.rpc<void>('start_game', params: {
+          'room': roomId,
+          'seats': [for (final seat in seats) seat.toJson()],
+        }),
+      );
+
+  @override
+  Future<void> publish(String roomId, GamePublication publication) => _guard(
+        () => _client.rpc<void>('publish_game', params: {
+          'room': roomId,
+          'new_version': publication.version,
+          'public_view': publication.board,
+          'seat_views': publication.seatViews,
+          'host_state': publication.hostState,
+          'last_intent': publication.lastIntent,
+          'finished': publication.finished,
+        }),
+      );
+
+  @override
+  Future<Map<String, Object?>?> loadHostState(String roomId) => _guard(() async {
+        final row = await _client.from('game_host_state').select('state').eq('room_id', roomId).maybeSingle();
+        return (row?['state'] as Map?)?.cast<String, Object?>();
+      });
+
+  /// Un canale Realtime su [tables] della stanza: a ogni cambio (e a ogni
+  /// ricollegamento) si chiama [refresh].
+  Stream<T> _watch<T>(String name, List<String> tables, String roomId, Future<T?> Function() read) {
+    late final StreamController<T> controller;
+    RealtimeChannel? channel;
+
+    Future<void> refresh() async {
+      try {
+        final value = await read();
+        if (value != null && !controller.isClosed) controller.add(value);
+      } catch (error) {
+        if (!controller.isClosed) controller.addError(_translate(error));
+      }
+    }
+
+    controller = StreamController<T>(
+      onListen: () {
+        var builder = _client.channel('$name:$roomId');
+        for (final table in tables) {
+          builder = builder.onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: table,
+            filter: PostgresChangeFilter(type: PostgresChangeFilterType.eq, column: 'room_id', value: roomId),
+            callback: (_) => refresh(),
+          );
+        }
+        channel = builder.subscribe((status, _) {
+          if (status == RealtimeSubscribeStatus.subscribed) refresh();
+        });
+        refresh();
+      },
+      onCancel: () async {
+        if (channel case final channel?) await _client.removeChannel(channel);
+      },
+    );
+    return controller.stream;
+  }
+
+  @override
+  Stream<List<IntentEnvelope>> watchIntents(String roomId) => _watch('game-intents', ['game_intents'], roomId, () async {
+        final rows = await _client.from('game_intents').select('id, seat, intent').eq('room_id', roomId).order('id');
+        return [
+          for (final row in rows)
+            IntentEnvelope(
+              id: (row['id'] as num).toInt(),
+              seat: row['seat'] as String,
+              intent: (row['intent'] as Map).cast<String, Object?>(),
+            ),
+        ];
+      });
+
+  @override
+  Stream<GameFeed> watchGame(String roomId) =>
+      _watch('game-feed', ['game_public', 'game_seat_views'], roomId, () async {
+        final board = await _client.from('game_public').select('version, view').eq('room_id', roomId).maybeSingle();
+        // La policy lascia leggere solo la propria riga.
+        final seat = await _client
+            .from('game_seat_views')
+            .select('seat, version, view')
+            .eq('room_id', roomId)
+            .maybeSingle();
+        final view = board?['view'] as Map?;
+        return GameFeed(
+          board: board == null || view == null
+              ? null
+              : PublicFrame((board['version'] as num).toInt(), view.cast<String, Object?>()),
+          seat: seat == null
+              ? null
+              : SeatFrame(
+                  seat['seat'] as String,
+                  (seat['version'] as num).toInt(),
+                  (seat['view'] as Map).cast<String, Object?>(),
+                ),
+        );
+      });
+
+  @override
+  Future<int> sendIntent(String roomId, PlayerIntent intent) => _guard(() async {
+        final id = await _client.rpc<num>('submit_intent', params: {'room': roomId, 'intent': intent.toJson()});
+        return id.toInt();
+      });
 }

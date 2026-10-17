@@ -5,16 +5,20 @@ import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../l10n/app_strings.dart';
+import '../../../online/game/bot_brain.dart';
+import '../../../online/game/game_authority.dart';
 import '../../../online/join_code.dart';
 import '../../../online/online_services.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/scene_scaffold.dart';
+import 'online_game_screen.dart';
 import 'online_widgets.dart';
 
 /// La stanza online prima della partita: il codice grande e il QR per chi
 /// deve ancora entrare, e la fila di chi è già seduto, aggiornata dal vivo.
-/// Da qui si chiede l'amicizia a chi siede al tavolo. La partita online
-/// non c'è ancora: il pulsante per cominciare dice «presto».
+/// Da qui si chiede l'amicizia a chi siede al tavolo. Il padrone di casa
+/// mette i bot di prova e dà le carte; a chi aspetta, la partita si apre da
+/// sola quando comincia.
 ///
 /// Uscendo dalla schermata si esce anche dalla stanza.
 class OnlineRoomScreen extends StatefulWidget {
@@ -37,6 +41,13 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> {
   final Set<String> _linked = {};
   bool _left = false;
 
+  /// Vero mentre la schermata della partita è aperta sopra la stanza.
+  bool _inGame = false;
+  bool _busy = false;
+
+  /// Meno di così non si danno le carte.
+  static const minPlayers = 4;
+
   @override
   void initState() {
     super.initState();
@@ -49,6 +60,10 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> {
           },
         );
     _loadFriends();
+    // Chi rientra in una stanza che sta già giocando torna al tavolo.
+    if (_room.status == RoomStatus.playing) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _joinGame());
+    }
   }
 
   Future<void> _loadFriends() async {
@@ -63,6 +78,88 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> {
   Future<void> _seated(List<RoomMember> members) async {
     setState(() => _members = members);
     // Chi è padrone di casa può cambiare quando qualcuno esce.
+    try {
+      final room = await widget.services.rooms.fetch(_room.id);
+      if (room != null && mounted) {
+        setState(() => _room = room);
+        if (room.status == RoomStatus.playing && !_inGame) _joinGame();
+      }
+    } catch (_) {}
+  }
+
+  bool get _isHost => _room.hostId == widget.me.id;
+
+  Future<void> _setBots(int count) async {
+    if (_busy) return;
+    HapticFeedback.selectionClick();
+    setState(() => _busy = true);
+    try {
+      await widget.services.game.setBots(_room.id, count);
+      final room = await widget.services.rooms.fetch(_room.id);
+      if (room != null && mounted) setState(() => _room = room);
+    } catch (error) {
+      if (mounted) showFailure(context, error);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// Il padrone di casa dà le carte: da qui il suo telefono tiene la partita.
+  Future<void> _start() async {
+    if (_busy || _inGame) return;
+    HapticFeedback.mediumImpact();
+    // Da subito: la stanza che passa a «si gioca» non deve aprire una
+    // seconda partita mentre questa si prepara.
+    _inGame = true;
+    setState(() => _busy = true);
+    GameAuthority authority;
+    try {
+      authority = await GameAuthority.start(
+        backend: widget.services.game,
+        roomId: _room.id,
+        members: _members,
+        bots: _room.bots,
+        language: _room.language,
+      );
+    } catch (error) {
+      _inGame = false;
+      if (mounted) {
+        setState(() => _busy = false);
+        showFailure(context, error);
+      }
+      return;
+    }
+    if (!mounted) {
+      authority.dispose();
+      return;
+    }
+    setState(() => _busy = false);
+    await _showGame(authority);
+  }
+
+  /// La partita è cominciata (o si rientra): chi la tiene la riprende, gli
+  /// altri si siedono.
+  Future<void> _joinGame() async {
+    if (_inGame || !mounted) return;
+    _inGame = true;
+    GameAuthority? authority;
+    try {
+      authority = await GameAuthority.resume(backend: widget.services.game, roomId: _room.id);
+    } catch (error) {
+      debugPrint('Nessuna partita da riprendere: $error');
+    }
+    if (!mounted) {
+      authority?.dispose();
+      return;
+    }
+    await _showGame(authority);
+  }
+
+  Future<void> _showGame(GameAuthority? authority) async {
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => OnlineGameScreen(services: widget.services, room: _room, me: widget.me, authority: authority),
+    ));
+    _inGame = false;
     try {
       final room = await widget.services.rooms.fetch(_room.id);
       if (room != null && mounted) setState(() => _room = room);
@@ -229,11 +326,47 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> {
                               onPressed: () => _addFriend(member.profile),
                             ),
                     ),
+                  for (var i = 0; i < _room.bots; i++)
+                    ProfileRow(
+                      key: ValueKey('bot-$i'),
+                      profile: Profile(id: 'bot-$i', handle: botName(i)),
+                      badges: [OnlineBadge(t.botBadge, color: AppColors.textSecondary)],
+                      trailing: _isHost && _room.status == RoomStatus.lobby
+                          ? IconButton(
+                              key: Key('online.removeBot.$i'),
+                              tooltip: t.removeBot,
+                              icon: const Icon(Icons.remove_circle_outline, color: AppColors.textSecondary),
+                              onPressed: _busy ? null : () => _setBots(_room.bots - 1),
+                            )
+                          : null,
+                    ),
                 ],
               ),
             ),
+            if (_isHost && botsEnabled && _room.status == RoomStatus.lobby) ...[
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                key: const Key('online.addBot'),
+                onPressed: _busy || _members.length + _room.bots >= _room.maxPlayers || _room.bots >= maxBots
+                    ? null
+                    : () => _setBots(_room.bots + 1),
+                icon: const Icon(Icons.smart_toy_outlined),
+                label: Text(t.addBot),
+              ),
+            ],
             const SizedBox(height: 24),
-            ElevatedButton(onPressed: null, child: Text(t.startSoon)),
+            if (_isHost) ...[
+              ElevatedButton(
+                key: const Key('online.start'),
+                onPressed: _busy || _members.length + _room.bots < minPlayers ? null : _start,
+                child: Text(t.startGame),
+              ),
+              if (_members.length + _room.bots < minPlayers) ...[
+                const SizedBox(height: 8),
+                Text(t.startNeeds(minPlayers), textAlign: TextAlign.center, style: AppText.body),
+              ],
+            ] else
+              Text(t.waitingForHost, key: const Key('online.waitingForHost'), textAlign: TextAlign.center, style: AppText.body),
             const SizedBox(height: 12),
             OutlinedButton(onPressed: _askToLeave, child: Text(t.leaveRoom)),
           ],

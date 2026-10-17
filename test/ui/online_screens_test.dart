@@ -115,10 +115,28 @@ void main() {
     expect(find.text('Richiesta mandata a bruno.'), findsOneWidget);
     expect(find.byTooltip('Chiedi l\'amicizia'), findsNothing);
 
-    final start = tester.widget<ElevatedButton>(find.widgetWithText(ElevatedButton, 'INIZIA · PRESTO'));
-    expect(start.onPressed, isNull, reason: 'la partita online non c\'è ancora');
+    // In due non si gioca: servono almeno quattro, bot compresi.
+    ElevatedButton start() => tester.widget<ElevatedButton>(find.byKey(const Key('online.start')));
+    await tester.scrollUntilVisible(find.byKey(const Key('online.start')), 100, scrollable: find.byType(Scrollable).first);
+    expect(start().onPressed, isNull);
+    expect(find.textContaining('Servono almeno 4'), findsOneWidget);
+    for (var i = 0; i < 3; i++) {
+      await tester.tap(find.byKey(const Key('online.addBot')));
+      await tester.pumpAndSettle();
+    }
+    expect(find.text('bot.alfa'), findsOneWidget);
+    expect(find.text('bot.charlie'), findsOneWidget);
+    expect(online.roomByCode(code)!.bots, 3);
+    await tester.tap(find.byKey(const Key('online.removeBot.2')));
+    await tester.pumpAndSettle();
+    expect(find.text('bot.charlie'), findsNothing);
+    expect(start().onPressed, isNotNull, reason: 'due persone e due bot fanno quattro');
+    tester.state<ScaffoldMessengerState>(find.byType(ScaffoldMessenger)).removeCurrentSnackBar();
+    await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(find.text('ESCI DALLA STANZA'), 100, scrollable: find.byType(Scrollable).first);
+    await tester.ensureVisible(find.text('ESCI DALLA STANZA'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('ESCI DALLA STANZA'));
     await tester.pumpAndSettle();
     // Padrone di casa con altra gente al tavolo: prima sceglie a chi lasciarla.
@@ -137,6 +155,8 @@ void main() {
     final code = tester.widget<SelectableText>(find.byKey(const Key('online.roomCode'))).data!;
 
     await tester.scrollUntilVisible(find.text('ESCI DALLA STANZA'), 100, scrollable: find.byType(Scrollable).first);
+    await tester.ensureVisible(find.text('ESCI DALLA STANZA'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('ESCI DALLA STANZA'));
     await tester.pumpAndSettle();
     expect(find.text('Esci dalla stanza?'), findsOneWidget);

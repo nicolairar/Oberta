@@ -386,6 +386,32 @@ class _Hub extends StatefulWidget {
 class _HubState extends State<_Hub> {
   bool _busy = false;
 
+  /// La stanza in cui si siede ancora (l'app chiusa a metà partita).
+  Room? _current;
+
+  @override
+  void initState() {
+    super.initState();
+    _lookForTable();
+  }
+
+  Future<void> _lookForTable() async {
+    try {
+      final room = await widget.services.rooms.current();
+      if (mounted) setState(() => _current = room);
+    } catch (_) {
+      // Senza risposta il pulsante per rientrare semplicemente non c'è.
+    }
+  }
+
+  Future<void> _rejoin(Room room) async {
+    HapticFeedback.mediumImpact();
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => OnlineRoomScreen(services: widget.services, room: room, me: widget.profile),
+    ));
+    if (mounted) _lookForTable();
+  }
+
   Future<void> _create() async {
     if (_busy) return;
     HapticFeedback.mediumImpact();
@@ -397,6 +423,7 @@ class _HubState extends State<_Hub> {
       await navigator.push(MaterialPageRoute<void>(
         builder: (_) => OnlineRoomScreen(services: widget.services, room: room, me: widget.profile),
       ));
+      if (mounted) _lookForTable();
     } catch (error) {
       if (mounted) showFailure(context, error);
     } finally {
@@ -417,6 +444,15 @@ class _HubState extends State<_Hub> {
           child: ProfileRow(profile: profile, badges: [OnlineBadge(t.signedInAs(profile.name))]),
         ),
         const SizedBox(height: 24),
+        if (_current case final room?) ...[
+          ElevatedButton.icon(
+            key: const Key('online.rejoin'),
+            onPressed: () => _rejoin(room),
+            icon: const Icon(Icons.login),
+            label: Text('${t.rejoin} · ${room.code}'),
+          ),
+          const SizedBox(height: 12),
+        ],
         ElevatedButton.icon(
           onPressed: _busy ? null : _create,
           icon: const Icon(Icons.meeting_room),

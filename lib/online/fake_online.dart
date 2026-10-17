@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 
 import '../l10n/app_language.dart';
+import '../rules/intent.dart';
 import 'handle_rules.dart';
 import 'join_code.dart';
 import 'online_services.dart';
@@ -23,10 +25,46 @@ class FakeOnline {
   late final FakeProfiles profiles = FakeProfiles._(this);
   late final FakeFriends friends = FakeFriends._(this);
   late final FakeRooms rooms = FakeRooms._(this);
+  late final FakeGame game = FakeGame._(this, () => auth.userId);
+
+  /// La partita vista da un altro account, come dal suo telefono.
+  FakeGame gameAs(String userId) => FakeGame._(this, () => userId);
+
+  final Map<String, _FakeGameRoom> _games = {};
+  final List<void Function()> _gameWatchers = [];
+  int _intentIds = 0;
+
+  /// Quante pubblicazioni dell'autorità sono arrivate.
+  int published = 0;
+
+  /// Tutto quello che il server ha consegnato a ogni telefono, in ordine:
+  /// i test controllano che nessuno riceva quello che non deve.
+  final List<({String user, GameFeed feed})> deliveries = [];
+
+  /// Se vero, ogni chiamata aspetta un giro come la rete vera.
+  bool slow = true;
+
+  Future<void> _network() => slow ? Future<void>.delayed(Duration.zero) : Future<void>.value();
+
+  void _notifyGame(String roomId) {
+    // I telefoni ricevono le novità poco dopo, non durante la chiamata.
+    scheduleMicrotask(() {
+      for (final watcher in [..._gameWatchers]) {
+        watcher();
+      }
+    });
+  }
+
+  /// La stanza com'è adesso sul server.
+  Room? roomOf(String roomId) => _rooms[roomId]?.room;
+
+  /// La stanza aperta con questo codice.
+  Room? roomByCode(String code) => _rooms.values.where((room) => room.room.code == code).firstOrNull?.room;
 
   FakeOnline({this.accountId = 'me', Random? random}) : _random = random ?? Random(7);
 
-  OnlineServices get services => OnlineServices(auth: auth, profiles: profiles, friends: friends, rooms: rooms);
+  OnlineServices get services =>
+      OnlineServices(auth: auth, profiles: profiles, friends: friends, rooms: rooms, game: game);
 
   /// Gli account di prova: email → (password, id dell'account).
   final Map<String, (String, String)> _testAccounts = {};
@@ -112,6 +150,7 @@ class FakeOnline {
     if (room == null) throw const OnlineException(OnlineFailure.roomNotFound);
     if (room.seats.containsKey(id)) return room.room;
     if (room.room.status != RoomStatus.lobby) throw const OnlineException(OnlineFailure.roomClosed);
+    if (room.seats.length + room.room.bots >= room.room.maxPlayers) throw const OnlineException(OnlineFailure.roomFull);
     final taken = room.seats.values.toSet();
     final seat = [for (var s = 1; s <= room.room.maxPlayers; s++) s].where((s) => !taken.contains(s)).firstOrNull;
     if (seat == null) throw const OnlineException(OnlineFailure.roomFull);
@@ -134,20 +173,14 @@ class FakeOnline {
       // Come il server: la stanza vuota sparisce.
       room.room = _copy(room.room, status: RoomStatus.ended);
       _rooms.remove(roomId);
+      _games.remove(roomId);
     } else if (room.room.hostId == id) {
       room.room = _copy(room.room, hostId: room.seats.keys.first);
     }
     room.notify(this);
   }
 
-  Room _copy(Room room, {String? hostId, RoomStatus? status}) => Room(
-        id: room.id,
-        code: room.code,
-        hostId: hostId ?? room.hostId,
-        language: room.language,
-        status: status ?? room.status,
-        maxPlayers: room.maxPlayers,
-      );
+  Room _copy(Room room, {String? hostId, RoomStatus? status}) => room.copyWith(hostId: hostId, status: status);
 }
 
 class _Link {
@@ -397,6 +430,15 @@ class FakeRooms implements RoomRepository {
   }
 
   @override
+  Future<Room?> current() async {
+    final me = _online._me;
+    for (final room in _online._rooms.values) {
+      if (room.seats.containsKey(me)) return room.room;
+    }
+    return null;
+  }
+
+  @override
   Stream<List<RoomMember>> watchMembers(String roomId) {
     final room = _online._rooms[roomId];
     late final StreamController<List<RoomMember>> controller;
@@ -414,3 +456,219 @@ class FakeRooms implements RoomRepository {
     return controller.stream;
   }
 }
+
+/// La partita di una stanza, sul server finto: le stesse righe e le stesse
+/// regole di accesso delle tabelle `game_*` del database.
+class _FakeGameRoom {
+  final String host;
+  int version = 0;
+  Map<String, Object?>? board;
+  final Map<String, SeatPlan> seats;
+  final Map<String, ({String profile, int version, Map<String, Object?> view})> seatViews = {};
+  final List<({int id, String seat, String profile, Map<String, Object?> intent})> intents = [];
+  Map<String, Object?>? hostState;
+
+  _FakeGameRoom(this.host, this.seats);
+}
+
+/// La partita online sul server finto, vista dall'account [userId]: ogni
+/// chiamata controlla quello che controllerebbero le policy e le funzioni
+/// del database, e ognuno riceve solo le righe che potrebbe leggere.
+class FakeGame implements GameBackend {
+  final FakeOnline _online;
+  final String? Function() _user;
+
+  FakeGame._(this._online, this._user);
+
+  String get _me => _user() ?? (throw const OnlineException(OnlineFailure.notSignedIn));
+
+  _FakeRoom _room(String roomId) =>
+      _online._rooms[roomId] ?? (throw const OnlineException(OnlineFailure.roomNotFound));
+
+  bool _member(String roomId, String id) => _online._rooms[roomId]?.seats.containsKey(id) ?? false;
+
+  @override
+  Future<void> setBots(String roomId, int count) async {
+    await _online._network();
+    final room = _room(roomId);
+    if (room.room.hostId != _me) throw const OnlineException(OnlineFailure.notAllowed);
+    if (room.room.status != RoomStatus.lobby) throw const OnlineException(OnlineFailure.roomClosed);
+    if (count < 0 || count + room.seats.length > room.room.maxPlayers) {
+      throw const OnlineException(OnlineFailure.roomFull);
+    }
+    room.room = room.room.copyWith(bots: count);
+    room.notify(_online);
+  }
+
+  @override
+  Future<void> startGame(String roomId, List<SeatPlan> seats) async {
+    await _online._network();
+    final me = _me;
+    final room = _room(roomId);
+    if (room.room.hostId != me) throw const OnlineException(OnlineFailure.notAllowed);
+    if (room.room.status != RoomStatus.lobby) throw const OnlineException(OnlineFailure.roomClosed);
+    if (seats.length < 4 || seats.length > room.room.maxPlayers) throw const OnlineException(OnlineFailure.notAllowed);
+    final placed = <String, SeatPlan>{};
+    final humans = <String>{};
+    for (final (index, plan) in seats.indexed) {
+      if (plan.seat != 's${index + 1}') throw const OnlineException(OnlineFailure.notAllowed);
+      final profile = plan.profileId;
+      if (profile == null) {
+        if (!RegExp(r'^bot\.[a-z]{1,8}$').hasMatch(plan.name)) throw const OnlineException(OnlineFailure.notAllowed);
+        placed[plan.seat] = plan;
+      } else {
+        if (!room.seats.containsKey(profile) || !humans.add(profile)) {
+          throw const OnlineException(OnlineFailure.notAllowed);
+        }
+        // Come il server: una persona siede col suo nome unico, qualunque
+        // cosa mandi il padrone di casa.
+        placed[plan.seat] = SeatPlan(seat: plan.seat, profileId: profile, name: _online._profiles[profile]!.name);
+      }
+    }
+    if (humans.length != room.seats.length) throw const OnlineException(OnlineFailure.notAllowed);
+    _online._games[roomId] = _FakeGameRoom(me, placed);
+    room.room = room.room.copyWith(status: RoomStatus.playing);
+    room.notify(_online);
+  }
+
+  @override
+  Future<void> publish(String roomId, GamePublication publication) async {
+    await _online._network();
+    final me = _me;
+    final game = _online._games[roomId];
+    if (game == null || game.host != me || !_member(roomId, me)) throw const OnlineException(OnlineFailure.notAllowed);
+    if (publication.version <= game.version) throw const OnlineException(OnlineFailure.notAllowed, null, 'stale_version');
+    game.version = publication.version;
+    game.board = _wire(publication.board);
+    for (final plan in game.seats.values) {
+      final profile = plan.profileId;
+      final view = publication.seatViews[plan.seat];
+      if (profile == null || view == null) continue;
+      // La vista va a chi siede a quel posto, qualunque cosa dica l'host.
+      game.seatViews[plan.seat] = (profile: profile, version: publication.version, view: _wire(view));
+    }
+    game.hostState = _wire(publication.hostState);
+    if (publication.lastIntent case final last?) game.intents.removeWhere((intent) => intent.id <= last);
+    _online.published++;
+    if (publication.finished) {
+      final room = _room(roomId);
+      room.room = room.room.copyWith(status: RoomStatus.lobby);
+      room.notify(_online);
+    }
+    _online._notifyGame(roomId);
+  }
+
+  List<IntentEnvelope> _intentsFor(String roomId) {
+    final game = _online._games[roomId];
+    if (game == null) return const [];
+    return [
+      for (final intent in game.intents) IntentEnvelope(id: intent.id, seat: intent.seat, intent: _wire(intent.intent)),
+    ];
+  }
+
+  bool _isHost(String roomId, String id) => _online._games[roomId]?.host == id && _member(roomId, id);
+
+  @override
+  Stream<List<IntentEnvelope>> watchIntents(String roomId) {
+    final me = _me;
+    late final StreamController<List<IntentEnvelope>> controller;
+    void push() {
+      if (controller.isClosed) return;
+      // Come la policy: solo l'host della partita legge le intenzioni.
+      if (!_isHost(roomId, me)) return;
+      controller.add(_intentsFor(roomId));
+    }
+
+    controller = StreamController<List<IntentEnvelope>>(
+      onListen: () {
+        _online._gameWatchers.add(push);
+        scheduleMicrotask(push);
+      },
+      onCancel: () => _online._gameWatchers.remove(push),
+    );
+    return controller.stream;
+  }
+
+  @override
+  Future<Map<String, Object?>?> loadHostState(String roomId) async {
+    await _online._network();
+    final me = _me;
+    final game = _online._games[roomId];
+    if (game == null || game.host != me || !_member(roomId, me)) return null;
+    final state = game.hostState;
+    return state == null ? null : _wire(state);
+  }
+
+  GameFeed _feedFor(String roomId, String me) {
+    final game = _online._games[roomId];
+    if (game == null || !_member(roomId, me)) return const GameFeed();
+    final board = game.board;
+    final mine = [
+      for (final MapEntry(key: seat, value: row) in game.seatViews.entries)
+        if (row.profile == me) SeatFrame(seat, row.version, _wire(row.view)),
+    ];
+    return GameFeed(
+      board: board == null ? null : PublicFrame(game.version, _wire(board)),
+      seat: mine.firstOrNull,
+    );
+  }
+
+  @override
+  Stream<GameFeed> watchGame(String roomId) {
+    final me = _me;
+    late final StreamController<GameFeed> controller;
+    void push() {
+      if (controller.isClosed) return;
+      final feed = _feedFor(roomId, me);
+      _online.deliveries.add((user: me, feed: feed));
+      controller.add(feed);
+    }
+
+    controller = StreamController<GameFeed>(
+      onListen: () {
+        _online._gameWatchers.add(push);
+        scheduleMicrotask(push);
+      },
+      onCancel: () => _online._gameWatchers.remove(push),
+    );
+    return controller.stream;
+  }
+
+  @override
+  Future<int> sendIntent(String roomId, PlayerIntent intent) async {
+    await _online._network();
+    final me = _me;
+    final game = _online._games[roomId];
+    final room = _online._rooms[roomId];
+    if (game == null || room == null || !_member(roomId, me) || room.room.status != RoomStatus.playing) {
+      throw const OnlineException(OnlineFailure.notAllowed);
+    }
+    final seat = game.seats.values.where((plan) => plan.profileId == me).firstOrNull?.seat;
+    if (seat == null) throw const OnlineException(OnlineFailure.notAllowed);
+    final json = _wire(intent.toJson());
+    if (json['seat'] != seat) throw const OnlineException(OnlineFailure.notAllowed, null, 'not_your_seat');
+    if (game.intents.where((i) => i.profile == me).length >= 20) {
+      throw const OnlineException(OnlineFailure.notAllowed, null, 'too_many_intents');
+    }
+    final id = ++_online._intentIds;
+    game.intents.add((id: id, seat: seat, profile: me, intent: json));
+    _online._notifyGame(roomId);
+    return id;
+  }
+
+  /// Solo per i test: manda un'intenzione così com'è, come farebbe un
+  /// client modificato. Il server controlla comunque il posto.
+  Future<int> sendRaw(String roomId, Map<String, Object?> json) async {
+    final me = _me;
+    final game = _online._games[roomId];
+    if (game == null || !_member(roomId, me)) throw const OnlineException(OnlineFailure.notAllowed);
+    final seat = game.seats.values.where((plan) => plan.profileId == me).firstOrNull?.seat;
+    if (seat == null || json['seat'] != seat) throw const OnlineException(OnlineFailure.notAllowed, null, 'not_your_seat');
+    final id = ++_online._intentIds;
+    game.intents.add((id: id, seat: seat, profile: me, intent: _wire(json)));
+    _online._notifyGame(roomId);
+    return id;
+  }
+}
+
+Map<String, Object?> _wire(Map<String, Object?> json) => jsonDecode(jsonEncode(json)) as Map<String, Object?>;

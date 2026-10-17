@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart';
 
 import '../l10n/app_language.dart';
+import 'game/game_backend.dart';
 import 'online_models.dart';
 
+export 'game/game_backend.dart';
 export 'online_models.dart';
 
 /// L'account: chi è entrato, e come si entra. Avvisa chi ascolta quando
@@ -77,8 +79,13 @@ abstract class RoomRepository {
   /// La stanza com'è adesso, o null se non la si vede più.
   Future<Room?> fetch(String roomId);
 
-  /// Chi siede nella stanza, aggiornato ogni volta che qualcuno entra o esce.
+  /// Chi siede nella stanza, aggiornato ogni volta che qualcuno entra o esce
+  /// (e quando la stanza cambia: i bot, la partita che comincia).
   Stream<List<RoomMember>> watchMembers(String roomId);
+
+  /// La stanza in cui si siede adesso, se c'è: per rientrare al tavolo dopo
+  /// aver chiuso l'app.
+  Future<Room?> current();
 }
 
 /// Tutto quello che serve per giocare online. Null dove l'app è stata
@@ -88,8 +95,15 @@ class OnlineServices {
   final ProfileRepository profiles;
   final FriendsRepository friends;
   final RoomRepository rooms;
+  final GameBackend game;
 
-  const OnlineServices({required this.auth, required this.profiles, required this.friends, required this.rooms});
+  const OnlineServices({
+    required this.auth,
+    required this.profiles,
+    required this.friends,
+    required this.rooms,
+    required this.game,
+  });
 
   static OnlineServices? instance;
 }

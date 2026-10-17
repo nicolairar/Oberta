@@ -19,17 +19,24 @@
   premuto ACCEDI), nome utente solo lettere, badge con avatar/livello/monete,
   amici, stanze con codice e QR (`oberta://room/CODICE`), uscita con conferma e
   passaggio del ruolo di padrone di casa, stanze vuote cancellate.
+- **Partita online nelle stanze:** il telefono del padrone di casa fa da
+  autorità (motore, bot, scadenze) e pubblica su Supabase il tavolo pubblico
+  e una vista per posto, leggibile solo da chi ci siede; le intenzioni passano
+  da `submit_intent`. Bot di prova (`bot.alfa`...) col pulsante «+ BOT» nelle
+  build di prova (`--dart-define=OBERTA_BOTS=false` li spegne). Chi chiude
+  l'app rientra dalla sala («Rientra al tavolo»).
+- **Nome unico = unico nome:** 3–12 caratteri `a-z 0-9 . _`, moderazione
+  IT/EN (`reserved_words` nel database, copia in `lib/online/reserved_words.dart`).
 - **Motore pronto per l'online:** stato salvabile, intenzioni validate, vista
   per giocatore senza fughe di ruoli, posto separato dall'account.
 
 ## In programma (in ordine)
-1. Partita online vera nelle stanze + **bot** per provare con pochi telefoni.
-2. Google login (serve configurare Google Cloud).
-3. Livelli e monete assegnati dal server alle vittorie.
-4. Negozio cosmetici: una valuta (monete), 4 classi (comune 350 ≈ 3–4 €,
+1. Google login (serve configurare Google Cloud).
+2. Livelli e monete assegnati dal server alle vittorie.
+3. Negozio cosmetici: una valuta (monete), 4 classi (comune 350 ≈ 3–4 €,
    raro 700, epico 1100, leggendario 1800 ≈ 15–20 €), pacchetti skin+monete a
    soldi veri, vetrina a rotazione decisa dal server, acquisti Apple verificati.
-5. Classificata per lingua (IT/EN) con chat moderata.
+4. Classificata per lingua (IT/EN) con chat moderata.
 
 ## Rifiniture note
 - Tavolo: con 12–16 giocatori una sola fila lunga (niente seconda fila).
