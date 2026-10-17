@@ -120,7 +120,7 @@ class _PlayerGridState extends State<PlayerGrid> with SingleTickerProviderStateM
     super.dispose();
   }
 
-  AvatarLook _lookOf(Player player) => widget.lookOf?.call(player) ?? AvatarLook.fallback(player.name);
+  AvatarLook _lookOf(Player player) => widget.lookOf?.call(player) ?? AvatarLook.of(player.name);
 
   @override
   Widget build(BuildContext context) {

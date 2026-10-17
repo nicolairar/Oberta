@@ -2420,7 +2420,7 @@ class VerdictScenePainter extends CustomPainter {
     }
 
     switch (hat) {
-      case AvatarHead.fedora || AvatarHead.wideBrim:
+      case AvatarHead.fedora || AvatarHead.wideBrim || AvatarHead.borsalino || AvatarHead.panama || AvatarHead.trilby || AvatarHead.homburg:
         final wide = hat == AvatarHead.wideBrim;
         canvas.save();
         canvas.translate(head.dx + h * 0.02, head.dy - h * 0.050);
@@ -2437,7 +2437,7 @@ class VerdictScenePainter extends CustomPainter {
           paint,
         );
         band(-0.084, 0.102, -0.082);
-      case AvatarHead.bowler:
+      case AvatarHead.bowler || AvatarHead.boater || AvatarHead.topHat:
         canvas.drawOval(Rect.fromCenter(center: head.translate(h * 0.01, -h * 0.052), width: h * 0.27, height: h * 0.04), paint);
         canvas.drawArc(Rect.fromCenter(center: head.translate(h * 0.005, -h * 0.052), width: h * 0.18, height: h * 0.22), pi, pi, true, paint);
         band(-0.085, 0.095, -0.080);

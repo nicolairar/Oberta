@@ -80,7 +80,7 @@ class PlayerAvatar extends StatelessWidget {
                 ? NoirAvatar(seed: seed, size: size, faded: fallen)
                 : CustomPaint(
                     size: Size.square(size),
-                    painter: AvatarBustPainter(look ?? AvatarLook.fallback(seed), faded: fallen),
+                    painter: AvatarBustPainter(look ?? AvatarLook.of(seed), faded: fallen),
                   ),
           ),
           for (final layer in dress.layers)

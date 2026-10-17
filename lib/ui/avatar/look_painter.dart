@@ -204,6 +204,7 @@ abstract final class LookPainter {
     _glasses(canvas, look, pose);
     _hat(canvas, look, Paint(), silhouette: false);
     if (look.accessory == AvatarAccessory.carnation) carnation(canvas, Offset(0.2 * broad, -0.44), 0.05);
+    _chest(canvas, look, broad);
     _mouthProp(canvas, look);
     canvas.restore();
   }
@@ -254,6 +255,46 @@ abstract final class LookPainter {
         }
         for (var y = -0.62; y < 0.6; y += 0.09) {
           canvas.drawLine(Offset(-0.6, y), Offset(0.6, y), thread);
+        }
+      case CoatPattern.chalkstripe:
+        thread
+          ..color = const Color(0xFFE8E2D4).withValues(alpha: 0.42)
+          ..strokeWidth = 0.011;
+        for (var x = -0.48; x < 0.5; x += 0.09) {
+          canvas.drawLine(Offset(x, -0.7), Offset(x * 0.9, 0.6), thread);
+        }
+      case CoatPattern.trench:
+        // La cintura annodata e le spalline del soprabito.
+        final belt = Paint()..color = _dark(outfit.coat, 0.35);
+        canvas.drawRect(const Rect.fromLTRB(-0.6, -0.08, 0.6, -0.02), belt);
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(const Rect.fromLTRB(-0.06, -0.095, 0.06, -0.005), const Radius.circular(0.01)),
+          Paint()
+            ..color = _dark(outfit.coat, 0.6)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 0.012,
+        );
+        final strap = Paint()
+          ..color = _dark(outfit.coat, 0.35)
+          ..strokeWidth = 0.035;
+        final stud = Paint()..color = _dark(outfit.coat, 0.55);
+        for (final side in [-1.0, 1.0]) {
+          canvas.drawLine(Offset(side * 0.2, -0.6), Offset(side * 0.36, -0.53), strap);
+          canvas.drawCircle(Offset(side * 0.12, -0.2), 0.014, stud);
+          canvas.drawCircle(Offset(side * 0.12, -0.3), 0.014, stud);
+        }
+      case CoatPattern.brocade:
+        // Fiori d'oro ricamati, sparsi a quinconce.
+        final gilt = Paint()..color = const Color(0xFFE2B54A).withValues(alpha: 0.5);
+        var row = 0;
+        for (var y = -0.6; y < 0.6; y += 0.11) {
+          for (var x = -0.5 + (row.isOdd ? 0.055 : 0); x < 0.5; x += 0.11) {
+            for (var k = 0; k < 4; k++) {
+              final a = k * pi / 2 + 0.4;
+              canvas.drawCircle(Offset(x + cos(a) * 0.014, y + sin(a) * 0.014), 0.009, gilt);
+            }
+          }
+          row++;
         }
       case CoatPattern.doubleBreasted:
         final button = Paint()..color = _bright(outfit.coat, 0.35);
@@ -389,11 +430,49 @@ abstract final class LookPainter {
               colors: [_bright(accent, 0.3), _dark(accent, 0.3)],
             ).createShader(const Rect.fromLTRB(-0.13, -0.63, 0.13, -0.36)),
         );
+      case AvatarAccessory.polkaTie:
+        if (look.dame) break;
+        canvas.drawPath(
+          Path()
+            ..moveTo(-0.035, -0.615)
+            ..lineTo(0.035, -0.615)
+            ..lineTo(0.025, -0.56)
+            ..lineTo(0.055, -0.27)
+            ..lineTo(0, -0.22)
+            ..lineTo(-0.055, -0.27)
+            ..lineTo(-0.025, -0.56)
+            ..close(),
+          Paint()..color = const Color(0xFF8E1D28),
+        );
+        final dot = Paint()..color = paper.withValues(alpha: 0.85);
+        for (final p in const [Offset(0, -0.58), Offset(-0.02, -0.5), Offset(0.02, -0.44), Offset(-0.025, -0.37), Offset(0.025, -0.31), Offset(0, -0.26)]) {
+          canvas.drawCircle(p, 0.008, dot);
+        }
+      case AvatarAccessory.cravat:
+        // Il foulard di seta annodato sotto il mento, con la spilla.
+        final silk = Paint()
+          ..shader = LinearGradient(
+            colors: [_bright(accent, 0.35), _dark(accent, 0.25)],
+          ).createShader(const Rect.fromLTRB(-0.1, -0.64, 0.1, -0.36));
+        canvas.drawPath(
+          Path()
+            ..moveTo(-0.09, -0.63)
+            ..quadraticBezierTo(0, -0.58, 0.09, -0.63)
+            ..quadraticBezierTo(0.1, -0.5, 0.05, -0.38)
+            ..quadraticBezierTo(0, -0.34, -0.05, -0.38)
+            ..quadraticBezierTo(-0.1, -0.5, -0.09, -0.63)
+            ..close(),
+          silk,
+        );
+        canvas.drawCircle(const Offset(0, -0.52), 0.015, Paint()..color = gold);
       case AvatarAccessory.none ||
           AvatarAccessory.carnation ||
           AvatarAccessory.cigar ||
           AvatarAccessory.cigarette ||
-          AvatarAccessory.toothpick:
+          AvatarAccessory.toothpick ||
+          AvatarAccessory.pocketWatch ||
+          AvatarAccessory.pipe ||
+          AvatarAccessory.pocketSquare:
         // Il colletto aperto della camicia.
         if (look.dame) break;
         final collar = Paint()..color = _dark(look.outfit.shirt, 0.1);
@@ -412,6 +491,45 @@ abstract final class LookPainter {
     }
   }
 
+  /// Quello che si porta sulla giacca: la catena dell'orologio e il fazzoletto.
+  static void _chest(Canvas canvas, AvatarLook look, double broad) {
+    switch (look.accessory) {
+      case AvatarAccessory.pocketWatch:
+        final chain = Paint()
+          ..color = gold
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.009;
+        canvas.drawPath(
+          Path()
+            ..moveTo(-0.05, -0.12)
+            ..quadraticBezierTo(0.08, -0.03, 0.22 * broad, -0.13),
+          chain,
+        );
+        canvas.drawCircle(Offset(0.22 * broad, -0.13), 0.02, Paint()..color = gold);
+        canvas.drawCircle(Offset(0.22 * broad, -0.13), 0.012, Paint()..color = const Color(0xFFF6EBC8));
+      case AvatarAccessory.pocketSquare:
+        canvas.drawPath(
+          Path()
+            ..moveTo(0.15 * broad, -0.4)
+            ..lineTo(0.17 * broad, -0.45)
+            ..lineTo(0.2 * broad, -0.41)
+            ..lineTo(0.23 * broad, -0.46)
+            ..lineTo(0.26 * broad, -0.4)
+            ..close(),
+          Paint()..color = paper,
+        );
+        canvas.drawLine(
+          Offset(0.14 * broad, -0.4),
+          Offset(0.27 * broad, -0.4),
+          Paint()
+            ..color = _dark(look.outfit.coat, 0.5)
+            ..strokeWidth = 0.012,
+        );
+      default:
+        break;
+    }
+  }
+
   static Color _hairColor(AvatarLook look) => switch (look.base.tone) {
     SkinTone.porcelain || SkinTone.rose => const Color(0xFF2A1C14),
     _ => const Color(0xFF0E0B0A),
@@ -426,7 +544,7 @@ abstract final class LookPainter {
         );
       case AvatarHead.bun:
         canvas.drawCircle(const Offset(0, -1.1), 0.075, paint);
-      case AvatarHead.fedora || AvatarHead.bowler || AvatarHead.coppola || AvatarHead.slicked:
+      default:
         break;
     }
   }
@@ -460,8 +578,9 @@ abstract final class LookPainter {
     canvas.clipPath(face);
     // Sotto la tesa gli occhi restano in ombra.
     final brim = switch (look.hat) {
-      AvatarHead.fedora || AvatarHead.wideBrim => 0.42,
-      AvatarHead.bowler || AvatarHead.coppola => 0.32,
+      AvatarHead.fedora || AvatarHead.wideBrim || AvatarHead.borsalino || AvatarHead.homburg => 0.42,
+      AvatarHead.panama || AvatarHead.trilby || AvatarHead.boater => 0.3,
+      AvatarHead.bowler || AvatarHead.coppola || AvatarHead.topHat => 0.32,
       _ => 0.0,
     };
     if (brim > 0) {
@@ -500,7 +619,7 @@ abstract final class LookPainter {
       ..strokeCap = StrokeCap.round;
     for (final x in [-0.065, 0.065]) {
       final eye = Offset(x + look1 * 0.006, -0.875);
-      if (look.glasses != AvatarGlasses.shades) {
+      if (look.glasses != AvatarGlasses.shades && look.glasses != AvatarGlasses.aviator) {
         canvas.drawOval(Rect.fromCenter(center: eye, width: 0.058, height: 0.024), white);
         canvas.drawCircle(eye.translate(look1 * 0.016, 0), 0.0125, pupil);
       }
@@ -578,6 +697,62 @@ abstract final class LookPainter {
         );
       case FaceMark.mole:
         canvas.drawCircle(const Offset(0.07, -0.79), 0.01, Paint()..color = const Color(0xFF1A0E0A));
+      case FaceMark.pencil:
+        // Il baffetto a matita, sottile come un tratto d'inchiostro.
+        final line = Paint()
+          ..color = dark.color
+          ..strokeWidth = 0.008
+          ..strokeCap = StrokeCap.round;
+        canvas.drawLine(const Offset(-0.05, -0.78), const Offset(-0.006, -0.785), line);
+        canvas.drawLine(const Offset(0.006, -0.785), const Offset(0.05, -0.78), line);
+      case FaceMark.handlebar:
+        // A manubrio: le punte arricciate all'insù.
+        final curl = Paint()
+          ..color = dark.color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.016
+          ..strokeCap = StrokeCap.round;
+        for (final side in [-1.0, 1.0]) {
+          canvas.drawPath(
+            Path()
+              ..moveTo(0, -0.787)
+              ..quadraticBezierTo(side * 0.06, -0.79, side * 0.09, -0.77)
+              ..quadraticBezierTo(side * 0.115, -0.785, side * 0.1, -0.81),
+            curl,
+          );
+        }
+      case FaceMark.walrus:
+        // A tricheco: folti, scendono sopra il labbro.
+        canvas.drawPath(
+          Path()
+            ..moveTo(-0.075, -0.75)
+            ..quadraticBezierTo(-0.07, -0.8, 0, -0.8)
+            ..quadraticBezierTo(0.07, -0.8, 0.075, -0.75)
+            ..quadraticBezierTo(0.04, -0.762, 0, -0.757)
+            ..quadraticBezierTo(-0.04, -0.762, -0.075, -0.75)
+            ..close(),
+          dark,
+        );
+      case FaceMark.imperial:
+        // All'imperiale: baffi a punta e il pizzetto sotto il labbro.
+        canvas.drawPath(
+          Path()
+            ..moveTo(0, -0.79)
+            ..quadraticBezierTo(-0.05, -0.795, -0.1, -0.79)
+            ..quadraticBezierTo(-0.04, -0.772, 0, -0.776)
+            ..quadraticBezierTo(0.04, -0.772, 0.1, -0.79)
+            ..quadraticBezierTo(0.05, -0.795, 0, -0.79)
+            ..close(),
+          dark,
+        );
+        canvas.drawPath(
+          Path()
+            ..moveTo(-0.012, -0.748)
+            ..lineTo(0.012, -0.748)
+            ..lineTo(0, -0.71)
+            ..close(),
+          dark,
+        );
     }
   }
 
@@ -646,7 +821,15 @@ abstract final class LookPainter {
             ..close(),
           hair,
         );
-      case AvatarHead.fedora || AvatarHead.bowler || AvatarHead.coppola:
+      case AvatarHead.fedora ||
+          AvatarHead.bowler ||
+          AvatarHead.coppola ||
+          AvatarHead.borsalino ||
+          AvatarHead.panama ||
+          AvatarHead.trilby ||
+          AvatarHead.homburg ||
+          AvatarHead.boater ||
+          AvatarHead.topHat:
         // Le basette sotto il cappello.
         canvas.drawRect(const Rect.fromLTRB(-0.165, -0.95, -0.14, -0.86), hair);
         canvas.drawRect(const Rect.fromLTRB(0.14, -0.95, 0.165, -0.86), hair);
@@ -689,6 +872,60 @@ abstract final class LookPainter {
             ..strokeCap = StrokeCap.round);
         }
         canvas.drawLine(const Offset(-0.016, -0.88), const Offset(0.016, -0.88), frame);
+      case AvatarGlasses.pinceNez:
+        final wire = frame..color = const Color(0xFFE2C46A);
+        for (final x in [-0.06, 0.06]) {
+          canvas.drawOval(Rect.fromCenter(center: Offset(x, -0.872), width: 0.07, height: 0.055), wire);
+          canvas.drawCircle(Offset(x - 0.014, -0.885), 0.007, glint);
+        }
+        canvas.drawArc(Rect.fromCenter(center: const Offset(0, -0.875), width: 0.05, height: 0.03), pi, pi, false, wire);
+        canvas.drawPath(
+          Path()
+            ..moveTo(-0.095, -0.865)
+            ..quadraticBezierTo(-0.18, -0.7, -0.12, -0.52),
+          Paint()
+            ..color = const Color(0xFFE2C46A).withValues(alpha: 0.7)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 0.006,
+        );
+      case AvatarGlasses.tortoise:
+        final shell = Paint()
+          ..color = const Color(0xFF6B3A1E)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.022;
+        final fleck = Paint()
+          ..color = const Color(0xFFC07A3A).withValues(alpha: 0.5)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.007;
+        for (final x in [-0.066, 0.066]) {
+          final r = RRect.fromRectAndRadius(Rect.fromCenter(center: Offset(x, -0.874), width: 0.1, height: 0.075), const Radius.circular(0.03));
+          canvas.drawRRect(r, shell);
+          canvas.drawRRect(r, fleck);
+          canvas.drawCircle(Offset(x - 0.02, -0.89), 0.008, glint);
+        }
+        canvas.drawLine(const Offset(-0.016, -0.885), const Offset(0.016, -0.885), shell);
+      case AvatarGlasses.aviator:
+        final lens = Paint()..color = const Color(0xFF3B2A18).withValues(alpha: 0.85);
+        final wire = Paint()
+          ..color = const Color(0xFFE2C46A)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.008;
+        final shine = Paint()
+          ..color = Colors.white.withValues(alpha: 0.55)
+          ..strokeWidth = 0.008
+          ..strokeCap = StrokeCap.round;
+        for (final side in [-1.0, 1.0]) {
+          final drop = Path()
+            ..moveTo(side * 0.015, -0.9)
+            ..lineTo(side * 0.118, -0.9)
+            ..quadraticBezierTo(side * 0.125, -0.84, side * 0.075, -0.835)
+            ..quadraticBezierTo(side * 0.02, -0.835, side * 0.015, -0.9)
+            ..close();
+          canvas.drawPath(drop, lens);
+          canvas.drawPath(drop, wire);
+          canvas.drawLine(Offset(side * 0.05, -0.89), Offset(side * 0.08, -0.885), shine);
+        }
+        canvas.drawLine(const Offset(-0.015, -0.905), const Offset(0.015, -0.905), wire);
     }
   }
 
@@ -813,6 +1050,111 @@ abstract final class LookPainter {
             ..close(),
           silhouette ? paint : (Paint()..color = const Color(0xFF2E251D)),
         );
+      case AvatarHead.borsalino || AvatarHead.panama || AvatarHead.trilby:
+        // Il fedora di feltro buono (o di paglia): stessa forma, altra stoffa.
+        final (shade, light, width) = switch (look.hat) {
+          AvatarHead.borsalino => (const Color(0xFF5A4E44), const Color(0xFF85776A), 0.66),
+          AvatarHead.panama => (const Color(0xFFD9C89E), const Color(0xFFF2E6C4), 0.6),
+          _ => (const Color(0xFF3E2E22), const Color(0xFF6A5040), 0.48),
+        };
+        final cloth = silhouette ? paint : (Paint()..color = shade);
+        final crown = silhouette
+            ? paint
+            : (Paint()
+                ..shader = LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [light, shade],
+                ).createShader(const Rect.fromLTRB(-0.2, -1.2, 0.2, -0.96)));
+        canvas.save();
+        canvas.translate(0, -0.965);
+        canvas.rotate(look.hat == AvatarHead.trilby ? -0.09 : -0.04);
+        final r = Rect.fromCenter(center: Offset.zero, width: width, height: 0.09);
+        canvas.drawOval(r, cloth);
+        if (!silhouette) {
+          canvas.drawArc(
+            r,
+            pi + 0.2,
+            pi - 0.4,
+            false,
+            Paint()
+              ..color = rim.withValues(alpha: 0.5)
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 0.008,
+          );
+        }
+        canvas.restore();
+        canvas.drawPath(
+          Path()
+            ..moveTo(-0.175, -0.97)
+            ..lineTo(-0.16, -1.14)
+            ..quadraticBezierTo(-0.1, -1.19, -0.02, -1.15)
+            ..quadraticBezierTo(0, -1.14, 0.02, -1.15)
+            ..quadraticBezierTo(0.1, -1.19, 0.16, -1.14)
+            ..lineTo(0.175, -0.97)
+            ..close(),
+          crown,
+        );
+        canvas.drawRect(
+          const Rect.fromLTRB(-0.176, -1.04, 0.176, -0.985),
+          silhouette ? paint : (Paint()..color = look.hat == AvatarHead.panama ? _felt : _dark(accent, 0.55)),
+        );
+      case AvatarHead.homburg:
+        // Rigido, la tesa arrotolata e il solco nel mezzo.
+        brim(0.54, 0.085, y: -0.968);
+        if (!silhouette) {
+          canvas.drawArc(
+            Rect.fromCenter(center: const Offset(0, -0.97), width: 0.54, height: 0.085),
+            pi * 0.05,
+            pi * 0.9,
+            false,
+            Paint()
+              ..color = _bright(_felt, 0.3)
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 0.014,
+          );
+        }
+        canvas.drawPath(
+          Path()
+            ..moveTo(-0.17, -0.97)
+            ..lineTo(-0.16, -1.16)
+            ..quadraticBezierTo(-0.08, -1.19, 0, -1.15)
+            ..quadraticBezierTo(0.08, -1.19, 0.16, -1.16)
+            ..lineTo(0.17, -0.97)
+            ..close(),
+          top,
+        );
+        canvas.drawRect(const Rect.fromLTRB(-0.171, -1.03, 0.171, -0.985), silhouette ? paint : (Paint()..color = const Color(0xFF0C0B0D)));
+      case AvatarHead.boater:
+        // La paglietta: piatta, di paglia, col nastro.
+        final straw = silhouette ? paint : (Paint()..color = const Color(0xFFE0CB8C));
+        canvas.drawOval(Rect.fromCenter(center: const Offset(0, -0.97), width: 0.56, height: 0.07), straw);
+        canvas.drawRect(const Rect.fromLTRB(-0.17, -1.09, 0.17, -0.97), straw);
+        canvas.drawOval(
+          Rect.fromCenter(center: const Offset(0, -1.09), width: 0.34, height: 0.05),
+          silhouette ? paint : (Paint()..color = const Color(0xFFF0DFA6)),
+        );
+        if (!silhouette) {
+          canvas.drawRect(const Rect.fromLTRB(-0.17, -1.035, 0.17, -0.995), Paint()..color = _felt);
+          canvas.drawRect(const Rect.fromLTRB(-0.17, -1.025, 0.17, -1.005), Paint()..color = const Color(0xFF8E1D28));
+        }
+      case AvatarHead.topHat:
+        // Il cilindro della prima alla Scala.
+        brim(0.48, 0.07, y: -0.972);
+        canvas.drawPath(
+          Path()
+            ..moveTo(-0.15, -0.975)
+            ..lineTo(-0.165, -1.3)
+            ..lineTo(0.165, -1.3)
+            ..lineTo(0.15, -0.975)
+            ..close(),
+          top,
+        );
+        canvas.drawOval(
+          Rect.fromCenter(center: const Offset(0, -1.3), width: 0.33, height: 0.05),
+          silhouette ? paint : (Paint()..color = const Color(0xFF2A2730)),
+        );
+        canvas.drawRect(const Rect.fromLTRB(-0.152, -1.04, 0.152, -0.99), band);
       case AvatarHead.slicked || AvatarHead.bob || AvatarHead.bun:
         break;
     }
@@ -856,12 +1198,21 @@ abstract final class LookPainter {
             ..strokeWidth = 0.008
             ..strokeCap = StrokeCap.round,
         );
-      case AvatarAccessory.none ||
-          AvatarAccessory.tie ||
-          AvatarAccessory.bowTie ||
-          AvatarAccessory.pearls ||
-          AvatarAccessory.scarf ||
-          AvatarAccessory.carnation:
+      case AvatarAccessory.pipe:
+        canvas.drawLine(
+          const Offset(0.025, -0.765),
+          const Offset(0.11, -0.72),
+          Paint()
+            ..color = const Color(0xFF4A2A16)
+            ..strokeWidth = 0.016
+            ..strokeCap = StrokeCap.round,
+        );
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(const Rect.fromLTRB(0.1, -0.77, 0.15, -0.69), const Radius.circular(0.018)),
+          Paint()..color = const Color(0xFF5E3519),
+        );
+        canvas.drawOval(const Rect.fromLTRB(0.103, -0.776, 0.147, -0.762), Paint()..color = ember.withValues(alpha: 0.8));
+      default:
         break;
     }
   }
@@ -978,7 +1329,11 @@ abstract final class LookPainter {
   static void _smoke(Canvas canvas, AvatarLook look, CharacterPose pose) {
     if (!look.accessory.smokes) return;
     final lift = -0.42 * pose.rise + pose.breath * 0.012;
-    final tip = (look.accessory == AvatarAccessory.cigar ? const Offset(0.165, -0.75) : const Offset(0.145, -0.76)).translate(0, lift);
+    final tip = switch (look.accessory) {
+      AvatarAccessory.cigar => const Offset(0.165, -0.75),
+      AvatarAccessory.pipe => const Offset(0.125, -0.78),
+      _ => const Offset(0.145, -0.76),
+    }.translate(0, lift);
     paintSmoke(canvas, tip, 1, pose.time, seed: look.hashCode % 97);
   }
 

@@ -3,9 +3,11 @@ import 'package:flutter/foundation.dart';
 import '../l10n/app_language.dart';
 import 'game/game_backend.dart';
 import 'online_models.dart';
+import 'shop_models.dart';
 
 export 'game/game_backend.dart';
 export 'online_models.dart';
+export 'shop_models.dart';
 
 /// L'account: chi è entrato, e come si entra. Avvisa chi ascolta quando
 /// qualcuno entra o esce.
@@ -97,12 +99,16 @@ class OnlineServices {
   final RoomRepository rooms;
   final GameBackend game;
 
+  /// La bottega dei cosmetici. Null dove nessuno l'ha collegata.
+  final ShopRepository? shop;
+
   const OnlineServices({
     required this.auth,
     required this.profiles,
     required this.friends,
     required this.rooms,
     required this.game,
+    this.shop,
   });
 
   static OnlineServices? instance;

@@ -7,6 +7,7 @@ import '../ui/widgets/verdict_scene.dart';
 import 'app_language.dart';
 import 'app_strings.dart';
 import 'online_strings.dart';
+import 'shop_strings.dart';
 
 /// L'interfaccia in italiano.
 final class ItalianStrings extends AppStrings {
@@ -20,6 +21,8 @@ final class ItalianStrings extends AppStrings {
 
   @override
   OnlineStrings get online => const ItalianOnlineStrings();
+  @override
+  ShopStrings get shop => const ItalianShopStrings();
 
   @override
   String get settings => 'Impostazioni';

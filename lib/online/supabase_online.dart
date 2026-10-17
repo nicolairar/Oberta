@@ -31,6 +31,7 @@ Future<OnlineServices?> openSupabaseOnline(OnlineConfig config) async {
     friends: SupabaseFriends(client),
     rooms: SupabaseRooms(client),
     game: SupabaseGame(client),
+    shop: SupabaseShop(client),
   );
 }
 
@@ -112,6 +113,10 @@ OnlineException _classify(Object error, SignInDoor? door) {
       'not_allowed' => OnlineFailure.notAllowed,
       'request_not_found' => OnlineFailure.requestNotFound,
       'invalid_seats' || 'not_your_seat' || 'stale_version' || 'too_many_intents' => OnlineFailure.notAllowed,
+      'not_enough_coins' => OnlineFailure.notEnoughCoins,
+      'already_owned' => OnlineFailure.alreadyOwned,
+      'not_owned' => OnlineFailure.notOwned,
+      'item_not_found' || 'tone_required' || 'bad_slot' => OnlineFailure.itemNotFound,
       'message_blocked' => OnlineFailure.messageBlocked,
       'too_many_messages' => OnlineFailure.tooManyMessages,
       'silenced' || 'chat_closed' || 'invalid_message' => OnlineFailure.chatClosed,
@@ -599,4 +604,49 @@ class SupabaseGame implements GameBackend {
             .limit(100);
         return [for (final row in rows.reversed) ChatMessage.fromJson(row)];
       });
+}
+
+/// La bottega sul server: il catalogo e la vetrina si leggono, comprare e
+/// indossare passano dalle funzioni `buy_item`, `equip_item` e `unequip_slot`.
+class SupabaseShop implements ShopRepository {
+  final SupabaseClient _client;
+
+  SupabaseShop(this._client);
+
+  @override
+  Future<List<ShopItem>> catalog() => _guard(() async {
+        final rows = await _client.from('shop_items').select().order('sort');
+        return [for (final row in rows) ShopItem.fromJson(row)];
+      });
+
+  @override
+  Future<List<ShopFeature>> featured() => _guard(() async {
+        // La policy lascia vedere solo le finestre aperte adesso.
+        final rows = await _client.from('shop_rotations').select('item_id, starts_at, ends_at, sort').order('sort');
+        return [for (final row in rows) ShopFeature.fromJson(row)];
+      });
+
+  @override
+  Future<Set<String>> owned() => _guard(() async {
+        final rows = await _client.from('shop_inventory').select('item_id');
+        return {for (final row in rows) row['item_id'] as String};
+      });
+
+  Future<Profile> _profileFrom(Future<List<dynamic>> call) async {
+    final rows = await call;
+    if (rows.isEmpty) throw const OnlineException(OnlineFailure.notSignedIn);
+    return Profile.fromJson(rows.first as Map<String, dynamic>);
+  }
+
+  @override
+  Future<Profile> buy(String itemId) =>
+      _guard(() => _profileFrom(_client.rpc<List<dynamic>>('buy_item', params: {'p_item': itemId})));
+
+  @override
+  Future<Profile> equip(String itemId, {String? tone}) => _guard(
+      () => _profileFrom(_client.rpc<List<dynamic>>('equip_item', params: {'p_item': itemId, 'p_tone': tone})));
+
+  @override
+  Future<Profile> unequip(String slot, {String? tone}) => _guard(
+      () => _profileFrom(_client.rpc<List<dynamic>>('unequip_slot', params: {'p_slot': slot, 'p_tone': tone})));
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 
+import '../../online/online_models.dart' show Profile, WornLooks;
 import '../widgets/noir_avatar.dart' show AvatarHead, avatarTints, avatarTraitsFor;
 
 /// Come si presenta un giocatore: la faccia, il cappello, gli occhiali,
@@ -85,6 +86,14 @@ class AvatarLook {
     );
   }
 
+  /// Quello che indossa chi si chiama [name]: il look salvato sul suo profilo
+  /// online, se lo si è visto passare ([WornLooks]), o quello del suo nome.
+  factory AvatarLook.of(String name) {
+    final fallback = AvatarLook.fallback(name);
+    final worn = WornLooks.of(name);
+    return worn == null ? fallback : AvatarLook.fromJson(worn, fallback: fallback);
+  }
+
   /// Dalla colonna `avatar`: quello che manca o che il catalogo non conosce
   /// (un pezzo ritirato, una versione nuova dell'app) viene da [fallback].
   factory AvatarLook.fromJson(Map<String, Object?> json, {required AvatarLook fallback}) {
@@ -124,6 +133,26 @@ class AvatarLook {
     accessory: accessory ?? this.accessory,
   );
 
+  /// L'id indossato in [slot], come lo vende la bottega: per la faccia è il
+  /// segno (`walrus`), la pelle non si compra.
+  String idIn(LookSlot slot) => switch (slot) {
+    LookSlot.hat => hat.name,
+    LookSlot.face => base.mark.name,
+    LookSlot.glasses => glasses.name,
+    LookSlot.outfit => outfit.id,
+    LookSlot.accessory => accessory.name,
+  };
+
+  /// Lo stesso look con [id] indossato in [slot], o null se il catalogo
+  /// dell'app non lo conosce (un pezzo arrivato con una versione nuova).
+  AvatarLook? wearing(LookSlot slot, String id) => switch (slot) {
+    LookSlot.hat => _byName(AvatarHead.values, id).let((v) => copyWith(hat: v)),
+    LookSlot.face => _byName(FaceMark.values, id).let((v) => copyWith(base: AvatarBase.of(base.tone, v))),
+    LookSlot.glasses => _byName(AvatarGlasses.values, id).let((v) => copyWith(glasses: v)),
+    LookSlot.outfit => AvatarOutfit.byId(id).let((v) => copyWith(outfit: v)),
+    LookSlot.accessory => _byName(AvatarAccessory.values, id).let((v) => copyWith(accessory: v)),
+  };
+
   /// Una signora: cambia il taglio delle spalle e dove cade la luce sui capelli.
   bool get dame => hat == AvatarHead.bob || hat == AvatarHead.bun || hat == AvatarHead.wideBrim;
 
@@ -141,6 +170,17 @@ class AvatarLook {
 
   @override
   String toString() => 'AvatarLook(${toJson()})';
+}
+
+/// I posti dove si indossa qualcosa, come li chiama il catalogo della
+/// bottega (`shop_items.slot`).
+enum LookSlot { hat, face, glasses, outfit, accessory }
+
+extension _Let<T extends Object> on T? {
+  R? let<R>(R Function(T value) f) {
+    final value = this;
+    return value == null ? null : f(value);
+  }
 }
 
 /// Un hash piccolo che dà lo stesso numero su ogni telefono (FNV-1a), a
@@ -175,7 +215,23 @@ enum SkinTone {
 }
 
 /// Quello che si porta in faccia da sempre.
-enum FaceMark { clean, mustache, lips, scar, stubble, goatee, mole }
+enum FaceMark {
+  clean,
+  mustache,
+  lips,
+  scar,
+  stubble,
+  goatee,
+  mole,
+  // I baffi della bottega.
+  pencil,
+  handlebar,
+  walrus,
+  imperial;
+
+  /// I baffi: chi li porta ha bisogno del pelo, non del rossetto.
+  bool get moustache => this == mustache || index >= pencil.index;
+}
 
 /// La faccia: pelle e segni. L'id è `pelle_segno`, come `olive_mustache`.
 @immutable
@@ -209,7 +265,7 @@ class AvatarBase {
   int get hashCode => Object.hash(tone, mark);
 }
 
-enum AvatarGlasses { none, round, monocle, shades }
+enum AvatarGlasses { none, round, monocle, shades, pinceNez, tortoise, aviator }
 
 /// Il vezzo: al collo, all'occhiello o tra i denti.
 enum AvatarAccessory {
@@ -221,14 +277,20 @@ enum AvatarAccessory {
   carnation,
   cigar,
   cigarette,
-  toothpick;
+  toothpick,
+  // I vezzi della bottega.
+  pocketWatch,
+  pipe,
+  pocketSquare,
+  polkaTie,
+  cravat;
 
   /// Quello che fumano: il fumo sale da qui.
-  bool get smokes => this == cigar || this == cigarette;
+  bool get smokes => this == cigar || this == cigarette || this == pipe;
 }
 
 /// Il disegno della stoffa.
-enum CoatPattern { plain, pinstripe, check, doubleBreasted }
+enum CoatPattern { plain, pinstripe, check, doubleBreasted, chalkstripe, trench, brocade }
 
 /// L'abito: il colore della giacca, la stoffa, la camicia e il colore del
 /// vezzo (la cravatta, il fazzoletto, il fondo del ritratto).
@@ -256,6 +318,15 @@ class AvatarOutfit {
     AvatarOutfit('rust_tweed', const Color(0xFF6B3523), CoatPattern.check, avatarTints[8]),
     AvatarOutfit('olive_pinstripe', const Color(0xFF39442C), CoatPattern.pinstripe, avatarTints[9]),
     const AvatarOutfit('black_tuxedo', Color(0xFF18171B), CoatPattern.plain, Color(0xFF18171B), shirt: Color(0xFFF6F0E4)),
+    // Dalla sartoria della bottega.
+    const AvatarOutfit('navy_chalkstripe', Color(0xFF1B2440), CoatPattern.chalkstripe, Color(0xFF9B2335)),
+    const AvatarOutfit('grey_flannel', Color(0xFF5A5A5E), CoatPattern.plain, Color(0xFF2E4A6B)),
+    const AvatarOutfit('brown_pinstripe', Color(0xFF4A3222), CoatPattern.pinstripe, Color(0xFFC08A3E)),
+    const AvatarOutfit('cream_linen', Color(0xFFD8CCAE), CoatPattern.plain, Color(0xFF7A2E2A), shirt: Color(0xFFF6F0E4)),
+    const AvatarOutfit('midnight_double', Color(0xFF14182A), CoatPattern.doubleBreasted, Color(0xFFB8963E)),
+    const AvatarOutfit('white_dinner', Color(0xFFEDE6D6), CoatPattern.plain, Color(0xFF18171B), shirt: Color(0xFFFFFFFF)),
+    const AvatarOutfit('trench_coat', Color(0xFF9A8158), CoatPattern.trench, Color(0xFF3A2A1C)),
+    const AvatarOutfit('gold_brocade', Color(0xFF2A1A12), CoatPattern.brocade, Color(0xFFE2B54A), shirt: Color(0xFFF6F0E4)),
   ];
 
   static AvatarOutfit? byId(String id) {
@@ -270,4 +341,10 @@ class AvatarOutfit {
 
   @override
   int get hashCode => id.hashCode;
+}
+
+/// Il look di un profilo online: quello salvato, e per i posti vuoti quello
+/// del suo nome.
+extension ProfileLook on Profile {
+  AvatarLook get look => AvatarLook.fromJson(avatar, fallback: AvatarLook.fallback(handle ?? id));
 }

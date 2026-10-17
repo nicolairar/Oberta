@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../../online/online_models.dart';
+import '../avatar/avatar_look.dart';
 import '../press.dart';
 import '../theme/app_theme.dart';
 import 'player_avatar.dart';
@@ -211,6 +212,9 @@ class HomeProfileBadge extends StatefulWidget {
   final String coinsLabel;
   final VoidCallback onTap;
 
+  /// Toccando le monete si entra in bottega.
+  final VoidCallback? onShop;
+
   const HomeProfileBadge({
     super.key,
     required this.profile,
@@ -218,6 +222,7 @@ class HomeProfileBadge extends StatefulWidget {
     required this.levelLabel,
     required this.coinsLabel,
     required this.onTap,
+    this.onShop,
   });
 
   @override
@@ -291,22 +296,41 @@ class _HomeProfileBadgeState extends State<HomeProfileBadge> {
                         Row(
                           children: [
                             _LevelTag(widget.levelLabel(profile.level)),
-                            const SizedBox(width: 8),
-                            const SizedBox.square(dimension: 11, child: CustomPaint(painter: CoinPainter())),
-                            const SizedBox(width: 4),
+                            const SizedBox(width: 6),
                             Flexible(
-                              child: Text(
-                                '${profile.coins}',
-                                key: const Key('home.coins'),
-                                maxLines: 1,
-                                overflow: TextOverflow.fade,
-                                softWrap: false,
-                                style: const TextStyle(
-                                  color: _cream,
-                                  fontSize: 11,
-                                  height: 1,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.6,
+                              child: GestureDetector(
+                                key: const Key('home.shop'),
+                                behavior: HitTestBehavior.opaque,
+                                onTap: pressed(widget.onShop, Press.toggle),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const SizedBox.square(dimension: 11, child: CustomPaint(painter: CoinPainter())),
+                                      const SizedBox(width: 4),
+                                      Flexible(
+                                        child: Text(
+                                          '${profile.coins}',
+                                          key: const Key('home.coins'),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.fade,
+                                          softWrap: false,
+                                          style: const TextStyle(
+                                            color: _cream,
+                                            fontSize: 11,
+                                            height: 1,
+                                            fontWeight: FontWeight.w700,
+                                            letterSpacing: 0.6,
+                                          ),
+                                        ),
+                                      ),
+                                      if (widget.onShop != null) ...[
+                                        const SizedBox(width: 3),
+                                        const Icon(Icons.add_circle, size: 11, color: AppColors.gold),
+                                      ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
@@ -331,7 +355,7 @@ class _HomeProfileBadgeState extends State<HomeProfileBadge> {
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(2),
-                      child: PlayerAvatar(seed: profile?.avatarSeed ?? '?', size: bust - 8),
+                      child: PlayerAvatar(seed: profile?.name ?? '?', look: profile?.look, size: bust - 8),
                     ),
                   ),
                 ),

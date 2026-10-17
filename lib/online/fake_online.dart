@@ -30,6 +30,7 @@ class FakeOnline {
   late final FakeFriends friends = FakeFriends._(this);
   late final FakeRooms rooms = FakeRooms._(this);
   late final FakeGame game = FakeGame._(this, () => auth.userId);
+  late final FakeShop shop = FakeShop._(this);
 
   /// La partita vista da un altro account, come dal suo telefono.
   FakeGame gameAs(String userId) => FakeGame._(this, () => userId);
@@ -93,7 +94,7 @@ class FakeOnline {
         clock = clock ?? const SystemGameClock();
 
   OnlineServices get services =>
-      OnlineServices(auth: auth, profiles: profiles, friends: friends, rooms: rooms, game: game);
+      OnlineServices(auth: auth, profiles: profiles, friends: friends, rooms: rooms, game: game, shop: shop);
 
   /// Gli account di prova: email → (password, id dell'account).
   final Map<String, (String, String)> _testAccounts = {};
@@ -818,3 +819,83 @@ extension on FakeOnline {
 }
 
 Map<String, Object?> _wire(Map<String, Object?> json) => jsonDecode(jsonEncode(json)) as Map<String, Object?>;
+
+/// La bottega finta, con le stesse regole delle funzioni del server.
+class FakeShop implements ShopRepository {
+  final FakeOnline _online;
+
+  /// Il catalogo e la vetrina: quelli di partenza, o altri per un test.
+  List<ShopItem> items = initialShopCatalog;
+  List<ShopFeature> features = initialShopFeatured;
+
+  final Map<String, Set<String>> _owned = {};
+
+  FakeShop._(this._online);
+
+  static const _tones = ['porcelain', 'rose', 'olive', 'tan', 'umber', 'ebony'];
+
+  /// Quello che possiede un account (per i test).
+  Set<String> ownedBy(String id) => {...?_owned[id]};
+
+  ShopItem? _item(String id) => items.where((item) => item.id == id).firstOrNull;
+
+  Profile _me() {
+    final id = _online._me;
+    return _online._profiles[id] ?? (throw const OnlineException(OnlineFailure.notSignedIn));
+  }
+
+  @override
+  Future<List<ShopItem>> catalog() async => [...items]..sort((a, b) => a.sort.compareTo(b.sort));
+
+  @override
+  Future<List<ShopFeature>> featured() async => [...features]..sort((a, b) => a.sort.compareTo(b.sort));
+
+  @override
+  Future<Set<String>> owned() async => ownedBy(_me().id);
+
+  @override
+  Future<Profile> buy(String itemId) async {
+    final me = _me();
+    final item = _item(itemId) ?? (throw const OnlineException(OnlineFailure.itemNotFound));
+    if (item.free || (_owned[me.id]?.contains(item.id) ?? false)) {
+      throw const OnlineException(OnlineFailure.alreadyOwned);
+    }
+    if (me.coins < item.price) throw const OnlineException(OnlineFailure.notEnoughCoins);
+    (_owned[me.id] ??= {}).add(item.id);
+    return _online._profiles[me.id] = me.copyWith(coins: me.coins - item.price);
+  }
+
+  String? _tone(Map<String, String> avatar, String? tone) {
+    final saved = avatar['base']?.split('_').first;
+    if (_tones.contains(saved)) return saved;
+    return _tones.contains(tone) ? tone : null;
+  }
+
+  @override
+  Future<Profile> equip(String itemId, {String? tone}) async {
+    final me = _me();
+    final item = _item(itemId) ?? (throw const OnlineException(OnlineFailure.itemNotFound));
+    if (!item.free && !(_owned[me.id]?.contains(item.id) ?? false)) throw const OnlineException(OnlineFailure.notOwned);
+    final avatar = {...me.avatar};
+    if (item.slot == 'face') {
+      final skin = _tone(avatar, tone) ?? (throw const OnlineException(OnlineFailure.itemNotFound));
+      avatar['base'] = '${skin}_${item.lookId}';
+    } else {
+      avatar[item.slot] = item.lookId;
+    }
+    return _online._profiles[me.id] = me.copyWith(avatar: avatar);
+  }
+
+  @override
+  Future<Profile> unequip(String slot, {String? tone}) async {
+    final me = _me();
+    final avatar = {...me.avatar};
+    if (slot == 'face') {
+      final skin = _tone(avatar, tone);
+      if (skin != null) avatar['base'] = '${skin}_clean';
+    } else {
+      avatar.remove(slot);
+    }
+    return _online._profiles[me.id] = me.copyWith(avatar: avatar);
+  }
+}

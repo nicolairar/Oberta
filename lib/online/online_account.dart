@@ -45,6 +45,7 @@ class OnlineAccount extends ChangeNotifier {
       final profile = await services.profiles.me();
       if (services.auth.userId != userId) return;
       _profile = profile;
+      WornLooks.remember(profile);
     } catch (error) {
       if (services.auth.userId != userId) return;
       _error = error;
@@ -55,6 +56,7 @@ class OnlineAccount extends ChangeNotifier {
   /// Il profilo appena salvato, senza tornare a chiederlo al server.
   void saved(Profile profile) {
     _profile = profile;
+    WornLooks.remember(profile);
     _error = null;
     notifyListeners();
   }

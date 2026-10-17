@@ -8,6 +8,7 @@ import '../ui/widgets/death_scene.dart';
 import '../ui/widgets/verdict_scene.dart';
 import 'app_language.dart';
 import 'online_strings.dart';
+import 'shop_strings.dart';
 
 /// Tutti i testi dell'interfaccia in una lingua. Il copione del narratore e
 /// i ruoli stanno nel [pack]: qui ci sono pulsanti, titoli e didascalie.
@@ -35,6 +36,9 @@ abstract class AppStrings {
 
   /// I testi del gioco online, nella stessa lingua.
   OnlineStrings get online;
+
+  /// I testi della bottega, nella stessa lingua.
+  ShopStrings get shop;
 
   // Il vicolo.
   String get homeTitle => 'OBERTÀ';
@@ -447,6 +451,7 @@ abstract class AppStrings {
     'personRemoveTitle': personRemoveTitle('Marco'),
     for (final cue in Cue.values) 'cueName.${cue.name}': cueName(cue),
     for (final MapEntry(:key, :value) in online.catalog.entries) 'online.$key': value,
+    for (final MapEntry(:key, :value) in shop.catalog.entries) 'shop.$key': value,
   };
 }
 

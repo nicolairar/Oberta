@@ -3,6 +3,30 @@ import 'dart:math';
 import '../l10n/app_language.dart';
 import 'handle_rules.dart';
 
+/// I look indossati dai giocatori online, per nome: ogni profilo che arriva
+/// dal server lascia qui il suo, così il ritratto di quel nome (in una
+/// stanza, al tavolo, tra gli amici) lo indossa senza che chi lo disegna
+/// debba passarlo a mano.
+abstract final class WornLooks {
+  static final Map<String, Map<String, String>> _byName = {};
+
+  static void remember(Profile profile) {
+    final name = profile.handle;
+    if (name == null) return;
+    if (profile.avatar.isEmpty) {
+      _byName.remove(name);
+    } else {
+      _byName[name] = profile.avatar;
+    }
+  }
+
+  /// Il look salvato di chi si chiama [name], se c'è.
+  static Map<String, String>? of(String name) => _byName[name];
+
+  /// Per i test.
+  static void clear() => _byName.clear();
+}
+
 /// Un profilo online: chi è una persona per gli altri giocatori, su ogni
 /// telefono dove entra con lo stesso account.
 class Profile {
@@ -50,17 +74,23 @@ class Profile {
   /// Quanto manca al prossimo livello, da 0 a 1: la barra del profilo.
   double get levelProgress => (xp / xpToNext(level)).clamp(0.0, 1.0);
 
-  Profile copyWith({String? handle, AppLanguage? language, int? level, int? xp, int? coins}) => Profile(
+  Profile copyWith({String? handle, AppLanguage? language, Map<String, String>? avatar, int? level, int? xp, int? coins}) => Profile(
         id: id,
         handle: handle ?? this.handle,
         language: language ?? this.language,
-        avatar: avatar,
+        avatar: avatar ?? this.avatar,
         level: level ?? this.level,
         xp: xp ?? this.xp,
         coins: coins ?? this.coins,
       );
 
-  factory Profile.fromJson(Map<String, dynamic> json) => Profile(
+  factory Profile.fromJson(Map<String, dynamic> json) {
+    final profile = Profile._fromJson(json);
+    WornLooks.remember(profile);
+    return profile;
+  }
+
+  factory Profile._fromJson(Map<String, dynamic> json) => Profile(
         id: json['id'] as String,
         handle: json['handle'] as String?,
         language: json['language'] == 'en' ? AppLanguage.en : AppLanguage.it,
@@ -185,6 +215,13 @@ enum OnlineFailure {
   messageBlocked,
   tooManyMessages,
   chatClosed,
+
+  /// La bottega: monete che non bastano, un pezzo già posseduto, un pezzo
+  /// da comprare prima di indossarlo, un pezzo che il catalogo non ha più.
+  notEnoughCoins,
+  alreadyOwned,
+  notOwned,
+  itemNotFound,
   cancelled,
   network,
   unknown,

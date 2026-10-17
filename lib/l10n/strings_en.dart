@@ -7,6 +7,7 @@ import '../ui/widgets/verdict_scene.dart';
 import 'app_language.dart';
 import 'app_strings.dart';
 import 'online_strings.dart';
+import 'shop_strings.dart';
 
 /// L'interfaccia in inglese americano. Le stesse regole del copione: mai il
 /// genere di un giocatore ("they"), nessuno chiude gli occhi, le fazioni
@@ -22,6 +23,8 @@ final class EnglishStrings extends AppStrings {
 
   @override
   OnlineStrings get online => const EnglishOnlineStrings();
+  @override
+  ShopStrings get shop => const EnglishShopStrings();
 
   @override
   String get settings => 'Settings';

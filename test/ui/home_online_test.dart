@@ -231,6 +231,17 @@ void main() {
       expect(find.byKey(const Key('home.badge')), findsNothing);
     });
 
+    testWidgets('dalle monete del cartellino si entra in bottega', (tester) async {
+      online
+        ..signInReady(handle: 'anna')
+        ..award('me', coins: 750);
+      await openAlley(tester);
+      await tester.tap(find.byKey(const Key('home.shop')));
+      await tester.pumpAndSettle();
+      expect(find.text('LA BOTTEGA'), findsOneWidget);
+      expect(find.byKey(const Key('shop.coins')), findsOneWidget);
+    });
+
     testWidgets('«Gioca con amici» porta alla sala online', (tester) async {
       online.signInReady(handle: 'anna');
       await openAlley(tester);

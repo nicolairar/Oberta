@@ -22,6 +22,7 @@ import 'online/online_screen.dart';
 import 'online/online_widgets.dart';
 import 'online/profile_sheet.dart';
 import 'online/sign_in_sheet.dart';
+import 'shop/shop_screen.dart';
 import '../../sound/fx_groups.dart';
 import '../../sound/sound_stage.dart';
 
@@ -219,6 +220,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       return;
     }
     showProfileSheet(context, account: account);
+  }
+
+  /// La bottega: dalle monete del cartellino.
+  void _openShop() {
+    final account = _account!;
+    if (account.profile case final profile? when !profile.isComplete) {
+      _openSetup(profile);
+      return;
+    }
+    openShop(context, account: account, shop: _online!.shop!);
   }
 
   /// Porta la corrente all'insegna: chi si accende, chi sfarfalla.
@@ -439,6 +450,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         levelLabel: t.online.levelShort,
                         coinsLabel: t.online.coins,
                         onTap: _openProfile,
+                        onShop: _online?.shop == null ? null : _openShop,
                       ),
                     ),
                   _posted(
