@@ -97,6 +97,7 @@ abstract class OnlineStrings {
   String startNeeds(int players);
   String get waitingForHost;
   String get rejoin;
+  String get reconnecting;
 
   // La partita online.
   String get gameConnecting;
@@ -232,6 +233,7 @@ abstract class OnlineStrings {
     'startNeeds': startNeeds(4),
     'waitingForHost': waitingForHost,
     'rejoin': rejoin,
+    'reconnecting': reconnecting,
     'gameConnecting': gameConnecting,
     'yourCard': yourCard,
     'yourCardHint': yourCardHint,
@@ -456,6 +458,8 @@ final class ItalianOnlineStrings extends OnlineStrings {
   String get waitingForHost => 'Aspettiamo che il padrone di casa dia le carte.';
   @override
   String get rejoin => 'RIENTRA AL TAVOLO';
+  @override
+  String get reconnecting => 'Rientro al tavolo…';
 
   @override
   String get gameConnecting => 'Ci si siede al tavolo…';
@@ -763,6 +767,8 @@ final class EnglishOnlineStrings extends OnlineStrings {
   String get waitingForHost => 'Waiting for the host to deal the cards.';
   @override
   String get rejoin => 'BACK TO THE TABLE';
+  @override
+  String get reconnecting => 'Getting back to the table…';
 
   @override
   String get gameConnecting => 'Taking a seat…';

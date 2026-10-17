@@ -354,8 +354,19 @@ class ServerGame {
     Map<String, DateTime>? seen,
     OnlinePacing pacing,
   ) {
-    if (seen == null || finished) return (changed: false, departed: const [], next: null);
+    if (seen == null) return (changed: false, departed: const [], next: null);
     var changed = false;
+    if (finished) {
+      // A partita finita nessuno se ne va più, ma chi torna si vede tornato.
+      for (final seat in [...offline]) {
+        final last = seen[seat];
+        if (last != null && now.difference(last) < pacing.offlineAfter) {
+          offline.remove(seat);
+          changed = true;
+        }
+      }
+      return (changed: changed, departed: const [], next: null);
+    }
     final left = <String>[];
     DateTime? next;
     for (final occupant in seating.occupants) {

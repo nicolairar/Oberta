@@ -489,7 +489,10 @@ class SupabaseGame implements GameBackend {
 
     controller = StreamController<T>(
       onListen: () {
-        var builder = _client.channel('$name:$roomId');
+        // Un nome nuovo per ogni abbonamento: chi rientra apre il suo canale
+        // prima che il vecchio sia chiuso, e chiudere il vecchio non deve
+        // chiudere anche il nuovo (stesso nome, stesso canale sul server).
+        var builder = _client.channel('$name:$roomId:${++_channels}');
         for (final table in tables) {
           builder = builder.onPostgresChanges(
             event: PostgresChangeEvent.all,
@@ -500,7 +503,9 @@ class SupabaseGame implements GameBackend {
           );
         }
         channel = builder.subscribe((status, _) {
-          if (status == RealtimeSubscribeStatus.subscribed) refresh();
+          // Riabbonato (anche dopo un errore, da solo) o caduto: si rilegge
+          // comunque, così chi ha perso un cambio lo recupera.
+          if (status != RealtimeSubscribeStatus.closed) refresh();
         });
         refresh();
       },
@@ -510,6 +515,27 @@ class SupabaseGame implements GameBackend {
     );
     return controller.stream;
   }
+
+  int _channels = 0;
+
+  @override
+  Future<void> resume() => _guard(() async {
+        final auth = _client.auth;
+        final session = auth.currentSession;
+        if (session == null) throw const OnlineException(OnlineFailure.notSignedIn);
+        // Dopo lo sfondo il token può essere scaduto: senza, le chiamate e
+        // il tempo reale non passano (o passano come anonimi).
+        if (session.isExpired ||
+            (session.expiresAt != null &&
+                DateTime.fromMillisecondsSinceEpoch(session.expiresAt! * 1000)
+                    .isBefore(DateTime.now().add(const Duration(minutes: 1))))) {
+          await auth.refreshSession();
+        }
+        // I canali nuovi (il riabbonamento che segue) riaprono il socket
+        // se è caduto; il token va dato anche a quelli già aperti.
+        final token = auth.currentSession?.accessToken;
+        if (token != null) await _client.realtime.setAuth(token);
+      });
 
   @override
   Stream<GameFeed> watchGame(String roomId) =>

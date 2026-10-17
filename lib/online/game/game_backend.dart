@@ -89,6 +89,11 @@ abstract class GameBackend {
   /// Torna l'ora del server, in millisecondi.
   Future<int> ping(String roomId);
 
+  /// Di ritorno dallo sfondo, o dopo una rete persa: rinnova l'accesso se
+  /// è scaduto e riapre il collegamento in tempo reale. Dopo, chi guarda la
+  /// partita si riabbona a [watchGame] e [watchChat].
+  Future<void> resume();
+
   /// Scrive nella chat [channel] della stanza. Il server controlla chi può
   /// scrivere dove e quando, e le parole.
   Future<void> sendChat(String roomId, ChatChannel channel, String body);

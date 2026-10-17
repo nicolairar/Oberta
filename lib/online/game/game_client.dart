@@ -50,15 +50,57 @@ class GameClient extends ChangeNotifier {
     this.clock = const SystemGameClock(),
     this.heartbeat = const Duration(seconds: 5),
   }) {
+    _listen();
+    _ping();
+  }
+
+  void _listen() {
     _feed = backend.watchGame(roomId).listen(_received, onError: (Object error) {
       _error = error;
+      _reconnecting = false;
       notifyListeners();
     });
     _chatFeed = backend.watchChat(roomId).listen((messages) {
       _chat = messages;
       notifyListeners();
     }, onError: (Object _) {});
-    _ping();
+  }
+
+  bool _reconnecting = false;
+  int _rejoins = 0;
+
+  /// Vero mentre si rientra al tavolo, finché il server non ridà la partita.
+  bool get reconnecting => _reconnecting;
+
+  /// Rientra al tavolo (di ritorno dallo sfondo, o col bottone): accesso
+  /// rinnovato, collegamento in tempo reale riaperto, un «ci sono» subito
+  /// (il server rimette il posto fra i presenti), poi tavolo e vista riletti
+  /// così come sono adesso. La fase già confermata resta confermata.
+  Future<void> rejoin() async {
+    if (_disposed) return;
+    final attempt = ++_rejoins;
+    _reconnecting = true;
+    notifyListeners();
+    try {
+      await backend.resume();
+    } catch (_) {
+      // Si prova lo stesso: il ping e la lettura diranno se la rete c'è.
+    }
+    if (_disposed || attempt != _rejoins) return;
+    await _feed?.cancel();
+    await _chatFeed?.cancel();
+    if (_disposed || attempt != _rejoins) return;
+    _pendingBoard = null;
+    _pendingSeat = null;
+    _beat?.cancel();
+    _beat = null;
+    _listen();
+    await _ping();
+    if (_disposed || attempt != _rejoins) return;
+    if (_reconnecting && _error != null) {
+      _reconnecting = false;
+      notifyListeners();
+    }
   }
 
   OnlineBoard? get board => _board;
@@ -116,6 +158,7 @@ class GameClient extends ChangeNotifier {
       // Un ping perso non conta: il server aspetta prima di dire «offline».
     }
     if (_disposed) return;
+    _beat?.cancel();
     _beat = clock.schedule(heartbeat, _ping);
   }
 
@@ -124,6 +167,10 @@ class GameClient extends ChangeNotifier {
 
   void _received(GameFeed feed) {
     _error = null;
+    if (_reconnecting && feed.board != null) {
+      _reconnecting = false;
+      notifyListeners();
+    }
     if (feed.board case final board?) _pendingBoard = board;
     if (feed.seat case final seat?) _pendingSeat = seat;
     final board = _pendingBoard;

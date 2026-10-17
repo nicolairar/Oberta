@@ -51,6 +51,13 @@ class FakeOnline {
   /// città). Spento, tutti risultano sempre collegati.
   bool trackPresence = false;
 
+  /// Gli account il cui telefono è senza rete (o in sfondo): i ping falliscono
+  /// e il tempo reale non consegna più niente, finché non ne escono.
+  final Set<String> unreachable = {};
+
+  /// Quante volte un telefono ha ripreso il collegamento.
+  int resumes = 0;
+
   /// Quante versioni della partita ha pubblicato il server.
   int published = 0;
 
@@ -588,7 +595,7 @@ class FakeGame implements GameBackend {
     final me = _me;
     late final StreamController<GameFeed> controller;
     void push() {
-      if (controller.isClosed) return;
+      if (controller.isClosed || _online.unreachable.contains(me)) return;
       final feed = _feedFor(roomId, me);
       _online.deliveries.add((user: me, feed: feed));
       controller.add(feed);
@@ -640,6 +647,7 @@ class FakeGame implements GameBackend {
   Future<int> ping(String roomId) async {
     await _online._network();
     final me = _me;
+    if (_online.unreachable.contains(me)) throw const OnlineException(OnlineFailure.network);
     if (!_member(roomId, me)) throw const OnlineException(OnlineFailure.notAllowed);
     final game = _online._games[roomId];
     final seat = game == null ? null : _seatOf(game, me);
@@ -648,6 +656,13 @@ class FakeGame implements GameBackend {
       if (game.offline.contains(seat)) _online._wake(roomId);
     }
     return _online.clock.now().millisecondsSinceEpoch;
+  }
+
+  @override
+  Future<void> resume() async {
+    await _online._network();
+    if (_online.unreachable.contains(_me)) throw const OnlineException(OnlineFailure.network);
+    _online.resumes++;
   }
 
   @override

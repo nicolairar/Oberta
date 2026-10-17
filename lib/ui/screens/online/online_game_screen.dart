@@ -77,7 +77,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   static const _mafiaRed = Color(0xFFE5606A);
   static const _cleanGreen = Color(0xFF6FBF9A);
 
-  late GameClient _client = _connect();
+  late final GameClient _client = _connect();
 
   GameClient _connect() =>
       GameClient(backend: widget.services.game, roomId: widget.room.id, clock: widget.clock)..addListener(_changed);
@@ -130,18 +130,14 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // Di ritorno dallo sfondo il collegamento può essersi perso: ci si
     // risiede, e il server ridà subito il tavolo com'è adesso.
-    if (state == AppLifecycleState.resumed && (_client.error != null || !_client.ready || _serverSilent)) _rejoin();
+    // Sempre: lo sfondo può aver lasciato il server senza notizie (e gli
+    // altri ci vedono assenti) anche se qui sembra tutto a posto.
+    if (state == AppLifecycleState.resumed) _rejoin();
   }
 
-  /// Rientra al tavolo: un collegamento nuovo, che riparte dalla versione
-  /// attuale della partita. La fase già vista resta vista.
-  void _rejoin() {
-    final old = _client;
-    old.removeListener(_changed);
-    _client = _connect();
-    old.dispose();
-    if (mounted) setState(() {});
-  }
+  /// Rientra al tavolo: accesso rinnovato, tempo reale riaperto, un «ci
+  /// sono» subito e la partita riletta com'è adesso (vedi [GameClient.rejoin]).
+  void _rejoin() => _client.rejoin();
 
   OnlineBoard get _board => _client.board!;
   PlayerView get _view => _client.seat!.view;
@@ -411,6 +407,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     if (_board.departed.contains(_view.seat.id)) {
       text = _t.online.youLeftTown;
       key = const Key('online.youLeftTown');
+      rejoin = false;
+    } else if (_client.reconnecting) {
+      text = _t.online.reconnecting;
+      key = const Key('online.reconnecting');
       rejoin = false;
     } else if (_client.error != null) {
       text = _t.online.connectionLost;

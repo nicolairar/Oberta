@@ -338,6 +338,61 @@ void main() {
     });
   });
 
+  group('di ritorno dallo sfondo', () {
+    test('chi perde la rete risulta assente; rientrando torna presente e riceve la partita di adesso', () async {
+      online.trackPresence = true;
+      await startWith(joiners: ['carla'], bots: 3);
+      final anna = clientOf('anna');
+      final carla = clientOf('carla');
+      await settle();
+      final before = carla.board!.version;
+
+      // Il telefono di Carla va in sfondo: niente ping, niente tempo reale.
+      online.unreachable.add('carla');
+      clock.elapse(const Duration(seconds: 25));
+      await settle();
+      expect(anna.board!.offline, contains('s2'));
+      expect(carla.board!.version, before, reason: 'Carla non ha ricevuto niente');
+
+      // Torna: rientra al tavolo.
+      online.unreachable.remove('carla');
+      final rejoin = carla.rejoin();
+      expect(carla.reconnecting, isTrue);
+      await rejoin;
+      await settle();
+      expect(carla.reconnecting, isFalse);
+      expect(online.resumes, 1);
+      expect(anna.board!.offline, isEmpty, reason: 'gli altri la vedono tornata subito');
+      expect(carla.board!.offline, isEmpty);
+      expect(carla.board!.version, anna.board!.version, reason: 'Carla ha la partita di adesso');
+      expect(carla.ready, isTrue);
+
+      // E continua a farsi sentire: il battito non si è fermato.
+      clock.elapse(const Duration(seconds: 30));
+      await settle();
+      expect(anna.board!.offline, isEmpty);
+      anna.dispose();
+      carla.dispose();
+    });
+
+    test('rientrare senza rete non resta appeso: si vede l\'errore e si riprova', () async {
+      online.trackPresence = true;
+      await startWith(joiners: ['bruno'], bots: 3);
+      final bruno = clientOf('bruno');
+      await settle();
+      online.unreachable.add('bruno');
+      await bruno.rejoin();
+      await settle();
+      expect(online.resumes, 0);
+      online.unreachable.remove('bruno');
+      await bruno.rejoin();
+      await settle();
+      expect(bruno.reconnecting, isFalse);
+      expect(bruno.ready, isTrue);
+      bruno.dispose();
+    });
+  });
+
   group('la chat', () {
     test('stanza prima, piazza di giorno per i vivi, famiglia di notte solo per la famiglia', () async {
       online.joinAs('bruno', room.code);
