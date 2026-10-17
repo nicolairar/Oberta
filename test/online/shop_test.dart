@@ -95,7 +95,7 @@ void main() {
     });
 
     test('è lo stesso della migrazione', () {
-      final sql = File('supabase/migrations/20261017220000_shop.sql').readAsStringSync();
+      final sql = File('supabase/migrations/20261017221000_shop.sql').readAsStringSync();
       final rows = RegExp(r"\('(\w+)\.(\w+)', '(\w+)', '(\w+)', '(\w+)', (\d+), ").allMatches(sql);
       final fromSql = {for (final m in rows) '${m[1]}.${m[2]}': '${m[4]} ${m[5]} ${m[6]}'};
       final fromDart = {

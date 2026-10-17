@@ -112,7 +112,7 @@ abstract class ShopRepository {
 }
 
 /// Il catalogo di partenza, lo stesso della migrazione
-/// `supabase/migrations/20261017220000_shop.sql` (un test li confronta):
+/// `supabase/migrations/20261017221000_shop.sql` (un test li confronta):
 /// la bottega finta lo usa, quella vera lo legge dal server.
 final List<ShopItem> initialShopCatalog = [
   ShopItem.seed('hat', 'fedora', ShopRarity.base, 'Fedora', 'Fedora', 100),
