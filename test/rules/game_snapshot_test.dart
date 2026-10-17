@@ -24,7 +24,7 @@ Object? runAndReport(GameEngine engine, GameCommand command) => switch (command)
       IntentCommand(:final intent) => engine.apply(intent).toJson(),
       ResolveNightCommand() => jsonEncode(engine.resolveNight().victims.map((p) => p.id).toList()),
       CloseDayVoteCommand() => engine.closeDayVote().condemned?.id,
-      LynchCommand() => (engine..run(command)).phase.name,
+      LynchCommand() || LeaveTownCommand() => (engine..run(command)).phase.name,
     };
 
 void main() {

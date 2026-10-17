@@ -12,6 +12,10 @@ import 'vote.dart';
 
 enum GamePhase { night, day, ended }
 
+/// Quanti semi ci sono: 2^32. Scritto per esteso e non come `1 << 32`, che
+/// compilato in JavaScript (il motore gira anche sul server) fa zero.
+const seedRange = 0x100000000;
+
 /// Cosa fa davvero un giocatore di notte. [decoy] è il compito di copertura:
 /// stesso gesto degli altri, nessun effetto sulla partita.
 enum NightTaskKind { kill, silence, protect, guard, investigate, dig, snipe, scoop, decoy }
@@ -169,7 +173,7 @@ class GameEngine {
   /// seme a caso, e la partita resta fotografabile.
   factory GameEngine(GameSetup setup, {GameSettings settings = const GameSettings(), Random? random, int? seed}) {
     if (random != null && seed != null) throw ArgumentError('random e seed si escludono');
-    return GameEngine._start(setup, settings, random, random != null ? null : seed ?? Random().nextInt(1 << 32));
+    return GameEngine._start(setup, settings, random, random != null ? null : seed ?? Random().nextInt(seedRange));
   }
 
   GameEngine._start(this.setup, this.settings, Random? random, this.seed)
@@ -287,6 +291,10 @@ class GameEngine {
         final condemned = seat == null ? null : _seat(seat);
         if (seat != null && condemned == null) throw StateError('posto sconosciuto: $seat');
         lynch(condemned);
+      case LeaveTownCommand(:final seat):
+        final player = _seat(seat);
+        if (player == null) throw StateError('posto sconosciuto: $seat');
+        leaveTown(player);
     }
   }
 
@@ -567,6 +575,28 @@ class GameEngine {
       _round++;
     }
     return report;
+  }
+
+  /// Qualcuno lascia la città a partita in corso (online: se n'è andato e
+  /// non è tornato in tempo). Esce come un morto, la sua carta si scopre per
+  /// tutti, e si controlla subito se qualcuno ha vinto. Le mosse e i voti
+  /// che lo riguardavano si annullano: chi li aveva fatti sceglie di nuovo.
+  /// Torna la squadra che vince, se adesso vince qualcuno.
+  Team? leaveTown(Player player) {
+    if (_phase == GamePhase.ended || !isAlive(player)) return null;
+    _log.add(LeaveTownCommand(player.id));
+    final role = setup.roleOf(player);
+    _alive.remove(player);
+    _facts.add(Fact(subject: player, team: role.team, role: role, visibility: Visibility.public));
+    _choices.remove(player);
+    _choices.removeWhere((_, choice) => choice.target == player);
+    _dayVotes.remove(player);
+    _dayVotes.removeWhere((_, target) => target == player);
+    if (_updateWinner()) {
+      _phase = GamePhase.ended;
+      return _winner;
+    }
+    return null;
   }
 
   Player? _actorOf(NightTaskKind kind) {

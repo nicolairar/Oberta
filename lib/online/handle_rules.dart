@@ -113,4 +113,30 @@ class HandleRules {
     }
     return false;
   }
+
+  /// Le parole riservate solo come nomi (lo staff, il nome dell'app): in
+  /// chat si possono scrivere. Come la colonna `in_chat` di reserved_words.
+  static const chatExempt = {
+    'admin', 'administrator', 'amministratore', 'moderator', 'moderatore', 'mod', 'oberta', 'omerta',
+    'support', 'supporto', 'assistenza', 'staff', 'official', 'ufficiale', 'narrator', 'narratore',
+  };
+
+  /// Vero se un messaggio di chat non passa: come `_chat_blocked` sul
+  /// server, le parole «ovunque» si cercano in tutto il messaggio, quelle
+  /// «esatte» parola per parola.
+  static bool offensive(String text, {List<ReservedWord> words = reservedWords}) {
+    final chat = [for (final entry in words) if (!chatExempt.contains(entry.word)) entry];
+    final whole = moderationForms(text);
+    for (final entry in chat) {
+      if (entry.match != ReservedMatch.contains) continue;
+      if (whole.any((form) => form.collapsed.contains(collapse(entry.word)))) return true;
+    }
+    for (final token in text.split(RegExp(r'\s+'))) {
+      final forms = moderationForms(token);
+      for (final entry in chat) {
+        if (entry.match == ReservedMatch.exact && forms.any((form) => form.plain == entry.word)) return true;
+      }
+    }
+    return false;
+  }
 }

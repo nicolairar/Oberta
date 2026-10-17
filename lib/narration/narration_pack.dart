@@ -108,6 +108,9 @@ class NarrationPack {
   final List<String> silences;
   final String silencedFact;
 
+  /// Lo stesso, per la partita online: lì non si parla, si scrive in chat.
+  final String silencedFactOnline;
+
   final String dayInstruction;
   final String oneMinute;
   final String manyMinutes;
@@ -158,6 +161,7 @@ class NarrationPack {
     required this.scoopClean,
     required this.silences,
     required this.silencedFact,
+    required this.silencedFactOnline,
     required this.dayInstruction,
     required this.oneMinute,
     required this.manyMinutes,
