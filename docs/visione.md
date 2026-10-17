@@ -57,6 +57,10 @@ furba; votano anche di giorno.
   giocare, poi 15, 30, 60; ogni partita finita senza abbandoni toglie un
   abbandono, 24 ore pulite azzerano. Tra amici nessuna penalità. Il conteggio degli
   abbandoni non si mostra da nessuna parte: serve solo al server per le penalità.
+- Da affinare: un "punteggio di condotta" nascosto. Nel matchmaking della
+  classificata chi abbandona spesso finisce in partita con altri che
+  abbandonano spesso. La regola va spiegata ai giocatori (non il punteggio),
+  così sanno che abbandonare peggiora le loro partite.
 
 ## Economia e cosmetici (17 ottobre 2026)
 
