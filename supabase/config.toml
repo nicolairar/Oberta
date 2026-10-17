@@ -394,3 +394,12 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 # declarative_schema_path = "./declarative"
 # JSON string passed through to pg-delta SQL formatting.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":80,\"commaStyle\":\"trailing\"}"
+
+# The Edge Function that runs online games (supabase/functions/game). The
+# GitHub integration deploys only the functions declared here. Only the
+# database calls it, through pg_net, with its own secret header (see the
+# migration 20261017180000_server_authority.sql): no user JWT to verify.
+[functions.game]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/game/index.ts"

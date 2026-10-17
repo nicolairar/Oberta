@@ -159,6 +159,7 @@ sealed class GameCommand {
         'resolveNight' => const ResolveNightCommand(),
         'closeDayVote' => const CloseDayVoteCommand(),
         'lynch' => LynchCommand(json['seat'] as String?),
+        'leaveTown' => LeaveTownCommand(json['seat'] as String),
         final type => throw FormatException('comando sconosciuto: $type'),
       };
 
@@ -203,4 +204,15 @@ class LynchCommand extends GameCommand {
 
   @override
   Map<String, Object?> toJson() => {'type': 'lynch', 'seat': seat};
+}
+
+/// Chi se n'è andato davvero (online: il telefono spento oltre la
+/// tolleranza) lascia la città ([GameEngine.leaveTown]).
+class LeaveTownCommand extends GameCommand {
+  final String seat;
+
+  const LeaveTownCommand(this.seat);
+
+  @override
+  Map<String, Object?> toJson() => {'type': 'leaveTown', 'seat': seat};
 }

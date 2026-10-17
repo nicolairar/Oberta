@@ -4,49 +4,119 @@ import 'package:flutter/foundation.dart';
 
 import '../../rules/intent.dart';
 import 'game_backend.dart';
-import 'game_protocol.dart';
+import 'game_clock.dart';
+import 'game_feed.dart';
+import 'game_schedule.dart';
 
 /// La partita vista da un telefono: il tavolo pubblico e la propria vista,
-/// e il modo di mandare le proprie intenzioni. È tutto quello che lo schermo
-/// della partita online conosce, anche sul telefono del padrone di casa.
+/// l'orologio del server, la chat, e il modo di mandare le proprie mosse e
+/// conferme. È tutto quello che lo schermo della partita online conosce:
+/// la partita gira sul server, e nessun telefono sa i ruoli degli altri.
 class GameClient extends ChangeNotifier {
   final GameBackend backend;
   final String roomId;
+  final GameClock clock;
+
+  /// Ogni quanto il telefono dice al server «ci sono».
+  final Duration heartbeat;
 
   StreamSubscription<GameFeed>? _feed;
+  StreamSubscription<List<ChatMessage>>? _chatFeed;
+  GameTimer? _beat;
   OnlineBoard? _board;
   OnlineSeat? _seat;
   Object? _error;
+  List<ChatMessage> _chat = const [];
+  bool _disposed = false;
 
-  /// L'intenzione mandata e non ancora vista nella risposta dell'autorità.
+  /// Di quanto l'orologio del server è avanti rispetto a questo telefono,
+  /// misurato al ping col viaggio più breve.
+  Duration _offset = Duration.zero;
+  Duration? _bestTrip;
+
+  /// L'intenzione mandata e non ancora vista nella risposta del server.
   int? _waitingFor;
   bool _sending = false;
 
   /// L'ultima intenzione rifiutata, finché qualcuno non la legge.
   IntentRejected? _rejected;
 
-  GameClient({required this.backend, required this.roomId}) {
+  /// Le fasi già confermate da qui.
+  final Set<String> _acked = {};
+
+  GameClient({
+    required this.backend,
+    required this.roomId,
+    this.clock = const SystemGameClock(),
+    this.heartbeat = const Duration(seconds: 5),
+  }) {
     _feed = backend.watchGame(roomId).listen(_received, onError: (Object error) {
       _error = error;
       notifyListeners();
     });
+    _chatFeed = backend.watchChat(roomId).listen((messages) {
+      _chat = messages;
+      notifyListeners();
+    }, onError: (Object _) {});
+    _ping();
   }
 
   OnlineBoard? get board => _board;
   OnlineSeat? get seat => _seat;
   Object? get error => _error;
+  List<ChatMessage> get chat => _chat;
+
+  /// La fase in corso, con le sue ore (del server).
+  StageWindow? get schedule => _board?.schedule;
+
+  /// L'ora del server, adesso, secondo questo telefono.
+  DateTime get serverNow => clock.now().add(_offset);
+
+  /// Quanto manca alla fine della fase in corso (zero se è finita).
+  Duration get timeLeft {
+    final window = schedule;
+    if (window == null) return Duration.zero;
+    final left = window.endsAt.difference(serverNow);
+    return left.isNegative ? Duration.zero : left;
+  }
+
+  /// Da quanto è cominciata la fase in corso (negativo se deve ancora
+  /// cominciare: si aspetta, per partire tutti insieme).
+  Duration get elapsed {
+    final window = schedule;
+    return window == null ? Duration.zero : serverNow.difference(window.startsAt);
+  }
 
   /// Vero quando tavolo e vista sono della stessa versione: lo schermo può
   /// mostrare la partita.
   bool get ready => _board != null && _seat != null;
 
-  /// Vero mentre un'intenzione è in viaggio.
+  /// Vero mentre un'intenzione è in viaggio, o aspetta la risposta.
   bool get busy => _sending || _waitingFor != null;
 
   IntentRejected? takeRejection() {
     final rejected = _rejected;
     _rejected = null;
     return rejected;
+  }
+
+  Future<void> _ping() async {
+    if (_disposed) return;
+    try {
+      final sent = clock.now();
+      final server = await backend.ping(roomId);
+      final back = clock.now();
+      final trip = back.difference(sent);
+      if (_bestTrip == null || trip <= _bestTrip!) {
+        _bestTrip = trip;
+        final middle = sent.add(trip ~/ 2);
+        _offset = DateTime.fromMillisecondsSinceEpoch(server).difference(middle);
+      }
+    } catch (_) {
+      // Un ping perso non conta: il server aspetta prima di dire «offline».
+    }
+    if (_disposed) return;
+    _beat = clock.schedule(heartbeat, _ping);
   }
 
   PublicFrame? _pendingBoard;
@@ -78,7 +148,8 @@ class GameClient extends ChangeNotifier {
     if (receipt.id == waiting && receipt.result is IntentRejected) _rejected = receipt.result as IntentRejected;
   }
 
-  /// Manda un'intenzione per il proprio posto.
+  /// Manda un'intenzione per il proprio posto. La mossa conta solo quando
+  /// torna la risposta del server ([busy] torna falso, la vista cambia).
   Future<void> send(PlayerIntent intent) async {
     _sending = true;
     notifyListeners();
@@ -95,9 +166,30 @@ class GameClient extends ChangeNotifier {
     }
   }
 
+  /// Conferma la fase in corso (carta vista, film finito, letto). Una volta
+  /// sola per fase; la conferma arrivata al server si vede in [OnlineSeat.acked].
+  Future<void> ack() async {
+    final window = schedule;
+    final seat = _seat?.view.seat.id;
+    if (window == null || seat == null || !window.stage.acknowledged || !_acked.add(window.key)) return;
+    try {
+      await backend.sendAck(roomId, seat, window.key);
+    } catch (_) {
+      _acked.remove(window.key);
+    }
+  }
+
+  /// Vero se da qui si è già confermata la fase in corso.
+  bool get ackedHere => schedule != null && _acked.contains(schedule!.key);
+
+  Future<void> sendChat(ChatChannel channel, String body) => backend.sendChat(roomId, channel, body);
+
   @override
   void dispose() {
+    _disposed = true;
     _feed?.cancel();
+    _chatFeed?.cancel();
+    _beat?.cancel();
     super.dispose();
   }
 }

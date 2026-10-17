@@ -213,6 +213,12 @@ class DeathScene extends StatefulWidget {
   final SkylineStyle style;
   final VoidCallback onFinished;
 
+  /// Online: il film va in onda per tutti nello stesso momento, deciso dal
+  /// server. [startAt] è quanto ne è già passato quando questa scena parte
+  /// (chi arriva in ritardo entra a metà). Così non si salta, non c'è il
+  /// pulsante per andare avanti, e [onFinished] scatta da solo alla fine.
+  final Duration? startAt;
+
   const DeathScene({
     super.key,
     required this.act,
@@ -222,6 +228,7 @@ class DeathScene extends StatefulWidget {
     required this.onFinished,
     this.epilogue = '',
     this.style = SkylineStyle.metropolis,
+    this.startAt,
   });
 
   @override
@@ -267,8 +274,24 @@ class _DeathSceneState extends State<DeathScene>
           ..addStatusListener((status) {
             if (status == AnimationStatus.completed) {
               setState(() => _ended = true);
+              if (_synced) _finish();
             }
           });
+
+    final startAt = widget.startAt;
+    if (startAt != null) {
+      // Si entra al punto giusto; la musica solo per chi arriva in tempo.
+      final from = (startAt.inMicroseconds / DeathScene.length.inMicroseconds).clamp(0.0, 1.0);
+      final t = filmTime(from);
+      while (_nextCue < _cues.length && _cues[_nextCue].t < t) {
+        _nextCue++;
+      }
+      _struck = t >= DeathScenePainter.strike;
+      SoundStage.instance.duckMusic(true);
+      if (startAt < const Duration(milliseconds: 700)) SoundStage.instance.playScene(widget.act);
+      _film.forward(from: from);
+      return;
+    }
 
     // Il film parte quando parte la musica. Il palco muto risponde subito;
     // quello vero ci mette un attimo, e la scena lo aspetta (ma non per
@@ -306,6 +329,8 @@ class _DeathSceneState extends State<DeathScene>
       );
     }
   }
+
+  bool get _synced => widget.startAt != null;
 
   /// Chi salta la scena arriva comunque al ritratto finale: il nome si legge
   /// sempre, e avanti si va solo col pulsante.
@@ -435,6 +460,7 @@ class _DeathSceneState extends State<DeathScene>
             );
           },
         ),
+        if (!_synced)
         SafeArea(
           child: _ended
               ? Align(

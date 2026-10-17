@@ -4,6 +4,10 @@ import 'dart:math';
 
 import '../l10n/app_language.dart';
 import '../rules/intent.dart';
+import 'game/bot_brain.dart';
+import 'game/game_clock.dart';
+import 'game/game_schedule.dart';
+import 'game/game_server.dart';
 import 'handle_rules.dart';
 import 'join_code.dart';
 import 'online_services.dart';
@@ -32,10 +36,26 @@ class FakeOnline {
 
   final Map<String, _FakeGameRoom> _games = {};
   final List<void Function()> _gameWatchers = [];
+  final List<({String room, String? game, ChatMessage message})> _chat = [];
   int _intentIds = 0;
+  int _chatIds = 0;
+  int _gameIds = 0;
 
-  /// Quante pubblicazioni dell'autorità sono arrivate.
+  /// L'orologio del server finto: quello vero, o uno a mano nei test.
+  GameClock clock;
+
+  /// I tempi della partita.
+  OnlinePacing pacing;
+
+  /// Se vero, il server guarda chi si fa sentire (offline, chi lascia la
+  /// città). Spento, tutti risultano sempre collegati.
+  bool trackPresence = false;
+
+  /// Quante versioni della partita ha pubblicato il server.
   int published = 0;
+
+  /// Gli abbandoni annotati dal server in una partita (i posti), per i test.
+  List<String> abandonsIn(String roomId) => [...?_games[roomId]?.abandons];
 
   /// Tutto quello che il server ha consegnato a ogni telefono, in ordine:
   /// i test controllano che nessuno riceva quello che non deve.
@@ -61,7 +81,9 @@ class FakeOnline {
   /// La stanza aperta con questo codice.
   Room? roomByCode(String code) => _rooms.values.where((room) => room.room.code == code).firstOrNull?.room;
 
-  FakeOnline({this.accountId = 'me', Random? random}) : _random = random ?? Random(7);
+  FakeOnline({this.accountId = 'me', Random? random, GameClock? clock, this.pacing = const OnlinePacing()})
+      : _random = random ?? Random(7),
+        clock = clock ?? const SystemGameClock();
 
   OnlineServices get services =>
       OnlineServices(auth: auth, profiles: profiles, friends: friends, rooms: rooms, game: game);
@@ -173,7 +195,7 @@ class FakeOnline {
       // Come il server: la stanza vuota sparisce.
       room.room = _copy(room.room, status: RoomStatus.ended);
       _rooms.remove(roomId);
-      _games.remove(roomId);
+      _games.remove(roomId)?.timer?.cancel();
     } else if (room.room.hostId == id) {
       room.room = _copy(room.room, hostId: room.seats.keys.first);
     }
@@ -457,23 +479,35 @@ class FakeRooms implements RoomRepository {
   }
 }
 
-/// La partita di una stanza, sul server finto: le stesse righe e le stesse
-/// regole di accesso delle tabelle `game_*` del database.
+/// La partita di una stanza, sul server finto: le stesse righe del database
+/// (tavolo, viste, intenzioni, chat) e lo stato segreto che solo il server
+/// legge, mandato avanti dallo stesso [serverStep] della Edge Function.
 class _FakeGameRoom {
-  final String host;
+  final String gameId;
+  final Map<String, SeatPlan> seats;
+  final String language;
+  Map<String, Object?>? state;
   int version = 0;
   Map<String, Object?>? board;
-  final Map<String, SeatPlan> seats;
   final Map<String, ({String profile, int version, Map<String, Object?> view})> seatViews = {};
   final List<({int id, String seat, String profile, Map<String, Object?> intent})> intents = [];
-  Map<String, Object?>? hostState;
+  final Map<String, DateTime> lastSeen = {};
+  String chatMode = 'closed';
+  Map<String, Object?> chatSeats = const {};
+  Set<String> offline = {};
+  final List<String> abandons = [];
+  GameTimer? timer;
+  bool finished = false;
 
-  _FakeGameRoom(this.host, this.seats);
+  _FakeGameRoom(this.gameId, this.seats, this.language);
+
+  Map<String, Object?> rightsOf(String seat) => (chatSeats[seat] as Map?)?.cast<String, Object?>() ?? const {};
 }
 
 /// La partita online sul server finto, vista dall'account [userId]: ogni
 /// chiamata controlla quello che controllerebbero le policy e le funzioni
-/// del database, e ognuno riceve solo le righe che potrebbe leggere.
+/// del database, e ognuno riceve solo le righe che potrebbe leggere. Il
+/// server gira qui dentro, con l'orologio [FakeOnline.clock].
 class FakeGame implements GameBackend {
   final FakeOnline _online;
   final String? Function() _user;
@@ -486,6 +520,9 @@ class FakeGame implements GameBackend {
       _online._rooms[roomId] ?? (throw const OnlineException(OnlineFailure.roomNotFound));
 
   bool _member(String roomId, String id) => _online._rooms[roomId]?.seats.containsKey(id) ?? false;
+
+  String? _seatOf(_FakeGameRoom game, String profile) =>
+      game.seats.values.where((plan) => plan.profileId == profile).firstOrNull?.seat;
 
   @override
   Future<void> setBots(String roomId, int count) async {
@@ -501,102 +538,35 @@ class FakeGame implements GameBackend {
   }
 
   @override
-  Future<void> startGame(String roomId, List<SeatPlan> seats) async {
+  Future<void> startGame(String roomId) async {
     await _online._network();
     final me = _me;
     final room = _room(roomId);
     if (room.room.hostId != me) throw const OnlineException(OnlineFailure.notAllowed);
     if (room.room.status != RoomStatus.lobby) throw const OnlineException(OnlineFailure.roomClosed);
-    if (seats.length < 4 || seats.length > room.room.maxPlayers) throw const OnlineException(OnlineFailure.notAllowed);
-    final placed = <String, SeatPlan>{};
-    final humans = <String>{};
-    for (final (index, plan) in seats.indexed) {
-      if (plan.seat != 's${index + 1}') throw const OnlineException(OnlineFailure.notAllowed);
-      final profile = plan.profileId;
-      if (profile == null) {
-        if (!RegExp(r'^bot\.[a-z]{1,8}$').hasMatch(plan.name)) throw const OnlineException(OnlineFailure.notAllowed);
-        placed[plan.seat] = plan;
-      } else {
-        if (!room.seats.containsKey(profile) || !humans.add(profile)) {
-          throw const OnlineException(OnlineFailure.notAllowed);
-        }
-        // Come il server: una persona siede col suo nome unico, qualunque
-        // cosa mandi il padrone di casa.
-        placed[plan.seat] = SeatPlan(seat: plan.seat, profileId: profile, name: _online._profiles[profile]!.name);
-      }
+    final total = room.seats.length + room.room.bots;
+    if (total < 4 || total > room.room.maxPlayers) throw const OnlineException(OnlineFailure.notAllowed);
+    // Come il server: le persone nell'ordine dei posti, poi i bot.
+    final people = room.members(_online);
+    final seats = <String, SeatPlan>{};
+    for (final (index, member) in people.indexed) {
+      final seat = 's${index + 1}';
+      seats[seat] = SeatPlan(seat: seat, profileId: member.profile.id, name: member.profile.name);
     }
-    if (humans.length != room.seats.length) throw const OnlineException(OnlineFailure.notAllowed);
-    _online._games[roomId] = _FakeGameRoom(me, placed);
+    for (var i = 0; i < room.room.bots; i++) {
+      final seat = 's${people.length + i + 1}';
+      seats[seat] = SeatPlan(seat: seat, profileId: null, name: botName(i));
+    }
+    _online._games.remove(roomId)?.timer?.cancel();
+    _online._chat.removeWhere((m) => m.room == roomId && m.message.channel != ChatChannel.lobby);
+    final game = _online._games[roomId] =
+        _FakeGameRoom('game-${++_online._gameIds}', seats, room.room.language.name);
+    for (final plan in seats.values) {
+      if (plan.profileId != null) game.lastSeen[plan.seat] = _online.clock.now();
+    }
     room.room = room.room.copyWith(status: RoomStatus.playing);
     room.notify(_online);
-  }
-
-  @override
-  Future<void> publish(String roomId, GamePublication publication) async {
-    await _online._network();
-    final me = _me;
-    final game = _online._games[roomId];
-    if (game == null || game.host != me || !_member(roomId, me)) throw const OnlineException(OnlineFailure.notAllowed);
-    if (publication.version <= game.version) throw const OnlineException(OnlineFailure.notAllowed, null, 'stale_version');
-    game.version = publication.version;
-    game.board = _wire(publication.board);
-    for (final plan in game.seats.values) {
-      final profile = plan.profileId;
-      final view = publication.seatViews[plan.seat];
-      if (profile == null || view == null) continue;
-      // La vista va a chi siede a quel posto, qualunque cosa dica l'host.
-      game.seatViews[plan.seat] = (profile: profile, version: publication.version, view: _wire(view));
-    }
-    game.hostState = _wire(publication.hostState);
-    if (publication.lastIntent case final last?) game.intents.removeWhere((intent) => intent.id <= last);
-    _online.published++;
-    if (publication.finished) {
-      final room = _room(roomId);
-      room.room = room.room.copyWith(status: RoomStatus.lobby);
-      room.notify(_online);
-    }
-    _online._notifyGame(roomId);
-  }
-
-  List<IntentEnvelope> _intentsFor(String roomId) {
-    final game = _online._games[roomId];
-    if (game == null) return const [];
-    return [
-      for (final intent in game.intents) IntentEnvelope(id: intent.id, seat: intent.seat, intent: _wire(intent.intent)),
-    ];
-  }
-
-  bool _isHost(String roomId, String id) => _online._games[roomId]?.host == id && _member(roomId, id);
-
-  @override
-  Stream<List<IntentEnvelope>> watchIntents(String roomId) {
-    final me = _me;
-    late final StreamController<List<IntentEnvelope>> controller;
-    void push() {
-      if (controller.isClosed) return;
-      // Come la policy: solo l'host della partita legge le intenzioni.
-      if (!_isHost(roomId, me)) return;
-      controller.add(_intentsFor(roomId));
-    }
-
-    controller = StreamController<List<IntentEnvelope>>(
-      onListen: () {
-        _online._gameWatchers.add(push);
-        scheduleMicrotask(push);
-      },
-      onCancel: () => _online._gameWatchers.remove(push),
-    );
-    return controller.stream;
-  }
-
-  @override
-  Future<Map<String, Object?>?> loadHostState(String roomId) async {
-    await _online._network();
-    final me = _me;
-    final game = _online._games[roomId];
-    if (game == null || game.host != me || !_member(roomId, me)) return null;
-    final state = game.hostState;
-    return state == null ? null : _wire(state);
+    _online._wake(roomId);
   }
 
   GameFeed _feedFor(String roomId, String me) {
@@ -634,8 +604,7 @@ class FakeGame implements GameBackend {
     return controller.stream;
   }
 
-  @override
-  Future<int> sendIntent(String roomId, PlayerIntent intent) async {
+  Future<int> _submit(String roomId, Map<String, Object?> json) async {
     await _online._network();
     final me = _me;
     final game = _online._games[roomId];
@@ -643,31 +612,193 @@ class FakeGame implements GameBackend {
     if (game == null || room == null || !_member(roomId, me) || room.room.status != RoomStatus.playing) {
       throw const OnlineException(OnlineFailure.notAllowed);
     }
-    final seat = game.seats.values.where((plan) => plan.profileId == me).firstOrNull?.seat;
+    final seat = _seatOf(game, me);
     if (seat == null) throw const OnlineException(OnlineFailure.notAllowed);
-    final json = _wire(intent.toJson());
     if (json['seat'] != seat) throw const OnlineException(OnlineFailure.notAllowed, null, 'not_your_seat');
     if (game.intents.where((i) => i.profile == me).length >= 20) {
       throw const OnlineException(OnlineFailure.notAllowed, null, 'too_many_intents');
     }
     final id = ++_online._intentIds;
-    game.intents.add((id: id, seat: seat, profile: me, intent: json));
-    _online._notifyGame(roomId);
+    game.intents.add((id: id, seat: seat, profile: me, intent: _wire(json)));
+    game.lastSeen[seat] = _online.clock.now();
+    _online._wake(roomId);
     return id;
   }
 
+  @override
+  Future<int> sendIntent(String roomId, PlayerIntent intent) => _submit(roomId, intent.toJson());
+
+  @override
+  Future<void> sendAck(String roomId, String seat, String stage) =>
+      _submit(roomId, {'type': 'ack', 'seat': seat, 'stage': stage});
+
   /// Solo per i test: manda un'intenzione così com'è, come farebbe un
   /// client modificato. Il server controlla comunque il posto.
-  Future<int> sendRaw(String roomId, Map<String, Object?> json) async {
+  Future<int> sendRaw(String roomId, Map<String, Object?> json) => _submit(roomId, json);
+
+  @override
+  Future<int> ping(String roomId) async {
+    await _online._network();
     final me = _me;
+    if (!_member(roomId, me)) throw const OnlineException(OnlineFailure.notAllowed);
     final game = _online._games[roomId];
-    if (game == null || !_member(roomId, me)) throw const OnlineException(OnlineFailure.notAllowed);
-    final seat = game.seats.values.where((plan) => plan.profileId == me).firstOrNull?.seat;
-    if (seat == null || json['seat'] != seat) throw const OnlineException(OnlineFailure.notAllowed, null, 'not_your_seat');
-    final id = ++_online._intentIds;
-    game.intents.add((id: id, seat: seat, profile: me, intent: _wire(json)));
+    final seat = game == null ? null : _seatOf(game, me);
+    if (game != null && seat != null) {
+      game.lastSeen[seat] = _online.clock.now();
+      if (game.offline.contains(seat)) _online._wake(roomId);
+    }
+    return _online.clock.now().millisecondsSinceEpoch;
+  }
+
+  @override
+  Future<void> sendChat(String roomId, ChatChannel channel, String body) async {
+    await _online._network();
+    final me = _me;
+    final text = body.trim();
+    if (!_member(roomId, me)) throw const OnlineException(OnlineFailure.notAllowed);
+    if (text.isEmpty || text.length > 300) throw const OnlineException(OnlineFailure.chatClosed);
+    final now = _online.clock.now();
+    final recent = _online._chat.where(
+      (m) => m.message.profileId == me && now.difference(m.message.at) < const Duration(seconds: 3),
+    );
+    if (recent.length >= 3) throw const OnlineException(OnlineFailure.tooManyMessages);
+    if (HandleRules.offensive(text)) throw const OnlineException(OnlineFailure.messageBlocked);
+    final room = _room(roomId);
+    String? seat;
+    String? gameId;
+    var name = _online._profiles[me]!.name;
+    if (channel == ChatChannel.lobby) {
+      if (room.room.status != RoomStatus.lobby) throw const OnlineException(OnlineFailure.chatClosed);
+    } else {
+      final game = _online._games[roomId];
+      seat = game == null ? null : _seatOf(game, me);
+      if (game == null || seat == null || room.room.status != RoomStatus.playing) {
+        throw const OnlineException(OnlineFailure.chatClosed);
+      }
+      final rights = game.rightsOf(seat);
+      if (rights['alive'] == false) throw const OnlineException(OnlineFailure.chatClosed);
+      final allowed = switch (channel) {
+        ChatChannel.day => game.chatMode == 'day' && rights['silenced'] != true,
+        ChatChannel.family => game.chatMode == 'night' && rights['family'] == true,
+        ChatChannel.lobby => false,
+      };
+      if (!allowed) throw const OnlineException(OnlineFailure.chatClosed);
+      gameId = game.gameId;
+      name = game.seats[seat]!.name;
+    }
+    _online._chat.add((
+      room: roomId,
+      game: gameId,
+      message: ChatMessage(
+        id: ++_online._chatIds,
+        channel: channel,
+        profileId: me,
+        seat: seat,
+        name: name,
+        body: text,
+        at: now,
+      ),
+    ));
     _online._notifyGame(roomId);
-    return id;
+  }
+
+  /// Come la policy di game_chat: stanza e piazza per chi è nella stanza,
+  /// la famiglia solo per i suoi vivi, nella partita in corso.
+  List<ChatMessage> _chatFor(String roomId, String me) {
+    if (!_member(roomId, me)) return const [];
+    final game = _online._games[roomId];
+    final seat = game == null ? null : _seatOf(game, me);
+    final rights = seat == null ? const <String, Object?>{} : game!.rightsOf(seat);
+    final family = rights['family'] == true && rights['alive'] != false;
+    return [
+      for (final m in _online._chat)
+        if (m.room == roomId &&
+            (m.message.channel != ChatChannel.family || (family && m.game == game?.gameId)))
+          m.message,
+    ];
+  }
+
+  @override
+  Stream<List<ChatMessage>> watchChat(String roomId) {
+    final me = _me;
+    late final StreamController<List<ChatMessage>> controller;
+    void push() {
+      if (!controller.isClosed) controller.add(_chatFor(roomId, me));
+    }
+
+    controller = StreamController<List<ChatMessage>>(
+      onListen: () {
+        _online._gameWatchers.add(push);
+        scheduleMicrotask(push);
+      },
+      onCancel: () => _online._gameWatchers.remove(push),
+    );
+    return controller.stream;
+  }
+}
+
+extension on FakeOnline {
+  /// Come pg_net che sveglia la Edge Function: poco dopo, non durante la
+  /// chiamata.
+  void _wake(String roomId) => scheduleMicrotask(() => _serve(roomId));
+
+  /// Un passo del server su questa partita, come la Edge Function: lo stato
+  /// segreto, le intenzioni, chi si fa sentire; poi si salva tutto come
+  /// `internal.game_commit` e ci si dà appuntamento al prossimo momento.
+  void _serve(String roomId) {
+    final game = _games[roomId];
+    final room = _rooms[roomId];
+    if (game == null || room == null || game.finished) return;
+    game.timer?.cancel();
+    game.timer = null;
+    final now = clock.now();
+    final out = serverStep(
+      _wire({
+        'state': game.state,
+        'seats': [for (final plan in game.seats.values) plan.toJson()],
+        'language': game.language,
+        'now': now.millisecondsSinceEpoch,
+        'intents': [
+          for (final i in game.intents) {'id': i.id, 'seat': i.seat, 'intent': i.intent},
+        ],
+        'seen': trackPresence
+            ? {for (final MapEntry(:key, :value) in game.lastSeen.entries) key: value.millisecondsSinceEpoch}
+            : null,
+        'seed': _random.nextInt(1 << 30),
+      }),
+      pacing: pacing,
+    );
+    final last = out['lastIntent'] as int?;
+    if (last != null) game.intents.removeWhere((i) => i.id <= last);
+    game.state = out['state'] as Map<String, Object?>;
+    if (out['changed'] == true) {
+      game.version = out['version'] as int;
+      final board = out['board'] as Map<String, Object?>;
+      game.board = board;
+      for (final MapEntry(key: seat, value: view) in (out['seatViews'] as Map<String, Object?>).entries) {
+        final profile = game.seats[seat]?.profileId;
+        // La vista va a chi siede a quel posto, qualunque cosa dica il passo.
+        if (profile == null) continue;
+        game.seatViews[seat] = (profile: profile, version: game.version, view: view as Map<String, Object?>);
+      }
+      final chat = out['chat'] as Map<String, Object?>;
+      game.chatMode = chat['mode'] as String;
+      game.chatSeats = (chat['seats'] as Map).cast<String, Object?>();
+      game.offline = {for (final seat in board['offline'] as List<Object?>) seat as String};
+      game.abandons.addAll((out['departed'] as List<Object?>).cast<String>());
+      published++;
+      if (out['finished'] == true) {
+        game.finished = true;
+        room.room = room.room.copyWith(status: RoomStatus.lobby);
+        room.notify(this);
+      }
+      _notifyGame(roomId);
+    }
+    final due = out['nextDue'] as int?;
+    if (due != null && !game.finished) {
+      final wait = DateTime.fromMillisecondsSinceEpoch(due).difference(clock.now());
+      game.timer = clock.schedule(wait.isNegative ? Duration.zero : wait, () => _serve(roomId));
+    }
   }
 }
 

@@ -179,6 +179,12 @@ enum OnlineFailure {
   playerNotFound,
   notAllowed,
   requestNotFound,
+
+  /// La chat: parole che non passano, troppi messaggi di fila, o adesso non
+  /// si può scrivere lì (di notte, da morti, con la bocca cucita).
+  messageBlocked,
+  tooManyMessages,
+  chatClosed,
   cancelled,
   network,
   unknown,

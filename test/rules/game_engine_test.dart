@@ -1004,4 +1004,28 @@ void main() {
     expect(tasks, NightTaskKind.values.toSet(), reason: 'tutte le mosse sono state fatte');
     expect(outcomes, AttackOutcome.values.toSet(), reason: 'tutti gli esiti si sono visti');
   });
+
+  group('chi lascia la città', () {
+    test('esce come un morto, la carta si scopre per tutti, e le mosse su di lui si annullano', () {
+      final engine = fullTable();
+      engine.submitNightChoice(boss, anna);
+      expect(engine.pendingNightPlayers, contains(picciotto));
+      expect(engine.leaveTown(anna), isNull);
+      expect(engine.isAlive(anna), isFalse);
+      expect(engine.knowledgeOf(null, anna).role, Role.cittadino, reason: 'la carta è pubblica');
+      expect(engine.pendingNightPlayers, contains(boss), reason: 'il colpo su chi se n\'è andato si rifà');
+      expect(engine.leaveTown(anna), isNull, reason: 'una volta sola');
+    });
+
+    test('se resta la sola famiglia, o nessuno della famiglia, la partita finisce subito', () {
+      final engine = smallTable();
+      expect(engine.leaveTown(boss), Team.citizens);
+      expect(engine.phase, GamePhase.ended);
+      expect(engine.winner, Team.citizens);
+
+      final other = smallTable();
+      other.leaveTown(anna);
+      expect(other.leaveTown(bruno), Team.mafia);
+    });
+  });
 }

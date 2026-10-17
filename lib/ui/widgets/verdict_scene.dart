@@ -146,6 +146,12 @@ class VerdictScene extends StatefulWidget {
   final SkylineStyle style;
   final VoidCallback onFinished;
 
+  /// Online: il film va in onda per tutti nello stesso momento, deciso dal
+  /// server. [startAt] è quanto ne è già passato quando questa scena parte
+  /// (chi arriva in ritardo entra a metà). Così non si salta, non c'è il
+  /// pulsante per andare avanti, e [onFinished] scatta da solo alla fine.
+  final Duration? startAt;
+
   /// I nomi delle varianti di condanna, per chi vuole sceglierne una.
   static final variants = [for (final take in VerdictTake.condemnations) take.name];
 
@@ -156,6 +162,7 @@ class VerdictScene extends StatefulWidget {
     this.style = SkylineStyle.metropolis,
     this.variant,
     this.town = '',
+    this.startAt,
   });
 
   /// La piazza non condanna nessuno.
@@ -163,6 +170,7 @@ class VerdictScene extends StatefulWidget {
     super.key,
     required this.onFinished,
     this.style = SkylineStyle.metropolis,
+    this.startAt,
   })  : condemnedName = null,
         variant = null,
         town = '';
@@ -200,8 +208,24 @@ class _VerdictSceneState extends State<VerdictScene> with SingleTickerProviderSt
         }
       })
       ..addStatusListener((status) {
-        if (status == AnimationStatus.completed) setState(() => _ended = true);
+        if (status == AnimationStatus.completed) {
+          setState(() => _ended = true);
+          if (_synced) _finish();
+        }
       });
+
+    final startAt = widget.startAt;
+    if (startAt != null) {
+      final from = (startAt.inMicroseconds / _take.length.inMicroseconds).clamp(0.0, 1.0);
+      while (_nextCue < _cues.length && _cues[_nextCue].t < from) {
+        _nextCue++;
+      }
+      _struck = from >= _take.payoff;
+      SoundStage.instance.duckMusic(true);
+      if (startAt < const Duration(milliseconds: 700)) SoundStage.instance.playVerdict(_take);
+      _film.forward(from: from);
+      return;
+    }
 
     SoundStage.instance.duckMusic(true);
     final music = SoundStage.instance.playVerdict(_take);
@@ -228,6 +252,8 @@ class _VerdictSceneState extends State<VerdictScene> with SingleTickerProviderSt
     if (heard >= _take.length) return;
     _film.forward(from: heard.inMicroseconds / _take.length.inMicroseconds);
   }
+
+  bool get _synced => widget.startAt != null;
 
   /// Chi salta arriva alla carta finale, e avanti si va solo col pulsante.
   void _skip() {
@@ -319,6 +345,7 @@ class _VerdictSceneState extends State<VerdictScene> with SingleTickerProviderSt
             );
           },
         ),
+        if (!_synced)
         SafeArea(
           child: _ended
               ? Align(

@@ -56,6 +56,7 @@ void main() {
         CloseDayVoteCommand(),
         LynchCommand('s2'),
         LynchCommand(null),
+        LeaveTownCommand('s3'),
       ];
       for (final command in commands) {
         expect(GameCommand.fromJson(jsonDecode(jsonEncode(command.toJson())) as Map<String, Object?>), command);

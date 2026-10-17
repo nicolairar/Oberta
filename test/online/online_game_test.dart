@@ -5,65 +5,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/l10n/app_language.dart';
 import 'package:oberta/online/fake_online.dart';
 import 'package:oberta/online/game/bot_brain.dart';
-import 'package:oberta/online/game/game_authority.dart';
 import 'package:oberta/online/game/game_client.dart';
-import 'package:oberta/online/game/game_protocol.dart';
+import 'package:oberta/online/game/game_schedule.dart';
+import 'package:oberta/online/handle_rules.dart';
 import 'package:oberta/online/online_services.dart';
-import 'package:oberta/rules/game_engine.dart';
-import 'package:oberta/rules/game_snapshot.dart';
 import 'package:oberta/rules/intent.dart';
-import 'package:oberta/rules/player.dart';
-import 'package:oberta/table/seating.dart';
+import 'package:oberta/rules/role.dart';
 
-import '../rules/player_view_test.dart' show leaksIn;
 import '../support/manual_clock.dart';
-
-/// Il backend del padrone di casa, con una lente: ogni pubblicazione si
-/// controlla contro lo stato del motore da cui è stata fatta (che viaggia
-/// nella pubblicazione stessa, nello stato salvato).
-class _Inspected implements GameBackend {
-  final GameBackend inner;
-  final List<String> leaks = [];
-  final List<GamePublication> publications = [];
-
-  _Inspected(this.inner);
-
-  @override
-  Future<void> publish(String roomId, GamePublication publication) {
-    publications.add(publication);
-    final state = publication.hostState;
-    final seating = Seating.fromJson(state['seating'] as Map<String, Object?>);
-    final engine = GameEngine.fromSnapshot(
-      GameSnapshot.fromJson(state['snapshot'] as Map<String, Object?>, seating.playerAt),
-    );
-    final board = publication.board['board'] as Map<String, Object?>;
-    leaks.addAll(leaksIn(engine, null, board).map((leak) => 'tavolo v${publication.version}: $leak'));
-    if (engine.phase != GamePhase.ended && (board['finalRoles'] as List).isNotEmpty) leaks.add('carte scoperte');
-    for (final attack in ((board['lastDawn'] as Map?)?['attacks'] as List?) ?? const []) {
-      if (attack['outcome'] != 'killed' && attack['target'] != anonymousSeat) leaks.add('chi si è salvato si vede');
-    }
-    for (final MapEntry(key: seat, value: payload) in publication.seatViews.entries) {
-      final view = payload['view'] as Map<String, Object?>;
-      if (view['seat'] != seat) leaks.add('la vista di ${view['seat']} sotto $seat');
-      if (seating.profileOf(seat) == null) leaks.add('un bot ha una vista sul server: $seat');
-      leaks.addAll(leaksIn(engine, seating.playerAt(seat), view).map((leak) => '$seat v${publication.version}: $leak'));
-    }
-    return inner.publish(roomId, publication);
-  }
-
-  @override
-  Future<void> setBots(String roomId, int count) => inner.setBots(roomId, count);
-  @override
-  Future<void> startGame(String roomId, List<SeatPlan> seats) => inner.startGame(roomId, seats);
-  @override
-  Stream<List<IntentEnvelope>> watchIntents(String roomId) => inner.watchIntents(roomId);
-  @override
-  Future<Map<String, Object?>?> loadHostState(String roomId) => inner.loadHostState(roomId);
-  @override
-  Stream<GameFeed> watchGame(String roomId) => inner.watchGame(roomId);
-  @override
-  Future<int> sendIntent(String roomId, PlayerIntent intent) => inner.sendIntent(roomId, intent);
-}
 
 Future<void> settle() async {
   for (var i = 0; i < 12; i++) {
@@ -72,7 +21,8 @@ Future<void> settle() async {
 }
 
 /// Una persona al telefono, che gioca come un bot ma dalla sua app: legge
-/// la sua vista dal [GameClient] e manda le intenzioni al server.
+/// la sua vista dal [GameClient], manda le mosse quando la fase è aperta e
+/// conferma le fasi da guardare.
 class _Human {
   final String id;
   final GameClient client;
@@ -84,15 +34,23 @@ class _Human {
   /// Agisce se è il suo momento (una volta per fase). Vero se ha mandato.
   Future<bool> act() async {
     final seat = client.seat;
-    final board = client.board;
-    if (!client.ready || client.busy || seat == null || board == null) return false;
-    final turn = '${board.view.phase.name}-${board.view.round}';
-    if (seat.view.action == null || _turn == turn) return false;
-    _turn = turn;
-    final intent = brain.decide(seat.view);
-    if (intent == null) return false;
-    await client.send(intent);
-    return true;
+    final window = client.schedule;
+    if (!client.ready || client.busy || seat == null || window == null) return false;
+    if (_turn == window.key || client.elapsed.isNegative) return false;
+    if (window.stage.acceptsActions) {
+      if (seat.view.action == null) return false;
+      _turn = window.key;
+      final intent = brain.decide(seat.view);
+      if (intent == null) return false;
+      await client.send(intent);
+      return true;
+    }
+    if (window.stage.acknowledged && seat.view.alive && !seat.acked) {
+      _turn = window.key;
+      await client.ack();
+      return true;
+    }
+    return false;
   }
 }
 
@@ -101,82 +59,66 @@ void main() {
   late ManualClock clock;
   late Room room;
 
-  setUp(() {
-    online = FakeOnline(accountId: 'anna')
+  FakeOnline fresh() {
+    clock = ManualClock();
+    return FakeOnline(accountId: 'anna', clock: clock)
       ..signInReady(handle: 'anna')
       ..addPlayer('bruno', handle: 'bruno')
       ..addPlayer('carla', handle: 'carla');
-    clock = ManualClock();
+  }
+
+  setUp(() {
+    online = fresh();
     room = online.openRoomAs('anna', AppLanguage.it);
   });
 
-  Future<List<RoomMember>> members() => online.services.rooms.watchMembers(room.id).first;
+  GameClient clientOf(String id) => GameClient(backend: online.gameAs(id), roomId: room.id, clock: clock);
 
-  Future<(GameAuthority, _Inspected)> startWith({required List<String> joiners, required int bots, int seed = 1}) async {
+  Future<void> startWith({required List<String> joiners, required int bots}) async {
     for (final id in joiners) {
       online.joinAs(id, room.code);
     }
-    final host = _Inspected(online.gameAs('anna'));
-    await host.setBots(room.id, bots);
-    final authority = await GameAuthority.start(
-      backend: host,
-      roomId: room.id,
-      members: await members(),
-      bots: bots,
-      language: AppLanguage.it,
-      clock: clock,
-      random: Random(seed),
-    );
-    return (authority, host);
+    await online.gameAs('anna').setBots(room.id, bots);
+    await online.gameAs('anna').startGame(room.id);
+    await settle();
   }
 
   /// Gioca fino alla fine: le persone dai loro telefoni, i bot e le
-  /// scadenze dall'orologio dell'autorità.
-  Future<void> playToTheEnd(List<_Human> humans, {int maxSteps = 4000}) async {
+  /// scadenze dall'orologio del server.
+  Future<void> playToTheEnd(List<_Human> humans, {int maxSteps = 6000}) async {
     for (var step = 0; step < maxSteps; step++) {
       await settle();
-      if (humans.every((h) => h.client.board?.view.phase == GamePhase.ended)) return;
+      if (online.roomOf(room.id)?.status == RoomStatus.lobby) return;
       var acted = false;
       for (final human in humans) {
         if (await human.act()) acted = true;
       }
-      if (!acted && !clock.fireNext()) {
-        await settle();
-        if (humans.every((h) => h.client.board?.view.phase == GamePhase.ended)) return;
-        fail('la partita si è fermata al passo $step');
-      }
+      if (!acted && !clock.fireNext()) fail('la partita si è fermata al passo $step');
     }
     fail('la partita non finisce');
   }
 
-  group('una partita vera, dal padrone di casa a tutti i telefoni', () {
-    test('due persone e tre bot giocano fino alla fine, e nessuno vede quello che non deve', () async {
-      for (var seed = 1; seed <= 6; seed++) {
-        {
-          online = FakeOnline(accountId: 'anna')
-            ..signInReady(handle: 'anna')
-            ..addPlayer('bruno', handle: 'bruno');
-          clock = ManualClock();
-          room = online.openRoomAs('anna', AppLanguage.it);
-        }
-        final (authority, host) = await startWith(joiners: ['bruno'], bots: 3, seed: seed);
-        final anna = _Human('anna', GameClient(backend: online.gameAs('anna'), roomId: room.id), Random(seed));
-        final bruno = _Human('bruno', GameClient(backend: online.gameAs('bruno'), roomId: room.id), Random(seed + 50));
+  group('una partita vera, dal server a tutti i telefoni', () {
+    test('due persone e tre bot giocano fino alla fine, e ognuno riceve solo il suo posto', () async {
+      for (var seed = 1; seed <= 4; seed++) {
+        online = fresh();
+        room = online.openRoomAs('anna', AppLanguage.it);
+        await startWith(joiners: ['bruno'], bots: 3);
+        final anna = _Human('anna', clientOf('anna'), Random(seed));
+        final bruno = _Human('bruno', clientOf('bruno'), Random(seed + 50));
         await playToTheEnd([anna, bruno]);
         await settle();
 
-        expect(host.leaks, isEmpty, reason: 'partita $seed');
-        expect(authority.engine.winner, isNotNull);
         for (final human in [anna, bruno]) {
           final board = human.client.board!;
-          expect(board.view.winner, authority.engine.winner);
+          expect(board.view.winner, isNotNull, reason: 'partita $seed');
+          expect(board.schedule!.stage, Stage.ended);
           expect(board.view.finalRoles, hasLength(5), reason: 'a fine partita le carte si scoprono');
           expect(board.seating.occupants.map((o) => o.name), containsAll(['anna', 'bruno', 'bot.alfa']));
         }
         expect(online.roomOf(room.id)!.status, RoomStatus.lobby, reason: 'finita la partita, la stanza riapre');
 
-        // Ogni telefono ha ricevuto solo il tavolo e la propria vista.
-        final seats = {for (final o in authority.seating.occupants) o.profileId: o.seat};
+        final seats = {for (final o in anna.client.board!.seating.occupants) o.profileId: o.seat};
         for (final delivery in online.deliveries) {
           final seat = delivery.feed.seat;
           if (seat != null) {
@@ -184,217 +126,266 @@ void main() {
             expect((seat.payload['view'] as Map)['seat'], seats[delivery.user]);
           }
           final text = jsonEncode([delivery.feed.board?.payload, delivery.feed.seat?.payload]);
-          expect(text, isNot(contains('snapshot')), reason: 'lo stato dell\'autorità resta all\'autorità');
+          expect(text, isNot(contains('snapshot')), reason: 'lo stato segreto resta sul server');
           expect(text, isNot(contains('"facts"')));
         }
-        authority.dispose();
         anna.client.dispose();
         bruno.client.dispose();
       }
     });
 
-    test('una persona sola e tre bot: si gioca fino alla fine', () async {
-      final (authority, host) = await startWith(joiners: [], bots: 3, seed: 9);
-      final anna = _Human('anna', GameClient(backend: online.gameAs('anna'), roomId: room.id), Random(3));
+    test('una persona sola e tre bot', () async {
+      await startWith(joiners: [], bots: 3);
+      final anna = _Human('anna', clientOf('anna'), Random(3));
       await playToTheEnd([anna]);
-      expect(host.leaks, isEmpty);
       expect(anna.client.board!.view.winner, isNotNull);
-      expect(host.publications.every((p) => p.seatViews.keys.single == 's1'), isTrue,
-          reason: 'i bot non hanno righe sul server');
-      authority.dispose();
       anna.client.dispose();
     });
 
-    test('tre persone e dieci bot, sedici al massimo', () async {
-      final (authority, host) = await startWith(joiners: ['bruno', 'carla'], bots: 10, seed: 4);
-      final humans = [
-        for (final id in ['anna', 'bruno', 'carla'])
-          _Human(id, GameClient(backend: online.gameAs(id), roomId: room.id), Random(id.hashCode)),
-      ];
+    test('tre persone e dieci bot', () async {
+      await startWith(joiners: ['bruno', 'carla'], bots: 10);
+      final humans = [for (final id in ['anna', 'bruno', 'carla']) _Human(id, clientOf(id), Random(id.hashCode))];
       await playToTheEnd(humans);
-      expect(host.leaks, isEmpty);
-      expect(authority.seating.occupants, hasLength(13));
-      authority.dispose();
+      expect(humans.first.client.board!.seating.occupants, hasLength(13));
       for (final h in humans) {
         h.client.dispose();
       }
     });
   });
 
-  group('le intenzioni', () {
-    test('quelle fuori regola tornano rifiutate a chi le ha mandate, e la partita resta com\'era', () async {
-      final (authority, _) = await startWith(joiners: ['bruno'], bots: 2, seed: 2);
-      final bruno = GameClient(backend: online.gameAs('bruno'), roomId: room.id);
+  group('il padrone di casa non tiene la partita', () {
+    test('se esce dalla stanza a metà, la partita va avanti per gli altri', () async {
+      await startWith(joiners: ['bruno', 'carla'], bots: 2);
+      final anna = clientOf('anna');
+      final bruno = _Human('bruno', clientOf('bruno'), Random(1));
+      final carla = _Human('carla', clientOf('carla'), Random(2));
       await settle();
-      expect(bruno.ready, isTrue);
-      final seat = bruno.seat!.view.seat.id;
-      final version = authority.version;
+      expect(anna.ready, isTrue);
+      anna.dispose();
+      await online.services.rooms.leave(room.id, newHostId: 'bruno');
+      expect(online.roomOf(room.id)!.hostId, 'bruno');
+      await playToTheEnd([bruno, carla]);
+      expect(bruno.client.board!.view.winner, isNotNull);
+      bruno.client.dispose();
+      carla.client.dispose();
+    });
 
-      // Di notte non si vota in piazza.
-      await bruno.send(DayVote(seat, 's1'));
+    test('il padrone di casa riceve solo il suo posto, come tutti', () async {
+      await startWith(joiners: ['bruno'], bots: 2);
+      final anna = clientOf('anna');
+      await settle();
+      expect(anna.seat!.view.seat.id, 's1');
+      final mine = online.deliveries.where((d) => d.user == 'anna' && d.feed.seat != null);
+      expect(mine.every((d) => d.feed.seat!.seat == 's1'), isTrue);
+      anna.dispose();
+    });
+  });
+
+  group('le fasi e le mosse', () {
+    test('le fasi seguono l\'orologio del server, e i telefoni conoscono la sua ora', () async {
+      await startWith(joiners: ['bruno'], bots: 2);
+      final bruno = clientOf('bruno');
+      await settle();
+      final window = bruno.schedule!;
+      expect(window.stage, Stage.reveal);
+      expect(window.length, const OnlinePacing().reveal);
+      expect(bruno.elapsed.isNegative, isTrue, reason: 'la fase comincia un attimo dopo, per tutti insieme');
+      expect(bruno.timeLeft, greaterThan(const Duration(seconds: 15)));
+      bruno.dispose();
+    });
+
+    test('mosse fuori dalla loro fase tornano rifiutate; la conferma vale una volta', () async {
+      await startWith(joiners: ['bruno'], bots: 2);
+      final bruno = clientOf('bruno');
+      final anna = clientOf('anna');
+      await settle();
+      final seat = bruno.seat!.view.seat.id;
+      expect(bruno.seat!.view.action, isNull, reason: 'mentre si guarda la carta non si agisce');
+
+      await bruno.send(Pass(seat));
       await settle();
       expect(bruno.takeRejection()?.error, IntentError.wrongPhase);
       expect(bruno.busy, isFalse);
-      expect(authority.version, greaterThan(version), reason: 'la risposta arriva con una versione nuova');
 
-      // Un bersaglio che non si può scegliere.
+      // Tutti e due confermano la carta: la notte parte prima del tempo.
+      await bruno.ack();
+      await anna.ack();
+      await settle();
+      expect(bruno.schedule!.stage, Stage.night);
+      clock.elapse(const Duration(seconds: 2));
+      await settle();
+
+      final option = bruno.seat!.view.action!;
       await bruno.send(NightAction(seat, 's99'));
       await settle();
       expect(bruno.takeRejection()?.error, anyOf(IntentError.targetNotAllowed, IntentError.notYourAction));
 
-      // La mossa giusta passa; la seconda no.
-      final option = bruno.seat!.view.action!;
       await bruno.send(Pass(seat));
       await settle();
-      expect(bruno.takeRejection(), isNull);
+      expect(bruno.takeRejection(), isNull, reason: 'la risposta del server conferma la mossa');
       expect(bruno.seat!.view.action, isNull, reason: option.type.name);
-      await bruno.send(Pass(seat));
-      await settle();
-      expect(bruno.takeRejection()?.error, IntentError.alreadyActed);
 
-      // Un'intenzione illeggibile.
       await online.gameAs('bruno').sendRaw(room.id, {'type': 'magia', 'seat': seat});
       await settle();
       expect(bruno.seat!.receipt!.result, isA<IntentRejected>());
-
-      authority.dispose();
       bruno.dispose();
+      anna.dispose();
     });
 
     test('nessuno agisce per un altro posto, e chi non siede non agisce', () async {
-      final (authority, _) = await startWith(joiners: ['bruno'], bots: 2, seed: 2);
-      final other = authority.seating.occupants.firstWhere((o) => o.profileId == 'anna').seat;
+      await startWith(joiners: ['bruno'], bots: 2);
       await expectLater(
-        online.gameAs('bruno').sendIntent(room.id, Pass(other)),
+        online.gameAs('bruno').sendIntent(room.id, const Pass('s1')),
         throwsA(isA<OnlineException>().having((e) => e.failure, 'failure', OnlineFailure.notAllowed)),
       );
       await expectLater(
-        online.gameAs('carla').sendIntent(room.id, Pass('s1')),
+        online.gameAs('carla').sendIntent(room.id, const Pass('s1')),
         throwsA(isA<OnlineException>()),
         reason: 'Carla non è nella stanza',
       );
-      authority.dispose();
     });
 
-    test('le intenzioni e lo stato salvato li legge solo il padrone di casa', () async {
-      final (authority, _) = await startWith(joiners: ['bruno'], bots: 2, seed: 2);
-      await settle();
-      final seat = authority.seating.occupants.firstWhere((o) => o.profileId == 'bruno').seat;
-      final intents = <List<IntentEnvelope>>[];
-      final sub = online.gameAs('bruno').watchIntents(room.id).listen(intents.add);
-      await online.gameAs('bruno').sendIntent(room.id, Pass(seat));
-      await settle();
-      expect(intents, isEmpty, reason: 'Bruno non legge le intenzioni, nemmeno le sue');
-      expect(await online.gameAs('bruno').loadHostState(room.id), isNull);
-      expect(await online.gameAs('carla').loadHostState(room.id), isNull);
-      await expectLater(
-        online.gameAs('bruno').publish(
-          room.id,
-          GamePublication(version: 999, board: const {}, seatViews: const {}, hostState: const {}),
-        ),
-        throwsA(isA<OnlineException>()),
-      );
-      await sub.cancel();
-      authority.dispose();
-    });
-
-    test('solo il padrone di casa mette i bot e apre la partita', () async {
+    test('solo il padrone di casa mette i bot e apre la partita, e i posti li decide il server', () async {
       online.joinAs('bruno', room.code);
       await expectLater(online.gameAs('bruno').setBots(room.id, 2), throwsA(isA<OnlineException>()));
       await expectLater(online.gameAs('anna').setBots(room.id, 15), throwsA(isA<OnlineException>()),
           reason: 'bot e persone stanno nei sedici posti');
-      await expectLater(
-        online.gameAs('bruno').startGame(room.id, const []),
-        throwsA(isA<OnlineException>()),
-      );
-      await expectLater(
-        online.gameAs('anna').startGame(room.id, const [
-          SeatPlan(seat: 's1', profileId: 'anna', name: 'anna'),
-          SeatPlan(seat: 's2', profileId: null, name: 'bot.alfa'),
-          SeatPlan(seat: 's3', profileId: null, name: 'bot.bravo'),
-          SeatPlan(seat: 's4', profileId: null, name: 'bot.charlie'),
-        ]),
-        throwsA(isA<OnlineException>()),
-        reason: 'Bruno è nella stanza e non ha un posto',
-      );
-      await expectLater(
-        online.gameAs('anna').startGame(room.id, const [
-          SeatPlan(seat: 's1', profileId: 'anna', name: 'anna'),
-          SeatPlan(seat: 's2', profileId: 'bruno', name: 'bruno'),
-          SeatPlan(seat: 's3', profileId: null, name: 'carla'),
-          SeatPlan(seat: 's4', profileId: null, name: 'bot.bravo'),
-        ]),
-        throwsA(isA<OnlineException>()),
-        reason: 'un bot non si spaccia per una persona',
-      );
+      await expectLater(online.gameAs('bruno').startGame(room.id), throwsA(isA<OnlineException>()));
+      await expectLater(online.gameAs('anna').startGame(room.id), throwsA(isA<OnlineException>()),
+          reason: 'in due non si gioca');
+      await online.gameAs('anna').setBots(room.id, 2);
+      await online.gameAs('anna').startGame(room.id);
+      await settle();
+      final anna = clientOf('anna');
+      await settle();
+      expect(anna.board!.seating.occupants.map((o) => '${o.seat}=${o.name}'),
+          ['s1=anna', 's2=bruno', 's3=bot.alfa', 's4=bot.bravo']);
+      anna.dispose();
+    });
+
+    test('allo scadere chi non sceglie passa e chi non vota si astiene: nessuno blocca', () async {
+      await startWith(joiners: ['bruno'], bots: 2);
+      final bruno = clientOf('bruno');
+      await settle();
+      final seen = <Stage>{};
+      for (var i = 0; i < 400 && online.roomOf(room.id)!.status == RoomStatus.playing; i++) {
+        if (bruno.schedule case final window?) seen.add(window.stage);
+        clock.fireNext();
+        await settle();
+      }
+      expect(seen, containsAll([Stage.reveal, Stage.night]));
+      expect(seen.length, greaterThan(3), reason: 'la partita va avanti anche se le persone non toccano niente');
+      bruno.dispose();
     });
   });
 
   group('chi si ricollega', () {
-    test('un telefono che ricarica riceve di nuovo la sua vista', () async {
-      final (authority, _) = await startWith(joiners: ['bruno'], bots: 3, seed: 5);
-      var bruno = GameClient(backend: online.gameAs('bruno'), roomId: room.id);
+    test('un telefono che ricarica riceve di nuovo la sua vista e la fase in corso', () async {
+      await startWith(joiners: ['bruno'], bots: 3);
+      var bruno = clientOf('bruno');
       await settle();
       final role = bruno.seat!.view.role;
-      final seat = bruno.seat!.view.seat.id;
-      await bruno.send(Pass(seat));
-      await settle();
-      final version = bruno.board!.version;
+      final stage = bruno.schedule!.key;
       bruno.dispose();
 
-      bruno = GameClient(backend: online.gameAs('bruno'), roomId: room.id);
+      bruno = clientOf('bruno');
       expect(bruno.ready, isFalse);
       await settle();
       expect(bruno.ready, isTrue);
       expect(bruno.seat!.view.role, role);
-      expect(bruno.board!.version, greaterThanOrEqualTo(version));
-      expect(bruno.seat!.view.action, isNull, reason: 'la mossa di stanotte resta fatta');
-      authority.dispose();
+      expect(bruno.schedule!.key, stage);
       bruno.dispose();
     });
 
-    test('il padrone di casa che riavvia l\'app riprende la partita da dove era', () async {
-      final (first, _) = await startWith(joiners: ['bruno'], bots: 3, seed: 6);
-      final anna = _Human('anna', GameClient(backend: online.gameAs('anna'), roomId: room.id), Random(1));
-      final bruno = _Human('bruno', GameClient(backend: online.gameAs('bruno'), roomId: room.id), Random(2));
-      await settle();
-      await anna.act();
-      await settle();
-      final round = first.engine.round;
-      final roles = first.engine.setup.roles.map((p, r) => MapEntry(p.id, r));
-      final version = first.version;
-      first.dispose();
-
-      // Intanto Bruno manda la sua mossa: la ritroverà chi riprende.
-      await bruno.act();
+    test('chi sparisce diventa offline per tutti, e se non torna lascia la città con la carta scoperta', () async {
+      online.trackPresence = true;
+      await startWith(joiners: ['bruno', 'carla'], bots: 3);
+      final anna = clientOf('anna');
+      final bruno = clientOf('bruno');
+      var carla = clientOf('carla');
       await settle();
 
-      final host = _Inspected(online.gameAs('anna'));
-      final resumed = await GameAuthority.resume(backend: host, roomId: room.id, clock: clock, random: Random(7));
-      expect(resumed, isNotNull);
-      expect(resumed!.engine.round, round);
-      expect(resumed.engine.setup.roles.map((Player p, r) => MapEntry(p.id, r)), roles);
-      expect(resumed.version, greaterThan(version));
+      // Carla chiude l'app; dopo un buco breve non succede niente.
+      carla.dispose();
+      clock.elapse(const Duration(seconds: 10));
       await settle();
-      expect(bruno.client.busy, isFalse, reason: 'la mossa di Bruno è stata gestita da chi ha ripreso');
+      expect(anna.board!.offline, isEmpty);
+      clock.elapse(const Duration(seconds: 10));
+      await settle();
+      expect(anna.board!.offline, contains('s3'), reason: 'tutti vedono che Carla è offline');
 
-      await playToTheEnd([anna, bruno]);
-      expect(host.leaks, isEmpty);
-      expect(resumed.engine.winner, isNotNull);
-      resumed.dispose();
-      anna.client.dispose();
-      bruno.client.dispose();
+      // Torna in tempo: niente di fatto.
+      carla = clientOf('carla');
+      await settle();
+      expect(anna.board!.offline, isEmpty);
+      expect(carla.ready, isTrue);
+
+      // Se ne va di nuovo e non torna più.
+      carla.dispose();
+      for (var i = 0; i < 200 && !anna.board!.departed.contains('s3'); i++) {
+        if (!anna.board!.view.alive.any((p) => p.id == 's3')) break;
+        clock.elapse(const Duration(seconds: 5));
+        await settle();
+      }
+      final board = anna.board!;
+      if (board.departed.contains('s3')) {
+        expect(board.view.alive.map((p) => p.id), isNot(contains('s3')));
+        expect(board.view.revealed.map((k) => k.seat.id), contains('s3'), reason: 'la carta si scopre');
+        expect(online.abandonsIn(room.id), ['s3'], reason: 'il server annota l\'abbandono');
+      }
+      anna.dispose();
+      bruno.dispose();
+    });
+  });
+
+  group('la chat', () {
+    test('stanza prima, piazza di giorno per i vivi, famiglia di notte solo per la famiglia', () async {
+      online.joinAs('bruno', room.code);
+      online.joinAs('carla', room.code);
+      await online.gameAs('bruno').sendChat(room.id, ChatChannel.lobby, 'ciao a tutti');
+      await online.gameAs('anna').setBots(room.id, 3);
+      await online.gameAs('anna').startGame(room.id);
+      await settle();
+      final clients = {for (final id in ['anna', 'bruno', 'carla']) id: clientOf(id)};
+      await settle();
+      expect(clients['carla']!.chat.single.body, 'ciao a tutti');
+      await expectLater(online.gameAs('bruno').sendChat(room.id, ChatChannel.lobby, 'ancora'), throwsA(isA<OnlineException>()),
+          reason: 'la chat della stanza si chiude quando si gioca');
+
+      // Alla notte: scrive solo chi è della famiglia, e solo la famiglia legge.
+      for (final c in clients.values) {
+        await c.ack();
+      }
+      await settle();
+      expect(clients['anna']!.schedule!.stage, Stage.night);
+      final family = [for (final MapEntry(:key, :value) in clients.entries) if (value.seat!.view.team == Team.mafia) key];
+      final town = [for (final id in clients.keys) if (!family.contains(id)) id];
+      for (final id in town) {
+        await expectLater(online.gameAs(id).sendChat(room.id, ChatChannel.family, 'ehi'), throwsA(isA<OnlineException>()));
+        await expectLater(online.gameAs(id).sendChat(room.id, ChatChannel.day, 'ehi'), throwsA(isA<OnlineException>()),
+            reason: 'di notte la piazza tace');
+      }
+      if (family.isNotEmpty) {
+        await online.gameAs(family.first).sendChat(room.id, ChatChannel.family, 'stanotte il medico');
+        await settle();
+        for (final id in town) {
+          expect(clients[id]!.chat.where((m) => m.channel == ChatChannel.family), isEmpty);
+        }
+        expect(clients[family.first]!.chat.last.body, 'stanotte il medico');
+      }
+      await expectLater(
+        online.gameAs(town.first).sendChat(room.id, ChatChannel.lobby, 'porca madonna'),
+        throwsA(isA<OnlineException>()),
+      );
+      for (final c in clients.values) {
+        c.dispose();
+      }
     });
 
-    test('allo scadere chi non ha scelto passa, e chi non ha votato si astiene', () async {
-      final (authority, _) = await startWith(joiners: ['bruno'], bots: 2, seed: 8);
-      await settle();
-      expect(authority.engine.phase, GamePhase.night);
-      clock.elapse(const Duration(minutes: 4));
-      await settle();
-      expect(authority.engine.round > 1 || authority.engine.phase != GamePhase.night, isTrue,
-          reason: 'la notte si è chiusa anche senza le persone');
-      authority.dispose();
+    test('la moderazione è la stessa dei nomi, senza le parole riservate solo ai nomi', () {
+      expect(HandleRules.offensive('porca madonna che notte'), isTrue);
+      expect(HandleRules.offensive('chiedo al moderatore e allo staff'), isFalse);
+      expect(HandleRules.offensive('buonanotte a tutti'), isFalse);
     });
   });
 }

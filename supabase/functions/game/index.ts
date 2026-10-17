@@ -1,0 +1,43 @@
+// The Edge Function that runs online games. It holds no state: every call
+// steps the games that have something due, straight in the database (see
+// runner.ts), with the Dart engine compiled to JavaScript (engine.ts).
+//
+// Only the database calls it, through pg_net (supabase/migrations/
+// 20261017180000_server_authority.sql): when a game starts, when a player
+// sends a move, and every 2 seconds from pg_cron when a game has something
+// due. The call carries a secret the function reads back from
+// internal.config, so nobody else can make it run. It connects with the
+// built-in SUPABASE_DB_URL; no key lives in the app or the repo.
+import postgres from 'npm:postgres@3.4.5';
+import { step } from './engine.ts';
+import { type Db, runDue } from './runner.ts';
+
+const sql = postgres(Deno.env.get('SUPABASE_DB_URL')!, { prepare: false, max: 3, idle_timeout: 20 });
+
+// deno-lint-ignore no-explicit-any
+type Sql = any;
+
+function wrap(s: Sql): Db {
+  return {
+    query: (text, params = []) => s.unsafe(text, params as never[]),
+    transaction: (work) => sql.begin((tx: Sql) => work(wrap(tx))) as never,
+  };
+}
+
+const db = wrap(sql);
+let secret: string | null = null;
+
+Deno.serve(async (req) => {
+  if (req.method !== 'POST') return new Response('method not allowed', { status: 405 });
+  if (secret === null) {
+    const [row] = await sql`select value from internal.config where key = 'wake_secret'`;
+    secret = row?.value ?? null;
+  }
+  if (secret === null || req.headers.get('x-oberta-wake') !== secret) {
+    return new Response('forbidden', { status: 403 });
+  }
+  const body = await req.json().catch(() => ({}));
+  const room = typeof body?.room === 'string' ? body.room : null;
+  const stepped = await runDue(db, step, { room });
+  return Response.json({ stepped });
+});
