@@ -46,6 +46,18 @@ parte da `test/support/random_game.dart`, che già sceglie le mosse dalla vista
 del posto). Prima scelte a caso tra le mosse permesse, poi qualche regola
 furba; votano anche di giorno.
 
+## Disconnessioni e penalità (17 ottobre 2026)
+
+- Chi si scollega: icona "offline" per tutti, 60 secondi per rientrare (ritrova
+  la partita dov'era). Mentre è offline non blocca niente (timer: si astiene,
+  passa) e resta al tavolo: può essere ucciso e votato, scollegarsi non protegge.
+- Oltre i 60 secondi il personaggio "lascia la città": esce come un morto, ruolo
+  rivelato, controllo di vittoria immediato. Ogni abbandono è registrato dal server.
+- Penalità solo in classificata: prime 2 volte avviso, alla 3ª 5 minuti senza
+  giocare, poi 15, 30, 60; ogni partita finita senza abbandoni toglie un
+  abbandono, 24 ore pulite azzerano. Tra amici nessuna penalità a tempo, solo il
+  conteggio nel profilo.
+
 ## Economia e cosmetici (17 ottobre 2026)
 
 - **Cosa si compra:** solo estetica, mai vantaggi di gioco. Facce, capelli,
