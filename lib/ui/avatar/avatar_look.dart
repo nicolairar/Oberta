@@ -113,7 +113,16 @@ class AvatarLook {
       AvatarHead.slicked => HairStyle.slicked,
       AvatarHead.bob => HairStyle.bob,
       AvatarHead.bun => HairStyle.bun,
-      _ when dame => one(const [HairStyle.bob, HairStyle.bun, HairStyle.long, HairStyle.wavy, HairStyle.curly]),
+      _ when dame => one(const [
+          HairStyle.bob,
+          HairStyle.bun,
+          HairStyle.long,
+          HairStyle.fingerWaves,
+          HairStyle.victoryRolls,
+          HairStyle.pinCurls,
+          HairStyle.pageboy,
+          HairStyle.updo,
+        ]),
       _ => one(const [
           HairStyle.slicked,
           HairStyle.sidePart,
@@ -123,6 +132,10 @@ class AvatarLook {
           HairStyle.sidePart,
           HairStyle.afro,
           HairStyle.bald,
+          HairStyle.pompadour,
+          HairStyle.quiff,
+          HairStyle.receding,
+          HairStyle.middlePart,
         ]),
     };
     final hairColor = age == FaceAge.deep && take(2) == 0
@@ -136,7 +149,7 @@ class AvatarLook {
       eyeColor: light ? one(EyeColor.values) : one(const [EyeColor.dark, EyeColor.brown, EyeColor.brown, EyeColor.hazel]),
       brows: dame ? one(const [BrowShape.arched, BrowShape.thin, BrowShape.straight]) : one(BrowShape.values),
       nose: one(NoseShape.values),
-      mouth: one(MouthShape.values),
+      mouth: one([for (final m in MouthShape.values) if (dame || !m.painted) m]),
       hair: hair,
       hairColor: hairColor,
       detail: one(const [FaceDetail.none, FaceDetail.none, FaceDetail.none, FaceDetail.freckles, FaceDetail.beautyMark, FaceDetail.none]),
@@ -221,9 +234,7 @@ class AvatarLook {
       hat == AvatarHead.bun ||
       hat == AvatarHead.wideBrim ||
       hat == AvatarHead.cloche ||
-      features.hair == HairStyle.bob ||
-      features.hair == HairStyle.bun ||
-      features.hair == HairStyle.long;
+      features.hair.dame;
 
   /// Senza cappello: si vede la pettinatura scelta nello specchio.
   /// (`slicked`, `bob` e `bun` sono le teste nude del catalogo.)

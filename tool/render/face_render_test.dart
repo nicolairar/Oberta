@@ -31,7 +31,7 @@ Future<void> capture(WidgetTester tester, GlobalKey key, String name) async {
 
 void main() {
   testWidgets('facce', (tester) async {
-    tester.view.physicalSize = const Size(900, 760) * 2;
+    tester.view.physicalSize = const Size(900, 1080) * 2;
     tester.view.devicePixelRatio = 2;
     addTearDown(tester.view.reset);
     final key = GlobalKey();
@@ -53,6 +53,12 @@ void main() {
                 Wrap(spacing: 6, children: [for (final l in presets) PlayerAvatar(seed: 'x', look: l, size: 40)]),
                 const SizedBox(height: 8),
                 Wrap(spacing: 6, runSpacing: 6, children: [for (final n in _names) PlayerAvatar(seed: n, size: 64)]),
+                const SizedBox(height: 8),
+                Wrap(spacing: 4, runSpacing: 4, children: [
+                  for (final h in HairStyle.values)
+                    PlayerAvatar(seed: h.name, look: presets[h.index % presets.length].copyWith(
+                      features: presets[h.index % presets.length].features.copyWith(hair: h)), size: 70),
+                ]),
               ],
             ),
           ),

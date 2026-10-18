@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -40,14 +41,58 @@ void main() {
       expect(AvatarLook.fromJson({...ada.toJson(), 'hair': 'mohawk', 'eyes': 3}, fallback: ada), ada);
     });
 
-    test('dodici facce pronte, tutte diverse', () {
-      expect(FacePreset.all, hasLength(12));
-      expect({for (final p in FacePreset.all) p.id}, hasLength(12));
-      expect({for (final p in FacePreset.all) (p.tone, p.features)}, hasLength(12));
+    test('venti facce pronte, tutte diverse', () {
+      expect(FacePreset.all, hasLength(20));
+      expect({for (final p in FacePreset.all) p.id}, hasLength(20));
+      expect({for (final p in FacePreset.all) (p.tone, p.features)}, hasLength(20));
+    });
+
+    test('le scelte: quante ne promette lo specchio', () {
+      expect(FaceFeatures.options.map((k, v) => MapEntry(k, v.length)), {
+        'shape': 8, 'eyes': 12, 'eyeColor': 8, 'brows': 10, 'nose': 10, 'mouth': 12, //
+        'hair': 24, 'hairColor': 12, 'detail': 8, 'age': 3, 'lips': 7, 'shadow': 7,
+      });
+      expect(FaceFeatures.keys, FaceFeatures.options.keys.toList());
+    });
+
+    test('gli id della prima versione si leggono ancora, e i nomi di comodo pure', () {
+      const old = {
+        'shape': ['oval', 'round', 'square', 'long', 'heart'],
+        'eyes': ['almond', 'round', 'hooded', 'narrow', 'upturned', 'downturned'],
+        'eyeColor': ['dark', 'brown', 'hazel', 'green', 'blue', 'grey'],
+        'brows': ['straight', 'arched', 'thick', 'thin', 'angled'],
+        'nose': ['straight', 'button', 'roman', 'broad', 'pointed'],
+        'mouth': ['neutral', 'smile', 'smirk', 'full', 'thin', 'stern'],
+        'hair': ['bald', 'slicked', 'sidePart', 'crewCut', 'curly', 'wavy', 'afro', 'bun', 'bob', 'long'],
+        'hairColor': ['black', 'darkBrown', 'brown', 'blonde', 'red', 'auburn', 'grey', 'white'],
+        'detail': ['none', 'freckles', 'beautyMark', 'scar'],
+        'age': ['none', 'lines', 'deep'],
+      };
+      for (final MapEntry(:key, :value) in old.entries) {
+        for (final id in value) {
+          expect(FaceFeatures.standard.withId(key, id)?.toJson()[key], id, reason: '$key.$id');
+        }
+      }
+      final saved = FaceFeatures.fromJson(const {'hair': 'rockabilly', 'hairColor': 'gray'}, fallback: FaceFeatures.standard);
+      expect(saved.hair, HairStyle.quiff);
+      expect(saved.hairColor, HairColor.grey);
+      // Chi ha salvato prima del trucco resta senza.
+      expect(FaceFeatures.fromJson(const {'hair': 'bob'}, fallback: FaceFeatures.standard).lips, LipColor.none);
+    });
+
+    test('a caso: sempre facce valide, signori e signore', () {
+      final random = Random(7);
+      final looks = [for (var i = 0; i < 200; i++) FacePreset.randomize(AvatarLook.fallback('Ada'), random)];
+      for (final look in looks) {
+        final f = look.features;
+        if (f.mouth.painted) expect(f.lips, isNot(LipColor.none));
+        if (f.shadow != EyeShadow.none) expect(f.lips, isNot(LipColor.none));
+      }
+      expect({for (final l in looks) l.features.hair}.length, greaterThan(18));
     });
 
     test('gli id sono gli stessi della migrazione', () {
-      final sql = File('supabase/migrations/20261019090000_save_face.sql').readAsStringSync();
+      final sql = File('supabase/migrations/20261019120000_face_options.sql').readAsStringSync();
       for (final MapEntry(:key, :value) in FaceFeatures.options.entries) {
         expect(sql, contains("'$key', jsonb_build_array(${value.map((v) => "'$v'").join(', ')})"), reason: key);
       }

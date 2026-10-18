@@ -44,10 +44,16 @@ class _Tab {
   final AvatarLook Function(AvatarLook look, Object option) apply;
 
   /// Il colore del campione, per pelle, occhi e capelli; null per le miniature.
-  final Color Function(Object option)? swatch;
+  final Color? Function(Object option)? swatch;
 
-  const _Tab(this.it, this.en, this.options, this.current, this.apply, {this.swatch});
+  /// Dove guarda la miniatura: il punto del viso ingrandito, o null per il busto.
+  final Alignment? focus;
+
+  const _Tab(this.it, this.en, this.options, this.current, this.apply, {this.swatch, this.focus});
 }
+
+/// `victoryRolls` → `victory rolls`: il nome dell'id, da leggere.
+String _caption(String id) => id.replaceAllMapped(RegExp('[A-Z]'), (m) => ' ${m[0]!.toLowerCase()}');
 
 AvatarLook _f(AvatarLook look, FaceFeatures Function(FaceFeatures f) change) =>
     look.copyWith(features: change(look.features));
@@ -61,15 +67,25 @@ final _tabs = <_Tab>[
   _Tab('Colore', 'Colour', HairColor.values, (l) => l.features.hairColor,
       (l, o) => _f(l, (f) => f.copyWith(hairColor: o as HairColor)),
       swatch: (o) => (o as HairColor).color),
-  _Tab('Occhi', 'Eyes', EyeShape.values, (l) => l.features.eyes, (l, o) => _f(l, (f) => f.copyWith(eyes: o as EyeShape))),
+  _Tab('Occhi', 'Eyes', EyeShape.values, (l) => l.features.eyes, (l, o) => _f(l, (f) => f.copyWith(eyes: o as EyeShape)),
+      focus: const Alignment(0, -0.1)),
   _Tab('Iride', 'Iris', EyeColor.values, (l) => l.features.eyeColor,
       (l, o) => _f(l, (f) => f.copyWith(eyeColor: o as EyeColor)),
       swatch: (o) => (o as EyeColor).color),
-  _Tab('Sopracciglia', 'Brows', BrowShape.values, (l) => l.features.brows, (l, o) => _f(l, (f) => f.copyWith(brows: o as BrowShape))),
-  _Tab('Naso', 'Nose', NoseShape.values, (l) => l.features.nose, (l, o) => _f(l, (f) => f.copyWith(nose: o as NoseShape))),
-  _Tab('Bocca', 'Mouth', MouthShape.values, (l) => l.features.mouth, (l, o) => _f(l, (f) => f.copyWith(mouth: o as MouthShape))),
-  _Tab('Segni', 'Marks', FaceDetail.values, (l) => l.features.detail, (l, o) => _f(l, (f) => f.copyWith(detail: o as FaceDetail))),
-  _Tab('Età', 'Age', FaceAge.values, (l) => l.features.age, (l, o) => _f(l, (f) => f.copyWith(age: o as FaceAge))),
+  _Tab('Sopracciglia', 'Brows', BrowShape.values, (l) => l.features.brows, (l, o) => _f(l, (f) => f.copyWith(brows: o as BrowShape)),
+      focus: const Alignment(0, -0.14)),
+  _Tab('Naso', 'Nose', NoseShape.values, (l) => l.features.nose, (l, o) => _f(l, (f) => f.copyWith(nose: o as NoseShape)),
+      focus: const Alignment(0, 0.02)),
+  _Tab('Bocca', 'Mouth', MouthShape.values, (l) => l.features.mouth, (l, o) => _f(l, (f) => f.copyWith(mouth: o as MouthShape)),
+      focus: const Alignment(0, 0.13)),
+  _Tab('Rossetto', 'Lipstick', LipColor.values, (l) => l.features.lips, (l, o) => _f(l, (f) => f.copyWith(lips: o as LipColor)),
+      swatch: (o) => o == LipColor.none ? null : (o as LipColor).color),
+  _Tab('Trucco', 'Make-up', EyeShadow.values, (l) => l.features.shadow, (l, o) => _f(l, (f) => f.copyWith(shadow: o as EyeShadow)),
+      focus: const Alignment(0, -0.1)),
+  _Tab('Segni', 'Marks', FaceDetail.values, (l) => l.features.detail, (l, o) => _f(l, (f) => f.copyWith(detail: o as FaceDetail)),
+      focus: const Alignment(0, -0.02)),
+  _Tab('Età', 'Age', FaceAge.values, (l) => l.features.age, (l, o) => _f(l, (f) => f.copyWith(age: o as FaceAge)),
+      focus: const Alignment(0, -0.02)),
 ];
 
 class _BarberMirrorScreenState extends State<BarberMirrorScreen> {
@@ -137,7 +153,7 @@ class _BarberMirrorScreenState extends State<BarberMirrorScreen> {
               ),
               const SizedBox(height: 10),
               SizedBox(
-                height: 64,
+                height: 70,
                 child: ListView(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -182,10 +198,15 @@ class _BarberMirrorScreenState extends State<BarberMirrorScreen> {
                                   key: Key('mirror.${tab.en.toLowerCase()}.${(option as Enum).name}'),
                                   selected: tab.current(_look) == option,
                                   label: option.name,
+                                  caption: _caption(option.name),
                                   onTap: () => _set(tab.apply(_look, option)),
-                                  child: switch (tab.swatch) {
-                                    final swatch? => _Swatch(color: swatch(option)),
-                                    null => PlayerAvatar(seed: option.name, look: _shown(tab.apply(_look, option)), size: 72),
+                                  child: switch ((tab.swatch, tab.focus)) {
+                                    (final swatch?, _) => _Swatch(color: swatch(option)),
+                                    (null, final focus?) => _Zoom(
+                                        focus: focus,
+                                        child: PlayerAvatar(seed: option.name, look: _shown(tab.apply(_look, option)), size: 66),
+                                      ),
+                                    (null, null) => PlayerAvatar(seed: option.name, look: _shown(tab.apply(_look, option)), size: 66),
                                   },
                                 ),
                             ],
@@ -275,7 +296,10 @@ class _Pick extends StatelessWidget {
   final Widget child;
   final String? label;
 
-  const _Pick({super.key, required this.selected, required this.onTap, required this.child, this.label});
+  /// Il nome sotto la miniatura.
+  final String? caption;
+
+  const _Pick({super.key, required this.selected, required this.onTap, required this.child, this.label, this.caption});
 
   @override
   Widget build(BuildContext context) => Semantics(
@@ -284,26 +308,66 @@ class _Pick extends StatelessWidget {
         label: label,
         child: GestureDetector(
           onTap: onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 160),
-            padding: const EdgeInsets.all(3),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: selected ? AppColors.gold : Colors.transparent, width: 2.5),
-            ),
-            child: child,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: selected ? AppColors.gold : Colors.transparent, width: 2.5),
+                ),
+                child: child,
+              ),
+              if (caption case final caption?)
+                SizedBox(
+                  width: 76,
+                  child: Text(
+                    caption,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 11, color: selected ? AppColors.gold : AppColors.textSecondary),
+                  ),
+                ),
+            ],
           ),
         ),
       );
 }
 
+/// La miniatura ingrandita su un punto del viso, dentro un tondo.
+class _Zoom extends StatelessWidget {
+  final Alignment focus;
+  final Widget child;
+
+  const _Zoom({required this.focus, required this.child});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF221C18)),
+        child: ClipOval(child: Transform.scale(scale: 2.3, alignment: focus, child: child)),
+      );
+}
+
 class _Swatch extends StatelessWidget {
-  final Color color;
+  /// Null: niente, un tondo vuoto barrato.
+  final Color? color;
 
   const _Swatch({required this.color});
 
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) => color == null
+      ? Container(
+          width: 52,
+          height: 52,
+          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.textSecondary, width: 1.5)),
+          child: const Icon(Icons.block, color: AppColors.textSecondary),
+        )
+      : _filled(color!);
+
+  Widget _filled(Color color) => Container(
         width: 52,
         height: 52,
         decoration: BoxDecoration(
