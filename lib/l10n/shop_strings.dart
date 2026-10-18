@@ -32,6 +32,11 @@ abstract class ShopStrings {
   String get emptyWardrobe;
   String get unavailable;
 
+  /// La targhetta delle case di moda, accanto a quelle dei posti.
+  String get brands;
+  String get allBrands;
+  String brandTagline(ShopBrand brand);
+
   Map<String, String> get catalog => {
     'title': title,
     'subtitle': subtitle,
@@ -58,6 +63,9 @@ abstract class ShopStrings {
     'missing': missing(50),
     'emptyWardrobe': emptyWardrobe,
     'unavailable': unavailable,
+    'brands': brands,
+    'allBrands': allBrands,
+    for (final b in ShopBrand.values) 'brand.${b.name}': brandTagline(b),
   };
 }
 
@@ -126,6 +134,18 @@ class ItalianShopStrings extends ShopStrings {
   String get emptyWardrobe => 'Qui c\'è solo quello che hai già.';
   @override
   String get unavailable => 'La bottega è chiusa: entra con il tuo account.';
+  @override
+  String get brands => 'Firme';
+  @override
+  String get allBrands => 'Tutte';
+  @override
+  String brandTagline(ShopBrand brand) => switch (brand) {
+    ShopBrand.vanetti => 'Alta sartoria · Milano',
+    ShopBrand.moretti => 'Cappellai dal 1908',
+    ShopBrand.delacroix => 'Abiti da sera · Parigi',
+    ShopBrand.fulmine => 'Sport e ginnastica',
+    ShopBrand.ricci => 'Oro e orologi · Napoli',
+  };
 }
 
 class EnglishShopStrings extends ShopStrings {
@@ -193,4 +213,16 @@ class EnglishShopStrings extends ShopStrings {
   String get emptyWardrobe => 'Only what you already own hangs here.';
   @override
   String get unavailable => 'The shop is closed: sign in with your account.';
+  @override
+  String get brands => 'Labels';
+  @override
+  String get allBrands => 'All';
+  @override
+  String brandTagline(ShopBrand brand) => switch (brand) {
+    ShopBrand.vanetti => 'High tailoring · Milan',
+    ShopBrand.moretti => 'Hatters since 1908',
+    ShopBrand.delacroix => 'Evening wear · Paris',
+    ShopBrand.fulmine => 'Sport and gymnastics',
+    ShopBrand.ricci => 'Gold and watches · Naples',
+  };
 }

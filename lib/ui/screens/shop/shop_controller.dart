@@ -73,6 +73,17 @@ class ShopController extends ChangeNotifier {
       if (item.slot == slot && !item.free && drawable(item)) item,
   ];
 
+  /// Le firme: i pezzi delle case di moda, di [brand] o di tutte, in
+  /// vendita o (nel guardaroba) già posseduti, dai più cari.
+  List<ShopItem> branded(ShopBrand? brand, {required bool wardrobe}) => [
+    for (final item in catalog)
+      if (item.brand != null &&
+          (brand == null || item.brand == brand) &&
+          drawable(item) &&
+          (!wardrobe || owned.contains(item.id)))
+        item,
+  ]..sort((a, b) => b.price != a.price ? b.price.compareTo(a.price) : a.sort.compareTo(b.sort));
+
   /// Nel guardaroba: quello che si possiede, prima i pezzi comprati e poi
   /// quelli di casa.
   List<ShopItem> wardrobe(String slot) => [
