@@ -9,11 +9,11 @@ import '../../../l10n/app_strings.dart';
 import '../../../online/online_services.dart';
 import '../../../rules/role.dart';
 import '../../theme/app_theme.dart';
-import '../../widgets/deal_table.dart' show PokerFelt;
-import '../../widgets/noir_avatar.dart';
-import 'chat_panel.dart';
+import 'game/chat_dock.dart';
+import 'game/noir_ui.dart';
 import 'online_game_screen.dart';
 import 'online_widgets.dart';
+import 'ranked_lobby.dart';
 
 /// La classificata: lingua, poi subito la sala d'attesa. Il server fa
 /// sedere chi entra al tavolo di una sala (stessa lingua, livello vicino):
@@ -38,7 +38,14 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
   RankedStatus _status = const RankedStatus();
   Timer? _timer;
   Timer? _second;
-  int _seconds = 0;
+
+  /// Quarti di secondo passati qui (per i consigli che girano e il conto).
+  int _ticks = 0;
+
+  /// Ora del server meno ora del telefono (vedi [GameClient.serverNow]).
+  Duration _offset = Duration.zero;
+  Duration? _bestTrip;
+  final ValueNotifier<int> _chatVersion = ValueNotifier(0);
   bool _entering = false;
 
   /// La sala d'attesa in cui si siede, con chi c'è e la sua chat.
@@ -56,8 +63,8 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
     super.initState();
     _refresh();
     _timer = Timer.periodic(widget.poll, (_) => _refresh());
-    _second = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() => _seconds++);
+    _second = Timer.periodic(const Duration(milliseconds: 250), (_) {
+      if (mounted) setState(() => _ticks++);
     });
     widget.services.profiles.me().then((me) {
       if (mounted) setState(() => _myId = me.id);
@@ -69,6 +76,7 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
     _timer?.cancel();
     _second?.cancel();
     _sweep.dispose();
+    _chatVersion.dispose();
     _unwatch();
     if (_status.queued || _lobby != null) unawaited(_ranked.leave().catchError((_) {}));
     super.dispose();
@@ -83,18 +91,39 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
 
   void _watch(String roomId) {
     _unwatch();
-    _membersWatch = widget.services.rooms.watchMembers(roomId).listen(
-      (members) {
-        if (mounted) setState(() => _members = members);
-      },
-      onError: (Object _) {},
-    );
-    _chatWatch = widget.services.game.watchChat(roomId).listen(
-      (messages) {
-        if (mounted) setState(() => _chat = [for (final m in messages) if (m.channel == ChatChannel.lobby) m]);
-      },
-      onError: (Object _) {},
-    );
+    _membersWatch = widget.services.rooms.watchMembers(roomId).listen((members) {
+      if (mounted) setState(() => _members = members);
+    }, onError: (Object _) {});
+    _chatWatch = widget.services.game.watchChat(roomId).listen((messages) {
+      if (mounted) {
+        setState(
+          () => _chat = [
+            for (final m in messages)
+              if (m.channel == ChatChannel.lobby) m,
+          ],
+        );
+        _chatVersion.value++;
+      }
+    }, onError: (Object _) {});
+    _bestTrip = null;
+    _ping(roomId);
+  }
+
+  /// L'ora del server, per il conto alla rovescia: il telefono può sbagliare.
+  DateTime get _serverNow => DateTime.now().add(_offset);
+
+  Future<void> _ping(String roomId) async {
+    try {
+      final sent = DateTime.now();
+      final server = await widget.services.game.ping(roomId);
+      final trip = DateTime.now().difference(sent);
+      if (_bestTrip == null || trip <= _bestTrip!) {
+        _bestTrip = trip;
+        _offset = DateTime.fromMillisecondsSinceEpoch(server).difference(sent.add(trip ~/ 2));
+      }
+    } catch (_) {
+      // Senza risposta si resta sull'ora del telefono.
+    }
   }
 
   Future<void> _refresh() async {
@@ -172,9 +201,11 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
       _members = const [];
       _chat = const [];
       HapticFeedback.heavyImpact();
-      await navigator.push(MaterialPageRoute<void>(
-        builder: (_) => OnlineGameScreen(services: widget.services, room: room, me: me),
-      ));
+      await navigator.push(
+        MaterialPageRoute<void>(
+          builder: (_) => OnlineGameScreen(services: widget.services, room: room, me: me),
+        ),
+      );
       if (!mounted) return;
       await widget.services.rooms.leave(room.id, autoHeir: true).catchError((_) {});
       if (mounted) await showMatchResults(context, widget.services);
@@ -193,13 +224,11 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
   Widget build(BuildContext context) {
     final t = AppStrings.of(context).online;
     final lobby = _lobby;
+    if (lobby != null) return _lobbyView(context, lobby);
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Text(lobby == null ? t.rankedQueueTitle : t.rankedLobbyTitle),
-        backgroundColor: AppColors.background,
-      ),
-      body: lobby == null ? _queue(context) : _lobbyView(context, lobby),
+      appBar: AppBar(title: Text(t.rankedQueueTitle), backgroundColor: AppColors.background),
+      body: _queue(context),
     );
   }
 
@@ -212,9 +241,7 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
           height: 220,
           child: AnimatedBuilder(
             animation: _sweep,
-            builder: (context, _) => CustomPaint(
-              painter: _SearchlightPainter(_status.queued ? _sweep.value : null),
-            ),
+            builder: (context, _) => CustomPaint(painter: _SearchlightPainter(_status.queued ? _sweep.value : null)),
           ),
         ),
         const SizedBox(height: 16),
@@ -250,186 +277,149 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
     final t = strings.online;
     final size = lobby.maxPlayers;
     final startsAt = lobby.startsAt;
-    final left = startsAt == null ? null : max(0, startsAt.difference(DateTime.now()).inSeconds);
+    final left = startsAt == null ? null : max(0, startsAt.difference(_serverNow).inMilliseconds) / 1000;
     final tips = t.rankedTips;
     final roles = Role.values;
-    final slot = (_seconds ~/ 7) % (tips.length + roles.length);
-    return OnlineBody(
-      children: [
-        if (lobby.testMatch)
-          Text(t.rankedTestMatch, textAlign: TextAlign.center, style: AppText.overline.copyWith(color: AppColors.gold)),
-        SizedBox(
-          height: 280,
-          child: LobbyTable(key: const Key('ranked.table'), members: _members, size: size, myId: _myId),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          t.rankedSeats(_members.length, size),
-          key: const Key('ranked.seats'),
-          textAlign: TextAlign.center,
-          style: AppText.display(24),
-        ),
-        const SizedBox(height: 4),
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 250),
-          child: Text(
-            left == null ? t.rankedMissing(max(0, size - _members.length)) : t.rankedStartsIn(left),
-            key: ValueKey(left == null ? 'wait' : 'go$left'),
-            textAlign: TextAlign.center,
-            style: AppText.body.copyWith(color: left == null ? null : AppColors.gold, fontWeight: left == null ? null : FontWeight.w700),
+    final slot = (_ticks ~/ 28) % (tips.length + roles.length);
+    final still = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    final lobbyView = ChatChannelView(channel: ChatChannel.lobby, title: t.chatLobby, accent: Saloon.brass);
+    return Scaffold(
+      backgroundColor: const Color(0xFF120C08),
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment(0, -0.35),
+            radius: 1.1,
+            colors: [Color(0xFF3A2414), Color(0xFF1A100A), Color(0xFF0A0605)],
+            stops: [0, 0.55, 1],
           ),
         ),
-        const SizedBox(height: 16),
-        OnlineSection(t.rankedTipsTitle),
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 400),
-          child: OnlinePanel(
-            key: ValueKey('tip$slot'),
-            child: slot < tips.length
-                ? Text(tips[slot], textAlign: TextAlign.center, style: AppText.body)
-                : Builder(builder: (context) {
-                    final role = strings.role(roles[slot - tips.length]);
-                    return Column(
-                      children: [
-                        Text(role.label.toUpperCase(), style: AppText.display(20)),
-                        const SizedBox(height: 2),
-                        Text(role.motto, textAlign: TextAlign.center, style: AppText.body.copyWith(fontStyle: FontStyle.italic)),
-                        const SizedBox(height: 6),
-                        Text(role.description, textAlign: TextAlign.center, style: AppText.body.copyWith(fontSize: 13)),
-                      ],
-                    );
-                  }),
-          ),
-        ),
-        const SizedBox(height: 16),
-        SizedBox(
-          height: 220,
-          child: ChatPanel(
-            key: const Key('ranked.lobbyChat'),
-            title: t.chatLobby,
-            messages: _chat,
-            myId: _myId ?? '',
-            note: null,
-            hint: t.chatHint,
-            empty: t.chatEmpty,
-            sendLabel: t.chatSend,
-            onSend: (body) => widget.services.game.sendChat(lobby.id, ChatChannel.lobby, body),
-          ),
-        ),
-        const SizedBox(height: 12),
-        OutlinedButton(key: const Key('ranked.leaveLobby'), onPressed: _cancel, child: Text(t.rankedLeaveLobby)),
-        const SizedBox(height: 6),
-        Text(t.rankedNoPenalty, textAlign: TextAlign.center, style: AppText.body.copyWith(fontSize: 12)),
-      ],
-    );
-  }
-}
-
-/// Il tavolo della sala d'attesa: lo stesso panno verde della partita, i
-/// posti intorno; chi arriva compare al suo posto, i posti vuoti aspettano.
-class LobbyTable extends StatelessWidget {
-  final List<RoomMember> members;
-  final int size;
-  final String? myId;
-
-  const LobbyTable({super.key, required this.members, required this.size, this.myId});
-
-  @override
-  Widget build(BuildContext context) {
-    final bySeat = {for (final m in members) m.seat: m};
-    return LayoutBuilder(builder: (context, box) {
-      final w = box.maxWidth;
-      final h = box.maxHeight;
-      const avatar = 40.0;
-      final table = Rect.fromCenter(center: Offset(w / 2, h / 2), width: w * 0.62, height: h * 0.5);
-      final rx = w / 2 - avatar * 0.75;
-      final ry = h / 2 - avatar * 0.75;
-      return Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned.fill(child: CustomPaint(painter: _FeltPainter(table))),
-          for (var i = 0; i < size; i++)
-            Builder(builder: (context) {
-              final angle = -pi / 2 + 2 * pi * i / size;
-              final x = w / 2 + cos(angle) * rx;
-              final y = h / 2 + sin(angle) * ry;
-              final member = bySeat[i + 1];
-              return Positioned(
-                left: x - avatar / 2 - 10,
-                top: y - avatar / 2,
-                width: avatar + 20,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 450),
-                  transitionBuilder: (child, animation) => ScaleTransition(
-                    scale: CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
-                    child: FadeTransition(opacity: animation, child: child),
-                  ),
-                  child: member == null
-                      ? Container(
-                          key: ValueKey('empty$i'),
-                          width: avatar,
-                          height: avatar,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.black.withValues(alpha: 0.25),
-                            border: Border.all(color: AppColors.gold.withValues(alpha: 0.25)),
-                          ),
-                        )
-                      : Column(
-                          key: ValueKey(member.profile.id),
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            DecoratedBox(
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: member.profile.id == myId ? Border.all(color: AppColors.gold, width: 2) : null,
-                              ),
-                              child: NoirAvatar.drawn(seed: member.profile.avatarSeed, size: avatar),
-                            ),
-                            Text(
-                              member.profile.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppText.body.copyWith(fontSize: 10, color: AppColors.textPrimary),
-                            ),
-                          ],
-                        ),
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 2, 16, 0),
+                child: Row(
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.of(context).maybePop(),
+                      icon: const Icon(Icons.arrow_back, color: Saloon.brass),
+                    ),
+                    Expanded(
+                      child: Text(
+                        t.rankedLobbyTitle.toUpperCase(),
+                        textAlign: TextAlign.center,
+                        style: AppText.overline.copyWith(color: Saloon.brass, fontSize: 13, letterSpacing: 3),
+                      ),
+                    ),
+                    const SizedBox(width: 40),
+                  ],
                 ),
-              );
-            }),
-        ],
-      );
-    });
+              ),
+              if (lobby.testMatch)
+                Text(
+                  t.rankedTestMatch,
+                  textAlign: TextAlign.center,
+                  style: AppText.overline.copyWith(color: AppColors.gold),
+                ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: LobbyTable(key: const Key('ranked.table'), members: _members, size: size, myId: _myId, countdown: left?.toDouble()),
+                ),
+              ),
+              Semantics(
+                liveRegion: true,
+                child: Text(
+                  t.rankedSeats(_members.length, size),
+                  key: const Key('ranked.seats'),
+                  textAlign: TextAlign.center,
+                  style: AppText.overline.copyWith(color: Saloon.paper, fontSize: 12),
+                ),
+              ),
+              const SizedBox(height: 2),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                child: Text(
+                  left == null ? t.rankedMissing(max(0, size - _members.length)) : t.rankedStartsIn(left.ceil()),
+                  key: ValueKey(left == null ? 'wait' : 'go${left.ceil()}'),
+                  textAlign: TextAlign.center,
+                  style: AppText.body.copyWith(
+                    color: left == null ? AppColors.textSecondary : Saloon.brass,
+                    fontWeight: left == null ? null : FontWeight.w700,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: SizedBox(
+                  height: 104,
+                  child: AnimatedSwitcher(
+                    duration: Duration(milliseconds: still ? 0 : 500),
+                    transitionBuilder: (child, animation) => FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: Tween(
+                          begin: const Offset(0.15, 0),
+                          end: Offset.zero,
+                        ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+                        child: child,
+                      ),
+                    ),
+                    child: Align(
+                      key: ValueKey('tip$slot'),
+                      alignment: Alignment.center,
+                      child: slot < tips.length
+                          ? LobbyCard(kicker: t.rankedTipsTitle, title: '❦', body: tips[slot])
+                          : Builder(
+                              builder: (context) {
+                                final role = strings.role(roles[slot - tips.length]);
+                                return LobbyCard(kicker: role.motto, title: role.label.toUpperCase(), body: role.description);
+                              },
+                            ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: NoirButton(
+                    key: const Key('ranked.leaveLobby'),
+                    kind: NoirButtonKind.brass,
+                    compact: true,
+                    icon: Icons.door_back_door_outlined,
+                    label: t.rankedLeaveLobby,
+                    onPressed: _cancel,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                t.rankedNoPenalty,
+                textAlign: TextAlign.center,
+                style: AppText.body.copyWith(fontSize: 11, color: AppColors.textSecondary),
+              ),
+              ChatDock(
+                key: const Key('ranked.lobbyChat'),
+                view: lobbyView,
+                messages: _chat,
+                myId: _myId ?? '',
+                labels: ChatLabels(hint: t.chatHint, empty: t.chatEmpty, send: t.chatSend),
+                onSend: (body) => widget.services.game.sendChat(lobby.id, ChatChannel.lobby, body),
+                source: _chatVersion,
+                read: () => (view: lobbyView, messages: _chat),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
-}
-
-class _FeltPainter extends CustomPainter {
-  final Rect table;
-
-  _FeltPainter(this.table);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rim = table.shortestSide * 0.07;
-    canvas.drawOval(
-      table.inflate(rim).shift(Offset(0, rim)),
-      Paint()
-        ..color = Colors.black.withValues(alpha: 0.6)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, rim * 1.2),
-    );
-    canvas.drawOval(
-      table.inflate(rim),
-      Paint()..shader = const LinearGradient(colors: PokerFelt.wood).createShader(table.inflate(rim)),
-    );
-    canvas.drawOval(
-      table,
-      Paint()
-        ..shader = const RadialGradient(colors: PokerFelt.felt, stops: [0, 0.6, 1]).createShader(table),
-    );
-  }
-
-  @override
-  bool shouldRepaint(_FeltPainter old) => old.table != table;
 }
 
 /// Un faro che spazza una piazza di sagome: gira mentre si cerca.
@@ -446,10 +436,7 @@ class _SearchlightPainter extends CustomPainter {
       final x = size.width * (0.08 + i * 0.105);
       final h = 26.0 + (i * 37 % 13);
       canvas.drawCircle(Offset(x, ground - h - 7), 7, figures);
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(Rect.fromLTWH(x - 9, ground - h, 18, h), const Radius.circular(6)),
-        figures,
-      );
+      canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(x - 9, ground - h, 18, h), const Radius.circular(6)), figures);
     }
     final t = turn;
     if (t == null) return;
@@ -463,9 +450,8 @@ class _SearchlightPainter extends CustomPainter {
     canvas.drawPath(
       beam,
       Paint()
-        ..shader = RadialGradient(
-          colors: [AppColors.gold.withValues(alpha: 0.45), AppColors.gold.withValues(alpha: 0)],
-        ).createShader(Rect.fromCircle(center: origin, radius: size.height * 1.2)),
+        ..shader = RadialGradient(colors: [AppColors.gold.withValues(alpha: 0.45), AppColors.gold.withValues(alpha: 0)])
+            .createShader(Rect.fromCircle(center: origin, radius: size.height * 1.2)),
     );
   }
 
@@ -498,7 +484,11 @@ Future<void> showMatchResults(BuildContext context, OnlineServices services) asy
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(t.resultsTitle, textAlign: TextAlign.center, style: AppText.overline.copyWith(color: AppColors.gold)),
+            Text(
+              t.resultsTitle,
+              textAlign: TextAlign.center,
+              style: AppText.overline.copyWith(color: AppColors.gold),
+            ),
             if (r.testMatch) Text(t.rankedTestMatch, textAlign: TextAlign.center, style: AppText.body.copyWith(fontSize: 11)),
             const SizedBox(height: 8),
             Text(

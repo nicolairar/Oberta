@@ -86,6 +86,11 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   Player? _selected;
 
+  /// La mossa appena fatta, mostrata subito (mano, pizzino) mentre viaggia:
+  /// il server poi la conferma (resta) o la rifiuta (la mano torna indietro).
+  /// `target` null: astensione.
+  ({Player? target, String stage})? _hope;
+
   /// Il Sarto ha scelto di cucire invece di votare l'agguato.
   bool _alternative = false;
 
@@ -158,6 +163,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   void _changed() {
     if (!mounted) return;
     if (_client.takeRejection() != null) showNote(context, _t.online.rejected);
+    if (!_client.busy) _hope = null;
     final seat = _client.seat;
     if (seat?.receipt case (:final id, result: IntentAccepted(:final finding?)) when id != _findingFor) {
       _findingFor = id;
@@ -176,6 +182,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     if (window == null || window.key == _stageShown) return;
     _stageShown = window.key;
     _selected = null;
+    _hope = null;
     _alternative = false;
     final stage = SoundStage.instance;
     switch (window.stage) {
@@ -234,8 +241,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   SkylineStyle get _style => skylineFor(_city.id);
 
-  List<DeathStory> _storiesOf(DawnReport dawn) =>
-      _stories.putIfAbsent(dawn.round, () => _script('dawn-${dawn.round}').stage(dawn));
+  List<DeathStory> _storiesOf(DawnReport dawn) => _stories.putIfAbsent(dawn.round, () => _script('dawn-${dawn.round}').stage(dawn));
 
   // ---------------------------------------------------------------------
   // Il tempo.
@@ -251,9 +257,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   /// Il server tace da ben oltre la fine della fase: forse manca la rete.
   bool get _serverSilent {
     final window = _window;
-    return window != null &&
-        _stage != Stage.ended &&
-        _client.serverNow.isAfter(window.endsAt.add(const Duration(seconds: 12)));
+    return window != null && _stage != Stage.ended && _client.serverNow.isAfter(window.endsAt.add(const Duration(seconds: 12)));
   }
 
   // ---------------------------------------------------------------------
@@ -261,11 +265,35 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   Future<void> _send(PlayerIntent intent) async {
     HapticFeedback.selectionClick();
+    final key = _window?.key;
+    if (key != null) {
+      final hope = switch (intent) {
+        DayVote(:final target) || MafiaVote(:final target) || NightAction(:final target) => (target: _seatOf(target), stage: key),
+        Pass() => (target: null, stage: key),
+      };
+      setState(() => _hope = hope);
+    }
     try {
       await _client.send(intent);
     } catch (error) {
-      if (mounted) showFailure(context, error);
+      if (mounted) {
+        setState(() => _hope = null);
+        showFailure(context, error);
+      }
     }
+  }
+
+  Player? _seatOf(String id) => publicSeating(_public.seats).where((p) => p.id == id).firstOrNull;
+
+  /// I voti del server con, al posto del proprio, la mossa appena fatta.
+  List<SeatVote> _withHope(List<SeatVote> votes) {
+    final hope = _hope;
+    if (hope == null || hope.stage != _window?.key) return votes;
+    return [
+      for (final vote in votes)
+        if (vote.voter != _view.seat) vote,
+      (voter: _view.seat, target: hope.target),
+    ];
   }
 
   void _ack() {
@@ -387,10 +415,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                           padding: const EdgeInsets.fromLTRB(10, 4, 10, 8),
                           child: AnimatedSwitcher(
                             duration: const Duration(milliseconds: 350),
-                            child: KeyedSubtree(
-                              key: ValueKey(ready ? '${_window?.key}-${_board.abandoned}' : 'connecting'),
-                              child: _stageView(),
-                            ),
+                            child: KeyedSubtree(key: ValueKey(ready ? '${_window?.key}-${_board.abandoned}' : 'connecting'), child: _stageView()),
                           ),
                         ),
                       ),
@@ -455,16 +480,15 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       child: Row(
         children: [
           Expanded(
-            child: Text(text, key: key, style: AppText.body.copyWith(color: AppColors.textPrimary, fontSize: 13)),
+            child: Text(
+              text,
+              key: key,
+              style: AppText.body.copyWith(color: AppColors.textPrimary, fontSize: 13),
+            ),
           ),
           if (rejoin) ...[
             const SizedBox(width: 8),
-            NoirButton(
-              key: const Key('online.reconnect'),
-              compact: true,
-              label: _t.online.rejoin,
-              onPressed: _rejoin,
-            ),
+            NoirButton(key: const Key('online.reconnect'), compact: true, label: _t.online.rejoin, onPressed: _rejoin),
           ],
         ],
       ),
@@ -472,19 +496,19 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   }
 
   String _title() => switch (_stage) {
-        Stage.reveal => _t.online.yourCard,
-        Stage.night => _t.nightTitle(_public.round),
-        Stage.dawn || Stage.dawnFilms => _t.dawnTitle,
-        Stage.discussion || Stage.vote || Stage.verdict || Stage.verdictFilm => _t.dayTitle(_public.round),
-        Stage.ended => _t.endTitle,
-      };
+    Stage.reveal => _t.online.yourCard,
+    Stage.night => _t.nightTitle(_public.round),
+    Stage.dawn || Stage.dawnFilms => _t.dawnTitle,
+    Stage.discussion || Stage.vote || Stage.verdict || Stage.verdictFilm => _t.dayTitle(_public.round),
+    Stage.ended => _t.endTitle,
+  };
 
   String? _ribbon() => switch (_stage) {
-        Stage.reveal => _city.title,
-        Stage.discussion => _t.online.discussionTitle,
-        Stage.vote => _t.online.voteTitle,
-        _ => null,
-      };
+    Stage.reveal => _city.title,
+    Stage.discussion => _t.online.discussionTitle,
+    Stage.vote => _t.online.voteTitle,
+    _ => null,
+  };
 
   Widget _stageView() {
     if (!_client.ready) return _connectingView();
@@ -505,32 +529,23 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       ? DealingTable(status: _t.online.gameConnecting)
       : DealingTable(
           status: _t.online.connectionLost,
-          below: NoirButton(
-            key: const Key('online.reconnect'),
-            label: _t.online.rejoin,
-            feel: Press.confirm,
-            onPressed: _rejoin,
-          ),
+          below: NoirButton(key: const Key('online.reconnect'), label: _t.online.rejoin, feel: Press.confirm, onPressed: _rejoin),
         );
 
   Widget _closedView() => Column(
-        key: const Key('online.closed'),
-        children: [
-          const Spacer(),
-          const Icon(Icons.door_back_door_outlined, color: Saloon.brass, size: 56),
-          const SizedBox(height: 16),
-          ScrimText(_t.online.gameClosed),
-          const Spacer(),
-          SizedBox(
-            width: double.infinity,
-            child: NoirButton(
-              label: _t.online.backToRoom,
-              feel: Press.confirm,
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ),
-        ],
-      );
+    key: const Key('online.closed'),
+    children: [
+      const Spacer(),
+      const Icon(Icons.door_back_door_outlined, color: Saloon.brass, size: 56),
+      const SizedBox(height: 16),
+      ScrimText(_t.online.gameClosed),
+      const Spacer(),
+      SizedBox(
+        width: double.infinity,
+        child: NoirButton(label: _t.online.backToRoom, feel: Press.confirm, onPressed: () => Navigator.of(context).pop()),
+      ),
+    ],
+  );
 
   /// Il pulsante della conferma: «pronto», poi l'attesa degli altri.
   /// Chi è fuori dal gioco non conferma niente: il server non lo aspetta.
@@ -544,7 +559,11 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
             kind: _acked ? NoirButtonKind.brass : NoirButtonKind.enamel,
             icon: _ackReceived ? Icons.check : null,
             onPressed: _acked || !enabled || !_open ? null : _ack,
-            label: _ackReceived ? _t.online.readyWaiting : _acked ? _t.online.sending : _t.online.ready,
+            label: _ackReceived
+                ? _t.online.readyWaiting
+                : _acked
+                ? _t.online.sending
+                : _t.online.ready,
           ),
         );
 
@@ -569,7 +588,13 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   ({ChatChannelView view, List<ChatMessage> messages}) _chatNow() {
     final view = _chatView();
-    return (view: view, messages: [for (final m in _client.chat) if (m.channel == view.channel) m]);
+    return (
+      view: view,
+      messages: [
+        for (final m in _client.chat)
+          if (m.channel == view.channel) m,
+      ],
+    );
   }
 
   Widget _chatDock() {
@@ -608,7 +633,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     Widget? center,
     Animation<double>? arrival,
   }) {
-    final present = [for (final p in players) if (showDead || _isAlive(p)) p];
+    final present = [
+      for (final p in players)
+        if (showDead || _isAlive(p)) p,
+    ];
     // Il proprio posto è sempre in basso al centro: si gira il tavolo.
     final mine = present.indexOf(_view.seat);
     final seats = mine <= 0 ? present : [...present.skip(mine), ...present.take(mine)];
@@ -617,7 +645,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       if (vote.target case final target?) tally[target] = (tally[target] ?? 0) + 1;
     }
     final top = tally.values.fold(0, max);
-    final leaders = [for (final e in tally.entries) if (e.value == top) e.key];
+    final leaders = [
+      for (final e in tally.entries)
+        if (e.value == top) e.key,
+    ];
     final leading = top > 0 && leaders.length == 1 ? leaders.single : null;
     final index = {for (var i = 0; i < seats.length; i++) seats[i]: i};
     return SaloonTable(
@@ -652,10 +683,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
           note: _offline(player)
               ? _t.online.offlineBadge
               : silenced
-                  ? '🤐'
-                  : role == null
-                      ? null
-                      : _t.role(role).label,
+              ? '🤐'
+              : role == null
+              ? null
+              : _t.role(role).label,
           noteColor: role?.team == Team.mafia ? Saloon.mafia : Saloon.brass,
           dimmed: selectable.isNotEmpty && !can && _isAlive(player) && player != selected && player != _view.seat,
           onTap: can && onTap != null ? () => onTap(player) : null,
@@ -711,16 +742,16 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     return Column(
       key: const Key('online.card'),
       children: [
-        if (opening.isNotEmpty) ScrimText(opening.map((l) => l.text).join('\n'), style: AppText.body.copyWith(color: AppColors.textPrimary, fontSize: 13.5, fontStyle: FontStyle.italic)),
+        if (opening.isNotEmpty)
+          ScrimText(
+            opening.map((l) => l.text).join('\n'),
+            style: AppText.body.copyWith(color: AppColors.textPrimary, fontSize: 13.5, fontStyle: FontStyle.italic),
+          ),
         Expanded(
           child: Center(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 14),
-              child: NoirRoleCard(
-                role: view.role,
-                teammates: view.teammates,
-                onRevealed: () => setState(() => _cardTurned = true),
-              ),
+              child: NoirRoleCard(role: view.role, teammates: view.teammates, onRevealed: () => setState(() => _cardTurned = true)),
             ),
           ),
         ),
@@ -745,7 +776,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     final option = _view.action!;
     final task = NightTask(option.kind!, option.targets);
     final script = _script('task');
-    final selected = _selected;
+    final selected = _hope?.target ?? _selected;
     final busy = _client.busy || !_open;
     final alternative = _alternative && option.alternative != null;
     final family = option.type == ActionType.mafiaVote && !alternative;
@@ -771,9 +802,17 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
           decoration: Saloon.scrim(radius: 12, border: family ? Saloon.mafia : Saloon.brass),
           child: Column(
             children: [
-              Text(script.taskPrompt(shown, _public.round), textAlign: TextAlign.center, style: AppText.display(19, color: AppColors.textPrimary)),
+              Text(
+                script.taskPrompt(shown, _public.round),
+                textAlign: TextAlign.center,
+                style: AppText.display(19, color: AppColors.textPrimary),
+              ),
               const SizedBox(height: 4),
-              Text(script.taskHint(shown), textAlign: TextAlign.center, style: AppText.body.copyWith(color: const Color(0xFFD8CCBE), fontSize: 13)),
+              Text(
+                script.taskHint(shown),
+                textAlign: TextAlign.center,
+                style: AppText.body.copyWith(color: const Color(0xFFD8CCBE), fontSize: 13),
+              ),
             ],
           ),
         ),
@@ -784,7 +823,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
             selectable: option.targets.toSet(),
             selected: selected,
             onTap: busy ? null : (player) => setState(() => _selected = player),
-            votes: family ? _view.familyVotes : const [],
+            votes: family ? _withHope(_view.familyVotes) : const [],
             voteColor: Saloon.mafia,
           ),
         ),
@@ -823,23 +862,18 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     final finding = view.nightChoice != null ? _finding : null;
     final found = finding?.role;
     final isMafia = finding?.team == Team.mafia;
-    final pending = _public.phase == GamePhase.night && _public.nightPending > 0
-        ? _t.online.waitingForOthers(_public.nightPending)
-        : null;
+    final pending = _public.phase == GamePhase.night && _public.nightPending > 0 ? _t.online.waitingForOthers(_public.nightPending) : null;
     if (finding == null) {
       final status = !view.alive
           ? _t.online.youAreOut
           : view.nightChoice == null
-              ? _script('night-${_public.round}').nightFalls(_public.round, online: true).map((l) => l.text).join('\n')
-              : _t.online.moveRegistered;
+          ? _script('night-${_public.round}').nightFalls(_public.round, online: true).map((l) => l.text).join('\n')
+          : _t.online.moveRegistered;
       return Column(
         key: const Key('online.waiting'),
         children: [
           Expanded(
-            child: DealingTable(
-              key: view.nightChoice != null && finding == null ? const Key('online.moveRegistered') : null,
-              status: status,
-            ),
+            child: DealingTable(key: view.nightChoice != null && finding == null ? const Key('online.moveRegistered') : null, status: status),
           ),
           if (view.nightChoice != null) ScrimText(_t.nobodyWillKnow),
           if (pending != null) ...[const SizedBox(height: 6), ScrimText(pending)],
@@ -865,7 +899,11 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
               ),
               const SizedBox(height: 8),
               Text(
-                found != null ? _t.wasRole(_t.role(found).label) : isMafia ? _t.isFamily : _t.isInnocent,
+                found != null
+                    ? _t.wasRole(_t.role(found).label)
+                    : isMafia
+                    ? _t.isFamily
+                    : _t.isInnocent,
                 style: AppText.display(20, color: isMafia ? Saloon.mafia : Saloon.clean),
               ),
             ],
@@ -939,36 +977,36 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   bool get _italian => _t.language.locale.languageCode == 'it';
 
-  String get _masthead =>
-      _italian ? 'Il Corriere di ${_city.name}' : 'The ${_city.name} Courier';
+  String get _masthead => _italian ? 'Il Corriere di ${_city.name}' : 'The ${_city.name} Courier';
 
-  String _dateLine(String edition) => _italian
-      ? 'Anno XIX  ·  Giorno ${_public.round}  ·  $edition'
-      : 'Vol. XIX  ·  Day ${_public.round}  ·  $edition';
+  String _dateLine(String edition) =>
+      _italian ? 'Anno XIX  ·  Giorno ${_public.round}  ·  $edition' : 'Vol. XIX  ·  Day ${_public.round}  ·  $edition';
 
   List<FrontPageLine> _printed(List<ScriptLine> lines) => [for (final l in lines) (text: l.text, fact: l.isFact)];
 
   Widget _chronicle({required Key key, required Widget page}) => Column(
-        key: key,
-        children: [
-          Expanded(child: page),
-          const SizedBox(height: 12),
-          _readyButton(),
-        ],
-      );
+    key: key,
+    children: [
+      Expanded(child: page),
+      const SizedBox(height: 12),
+      _readyButton(),
+    ],
+  );
 
   Widget _dawnView() {
     final dawn = _public.lastDawn;
     if (dawn == null) return _connectingView();
-    final lines = _script('dawn-${dawn.round}')
-        .dawn(dawn, discussion: _board.settings.discussion, stories: _storiesOf(dawn), online: true);
-    final dead = [for (final attack in dawn.attacks) if (attack.isFatal) attack.target.name];
+    final lines = _script('dawn-${dawn.round}').dawn(dawn, discussion: _board.settings.discussion, stories: _storiesOf(dawn), online: true);
+    final dead = [
+      for (final attack in dawn.attacks)
+        if (attack.isFatal) attack.target.name,
+    ];
     final names = dead.join(_italian ? ' E ' : ' AND ');
     final headline = dawn.victims.isEmpty
         ? _t.everyoneAlive
         : _italian
-            ? (dead.length > 1 ? 'Trovati morti $names' : 'Trovato morto $names')
-            : '$names found dead';
+        ? (dead.length > 1 ? 'Trovati morti $names' : 'Trovato morto $names')
+        : '$names found dead';
     return _chronicle(
       key: const Key('online.dawn'),
       page: FrontPage(
@@ -1033,21 +1071,24 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   }
 
   Widget _discussionView() => Column(
-        key: const Key('online.discussion'),
-        children: [
-          ScrimText(_t.online.discussionHint),
-          const SizedBox(height: 6),
-          Expanded(child: _table(players: publicSeating(_public.seats))),
-          const SizedBox(height: 10),
-          _readyButton(),
-        ],
-      );
+    key: const Key('online.discussion'),
+    children: [
+      ScrimText(_t.online.discussionHint),
+      const SizedBox(height: 6),
+      Expanded(child: _table(players: publicSeating(_public.seats))),
+      const SizedBox(height: 10),
+      _readyButton(),
+    ],
+  );
 
   Widget _voteView() {
     final view = _view;
     final option = view.action;
-    final votes = _public.dayVotes;
-    final mine = [for (final vote in votes) if (vote.voter == view.seat) vote].firstOrNull;
+    final votes = _withHope(_public.dayVotes);
+    final mine = [
+      for (final vote in votes)
+        if (vote.voter == view.seat) vote,
+    ].firstOrNull;
     final canVote = option != null && _open && !_client.busy;
     final selected = mine?.target;
     final cast = votes.length;
@@ -1060,7 +1101,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         Expanded(
           child: _table(
             players: publicSeating(_public.seats),
-            selectable: canVote ? {for (final p in option.targets) if (p != selected) p} : const {},
+            selectable: canVote
+                ? {
+                    for (final p in option.targets)
+                      if (p != selected) p,
+                  }
+                : const {},
             selected: selected,
             onTap: (player) => _send(DayVote(view.seat.id, player.id)),
             votes: votes,
@@ -1088,18 +1134,14 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
             ],
           ),
         ),
-        if (_client.busy || mine != null) ...[
+        if (mine != null) ...[
           const SizedBox(height: 6),
-          if (_client.busy)
-            ScrimText(_t.online.sending)
-          else
-            ScrimText(
-              mine!.target == null
-                  ? '${_t.online.abstained} · ${_t.online.voteRegistered}'
-                  : '${_t.online.votedFor(mine.target!.name)} · ${_t.online.voteRegistered}',
-              key: const Key('online.voteRegistered'),
-              style: AppText.body.copyWith(color: Saloon.brass, fontSize: 14, fontWeight: FontWeight.w700),
-            ),
+          ScrimText(
+            '${mine.target == null ? _t.online.abstained : _t.online.votedFor(mine.target!.name)}'
+            ' · ${_client.busy ? _t.online.sending : _t.online.voteRegistered}',
+            key: Key(_client.busy ? 'online.votePending' : 'online.voteRegistered'),
+            style: AppText.body.copyWith(color: Saloon.brass, fontSize: 14, fontWeight: FontWeight.w700),
+          ),
         ],
         if (option != null) ...[
           const SizedBox(height: 8),
@@ -1132,7 +1174,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     final winner = _public.winner;
     final mafiaWon = winner == Team.mafia;
     final roles = _public.finalRoles;
-    final players = [for (final p in publicSeating(_public.seats)) if (roles[p] != null) p];
+    final players = [
+      for (final p in publicSeating(_public.seats))
+        if (roles[p] != null) p,
+    ];
     return Column(
       key: const Key('online.end'),
       children: [
@@ -1146,8 +1191,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
               const SizedBox(height: 6),
               FittedBox(
                 fit: BoxFit.scaleDown,
-                child: Text(mafiaWon ? _t.familyWins : _t.townWins,
-                    style: Saloon.plate(32, color: mafiaWon ? Saloon.mafia : Saloon.brass)),
+                child: Text(mafiaWon ? _t.familyWins : _t.townWins, style: Saloon.plate(32, color: mafiaWon ? Saloon.mafia : Saloon.brass)),
               ),
               const SizedBox(height: 4),
               Text(_t.whoWasWho, style: AppText.overline.copyWith(color: AppColors.textPrimary)),
@@ -1156,41 +1200,45 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         ),
         const SizedBox(height: 12),
         Expanded(
-          child: LayoutBuilder(builder: (context, box) {
-            const columns = 3;
-            final width = (box.maxWidth - 24) / columns * 0.8;
-            return SingleChildScrollView(
-              child: Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 12,
-                runSpacing: 30,
-                children: [
-                  for (final player in players)
-                    SizedBox(
-                      width: (box.maxWidth - 24) / columns,
-                      child: Column(
-                        children: [
-                          SeatCard(
-                            name: player.name,
-                            width: width,
-                            fallen: !_isAlive(player),
-                            me: player == _view.seat,
-                            selected: roles[player]!.team == winner,
-                            note: _t.role(roles[player]!).label,
-                            noteColor: roles[player]!.team == Team.mafia ? Saloon.mafia : Saloon.brass,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(_fateOf(player),
+          child: LayoutBuilder(
+            builder: (context, box) {
+              const columns = 3;
+              final width = (box.maxWidth - 24) / columns * 0.8;
+              return SingleChildScrollView(
+                child: Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 12,
+                  runSpacing: 30,
+                  children: [
+                    for (final player in players)
+                      SizedBox(
+                        width: (box.maxWidth - 24) / columns,
+                        child: Column(
+                          children: [
+                            SeatCard(
+                              name: player.name,
+                              width: width,
+                              fallen: !_isAlive(player),
+                              me: player == _view.seat,
+                              selected: roles[player]!.team == winner,
+                              note: _t.role(roles[player]!).label,
+                              noteColor: roles[player]!.team == Team.mafia ? Saloon.mafia : Saloon.brass,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _fateOf(player),
                               textAlign: TextAlign.center,
                               maxLines: 2,
-                              style: AppText.body.copyWith(color: const Color(0xFFD8CCBE), fontSize: 11.5, height: 1.2)),
-                        ],
+                              style: AppText.body.copyWith(color: const Color(0xFFD8CCBE), fontSize: 11.5, height: 1.2),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                ],
-              ),
-            );
-          }),
+                  ],
+                ),
+              );
+            },
+          ),
         ),
         const SizedBox(height: 10),
         SizedBox(
@@ -1249,9 +1297,9 @@ class _RevealIntroState extends State<_RevealIntro> with SingleTickerProviderSta
 
   @override
   Widget build(BuildContext context) => AnimatedSwitcher(
-        duration: const Duration(milliseconds: 380),
-        child: _dealing
-            ? KeyedSubtree(key: const ValueKey('deal'), child: widget.dealing)
-            : KeyedSubtree(key: const ValueKey('arrive'), child: widget.table(_arrival)),
-      );
+    duration: const Duration(milliseconds: 380),
+    child: _dealing
+        ? KeyedSubtree(key: const ValueKey('deal'), child: widget.dealing)
+        : KeyedSubtree(key: const ValueKey('arrive'), child: widget.table(_arrival)),
+  );
 }
