@@ -4,16 +4,27 @@ import 'package:oberta/rules/role.dart';
 void main() {
   // I nomi, i motti e le spiegazioni stanno nei pacchetti di lingua: vedi
   // test/l10n/role_texts_test.dart.
-  test('i ruoli sono dodici', () {
-    expect(Role.values, hasLength(12));
+  test('i ruoli sono tredici', () {
+    expect(Role.values, hasLength(13));
   });
 
-  test('la famiglia è fatta di Picciotto, Padrino e Sarto', () {
-    expect(Role.values.where((role) => role.team == Team.mafia), [Role.mafioso, Role.padrino, Role.sarto]);
+  test('la famiglia è fatta di Picciotto, Padrino, Sarto e Compare', () {
+    expect(
+      Role.values.where((role) => role.team == Team.mafia),
+      [Role.mafioso, Role.padrino, Role.sarto, Role.compare],
+    );
   });
 
-  test('in famiglia sparano il Picciotto e il Padrino, non il Sarto', () {
-    expect(Role.values.where((role) => role.isKiller), [Role.mafioso, Role.padrino]);
+  test('in famiglia votano l\'agguato Picciotto, Padrino e Sarto, non il Compare', () {
+    expect(Role.values.where((role) => role.isKiller), [Role.mafioso, Role.padrino, Role.sarto]);
+  });
+
+  test('il Compare esiste solo online', () {
+    expect(Role.compare.playableIn(PlayMode.online), isTrue);
+    expect(Role.compare.playableIn(PlayMode.sharedPhone), isFalse);
+    for (final role in Role.values) {
+      if (role != Role.compare) expect(role.playableIn(PlayMode.sharedPhone), isTrue, reason: role.name);
+    }
   });
 
   test('solo il Padrino e il Pregiudicato sembrano quello che non sono', () {

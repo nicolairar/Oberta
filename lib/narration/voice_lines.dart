@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../rules/role.dart';
 import 'narration_pack.dart';
 
 /// Un pezzo di battuta, per la voce del narratore automatico.
@@ -116,8 +117,10 @@ List<VoiceSegment> voiceSegments(NarrationPack pack) {
     template(text, pack.cities);
   }
   add('segment', pack.someone);
-  for (final role in pack.roles.values) {
-    add('role', role.label);
+  // Il narratore parla solo nel gioco su un telefono: i ruoli che esistono
+  // solo online (il Compare) non hanno bisogno della voce.
+  for (final entry in pack.roles.entries) {
+    if (entry.key.playableIn(PlayMode.sharedPhone)) add('role', entry.value.label);
   }
   for (var n = 1; n <= maxSpokenMinutes; n++) {
     add('number', '$n');

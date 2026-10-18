@@ -203,6 +203,10 @@ final class ItalianStrings extends AppStrings {
   @override
   String get pass => 'PASSO';
   @override
+  String get voteTheHit => 'AGGUATO';
+  @override
+  String get sewAMouth => 'CUCI UNA BOCCA';
+  @override
   String get confirm => 'CONFERMA';
   @override
   String get doneTitle => 'Fatto.';

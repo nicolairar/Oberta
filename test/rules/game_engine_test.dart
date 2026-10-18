@@ -4,8 +4,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/rules/game_engine.dart';
 import 'package:oberta/rules/game_settings.dart';
 import 'package:oberta/rules/game_setup.dart';
+import 'package:oberta/rules/game_snapshot.dart';
+import 'package:oberta/rules/intent.dart';
+import 'package:oberta/rules/player_view.dart';
 import 'package:oberta/rules/player.dart';
 import 'package:oberta/rules/role.dart';
+import 'package:oberta/rules/rules_json.dart';
 
 const boss = Player(id: 'boss', name: 'Boss');
 const picciotto = Player(id: 'picciotto', name: 'Picciotto');
@@ -73,9 +77,10 @@ GameEngine smallTable() {
 }
 
 /// Gioca una notte: chi non compare in [choices] passa.
-DawnReport playNight(GameEngine engine, [Map<Player, Player?> choices = const {}]) {
+/// [sew]: chi fa il compito alternativo (il Sarto che cuce invece di votare).
+DawnReport playNight(GameEngine engine, [Map<Player, Player?> choices = const {}, Set<Player> sew = const {}]) {
   for (final player in engine.alivePlayers) {
-    engine.submitNightChoice(player, choices[player]);
+    engine.submitNightChoice(player, choices[player], alternative: sew.contains(player));
   }
   return engine.resolveNight();
 }
@@ -227,12 +232,6 @@ void main() {
       expect(victims, {anna, bruno});
     });
 
-    test('parità con il capo: decide il primo mafioso', () {
-      for (var seed = 0; seed < 10; seed++) {
-        final engine = fullTable(tieBreak: TieBreak.boss, seed: seed);
-        expect(playNight(engine, {boss: anna, picciotto: bruno}).victims, [anna]);
-      }
-    });
   });
 
   group('ruoli speciali', () {
@@ -362,8 +361,9 @@ void main() {
       expect(engine.knowledgeOf(anna, don).isEmpty, isTrue);
     });
 
-    test('con "decide il capo" il capo è lui, ovunque sia seduto', () {
-      for (var seed = 0; seed < 10; seed++) {
+    test('nessun voto vale doppio: il Padrino conta come tutti', () {
+      final victims = <Player>{};
+      for (var seed = 0; seed < 30; seed++) {
         final engine = GameEngine(
           GameSetup.fromRoles({
             picciotto: Role.mafioso,
@@ -373,131 +373,124 @@ void main() {
             detective: Role.detective,
             doctor: Role.medico,
           }),
-          settings: const GameSettings(mafiaTieBreak: TieBreak.boss),
           random: Random(seed),
         );
-        expect(playNight(engine, {picciotto: anna, don: bruno}).victims, [bruno]);
+        final report = playNight(engine, {picciotto: anna, don: bruno});
+        expect(report.victims, hasLength(1));
+        victims.add(report.victims.single);
       }
-    });
-
-    test('morto il Padrino, comanda il primo che vota: non il Sarto', () {
-      for (var seed = 0; seed < 10; seed++) {
-        final engine = GameEngine(
-          GameSetup.fromRoles({
-            tailor: Role.sarto,
-            picciotto: Role.mafioso,
-            boss: Role.mafioso,
-            don: Role.padrino,
-            anna: Role.cittadino,
-            bruno: Role.cittadino,
-            detective: Role.detective,
-            doctor: Role.medico,
-            sniper: Role.cittadino,
-            reporter: Role.cittadino,
-            digger: Role.cittadino,
-            guard: Role.cittadino,
-            veteran: Role.cittadino,
-          }),
-          settings: const GameSettings(mafiaTieBreak: TieBreak.boss),
-          random: Random(seed),
-        );
-        playNight(engine);
-        engine.lynch(don);
-        expect(playNight(engine, {picciotto: anna, boss: bruno, tailor: detective}).victims, [anna]);
-      }
+      expect(victims, {anna, bruno}, reason: 'pari: si sorteggia, il Padrino non decide');
     });
   });
 
   group('il Sarto', () {
-    test('cuce una bocca: all\'alba si sa chi deve tacere', () {
+    test('vota l\'agguato come un Picciotto, e una volta può cucire invece', () {
       final engine = grandTable();
-      expect(engine.taskFor(tailor).kind, NightTaskKind.silence);
-      expect(engine.taskFor(tailor).targets, isNot(contains(tailor)));
+      final task = engine.taskFor(tailor);
+      expect(task.kind, NightTaskKind.kill);
+      expect(task.alternative, NightTaskKind.silence);
+      expect(task.targets, isNot(contains(tailor)));
 
-      final report = playNight(engine, {tailor: bruno});
+      final report = playNight(engine, {tailor: bruno}, {tailor});
       expect(report.silenced, bruno);
       expect(report.victims, isEmpty);
       expect(engine.isAlive(bruno), isTrue, reason: 'chi tace resta in gioco, e si può votare');
+      expect(engine.silenceSpent, isTrue);
       expect(engine.lynch(bruno).condemned, bruno);
     });
 
-    test('finché c\'è chi spara, il suo voto non conta nell\'agguato', () {
+    test('il silenzio è uno per partita', () {
+      final engine = grandTable();
+      playNight(engine, {tailor: bruno}, {tailor});
+      engine.lynch(null);
+      expect(engine.taskFor(tailor).alternative, isNull);
+      expect(() => engine.submitNightChoice(tailor, anna, alternative: true), throwsStateError);
+      expect(engine.apply(NightAction(tailor.id, anna.id)), isA<IntentRejected>());
+    });
+
+    test('il silenzio resta speso anche dopo una fotografia', () {
+      final engine = GameEngine(grandTable().setup, seed: 4);
+      playNight(engine, {tailor: bruno}, {tailor});
+      final copy = GameEngine.fromSnapshot(GameSnapshot.fromJson(engine.snapshot().toJson()));
+      expect(copy.silenceSpent, isTrue);
+    });
+
+    test('il suo voto conta nell\'agguato come quello di tutti', () {
       final engine = grandTable(tieBreak: TieBreak.nobody);
-      final report = playNight(engine, {don: anna, picciotto: anna, tailor: bruno});
+      expect(playNight(engine, {don: anna, picciotto: bruno, tailor: bruno}).victims, [bruno]);
+    });
+
+    test('chi cuce non vota: l\'agguato lo decidono gli altri', () {
+      final engine = grandTable();
+      final report = playNight(engine, {don: anna, picciotto: anna, tailor: bruno}, {tailor});
       expect(report.victims, [anna]);
       expect(report.silenced, bruno);
-
-      engine.lynch(null);
-      final tie = playNight(engine, {don: bruno, picciotto: detective, tailor: detective});
-      expect(tie.victims, isEmpty, reason: 'uno pari: il Sarto non sposta la parità');
     });
 
-    test('mai la stessa persona due notti di fila', () {
+    test('via intenzioni: MafiaVote vota, NightAction cuce', () {
       final engine = grandTable();
-      playNight(engine, {tailor: bruno});
-      engine.lynch(null);
-
-      expect(engine.taskFor(tailor).targets, isNot(contains(bruno)));
-      expect(() => engine.submitNightChoice(tailor, bruno), throwsArgumentError);
-
-      playNight(engine, {tailor: anna});
-      engine.lynch(null);
-      expect(engine.taskFor(tailor).targets, contains(bruno));
-      expect(engine.taskFor(tailor).targets, isNot(contains(anna)));
+      expect(engine.viewFor(tailor.id).action!.alternative, NightTaskKind.silence);
+      expect(engine.apply(NightAction(tailor.id, bruno.id)).accepted, isTrue);
+      for (final player in engine.pendingNightPlayers) {
+        engine.apply(Pass(player.id));
+      }
+      expect(engine.resolveNight().silenced, bruno);
+      final replay = GameEngine.replay(engine.setup, seed: 0, log: engine.log);
+      expect(replay.silenceSpent, isTrue);
     });
 
-    test('se una notte passa, la notte dopo può scegliere chiunque', () {
+    test('il silenziato non scrive in piazza, ma vota: lo dice la sua vista', () {
       final engine = grandTable();
-      playNight(engine, {tailor: bruno});
+      playNight(engine, {tailor: bruno}, {tailor});
+      final view = engine.viewFor(bruno.id);
+      expect(view.silenced, isTrue);
+      expect(view.action!.type, ActionType.dayVote, reason: 'vota come tutti');
+      expect(engine.viewFor(anna.id).silenced, isFalse);
+      expect(PlayerView.fromJson(view.toJson()).silenced, isTrue);
       engine.lynch(null);
-      expect(playNight(engine).silenced, isNull);
-      engine.lynch(null);
-      expect(engine.taskFor(tailor).targets, contains(bruno));
+      expect(engine.viewFor(bruno.id).silenced, isFalse, reason: 'il silenzio dura un giorno');
     });
 
     test('se chi doveva tacere muore, non si annuncia niente', () {
       final engine = grandTable();
-      final report = playNight(engine, {don: bruno, picciotto: bruno, tailor: bruno});
+      final report = playNight(engine, {don: bruno, picciotto: bruno, tailor: bruno}, {tailor});
       expect(report.victims, [bruno]);
       expect(report.silenced, isNull);
     });
 
     test('chi doveva tacere e si salva, tace lo stesso', () {
       final engine = grandTable();
-      final report = playNight(engine, {don: bruno, picciotto: bruno, tailor: bruno, doctor: bruno});
+      final report = playNight(engine, {don: bruno, picciotto: bruno, tailor: bruno, doctor: bruno}, {tailor});
       expect(report.victims, isEmpty);
       expect(report.silenced, bruno);
     });
 
     test('il silenzio vale anche se il Sarto non vede l\'alba', () {
       final engine = grandTable();
-      final report = playNight(engine, {tailor: bruno, sniper: tailor});
+      final report = playNight(engine, {tailor: bruno, sniper: tailor}, {tailor});
       expect(report.victims, [tailor]);
       expect(report.silenced, bruno);
     });
 
     test('può cucire la bocca anche a uno dei suoi', () {
       final engine = grandTable();
-      expect(playNight(engine, {tailor: don}).silenced, don);
+      expect(playNight(engine, {tailor: don}, {tailor}).silenced, don);
     });
 
-    test('rimasto l\'ultimo a poter uccidere, posa l\'ago e uccide', () {
+    test('rimasto l\'ultimo a poter uccidere, sceglie ogni notte tra uccidere e cucire', () {
       final engine = grandTable();
-      playNight(engine, {tailor: bruno});
+      playNight(engine);
       engine.lynch(don);
-      expect(engine.taskFor(tailor).kind, NightTaskKind.silence, reason: 'c\'è ancora il Picciotto');
-      playNight(engine, {tailor: anna});
+      playNight(engine);
       engine.lynch(picciotto);
 
       final task = engine.taskFor(tailor);
       expect(task.kind, NightTaskKind.kill);
-      expect(task.targets, contains(anna), reason: 'il divieto valeva per l\'ago, non per la pistola');
-      final report = playNight(engine, {tailor: anna});
-      expect(report.victims, [anna]);
-      expect(report.silenced, isNull);
+      expect(task.alternative, NightTaskKind.silence);
+      expect(playNight(engine, {tailor: anna}).victims, [anna]);
     });
 
-    test('da solo fin dall\'inizio, uccide e basta', () {
+    test('da solo fin dall\'inizio, uccide (o cuce, una volta)', () {
       final engine = GameEngine(GameSetup.fromRoles({
         tailor: Role.sarto,
         anna: Role.cittadino,
@@ -506,6 +499,60 @@ void main() {
       }));
       expect(engine.taskFor(tailor).kind, NightTaskKind.kill);
       expect(playNight(engine, {tailor: anna}).victims, [anna]);
+    });
+  });
+
+  test('i tempi di base: notte 30 s, discussione 60 s, voto 30 s; viaggiano nel JSON', () {
+    const settings = GameSettings();
+    expect(settings.night, const Duration(seconds: 30));
+    expect(settings.discussion, const Duration(minutes: 1));
+    expect(settings.vote, const Duration(seconds: 30));
+    const custom = GameSettings(night: Duration(seconds: 45), discussion: Duration(minutes: 2), vote: Duration(seconds: 20));
+    final back = settingsFromJson(settingsToJson(custom));
+    expect([back.night, back.discussion, back.vote], [custom.night, custom.discussion, custom.vote]);
+    // Una vecchia fotografia: solo la discussione, e lo spareggio "boss" tolto.
+    final old = settingsFromJson({'mafiaTieBreak': 'boss', 'discussionMs': 180000});
+    expect(old.mafiaTieBreak, TieBreak.random);
+    expect(old.night, GameSettings.defaultNight);
+  });
+
+  group('il Compare', () {
+    GameEngine table() => GameEngine(GameSetup.fromRoles({
+          picciotto: Role.mafioso,
+          boss: Role.compare,
+          anna: Role.cittadino,
+          bruno: Role.cittadino,
+          detective: Role.detective,
+          doctor: Role.medico,
+          sniper: Role.cittadino,
+        }), seed: 1);
+
+    test('di notte non ha mosse vere, e non vota l\'agguato', () {
+      final engine = table();
+      expect(engine.taskFor(boss).kind, NightTaskKind.decoy);
+      expect(engine.apply(MafiaVote(boss.id, anna.id)), isA<IntentRejected>());
+    });
+
+    test('finché è vivo la famiglia ha la sua chat anche di giorno', () {
+      final engine = table();
+      expect(engine.viewFor(picciotto.id).familyChat, isTrue, reason: 'di notte, sempre');
+      playNight(engine);
+      expect(engine.familyDayChat, isTrue);
+      expect(engine.viewFor(picciotto.id).familyChat, isTrue);
+      expect(engine.viewFor(boss.id).familyChat, isTrue);
+      expect(engine.viewFor(anna.id).familyChat, isFalse, reason: 'solo la famiglia');
+      expect(PlayerView.fromJson(engine.viewFor(boss.id).toJson()).familyChat, isTrue);
+
+      engine.lynch(boss);
+      playNight(engine);
+      expect(engine.familyDayChat, isFalse);
+      expect(engine.viewFor(picciotto.id).familyChat, isFalse, reason: 'morto il Compare, di giorno niente');
+    });
+
+    test('senza Compare la famiglia di giorno tace', () {
+      final engine = fullTable();
+      playNight(engine);
+      expect(engine.viewFor(boss.id).familyChat, isFalse);
     });
   });
 
@@ -963,7 +1010,7 @@ void main() {
       final lobby = [for (var i = 0; i < 3 + seed % 14; i++) Player(id: 'p$i', name: 'P$i')];
       final engine = GameEngine(
         GameSetup.deal(lobby: lobby, random: random),
-        settings: GameSettings(mafiaTieBreak: TieBreak.values[seed % 3]),
+        settings: GameSettings(mafiaTieBreak: TieBreak.values[seed % TieBreak.values.length]),
         random: random,
       );
       played.addAll(engine.setup.roles.values);
@@ -978,7 +1025,9 @@ void main() {
           expect(task.targets.toSet(), hasLength(task.targets.length), reason: 'seed=$seed');
           final skip = task.targets.isEmpty || random.nextInt(5) == 0;
           final target = skip ? null : task.targets[random.nextInt(task.targets.length)];
-          final finding = engine.submitNightChoice(player, target);
+          final sew = target != null && task.alternative != null && random.nextInt(3) == 0;
+          if (sew) tasks.add(task.alternative!);
+          final finding = engine.submitNightChoice(player, target, alternative: sew);
           if (task.kind == NightTaskKind.dig && target != null) {
             expect(finding!.role, engine.setup.roleOf(target), reason: 'seed=$seed');
           }
@@ -1000,7 +1049,7 @@ void main() {
       }
       expect(engine.winner, isNotNull, reason: 'seed=$seed');
     }
-    expect(played, Role.values.toSet(), reason: 'tutti i ruoli sono scesi in campo');
+    expect(played, Role.values.where((role) => role.playableIn(PlayMode.sharedPhone)).toSet(), reason: 'tutti i ruoli del telefono unico sono scesi in campo');
     expect(tasks, NightTaskKind.values.toSet(), reason: 'tutte le mosse sono state fatte');
     expect(outcomes, AttackOutcome.values.toSet(), reason: 'tutti gli esiti si sono visti');
   });

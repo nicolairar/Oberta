@@ -27,7 +27,12 @@ const englishPack = NarrationPack(
     Role.sarto: RoleText(
       'The Tailor',
       '“Suits by day. Mouths by night.”',
-      'Each night you take someone\'s voice for a day. If the Family runs out of shooters, you shoot.',
+      'You vote the hit with the Family. Once a game, you can take someone\'s voice for a day instead.',
+    ),
+    Role.compare: RoleText(
+      'The Accomplice',
+      '“I was just passing through.”',
+      'You\'re with the Family. While you live, the Family keeps its secret chat open by day too.',
     ),
     Role.cittadino: RoleText(
       'The Honest One',
@@ -411,7 +416,7 @@ const englishPack = NarrationPack(
   },
   taskHints: {
     NightTaskKind.kill: 'Whoever you pick won\'t see the dawn. If there are several of you, majority rules.',
-    NightTaskKind.silence: 'Whoever you pick can\'t talk tomorrow. Never the same person two nights in a row.',
+    NightTaskKind.silence: 'Whoever you pick can\'t write in the town chat tomorrow. Only once, instead of your vote.',
     NightTaskKind.protect: 'Whoever you pick can\'t die tonight. Never the same person two nights in a row.',
     NightTaskKind.guard: 'If somebody tries to kill your pick tonight, you die in their place.',
     NightTaskKind.investigate: 'You\'ll find out right away whether they\'re with the Family or the town.',

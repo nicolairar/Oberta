@@ -81,6 +81,9 @@ class _GameScreenState extends State<GameScreen> {
   List<Player> _queue = const [];
   int _turn = 0;
   Player? _selected;
+
+  /// Il Sarto ha scelto di cucire invece di votare l'agguato.
+  bool _alternative = false;
   Exposure? _finding;
   late DawnReport _dawn;
   // Il verdetto della piazza, tra il filmato e la pagina della carta. Il
@@ -118,6 +121,7 @@ class _GameScreenState extends State<GameScreen> {
     setState(() {
       change();
       _selected = null;
+      _alternative = false;
       _step++;
     });
   }
@@ -151,7 +155,7 @@ class _GameScreenState extends State<GameScreen> {
 
   void _submit(Player? target) {
     _advance(() {
-      _finding = _engine.submitNightChoice(_queue[_turn], target);
+      _finding = _engine.submitNightChoice(_queue[_turn], target, alternative: _alternative && target != null);
       _stage = _Stage.taskDone;
     });
   }
@@ -565,10 +569,25 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _taskView(Player actor) {
-    final task = _engine.taskFor(actor);
+    final offered = _engine.taskFor(actor);
+    final alternative = offered.alternative;
+    final task = _alternative && alternative != null ? NightTask(alternative, offered.targets) : offered;
     final selected = _selected;
     return Column(
       children: [
+        if (alternative != null) ...[
+          SegmentedButton<bool>(
+            key: const Key('task.alternative'),
+            segments: [
+              ButtonSegment(value: false, label: Text(_t.voteTheHit)),
+              ButtonSegment(value: true, label: Text(_t.sewAMouth)),
+            ],
+            selected: {_alternative},
+            showSelectedIcon: false,
+            onSelectionChanged: (choice) => setState(() => _alternative = choice.single),
+          ),
+          const SizedBox(height: 12),
+        ],
         Text(
           _script.taskPrompt(task, _engine.round),
           textAlign: TextAlign.center,

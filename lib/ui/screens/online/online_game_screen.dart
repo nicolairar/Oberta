@@ -84,6 +84,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   Timer? _ticker;
 
   Player? _selected;
+
+  /// Il Sarto ha scelto di cucire invece di votare l'agguato.
+  bool _alternative = false;
+
+  /// Di giorno, con un Compare vivo, la famiglia guarda la sua chat.
+  bool _familyTab = false;
   List<Player> _secret = const [];
   String? _secretTurn;
   bool _cardTurned = false;
@@ -168,6 +174,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     if (window == null || window.key == _stageShown) return;
     _stageShown = window.key;
     _selected = null;
+    _alternative = false;
     final stage = SoundStage.instance;
     switch (window.stage) {
       case Stage.reveal || Stage.night:
@@ -388,6 +395,20 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                     ],
                   ),
                 ),
+                if (ready && !_board.abandoned && _stage.chat == 'day' && _view.familyChat)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: SegmentedButton<bool>(
+                      key: const Key('online.chatSwitch'),
+                      segments: [
+                        ButtonSegment(value: false, label: Text(_t.online.chatTown)),
+                        ButtonSegment(value: true, label: Text(_t.online.chatFamily)),
+                      ],
+                      selected: {_familyTab},
+                      showSelectedIcon: false,
+                      onSelectionChanged: (choice) => setState(() => _familyTab = choice.single),
+                    ),
+                  ),
                 if (ready && !_board.abandoned) _chatDock(),
               ],
             ),
@@ -530,7 +551,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   ChatChannelView _chatView() {
     final familyNight = _stage.chat == 'night' && _inFamilyChat;
-    if (familyNight) {
+    // Di giorno, con un Compare vivo, la famiglia sceglie quale chat guardare.
+    final familyDay = _stage.chat == 'day' && _view.familyChat && _familyTab;
+    if (familyNight || familyDay) {
       return ChatChannelView(channel: ChatChannel.family, title: _t.online.chatFamily, accent: Saloon.mafia);
     }
     final String? note;
@@ -722,18 +745,33 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     final script = _script('task');
     final selected = _selected;
     final busy = _client.busy || !_open;
-    final family = option.type == ActionType.mafiaVote;
+    final alternative = _alternative && option.alternative != null;
+    final family = option.type == ActionType.mafiaVote && !alternative;
+    final shown = alternative ? NightTask(option.alternative!, option.targets) : task;
     return Column(
       children: [
+        if (option.alternative != null) ...[
+          SegmentedButton<bool>(
+            key: const Key('online.alternative'),
+            segments: [
+              ButtonSegment(value: false, label: Text(_t.voteTheHit)),
+              ButtonSegment(value: true, label: Text(_t.sewAMouth)),
+            ],
+            selected: {_alternative},
+            showSelectedIcon: false,
+            onSelectionChanged: busy ? null : (choice) => setState(() => _alternative = choice.single),
+          ),
+          const SizedBox(height: 6),
+        ],
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: Saloon.scrim(radius: 12, border: family ? Saloon.mafia : Saloon.brass),
           child: Column(
             children: [
-              Text(script.taskPrompt(task, _public.round), textAlign: TextAlign.center, style: AppText.display(19, color: AppColors.textPrimary)),
+              Text(script.taskPrompt(shown, _public.round), textAlign: TextAlign.center, style: AppText.display(19, color: AppColors.textPrimary)),
               const SizedBox(height: 4),
-              Text(script.taskHint(task), textAlign: TextAlign.center, style: AppText.body.copyWith(color: const Color(0xFFD8CCBE), fontSize: 13)),
+              Text(script.taskHint(shown), textAlign: TextAlign.center, style: AppText.body.copyWith(color: const Color(0xFFD8CCBE), fontSize: 13)),
             ],
           ),
         ),
@@ -986,7 +1024,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   String? get _townChatNote {
     if (!_view.alive) return _t.online.chatDead;
-    if (_public.lastDawn?.silenced == _view.seat && _public.lastDawn?.round == _public.round) {
+    if (_view.silenced) {
       return _t.online.chatSilenced;
     }
     return null;

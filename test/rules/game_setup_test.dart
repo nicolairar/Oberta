@@ -34,14 +34,19 @@ void main() {
   test('a un tavolo pieno la famiglia si conosce tutta, qualunque ruolo abbia', () {
     final setup = GameSetup.deal(lobby: _players(16), random: Random(2));
     final family = setup.players.where((p) => setup.roleOf(p).team == Team.mafia).toList();
-    expect(family.map(setup.roleOf), containsAll([Role.padrino, Role.sarto, Role.mafioso]));
+    expect(family, hasLength(4));
+    expect(family.map(setup.roleOf), contains(Role.mafioso));
     for (final member in family) {
       expect(setup.teammatesOf(member), family.where((other) => other != member));
     }
   });
 
   test('il Pregiudicato non conosce nessuno, e nessuno conosce lui', () {
-    final setup = GameSetup.deal(lobby: _players(16), random: Random(2));
+    final players = _players(6);
+    final setup = GameSetup.fromRoles(Map.fromIterables(
+      players,
+      [Role.mafioso, Role.padrino, Role.pregiudicato, Role.cittadino, Role.cittadino, Role.detective],
+    ));
     final convict = setup.players.firstWhere((p) => setup.roleOf(p) == Role.pregiudicato);
     expect(setup.teammatesOf(convict), isEmpty);
     for (final player in setup.players) {

@@ -10,6 +10,7 @@ import 'package:oberta/rules/game_engine.dart';
 import 'package:oberta/rules/game_snapshot.dart';
 import 'package:oberta/rules/intent.dart';
 import 'package:oberta/rules/player_view.dart';
+import 'package:oberta/rules/role.dart';
 import 'package:oberta/table/seating.dart';
 
 import '../../tool/edge/engine_sources.dart';
@@ -359,6 +360,56 @@ void main() {
     expect(server.last['finished'], isTrue);
     expect(server.board['abandoned'], isTrue);
     expect(server.last['nextDue'], isNull);
+  });
+
+  test('online i tempi sono 30 / 60 / 30, anche la prima notte, e il Compare può uscire', () {
+    var compares = 0;
+    for (var seed = 1; seed <= 30; seed++) {
+      final server = ServerHarness(table(humans: 10, bots: 0), seed: seed);
+      final random = Random(seed);
+      server.step();
+      final roles = [
+        for (final seat in (((server.state!['snapshot'] as Map)['setup'] as Map)['seats'] as List).cast<Map>())
+          seat['role'] as String,
+      ];
+      final compare = roles.contains('compare');
+      if (compare) compares++;
+      final checked = <Stage>{};
+      for (var i = 0; i < 400 && server.last['finished'] != true && checked.length < 3; i++) {
+        final schedule = server.schedule;
+        final length = (schedule['endsAt'] as int) - (schedule['startsAt'] as int);
+        final round = (server.board['board'] as Map)['round'] as int;
+        switch (server.stage) {
+          case Stage.night when round == 1:
+            expect(length, 30000);
+            checked.add(Stage.night);
+          case Stage.discussion:
+            expect(length, 60000);
+            checked.add(Stage.discussion);
+            // Il motore decide la chat: di giorno la famiglia scrive solo con
+            // un Compare vivo.
+            final state = server.state!;
+            final seating = Seating.fromJson(state['seating'] as Map<String, Object?>);
+            final engine =
+                GameEngine.fromSnapshot(GameSnapshot.fromJson(state['snapshot'] as Map<String, Object?>, seating.playerAt));
+            final rights = (server.last['chat'] as Map)['seats'] as Map;
+            for (final MapEntry(key: seat, value: right) in rights.entries) {
+              final view = engine.viewFor(seat as String);
+              final open = view.alive && view.team == Team.mafia && engine.familyDayChat;
+              expect((right as Map)['familyDay'], open, reason: 'seed=$seed $seat');
+              expect(right['silenced'], view.silenced, reason: 'seed=$seed $seat');
+            }
+          case Stage.vote:
+            expect(length, 30000);
+            checked.add(Stage.vote);
+          default:
+            break;
+        }
+        if (!humansAct(server, random)) server.now = server.last['nextDue'] as int;
+        server.step();
+      }
+    }
+    expect(compares, greaterThan(0), reason: 'online il Compare entra nei mazzi');
   });
 
   test('il bundle JavaScript del server è stato ricompilato dopo l\'ultima modifica al motore', () {

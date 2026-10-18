@@ -205,6 +205,10 @@ final class EnglishStrings extends AppStrings {
   @override
   String get pass => 'PASS';
   @override
+  String get voteTheHit => 'THE HIT';
+  @override
+  String get sewAMouth => 'SEW A MOUTH';
+  @override
   String get confirm => 'CONFIRM';
   @override
   String get doneTitle => 'Done.';

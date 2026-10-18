@@ -412,7 +412,7 @@ void main() {
     });
 
     test('le spiegazioni dei compiti dicono la regola che conta', () {
-      expect(englishPack.taskHints[NightTaskKind.silence], contains('two nights in a row'));
+      expect(englishPack.taskHints[NightTaskKind.silence], contains('Only once'));
       expect(englishPack.taskHints[NightTaskKind.protect], contains('two nights in a row'));
       expect(englishPack.taskHints[NightTaskKind.guard], contains('you die'));
       expect(englishPack.taskHints[NightTaskKind.dig], contains('only you'));

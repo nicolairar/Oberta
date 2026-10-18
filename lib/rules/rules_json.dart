@@ -29,12 +29,18 @@ T? optionalEnum<T extends Enum>(List<T> values, Object? json) => json == null ? 
 
 Map<String, Object?> settingsToJson(GameSettings settings) => {
       'mafiaTieBreak': settings.mafiaTieBreak.name,
+      'nightMs': settings.night.inMilliseconds,
       'discussionMs': settings.discussion.inMilliseconds,
+      'voteMs': settings.vote.inMilliseconds,
     };
 
+/// Le partite salvate prima dei timer hanno solo la discussione; un vecchio
+/// spareggio "boss" (voto doppio, tolto) diventa un sorteggio.
 GameSettings settingsFromJson(Map<String, Object?> json) => GameSettings(
-      mafiaTieBreak: TieBreak.values.byName(json['mafiaTieBreak'] as String),
+      mafiaTieBreak: json['mafiaTieBreak'] == TieBreak.nobody.name ? TieBreak.nobody : TieBreak.random,
+      night: Duration(milliseconds: json['nightMs'] as int? ?? GameSettings.defaultNight.inMilliseconds),
       discussion: Duration(milliseconds: json['discussionMs'] as int),
+      vote: Duration(milliseconds: json['voteMs'] as int? ?? GameSettings.defaultVote.inMilliseconds),
     );
 
 /// Il tavolo: i posti in ordine, ciascuno con il suo ruolo.

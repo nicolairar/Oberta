@@ -54,6 +54,10 @@ class BotBrain {
       case ActionType.mafiaVote:
         final targets = preferred(option.targets);
         if (targets.isEmpty) return Pass(seat);
+        // Il Sarto con l'ago ancora in mano, ogni tanto, cuce invece di votare.
+        if (option.alternative == NightTaskKind.silence && random.nextInt(3) == 0) {
+          return NightAction(seat, _pick(targets).id);
+        }
         // Se un complice ha già votato, la famiglia lo segue: niente pareggi.
         for (final vote in view.familyVotes) {
           final target = vote.target;

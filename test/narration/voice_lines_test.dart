@@ -47,7 +47,7 @@ List<ScriptLine> everything(NarrationPack pack, CitySetting city, int seed) {
       discussion: const Duration(minutes: 3),
     ),
     ...script.voteCall(),
-    for (final role in Role.values)
+    for (final role in Role.values.where((role) => role.playableIn(PlayMode.sharedPhone)))
       ...script.lynch(LynchReport(round: 1, condemned: ada, role: role, winner: seed.isEven ? null : Team.citizens)),
     ...script.lynch(const LynchReport(round: 1, condemned: bruno, role: Role.mafioso, winner: Team.citizens)),
     ...script.lynch(const LynchReport(round: 1)),
@@ -131,7 +131,7 @@ void main() {
         }
         expect(dumped, contains(city.title));
       }
-      for (final role in Role.values) {
+      for (final role in Role.values.where((role) => role.playableIn(PlayMode.sharedPhone))) {
         expect(dumped, contains(pack.role(role).label));
       }
       for (var n = 1; n <= maxSpokenMinutes; n++) {

@@ -107,10 +107,12 @@ void main() {
     expect(Role.pregiudicato.team, Team.citizens);
   });
 
-  testWidgets('il narratore vede tutti e dodici i ruoli, la famiglia in rosso', (tester) async {
+  testWidgets('il narratore vede tutti i ruoli, la famiglia in rosso', (tester) async {
     _useScreen(tester, const Size(393, 852));
-    final players = _players(12);
-    final setup = GameSetup.fromRoles(Map.fromIterables(players, Role.values));
+    // Il narratore c'è solo sul telefono unico: lì il Compare non esiste.
+    final roles = [for (final role in Role.values) if (role.playableIn(PlayMode.sharedPhone)) role];
+    final players = _players(roles.length);
+    final setup = GameSetup.fromRoles(Map.fromIterables(players, roles));
     await tester.pumpWidget(
       MaterialApp(
         theme: buildAppTheme(),
@@ -126,7 +128,7 @@ void main() {
     final hold = await tester.startGesture(tester.getCenter(find.text('SOLO PER IL NARRATORE')));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-    for (final role in Role.values) {
+    for (final role in roles) {
       final label = tester.widget<Text>(find.text(italianPack.role(role).label));
       expect(label.style!.color == _mafiaRed, role.team == Team.mafia, reason: role.name);
     }

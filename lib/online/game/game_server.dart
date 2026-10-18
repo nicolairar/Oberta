@@ -26,7 +26,11 @@ import 'game_schedule.dart';
 // non ha votato si astiene.
 
 /// Le regole della partita online.
-const onlineSettings = GameSettings(discussion: OnlinePacing.defaultDiscussion);
+const onlineSettings = GameSettings(
+  night: OnlinePacing.defaultNight,
+  discussion: OnlinePacing.defaultDiscussion,
+  vote: OnlinePacing.defaultVote,
+);
 
 /// Quello che esce da un passo del server, pronto per il database: lo stato
 /// segreto da salvare, il tavolo pubblico, una vista per ogni posto umano e
@@ -205,8 +209,8 @@ class ServerGame {
       for (final plan in ordered) Occupant(seat: plan.seat, name: plan.name, profileId: plan.profileId),
     ]);
     final engine = GameEngine(
-      GameSetup.deal(lobby: seating.players, random: random),
-      settings: GameSettings(discussion: pacing.discussion),
+      GameSetup.deal(lobby: seating.players, random: random, mode: PlayMode.online),
+      settings: GameSettings(night: pacing.night, discussion: pacing.discussion, vote: pacing.vote),
       seed: random.nextInt(seedRange),
     );
     return ServerGame._(
@@ -423,8 +427,6 @@ class ServerGame {
   }
 
   Map<String, Object?> _chat() {
-    final dawn = engine.publicView().lastDawn;
-    final silenced = dawn?.round == engine.round ? dawn?.silenced?.id : null;
     return {
       'mode': finished ? 'closed' : stage.chat,
       'seats': {
@@ -433,7 +435,10 @@ class ServerGame {
             occupant.seat: {
               'alive': _alive(occupant.seat),
               'family': engine.viewFor(occupant.seat).team == Team.mafia,
-              'silenced': stage.chat == 'day' && silenced == occupant.seat,
+              // Il motore decide: il Sarto ha cucito, il Compare apre la
+              // chat della famiglia anche di giorno.
+              'silenced': stage.chat == 'day' && engine.viewFor(occupant.seat).silenced,
+              'familyDay': stage.chat == 'day' && engine.viewFor(occupant.seat).familyChat,
             },
       },
     };
@@ -519,7 +524,7 @@ class ServerGame {
     }
     switch (stage) {
       case Stage.reveal:
-        _open(Stage.night, now, pacing.night, pacing);
+        _open(Stage.night, now, engine.settings.night, pacing);
       case Stage.night:
         for (final player in engine.pendingNightPlayers) {
           engine.apply(Pass(player.id));
@@ -539,7 +544,7 @@ class ServerGame {
           _open(Stage.discussion, now, engine.settings.discussion, pacing);
         }
       case Stage.discussion:
-        _open(Stage.vote, now, pacing.vote, pacing);
+        _open(Stage.vote, now, engine.settings.vote, pacing);
       case Stage.vote:
         final lynch = engine.closeDayVote();
         _open(Stage.verdictFilm, now, OnlinePacing.verdictFilm(condemns: lynch.condemned != null), pacing);
@@ -549,7 +554,7 @@ class ServerGame {
         if (engine.phase == GamePhase.ended) {
           _open(Stage.ended, now, Duration.zero, pacing);
         } else {
-          _open(Stage.night, now, pacing.night, pacing);
+          _open(Stage.night, now, engine.settings.night, pacing);
         }
       case Stage.ended:
         break;

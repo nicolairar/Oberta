@@ -138,6 +138,10 @@ abstract class AppStrings {
   String get phoneOnTheTableHint;
   String get lightsDown;
   String get pass;
+
+  /// Il Sarto sceglie: votare l'agguato o usare il suo unico silenzio.
+  String get voteTheHit;
+  String get sewAMouth;
   String get confirm;
   String get doneTitle;
   String get nobodyWillKnow;
@@ -344,6 +348,8 @@ abstract class AppStrings {
     'phoneOnTheTableHint': phoneOnTheTableHint,
     'lightsDown': lightsDown,
     'pass': pass,
+    'voteTheHit': voteTheHit,
+    'sewAMouth': sewAMouth,
     'confirm': confirm,
     'doneTitle': doneTitle,
     'nobodyWillKnow': nobodyWillKnow,
