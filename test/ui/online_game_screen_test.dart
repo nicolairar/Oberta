@@ -204,6 +204,7 @@ void main() {
     await tester.tap(find.byWidget(target.widget));
     await tester.pump();
     expect(find.byKey(const Key('online.voteRegistered')), findsNothing, reason: 'prima della risposta, niente ✓');
+    expect(find.byKey(const Key('online.votePending')), findsOneWidget, reason: 'il pizzino si vede subito, prima della risposta');
     await flush(tester);
     expect(find.byKey(const Key('online.voteRegistered')), findsOneWidget);
     expect(find.textContaining('registrato ✓'), findsOneWidget);
