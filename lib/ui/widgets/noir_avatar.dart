@@ -78,7 +78,10 @@ enum AvatarHead {
   morettiFedora,
   morettiPanama,
   morettiHomburg,
-  fulmineCap;
+  fulmineCap,
+  // Le case.
+  vaugirardCap,
+  adelphiCap;
 
   /// Quelli che un ritratto può ricevere dal nome: i primi sette, sempre
   /// nello stesso ordine, così le facce di chi c'era già non cambiano.
@@ -267,7 +270,7 @@ class _AvatarPainter extends CustomPainter {
             ..close(),
           paint,
         );
-      case AvatarHead.bowler || AvatarHead.boater || AvatarHead.topHat || AvatarHead.beret || AvatarHead.cloche || AvatarHead.fulmineCap:
+      case AvatarHead.bowler || AvatarHead.boater || AvatarHead.topHat || AvatarHead.beret || AvatarHead.cloche || AvatarHead.fulmineCap || AvatarHead.vaugirardCap || AvatarHead.adelphiCap:
         canvas.drawOval(Rect.fromCenter(center: at(0.5, 0.315), width: s * 0.58, height: s * 0.09), paint);
         canvas.drawArc(Rect.fromCenter(center: at(0.5, 0.315), width: s * 0.40, height: s * 0.44), pi, pi, true, paint);
       case AvatarHead.coppola:
@@ -335,7 +338,7 @@ class _AvatarPainter extends CustomPainter {
             ..close(),
           band,
         );
-      case AvatarHead.bowler || AvatarHead.boater || AvatarHead.topHat || AvatarHead.beret || AvatarHead.cloche || AvatarHead.fulmineCap:
+      case AvatarHead.bowler || AvatarHead.boater || AvatarHead.topHat || AvatarHead.beret || AvatarHead.cloche || AvatarHead.fulmineCap || AvatarHead.vaugirardCap || AvatarHead.adelphiCap:
         canvas.drawRect(Rect.fromLTRB(s * 0.305, s * 0.265, s * 0.695, s * 0.300), band);
       case AvatarHead.wideBrim:
         canvas.save();

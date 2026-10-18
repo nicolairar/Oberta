@@ -251,14 +251,11 @@ abstract final class LookPainter {
         break;
       case CoatPattern.pinstripe:
         // Le righe seguono il petto: si aprono sulle spalle e si stringono in vita.
-        final fine = outfit.brand == ShopBrand.vanetti;
-        if (fine) thread.color = const Color(0xFFD9C9A0).withValues(alpha: 0.3);
         for (var x = -0.49; x < 0.5; x += 0.065) {
           final path = Path()
             ..moveTo(x, -0.7)
             ..quadraticBezierTo(x * 1.04, -0.35, x * 0.9, 0.6);
           canvas.drawPath(path, thread..style = PaintingStyle.stroke);
-          if (fine) canvas.drawPath(path.shift(const Offset(0.014, 0)), thread);
         }
       case CoatPattern.check:
         thread.color = _bright(outfit.coat, 0.4).withValues(alpha: 0.22);
@@ -384,7 +381,7 @@ abstract final class LookPainter {
         );
         // Gli alamari di passamaneria sul petto.
         final frog = Paint()
-          ..color = const Color(0xFFD9B45A).withValues(alpha: 0.8)
+          ..color = outfit.accent.withValues(alpha: 0.85)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 0.01;
         for (final y in [-0.3, -0.2]) {
@@ -471,7 +468,12 @@ abstract final class LookPainter {
         final band = Paint()..color = outfit.accent;
         canvas.drawRect(const Rect.fromLTRB(-0.6, -0.36, -0.12, -0.335), band);
         canvas.drawRect(const Rect.fromLTRB(0.12, -0.36, 0.6, -0.335), band);
+      case CoatPattern.canvas:
+        _trunkCanvas(canvas, outfit.coat);
+      case CoatPattern.baroque:
+        _baroqueScrolls(canvas, outfit.accent);
     }
+    _houseTrim(canvas, outfit);
     // Le ombre dei fianchi: il petto gira e si allontana dalla lampada.
     canvas.drawRect(
       bounds,
@@ -613,7 +615,7 @@ abstract final class LookPainter {
   static void _lapels(Canvas canvas, AvatarOutfit outfit, Offset light) {
     final pattern = outfit.pattern;
     final shawl = pattern == CoatPattern.velvet || pattern == CoatPattern.tuxedo;
-    final peak = pattern == CoatPattern.doubleBreasted || pattern == CoatPattern.brocade;
+    final peak = pattern == CoatPattern.doubleBreasted || pattern == CoatPattern.brocade || pattern == CoatPattern.baroque;
     final cloth = outfit.satin
         ? (outfit.coat.computeLuminance() > 0.4 ? const Color(0xFF16151A) : _dark(outfit.coat, 0.15))
         : _dark(outfit.coat, 0.3);
@@ -762,6 +764,176 @@ abstract final class LookPainter {
     brandMark(canvas, brand, Offset(x, y + 0.005), 0.03);
   }
 
+  /// La tela da baule di Vaugirard: una trama diagonale fitta e, a
+  /// quinconce, una borchia d'ottone a quattro punte e un rombo scuro.
+  static void _trunkCanvas(Canvas canvas, Color coat) {
+    final weave = Paint()
+      ..color = _dark(coat, 0.4).withValues(alpha: 0.3)
+      ..strokeWidth = 0.005;
+    for (var x = -1.3; x < 0.7; x += 0.05) {
+      canvas.drawLine(Offset(x, -0.7), Offset(x + 1.3, 0.6), weave);
+    }
+    final stud = Paint()..color = const Color(0xFFF0D18A).withValues(alpha: 0.85);
+    final pip = Paint()..color = _dark(coat, 0.55).withValues(alpha: 0.85);
+    var row = 0;
+    for (var y = -0.66; y < 0.6; y += 0.1) {
+      var col = 0;
+      for (var x = -0.56 + (row.isOdd ? 0.05 : 0); x < 0.6; x += 0.1) {
+        final c = Offset(x, y);
+        if ((row + col).isEven) {
+          canvas.drawPath(_starPath(c, 0.024, 4, 0.32), stud);
+        } else {
+          canvas.drawPath(
+            Path()
+              ..moveTo(x, y - 0.016)
+              ..lineTo(x + 0.012, y)
+              ..lineTo(x, y + 0.016)
+              ..lineTo(x - 0.012, y)
+              ..close(),
+            pip,
+          );
+        }
+        col++;
+      }
+      row++;
+    }
+  }
+
+  /// Le volute d'oro di Versalli: coppie di riccioli schiena contro schiena,
+  /// con una goccia sopra e una foglia sotto.
+  static void _baroqueScrolls(Canvas canvas, Color gilt) {
+    final scroll = Paint()
+      ..color = gilt.withValues(alpha: 0.7)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.008
+      ..strokeCap = StrokeCap.round;
+    final dot = Paint()..color = gilt.withValues(alpha: 0.8);
+    var row = 0;
+    for (var y = -0.6; y < 0.6; y += 0.13) {
+      for (var x = -0.52 + (row.isOdd ? 0.075 : 0); x < 0.55; x += 0.15) {
+        canvas.drawArc(Rect.fromCircle(center: Offset(x - 0.021, y), radius: 0.019), 0, -pi * 1.5, false, scroll);
+        canvas.drawArc(Rect.fromCircle(center: Offset(x + 0.021, y), radius: 0.019), pi, pi * 1.5, false, scroll);
+        canvas.drawCircle(Offset(x, y - 0.03), 0.007, dot);
+        canvas.drawLine(Offset(x, y + 0.012), Offset(x, y + 0.038), scroll);
+      }
+      row++;
+    }
+    // L'orlo d'oro sotto le spalle.
+    canvas.drawLine(const Offset(-0.6, -0.47), const Offset(0.6, -0.47), scroll..strokeWidth = 0.006);
+  }
+
+  /// La fascia di Cuccioli: verde, ambra, verde.
+  static void _webBand(Canvas canvas, Rect r, {bool vertical = false}) {
+    const teal = Color(0xFF1F6B63);
+    const amber = Color(0xFFD89A2B);
+    canvas.drawRect(r, Paint()..color = teal);
+    final mid = vertical
+        ? Rect.fromLTRB(r.left + r.width / 3, r.top, r.right - r.width / 3, r.bottom)
+        : Rect.fromLTRB(r.left, r.top + r.height / 3, r.right, r.bottom - r.height / 3);
+    canvas.drawRect(mid, Paint()..color = amber);
+  }
+
+  /// Una stella a [points] punte, la punta in alto.
+  static Path _starPath(Offset c, double r, int points, double inner) {
+    final path = Path();
+    for (var k = 0; k < points * 2; k++) {
+      final a = -pi / 2 + k * pi / points;
+      final d = k.isEven ? r : r * inner;
+      final p = c.translate(cos(a) * d, sin(a) * d);
+      k == 0 ? path.moveTo(p.dx, p.dy) : path.lineTo(p.dx, p.dy);
+    }
+    return path..close();
+  }
+
+  /// I dettagli che fanno riconoscere la casa anche da lontano.
+  static void _houseTrim(Canvas canvas, AvatarOutfit outfit) {
+    switch (outfit.brand) {
+      case ShopBrand.chanterelle when outfit.pattern == CoatPattern.velvet:
+        // Il bordo intrecciato bianco lungo l'apertura e sulle tasche, e i
+        // bottoni di perla.
+        final braid = Paint()
+          ..color = outfit.accent
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.026;
+        final weave = Paint()
+          ..color = _dark(outfit.coat, 0.2)
+          ..strokeWidth = 0.006;
+        for (final side in [-1.0, 1.0]) {
+          canvas.drawLine(Offset(side * 0.03, -0.17), Offset(side * 0.06, 0.6), braid);
+          for (var t = 0.0; t <= 1; t += 0.06) {
+            final x = side * (0.03 + 0.03 * t);
+            final y = -0.17 + 0.77 * t;
+            canvas.drawLine(Offset(x - 0.012, y - 0.008), Offset(x + 0.012, y + 0.008), weave);
+          }
+          final pocket = Rect.fromLTRB(side < 0 ? -0.31 : 0.15, 0.08, side < 0 ? -0.15 : 0.31, 0.2);
+          canvas.drawRect(pocket, braid..strokeWidth = 0.016);
+          braid.strokeWidth = 0.026;
+        }
+        final pearl = Paint()..color = const Color(0xFFF8F4EA);
+        for (final y in [-0.06, 0.06, 0.18]) {
+          for (final side in [-1.0, 1.0]) {
+            final c = Offset(side * 0.1, y);
+            canvas.drawCircle(c, 0.017, pearl);
+            canvas.drawCircle(c.translate(-0.005, -0.005), 0.005, Paint()..color = Colors.white);
+          }
+        }
+      case ShopBrand.cuccioli:
+        // La fascia lungo l'apertura e la staffa d'ottone che la chiude.
+        for (final side in [-1.0, 1.0]) {
+          canvas.drawPath(
+            Path()
+              ..moveTo(side * 0.03, -0.16)
+              ..lineTo(side * 0.085, -0.16)
+              ..lineTo(side * 0.11, 0.6)
+              ..lineTo(side * 0.05, 0.6)
+              ..close(),
+            Paint()..color = const Color(0xFF1F6B63),
+          );
+          canvas.drawPath(
+            Path()
+              ..moveTo(side * 0.048, -0.16)
+              ..lineTo(side * 0.067, -0.16)
+              ..lineTo(side * 0.09, 0.6)
+              ..lineTo(side * 0.07, 0.6)
+              ..close(),
+            Paint()..color = const Color(0xFFD89A2B),
+          );
+        }
+        canvas.drawRect(const Rect.fromLTRB(-0.07, -0.11, 0.07, -0.085), Paint()..color = const Color(0xFF8A5E1E));
+        brandMark(canvas, ShopBrand.cuccioli, const Offset(0, -0.1), 0.04, color: gold);
+      case ShopBrand.vaugirard:
+        // La cintura di cuoio con la placca d'ottone, e i bottoni d'ottone.
+        canvas.drawRect(const Rect.fromLTRB(-0.6, -0.04, 0.6, 0.03), Paint()..color = const Color(0xFF4A2E1A));
+        final edge = Paint()
+          ..color = const Color(0xFFE8C77A).withValues(alpha: 0.6)
+          ..strokeWidth = 0.004;
+        canvas.drawLine(const Offset(-0.6, -0.033), const Offset(0.6, -0.033), edge);
+        canvas.drawLine(const Offset(-0.6, 0.023), const Offset(0.6, 0.023), edge);
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(const Rect.fromLTRB(-0.045, -0.06, 0.045, 0.05), const Radius.circular(0.012)),
+          Paint()..color = const Color(0xFFD9AE5A),
+        );
+        brandMark(canvas, ShopBrand.vaugirard, const Offset(0, -0.005), 0.04, color: const Color(0xFF4A2E1A));
+        for (final y in [-0.3, -0.16, 0.16]) {
+          for (final side in [-1.0, 1.0]) {
+            canvas.drawCircle(Offset(side * 0.09, y), 0.017, Paint()..color = const Color(0xFFD9AE5A));
+          }
+        }
+      case ShopBrand.adelphi when outfit.pattern == CoatPattern.track:
+        // Il carré a due toni: la parte alta bianca, staccata da un filo blu.
+        canvas.drawRect(const Rect.fromLTRB(-0.6, -0.7, 0.6, -0.34), Paint()..color = outfit.accent.withValues(alpha: 0.92));
+        canvas.drawRect(
+          const Rect.fromLTRB(-0.6, -0.345, 0.6, -0.325),
+          Paint()..color = _bright(outfit.coat, 0.25),
+        );
+      case ShopBrand.nikea when outfit.pattern == CoatPattern.track:
+        // La banda arancio che gira sotto il petto.
+        canvas.drawRect(const Rect.fromLTRB(-0.6, -0.22, 0.6, -0.17), Paint()..color = outfit.accent);
+      default:
+        break;
+    }
+  }
+
   /// Il marchio di una casa, inscritto in un cerchio di raggio [r]: segni
   /// semplici, inventati, che si leggono anche piccoli.
   static void brandMark(Canvas canvas, ShopBrand brand, Offset c, double r, {Color? color}) {
@@ -771,86 +943,99 @@ abstract final class LookPainter {
       ..color = ink
       ..style = PaintingStyle.stroke
       ..strokeWidth = r * 0.2
-      ..strokeJoin = StrokeJoin.miter
-      ..strokeCap = StrokeCap.square;
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round;
     switch (brand) {
-      case ShopBrand.vanetti:
-        // Una V dentro un rombo.
-        canvas.drawPath(
-          Path()
-            ..moveTo(c.dx, c.dy - r)
-            ..lineTo(c.dx + r * 0.8, c.dy)
-            ..lineTo(c.dx, c.dy + r)
-            ..lineTo(c.dx - r * 0.8, c.dy)
-            ..close(),
-          line..strokeWidth = r * 0.14,
+      case ShopBrand.vaugirard:
+        // La placca della serratura di un baule, il buco della chiave e
+        // quattro ribattini.
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(Rect.fromCenter(center: c, width: r * 1.35, height: r * 1.8), Radius.circular(r * 0.25)),
+          line..strokeWidth = r * 0.16,
         );
+        canvas.drawCircle(c.translate(0, -r * 0.18), r * 0.22, fill);
         canvas.drawPath(
           Path()
-            ..moveTo(c.dx - r * 0.38, c.dy - r * 0.36)
-            ..lineTo(c.dx, c.dy + r * 0.45)
-            ..lineTo(c.dx + r * 0.38, c.dy - r * 0.36),
+            ..moveTo(c.dx - r * 0.12, c.dy - r * 0.1)
+            ..lineTo(c.dx + r * 0.12, c.dy - r * 0.1)
+            ..lineTo(c.dx + r * 0.18, c.dy + r * 0.45)
+            ..lineTo(c.dx - r * 0.18, c.dy + r * 0.45)
+            ..close(),
+          fill,
+        );
+        for (final dx in [-0.42, 0.42]) {
+          for (final dy in [-0.65, 0.65]) {
+            canvas.drawCircle(c.translate(r * dx, r * dy), r * 0.08, fill);
+          }
+        }
+      case ShopBrand.arminio:
+        // Un tondo sottile tagliato da un orizzonte: niente di più.
+        canvas.drawCircle(c, r * 0.85, line..strokeWidth = r * 0.1);
+        canvas.drawLine(c.translate(-r * 1.0, r * 0.1), c.translate(r * 1.0, r * 0.1), line..strokeWidth = r * 0.16);
+        canvas.drawCircle(c.translate(0, -r * 0.35), r * 0.13, fill);
+      case ShopBrand.cuccioli:
+        // La staffa da sella, d'ottone: l'arco, la feritoia e il poggiapiede.
+        canvas.drawPath(
+          Path()
+            ..moveTo(c.dx - r * 0.6, c.dy + r * 0.55)
+            ..quadraticBezierTo(c.dx - r * 0.75, c.dy - r * 0.75, c.dx, c.dy - r * 0.72)
+            ..quadraticBezierTo(c.dx + r * 0.75, c.dy - r * 0.75, c.dx + r * 0.6, c.dy + r * 0.55),
           line..strokeWidth = r * 0.2,
         );
-      case ShopBrand.moretti:
-        // Una tesa di cappello sopra una riga: la bottega dei fratelli.
-        canvas.drawOval(Rect.fromCenter(center: c.translate(0, r * 0.15), width: r * 1.9, height: r * 0.42), fill);
-        canvas.drawPath(
-          Path()
-            ..moveTo(c.dx - r * 0.55, c.dy + r * 0.1)
-            ..lineTo(c.dx - r * 0.48, c.dy - r * 0.62)
-            ..quadraticBezierTo(c.dx, c.dy - r * 0.85, c.dx + r * 0.48, c.dy - r * 0.62)
-            ..lineTo(c.dx + r * 0.55, c.dy + r * 0.1)
-            ..close(),
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTRB(c.dx - r * 0.85, c.dy + r * 0.48, c.dx + r * 0.85, c.dy + r * 0.8),
+            Radius.circular(r * 0.1),
+          ),
           fill,
         );
-        canvas.drawLine(c.translate(-r * 0.7, r * 0.72), c.translate(r * 0.7, r * 0.72), line..strokeWidth = r * 0.16);
-      case ShopBrand.delacroix:
-        // Una falce di luna e una stella: la sera di Parigi.
-        canvas.saveLayer(Rect.fromCircle(center: c, radius: r * 1.2), Paint());
-        canvas.drawCircle(c.translate(-r * 0.15, 0), r * 0.8, fill);
-        canvas.drawCircle(c.translate(r * 0.2, -r * 0.15), r * 0.66, Paint()..blendMode = BlendMode.clear);
-        canvas.restore();
-        final star = Path();
+        canvas.drawRect(Rect.fromLTRB(c.dx - r * 0.2, c.dy - r * 1.0, c.dx + r * 0.2, c.dy - r * 0.7), fill);
+      case ShopBrand.versalli:
+        // Una rosa d'oro a otto petali dentro un anello di perline.
         for (var k = 0; k < 8; k++) {
-          final a = -pi / 2 + k * pi / 4;
-          final d = k.isEven ? r * 0.38 : r * 0.13;
-          final p = c.translate(r * 0.42 + cos(a) * d, -r * 0.1 + sin(a) * d);
-          k == 0 ? star.moveTo(p.dx, p.dy) : star.lineTo(p.dx, p.dy);
+          final a = k * pi / 4;
+          canvas.drawCircle(c.translate(cos(a) * r * 0.5, sin(a) * r * 0.5), r * 0.22, fill);
         }
-        canvas.drawPath(star..close(), fill);
-      case ShopBrand.fulmine:
-        // Un fulmine dentro un tondo.
-        canvas.drawCircle(c, r * 0.92, line..strokeWidth = r * 0.14);
-        canvas.drawPath(
-          Path()
-            ..moveTo(c.dx + r * 0.22, c.dy - r * 0.72)
-            ..lineTo(c.dx - r * 0.38, c.dy + r * 0.1)
-            ..lineTo(c.dx - r * 0.02, c.dy + r * 0.1)
-            ..lineTo(c.dx - r * 0.22, c.dy + r * 0.72)
-            ..lineTo(c.dx + r * 0.38, c.dy - r * 0.12)
-            ..lineTo(c.dx + r * 0.02, c.dy - r * 0.12)
-            ..close(),
-          fill,
-        );
-      case ShopBrand.ricci:
-        // Una gemma tagliata: la corona e il padiglione.
-        final gem = Path()
-          ..moveTo(c.dx - r * 0.85, c.dy - r * 0.25)
-          ..lineTo(c.dx - r * 0.45, c.dy - r * 0.7)
-          ..lineTo(c.dx + r * 0.45, c.dy - r * 0.7)
-          ..lineTo(c.dx + r * 0.85, c.dy - r * 0.25)
-          ..lineTo(c.dx, c.dy + r * 0.85)
-          ..close();
-        canvas.drawPath(gem, line..strokeWidth = r * 0.14);
-        canvas.drawLine(c.translate(-r * 0.85, -r * 0.25), c.translate(r * 0.85, -r * 0.25), line..strokeWidth = r * 0.1);
-        canvas.drawPath(
-          Path()
-            ..moveTo(c.dx - r * 0.3, c.dy - r * 0.25)
-            ..lineTo(c.dx, c.dy + r * 0.85)
-            ..lineTo(c.dx + r * 0.3, c.dy - r * 0.25),
-          line,
-        );
+        canvas.drawCircle(c, r * 0.24, Paint()..color = Colors.black.withValues(alpha: 0.5));
+        canvas.drawCircle(c, r * 0.14, fill);
+        for (var k = 0; k < 16; k++) {
+          final a = k * pi / 8;
+          canvas.drawCircle(c.translate(cos(a) * r * 0.92, sin(a) * r * 0.92), r * 0.07, fill);
+        }
+      case ShopBrand.chanterelle:
+        // Un fiocco di nastro e una perla appesa.
+        for (final side in [-1.0, 1.0]) {
+          canvas.drawPath(
+            Path()
+              ..moveTo(c.dx, c.dy - r * 0.2)
+              ..quadraticBezierTo(c.dx + side * r * 0.5, c.dy - r * 0.95, c.dx + side * r * 0.95, c.dy - r * 0.55)
+              ..quadraticBezierTo(c.dx + side * r * 1.0, c.dy - r * 0.15, c.dx, c.dy - r * 0.2)
+              ..close(),
+            fill,
+          );
+          canvas.drawLine(c.translate(0, -r * 0.15), c.translate(side * r * 0.35, r * 0.35), line..strokeWidth = r * 0.16);
+        }
+        canvas.drawCircle(c.translate(0, -r * 0.22), r * 0.2, fill);
+        canvas.drawCircle(c.translate(0, r * 0.68), r * 0.26, fill);
+      case ShopBrand.nikea:
+        // Un'ala a tre penne che si apre in su.
+        final root = c.translate(-r * 0.55, r * 0.55);
+        for (var k = 0; k < 3; k++) {
+          canvas.save();
+          canvas.translate(root.dx, root.dy);
+          canvas.rotate(-pi / 2 + 0.25 + k * 0.42);
+          final length = r * (1.55 - k * 0.3);
+          canvas.drawRRect(
+            RRect.fromRectAndRadius(Rect.fromLTRB(-r * 0.15, -length, r * 0.15, 0), Radius.circular(r * 0.15)),
+            fill,
+          );
+          canvas.restore();
+        }
+        canvas.drawCircle(root, r * 0.22, fill);
+      case ShopBrand.adelphi:
+        // Due stelle affiancate: i due fratelli.
+        canvas.drawPath(_starPath(c.translate(-r * 0.45, 0), r * 0.52, 5, 0.42), fill);
+        canvas.drawPath(_starPath(c.translate(r * 0.45, 0), r * 0.52, 5, 0.42), fill);
     }
   }
 
@@ -1105,7 +1290,18 @@ abstract final class LookPainter {
             canvas.drawLine(Offset(x, y), Offset(x, y + 0.025), fringe);
           }
         }
-        brandMark(canvas, ShopBrand.delacroix, const Offset(-0.1, -0.42), 0.022, color: const Color(0xFF8A7FA8));
+        for (final side in [-1.0, 1.0]) {
+          canvas.drawPath(
+            Path()
+              ..moveTo(side * 0.15, -0.62)
+              ..quadraticBezierTo(side * 0.17, -0.48, side * 0.13, -0.34),
+            Paint()
+              ..color = const Color(0xFF151417)
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 0.012,
+          );
+        }
+        brandMark(canvas, ShopBrand.chanterelle, const Offset(-0.1, -0.42), 0.024, color: const Color(0xFF151417));
       case AvatarAccessory.polkaTie:
         if (look.dame || zipped) break;
         _tie(
@@ -1132,13 +1328,13 @@ abstract final class LookPainter {
           _ascotPath,
           Paint()
             ..shader = const LinearGradient(
-              colors: [Color(0xFFB7A6D6), Color(0xFF4E3F72)],
+              colors: [Color(0xFF3A383E), Color(0xFF0E0D10)],
             ).createShader(const Rect.fromLTRB(-0.1, -0.64, 0.1, -0.36)),
         );
         canvas.save();
         canvas.clipPath(_ascotPath);
         for (final p in const [Offset(-0.05, -0.58), Offset(0.04, -0.55), Offset(-0.02, -0.46), Offset(0.05, -0.43), Offset(-0.05, -0.4)]) {
-          brandMark(canvas, ShopBrand.delacroix, p, 0.014, color: const Color(0xFFF2EAE1).withValues(alpha: 0.6));
+          brandMark(canvas, ShopBrand.chanterelle, p, 0.016, color: const Color(0xFFF2EEE6).withValues(alpha: 0.85));
         }
         canvas.restore();
         canvas.drawPath(
@@ -1150,8 +1346,8 @@ abstract final class LookPainter {
             ..style = PaintingStyle.stroke
             ..strokeWidth = 0.008,
         );
-        canvas.drawCircle(const Offset(0, -0.52), 0.017, Paint()..color = gold);
-        canvas.drawCircle(const Offset(-0.004, -0.524), 0.006, Paint()..color = const Color(0xFFFFF4D0));
+        canvas.drawCircle(const Offset(0, -0.52), 0.019, Paint()..color = const Color(0xFFF8F4EA));
+        canvas.drawCircle(const Offset(-0.005, -0.525), 0.006, Paint()..color = Colors.white);
       case AvatarAccessory.suspenders:
         // Le bretelle sopra il panciotto, con le fibbie d'ottone.
         _openCollar(canvas, look);
@@ -1184,8 +1380,51 @@ abstract final class LookPainter {
         }
         canvas.drawCircle(const Offset(0, -0.455), 0.032, Paint()..color = const Color(0xFFB8862E));
         canvas.drawCircle(const Offset(0, -0.455), 0.026, Paint()..color = gold);
-        brandMark(canvas, ShopBrand.ricci, const Offset(0, -0.455), 0.018, color: const Color(0xFF7A5418));
+        brandMark(canvas, ShopBrand.versalli, const Offset(0, -0.455), 0.018, color: const Color(0xFF7A5418));
         canvas.drawCircle(const Offset(-0.012, -0.468), 0.006, Paint()..color = Colors.white.withValues(alpha: 0.9));
+      case AvatarAccessory.vaugirardStrap:
+        // La tracolla di cuoio della borsa da viaggio, di traverso sul petto,
+        // con la fibbia e la placca d'ottone della casa.
+        if (look.dame || zipped) {
+          if (!zipped) _openCollar(canvas, look);
+        } else {
+          _tie(canvas, const Color(0xFF4A2E1A));
+        }
+        final strap = Path()
+          ..moveTo(-0.3, -0.62)
+          ..lineTo(-0.22, -0.64)
+          ..lineTo(0.42, 0.6)
+          ..lineTo(0.33, 0.6)
+          ..close();
+        canvas.drawPath(strap.shift(const Offset(0.006, 0.01)), Paint()..color = Colors.black.withValues(alpha: 0.35));
+        canvas.drawPath(strap, Paint()..color = const Color(0xFF6A4222));
+        final stitch = Paint()
+          ..color = const Color(0xFFE8C77A).withValues(alpha: 0.7)
+          ..strokeWidth = 0.004;
+        canvas.drawLine(const Offset(-0.285, -0.615), const Offset(0.345, 0.6), stitch);
+        canvas.drawLine(const Offset(-0.235, -0.632), const Offset(0.405, 0.6), stitch);
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(Rect.fromCenter(center: const Offset(0.0, -0.2), width: 0.1, height: 0.1), const Radius.circular(0.014)),
+          Paint()..color = const Color(0xFFD9AE5A),
+        );
+        brandMark(canvas, ShopBrand.vaugirard, const Offset(0.0, -0.2), 0.04, color: const Color(0xFF4A2E1A));
+      case AvatarAccessory.chanterellePearls:
+        // Due fili di perle, uno corto e uno lungo che scende sul petto, e il
+        // fiocco nero della casa sul fermaglio.
+        if (!zipped) _openCollar(canvas, look);
+        final pearl = Paint()..color = const Color(0xFFF8F4EA);
+        final shade = Paint()..color = const Color(0xFFB8B0A2);
+        final shine = Paint()..color = Colors.white;
+        for (final (drop, count, size) in [(0.08, 12, 0.013), (0.3, 20, 0.012)]) {
+          for (var i = 0; i <= count; i++) {
+            final t = i / count;
+            final c = Offset(-0.14 + 0.28 * t, -0.61 + drop * sin(pi * t));
+            canvas.drawCircle(c.translate(0.003, 0.004), size, shade);
+            canvas.drawCircle(c, size, pearl);
+            canvas.drawCircle(c.translate(-0.004, -0.004), size * 0.3, shine);
+          }
+        }
+        brandMark(canvas, ShopBrand.chanterelle, const Offset(-0.14, -0.6), 0.03, color: const Color(0xFF151417));
       case AvatarAccessory.none ||
           AvatarAccessory.carnation ||
           AvatarAccessory.whiteCarnation ||
@@ -1384,7 +1623,7 @@ abstract final class LookPainter {
       AvatarHead.morettiFedora ||
       AvatarHead.morettiHomburg => 0.42,
       AvatarHead.panama || AvatarHead.trilby || AvatarHead.boater || AvatarHead.morettiPanama || AvatarHead.porkPie => 0.3,
-      AvatarHead.bowler || AvatarHead.coppola || AvatarHead.topHat || AvatarHead.cloche || AvatarHead.fulmineCap => 0.32,
+      AvatarHead.bowler || AvatarHead.coppola || AvatarHead.topHat || AvatarHead.cloche || AvatarHead.fulmineCap || AvatarHead.vaugirardCap || AvatarHead.adelphiCap => 0.32,
       AvatarHead.beret => 0.12,
       _ => 0.0,
     };
@@ -1770,7 +2009,7 @@ abstract final class LookPainter {
           AvatarHead.morettiFedora ||
           AvatarHead.morettiPanama ||
           AvatarHead.morettiHomburg ||
-          AvatarHead.fulmineCap:
+          AvatarHead.fulmineCap || AvatarHead.vaugirardCap || AvatarHead.adelphiCap:
         // Le basette sotto il cappello.
         canvas.drawRect(const Rect.fromLTRB(-0.165, -0.95, -0.14, -0.86), hair);
         canvas.drawRect(const Rect.fromLTRB(0.14, -0.95, 0.165, -0.86), hair);
@@ -1922,9 +2161,9 @@ abstract final class LookPainter {
       case AvatarGlasses.delacroixShades:
         // Ovali, fumé, montatura d'oro; la luna della casa sulla cerniera.
         final wire = Paint()
-          ..color = const Color(0xFFE2C46A)
+          ..color = const Color(0xFFF2EEE6)
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 0.009;
+          ..strokeWidth = 0.016;
         for (final side in [-1.0, 1.0]) {
           final r = Rect.fromCenter(center: Offset(side * 0.068, -0.874), width: 0.105, height: 0.068);
           canvas.drawOval(
@@ -1933,7 +2172,7 @@ abstract final class LookPainter {
               ..shader = const LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Color(0xFF0C0A12), Color(0xFF3A2E4E)],
+                colors: [Color(0xFF0C0B0E), Color(0xFF34323A)],
               ).createShader(r),
           );
           canvas.drawOval(r, wire);
@@ -1943,7 +2182,10 @@ abstract final class LookPainter {
             ..strokeCap = StrokeCap.round);
         }
         canvas.drawLine(const Offset(-0.016, -0.882), const Offset(0.016, -0.882), wire);
-        brandMark(canvas, ShopBrand.delacroix, const Offset(0.128, -0.884), 0.014, color: const Color(0xFFE2C46A));
+        for (final side in [-1.0, 1.0]) {
+          canvas.drawCircle(Offset(side * 0.124, -0.886), 0.012, Paint()..color = const Color(0xFFF8F4EA));
+        }
+        brandMark(canvas, ShopBrand.chanterelle, const Offset(0, -0.9), 0.014, color: const Color(0xFFF2EEE6));
       case AvatarGlasses.ricciMonocle:
         // Il monocolo d'oro grosso, un brillante sul bordo e la catena.
         final c = const Offset(0.065, -0.875);
@@ -2156,23 +2398,14 @@ abstract final class LookPainter {
               : (Paint()
                   ..color = switch (look.hat) {
                     AvatarHead.panama || AvatarHead.pearlFedora => _felt,
-                    AvatarHead.morettiFedora => const Color(0xFF2A0E12),
-                    AvatarHead.morettiPanama => const Color(0xFF15233F),
+                    AvatarHead.morettiFedora || AvatarHead.morettiPanama => const Color(0xFF1F6B63),
                     _ => _dark(accent, 0.55),
                   }),
         );
         if (!silhouette) {
-          if (look.hat == AvatarHead.morettiPanama) {
-            // Il nastro a righe della casa.
-            canvas.drawRect(const Rect.fromLTRB(-0.176, -1.019, 0.176, -1.006), Paint()..color = const Color(0xFFA81C2C));
-          }
-          if (look.hat == AvatarHead.morettiFedora) {
-            // Il bordino d'oro sul nastro.
-            final trim = Paint()
-              ..color = gold.withValues(alpha: 0.8)
-              ..strokeWidth = 0.005;
-            canvas.drawLine(const Offset(-0.176, -1.038), const Offset(0.176, -1.038), trim);
-            canvas.drawLine(const Offset(-0.176, -0.987), const Offset(0.176, -0.987), trim);
+          if (look.hat == AvatarHead.morettiFedora || look.hat == AvatarHead.morettiPanama) {
+            // La fascia della casa: verde, ambra, verde.
+            _webBand(canvas, const Rect.fromLTRB(-0.176, -1.04, 0.176, -0.985));
           }
           // La piega del cocuzzolo, presa dalla luce.
           canvas.drawLine(
@@ -2183,7 +2416,7 @@ abstract final class LookPainter {
               ..strokeWidth = 0.012,
           );
           if (look.hat == AvatarHead.morettiFedora || look.hat == AvatarHead.morettiPanama) {
-            _hatPin(canvas, ShopBrand.moretti);
+            _hatPin(canvas, ShopBrand.cuccioli);
           }
         }
       case AvatarHead.homburg:
@@ -2293,7 +2526,8 @@ abstract final class LookPainter {
               ..color = Colors.white.withValues(alpha: 0.18)
               ..strokeWidth = 0.012,
           );
-          _hatPin(canvas, ShopBrand.moretti);
+          _webBand(canvas, const Rect.fromLTRB(-0.171, -1.03, 0.171, -0.995));
+          _hatPin(canvas, ShopBrand.cuccioli);
         }
       case AvatarHead.porkPie:
         // Il pork pie: cupola bassa e piatta, la tesa corta.
@@ -2405,23 +2639,61 @@ abstract final class LookPainter {
               ..strokeWidth = 0.012,
           );
         }
-      case AvatarHead.fulmineCap:
-        // Il berretto da ciclista: spicchi a due colori, la visiera corta
-        // e il fulmine della casa davanti.
+      case AvatarHead.fulmineCap || AvatarHead.vaugirardCap || AvatarHead.adelphiCap:
+        // I berretti delle case: spicchi a due colori, la visiera corta e il
+        // marchio davanti. Quello di Vaugirard è di tela da baule.
+        final (base, panel, band, visor, brand, mark) = switch (look.hat) {
+          AvatarHead.vaugirardCap => (
+            const Color(0xFF8E6A40),
+            const Color(0xFF8E6A40),
+            const Color(0xFF4A2E1A),
+            const Color(0xFF4A2E1A),
+            ShopBrand.vaugirard,
+            const Color(0xFFE8C77A),
+          ),
+          AvatarHead.adelphiCap => (
+            const Color(0xFFF2EEE6),
+            const Color(0xFFF2EEE6),
+            const Color(0xFF1B2D55),
+            const Color(0xFF1B2D55),
+            ShopBrand.adelphi,
+            const Color(0xFF1B2D55),
+          ),
+          _ => (
+            const Color(0xFFE6DDC8),
+            const Color(0xFF1A1A1E),
+            const Color(0xFFE8742A),
+            const Color(0xFF1A1A1E),
+            ShopBrand.nikea,
+            const Color(0xFFE8742A),
+          ),
+        };
         final cap = Path()
           ..moveTo(-0.175, -0.96)
           ..quadraticBezierTo(-0.19, -1.13, 0, -1.135)
           ..quadraticBezierTo(0.19, -1.13, 0.175, -0.96)
           ..close();
-        canvas.drawPath(cap, silhouette ? paint : (Paint()..color = const Color(0xFFF2E6CF)));
+        canvas.drawPath(cap, silhouette ? paint : (Paint()..color = base));
         if (!silhouette) {
           canvas.save();
           canvas.clipPath(cap);
-          canvas.drawRect(const Rect.fromLTRB(-0.2, -1.14, -0.06, -0.95), Paint()..color = const Color(0xFF1D2C58));
-          canvas.drawRect(const Rect.fromLTRB(0.06, -1.14, 0.2, -0.95), Paint()..color = const Color(0xFF1D2C58));
-          canvas.drawRect(const Rect.fromLTRB(-0.2, -0.99, 0.2, -0.96), Paint()..color = const Color(0xFFE2563F));
+          if (look.hat == AvatarHead.vaugirardCap) {
+            _trunkCanvas(canvas, base);
+          } else {
+            canvas.drawRect(const Rect.fromLTRB(-0.2, -1.14, -0.06, -0.95), Paint()..color = panel);
+            canvas.drawRect(const Rect.fromLTRB(0.06, -1.14, 0.2, -0.95), Paint()..color = panel);
+          }
+          canvas.drawRect(const Rect.fromLTRB(-0.2, -0.995, 0.2, -0.96), Paint()..color = band);
           canvas.restore();
-          brandMark(canvas, ShopBrand.fulmine, const Offset(0, -1.05), 0.035, color: const Color(0xFFE2563F));
+          if (look.hat == AvatarHead.vaugirardCap) {
+            canvas.drawRRect(
+              RRect.fromRectAndRadius(const Rect.fromLTRB(-0.03, -1.085, 0.03, -1.01), const Radius.circular(0.008)),
+              Paint()..color = const Color(0xFFD9AE5A),
+            );
+            brandMark(canvas, brand, const Offset(0, -1.047), 0.03, color: const Color(0xFF4A2E1A));
+          } else {
+            brandMark(canvas, brand, const Offset(0, -1.05), 0.038, color: mark);
+          }
         }
         canvas.drawPath(
           Path()
@@ -2430,7 +2702,7 @@ abstract final class LookPainter {
             ..lineTo(0.11, -0.925)
             ..quadraticBezierTo(0, -0.95, -0.11, -0.925)
             ..close(),
-          silhouette ? paint : (Paint()..color = const Color(0xFF1D2C58)),
+          silhouette ? paint : (Paint()..color = visor),
         );
       case AvatarHead.slicked || AvatarHead.bob || AvatarHead.bun:
         break;

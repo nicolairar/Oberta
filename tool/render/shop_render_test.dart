@@ -114,7 +114,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
     }
     await _shot(tester, '00_counter');
-    await tester.tap(find.byKey(const Key('shop.featured.outfit.vanetti_tuxedo')));
+    await tester.tap(find.byKey(const Key('shop.featured.outfit.vaugirard_travel')));
     await _shot(tester, '01_try_trench');
     await tester.tap(find.byKey(const Key('shop.action')));
     await _shot(tester, '02_receipt');
@@ -126,17 +126,19 @@ void main() {
     await tester.tap(find.byKey(const Key('shop.tab.counter')));
     await tester.tap(find.byKey(const Key('shop.slot.brands')));
     await tester.pump();
-    await tester.tap(find.byKey(const Key('shop.item.accessory.ricciWatch')));
+    final pick = find.byKey(const Key('shop.item.accessory.chanterellePearls'));
+    if (pick.evaluate().isNotEmpty) await tester.tap(pick);
     await _shot(tester, '06_brands');
 
     // I pezzi della seconda consegna (e quelli ritoccati), uno per moneta.
     final base = AvatarLook.fallback('anna');
-    tester.view.physicalSize = const Size(97.0 * 8, 118.0 * 6) * 3;
+    tester.view.physicalSize = const Size(97.0 * 8, 118.0 * 5) * 3;
     const fixed = {'face.pencil', 'face.imperial', 'accessory.pocketWatch', 'outfit.black_tuxedo'};
     final items = [
       for (final item in initialShopCatalog)
         if (fixed.contains(item.id)) item,
-      ...brandDrop,
+      for (final item in [...brandDrop, ...houseDrop])
+        if (item.brand != null) item,
     ];
     await tester.pumpWidget(
       RepaintBoundary(

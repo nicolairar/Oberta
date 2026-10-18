@@ -1424,7 +1424,7 @@ class DeathScenePainter extends CustomPainter {
           paint,
         );
         band(-0.084, 0.102, -0.082);
-      case AvatarHead.bowler || AvatarHead.boater || AvatarHead.topHat || AvatarHead.beret || AvatarHead.cloche || AvatarHead.fulmineCap:
+      case AvatarHead.bowler || AvatarHead.boater || AvatarHead.topHat || AvatarHead.beret || AvatarHead.cloche || AvatarHead.fulmineCap || AvatarHead.vaugirardCap || AvatarHead.adelphiCap:
         canvas.drawOval(
           Rect.fromCenter(
             center: head.translate(h * 0.01, -h * 0.052),

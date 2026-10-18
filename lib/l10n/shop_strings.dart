@@ -140,11 +140,13 @@ class ItalianShopStrings extends ShopStrings {
   String get allBrands => 'Tutte';
   @override
   String brandTagline(ShopBrand brand) => switch (brand) {
-    ShopBrand.vanetti => 'Alta sartoria · Milano',
-    ShopBrand.moretti => 'Cappellai dal 1908',
-    ShopBrand.delacroix => 'Abiti da sera · Parigi',
-    ShopBrand.fulmine => 'Sport e ginnastica',
-    ShopBrand.ricci => 'Oro e orologi · Napoli',
+    ShopBrand.vaugirard => 'Bauli e valigie · Parigi',
+    ShopBrand.arminio => 'Sartoria morbida · Milano',
+    ShopBrand.cuccioli => 'Pelletteria · Firenze',
+    ShopBrand.versalli => 'Oro e barocco · Reggio',
+    ShopBrand.chanterelle => 'Alta moda · Parigi',
+    ShopBrand.nikea => 'Corsa e atletica',
+    ShopBrand.adelphi => 'Atletica dei due fratelli',
   };
 }
 
@@ -219,10 +221,12 @@ class EnglishShopStrings extends ShopStrings {
   String get allBrands => 'All';
   @override
   String brandTagline(ShopBrand brand) => switch (brand) {
-    ShopBrand.vanetti => 'High tailoring · Milan',
-    ShopBrand.moretti => 'Hatters since 1908',
-    ShopBrand.delacroix => 'Evening wear · Paris',
-    ShopBrand.fulmine => 'Sport and gymnastics',
-    ShopBrand.ricci => 'Gold and watches · Naples',
+    ShopBrand.vaugirard => 'Trunks and luggage · Paris',
+    ShopBrand.arminio => 'Soft tailoring · Milan',
+    ShopBrand.cuccioli => 'Leather goods · Florence',
+    ShopBrand.versalli => 'Gold and baroque · Reggio',
+    ShopBrand.chanterelle => 'Couture · Paris',
+    ShopBrand.nikea => 'Running and athletics',
+    ShopBrand.adelphi => 'Athletics of two brothers',
   };
 }

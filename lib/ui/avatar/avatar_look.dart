@@ -320,7 +320,10 @@ enum AvatarAccessory {
   ricciTiePin,
   ricciWatch,
   delacroixScarf,
-  delacroixAscot;
+  delacroixAscot,
+  // Le case.
+  vaugirardStrap,
+  chanterellePearls;
 
   /// Quello che fumano: il fumo sale da qui.
   bool get smokes => this == cigar || this == cigarette || this == pipe || this == cigaretteHolder;
@@ -343,7 +346,10 @@ enum CoatPattern {
   velvet,
   cape,
   track,
-  cardigan;
+  cardigan,
+  // Le case.
+  canvas,
+  baroque;
 
   /// Giacche senza risvolti a punta: hanno il loro collo.
   bool get ownCollar => this == cape || this == track || this == cardigan;
@@ -424,63 +430,102 @@ class AvatarOutfit {
     const AvatarOutfit('tan_herringbone', Color(0xFF7E6244), CoatPattern.herringbone, Color(0xFF2E4A2E)),
     const AvatarOutfit('steel_sharkskin', Color(0xFF4C5766), CoatPattern.sharkskin, Color(0xFF16213E)),
     const AvatarOutfit('oxblood_double', Color(0xFF4A181D), CoatPattern.doubleBreasted, Color(0xFFC9A04A)),
-    const AvatarOutfit(
-      'vanetti_pinstripe',
-      Color(0xFF151B2E),
-      CoatPattern.pinstripe,
-      Color(0xFF7A1E2C),
-      brand: ShopBrand.vanetti,
-    ),
+    // Arminio Milano: la sartoria morbida, greige e blu notte, senza spalle.
+    const AvatarOutfit('vanetti_pinstripe', Color(0xFF232B3E), CoatPattern.plain, Color(0xFF9A907E), brand: ShopBrand.arminio),
     const AvatarOutfit(
       'vanetti_tuxedo',
-      Color(0xFF0F1220),
+      Color(0xFF131929),
       CoatPattern.tuxedo,
-      Color(0xFF0F1220),
-      shirt: Color(0xFFFAF6EC),
+      Color(0xFF131929),
+      shirt: Color(0xFFF2EEE6),
       satin: true,
-      brand: ShopBrand.vanetti,
+      brand: ShopBrand.arminio,
     ),
     const AvatarOutfit(
       'vanetti_ivory',
-      Color(0xFFE6DCC4),
-      CoatPattern.tuxedo,
-      Color(0xFF14131A),
-      shirt: Color(0xFFFFFFFF),
-      satin: true,
-      brand: ShopBrand.vanetti,
+      Color(0xFFA89E8C),
+      CoatPattern.plain,
+      Color(0xFF2A3246),
+      shirt: Color(0xFFF2EEE6),
+      brand: ShopBrand.arminio,
     ),
+    // Maison Chanterelle: nero e bianco, il bordo intrecciato e le perle.
     const AvatarOutfit(
       'delacroix_velvet',
-      Color(0xFF15392C),
+      Color(0xFF151417),
       CoatPattern.velvet,
-      Color(0xFF7E1A26),
-      shirt: Color(0xFFF6F0E4),
-      satin: true,
-      brand: ShopBrand.delacroix,
+      Color(0xFFF2EEE6),
+      shirt: Color(0xFFF6F2EA),
+      brand: ShopBrand.chanterelle,
     ),
     const AvatarOutfit(
       'delacroix_cape',
       Color(0xFF111015),
       CoatPattern.cape,
-      Color(0xFFA81C2C),
+      Color(0xFFF2EEE6),
       shirt: Color(0xFFFAF6EC),
-      brand: ShopBrand.delacroix,
+      brand: ShopBrand.chanterelle,
     ),
+    // Nikea Sport: nero, panna e arancio da pista.
     const AvatarOutfit(
       'fulmine_track',
-      Color(0xFF1D2C58),
+      Color(0xFF1A1A1E),
       CoatPattern.track,
-      Color(0xFFE2563F),
+      Color(0xFFE8742A),
       shirt: Color(0xFFF2E6CF),
-      brand: ShopBrand.fulmine,
+      brand: ShopBrand.nikea,
     ),
     const AvatarOutfit(
       'fulmine_cardigan',
-      Color(0xFF6A1A1F),
+      Color(0xFFE6DDC8),
       CoatPattern.cardigan,
-      Color(0xFF1D2C58),
+      Color(0xFFE8742A),
       shirt: Color(0xFFF2E6CF),
-      brand: ShopBrand.fulmine,
+      brand: ShopBrand.nikea,
+    ),
+    // Vaugirard & Fils: la tela da baule color cuoio, l'ottone.
+    const AvatarOutfit(
+      'vaugirard_travel',
+      Color(0xFF8E6A40),
+      CoatPattern.canvas,
+      Color(0xFF4A2E1A),
+      brand: ShopBrand.vaugirard,
+    ),
+    // Cuccioli Firenze: il blazer color avena, la fascia verde-ambra.
+    const AvatarOutfit(
+      'cuccioli_blazer',
+      Color(0xFFC8B48C),
+      CoatPattern.plain,
+      Color(0xFF1F6B63),
+      shirt: Color(0xFFF6F0E4),
+      brand: ShopBrand.cuccioli,
+    ),
+    // Versalli: nero e oro, volute barocche.
+    const AvatarOutfit(
+      'versalli_baroque',
+      Color(0xFF121014),
+      CoatPattern.baroque,
+      Color(0xFFE2B54A),
+      shirt: Color(0xFF121014),
+      satin: true,
+      brand: ShopBrand.versalli,
+    ),
+    // Adelphi Atletica: blu e bianco, il carré a due toni.
+    const AvatarOutfit(
+      'adelphi_track',
+      Color(0xFF1B2D55),
+      CoatPattern.track,
+      Color(0xFFF2EEE6),
+      shirt: Color(0xFFF2E6CF),
+      brand: ShopBrand.adelphi,
+    ),
+    const AvatarOutfit(
+      'adelphi_cardigan',
+      Color(0xFF2C5A3A),
+      CoatPattern.cardigan,
+      Color(0xFFF2EEE6),
+      shirt: Color(0xFFF2E6CF),
+      brand: ShopBrand.adelphi,
     ),
   ];
 

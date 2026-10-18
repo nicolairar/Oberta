@@ -98,6 +98,7 @@ void main() {
       final sql = [
         'supabase/migrations/20261017221000_shop.sql',
         'supabase/migrations/20261018120000_shop_brands.sql',
+        'supabase/migrations/20261018180000_shop_houses.sql',
       ].map((path) => File(path).readAsStringSync()).join('\n');
       final rows = RegExp(r"\('(\w+)\.(\w+)', '(\w+)', '(\w+)', '(\w+)', (\d+), .*?(?:, (null|'(\w+)'))?\)[,\n]")
           .allMatches(sql);
@@ -116,7 +117,7 @@ void main() {
     test('le case firmano i pezzi più cari', () {
       for (final brand in ShopBrand.values) {
         final pieces = initialShopCatalog.where((item) => item.brand == brand);
-        expect(pieces, isNotEmpty, reason: brand.label);
+        expect(pieces.length, inInclusiveRange(3, 6), reason: brand.label);
         expect(pieces.every((item) => item.rarity.index >= ShopRarity.epico.index), isTrue, reason: brand.label);
       }
     });

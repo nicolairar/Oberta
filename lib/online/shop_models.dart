@@ -25,21 +25,28 @@ enum ShopRarity {
 /// segno disegnato a mano ([LookPainter.brandMark]). L'id è quello della
 /// colonna `shop_items.brand`.
 enum ShopBrand {
-  /// Alta sartoria milanese: smoking, gessati, doppiopetti. Il marchio: una V
-  /// dentro un rombo.
-  vanetti('Casa Vanetti', Color(0xFFD9B45A)),
+  /// Bauli e valigie da viaggio: tela color cuoio e ottone. Il marchio: la
+  /// placca della serratura con il buco della chiave.
+  vaugirard('Vaugirard & Fils', Color(0xFFC89A5A)),
 
-  /// Cappellai dal 1908: il marchio è una tesa sopra due iniziali.
-  moretti('Fratelli Moretti', Color(0xFFC08E5E)),
+  /// Sartoria milanese morbida, greige e blu notte. Il marchio: un tondo
+  /// sottile tagliato da un orizzonte.
+  arminio('Arminio Milano', Color(0xFFBDB3A1)),
 
-  /// Abiti da sera parigini, sciarpe e foulard: una falce di luna e una stella.
-  delacroix('Maison Delacroix', Color(0xFFCFC6E2)),
+  /// Pelletteria fiorentina: la fascia verde-ambra-verde e la staffa d'ottone.
+  cuccioli('Cuccioli Firenze', Color(0xFFD89A2B)),
 
-  /// Abbigliamento sportivo d'anteguerra: un fulmine in un tondo.
-  fulmine('Atletica Fulmine', Color(0xFFE2563F)),
+  /// Il barocco: nero e oro, volute. Il marchio: una rosa d'oro a otto petali.
+  versalli('Versalli', Color(0xFFE2B54A)),
 
-  /// Oro, catene e orologi: una gemma sfaccettata.
-  ricci('Gioielleria Ricci', Color(0xFFF0CF6A));
+  /// Alta moda parigina in bianco e nero, con le perle: un fiocco e una perla.
+  chanterelle('Maison Chanterelle', Color(0xFFF2EEE6)),
+
+  /// Sport d'anteguerra, nero e arancio: un'ala a tre penne.
+  nikea('Nikea Sport', Color(0xFFE8742A)),
+
+  /// Atletica dei due fratelli, blu e bianco: due stelle affiancate.
+  adelphi('Adelphi Atletica', Color(0xFF5B9BE0));
 
   final String label;
   final Color color;
@@ -86,6 +93,12 @@ class ShopItem {
 
   /// Un pezzo della seconda consegna (le case di moda e il resto).
   ShopItem.drop(this.slot, this.lookId, this.rarity, this.nameIt, this.nameEn, this.sort, {this.brand})
+    : id = '$slot.$lookId',
+      price = rarity.price,
+      releasedOn = DateTime.utc(2026, 10, 18);
+
+  /// Un pezzo della terza consegna: una casa e basta.
+  ShopItem.house(this.slot, this.lookId, this.rarity, this.nameIt, this.nameEn, this.sort, ShopBrand this.brand)
     : id = '$slot.$lookId',
       price = rarity.price,
       releasedOn = DateTime.utc(2026, 10, 18);
@@ -158,7 +171,7 @@ abstract class ShopRepository {
 /// `supabase/migrations/20261017221000_shop.sql` e
 /// `supabase/migrations/20261018120000_shop_brands.sql` (un test li
 /// confronta): la bottega finta lo usa, quella vera lo legge dal server.
-final List<ShopItem> initialShopCatalog = [..._firstDrop, ...brandDrop];
+final List<ShopItem> initialShopCatalog = [..._firstDrop, ...brandDrop, ...houseDrop];
 
 final List<ShopItem> _firstDrop = [
   ShopItem.seed('hat', 'fedora', ShopRarity.base, 'Fedora', 'Fedora', 100),
@@ -249,18 +262,18 @@ final List<ShopItem> brandDrop = [
   ShopItem.drop('hat', 'beret', ShopRarity.comune, 'Basco', 'Beret', 121),
   ShopItem.drop('hat', 'pearlFedora', ShopRarity.comune, 'Fedora grigio perla', 'Pearl grey fedora', 122),
   ShopItem.drop('hat', 'cloche', ShopRarity.raro, 'Cloche', 'Cloche', 123),
-  ShopItem.drop('hat', 'morettiFedora', ShopRarity.epico, 'Fedora Moretti', 'Moretti fedora', 130, brand: ShopBrand.moretti),
-  ShopItem.drop('hat', 'morettiPanama', ShopRarity.epico, 'Panama Moretti', 'Moretti panama', 131, brand: ShopBrand.moretti),
+  ShopItem.drop('hat', 'morettiFedora', ShopRarity.epico, 'Fedora a fascia Cuccioli', 'Cuccioli banded fedora', 130, brand: ShopBrand.cuccioli),
+  ShopItem.drop('hat', 'morettiPanama', ShopRarity.epico, 'Panama Cuccioli', 'Cuccioli panama', 131, brand: ShopBrand.cuccioli),
   ShopItem.drop(
     'hat',
     'morettiHomburg',
     ShopRarity.leggendario,
-    'Homburg da sera Moretti',
-    'Moretti evening homburg',
+    'Homburg con staffa Cuccioli',
+    'Cuccioli stirrup homburg',
     132,
-    brand: ShopBrand.moretti,
+    brand: ShopBrand.cuccioli,
   ),
-  ShopItem.drop('hat', 'fulmineCap', ShopRarity.epico, 'Berretto da ciclista Fulmine', 'Fulmine cycling cap', 133, brand: ShopBrand.fulmine),
+  ShopItem.drop('hat', 'fulmineCap', ShopRarity.epico, 'Berretto da corsa Nikea', 'Nikea running cap', 133, brand: ShopBrand.nikea),
   // Baffi e barbe.
   ShopItem.drop('face', 'chevron', ShopRarity.comune, 'Baffi a spazzola', 'Chevron moustache', 220),
   ShopItem.drop('face', 'horseshoe', ShopRarity.comune, 'Baffi a ferro di cavallo', 'Horseshoe moustache', 221),
@@ -275,71 +288,71 @@ final List<ShopItem> brandDrop = [
     'glasses',
     'delacroixShades',
     ShopRarity.epico,
-    'Occhiali fumé Delacroix',
-    'Delacroix smoked glasses',
+    'Occhiali bianchi Chanterelle',
+    'Chanterelle white-rim glasses',
     330,
-    brand: ShopBrand.delacroix,
+    brand: ShopBrand.chanterelle,
   ),
   ShopItem.drop(
     'glasses',
     'ricciMonocle',
     ShopRarity.epico,
-    'Monocolo con brillante Ricci',
-    'Ricci diamond monocle',
+    'Monocolo barocco Versalli',
+    'Versalli baroque monocle',
     331,
-    brand: ShopBrand.ricci,
+    brand: ShopBrand.versalli,
   ),
   // Abiti.
   ShopItem.drop('outfit', 'charcoal_windowpane', ShopRarity.raro, 'Finestrato antracite', 'Charcoal windowpane', 440),
   ShopItem.drop('outfit', 'tan_herringbone', ShopRarity.raro, 'Spina di pesce tabacco', 'Tan herringbone', 441),
   ShopItem.drop('outfit', 'steel_sharkskin', ShopRarity.raro, 'Fresco di lana acciaio', 'Steel sharkskin', 442),
   ShopItem.drop('outfit', 'oxblood_double', ShopRarity.raro, 'Doppiopetto sangue di bue', 'Oxblood double-breasted', 443),
-  ShopItem.drop('outfit', 'vanetti_pinstripe', ShopRarity.epico, 'Gessato Vanetti', 'Vanetti pinstripe', 450, brand: ShopBrand.vanetti),
+  ShopItem.drop('outfit', 'vanetti_pinstripe', ShopRarity.epico, 'Completo morbido Arminio', 'Arminio soft suit', 450, brand: ShopBrand.arminio),
   ShopItem.drop(
     'outfit',
     'vanetti_tuxedo',
     ShopRarity.leggendario,
-    'Smoking di raso Vanetti',
-    'Vanetti satin tuxedo',
+    'Smoking blu notte Arminio',
+    'Arminio midnight tuxedo',
     451,
-    brand: ShopBrand.vanetti,
+    brand: ShopBrand.arminio,
   ),
   ShopItem.drop(
     'outfit',
     'vanetti_ivory',
     ShopRarity.leggendario,
-    'Smoking avorio Vanetti',
-    'Vanetti ivory dinner jacket',
+    'Giacca greige Arminio',
+    'Arminio greige jacket',
     452,
-    brand: ShopBrand.vanetti,
+    brand: ShopBrand.arminio,
   ),
   ShopItem.drop(
     'outfit',
     'delacroix_velvet',
     ShopRarity.epico,
-    'Giacca da camera Delacroix',
-    'Delacroix velvet smoking jacket',
+    'Giacca bordata Chanterelle',
+    'Chanterelle braided jacket',
     453,
-    brand: ShopBrand.delacroix,
+    brand: ShopBrand.chanterelle,
   ),
   ShopItem.drop(
     'outfit',
     'delacroix_cape',
     ShopRarity.leggendario,
-    "Mantello d'opera Delacroix",
-    'Delacroix opera cape',
+    'Mantello bianco e nero Chanterelle',
+    'Chanterelle black-and-white cape',
     454,
-    brand: ShopBrand.delacroix,
+    brand: ShopBrand.chanterelle,
   ),
-  ShopItem.drop('outfit', 'fulmine_track', ShopRarity.epico, 'Tuta Fulmine', 'Fulmine track jacket', 455, brand: ShopBrand.fulmine),
+  ShopItem.drop('outfit', 'fulmine_track', ShopRarity.epico, 'Giacca da pista Nikea', 'Nikea track top', 455, brand: ShopBrand.nikea),
   ShopItem.drop(
     'outfit',
     'fulmine_cardigan',
     ShopRarity.epico,
-    'Cardigan da squadra Fulmine',
-    'Fulmine team cardigan',
+    'Cardigan atletico Nikea',
+    'Nikea athletic cardigan',
     456,
-    brand: ShopBrand.fulmine,
+    brand: ShopBrand.nikea,
   ),
   // Vezzi.
   ShopItem.drop('accessory', 'stripeTie', ShopRarity.comune, 'Cravatta a righe', 'Striped tie', 520),
@@ -348,56 +361,67 @@ final List<ShopItem> brandDrop = [
   ShopItem.drop('accessory', 'whiteCarnation', ShopRarity.comune, 'Garofano bianco', 'White carnation', 523),
   ShopItem.drop('accessory', 'suspenders', ShopRarity.raro, 'Bretelle', 'Braces', 524),
   ShopItem.drop('accessory', 'cigaretteHolder', ShopRarity.raro, 'Bocchino', 'Cigarette holder', 525),
-  ShopItem.drop('accessory', 'ricciChain', ShopRarity.epico, "Catena d'oro Ricci", 'Ricci gold chain', 530, brand: ShopBrand.ricci),
+  ShopItem.drop('accessory', 'ricciChain', ShopRarity.epico, 'Catena barocca Versalli', 'Versalli baroque chain', 530, brand: ShopBrand.versalli),
   ShopItem.drop(
     'accessory',
     'ricciTiePin',
     ShopRarity.epico,
-    'Fermacravatta Ricci',
-    'Ricci tie pin',
+    'Fermacravatta Versalli',
+    'Versalli tie pin',
     531,
-    brand: ShopBrand.ricci,
+    brand: ShopBrand.versalli,
   ),
   ShopItem.drop(
     'accessory',
     'ricciWatch',
     ShopRarity.leggendario,
-    "Cipolla d'oro Ricci",
-    'Ricci gold pocket watch',
+    "Cipolla d'oro Versalli",
+    'Versalli gold pocket watch',
     532,
-    brand: ShopBrand.ricci,
+    brand: ShopBrand.versalli,
   ),
   ShopItem.drop(
     'accessory',
     'delacroixScarf',
     ShopRarity.epico,
-    'Sciarpa da sera Delacroix',
-    'Delacroix evening scarf',
+    'Sciarpa da sera Chanterelle',
+    'Chanterelle evening scarf',
     533,
-    brand: ShopBrand.delacroix,
+    brand: ShopBrand.chanterelle,
   ),
   ShopItem.drop(
     'accessory',
     'delacroixAscot',
     ShopRarity.epico,
-    'Foulard Delacroix',
-    'Delacroix ascot',
+    'Foulard a fiocchi Chanterelle',
+    'Chanterelle bow ascot',
     534,
-    brand: ShopBrand.delacroix,
+    brand: ShopBrand.chanterelle,
   ),
 ];
 
+/// La terza consegna: le due case nuove e un pezzo in più per le altre.
+final List<ShopItem> houseDrop = [
+  ShopItem.house('hat', 'vaugirardCap', ShopRarity.epico, 'Coppola da viaggio Vaugirard', 'Vaugirard travel cap', 134, ShopBrand.vaugirard),
+  ShopItem.house('hat', 'adelphiCap', ShopRarity.epico, 'Berretto da tennis Adelphi', 'Adelphi tennis cap', 135, ShopBrand.adelphi),
+  ShopItem.house('outfit', 'vaugirard_travel', ShopRarity.leggendario, 'Spolverino da viaggio Vaugirard', 'Vaugirard travel coat', 457, ShopBrand.vaugirard),
+  ShopItem.house('outfit', 'cuccioli_blazer', ShopRarity.epico, 'Blazer a fascia Cuccioli', 'Cuccioli banded blazer', 458, ShopBrand.cuccioli),
+  ShopItem.house('outfit', 'versalli_baroque', ShopRarity.leggendario, 'Giacca barocca Versalli', 'Versalli baroque jacket', 459, ShopBrand.versalli),
+  ShopItem.house('outfit', 'adelphi_track', ShopRarity.epico, 'Giacca da pista Adelphi', 'Adelphi track top', 460, ShopBrand.adelphi),
+  ShopItem.house('outfit', 'adelphi_cardigan', ShopRarity.epico, 'Maglia da squadra Adelphi', 'Adelphi team cardigan', 461, ShopBrand.adelphi),
+  ShopItem.house('accessory', 'vaugirardStrap', ShopRarity.epico, 'Tracolla Vaugirard', 'Vaugirard satchel strap', 535, ShopBrand.vaugirard),
+  ShopItem.house('accessory', 'chanterellePearls', ShopRarity.leggendario, 'Perle lunghe Chanterelle', 'Chanterelle long pearls', 536, ShopBrand.chanterelle),
+];
+
 /// La vetrina di adesso, come nella migrazione delle case: la collezione
-/// Casa Vanetti, con un cappello e un orologio da abbinare.
+/// Vaugirard & Fils, la casa dei bauli.
 final List<ShopFeature> initialShopFeatured = [
   for (final (i, id) in brandFeatured.indexed)
-    ShopFeature(itemId: id, startsAt: DateTime.utc(2026, 10, 18), endsAt: DateTime.utc(2026, 11, 8), sort: i),
+    ShopFeature(itemId: id, startsAt: DateTime.utc(2026, 10, 18, 18), endsAt: DateTime.utc(2026, 11, 15), sort: i),
 ];
 
 const brandFeatured = [
-  'outfit.vanetti_tuxedo',
-  'outfit.vanetti_pinstripe',
-  'outfit.vanetti_ivory',
-  'hat.morettiHomburg',
-  'accessory.ricciWatch',
+  'outfit.vaugirard_travel',
+  'hat.vaugirardCap',
+  'accessory.vaugirardStrap',
 ];
