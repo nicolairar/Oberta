@@ -105,10 +105,12 @@ abstract class ShopRepository {
   /// Indossa un pezzo posseduto ([OnlineFailure.notOwned] altrimenti).
   /// [tone] è la pelle che l'app mostra, per chi non ha mai salvato un look:
   /// serve solo ai baffi.
-  Future<Profile> equip(String itemId, {String? tone});
+  /// [current] è tutto il look che l'app mostra: il server lo salva sotto
+  /// quello già salvato, così cambia solo il pezzo scelto.
+  Future<Profile> equip(String itemId, {String? tone, Map<String, String>? current});
 
   /// Si toglie quello che porta in [slot]: torna il pezzo che gli spetta dal nome.
-  Future<Profile> unequip(String slot, {String? tone});
+  Future<Profile> unequip(String slot, {String? tone, Map<String, String>? current});
 }
 
 /// Il catalogo di partenza, lo stesso della migrazione

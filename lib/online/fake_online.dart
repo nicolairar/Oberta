@@ -873,11 +873,11 @@ class FakeShop implements ShopRepository {
   }
 
   @override
-  Future<Profile> equip(String itemId, {String? tone}) async {
+  Future<Profile> equip(String itemId, {String? tone, Map<String, String>? current}) async {
     final me = _me();
     final item = _item(itemId) ?? (throw const OnlineException(OnlineFailure.itemNotFound));
     if (!item.free && !(_owned[me.id]?.contains(item.id) ?? false)) throw const OnlineException(OnlineFailure.notOwned);
-    final avatar = {...me.avatar};
+    final avatar = {...?current, ...me.avatar};
     if (item.slot == 'face') {
       final skin = _tone(avatar, tone) ?? (throw const OnlineException(OnlineFailure.itemNotFound));
       avatar['base'] = '${skin}_${item.lookId}';
@@ -888,9 +888,9 @@ class FakeShop implements ShopRepository {
   }
 
   @override
-  Future<Profile> unequip(String slot, {String? tone}) async {
+  Future<Profile> unequip(String slot, {String? tone, Map<String, String>? current}) async {
     final me = _me();
-    final avatar = {...me.avatar};
+    final avatar = {...?current, ...me.avatar};
     if (slot == 'face') {
       final skin = _tone(avatar, tone);
       if (skin != null) avatar['base'] = '${skin}_clean';

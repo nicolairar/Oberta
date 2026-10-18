@@ -648,10 +648,10 @@ class SupabaseShop implements ShopRepository {
       _guard(() => _profileFrom(_client.rpc<List<dynamic>>('buy_item', params: {'p_item': itemId})));
 
   @override
-  Future<Profile> equip(String itemId, {String? tone}) => _guard(
-      () => _profileFrom(_client.rpc<List<dynamic>>('equip_item', params: {'p_item': itemId, 'p_tone': tone})));
+  Future<Profile> equip(String itemId, {String? tone, Map<String, String>? current}) => _guard(() => _profileFrom(
+      _client.rpc<List<dynamic>>('equip_item', params: {'p_item': itemId, 'p_tone': tone, 'p_current': current})));
 
   @override
-  Future<Profile> unequip(String slot, {String? tone}) => _guard(
-      () => _profileFrom(_client.rpc<List<dynamic>>('unequip_slot', params: {'p_slot': slot, 'p_tone': tone})));
+  Future<Profile> unequip(String slot, {String? tone, Map<String, String>? current}) => _guard(() => _profileFrom(
+      _client.rpc<List<dynamic>>('unequip_slot', params: {'p_slot': slot, 'p_tone': tone, 'p_current': current})));
 }

@@ -128,11 +128,11 @@ class ShopController extends ChangeNotifier {
   });
 
   Future<void> equip(ShopItem item) => _call(() async {
-    account.saved(await shop.equip(item.id, tone: _tone));
+    account.saved(await shop.equip(item.id, tone: _tone, current: look.toJson()));
   });
 
   Future<void> unequip(String slot) => _call(() async {
-    account.saved(await shop.unequip(slot, tone: _tone));
+    account.saved(await shop.unequip(slot, tone: _tone, current: look.toJson()));
   });
 
   @override
