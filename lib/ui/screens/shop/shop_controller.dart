@@ -84,6 +84,12 @@ class ShopController extends ChangeNotifier {
         item,
   ]..sort((a, b) => b.price != a.price ? b.price.compareTo(a.price) : a.sort.compareTo(b.sort));
 
+  /// Lo scaffale delle stramberie: il circo e il carnevale, i più cari prima.
+  List<ShopItem> oddities({required bool wardrobe}) => [
+    for (final item in catalog)
+      if (item.collection != null && drawable(item) && (!wardrobe || owned.contains(item.id))) item,
+  ]..sort((a, b) => b.price != a.price ? b.price.compareTo(a.price) : a.sort.compareTo(b.sort));
+
   /// Nel guardaroba: quello che si possiede, prima i pezzi comprati e poi
   /// quelli di casa.
   List<ShopItem> wardrobe(String slot) => [

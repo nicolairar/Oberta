@@ -56,6 +56,23 @@ enum ShopBrand {
   static ShopBrand? byId(String? id) => values.where((brand) => brand.name == id).firstOrNull;
 }
 
+/// Le collezioni dello scaffale delle stramberie. L'id è quello della
+/// colonna `shop_items.collection`.
+enum ShopCollection {
+  /// Il tendone: il clown, il forzuto, il prestigiatore, il mimo.
+  circo('Circo', 'Circus'),
+
+  /// I costumi e gli scherzi: il pirata, il cuoco, il gallo, le ali.
+  carnevale('Carnevale', 'Carnival');
+
+  final String it;
+  final String en;
+
+  const ShopCollection(this.it, this.en);
+
+  static ShopCollection? byId(String? id) => values.where((c) => c.name == id).firstOrNull;
+}
+
 /// Un pezzo del catalogo. [id] è `slot.lookId`; [lookId] è quello che il
 /// profilo salva per quel posto (per la faccia, il segno: `walrus`).
 class ShopItem {
@@ -72,6 +89,9 @@ class ShopItem {
   /// La casa che lo firma, o null per i pezzi della bottega.
   final ShopBrand? brand;
 
+  /// La collezione delle stramberie, o null.
+  final ShopCollection? collection;
+
   const ShopItem({
     required this.id,
     required this.slot,
@@ -83,25 +103,36 @@ class ShopItem {
     required this.releasedOn,
     this.sort = 0,
     this.brand,
+    this.collection,
   });
 
   /// Un pezzo del catalogo di partenza, con il prezzo della sua classe.
   ShopItem.seed(this.slot, this.lookId, this.rarity, this.nameIt, this.nameEn, this.sort, {this.brand})
     : id = '$slot.$lookId',
       price = rarity.price,
-      releasedOn = DateTime.utc(2026, 10, 17);
+      releasedOn = DateTime.utc(2026, 10, 17),
+      collection = null;
 
   /// Un pezzo della seconda consegna (le case di moda e il resto).
   ShopItem.drop(this.slot, this.lookId, this.rarity, this.nameIt, this.nameEn, this.sort, {this.brand})
     : id = '$slot.$lookId',
       price = rarity.price,
-      releasedOn = DateTime.utc(2026, 10, 18);
+      releasedOn = DateTime.utc(2026, 10, 18),
+      collection = null;
 
   /// Un pezzo della terza consegna: una casa e basta.
   ShopItem.house(this.slot, this.lookId, this.rarity, this.nameIt, this.nameEn, this.sort, ShopBrand this.brand)
     : id = '$slot.$lookId',
       price = rarity.price,
-      releasedOn = DateTime.utc(2026, 10, 18);
+      releasedOn = DateTime.utc(2026, 10, 18),
+      collection = null;
+
+  /// Una stramberia: il circo e il carnevale.
+  ShopItem.oddity(this.slot, this.lookId, this.rarity, this.nameIt, this.nameEn, this.sort, ShopCollection this.collection)
+    : id = '$slot.$lookId',
+      price = rarity.price,
+      releasedOn = DateTime.utc(2026, 10, 18),
+      brand = null;
 
   bool get free => rarity == ShopRarity.base;
 
@@ -118,6 +149,7 @@ class ShopItem {
     releasedOn: DateTime.tryParse(json['released_on'] as String? ?? '') ?? DateTime.utc(2026, 10, 17),
     sort: (json['sort'] as num?)?.toInt() ?? 0,
     brand: ShopBrand.byId(json['brand'] as String?),
+    collection: ShopCollection.byId(json['collection'] as String?),
   );
 }
 
@@ -169,9 +201,9 @@ abstract class ShopRepository {
 
 /// Il catalogo, lo stesso delle migrazioni
 /// `supabase/migrations/20261017221000_shop.sql` e
-/// `supabase/migrations/20261018120000_shop_brands.sql` (un test li
+/// `supabase/migrations/20261018120000_shop_brands.sql` e seguenti (un test li
 /// confronta): la bottega finta lo usa, quella vera lo legge dal server.
-final List<ShopItem> initialShopCatalog = [..._firstDrop, ...brandDrop, ...houseDrop];
+final List<ShopItem> initialShopCatalog = [..._firstDrop, ...brandDrop, ...houseDrop, ...odditiesDrop];
 
 final List<ShopItem> _firstDrop = [
   ShopItem.seed('hat', 'fedora', ShopRarity.base, 'Fedora', 'Fedora', 100),
@@ -413,12 +445,55 @@ final List<ShopItem> houseDrop = [
   ShopItem.house('accessory', 'chanterellePearls', ShopRarity.leggendario, 'Perle lunghe Chanterelle', 'Chanterelle long pearls', 536, ShopBrand.chanterelle),
 ];
 
+/// Le stramberie: il circo e il carnevale, per lo scaffale delle stranezze.
+final List<ShopItem> odditiesDrop = [
+  ShopItem.oddity('hat', 'clownWig', ShopRarity.leggendario, 'Parrucca arcobaleno', 'Rainbow clown wig', 140, ShopCollection.circo),
+  ShopItem.oddity('hat', 'magicianHat', ShopRarity.leggendario, 'Cilindro del prestigiatore', "Magician's top hat", 141, ShopCollection.circo),
+  ShopItem.oddity('hat', 'chefToque', ShopRarity.raro, 'Toque da cuoco', "Chef's toque", 142, ShopCollection.carnevale),
+  ShopItem.oddity('hat', 'sombrero', ShopRarity.raro, 'Sombrero con i pompon', 'Pompom sombrero', 143, ShopCollection.carnevale),
+  ShopItem.oddity('hat', 'tricorn', ShopRarity.epico, 'Tricorno del pirata', 'Pirate tricorn', 144, ShopCollection.carnevale),
+  ShopItem.oddity('hat', 'operaHelmet', ShopRarity.epico, 'Elmo della prima donna', 'Opera horned helmet', 145, ShopCollection.carnevale),
+  ShopItem.oddity('hat', 'beekeeper', ShopRarity.raro, "Cappello dell'apicoltore", "Beekeeper's veil hat", 146, ShopCollection.carnevale),
+  ShopItem.oddity('hat', 'roosterHead', ShopRarity.leggendario, 'Testa da gallo', 'Rooster costume head', 147, ShopCollection.carnevale),
+  ShopItem.oddity('hat', 'propellerBeanie', ShopRarity.comune, "Zucchetto con l'elica", 'Propeller beanie', 148, ShopCollection.carnevale),
+  ShopItem.oddity('hat', 'angelHalo', ShopRarity.epico, "Aureola d'angelo", 'Angel halo', 149, ShopCollection.carnevale),
+  ShopItem.oddity('hat', 'devilHorns', ShopRarity.epico, 'Cornetti del diavolo', 'Devil horns', 150, ShopCollection.carnevale),
+  ShopItem.oddity('face', 'curledMoustache', ShopRarity.raro, 'Baffi a ricciolo', 'Curled moustache', 220, ShopCollection.circo),
+  ShopItem.oddity('face', 'giantMoustache', ShopRarity.comune, 'Baffone finto', 'Giant fake moustache', 221, ShopCollection.carnevale),
+  ShopItem.oddity('face', 'mimeFace', ShopRarity.raro, 'Trucco da mimo', 'Mime face paint', 222, ShopCollection.circo),
+  ShopItem.oddity('glasses', 'noseDisguise', ShopRarity.comune, 'Naso e baffi finti', 'Nose-and-moustache disguise', 340, ShopCollection.carnevale),
+  ShopItem.oddity('glasses', 'heartGlasses', ShopRarity.comune, 'Occhiali a cuore', 'Heart glasses', 341, ShopCollection.carnevale),
+  ShopItem.oddity('glasses', 'hypnoGlasses', ShopRarity.raro, "Occhiali dell'ipnotista", 'Hypnotist glasses', 342, ShopCollection.circo),
+  ShopItem.oddity('glasses', 'eyePatch', ShopRarity.comune, 'Benda da pirata', 'Pirate eye patch', 343, ShopCollection.carnevale),
+  ShopItem.oddity('glasses', 'giantGlasses', ShopRarity.epico, 'Occhialoni', 'Giant novelty glasses', 344, ShopCollection.carnevale),
+  ShopItem.oddity('glasses', 'giantShades', ShopRarity.leggendario, 'Occhialoni da sole', 'Giant sunglasses', 345, ShopCollection.carnevale),
+  ShopItem.oddity('outfit', 'clown_suit', ShopRarity.leggendario, 'Costume da clown a pois', 'Polka-dot clown suit', 470, ShopCollection.circo),
+  ShopItem.oddity('outfit', 'strongman_leotard', ShopRarity.epico, 'Canottiera del forzuto', "Strongman's leotard", 471, ShopCollection.circo),
+  ShopItem.oddity('outfit', 'mime_stripes', ShopRarity.raro, 'Maglia a righe del mimo', "Mime's striped shirt", 472, ShopCollection.circo),
+  ShopItem.oddity('outfit', 'magician_cape', ShopRarity.epico, 'Mantello del prestigiatore', "Magician's cape", 473, ShopCollection.circo),
+  ShopItem.oddity('outfit', 'chef_whites', ShopRarity.raro, 'Giacca da cuoco', "Chef's whites", 474, ShopCollection.carnevale),
+  ShopItem.oddity('outfit', 'banana_suit', ShopRarity.leggendario, 'Costume da banana', 'Banana costume', 475, ShopCollection.carnevale),
+  ShopItem.oddity('accessory', 'clownNose', ShopRarity.leggendario, 'Naso da clown', 'Clown nose', 540, ShopCollection.circo),
+  ShopItem.oddity('accessory', 'parrot', ShopRarity.leggendario, 'Pappagallo sulla spalla', 'Shoulder parrot', 541, ShopCollection.carnevale),
+  ShopItem.oddity('accessory', 'rubberDuck', ShopRarity.comune, 'Paperella nel taschino', 'Pocket rubber duck', 542, ShopCollection.carnevale),
+  ShopItem.oddity('accessory', 'accordion', ShopRarity.epico, 'Fisarmonica', 'Accordion', 543, ShopCollection.carnevale),
+  ShopItem.oddity('accessory', 'baguetteCigar', ShopRarity.raro, 'Sigaro a filone', 'Baguette-size cigar', 544, ShopCollection.carnevale),
+  ShopItem.oddity('accessory', 'angelWings', ShopRarity.leggendario, "Ali d'angelo", 'Angel wings', 545, ShopCollection.carnevale),
+  ShopItem.oddity('accessory', 'batWings', ShopRarity.leggendario, 'Ali da diavoletto', 'Devil bat wings', 546, ShopCollection.carnevale),
+  ShopItem.oddity('accessory', 'butterflyWings', ShopRarity.leggendario, 'Ali di farfalla', 'Butterfly wings', 547, ShopCollection.carnevale),
+];
+
 /// La vetrina di adesso, come nella migrazione delle case: la collezione
 /// Vaugirard & Fils, la casa dei bauli.
 final List<ShopFeature> initialShopFeatured = [
   for (final (i, id) in brandFeatured.indexed)
     ShopFeature(itemId: id, startsAt: DateTime.utc(2026, 10, 18, 18), endsAt: DateTime.utc(2026, 11, 15), sort: i),
+  for (final (i, id) in odditiesFeatured.indexed)
+    ShopFeature(itemId: id, startsAt: DateTime.utc(2026, 10, 18, 20), endsAt: DateTime.utc(2026, 11, 15), sort: 3 + i),
 ];
+
+/// Il clown in vetrina accanto ai bauli.
+const odditiesFeatured = ['outfit.clown_suit', 'hat.clownWig', 'accessory.clownNose'];
 
 const brandFeatured = [
   'outfit.vaugirard_travel',
