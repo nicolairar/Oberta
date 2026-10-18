@@ -651,9 +651,9 @@ final class ItalianOnlineStrings extends OnlineStrings {
   @override
   String get ready => 'PRONTO';
   @override
-  String get readyWaiting => 'Registrato ✓ Aspettiamo gli altri.';
+  String get readyWaiting => 'Aspettiamo gli altri…';
   @override
-  String get moveRegistered => 'Registrato ✓';
+  String get moveRegistered => 'Fatto. La città dorme…';
   @override
   String get voteRegistered => 'registrato ✓';
   @override
@@ -1046,9 +1046,9 @@ final class EnglishOnlineStrings extends OnlineStrings {
   @override
   String get ready => 'READY';
   @override
-  String get readyWaiting => 'Registered ✓ Waiting for the others.';
+  String get readyWaiting => 'Waiting for the others…';
   @override
-  String get moveRegistered => 'Registered ✓';
+  String get moveRegistered => 'Done. The city sleeps…';
   @override
   String get voteRegistered => 'registered ✓';
   @override

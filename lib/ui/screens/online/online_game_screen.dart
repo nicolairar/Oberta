@@ -557,13 +557,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
             key: const Key('online.ready'),
             feel: Press.confirm,
             kind: _acked ? NoirButtonKind.brass : NoirButtonKind.enamel,
-            icon: _ackReceived ? Icons.check : null,
             onPressed: _acked || !enabled || !_open ? null : _ack,
-            label: _ackReceived
-                ? _t.online.readyWaiting
-                : _acked
-                ? _t.online.sending
-                : _t.online.ready,
+            // Niente «invio…» né «registrato»: si vede solo se qualcosa va storto.
+            label: _acked ? _t.online.readyWaiting : _t.online.ready,
           ),
         );
 
@@ -828,7 +824,6 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
           ),
         ),
         const SizedBox(height: 8),
-        if (_client.busy) ScrimText(_t.online.sending),
         Row(
           children: [
             Expanded(
@@ -1137,9 +1132,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         if (mine != null) ...[
           const SizedBox(height: 6),
           ScrimText(
-            '${mine.target == null ? _t.online.abstained : _t.online.votedFor(mine.target!.name)}'
-            ' · ${_client.busy ? _t.online.sending : _t.online.voteRegistered}',
-            key: Key(_client.busy ? 'online.votePending' : 'online.voteRegistered'),
+            mine.target == null ? _t.online.abstained : _t.online.votedFor(mine.target!.name),
+            key: const Key('online.myVote'),
             style: AppText.body.copyWith(color: Saloon.brass, fontSize: 14, fontWeight: FontWeight.w700),
           ),
         ],

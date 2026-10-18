@@ -86,7 +86,7 @@ void main() {
     await flush(tester);
     await tester.tap(find.byKey(const Key('online.ready')));
     await flush(tester);
-    expect(find.textContaining(RegExp('registrato ✓', caseSensitive: false)), findsOneWidget, reason: 'la conferma è arrivata al server');
+    expect(find.textContaining(RegExp('aspettiamo gli altri', caseSensitive: false)), findsOneWidget, reason: 'confermato: si aspettano gli altri, senza «registrato»');
     await settled(tester, online.gameAs('anna').sendAck(room.id, 's1', 'reveal-1'));
     await flush(tester);
     clock.elapse(const Duration(seconds: 2));
@@ -203,11 +203,11 @@ void main() {
     ].first;
     await tester.tap(find.byWidget(target.widget));
     await tester.pump();
-    expect(find.byKey(const Key('online.voteRegistered')), findsNothing, reason: 'prima della risposta, niente ✓');
-    expect(find.byKey(const Key('online.votePending')), findsOneWidget, reason: 'il pizzino si vede subito, prima della risposta');
+    expect(find.byKey(const Key('online.myVote')), findsOneWidget, reason: 'il pizzino si vede subito, prima della risposta');
+    expect(find.textContaining('Invio'), findsNothing, reason: 'niente «invio…»: si vede solo un errore');
     await flush(tester);
-    expect(find.byKey(const Key('online.voteRegistered')), findsOneWidget);
-    expect(find.textContaining('registrato ✓'), findsOneWidget);
+    expect(find.byKey(const Key('online.myVote')), findsOneWidget);
+    expect(find.textContaining('registrato'), findsNothing);
     expect(find.textContaining('→ '), findsWidgets, reason: 'il pizzino di Bruno è sul tavolo di tutti');
     expect(find.text('1').evaluate().length + find.text('2').evaluate().length, greaterThan(0), reason: 'il bollo con i voti');
     await tester.pumpWidget(const SizedBox());
