@@ -457,27 +457,44 @@ void main() {
       expect(online.profileOf('anna')!.level, result.won ? 2 : 1);
     });
 
-    test('otto in coda giocano una classificata senza bot; chi vince sale, chi perde scende', () async {
+    test('chi entra in coda si siede subito in sala d\'attesa; a tavolo pieno il conto alla rovescia, poi una classificata senza bot', () async {
       online = fresh();
-      final ids = ['anna', 'bruno', 'carla', for (var i = 0; i < 5; i++) 'p$i'];
+      final ids = ['anna', 'bruno', 'carla', for (var i = 0; i < 9; i++) 'p$i'];
       for (final id in ids.skip(3)) {
         online.addPlayer(id, handle: id);
       }
-      for (final id in ids.take(7)) {
+      online.auth.debugSignIn('anna');
+      var status = await online.ranked.enqueue(AppLanguage.it);
+      final lobby = status.roomId!;
+      expect(online.roomOf(lobby)!.status, RoomStatus.lobby, reason: 'subito in sala, non un caricamento');
+      for (final id in ids.skip(1).take(10)) {
         online.auth.debugSignIn(id);
-        await online.ranked.enqueue(AppLanguage.it);
+        status = await online.ranked.enqueue(AppLanguage.it);
+        expect(status.roomId, lobby);
       }
-      expect(online.rankedQueue, hasLength(7));
-      online.auth.debugSignIn('p4');
+      expect(online.roomOf(lobby)!.startsAt, isNull, reason: '11/12: si aspetta');
+      online.auth.debugSignIn('p8');
       await online.ranked.enqueue(AppLanguage.it);
+      expect(online.roomOf(lobby)!.startsAt, isNotNull, reason: '12/12: conto alla rovescia');
+
+      // Uno esce: il conto si ferma, senza penalità; un altro rientra.
+      await online.ranked.leave();
+      expect(online.roomOf(lobby)!.startsAt, isNull);
+      expect(online.cooldowns, isEmpty);
+      await online.ranked.enqueue(AppLanguage.it);
+      expect(online.roomOf(lobby)!.startsAt, isNotNull);
+
+      online.tickRanked();
+      expect(online.roomOf(lobby)!.status, RoomStatus.lobby, reason: 'il conto non è finito');
+      clock.elapse(online.rankedCountdown);
+      online.tickRanked();
       expect(online.rankedQueue, isEmpty, reason: 'il tavolo è fatto');
       await expectLater(
         online.ranked.enqueue(AppLanguage.it),
         throwsA(isA<OnlineException>().having((e) => e.failure, 'failure', OnlineFailure.alreadyInGame)),
       );
-      final status = await online.ranked.status();
-      room = online.roomOf(status.roomId!)!;
-      expect((room.ranked, room.bots, room.testMatch), (true, 0, false));
+      room = online.roomOf(lobby)!;
+      expect((room.status, room.ranked, room.bots, room.testMatch), (RoomStatus.playing, true, 0, false));
       await expectLater(online.gameAs(room.hostId).setBots(room.id, 2), throwsA(isA<OnlineException>()));
       await settle();
       await playToTheEnd([for (final (i, id) in ids.indexed) _Human(id, clientOf(id), Random(i + 9))]);
@@ -490,14 +507,17 @@ void main() {
       }
     });
 
-    test('SOLO PROVA: col flag due persone bastano, con i bot, e la partita non è classificata', () async {
+    test('SOLO PROVA: col flag due persone bastano, con i bot fino al tavolo intero, e la partita non è classificata', () async {
       online = fresh()..rankedTestHumans = 2;
       online.auth.debugSignIn('anna');
       await online.ranked.enqueue(AppLanguage.en);
       online.auth.debugSignIn('bruno');
       final status = await online.ranked.enqueue(AppLanguage.en);
+      expect(online.roomOf(status.roomId!)!.startsAt, isNotNull);
+      clock.elapse(online.rankedCountdown);
+      online.tickRanked();
       room = online.roomOf(status.roomId!)!;
-      expect((room.ranked, room.testMatch, room.bots), (false, true, 6));
+      expect((room.ranked, room.testMatch, room.bots, room.status), (false, true, 10, RoomStatus.playing));
       expect(status.testMatch, isTrue);
     });
 

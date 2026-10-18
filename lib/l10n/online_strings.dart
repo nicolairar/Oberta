@@ -150,6 +150,14 @@ abstract class OnlineStrings {
   String get rankedTestMatch;
   String get rankedWarning;
   String rankedCooldown(String time);
+  String get rankedLobbyTitle;
+  String rankedSeats(int seated, int size);
+  String rankedMissing(int missing);
+  String rankedStartsIn(int seconds);
+  String get rankedLeaveLobby;
+  String get rankedNoPenalty;
+  String get rankedTipsTitle;
+  List<String> get rankedTips;
   String tierName(RankTier tier);
   String get resultsTitle;
   String get resultsWon;
@@ -327,6 +335,14 @@ abstract class OnlineStrings {
     'rankedTestMatch': rankedTestMatch,
     'rankedWarning': rankedWarning,
     'rankedCooldown': rankedCooldown('5:00'),
+    'rankedLobbyTitle': rankedLobbyTitle,
+    'rankedSeats': rankedSeats(6, 12),
+    'rankedMissing': rankedMissing(3),
+    'rankedStartsIn': rankedStartsIn(10),
+    'rankedLeaveLobby': rankedLeaveLobby,
+    'rankedNoPenalty': rankedNoPenalty,
+    'rankedTipsTitle': rankedTipsTitle,
+    for (final (i, tip) in rankedTips.indexed) 'rankedTip$i': tip,
     for (final tier in RankTier.values) 'tier.${tier.name}': tierName(tier),
     'resultsTitle': resultsTitle,
     'resultsWon': resultsWon,
@@ -362,6 +378,27 @@ final class ItalianOnlineStrings extends OnlineStrings {
   String get rankedWarning => 'Chi abbandona le partite finisce a giocare con chi abbandona.';
   @override
   String rankedCooldown(String time) => 'Troppi abbandoni: puoi rientrare tra $time.';
+  @override
+  String get rankedLobbyTitle => 'SALA D\'ATTESA';
+  @override
+  String rankedSeats(int seated, int size) => '$seated/$size al tavolo';
+  @override
+  String rankedMissing(int missing) => missing == 1 ? 'Manca una persona' : 'Mancano $missing persone';
+  @override
+  String rankedStartsIn(int seconds) => 'Tavolo pieno: si comincia tra $seconds';
+  @override
+  String get rankedLeaveLobby => 'Esci dalla sala';
+  @override
+  String get rankedNoPenalty => 'Prima che cominci si può uscire senza penalità.';
+  @override
+  String get rankedTipsTitle => 'MENTRE ASPETTI';
+  @override
+  List<String> get rankedTips => const [
+        'Di giorno parla, ma non troppo: chi parla troppo finisce nel mirino.',
+        'Un voto deciso all\'ultimo secondo dice molto di chi l\'ha dato.',
+        'La famiglia vince quando è tanta quanto la città: contate le teste.',
+        'Chi abbandona la partita lascia la squadra in minoranza.',
+      ];
   @override
   String tierName(RankTier tier) => switch (tier) {
         RankTier.picciotto => 'Picciotto',
@@ -730,6 +767,27 @@ final class EnglishOnlineStrings extends OnlineStrings {
   String get rankedWarning => 'Players who leave games end up playing with players who leave.';
   @override
   String rankedCooldown(String time) => 'Too many games left: you can queue again in $time.';
+  @override
+  String get rankedLobbyTitle => 'WAITING ROOM';
+  @override
+  String rankedSeats(int seated, int size) => '$seated/$size at the table';
+  @override
+  String rankedMissing(int missing) => missing == 1 ? 'One more player needed' : '$missing more players needed';
+  @override
+  String rankedStartsIn(int seconds) => 'Table full: starting in $seconds';
+  @override
+  String get rankedLeaveLobby => 'Leave the room';
+  @override
+  String get rankedNoPenalty => 'Before the start you can leave with no penalty.';
+  @override
+  String get rankedTipsTitle => 'WHILE YOU WAIT';
+  @override
+  List<String> get rankedTips => const [
+        'Talk during the day, but not too much: the loudest end up in the crosshairs.',
+        'A vote cast at the last second says a lot about who cast it.',
+        'The family wins once it matches the town in number: count heads.',
+        'Leaving a game leaves your team short-handed.',
+      ];
   @override
   String tierName(RankTier tier) => switch (tier) {
         RankTier.picciotto => 'Picciotto',

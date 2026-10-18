@@ -47,8 +47,12 @@ class FakeOnline {
   /// La pausa dopo troppi abbandoni in classificata, per profilo.
   final Map<String, DateTime> cooldowns = {};
 
-  /// Quanti posti ha una partita classificata.
-  int rankedSize = 8;
+  /// Quanti posti ha una partita classificata: sempre esattamente tanti.
+  int rankedSize = 12;
+
+  /// Il conto alla rovescia del tavolo pieno.
+  Duration rankedCountdown = const Duration(seconds: 10);
+  int _rankedIds = 0;
 
   /// SOLO PROVA: con un numero, tante persone in coda bastano (più i bot),
   /// e la partita non è classificata. Null: spento.
@@ -222,6 +226,11 @@ class FakeOnline {
   void _leave(String roomId, String id) {
     final room = _rooms[roomId];
     if (room == null || room.seats.remove(id) == null) return;
+    if ((room.room.ranked || room.room.testMatch) && room.room.status == RoomStatus.lobby) {
+      // Fuori dalla sala d'attesa, senza penalità: fuori anche dalla coda.
+      rankedQueue.remove(id);
+      _countdown(room);
+    }
     if (room.seats.isEmpty) {
       // Come il server: la stanza vuota sparisce.
       room.room = _copy(room.room, status: RoomStatus.ended);
@@ -1008,7 +1017,7 @@ class FakeAccount implements AccountRepository {
   }
 }
 
-extension on FakeOnline {
+extension FakeRankedServer on FakeOnline {
   /// Come `internal.settle_input` + `obertaSettle` + `internal.record_match`.
   void _settle(Room room, _FakeGameRoom game, Map<String, Object?> result) {
     final seats = (result['seats'] as Map).cast<String, Object?>();
@@ -1060,38 +1069,78 @@ extension on FakeOnline {
     }
   }
 
-  /// Il matcher, semplificato: [rankedSize] persone della stessa lingua (o,
-  /// col flag di prova, [rankedTestHumans] più i bot).
-  void _match() {
-    for (final language in AppLanguage.values) {
-      final waiting = [
-        for (final MapEntry(:key, :value) in rankedQueue.entries)
-          if (value.$1 == language) (key, value.$2),
-      ]..sort((a, b) => a.$2.compareTo(b.$2));
-      final test = rankedTestHumans;
-      final need = test ?? rankedSize;
-      if (waiting.length < need) continue;
-      final players = [for (final w in waiting.take(rankedSize)) w.$1];
+  /// Quante persone fanno pronta una sala d'attesa: il tavolo intero, o col
+  /// flag di prova [rankedTestHumans].
+  int _need(bool test) => test ? min(rankedSize, rankedTestHumans ?? 1) : rankedSize;
+
+  void _countdown(_FakeRoom lobby) {
+    final ready = lobby.seats.length >= _need(lobby.room.testMatch);
+    final startsAt = lobby.room.startsAt;
+    if (ready && startsAt == null) {
+      lobby.room = lobby.room.copyWith(startsAt: clock.now().add(rankedCountdown));
+    } else if (!ready && startsAt != null) {
+      lobby.room = lobby.room.copyWith(startsAt: null);
+    }
+  }
+
+  bool _inRankedLobby(_FakeRoom r) => (r.room.ranked || r.room.testMatch) && r.room.status == RoomStatus.lobby;
+
+  /// Fa sedere chi è in coda: la sala d'attesa più piena della sua lingua, o
+  /// una nuova.
+  void _place(String id) {
+    final (language, _) = rankedQueue[id]!;
+    if (_rooms.values.any((r) => _inRankedLobby(r) && r.seats.containsKey(id))) return;
+    final test = rankedTestHumans != null;
+    final lobbies = _rooms.values
+        .where((r) =>
+            _inRankedLobby(r) && r.room.testMatch == test && r.room.language == language && r.seats.length < rankedSize)
+        .toList()
+      ..sort((a, b) => b.seats.length.compareTo(a.seats.length));
+    var lobby = lobbies.firstOrNull;
+    if (lobby == null) {
+      final n = ++_rankedIds;
+      lobby = _FakeRoom(Room(
+        id: 'ranked-$n',
+        code: 'RANK${n.toString().padLeft(2, '0')}',
+        hostId: id,
+        language: language,
+        maxPlayers: rankedSize,
+        ranked: !test,
+        testMatch: test,
+      ));
+      _rooms[lobby.room.id] = lobby;
+    }
+    final taken = lobby.seats.values.toSet();
+    lobby.seats[id] = [for (var s = 1; s <= rankedSize; s++) s].firstWhere((s) => !taken.contains(s));
+    _countdown(lobby);
+    lobby.notify(this);
+  }
+
+  /// Il giro del matcher: chi aspetta si siede, e le sale col conto alla
+  /// rovescia finito cominciano la partita (bot solo nelle prove).
+  void tickRanked() {
+    for (final id in [...rankedQueue.keys]) {
+      _place(id);
+    }
+    final now = clock.now();
+    for (final lobby in [..._rooms.values]) {
+      final startsAt = lobby.room.startsAt;
+      if (!_inRankedLobby(lobby) || startsAt == null || startsAt.isAfter(now)) continue;
+      if (lobby.seats.length < _need(lobby.room.testMatch)) {
+        lobby.room = lobby.room.copyWith(startsAt: null);
+        continue;
+      }
+      final players = [...lobby.seats.keys];
       for (final id in players) {
         rankedQueue.remove(id);
-        _leaveAll(id);
       }
-      final bots = test == null ? 0 : rankedSize - players.length;
-      final room = _FakeRoom(Room(
-        id: 'room-${_rooms.length + 1}',
-        code: 'RANK${_rooms.length + 10}'.substring(0, 6),
+      lobby.room = lobby.room.copyWith(
         hostId: players.first,
-        language: language,
-        maxPlayers: players.length + bots,
-        bots: bots,
-        ranked: test == null,
-        testMatch: test != null,
-      ));
-      _rooms[room.room.id] = room;
-      for (final (i, id) in players.indexed) {
-        room.seats[id] = i + 1;
-      }
-      gameAs(players.first)._begin(room.room.id);
+        bots: lobby.room.testMatch ? rankedSize - players.length : 0,
+        startsAt: null,
+      );
+      gameAs(players.first)._begin(lobby.room.id);
+      lobby.notify(this);
     }
   }
 }
@@ -1112,7 +1161,7 @@ class FakeRanked implements RankedRepository {
     final me = _me;
     final queued = _online.rankedQueue[me];
     final room = _online._rooms.values
-        .where((r) => (r.room.ranked || r.room.testMatch) && r.room.status == RoomStatus.playing && r.seats.containsKey(me))
+        .where((r) => (r.room.ranked || r.room.testMatch) && r.room.status != RoomStatus.ended && r.seats.containsKey(me))
         .lastOrNull;
     final cooldown = _online.cooldowns[me];
     return RankedStatus(
@@ -1139,15 +1188,20 @@ class FakeRanked implements RankedRepository {
       throw const OnlineException(OnlineFailure.alreadyInGame);
     }
     final old = _online.rankedQueue[me];
+    if (old == null || old.$1 != language) _online._leaveAll(me);
     _online.rankedQueue[me] = (language, old != null && old.$1 == language ? old.$2 : _online.clock.now());
-    _online._match();
+    _online.tickRanked();
     return status();
   }
 
   @override
   Future<void> leave() async {
     await _online._network();
-    _online.rankedQueue.remove(_me);
+    final me = _me;
+    _online.rankedQueue.remove(me);
+    for (final r in [..._online._rooms.values]) {
+      if (_online._inRankedLobby(r)) _online._leave(r.room.id, me);
+    }
   }
 
   @override
