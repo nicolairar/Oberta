@@ -8,6 +8,7 @@ import '../../../l10n/app_strings.dart';
 import '../../../narration/death_story.dart';
 import '../../../narration/narrator_script.dart';
 import '../../../online/game/game_client.dart';
+import 'game/meme_director.dart';
 import '../../../online/game/game_clock.dart';
 import '../../../online/game/game_feed.dart';
 import '../../../online/game/game_schedule.dart';
@@ -118,6 +119,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _client;
+    MemeDirector.attach(_client, alive: () => mounted);
     // Il cronometro, l'inizio dei film e la fine delle fasi.
     _ticker = Timer.periodic(const Duration(milliseconds: 250), (_) {
       if (mounted) setState(() {});

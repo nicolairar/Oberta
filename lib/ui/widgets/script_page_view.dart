@@ -7,7 +7,7 @@ import '../../l10n/app_strings.dart';
 import '../../narration/narrator_script.dart';
 import '../../rules/role.dart';
 import '../../sound/cue_sounds.dart';
-import '../../sound/memes.dart';
+import '../../sound/meme_beat.dart';
 import '../../sound/sound_stage.dart';
 import '../theme/app_theme.dart';
 import 'avatar_spotlight.dart';
@@ -109,11 +109,9 @@ class _ScriptPageViewState extends State<ScriptPageView> {
     HapticFeedback.heavyImpact();
     final caught = widget.page.revealed?.team == Team.mafia;
     final stage = SoundStage.instance;
-    if (stage.memeMode) {
-      stage.meme(cardMeme(caught: caught));
-    } else {
-      stage.cue(caught ? Cue.caught : Cue.innocent);
-    }
+    // Mafioso o innocente: la carta è appena diventata pubblica.
+    final meme = stage.memeMode ? beat(caught ? MemeMoment.verdictMafia : MemeMoment.verdictInnocent) : null;
+    if (meme == null) stage.cue(caught ? Cue.caught : Cue.innocent);
     setState(() {
       _cardTurned = true;
       _reachedEnd = false;

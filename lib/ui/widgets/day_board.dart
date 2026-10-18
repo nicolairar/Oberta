@@ -7,7 +7,7 @@ import 'package:flutter/services.dart';
 import '../../l10n/app_strings.dart';
 import '../../rules/role.dart';
 import '../../sound/cue_sounds.dart';
-import '../../sound/memes.dart';
+import '../../sound/meme_beat.dart';
 import '../../sound/sound_stage.dart';
 import '../theme/app_theme.dart';
 import '../theme/role_style.dart';
@@ -58,8 +58,10 @@ class _DayBoardState extends State<DayBoard> {
       setState(() => _left -= _second);
       if (_left == Duration.zero) {
         HapticFeedback.heavyImpact();
-        SoundStage.instance.memeMode ? SoundStage.instance.meme(Meme.error) : SoundStage.instance.cue(Cue.timeUp);
+        if (beat(MemeMoment.timerEnd) == null) SoundStage.instance.cue(Cue.timeUp);
       } else if (_left <= const Duration(seconds: 10)) {
+        // Gli ultimi cinque secondi: il panico.
+        if (_left == const Duration(seconds: 5)) beat(MemeMoment.timerEnd);
         SoundStage.instance.cue(Cue.tick);
       }
     });

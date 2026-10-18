@@ -10,7 +10,7 @@ import '../../sound/cue_sounds.dart';
 import '../../sound/sound_stage.dart';
 import '../theme/app_theme.dart';
 import '../theme/role_style.dart';
-import '../../sound/memes.dart';
+import '../../sound/meme_beat.dart';
 
 /// Carta ruolo coperta: si gira in 3D finché il dito resta premuto e torna
 /// coperta al rilascio, così il ruolo non resta mai in vista per sbaglio.
@@ -60,8 +60,7 @@ class _FlipRoleCardState extends State<FlipRoleCard> with SingleTickerProviderSt
     HapticFeedback.mediumImpact();
     SoundStage.instance.cue(Cue.flip);
     // A caso, mai legato al ruolo: lo sentono tutti, non deve svelare niente.
-    final meme = now(0.3);
-    if (meme != null) SoundStage.instance.meme(meme, after: const Duration(milliseconds: 250));
+    beat(MemeMoment.roleReveal, after: const Duration(milliseconds: 250));
     _controller.forward();
   }
 

@@ -10,6 +10,7 @@ import '../ui/widgets/verdict_scene.dart';
 import 'cue_sounds.dart';
 import 'ambience.dart';
 import 'fx_groups.dart';
+import 'meme_beat.dart';
 import 'memes.dart';
 import 'music_tracks.dart';
 import 'sound_stage.dart';
@@ -274,6 +275,7 @@ class DeviceStage extends SoundStage implements VerdictStage {
           if (!memeMode || !enabled) return;
         }
         _memeUntil = DateTime.now().add(Duration(milliseconds: meme.millis));
+        MemeBeat.instance.heard(meme);
         // Il meme è la battuta: la musica si fa da parte. Quelli lunghi la
         // zittiscono del tutto (e il sottofondo con lei), quelli brevi la
         // abbassano per un attimo.

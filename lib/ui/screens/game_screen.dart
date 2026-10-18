@@ -13,7 +13,7 @@ import '../../rules/player.dart';
 import '../../rules/role.dart';
 import '../../sound/cue_sounds.dart';
 import '../../sound/fx_groups.dart';
-import '../../sound/memes.dart';
+import '../../sound/meme_beat.dart';
 import '../../sound/narrator_voice.dart';
 import '../../sound/sound_stage.dart';
 import '../../sound/verdict_stage.dart';
@@ -131,6 +131,8 @@ class _GameScreenState extends State<GameScreen> {
     SoundStage.instance.music(MusicMood.night);
     // Cala la notte: il colpo che apre il capitolo, sotto la musica che cambia.
     SoundStage.instance.cue(Cue.nightfall);
+    // Si comincia: la prima battuta della serata.
+    if (round == 1) beat(MemeMoment.gameStart, after: const Duration(seconds: 1));
     _nightAtmosphere();
     _title = _t.nightTitle(round);
     // Prima il tramonto, poi la notte: il fondale scende con la pagina.
@@ -200,9 +202,11 @@ class _GameScreenState extends State<GameScreen> {
     final winner = report.winner;
     _dawnAtmosphere();
     // Il Cronista smaschera uno della famiglia: sus.
-    if (report.scoop?.team == Team.mafia) SoundStage.instance.meme(Meme.vineBoom, after: const Duration(seconds: 2));
+    if (report.scoop?.team == Team.mafia) beat(MemeMoment.scoop, after: const Duration(seconds: 2));
     // Nessun morto stanotte: la città l'ha scampata, e se la ride.
-    if (report.victims.isEmpty) SoundStage.instance.meme(Meme.heeHee, after: const Duration(milliseconds: 1200));
+    if (report.victims.isEmpty) beat(MemeMoment.nobodyDied, after: const Duration(milliseconds: 1200));
+    // Il Sarto ha cucito una bocca: lo vedono tutti sulla griglia.
+    if (report.silenced != null) beat(MemeMoment.silenced, after: const Duration(seconds: 4));
     _title = _t.dawnTitle;
     _mood = SceneMood.dawn;
     _stage = _Stage.script;
@@ -353,7 +357,7 @@ class _GameScreenState extends State<GameScreen> {
     // Il rullo di tamburi accompagna il condannato fino alla carta.
     if (report.role != null) SoundStage.instance.cue(Cue.drumroll);
     // Nessuna condanna: il silenzio imbarazzato della battuta che non ride nessuno.
-    if (condemned == null) SoundStage.instance.meme(Meme.chicken, after: const Duration(milliseconds: 600));
+    if (condemned == null) beat(MemeMoment.noConviction, after: const Duration(milliseconds: 600));
     _title = _t.verdictTitle;
     _mood = SceneMood.dusk;
     _stage = _Stage.script;
@@ -372,7 +376,7 @@ class _GameScreenState extends State<GameScreen> {
     SoundStage.instance.music(winner == Team.mafia ? MusicMood.winFamily : MusicMood.winTown);
     SoundStage.instance.ambience(null);
     SoundStage.instance.cue(winner == Team.mafia ? Cue.familyWins : Cue.townWins);
-    if (winner == Team.mafia) SoundStage.instance.meme(Meme.catLaugh, after: const Duration(milliseconds: 800));
+    beat(winner == Team.mafia ? MemeMoment.mafiaWins : MemeMoment.townWins, after: const Duration(milliseconds: 800));
     _title = _t.endTitle;
     _mood = winner == Team.mafia ? SceneMood.night : SceneMood.dawn;
     _endingLines = _script.ending(winner);
@@ -530,7 +534,7 @@ class _GameScreenState extends State<GameScreen> {
             alive: _engine.alivePlayers.length,
             total: widget.setup.players.length,
             onVote: () => _advance(() {
-              SoundStage.instance.meme(Meme.dexter);
+              beat(MemeMoment.voteCall);
               _voteLines = _script.voteCall();
               _stage = _Stage.vote;
             }),
@@ -717,7 +721,7 @@ class _GameScreenState extends State<GameScreen> {
       stamp: _t.accusedStamp,
       onSelect: (player) {
         // Il dito punta qualcuno in piazza: sus.
-        if (player != _selected) SoundStage.instance.meme(Meme.vineBoom);
+        if (player != _selected) beat(_selected == null ? MemeMoment.accused : MemeMoment.voteChanged);
         setState(() => _selected = player);
       },
     );

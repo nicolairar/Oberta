@@ -7,7 +7,7 @@ import '../../sound/cue_sounds.dart';
 import '../../sound/sound_stage.dart';
 import '../theme/app_theme.dart';
 import 'noir_avatar.dart';
-import '../../sound/memes.dart';
+import '../../sound/meme_beat.dart';
 
 /// Il tavolo da poker nel retro del locale: i giocatori seduti intorno al
 /// panno verde, il mazzo che si mescola al centro e una carta coperta che
@@ -63,13 +63,7 @@ class _DealTableState extends State<DealTable> with SingleTickerProviderStateMix
     if (landed > _landed) {
       HapticFeedback.lightImpact();
       SoundStage.instance.cue(Cue.deal);
-      if (_memes < 2) {
-        final meme = now(0.25);
-        if (meme != null) {
-          _memes++;
-          SoundStage.instance.meme(meme);
-        }
-      }
+      if (_memes < 2 && beat(MemeMoment.deal) != null) _memes++;
     }
     _landed = landed;
   }
