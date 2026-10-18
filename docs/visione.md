@@ -94,6 +94,10 @@ furba; votano anche di giorno.
   fine, prezzi) sta in tabelle Supabase, così cambia senza una build nuova. Le
   skin nuove arrivano con gli aggiornamenti dell'app (i disegni sono nel
   codice); il server le fa ruotare nelle settimane dopo.
+- **Altri cosmetici da vendere** (idea del proprietario, 18 ottobre): bordi delle
+  carte dei giocatori al tavolo, colore del nome, poi cornici del profilo,
+  titoli, effetti d'ingresso al tavolo. Le stramberie grandi e molto visibili
+  (ali, pagliaccio, occhiali enormi) sono leggendarie.
 - **Regole tecniche:** saldo, inventario ed esperienza li scrive solo il server
   (già oggi l'app non può modificarli); ogni acquisto Apple si verifica lato
   server (App Store Server API) prima di accreditare la valuta; l'esperienza
