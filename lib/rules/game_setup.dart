@@ -18,12 +18,13 @@ class GameSetup {
     required List<Player> lobby,
     Player? narrator,
     Random? random,
+    PlayMode mode = PlayMode.sharedPhone,
   }) {
     final players = [
       for (final player in lobby)
         if (player != narrator) player,
     ];
-    return GameSetup.fromRoles(assignRoles(players, random), narrator: narrator);
+    return GameSetup.fromRoles(assignRoles(players, random, mode), narrator: narrator);
   }
 
   List<Player> get players => roles.keys.toList();

@@ -144,16 +144,16 @@ void main() {
     expect(find.text('Stanotte è morta una persona: Carla. Il suo ruolo resta segreto.'), findsOneWidget);
     expect(find.textContaining('notte.'), findsWidgets, reason: 'la morte è raccontata come una scena');
     expect(find.textContaining('L\'Onesto'), findsNothing, reason: 'di notte il ruolo resta segreto');
-    expect(find.text('Avete 3 minuti per discutere. Poi votate chi eliminare.'), findsOneWidget);
+    expect(find.text('Avete un minuto per discutere. Poi votate chi eliminare.'), findsOneWidget);
     await tap(tester, 'APRI LA DISCUSSIONE');
 
     expect(find.text('GIORNO 1'), findsOneWidget);
-    expect(find.text('3:00'), findsOneWidget);
+    expect(find.text('1:00'), findsOneWidget);
     await tester.pump(const Duration(seconds: 2));
-    expect(find.text('2:58'), findsOneWidget);
+    expect(find.text('0:58'), findsOneWidget);
     await tester.tap(find.text('+1 MIN'));
     await tester.pump();
-    expect(find.text('3:58'), findsOneWidget);
+    expect(find.text('1:58'), findsOneWidget);
     await tap(tester, 'AL VOTO');
 
     expect(find.textContaining('Potete anche non eliminare nessuno.'), findsOneWidget);
@@ -387,8 +387,10 @@ void main() {
 
     expect(find.text('BRUNO'), findsOneWidget);
     await tap(tester, 'SONO IO');
+    expect(find.text('Chi eliminate stanotte?'), findsOneWidget, reason: 'il Sarto vota l\'agguato');
+    await tap(tester, 'CUCI UNA BOCCA');
     expect(find.text('A chi cuci la bocca stanotte?'), findsOneWidget);
-    expect(find.textContaining('domani non potrà parlare'), findsOneWidget);
+    expect(find.textContaining('domani non scrive in piazza'), findsOneWidget);
     await tap(tester, 'Elio');
     await tap(tester, 'CONFERMA');
     expect(find.text('Fatto.'), findsOneWidget);
@@ -432,11 +434,8 @@ void main() {
     await tap(tester, 'FATTO');
     await tap(tester, 'SONO IO');
     expect(find.byIcon(Icons.voice_over_off), findsNothing, reason: 'il silenzio dura un giorno');
-    expect(
-      tester.widget<PlayerGrid>(find.byType(PlayerGrid)).selectable,
-      [ada, carla, fabio],
-      reason: 'mai la stessa bocca due notti di fila',
-    );
+    expect(find.byKey(const Key('task.alternative')), findsNothing, reason: 'il silenzio è uno per partita');
+    expect(find.text('Chi eliminate stanotte?'), findsOneWidget);
   });
 
   testWidgets('a fine partita la famiglia è in rosso, qualunque ruolo avesse', (tester) async {

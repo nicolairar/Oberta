@@ -9,10 +9,6 @@ List<Player> _players(int count) => [for (var i = 0; i < count; i++) Player(id: 
 
 int _count(Iterable<Role> roles, Role role) => roles.where((r) => r == role).length;
 
-Map<Role, int> _tally(Iterable<Role> roles) => {
-      for (final role in Role.values)
-        if (_count(roles, role) > 0) role: _count(roles, role),
-    };
 
 const _sizes = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
 
@@ -37,104 +33,87 @@ void main() {
       }
     });
 
-    test('la famiglia è sempre in minoranza, circa uno su quattro', () {
-      for (final n in _sizes) {
-        final family = rolesForPlayerCount(n).where((role) => role.team == Team.mafia).length;
-        expect(family, max(1, n ~/ 4), reason: 'n=$n');
-        expect(family * 2, lessThan(n), reason: 'n=$n');
-      }
-    });
-
-    test('in famiglia c\'è sempre qualcuno che può uccidere', () {
-      for (final n in _sizes) {
-        expect(rolesForPlayerCount(n).where((role) => role.isKiller), isNotEmpty, reason: 'n=$n');
-      }
-    });
-
-    test('a ogni tavolo resta almeno un Onesto', () {
-      for (final n in _sizes) {
-        expect(_count(rolesForPlayerCount(n), Role.cittadino), greaterThanOrEqualTo(1), reason: 'n=$n');
-      }
-    });
-
-    test('fino a sette giocatori il mazzo è quello di sempre', () {
-      const m = Role.mafioso, o = Role.cittadino;
-      expect(rolesForPlayerCount(3), [m, o, o]);
-      expect(rolesForPlayerCount(4), [m, Role.detective, o, o]);
-      expect(rolesForPlayerCount(5), [m, Role.detective, Role.medico, o, o]);
-      expect(rolesForPlayerCount(6), [m, Role.detective, Role.medico, o, o, o]);
-      expect(rolesForPlayerCount(7), [m, Role.detective, Role.medico, Role.cecchino, o, o, o]);
-    });
-
-    test('i ruoli speciali entrano man mano che il tavolo cresce', () {
-      // Da quanti giocatori in su si trova ciascun ruolo, uno per mazzo.
-      const unlocks = {
-        Role.detective: 4,
-        Role.medico: 5,
-        Role.cecchino: 7,
-        Role.giornalista: 8,
-        Role.becchino: 8,
-        Role.padrino: 8,
-        Role.reduce: 9,
-        Role.guardaspalle: 10,
-        Role.sarto: 10,
-        Role.pregiudicato: 11,
-      };
-      for (final n in _sizes) {
-        final deck = rolesForPlayerCount(n);
-        unlocks.forEach((role, from) {
-          expect(_count(deck, role), n >= from ? 1 : 0, reason: '${role.name} a $n giocatori');
-        });
-      }
-    });
-
-    test('i mazzi dei tavoli grandi, uno per uno', () {
-      const specials = {
-        Role.detective: 1,
-        Role.medico: 1,
-        Role.cecchino: 1,
-        Role.giornalista: 1,
-        Role.becchino: 1,
-      };
-      expect(_tally(rolesForPlayerCount(8)), {Role.padrino: 1, Role.mafioso: 1, ...specials, Role.cittadino: 1});
-      expect(_tally(rolesForPlayerCount(9)), {
-        Role.padrino: 1,
-        Role.mafioso: 1,
-        ...specials,
-        Role.reduce: 1,
-        Role.cittadino: 1,
+    test('la famiglia è proporzionale: 1 fino a 6, 2 fino a 10, 3 fino a 14, 4 oltre', () {
+      const expected = {3: 1, 4: 1, 6: 1, 7: 2, 10: 2, 11: 3, 14: 3, 15: 4, 16: 4};
+      expected.forEach((n, family) {
+        for (var seed = 0; seed < 20; seed++) {
+          final deck = rolesForPlayerCount(n, random: Random(seed));
+          expect(deck.where((role) => role.team == Team.mafia).length, family, reason: 'n=$n');
+        }
       });
-      expect(_tally(rolesForPlayerCount(10)), {
-        Role.padrino: 1,
-        Role.sarto: 1,
-        ...specials,
-        Role.reduce: 1,
-        Role.guardaspalle: 1,
-        Role.cittadino: 1,
-      });
+    });
 
-      const everyone = {...specials, Role.reduce: 1, Role.guardaspalle: 1, Role.pregiudicato: 1};
-      const picciotti = {11: 0, 12: 1, 13: 1, 14: 1, 15: 1, 16: 2};
-      const onesti = {11: 1, 12: 1, 13: 2, 14: 3, 15: 4, 16: 4};
-      for (final n in picciotti.keys) {
-        expect(
-          _tally(rolesForPlayerCount(n)),
-          {
-            Role.padrino: 1,
-            Role.sarto: 1,
-            if (picciotti[n]! > 0) Role.mafioso: picciotti[n]!,
-            ...everyone,
-            Role.cittadino: onesti[n]!,
-          },
-          reason: 'n=$n',
-        );
+    test('lo stesso seme dà lo stesso mazzo', () {
+      for (final n in _sizes) {
+        expect(rolesForPlayerCount(n, random: Random(5)), rolesForPlayerCount(n, random: Random(5)));
       }
     });
 
-    test('dagli undici in su tutti e dodici i ruoli sono al tavolo, o quasi', () {
-      expect(rolesForPlayerCount(11).toSet(), Role.values.toSet().difference({Role.mafioso}));
-      for (var n = 12; n <= maxRolePlayers; n++) {
-        expect(rolesForPlayerCount(n).toSet(), Role.values.toSet(), reason: 'n=$n');
+    // Le regole di composizione, controllate su tanti mazzi per ogni tavolo
+    // e in tutte e due le modalità.
+    for (final mode in PlayMode.values) {
+      test('i vincoli tengono sempre (${mode.name})', () {
+        final seen = <int, Set<Role>>{};
+        for (final n in _sizes) {
+          for (var seed = 0; seed < 300; seed++) {
+            final deck = rolesForPlayerCount(n, random: Random(seed * 31 + n), mode: mode);
+            final why = 'n=$n seed=$seed $deck';
+            seen.putIfAbsent(n, () => {}).addAll(deck);
+            expect(deck, hasLength(n), reason: why);
+            int category(RoleCategory c) => deck.where((role) => role.rule.category == c).length;
+
+            // La famiglia.
+            final family = deck.where((role) => role.team == Team.mafia).toList();
+            expect(family.length * 2, lessThan(n), reason: why);
+            expect(family.any((role) => role.isKiller), isTrue, reason: why);
+            expect(category(RoleCategory.familyPower), lessThanOrEqualTo(n < 11 ? 1 : 2), reason: why);
+            expect(
+              family.toSet().containsAll({Role.padrino, Role.sarto, Role.compare}),
+              isFalse,
+              reason: why,
+            );
+
+            // Ogni ruolo: soglia, copie, modalità.
+            for (final role in deck.toSet()) {
+              expect(n, greaterThanOrEqualTo(role.rule.minPlayers), reason: '${role.name} $why');
+              expect(role.playableIn(mode), isTrue, reason: '${role.name} $why');
+              final copies = role.rule.maxCopies;
+              if (copies != null) expect(_count(deck, role), lessThanOrEqualTo(copies), reason: why);
+            }
+            if (n < 10) expect(deck, isNot(contains(Role.padrino)), reason: why);
+
+            // Le categorie dei cittadini.
+            final pairs = n < 12 ? 1 : 2;
+            expect(category(RoleCategory.investigator), lessThanOrEqualTo(pairs), reason: why);
+            expect(category(RoleCategory.protector), lessThanOrEqualTo(pairs), reason: why);
+            expect(category(RoleCategory.extraKill), lessThanOrEqualTo(1), reason: why);
+
+            // Almeno metà dei cittadini sono Onesti, gli speciali circa il 40%.
+            final citizens = n - family.length;
+            final onesti = _count(deck, Role.cittadino);
+            expect(onesti * 2, greaterThanOrEqualTo(citizens), reason: why);
+            expect(citizens - onesti, lessThanOrEqualTo((citizens * 0.4).floor()), reason: why);
+          }
+        }
+        // La pesca è davvero a caso: ai tavoli grandi escono ruoli diversi.
+        expect(seen[16]!.length, greaterThan(8));
+        if (mode == PlayMode.online) {
+          expect(seen[16], contains(Role.compare));
+        } else {
+          for (final roles in seen.values) {
+            expect(roles, isNot(contains(Role.compare)));
+          }
+        }
+        expect(seen[12], containsAll([Role.padrino, Role.sarto]));
+      });
+    }
+
+    test('un investigatore e un protettore escono per primi, appena possibile', () {
+      for (var seed = 0; seed < 50; seed++) {
+        final deck = rolesForPlayerCount(4, random: Random(seed));
+        expect(deck, contains(Role.detective));
+        final six = rolesForPlayerCount(6, random: Random(seed));
+        expect(six, containsAll([Role.detective, Role.medico]));
       }
     });
   });
@@ -146,7 +125,7 @@ void main() {
         final roles = assignRoles(players, Random(7));
         expect(roles.keys, players);
         List<Role> sorted(Iterable<Role> r) => r.toList()..sort((a, b) => a.index.compareTo(b.index));
-        expect(sorted(roles.values), sorted(rolesForPlayerCount(n)), reason: 'n=$n');
+        expect(sorted(roles.values), sorted(rolesForPlayerCount(n, random: Random(7))), reason: 'n=$n');
       }
     });
 

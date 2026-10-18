@@ -117,16 +117,16 @@ void main() {
     expect(find.text('The crime page'), findsOneWidget);
     expect(find.text('Last night one person died: Carla. Their role stays secret.'), findsOneWidget);
     expect(find.textContaining('The Honest One'), findsNothing, reason: 'at night the role stays secret');
-    expect(find.text('You have 3 minutes to discuss. Then vote on who to eliminate.'), findsOneWidget);
+    expect(find.text('You have one minute to discuss. Then vote on who to eliminate.'), findsOneWidget);
     await tap(tester, 'OPEN THE FLOOR');
 
     expect(find.text('DAY 1'), findsOneWidget);
-    expect(find.text('3:00'), findsOneWidget);
+    expect(find.text('1:00'), findsOneWidget);
     expect(find.text('THE FLOOR IS OPEN'), findsOneWidget);
     expect(find.text('INNOCENT'), findsNothing, reason: 'l\'indagine non è pubblica');
     await tester.tap(find.text('+1 MIN'));
     await tester.pump();
-    expect(find.text('4:00'), findsOneWidget);
+    expect(find.text('2:00'), findsOneWidget);
     await tap(tester, 'CALL THE VOTE');
 
     expect(find.textContaining('You can also choose to eliminate nobody.'), findsOneWidget);

@@ -695,7 +695,9 @@ class FakeGame implements GameBackend {
       if (rights['alive'] == false) throw const OnlineException(OnlineFailure.chatClosed);
       final allowed = switch (channel) {
         ChatChannel.day => game.chatMode == 'day' && rights['silenced'] != true,
-        ChatChannel.family => game.chatMode == 'night' && rights['family'] == true,
+        // Di notte la famiglia; di giorno solo se c'è un Compare vivo.
+        ChatChannel.family => rights['family'] == true &&
+            (game.chatMode == 'night' || (game.chatMode == 'day' && rights['familyDay'] == true)),
         ChatChannel.lobby => false,
       };
       if (!allowed) throw const OnlineException(OnlineFailure.chatClosed);

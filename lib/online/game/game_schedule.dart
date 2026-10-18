@@ -1,3 +1,5 @@
+import '../../rules/game_settings.dart';
+
 // Le fasi della partita online e le loro ore. Puro Dart: lo usano il server
 // (che le decide) e i telefoni (che le seguono).
 
@@ -49,7 +51,9 @@ enum Stage {
 /// I tempi della partita online. Ogni fase dura al massimo quanto scritto
 /// qui; i film durano esattamente quanto i film.
 class OnlinePacing {
-  static const defaultDiscussion = Duration(seconds: 60);
+  static const defaultNight = GameSettings.defaultNight;
+  static const defaultDiscussion = GameSettings.defaultDiscussion;
+  static const defaultVote = GameSettings.defaultVote;
 
   /// Un film d'agguato (`DeathScene.length`).
   static const deathFilm = Duration(seconds: 14);
@@ -97,10 +101,10 @@ class OnlinePacing {
     this.lead = const Duration(milliseconds: 1500),
     this.grace = const Duration(seconds: 2),
     this.reveal = const Duration(seconds: 15),
-    this.night = const Duration(seconds: 30),
+    this.night = defaultNight,
     this.dawn = const Duration(seconds: 15),
     this.discussion = defaultDiscussion,
-    this.vote = const Duration(seconds: 30),
+    this.vote = defaultVote,
     this.verdict = const Duration(seconds: 10),
     this.botNightMin = const Duration(milliseconds: 1500),
     this.botNightMax = const Duration(seconds: 6),

@@ -25,7 +25,12 @@ const italianPack = NarrationPack(
     Role.sarto: RoleText(
       'Il Sarto',
       '«Cucio abiti di giorno e bocche di notte.»',
-      'Ogni notte togli la parola a qualcuno per un giorno. Se la famiglia resta senza sicari, uccidi tu.',
+      'Voti l\'agguato con la famiglia. Una volta a partita togli la parola a qualcuno per un giorno.',
+    ),
+    Role.compare: RoleText(
+      'Il Compare',
+      '«Io qui ci passavo per caso.»',
+      'Stai con la famiglia. Finché resti in gioco, la famiglia ha la chat segreta anche di giorno.',
     ),
     Role.cittadino: RoleText(
       'L\'Onesto',
@@ -409,7 +414,7 @@ const italianPack = NarrationPack(
   },
   taskHints: {
     NightTaskKind.kill: 'Chi scegli non vedrà l\'alba. Se siete in più d\'uno, vince la maggioranza.',
-    NightTaskKind.silence: 'Chi scegli domani non potrà parlare. Mai la stessa persona due notti di fila.',
+    NightTaskKind.silence: 'Chi scegli domani non scrive in piazza. Una volta sola, al posto del voto.',
     NightTaskKind.protect: 'Chi scegli stanotte non può morire. Mai la stessa persona due notti di fila.',
     NightTaskKind.guard: 'Se stanotte provano a uccidere chi scegli, muori tu al suo posto.',
     NightTaskKind.investigate: 'Scoprirai subito se sta con la famiglia o con gli onesti.',

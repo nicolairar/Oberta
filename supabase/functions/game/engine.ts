@@ -23,7 +23,7 @@ export interface StepOutput {
   lastIntent: number | null;
   nextDue: number | null;
   finished: boolean;
-  chat: { mode: string; seats: Record<string, { alive: boolean; family: boolean; silenced: boolean }> };
+  chat: { mode: string; seats: Record<string, { alive: boolean; family: boolean; silenced: boolean; familyDay: boolean }> };
   departed: string[];
 }
 

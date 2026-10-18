@@ -702,7 +702,7 @@ void main() {
       expect(prompt(NightTaskKind.silence), 'A chi cuci la bocca stanotte?');
       expect(prompt(NightTaskKind.dig), 'Quale fossa scavi stanotte?');
       expect(prompt(NightTaskKind.guard), 'A chi fai da scudo stanotte?');
-      expect(hint(NightTaskKind.silence), contains('due notti di fila'));
+      expect(hint(NightTaskKind.silence), contains('Una volta sola'));
       expect(hint(NightTaskKind.dig), contains('solo tu'));
       expect(hint(NightTaskKind.guard), contains('muori tu'));
       final hints = {for (final kind in NightTaskKind.values) hint(kind)};

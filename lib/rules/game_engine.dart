@@ -26,7 +26,11 @@ class NightTask {
   /// Chi può essere scelto. Passare è sempre permesso.
   final List<Player> targets;
 
-  const NightTask(this.kind, this.targets);
+  /// Un secondo compito che si può fare al posto di [kind], sugli stessi
+  /// [targets]: il Sarto, finché ha l'ago, vota l'agguato oppure cuce.
+  final NightTaskKind? alternative;
+
+  const NightTask(this.kind, this.targets, {this.alternative});
 }
 
 /// Qualcosa su qualcuno, venuto a galla: la fazione, a volte anche il ruolo.
@@ -162,6 +166,7 @@ class GameEngine {
   bool _scoopSpent = false;
   Player? _lastProtected;
   Player? _lastSilenced;
+  bool _silenceSpent = false;
   DawnReport? _lastDawn;
   LynchReport? _lastLynch;
 
@@ -222,6 +227,7 @@ class GameEngine {
     _scoopSpent = snapshot.scoopSpent;
     _lastProtected = snapshot.lastProtected;
     _lastSilenced = snapshot.lastSilenced;
+    _silenceSpent = snapshot.silenceSpent;
     _lastDawn = snapshot.lastDawn;
     _lastLynch = snapshot.lastLynch;
   }
@@ -265,6 +271,7 @@ class GameEngine {
       scoopSpent: _scoopSpent,
       lastProtected: _lastProtected,
       lastSilenced: _lastSilenced,
+      silenceSpent: _silenceSpent,
       scarred: Set.unmodifiable(_scarred),
       lastDawn: _lastDawn,
       lastLynch: _lastLynch,
@@ -309,6 +316,24 @@ class GameEngine {
 
   bool isAlive(Player player) => _alive.contains(player);
 
+  /// Il Sarto ha già cucito la sua bocca: lo fa una volta per partita.
+  bool get silenceSpent => _silenceSpent;
+
+  /// Oggi [player] non può scrivere nella chat della piazza: il Sarto gli
+  /// ha cucito la bocca stanotte. Legge, vota e agisce come tutti.
+  bool isSilenced(Player player) =>
+      _phase == GamePhase.day && _lastDawn?.round == _round && _lastDawn?.silenced == player;
+
+  /// Finché c'è un Compare vivo, la famiglia ha la sua chat anche di giorno.
+  bool get familyDayChat => _alive.any((player) => setup.roleOf(player) == Role.compare);
+
+  /// [player] può scrivere e leggere adesso nella chat della famiglia: vivo,
+  /// della famiglia, di notte, o di giorno se c'è un Compare vivo.
+  bool canUseFamilyChat(Player player) =>
+      isAlive(player) &&
+      _teamOf(player) == Team.mafia &&
+      (_phase == GamePhase.night || (_phase == GamePhase.day && familyDayChat));
+
   Team _teamOf(Player player) => setup.roleOf(player).team;
 
   /// Cosa [viewer] ha diritto di sapere su [subject]. Con `viewer` nullo
@@ -352,19 +377,16 @@ class GameEngine {
       for (final player in setup.players)
         if (!isAlive(player) && knowledgeOf(actor, player).role == null) player,
     ];
-    final familyCanKill = _alive.any((player) => player != actor && setup.roleOf(player).isKiller);
     return switch (setup.roleOf(actor)) {
       // La famiglia può colpire chiunque, anche uno dei suoi: un morto in
       // casa, a volte, è il bluff migliore.
       Role.mafioso || Role.padrino => NightTask(NightTaskKind.kill, others),
-      // Finché in famiglia c'è chi spara, il Sarto cuce. Se resta solo lui,
-      // posa l'ago e prende la pistola.
-      Role.sarto => familyCanKill
-          ? NightTask(NightTaskKind.silence, [
-              for (final player in others)
-                if (player != _lastSilenced) player,
-            ])
-          : NightTask(NightTaskKind.kill, others),
+      // Il Sarto vota l'agguato come un Picciotto; una volta per partita,
+      // al posto del voto, può cucire la bocca a qualcuno.
+      Role.sarto =>
+        NightTask(NightTaskKind.kill, others, alternative: _silenceSpent ? null : NightTaskKind.silence),
+      // Il Compare non ha mosse di notte: il suo potere è la chat di giorno.
+      Role.compare => NightTask(NightTaskKind.decoy, others),
       Role.medico => NightTask(NightTaskKind.protect, [
           for (final player in _alive)
             if (player != _lastProtected) player,
@@ -383,15 +405,21 @@ class GameEngine {
   /// Registra la mossa notturna di [actor]; `target` nullo significa "passo".
   /// Solo l'indagine e lo scavo danno una risposta immediata, e la danno
   /// solo a chi ha fatto la mossa.
-  Exposure? submitNightChoice(Player actor, Player? target) {
+  ///
+  /// Con [alternative] fa il compito alternativo ([NightTask.alternative]):
+  /// il Sarto che cuce invece di votare.
+  Exposure? submitNightChoice(Player actor, Player? target, {bool alternative = false}) {
     final task = taskFor(actor);
     if (_choices.containsKey(actor)) throw StateError('${actor.name} ha già scelto');
+    final kind = alternative ? task.alternative : task.kind;
+    if (kind == null) throw StateError('${actor.name} non ha un compito alternativo');
     if (target != null && !task.targets.contains(target)) {
       throw ArgumentError.value(target.name, 'target', 'non può essere scelto da ${actor.name}');
     }
-    _choices[actor] = (kind: task.kind, target: target);
+    if (alternative && target == null) throw ArgumentError('il compito alternativo vuole un bersaglio');
+    _choices[actor] = (kind: kind, target: target);
     _log.add(
-      IntentCommand(switch ((task.kind, target)) {
+      IntentCommand(switch ((kind, target)) {
         (_, null) => Pass(actor.id),
         (NightTaskKind.kill, final target?) => MafiaVote(actor.id, target.id),
         (_, final target?) => NightAction(actor.id, target.id),
@@ -399,10 +427,10 @@ class GameEngine {
     );
     if (target == null) return null;
 
-    if (task.kind == NightTaskKind.decoy) {
+    if (kind == NightTaskKind.decoy) {
       _suspicion[target] = (_suspicion[target] ?? 0) + 1;
     }
-    if (task.kind == NightTaskKind.investigate) {
+    if (kind == NightTaskKind.investigate) {
       // Il Commissario legge le carte, e le carte a volte mentono.
       final team = setup.roleOf(target).apparentTeam;
       _facts.add(Fact(
@@ -414,7 +442,7 @@ class GameEngine {
       ));
       return Exposure(target, team);
     }
-    if (task.kind == NightTaskKind.dig) {
+    if (kind == NightTaskKind.dig) {
       final role = setup.roleOf(target);
       _facts.add(Fact(
         subject: target,
@@ -499,6 +527,7 @@ class GameEngine {
 
     _lastProtected = protected;
     _lastSilenced = silenceTarget;
+    if (silenceTarget != null) _silenceSpent = true;
     _alive.removeWhere(victims.contains);
     _choices.clear();
     _history.add(RoundRecord(round: _round, nightVictims: victims));
@@ -615,14 +644,8 @@ class GameEngine {
     };
     if (votes.isEmpty) return null;
 
-    // Il capo è il Padrino; senza di lui, il primo al tavolo tra chi vota.
-    final voters = _alive.where(votes.containsKey);
-    final boss = voters.firstWhere(
-      (player) => setup.roleOf(player) == Role.padrino,
-      orElse: () => voters.first,
-    );
-    final weights = settings.mafiaTieBreak == TieBreak.boss ? {boss: 2} : const <Player, int>{};
-    final leaders = tallyVotes(votes, weights: weights).leaders;
+    // Ogni voto vale uno, anche quello del Padrino.
+    final leaders = tallyVotes(votes).leaders;
     if (leaders.isEmpty) return null;
     if (leaders.length == 1) return leaders.single;
     if (settings.mafiaTieBreak == TieBreak.nobody) return null;
@@ -674,8 +697,11 @@ class GameEngine {
     }
     final task = taskFor(actor);
     final killing = task.kind == NightTaskKind.kill;
+    // Un NightAction da chi vota l'agguato è il compito alternativo (il
+    // Sarto che cuce), se ce l'ha.
+    final alternative = killing && intent is NightAction && task.alternative != null;
     final targetSeat = switch (intent) {
-      NightAction(:final target) when !killing => target,
+      NightAction(:final target) when !killing || alternative => target,
       MafiaVote(:final target) when killing => target,
       Pass() => null,
       _ => '',
@@ -695,7 +721,7 @@ class GameEngine {
         return IntentRejected(IntentError.targetNotAllowed, '${actor.id} non può scegliere $targetSeat');
       }
     }
-    return IntentAccepted(submitNightChoice(actor, target));
+    return IntentAccepted(submitNightChoice(actor, target, alternative: alternative));
   }
 
   IntentResult _applyDay(Player actor, PlayerIntent intent) {
@@ -768,6 +794,8 @@ class GameEngine {
       ],
       action: _optionFor(viewer),
       nightChoice: _phase == GamePhase.night ? _choices[viewer] : null,
+      silenced: isSilenced(viewer),
+      familyChat: canUseFamilyChat(viewer),
       familyVotes: [
         if (family)
           for (final entry in _choices.entries)
@@ -787,6 +815,7 @@ class GameEngine {
           type: task.kind == NightTaskKind.kill ? ActionType.mafiaVote : ActionType.nightAction,
           kind: task.kind,
           targets: task.targets,
+          alternative: task.alternative,
         );
       case GamePhase.day:
         return ActionOption(

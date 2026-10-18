@@ -41,6 +41,9 @@ class GameSnapshot {
   final bool scoopSpent;
   final Player? lastProtected;
   final Player? lastSilenced;
+
+  /// Il Sarto ha già usato il suo unico silenzio.
+  final bool silenceSpent;
   final Set<Player> scarred;
   final DawnReport? lastDawn;
   final LynchReport? lastLynch;
@@ -64,6 +67,7 @@ class GameSnapshot {
     required this.scoopSpent,
     required this.lastProtected,
     required this.lastSilenced,
+    this.silenceSpent = false,
     required this.scarred,
     required this.lastDawn,
     required this.lastLynch,
@@ -96,6 +100,7 @@ class GameSnapshot {
         'scoopSpent': scoopSpent,
         'lastProtected': seatOf(lastProtected),
         'lastSilenced': seatOf(lastSilenced),
+        'silenceSpent': silenceSpent,
         'scarred': seatsOf(scarred),
         'lastDawn': lastDawn == null ? null : dawnToJson(lastDawn!),
         'lastLynch': lastLynch == null ? null : lynchToJson(lastLynch!),
@@ -142,6 +147,8 @@ class GameSnapshot {
       scoopSpent: json['scoopSpent'] as bool,
       lastProtected: optionalSeat(json['lastProtected'], seat),
       lastSilenced: optionalSeat(json['lastSilenced'], seat),
+      // Le fotografie di prima: il silenzio è speso se qualcuno l'ha già avuto.
+      silenceSpent: json['silenceSpent'] as bool? ?? json['lastSilenced'] != null,
       scarred: seatsFrom(json['scarred'], seat).toSet(),
       lastDawn: object('lastDawn') == null ? null : dawnFromJson(object('lastDawn')!, seat),
       lastLynch: object('lastLynch') == null ? null : lynchFromJson(object('lastLynch')!, seat),

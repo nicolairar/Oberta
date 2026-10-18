@@ -56,13 +56,18 @@ class ActionOption {
   /// Di giorno, il voto già dato (che si può ancora cambiare).
   final Player? current;
 
-  const ActionOption({required this.type, this.kind, required this.targets, this.current});
+  /// Di notte, un compito che si può fare al posto di [kind] sugli stessi
+  /// bersagli, mandando un [NightAction]: il Sarto che cuce invece di votare.
+  final NightTaskKind? alternative;
+
+  const ActionOption({required this.type, this.kind, required this.targets, this.current, this.alternative});
 
   Map<String, Object?> toJson() => {
         'type': type.name,
         'kind': kind?.name,
         'targets': seatsOf(targets),
         'current': seatOf(current),
+        'alternative': alternative?.name,
       };
 
   factory ActionOption.fromJson(Map<String, Object?> json, SeatResolver resolve) => ActionOption(
@@ -70,6 +75,7 @@ class ActionOption {
         kind: optionalEnum(NightTaskKind.values, json['kind']),
         targets: seatsFrom(json['targets'], resolve),
         current: optionalSeat(json['current'], resolve),
+        alternative: optionalEnum(NightTaskKind.values, json['alternative']),
       );
 }
 
@@ -179,6 +185,14 @@ class PlayerView {
 
   /// Di notte, per chi è della famiglia: chi ha votato chi per l'agguato.
   final List<SeatVote> familyVotes;
+
+  /// Oggi il Sarto gli ha cucito la bocca: non scrive nella chat della
+  /// piazza, ma legge, vota e agisce.
+  final bool silenced;
+
+  /// Adesso può usare la chat della famiglia: di notte, o di giorno finché
+  /// c'è un Compare vivo.
+  final bool familyChat;
   final PublicView board;
 
   const PlayerView({
@@ -191,6 +205,8 @@ class PlayerView {
     required this.action,
     required this.nightChoice,
     required this.familyVotes,
+    this.silenced = false,
+    this.familyChat = false,
     required this.board,
   });
 
@@ -205,6 +221,8 @@ class PlayerView {
         'nightChoice':
             nightChoice == null ? null : {'kind': nightChoice!.kind.name, 'target': seatOf(nightChoice!.target)},
         'familyVotes': [for (final vote in familyVotes) _voteToJson(vote)],
+        'silenced': silenced,
+        'familyChat': familyChat,
         'board': board.toJson(),
       };
 
@@ -226,6 +244,8 @@ class PlayerView {
               target: optionalSeat(choice['target'], resolve),
             ),
       familyVotes: [for (final row in _rows(json['familyVotes'])) _voteFromJson(row, resolve)],
+      silenced: json['silenced'] as bool? ?? false,
+      familyChat: json['familyChat'] as bool? ?? false,
       board: PublicView.fromJson(json['board'] as Map<String, Object?>, resolve),
     );
   }
