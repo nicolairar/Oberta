@@ -69,7 +69,16 @@ enum AvatarHead {
   trilby,
   homburg,
   boater,
-  topHat;
+  topHat,
+  // La seconda consegna.
+  porkPie,
+  beret,
+  pearlFedora,
+  cloche,
+  morettiFedora,
+  morettiPanama,
+  morettiHomburg,
+  fulmineCap;
 
   /// Quelli che un ritratto può ricevere dal nome: i primi sette, sempre
   /// nello stesso ordine, così le facce di chi c'era già non cambiano.
@@ -243,7 +252,7 @@ class _AvatarPainter extends CustomPainter {
   void _paintHead(Canvas canvas, double s, Paint paint) {
     Offset at(double x, double y) => Offset(s * x, s * y);
     switch (look.head) {
-      case AvatarHead.fedora || AvatarHead.borsalino || AvatarHead.panama || AvatarHead.trilby || AvatarHead.homburg:
+      case AvatarHead.fedora || AvatarHead.borsalino || AvatarHead.panama || AvatarHead.trilby || AvatarHead.homburg || AvatarHead.porkPie || AvatarHead.pearlFedora || AvatarHead.morettiFedora || AvatarHead.morettiPanama || AvatarHead.morettiHomburg:
         canvas.save();
         canvas.translate(s * 0.5, s * 0.315);
         canvas.rotate(-0.06);
@@ -258,7 +267,7 @@ class _AvatarPainter extends CustomPainter {
             ..close(),
           paint,
         );
-      case AvatarHead.bowler || AvatarHead.boater || AvatarHead.topHat:
+      case AvatarHead.bowler || AvatarHead.boater || AvatarHead.topHat || AvatarHead.beret || AvatarHead.cloche || AvatarHead.fulmineCap:
         canvas.drawOval(Rect.fromCenter(center: at(0.5, 0.315), width: s * 0.58, height: s * 0.09), paint);
         canvas.drawArc(Rect.fromCenter(center: at(0.5, 0.315), width: s * 0.40, height: s * 0.44), pi, pi, true, paint);
       case AvatarHead.coppola:
@@ -316,7 +325,7 @@ class _AvatarPainter extends CustomPainter {
   void _paintBand(Canvas canvas, double s, Color background) {
     final band = Paint()..color = Color.lerp(background, Colors.white, 0.30)!;
     switch (look.head) {
-      case AvatarHead.fedora || AvatarHead.borsalino || AvatarHead.panama || AvatarHead.trilby || AvatarHead.homburg:
+      case AvatarHead.fedora || AvatarHead.borsalino || AvatarHead.panama || AvatarHead.trilby || AvatarHead.homburg || AvatarHead.porkPie || AvatarHead.pearlFedora || AvatarHead.morettiFedora || AvatarHead.morettiPanama || AvatarHead.morettiHomburg:
         canvas.drawPath(
           Path()
             ..moveTo(s * 0.318, s * 0.255)
@@ -326,7 +335,7 @@ class _AvatarPainter extends CustomPainter {
             ..close(),
           band,
         );
-      case AvatarHead.bowler || AvatarHead.boater || AvatarHead.topHat:
+      case AvatarHead.bowler || AvatarHead.boater || AvatarHead.topHat || AvatarHead.beret || AvatarHead.cloche || AvatarHead.fulmineCap:
         canvas.drawRect(Rect.fromLTRB(s * 0.305, s * 0.265, s * 0.695, s * 0.300), band);
       case AvatarHead.wideBrim:
         canvas.save();

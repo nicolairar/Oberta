@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 
 import '../../online/online_models.dart' show Profile, WornLooks;
+import '../../online/shop_models.dart' show ShopBrand;
 import '../widgets/noir_avatar.dart' show AvatarHead, avatarTints, avatarTraitsFor;
 
 /// Come si presenta un giocatore: la faccia, il cappello, gli occhiali,
@@ -154,7 +155,8 @@ class AvatarLook {
   };
 
   /// Una signora: cambia il taglio delle spalle e dove cade la luce sui capelli.
-  bool get dame => hat == AvatarHead.bob || hat == AvatarHead.bun || hat == AvatarHead.wideBrim;
+  bool get dame =>
+      hat == AvatarHead.bob || hat == AvatarHead.bun || hat == AvatarHead.wideBrim || hat == AvatarHead.cloche;
 
   @override
   bool operator ==(Object other) =>
@@ -227,7 +229,13 @@ enum FaceMark {
   pencil,
   handlebar,
   walrus,
-  imperial;
+  imperial,
+  // La seconda consegna.
+  chevron,
+  horseshoe,
+  vandyke,
+  muttonChops,
+  fullBeard;
 
   /// I baffi: chi li porta ha bisogno del pelo, non del rossetto.
   bool get moustache => this == mustache || index >= pencil.index;
@@ -265,7 +273,24 @@ class AvatarBase {
   int get hashCode => Object.hash(tone, mark);
 }
 
-enum AvatarGlasses { none, round, monocle, shades, pinceNez, tortoise, aviator }
+enum AvatarGlasses {
+  none,
+  round,
+  monocle,
+  shades,
+  pinceNez,
+  tortoise,
+  aviator,
+  // La seconda consegna.
+  goldRims,
+  browline,
+  catEye,
+  delacroixShades,
+  ricciMonocle;
+
+  /// Le lenti scure: gli occhi non si vedono.
+  bool get dark => this == shades || this == aviator || this == delacroixShades;
+}
 
 /// Il vezzo: al collo, all'occhiello o tra i denti.
 enum AvatarAccessory {
@@ -283,14 +308,46 @@ enum AvatarAccessory {
   pipe,
   pocketSquare,
   polkaTie,
-  cravat;
+  cravat,
+  // La seconda consegna.
+  stripeTie,
+  knitTie,
+  polkaBowTie,
+  whiteCarnation,
+  suspenders,
+  cigaretteHolder,
+  ricciChain,
+  ricciTiePin,
+  ricciWatch,
+  delacroixScarf,
+  delacroixAscot;
 
   /// Quello che fumano: il fumo sale da qui.
-  bool get smokes => this == cigar || this == cigarette || this == pipe;
+  bool get smokes => this == cigar || this == cigarette || this == pipe || this == cigaretteHolder;
 }
 
 /// Il disegno della stoffa.
-enum CoatPattern { plain, pinstripe, check, doubleBreasted, chalkstripe, trench, brocade }
+enum CoatPattern {
+  plain,
+  pinstripe,
+  check,
+  doubleBreasted,
+  chalkstripe,
+  trench,
+  brocade,
+  // La seconda consegna.
+  windowpane,
+  herringbone,
+  sharkskin,
+  tuxedo,
+  velvet,
+  cape,
+  track,
+  cardigan;
+
+  /// Giacche senza risvolti a punta: hanno il loro collo.
+  bool get ownCollar => this == cape || this == track || this == cardigan;
+}
 
 /// L'abito: il colore della giacca, la stoffa, la camicia e il colore del
 /// vezzo (la cravatta, il fazzoletto, il fondo del ritratto).
@@ -302,7 +359,21 @@ class AvatarOutfit {
   final Color shirt;
   final Color accent;
 
-  const AvatarOutfit(this.id, this.coat, this.pattern, this.accent, {this.shirt = const Color(0xFFEDE4D6)});
+  /// I risvolti di raso lucido, da sera.
+  final bool satin;
+
+  /// La casa che la firma: la sua toppa ricamata sul petto.
+  final ShopBrand? brand;
+
+  const AvatarOutfit(
+    this.id,
+    this.coat,
+    this.pattern,
+    this.accent, {
+    this.shirt = const Color(0xFFEDE4D6),
+    this.satin = false,
+    this.brand,
+  });
 
   /// Nell'ordine dei fondali dei ritratti ([avatarTints]): chi riceve un
   /// look dal nome porta la cravatta del colore della sua moneta.
@@ -317,16 +388,100 @@ class AvatarOutfit {
     AvatarOutfit('wine_silk', const Color(0xFF5C2238), CoatPattern.plain, avatarTints[7]),
     AvatarOutfit('rust_tweed', const Color(0xFF6B3523), CoatPattern.check, avatarTints[8]),
     AvatarOutfit('olive_pinstripe', const Color(0xFF39442C), CoatPattern.pinstripe, avatarTints[9]),
-    const AvatarOutfit('black_tuxedo', Color(0xFF18171B), CoatPattern.plain, Color(0xFF18171B), shirt: Color(0xFFF6F0E4)),
+    const AvatarOutfit(
+      'black_tuxedo',
+      Color(0xFF18171B),
+      CoatPattern.plain,
+      Color(0xFF18171B),
+      shirt: Color(0xFFF6F0E4),
+      satin: true,
+    ),
     // Dalla sartoria della bottega.
     const AvatarOutfit('navy_chalkstripe', Color(0xFF1B2440), CoatPattern.chalkstripe, Color(0xFF9B2335)),
     const AvatarOutfit('grey_flannel', Color(0xFF5A5A5E), CoatPattern.plain, Color(0xFF2E4A6B)),
     const AvatarOutfit('brown_pinstripe', Color(0xFF4A3222), CoatPattern.pinstripe, Color(0xFFC08A3E)),
     const AvatarOutfit('cream_linen', Color(0xFFD8CCAE), CoatPattern.plain, Color(0xFF7A2E2A), shirt: Color(0xFFF6F0E4)),
     const AvatarOutfit('midnight_double', Color(0xFF14182A), CoatPattern.doubleBreasted, Color(0xFFB8963E)),
-    const AvatarOutfit('white_dinner', Color(0xFFEDE6D6), CoatPattern.plain, Color(0xFF18171B), shirt: Color(0xFFFFFFFF)),
+    const AvatarOutfit(
+      'white_dinner',
+      Color(0xFFEDE6D6),
+      CoatPattern.plain,
+      Color(0xFF18171B),
+      shirt: Color(0xFFFFFFFF),
+      satin: true,
+    ),
     const AvatarOutfit('trench_coat', Color(0xFF9A8158), CoatPattern.trench, Color(0xFF3A2A1C)),
-    const AvatarOutfit('gold_brocade', Color(0xFF2A1A12), CoatPattern.brocade, Color(0xFFE2B54A), shirt: Color(0xFFF6F0E4)),
+    const AvatarOutfit(
+      'gold_brocade',
+      Color(0xFF2A1A12),
+      CoatPattern.brocade,
+      Color(0xFFE2B54A),
+      shirt: Color(0xFFF6F0E4),
+      satin: true,
+    ),
+    // La seconda consegna.
+    const AvatarOutfit('charcoal_windowpane', Color(0xFF2F3137), CoatPattern.windowpane, Color(0xFF8E1D28)),
+    const AvatarOutfit('tan_herringbone', Color(0xFF7E6244), CoatPattern.herringbone, Color(0xFF2E4A2E)),
+    const AvatarOutfit('steel_sharkskin', Color(0xFF4C5766), CoatPattern.sharkskin, Color(0xFF16213E)),
+    const AvatarOutfit('oxblood_double', Color(0xFF4A181D), CoatPattern.doubleBreasted, Color(0xFFC9A04A)),
+    const AvatarOutfit(
+      'vanetti_pinstripe',
+      Color(0xFF151B2E),
+      CoatPattern.pinstripe,
+      Color(0xFF7A1E2C),
+      brand: ShopBrand.vanetti,
+    ),
+    const AvatarOutfit(
+      'vanetti_tuxedo',
+      Color(0xFF0F1220),
+      CoatPattern.tuxedo,
+      Color(0xFF0F1220),
+      shirt: Color(0xFFFAF6EC),
+      satin: true,
+      brand: ShopBrand.vanetti,
+    ),
+    const AvatarOutfit(
+      'vanetti_ivory',
+      Color(0xFFE6DCC4),
+      CoatPattern.tuxedo,
+      Color(0xFF14131A),
+      shirt: Color(0xFFFFFFFF),
+      satin: true,
+      brand: ShopBrand.vanetti,
+    ),
+    const AvatarOutfit(
+      'delacroix_velvet',
+      Color(0xFF15392C),
+      CoatPattern.velvet,
+      Color(0xFF7E1A26),
+      shirt: Color(0xFFF6F0E4),
+      satin: true,
+      brand: ShopBrand.delacroix,
+    ),
+    const AvatarOutfit(
+      'delacroix_cape',
+      Color(0xFF111015),
+      CoatPattern.cape,
+      Color(0xFFA81C2C),
+      shirt: Color(0xFFFAF6EC),
+      brand: ShopBrand.delacroix,
+    ),
+    const AvatarOutfit(
+      'fulmine_track',
+      Color(0xFF1D2C58),
+      CoatPattern.track,
+      Color(0xFFE2563F),
+      shirt: Color(0xFFF2E6CF),
+      brand: ShopBrand.fulmine,
+    ),
+    const AvatarOutfit(
+      'fulmine_cardigan',
+      Color(0xFF6A1A1F),
+      CoatPattern.cardigan,
+      Color(0xFF1D2C58),
+      shirt: Color(0xFFF2E6CF),
+      brand: ShopBrand.fulmine,
+    ),
   ];
 
   static AvatarOutfit? byId(String id) {

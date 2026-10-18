@@ -114,7 +114,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
     }
     await _shot(tester, '00_counter');
-    await tester.tap(find.byKey(const Key('shop.featured.outfit.trench_coat')));
+    await tester.tap(find.byKey(const Key('shop.featured.outfit.vanetti_tuxedo')));
     await _shot(tester, '01_try_trench');
     await tester.tap(find.byKey(const Key('shop.action')));
     await _shot(tester, '02_receipt');
@@ -123,12 +123,20 @@ void main() {
     await tester.tap(find.byKey(const Key('shop.tab.wardrobe')));
     await tester.tap(find.byKey(const Key('shop.slot.face')));
     await _shot(tester, '04_wardrobe');
+    await tester.tap(find.byKey(const Key('shop.tab.counter')));
+    await tester.tap(find.byKey(const Key('shop.slot.brands')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('shop.item.accessory.ricciWatch')));
+    await _shot(tester, '06_brands');
 
-    // Tutti i pezzi nuovi, uno per moneta, sulla stessa faccia.
+    // I pezzi della seconda consegna (e quelli ritoccati), uno per moneta.
     final base = AvatarLook.fallback('anna');
+    tester.view.physicalSize = const Size(97.0 * 8, 118.0 * 6) * 3;
+    const fixed = {'face.pencil', 'face.imperial', 'accessory.pocketWatch', 'outfit.black_tuxedo'};
     final items = [
       for (final item in initialShopCatalog)
-        if (!item.free) item,
+        if (fixed.contains(item.id)) item,
+      ...brandDrop,
     ];
     await tester.pumpWidget(
       RepaintBoundary(
@@ -152,6 +160,8 @@ void main() {
                         ),
                         Text(
                           item.nameEn,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(fontFamily: 'Roboto', fontSize: 9, color: rarityColor(item.rarity)),
                         ),
                       ],

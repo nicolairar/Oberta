@@ -35,6 +35,9 @@ Color rarityColor(ShopRarity rarity) => switch (rarity) {
 };
 
 const _slots = ['hat', 'face', 'glasses', 'outfit', 'accessory'];
+
+/// La targhetta in più, dopo i posti: le case di moda.
+const _brands = 'brands';
 const _cream = Color(0xFFF2E6CF);
 const _wood = Color(0xFF4A2C1A);
 
@@ -65,6 +68,9 @@ class _ShopScreenState extends State<ShopScreen> {
   late final ShopController _shop = ShopController(shop: widget.shop, account: widget.account)..load();
   String _slot = 'hat';
   bool _wardrobe = false;
+
+  /// La casa scelta sotto la targhetta delle firme, o null per tutte.
+  ShopBrand? _brand;
 
   @override
   void dispose() {
@@ -121,6 +127,7 @@ class _ShopScreenState extends State<ShopScreen> {
               if (!_wardrobe && _shop.window.isNotEmpty) _window(t),
               _tabs(t),
               _shelfSigns(t),
+              if (_slot == _brands) _brandRow(t),
               Expanded(child: _shelves(t)),
             ],
           ),
@@ -187,12 +194,18 @@ class _ShopScreenState extends State<ShopScreen> {
                 width: 168,
                 child: _SpeechCard(
                   text: line,
-                  caption: trying == null ? null : t.tryingOn,
+                  caption: trying == null ? null : [t.tryingOn, ?trying.brand?.label].join(' · '),
                   color: trying == null ? null : rarityColor(trying.rarity),
                 ),
               ),
               // Lo specchio, a sinistra, con chi guarda dentro.
-              Positioned(left: 18, top: 8, width: 146, bottom: 50, child: _Mirror(look: _shop.mirror)),
+              Positioned(
+                left: 18,
+                top: 8,
+                width: 146,
+                bottom: 50,
+                child: _Mirror(look: _shop.mirror, brand: trying?.brand),
+              ),
               // Il bancone, e sopra il bottone.
               Positioned(
                 left: 0,
@@ -317,14 +330,44 @@ class _ShopScreenState extends State<ShopScreen> {
     padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
     child: Row(
       children: [
-        for (final slot in _slots)
+        for (final slot in [..._slots, _brands])
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 2.5),
               child: GestureDetector(
                 key: Key('shop.slot.$slot'),
                 onTap: pressed(() => setState(() => _slot = slot), Press.toggle),
-                child: _ShelfSign(label: t.slot(slot), on: _slot == slot),
+                child: _ShelfSign(
+                  label: slot == _brands ? t.brands : t.slot(slot),
+                  on: _slot == slot,
+                  gilded: slot == _brands,
+                ),
+              ),
+            ),
+          ),
+      ],
+    ),
+  );
+
+  /// Le insegne delle case, sotto la targhetta delle firme: si sceglie una
+  /// casa, o tutte.
+  Widget _brandRow(ShopStrings t) => SizedBox(
+    height: 44,
+    child: ListView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+      children: [
+        for (final brand in [null, ...ShopBrand.values])
+          Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: GestureDetector(
+              key: Key('shop.brand.${brand?.name ?? 'all'}'),
+              onTap: pressed(() => setState(() => _brand = brand), Press.toggle),
+              child: _BrandChip(
+                brand: brand,
+                label: brand?.label ?? t.allBrands,
+                tagline: brand == null ? null : t.brandTagline(brand),
+                on: _brand == brand,
               ),
             ),
           ),
@@ -345,7 +388,11 @@ class _ShopScreenState extends State<ShopScreen> {
       );
     }
     final language = AppStrings.of(context).language;
-    final items = _wardrobe ? _shop.wardrobe(_slot) : _shop.forSale(_slot);
+    final items = _slot == _brands
+        ? _shop.branded(_brand, wardrobe: _wardrobe)
+        : _wardrobe
+        ? _shop.wardrobe(_slot)
+        : _shop.forSale(_slot);
     return CustomPaint(
       painter: const _ShelfWallPainter(),
       child: GridView.builder(
@@ -426,10 +473,49 @@ class _BustPainter extends CustomPainter {
 class _Mirror extends StatelessWidget {
   final AvatarLook look;
 
-  const _Mirror({required this.look});
+  /// La casa del pezzo in prova: la sua targa d'ottone sotto lo specchio.
+  final ShopBrand? brand;
+
+  const _Mirror({required this.look, this.brand});
 
   @override
-  Widget build(BuildContext context) => CustomPaint(
+  Widget build(BuildContext context) => Stack(
+    clipBehavior: Clip.none,
+    children: [
+      Positioned.fill(child: _glass()),
+      if (brand case final brand?)
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: -6,
+          child: Center(
+            child: Container(
+              key: const Key('shop.mirror.brand'),
+              padding: const EdgeInsets.fromLTRB(6, 3, 8, 3),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [Color(0xFF2A1A0E), Color(0xFF1A100A)]),
+                borderRadius: BorderRadius.circular(3),
+                border: Border.all(color: brand.color, width: 1.2),
+                boxShadow: const [BoxShadow(color: Color(0xAA000000), blurRadius: 4, offset: Offset(0, 2))],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox.square(dimension: 14, child: CustomPaint(painter: BrandMarkPainter(brand))),
+                  const SizedBox(width: 4),
+                  Text(
+                    brand.label.toUpperCase(),
+                    style: TextStyle(color: brand.color, fontSize: 8.5, fontWeight: FontWeight.w800, letterSpacing: 1.2),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+    ],
+  );
+
+  Widget _glass() => CustomPaint(
     painter: _MirrorFramePainter(),
     child: Padding(
       padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
@@ -775,16 +861,24 @@ class _ShelfSign extends StatelessWidget {
   final String label;
   final bool on;
 
-  const _ShelfSign({required this.label, required this.on});
+  /// La targhetta delle firme: nera e oro, come un'insegna di via Montenapoleone.
+  final bool gilded;
+
+  const _ShelfSign({required this.label, required this.on, this.gilded = false});
 
   @override
   Widget build(BuildContext context) => AnimatedContainer(
     duration: const Duration(milliseconds: 160),
     padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 7),
     decoration: BoxDecoration(
-      color: on ? const Color(0xFF6B4226) : const Color(0xFF2E1D12),
+      color: gilded
+          ? (on ? const Color(0xFF2A2116) : const Color(0xFF14110D))
+          : (on ? const Color(0xFF6B4226) : const Color(0xFF2E1D12)),
       borderRadius: BorderRadius.circular(3),
-      border: Border.all(color: on ? AppColors.gold : const Color(0xFF5A3A22), width: on ? 1.5 : 1),
+      border: Border.all(
+        color: on || gilded ? AppColors.gold : const Color(0xFF5A3A22),
+        width: on ? 1.5 : 1,
+      ),
       boxShadow: const [BoxShadow(color: Color(0x88000000), blurRadius: 3, offset: Offset(0, 2))],
     ),
     child: FittedBox(
@@ -793,7 +887,7 @@ class _ShelfSign extends StatelessWidget {
         label.toUpperCase(),
         maxLines: 1,
         style: TextStyle(
-          color: on ? _cream : AppColors.textSecondary,
+          color: gilded ? AppColors.gold : (on ? _cream : AppColors.textSecondary),
           fontSize: 10.5,
           fontWeight: FontWeight.w800,
           letterSpacing: 1.1,
@@ -893,9 +987,21 @@ class _ItemTile extends StatelessWidget {
               ),
             ),
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(6),
-                child: CustomPaint(painter: AvatarBustPainter(look), child: const SizedBox.expand()),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: CustomPaint(painter: AvatarBustPainter(look), child: const SizedBox.expand()),
+                    ),
+                  ),
+                  if (item.brand case final brand?)
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: SizedBox.square(dimension: 16, child: CustomPaint(painter: BrandMarkPainter(brand, seal: true))),
+                    ),
+                ],
               ),
             ),
             // La mensola su cui posa il pezzo.
@@ -904,6 +1010,7 @@ class _ItemTile extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(4, 4, 4, 6),
               child: Column(
                 children: [
+                  if (item.brand case final brand?) _BrandLabel(brand: brand, size: 8),
                   Text(
                     name,
                     maxLines: 1,
@@ -968,10 +1075,13 @@ class _WindowCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    strings.rarity(item.rarity).toUpperCase(),
-                    style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1.4),
-                  ),
+                  if (item.brand case final brand?)
+                    _BrandLabel(brand: brand, size: 9)
+                  else
+                    Text(
+                      strings.rarity(item.rarity).toUpperCase(),
+                      style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1.4),
+                    ),
                   Text(
                     name,
                     maxLines: 1,
@@ -1031,6 +1141,26 @@ class _ReceiptDialog extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (item.brand case final brand?) ...[
+              SizedBox.square(dimension: 34, child: CustomPaint(painter: BrandMarkPainter(brand, seal: true))),
+              const SizedBox(height: 4),
+              Text(
+                brand.label.toUpperCase(),
+                style: const TextStyle(
+                  fontFamily: 'Georgia',
+                  fontFamilyFallback: ['serif'],
+                  color: Color(0xFF2A1A10),
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2.4,
+                ),
+              ),
+              Text(
+                strings.brandTagline(brand),
+                style: const TextStyle(color: Color(0xFF6B4A2A), fontSize: 11, fontStyle: FontStyle.italic),
+              ),
+              const SizedBox(height: 6),
+            ],
             Text(
               strings.rarity(item.rarity).toUpperCase(),
               style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 2),
@@ -1074,6 +1204,109 @@ class _ReceiptDialog extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Il marchio di una casa, da solo o in un sigillo tondo scuro con il
+/// bordo del suo colore.
+class BrandMarkPainter extends CustomPainter {
+  final ShopBrand brand;
+  final bool seal;
+
+  const BrandMarkPainter(this.brand, {this.seal = false});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final r = size.shortestSide / 2;
+    final c = size.center(Offset.zero);
+    if (seal) {
+      canvas.drawCircle(c, r, Paint()..color = const Color(0xFF14100C));
+      canvas.drawCircle(
+        c,
+        r - r * 0.08,
+        Paint()
+          ..color = brand.color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = r * 0.1,
+      );
+    }
+    LookPainter.brandMark(canvas, brand, c, seal ? r * 0.58 : r * 0.9);
+  }
+
+  @override
+  bool shouldRepaint(BrandMarkPainter old) => old.brand != brand || old.seal != seal;
+}
+
+/// Il nome della casa con il suo marchio, in maiuscoletto.
+class _BrandLabel extends StatelessWidget {
+  final ShopBrand brand;
+  final double size;
+
+  const _BrandLabel({required this.brand, required this.size});
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      SizedBox.square(dimension: size + 3, child: CustomPaint(painter: BrandMarkPainter(brand))),
+      const SizedBox(width: 3),
+      Flexible(
+        child: Text(
+          brand.label.toUpperCase(),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(color: brand.color, fontSize: size, fontWeight: FontWeight.w900, letterSpacing: 1.1),
+        ),
+      ),
+    ],
+  );
+}
+
+/// L'insegna di una casa nella fila delle firme.
+class _BrandChip extends StatelessWidget {
+  final ShopBrand? brand;
+  final String label;
+  final String? tagline;
+  final bool on;
+
+  const _BrandChip({required this.brand, required this.label, required this.tagline, required this.on});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = brand?.color ?? AppColors.gold;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 160),
+      padding: const EdgeInsets.fromLTRB(6, 4, 10, 4),
+      decoration: BoxDecoration(
+        color: on ? const Color(0xFF2A2116) : const Color(0xFF17120E),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: on ? color : color.withValues(alpha: 0.35), width: on ? 1.5 : 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (brand case final brand?) ...[
+            SizedBox.square(dimension: 24, child: CustomPaint(painter: BrandMarkPainter(brand, seal: true))),
+            const SizedBox(width: 6),
+          ],
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label.toUpperCase(),
+                style: TextStyle(color: color, fontSize: 9.5, fontWeight: FontWeight.w900, letterSpacing: 1.1),
+              ),
+              if (tagline case final tagline?)
+                Text(
+                  tagline,
+                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 8.5, fontStyle: FontStyle.italic),
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }

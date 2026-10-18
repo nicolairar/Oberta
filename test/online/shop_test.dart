@@ -94,14 +94,31 @@ void main() {
       expect(initialShopCatalog.where((item) => !item.free).length, greaterThanOrEqualTo(25));
     });
 
-    test('è lo stesso della migrazione', () {
-      final sql = File('supabase/migrations/20261017221000_shop.sql').readAsStringSync();
-      final rows = RegExp(r"\('(\w+)\.(\w+)', '(\w+)', '(\w+)', '(\w+)', (\d+), ").allMatches(sql);
-      final fromSql = {for (final m in rows) '${m[1]}.${m[2]}': '${m[4]} ${m[5]} ${m[6]}'};
+    test('è lo stesso delle migrazioni', () {
+      final sql = [
+        'supabase/migrations/20261017221000_shop.sql',
+        'supabase/migrations/20261018120000_shop_brands.sql',
+      ].map((path) => File(path).readAsStringSync()).join('\n');
+      final rows = RegExp(r"\('(\w+)\.(\w+)', '(\w+)', '(\w+)', '(\w+)', (\d+), .*?(?:, (null|'(\w+)'))?\)[,\n]")
+          .allMatches(sql);
+      final fromSql = {for (final m in rows) '${m[1]}.${m[2]}': '${m[4]} ${m[5]} ${m[6]} ${m[8]}'};
       final fromDart = {
-        for (final item in initialShopCatalog) item.id: '${item.lookId} ${item.rarity.name} ${item.price}',
+        for (final item in initialShopCatalog)
+          item.id: '${item.lookId} ${item.rarity.name} ${item.price} ${item.brand?.name}',
       };
       expect(fromSql, fromDart);
+      expect(initialShopCatalog.map((item) => item.id).toSet().length, initialShopCatalog.length);
+      for (final id in brandFeatured) {
+        expect(sql, contains("('$id', "), reason: 'la vetrina delle case è anche nella migrazione');
+      }
+    });
+
+    test('le case firmano i pezzi più cari', () {
+      for (final brand in ShopBrand.values) {
+        final pieces = initialShopCatalog.where((item) => item.brand == brand);
+        expect(pieces, isNotEmpty, reason: brand.label);
+        expect(pieces.every((item) => item.rarity.index >= ShopRarity.epico.index), isTrue, reason: brand.label);
+      }
     });
   });
 }
