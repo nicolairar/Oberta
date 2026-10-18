@@ -32,6 +32,7 @@ Future<OnlineServices?> openSupabaseOnline(OnlineConfig config) async {
     rooms: SupabaseRooms(client),
     game: SupabaseGame(client),
     shop: SupabaseShop(client),
+    account: SupabaseAccount(client),
   );
 }
 
@@ -289,6 +290,13 @@ class SupabaseProfiles implements ProfileRepository {
           if (language != null) 'language': language.name,
         }).eq('id', _me);
         return me();
+      });
+
+  @override
+  Future<Profile> saveFace(Map<String, String> face, {required String tone, String? mark}) => _guard(() async {
+        final rows = await _client.rpc<List<dynamic>>('save_face', params: {'p_face': face, 'p_tone': tone, 'p_mark': mark});
+        if (rows.isEmpty) throw const OnlineException(OnlineFailure.notSignedIn);
+        return Profile.fromJson(rows.first as Map<String, dynamic>);
       });
 
   @override
@@ -654,4 +662,46 @@ class SupabaseShop implements ShopRepository {
   @override
   Future<Profile> unequip(String slot, {String? tone, Map<String, String>? current}) => _guard(() => _profileFrom(
       _client.rpc<List<dynamic>>('unequip_slot', params: {'p_slot': slot, 'p_tone': tone, 'p_current': current})));
+}
+
+/// L'esportazione passa da `export_my_data()`; l'eliminazione dalla Edge
+/// Function `account`, che ha il ruolo di servizio per togliere l'utente.
+class SupabaseAccount implements AccountRepository {
+  final SupabaseClient _client;
+
+  SupabaseAccount(this._client);
+
+  @override
+  Future<Map<String, dynamic>> exportData() => _guard(() async {
+        if (_client.auth.currentUser == null) throw const OnlineException(OnlineFailure.notSignedIn);
+        final data = await _client.rpc<dynamic>('export_my_data');
+        return Map<String, dynamic>.from(data as Map);
+      });
+
+  @override
+  Future<void> deleteAccount() => _guard(() async {
+        final user = _client.auth.currentUser;
+        if (user == null) throw const OnlineException(OnlineFailure.notSignedIn);
+        // Apple chiede di revocare il suo token: serve un codice fresco, che
+        // solo un nuovo foglio di Apple dà. Se chi gioca lo chiude, l'account
+        // si elimina lo stesso.
+        String? appleCode;
+        final providers = (user.appMetadata['providers'] as List?) ?? [user.appMetadata['provider']];
+        if (providers.contains('apple') && !kIsWeb && (Platform.isIOS || Platform.isMacOS)) {
+          try {
+            final credential = await SignInWithApple.getAppleIDCredential(scopes: const []);
+            appleCode = credential.authorizationCode;
+          } catch (_) {}
+        }
+        final response = await _client.functions.invoke('account', body: {
+          'action': 'delete',
+          'apple_authorization_code': ?appleCode,
+        });
+        if (response.status != 200) {
+          throw OnlineException(OnlineFailure.unknown, null, 'account · ${response.status} · ${response.data}');
+        }
+        try {
+          await _client.auth.signOut();
+        } catch (_) {}
+      });
 }

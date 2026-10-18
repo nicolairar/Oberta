@@ -6,7 +6,7 @@ import 'package:oberta/online/online_models.dart';
 import 'package:oberta/ui/screens/online/friends_screen.dart';
 import 'package:oberta/ui/screens/online/join_room_screen.dart';
 import 'package:oberta/ui/screens/online/online_screen.dart';
-import 'package:oberta/ui/widgets/settings_sheet.dart';
+import 'package:oberta/ui/screens/settings_screen.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../support/languages.dart';
@@ -67,6 +67,9 @@ void main() {
     await tester.enterText(find.byKey(const Key('online.handle')), 'Anna_R2!');
     expect(find.text('anna_r2'), findsOneWidget, reason: 'in minuscolo, senza segni vietati');
     await tester.tap(find.text('SALVA'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('mirror.present.woman')), findsOneWidget, reason: 'lo specchio chiede prima uomo o donna');
+    await tester.tap(find.byKey(const Key('mirror.skip')));
     await tester.pumpAndSettle();
     expect(find.text('GIOCA CON AMICI'), findsOneWidget);
     expect(find.text('APRI UNA STANZA'), findsOneWidget);
@@ -225,8 +228,10 @@ void main() {
 
   testWidgets('dalle impostazioni si esce dall\'account', (tester) async {
     online.signInReady();
-    await open(tester, Scaffold(body: SettingsSheet(online: online.services)));
+    await open(tester, SettingsScreen(online: online.services, versionLabel: '1.0.0 (1)'));
     await tester.scrollUntilVisible(find.text('Esci dall\'account'), 100, scrollable: find.byType(Scrollable).first);
+    await tester.ensureVisible(find.text('Esci dall\'account'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Esci dall\'account'));
     await tester.pumpAndSettle();
     expect(online.auth.signedIn, isFalse);
@@ -234,7 +239,7 @@ void main() {
   });
 
   testWidgets('chi non è entrato non vede l\'uscita nelle impostazioni', (tester) async {
-    await open(tester, Scaffold(body: SettingsSheet(online: online.services)));
+    await open(tester, SettingsScreen(online: online.services, versionLabel: '1.0.0 (1)'));
     expect(find.text('Esci dall\'account'), findsNothing);
   });
 }

@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../l10n/app_strings.dart';
+import '../../../l10n/settings_strings.dart';
 import '../../../online/online_account.dart';
+import '../../avatar/avatar_look.dart';
+import '../avatar/barber_mirror_screen.dart';
 import '../../../online/online_services.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/home_account.dart';
@@ -45,7 +48,20 @@ class _ProfileCard extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Center(child: PlayerAvatar(seed: profile.avatarSeed, size: 92)),
+          Center(child: PlayerAvatar(seed: profile.avatarSeed, look: profile.look, size: 92)),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 52,
+            child: FilledButton.icon(
+              key: const Key('profile.mirror'),
+              onPressed: () async {
+                final saved = await BarberMirrorScreen.open(context, services: account.services, profile: profile);
+                if (saved != null) account.saved(saved);
+              },
+              icon: const SizedBox.square(dimension: 26, child: CustomPaint(painter: BarberPoleIconPainter())),
+              label: Text(SettingsStrings.of(context).changeLook, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+            ),
+          ),
           const SizedBox(height: 12),
           Text(
             profile.name.isEmpty ? t.pickHandle : profile.name,

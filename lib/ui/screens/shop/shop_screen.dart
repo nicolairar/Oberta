@@ -18,10 +18,15 @@ import '../online/online_widgets.dart' show showFailure;
 import 'shop_controller.dart';
 
 /// Apre la bottega di chi è entrato.
-Future<void> openShop(BuildContext context, {required OnlineAccount account, required ShopRepository shop}) =>
+Future<void> openShop(
+  BuildContext context, {
+  required OnlineAccount account,
+  required ShopRepository shop,
+  VoidCallback? onChangeFace,
+}) =>
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => ShopScreen(account: account, shop: shop),
+        builder: (_) => ShopScreen(account: account, shop: shop, onChangeFace: onChangeFace),
       ),
     );
 
@@ -34,25 +39,29 @@ Color rarityColor(ShopRarity rarity) => switch (rarity) {
   ShopRarity.leggendario => const Color(0xFFE8B84A),
 };
 
-const _slots = ['hat', 'face', 'glasses', 'outfit', 'accessory'];
-
-/// La targhetta in più, dopo i posti: le case di moda.
-const _brands = 'brands';
-
-/// E quella delle stramberie: il circo e il carnevale.
-const _oddities = 'oddities';
+/// I posti del reparto accessori, e quelli dell'armadio.
+const _accessorySlots = ['glasses', 'accessory', 'face', 'tattoo'];
+const _hatSlots = ['hat', 'hairdo'];
+const _allSlots = ['hat', 'hairdo', 'outfit', 'glasses', 'accessory', 'face', 'tattoo'];
 const _cream = Color(0xFFF2E6CF);
 const _wood = Color(0xFF4A2C1A);
 
-/// La bottega: il retrobottega di un sarto e cappellaio degli anni '40. Il
-/// padrone dietro il bancone, lo specchio dove ci si prova il pezzo prima di
-/// comprarlo, gli scaffali per posto e, in alto, la vetrina della settimana.
-/// Dall'altra linguetta, il guardaroba: si cambia quello che si possiede.
+/// Il nome della rotta del creatore di facce, se l'app ce l'ha.
+const avatarRoute = '/avatar';
+
+/// La bottega: il retrobottega di un sarto e cappellaio degli anni '40,
+/// diviso in reparti. In alto le linguette (vetrina, sartoria, cappelleria,
+/// accessori, firme, stramberie, armadio); sotto, i pezzi grandi, due per
+/// fila, con filtri per classe e prezzo. Toccato un pezzo, ci si prova
+/// davanti allo specchio, a tutto schermo, e lì si compra o si indossa.
 class ShopScreen extends StatefulWidget {
   final OnlineAccount account;
   final ShopRepository shop;
 
-  const ShopScreen({super.key, required this.account, required this.shop});
+  /// Apre lo specchio del barbiere (le facce gratuite), se c'è.
+  final VoidCallback? onChangeFace;
+
+  const ShopScreen({super.key, required this.account, required this.shop, this.onChangeFace});
 
   /// Il padrone della bottega: baffi a tricheco, pince-nez e catena d'orologio.
   static final AvatarLook shopkeeper = AvatarLook(
@@ -69,15 +78,24 @@ class ShopScreen extends StatefulWidget {
 
 class _ShopScreenState extends State<ShopScreen> {
   late final ShopController _shop = ShopController(shop: widget.shop, account: widget.account)..load();
-  String _slot = 'hat';
-  bool _wardrobe = false;
+  final _scroll = ScrollController();
 
-  /// La casa scelta sotto la targhetta delle firme, o null per tutte.
+  ShopTab _tab = ShopTab.window;
+  ShopRarity? _rarity;
+  bool _affordable = false;
+  bool _cheapFirst = false;
+
+  /// Il posto scelto negli accessori e nell'armadio, o null per tutti.
+  String? _slot;
+
+  /// La casa aperta tra le firme, o la collezione tra le stramberie.
   ShopBrand? _brand;
+  ShopCollection? _collection;
 
   @override
   void dispose() {
     _shop.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -115,6 +133,33 @@ class _ShopScreenState extends State<ShopScreen> {
     });
   }
 
+  /// Lo specchio a tutto schermo, con il pezzo addosso.
+  Future<void> _tryOn(ShopItem item) async {
+    _shop.preview(item);
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _TryOnPage(shop: _shop, onBuy: _buy, onRun: _run),
+      ),
+    );
+    if (mounted) _shop.preview(null);
+  }
+
+  void _open(ShopTab tab) {
+    if (_scroll.hasClients) _scroll.jumpTo(0);
+    setState(() {
+      _tab = tab;
+      _slot = null;
+      _brand = null;
+      _collection = null;
+      _rarity = null;
+      _affordable = false;
+    });
+  }
+
+  bool get _hasAvatarRoute {
+    return widget.onChangeFace != null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = _t;
@@ -123,15 +168,12 @@ class _ShopScreenState extends State<ShopScreen> {
       body: ListenableBuilder(
         listenable: _shop,
         builder: (context, _) => SafeArea(
+          bottom: false,
           child: Column(
             children: [
               _header(t),
-              _stage(t),
-              if (!_wardrobe && _shop.window.isNotEmpty) _window(t),
               _tabs(t),
-              _shelfSigns(t),
-              if (_slot == _brands) _brandRow(t),
-              Expanded(child: _shelves(t)),
+              Expanded(child: _body(t)),
             ],
           ),
         ),
@@ -140,7 +182,7 @@ class _ShopScreenState extends State<ShopScreen> {
   }
 
   Widget _header(ShopStrings t) => Padding(
-    padding: const EdgeInsets.fromLTRB(4, 4, 14, 2),
+    padding: const EdgeInsets.fromLTRB(4, 4, 14, 4),
     child: Row(
       children: [
         IconButton(
@@ -152,13 +194,14 @@ class _ShopScreenState extends State<ShopScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(t.title, style: AppText.display(20)),
-              const SizedBox(height: 2),
+              Text(t.title, style: AppText.display(22)),
               Text(
                 t.subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: AppColors.textSecondary,
-                  fontSize: 11,
+                  fontSize: 12,
                   fontStyle: FontStyle.italic,
                   letterSpacing: 0.4,
                 ),
@@ -171,218 +214,33 @@ class _ShopScreenState extends State<ShopScreen> {
     ),
   );
 
-  /// Il retrobottega: la carta da parati, il padrone, lo specchio e il bancone.
-  Widget _stage(ShopStrings t) {
-    final language = AppStrings.of(context).language;
-    final trying = _shop.trying;
-    final line = trying == null ? t.greeting : '${trying.name(language)} · ${t.rarity(trying.rarity)}';
-    return SizedBox(
-      height: 262,
-      child: ClipRect(
-        child: CustomPaint(
-          painter: const _BackRoomPainter(),
-          child: Stack(
-            children: [
-              // Il padrone, dietro il bancone a destra.
-              Positioned(
-                right: 6,
-                bottom: 54,
-                width: 132,
-                height: 132,
-                child: CustomPaint(painter: _BustPainter(ShopScreen.shopkeeper)),
-              ),
-              Positioned(
-                right: 12,
-                top: 14,
-                width: 168,
-                child: _SpeechCard(
-                  text: line,
-                  caption: trying == null ? null : [t.tryingOn, ?trying.brand?.label].join(' · '),
-                  color: trying == null ? null : rarityColor(trying.rarity),
+  /// Le insegne dei reparti, appese in fila: si scorrono di lato.
+  Widget _tabs(ShopStrings t) => SizedBox(
+    height: 50,
+    child: SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+      child: Row(
+        children: [
+          for (final tab in ShopTab.values)
+            Padding(
+              padding: const EdgeInsets.only(right: 7),
+              child: GestureDetector(
+                key: Key('shop.tab.${tab.name}'),
+                onTap: pressed(() => _open(tab), Press.toggle),
+                child: _ShelfSign(
+                  label: t.tab(tab),
+                  on: _tab == tab,
+                  gilded: tab == ShopTab.brands || tab == ShopTab.oddities || tab == ShopTab.window,
                 ),
               ),
-              // Lo specchio, a sinistra, con chi guarda dentro.
-              Positioned(
-                left: 18,
-                top: 8,
-                width: 146,
-                bottom: 50,
-                child: _Mirror(look: _shop.mirror, brand: trying?.brand),
-              ),
-              // Il bancone, e sopra il bottone.
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                height: 58,
-                child: CustomPaint(painter: const _CounterPainter()),
-              ),
-              Positioned(right: 16, bottom: 12, left: 186, child: _actionButton(t)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _actionButton(ShopStrings t) {
-    final item = _shop.trying;
-    final busy = _shop.busy;
-    if (item == null) {
-      return Text(
-        _wardrobe ? t.emptyWardrobe : t.coinsHint,
-        maxLines: 2,
-        textAlign: TextAlign.right,
-        style: TextStyle(color: _cream.withValues(alpha: 0.7), fontSize: 11, fontStyle: FontStyle.italic, height: 1.25),
-      );
-    }
-    final state = _shop.stateOf(item);
-    final (label, action, price) = switch (state) {
-      ItemState.forSale => (t.buy, () => _buy(item), item.price),
-      ItemState.owned => (t.wear, () => _run(() => _shop.equip(item)), null),
-      ItemState.worn =>
-        item.free ? (t.worn, null, null) : (t.takeOff, () => _run(() => _shop.unequip(item.slot)), null),
-    };
-    return Align(
-      alignment: Alignment.centerRight,
-      child: _BrassButton(
-        key: const Key('shop.action'),
-        label: label,
-        price: price,
-        onTap: busy || action == null ? null : action,
-      ),
-    );
-  }
-
-  Widget _window(ShopStrings t) {
-    final language = AppStrings.of(context).language;
-    final now = DateTime.now();
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 10, 0, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(t.featured, style: AppText.overline.copyWith(color: AppColors.gold, fontSize: 11)),
-          const SizedBox(height: 6),
-          SizedBox(
-            height: 84,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: [
-                for (final (item, feature) in _shop.window)
-                  _WindowCard(
-                    key: Key('shop.featured.${item.id}'),
-                    item: item,
-                    look: _shop.tryOn(item),
-                    name: item.name(language),
-                    ends: t.endsIn(max(1, feature.endsAt.difference(now).inHours ~/ 24 + 1)),
-                    state: _shop.stateOf(item),
-                    strings: t,
-                    selected: _shop.trying?.id == item.id,
-                    onTap: () {
-                      setState(() => _slot = item.slot);
-                      _shop.preview(item);
-                    },
-                  ),
-                const SizedBox(width: 8),
-              ],
             ),
-          ),
         ],
       ),
-    );
-  }
-
-  Widget _tabs(ShopStrings t) {
-    Widget tab(String label, bool wardrobe) {
-      final on = _wardrobe == wardrobe;
-      return Expanded(
-        child: GestureDetector(
-          key: Key(wardrobe ? 'shop.tab.wardrobe' : 'shop.tab.counter'),
-          behavior: HitTestBehavior.opaque,
-          onTap: pressed(() {
-            setState(() => _wardrobe = wardrobe);
-            _shop.preview(null);
-          }, Press.toggle),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            padding: const EdgeInsets.symmetric(vertical: 9),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: on ? AppColors.gold : Colors.white12, width: on ? 2 : 1),
-              ),
-            ),
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              style: AppText.display(13, color: on ? AppColors.gold : AppColors.textSecondary),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
-      child: Row(children: [tab(t.counterTab, false), tab(t.wardrobeTab, true)]),
-    );
-  }
-
-  /// Le targhette di legno appese sopra gli scaffali, una per posto.
-  Widget _shelfSigns(ShopStrings t) => Padding(
-    padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
-    child: Row(
-      children: [
-        for (final slot in [..._slots, _brands, _oddities])
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 2.5),
-              child: GestureDetector(
-                key: Key('shop.slot.$slot'),
-                onTap: pressed(() => setState(() => _slot = slot), Press.toggle),
-                child: _ShelfSign(
-                  label: switch (slot) {
-                    _brands => t.brands,
-                    _oddities => t.oddities,
-                    _ => t.slot(slot),
-                  },
-                  on: _slot == slot,
-                  gilded: slot == _brands || slot == _oddities,
-                ),
-              ),
-            ),
-          ),
-      ],
     ),
   );
 
-  /// Le insegne delle case, sotto la targhetta delle firme: si sceglie una
-  /// casa, o tutte.
-  Widget _brandRow(ShopStrings t) => SizedBox(
-    height: 44,
-    child: ListView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
-      children: [
-        for (final brand in [null, ...ShopBrand.values])
-          Padding(
-            padding: const EdgeInsets.only(right: 6),
-            child: GestureDetector(
-              key: Key('shop.brand.${brand?.name ?? 'all'}'),
-              onTap: pressed(() => setState(() => _brand = brand), Press.toggle),
-              child: _BrandChip(
-                brand: brand,
-                label: brand?.label ?? t.allBrands,
-                tagline: brand == null ? null : t.brandTagline(brand),
-                on: _brand == brand,
-              ),
-            ),
-          ),
-      ],
-    ),
-  );
-
-  Widget _shelves(ShopStrings t) {
+  Widget _body(ShopStrings t) {
     if (_shop.loading) return const Center(child: CircularProgressIndicator(color: AppColors.gold));
     if (_shop.error case final error?) {
       return Center(
@@ -395,35 +253,318 @@ class _ShopScreenState extends State<ShopScreen> {
       );
     }
     final language = AppStrings.of(context).language;
-    final items = _slot == _brands
-        ? _shop.branded(_brand, wardrobe: _wardrobe)
-        : _slot == _oddities
-        ? _shop.oddities(wardrobe: _wardrobe)
-        : _wardrobe
-        ? _shop.wardrobe(_slot)
-        : _shop.forSale(_slot);
+    final slivers = <Widget>[];
+    switch (_tab) {
+      case ShopTab.window:
+        slivers.add(SliverToBoxAdapter(child: _greeting(t)));
+        final now = DateTime.now();
+        slivers.add(
+          _grid(t, language, [
+            for (final (item, feature) in _shop.window)
+              (item, t.endsIn(max(1, feature.endsAt.difference(now).inHours ~/ 24 + 1))),
+          ]),
+        );
+      case ShopTab.brands when _brand == null:
+        slivers.add(
+          SliverList.list(
+            children: [
+              for (final brand in ShopBrand.values)
+                if (_shop.branded(brand, wardrobe: false) case final items when items.isNotEmpty)
+                  _CollectionCard(
+                    key: Key('shop.brand.${brand.name}'),
+                    title: brand.label,
+                    tagline: t.brandTagline(brand),
+                    count: t.pieces(items.length),
+                    color: brand.color,
+                    brand: brand,
+                    look: _shop.tryOn(items.first),
+                    onTap: () => setState(() => _brand = brand),
+                  ),
+            ],
+          ),
+        );
+      case ShopTab.oddities when _collection == null:
+        slivers.add(
+          SliverList.list(
+            children: [
+              for (final collection in ShopCollection.values)
+                if (_collected(collection) case final items when items.isNotEmpty)
+                  _CollectionCard(
+                    key: Key('shop.collection.${collection.name}'),
+                    title: language == AppLanguage.en ? collection.en : collection.it,
+                    tagline: [for (final item in items.take(3)) item.name(language)].join(' · '),
+                    count: t.pieces(items.length),
+                    color: _collectionColor(collection),
+                    look: _shop.tryOn(items.first),
+                    onTap: () => setState(() => _collection = collection),
+                  ),
+            ],
+          ),
+        );
+      default:
+        if (_tab == ShopTab.brands || _tab == ShopTab.oddities) {
+          slivers.add(SliverToBoxAdapter(child: _openedHeader(t, language)));
+        }
+        if (_tab == ShopTab.wardrobe && _hasAvatarRoute) {
+          slivers.add(SliverToBoxAdapter(child: _changeFace(t)));
+        }
+        // TODO(avatar): quando c'è la rotta [avatarRoute], la scheda «Cambia
+        // faccia» compare da sola in cima all'armadio.
+        slivers.add(SliverToBoxAdapter(child: _filters(t)));
+        slivers.add(_grid(t, language, [for (final item in _filtered()) (item, null)]));
+    }
     return CustomPaint(
       painter: const _ShelfWallPainter(),
-      child: GridView.builder(
-        padding: const EdgeInsets.fromLTRB(12, 6, 12, 24),
+      child: CustomScrollView(
+        key: const Key('shop.grid'),
+        controller: _scroll,
+        slivers: [
+          ...slivers,
+          SliverToBoxAdapter(child: SizedBox(height: 24 + MediaQuery.paddingOf(context).bottom)),
+        ],
+      ),
+    );
+  }
+
+  List<ShopItem> _collected(ShopCollection collection) => [
+    for (final item in _shop.oddities(wardrobe: false))
+      if (item.collection == collection) item,
+  ];
+
+  static Color _collectionColor(ShopCollection collection) => switch (collection) {
+    ShopCollection.circo => const Color(0xFFD9483B),
+    ShopCollection.carnevale => const Color(0xFF3FB59E),
+    ShopCollection.assurdo => const Color(0xFFE7C33A),
+  };
+
+  /// I pezzi del reparto aperto, filtrati e messi in ordine.
+  List<ShopItem> _filtered() {
+    final wardrobe = _tab == ShopTab.wardrobe;
+    final items = switch (_tab) {
+      ShopTab.tailoring => _shop.forSale('outfit'),
+      ShopTab.hats => [for (final slot in _hatSlots) ..._shop.forSale(slot)],
+      ShopTab.accessories => [for (final slot in _accessorySlots) ..._shop.forSale(slot)],
+      ShopTab.brands => _shop.branded(_brand, wardrobe: false),
+      ShopTab.oddities => _collected(_collection!),
+      ShopTab.wardrobe => [for (final slot in _allSlots) ..._shop.wardrobe(slot)],
+      ShopTab.window => const <ShopItem>[],
+    };
+    final picked = [
+      for (final item in items)
+        if ((_slot == null || item.slot == _slot) &&
+            (_rarity == null || item.rarity == _rarity) &&
+            (wardrobe || !_affordable || item.price <= _shop.coins))
+          item,
+    ];
+    if (wardrobe) return picked;
+    picked.sort(
+      (a, b) => a.price != b.price
+          ? (_cheapFirst ? a.price.compareTo(b.price) : b.price.compareTo(a.price))
+          : a.sort.compareTo(b.sort),
+    );
+    return picked;
+  }
+
+  /// Il padrone, sopra la vetrina, con il suo benvenuto.
+  Widget _greeting(ShopStrings t) => SizedBox(
+    height: 112,
+    child: ClipRect(
+      child: CustomPaint(
+        painter: const _BackRoomPainter(),
+        child: Row(
+          children: [
+            const SizedBox(width: 8),
+            SizedBox.square(dimension: 96, child: CustomPaint(painter: _BustPainter(ShopScreen.shopkeeper))),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(right: 14),
+                child: _SpeechCard(text: t.greeting, caption: t.featured, color: AppColors.gold),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  /// In cima a una casa o a una collezione aperta: si torna alle insegne.
+  Widget _openedHeader(ShopStrings t, AppLanguage language) {
+    final brand = _brand;
+    final collection = _collection;
+    final title = brand?.label ?? (language == AppLanguage.en ? collection!.en : collection!.it);
+    final color = brand?.color ?? _collectionColor(collection!);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 6, 14, 0),
+      child: Row(
+        children: [
+          TextButton.icon(
+            key: const Key('shop.opened.back'),
+            onPressed: pressed(() => setState(() => _brand = _collection = null), Press.toggle),
+            icon: const Icon(Icons.chevron_left, color: AppColors.gold),
+            label: Text(
+              t.back,
+              style: const TextStyle(color: AppColors.gold, fontWeight: FontWeight.w700),
+            ),
+          ),
+          const Spacer(),
+          if (brand != null) ...[
+            SizedBox.square(dimension: 26, child: CustomPaint(painter: BrandMarkPainter(brand, seal: true))),
+            const SizedBox(width: 8),
+          ],
+          Flexible(
+            child: Text(
+              title.toUpperCase(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.w900, letterSpacing: 1.6),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _changeFace(ShopStrings t) => Padding(
+    padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+    child: GestureDetector(
+      key: const Key('shop.changeFace'),
+      onTap: pressed(widget.onChangeFace),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(10, 8, 14, 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFF241812),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.gold, width: 1.4),
+        ),
+        child: Row(
+          children: [
+            SizedBox.square(dimension: 52, child: CustomPaint(painter: AvatarBustPainter(_shop.look))),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(t.changeFace.toUpperCase(), style: AppText.display(15)),
+                  Text(t.changeFaceHint, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: AppColors.gold),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  /// I filtri: la classe, il portafoglio, l'ordine; e il posto, dove serve.
+  Widget _filters(ShopStrings t) {
+    final wardrobe = _tab == ShopTab.wardrobe;
+    final slots = switch (_tab) {
+      ShopTab.accessories => _accessorySlots,
+      ShopTab.hats => _hatSlots,
+      ShopTab.wardrobe => _allSlots,
+      _ => const <String>[],
+    };
+    Widget row(List<Widget> chips) => SizedBox(
+      height: 40,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+        child: Row(
+          children: [for (final chip in chips) Padding(padding: const EdgeInsets.only(right: 6), child: chip)],
+        ),
+      ),
+    );
+    return Column(
+      children: [
+        if (slots.isNotEmpty)
+          row([
+            _Chip(
+              key: const Key('shop.slot.all'),
+              label: t.allSlots,
+              on: _slot == null,
+              onTap: () => setState(() => _slot = null),
+            ),
+            for (final slot in slots)
+              _Chip(
+                key: Key('shop.slot.$slot'),
+                label: t.slot(slot),
+                on: _slot == slot,
+                onTap: () => setState(() => _slot = slot),
+              ),
+          ]),
+        row([
+          _Chip(
+            key: const Key('shop.rarity.all'),
+            label: t.allRarities,
+            on: _rarity == null,
+            onTap: () => setState(() => _rarity = null),
+          ),
+          for (final rarity in ShopRarity.values)
+            if (wardrobe || rarity != ShopRarity.base)
+              _Chip(
+                key: Key('shop.rarity.${rarity.name}'),
+                label: t.rarity(rarity),
+                color: rarityColor(rarity),
+                on: _rarity == rarity,
+                onTap: () => setState(() => _rarity = _rarity == rarity ? null : rarity),
+              ),
+          if (!wardrobe) ...[
+            _Chip(
+              key: const Key('shop.affordable'),
+              label: t.affordable,
+              coin: true,
+              on: _affordable,
+              onTap: () => setState(() => _affordable = !_affordable),
+            ),
+            _Chip(
+              key: const Key('shop.sort'),
+              label: _cheapFirst ? t.cheapFirst : t.dearFirst,
+              on: true,
+              onTap: () => setState(() => _cheapFirst = !_cheapFirst),
+            ),
+          ],
+        ]),
+      ],
+    );
+  }
+
+  /// I pezzi grandi, due per fila; [ends] è il cartellino della vetrina.
+  Widget _grid(ShopStrings t, AppLanguage language, List<(ShopItem, String?)> items) {
+    if (items.isEmpty) {
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.all(40),
+          child: Text(
+            _tab == ShopTab.wardrobe ? t.emptyWardrobe : t.emptyShelf,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: AppColors.textSecondary, fontStyle: FontStyle.italic),
+          ),
+        ),
+      );
+    }
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      sliver: SliverGrid.builder(
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          mainAxisSpacing: 10,
-          crossAxisSpacing: 10,
-          childAspectRatio: 0.72,
+          crossAxisCount: 2,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: 0.68,
         ),
         itemCount: items.length,
         itemBuilder: (context, i) {
-          final item = items[i];
-          return _ItemTile(
+          final (item, ends) = items[i];
+          return _ItemCard(
             key: Key('shop.item.${item.id}'),
             item: item,
             look: _shop.tryOn(item),
             name: item.name(language),
             state: _shop.stateOf(item),
             strings: t,
-            selected: _shop.trying?.id == item.id,
-            onTap: () => _shop.preview(_shop.trying?.id == item.id ? null : item),
+            ends: ends,
+            onTap: () => _tryOn(item),
           );
         },
       ),
@@ -431,7 +572,440 @@ class _ShopScreenState extends State<ShopScreen> {
   }
 }
 
-/// Il saldo delle monete, con la stessa moneta del cartellino nel vicolo.
+/// La prova a tutto schermo: il retrobottega, lo specchio grande con il
+/// pezzo addosso, il padrone che dice la sua e, sul bancone, il bottone.
+class _TryOnPage extends StatelessWidget {
+  final ShopController shop;
+  final Future<void> Function(ShopItem item) onBuy;
+  final Future<void> Function(Future<void> Function() action) onRun;
+
+  const _TryOnPage({required this.shop, required this.onBuy, required this.onRun});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppStrings.of(context).shop;
+    final language = AppStrings.of(context).language;
+    return Scaffold(
+      backgroundColor: const Color(0xFF120E0B),
+      body: ListenableBuilder(
+        listenable: shop,
+        builder: (context, _) {
+          final item = shop.trying;
+          if (item == null) return const SizedBox.shrink();
+          final color = rarityColor(item.rarity);
+          return Column(
+            children: [
+              Expanded(
+                child: CustomPaint(
+                  painter: const _BackRoomPainter(),
+                  child: SafeArea(
+                    bottom: false,
+                    child: LayoutBuilder(
+                      builder: (context, box) {
+                        final mirrorW = min(box.maxWidth * 0.66, (box.maxHeight - 80) / 1.3);
+                        final mirrorH = mirrorW * 1.3;
+                        return Stack(
+                          children: [
+                            Positioned(
+                              left: 4,
+                              top: 4,
+                              child: IconButton(
+                                key: const Key('shop.tryOn.back'),
+                                onPressed: pressed(() => Navigator.of(context).maybePop()),
+                                icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.gold, size: 22),
+                              ),
+                            ),
+                            Positioned(
+                              right: 14,
+                              top: 12,
+                              child: CoinBalance(coins: shop.coins, hint: t.coinsHint),
+                            ),
+                            Positioned(
+                              left: (box.maxWidth - mirrorW) / 2 - box.maxWidth * 0.08,
+                              top: max(56.0, (box.maxHeight - mirrorH) / 2 + 16),
+                              height: mirrorH,
+                              width: mirrorW,
+                              child: _Mirror(look: shop.mirror, brand: item.brand),
+                            ),
+                            Positioned(
+                              right: 0,
+                              bottom: 0,
+                              width: box.maxWidth * 0.36,
+                              height: box.maxWidth * 0.36,
+                              child: CustomPaint(painter: _BustPainter(ShopScreen.shopkeeper)),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+              CustomPaint(
+                painter: const _CounterPainter(),
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(18, 16, 18, 16 + MediaQuery.paddingOf(context).bottom),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _SpeechCard(
+                        text: '${item.name(language)} · ${t.rarity(item.rarity)}',
+                        caption: [t.tryingOn, ?item.brand?.label].join(' · '),
+                        color: color,
+                        big: true,
+                      ),
+                      const SizedBox(height: 14),
+                      _action(t, item),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _action(ShopStrings t, ShopItem item) {
+    final (label, action, price) = switch (shop.stateOf(item)) {
+      ItemState.forSale => (t.buy, () => onBuy(item), item.price),
+      ItemState.owned => (t.wear, () => onRun(() => shop.equip(item)), null),
+      ItemState.worn =>
+        item.free ? (t.worn, null, null) : (t.takeOff, () => onRun(() => shop.unequip(item.slot)), null),
+    };
+    return _BrassButton(
+      key: const Key('shop.action'),
+      label: label,
+      price: price,
+      big: true,
+      onTap: shop.busy || action == null ? null : action,
+    );
+  }
+}
+
+/// Un filtro: un cartellino tondo, acceso quando scelto.
+class _Chip extends StatelessWidget {
+  final String label;
+  final bool on;
+  final Color? color;
+  final bool coin;
+  final VoidCallback onTap;
+
+  const _Chip({super.key, required this.label, required this.on, required this.onTap, this.color, this.coin = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final tint = color ?? AppColors.gold;
+    return GestureDetector(
+      onTap: pressed(onTap, Press.toggle),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: on ? tint.withValues(alpha: 0.22) : const Color(0xFF1B1410),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: on ? tint : tint.withValues(alpha: 0.35), width: on ? 1.5 : 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (color != null) ...[
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(color: tint, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 6),
+            ],
+            if (coin) ...[
+              const SizedBox.square(dimension: 13, child: CustomPaint(painter: CoinPainter())),
+              const SizedBox(width: 5),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                color: on ? _cream : AppColors.textSecondary,
+                fontSize: 13,
+                fontWeight: on ? FontWeight.w800 : FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// L'insegna grande di una casa o di una collezione: il marchio, il nome,
+/// quanti pezzi, e il più bello addosso a un busto.
+class _CollectionCard extends StatelessWidget {
+  final String title;
+  final String tagline;
+  final String count;
+  final Color color;
+  final ShopBrand? brand;
+  final AvatarLook look;
+  final VoidCallback onTap;
+
+  const _CollectionCard({
+    super.key,
+    required this.title,
+    required this.tagline,
+    required this.count,
+    required this.color,
+    required this.look,
+    required this.onTap,
+    this.brand,
+  });
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+    child: GestureDetector(
+      onTap: pressed(onTap, Press.toggle),
+      child: Container(
+        height: 118,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(colors: [color.withValues(alpha: 0.30), const Color(0xFF17110D)]),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withValues(alpha: 0.85), width: 1.5),
+          boxShadow: const [BoxShadow(color: Color(0x99000000), blurRadius: 6, offset: Offset(0, 3))],
+        ),
+        child: Row(
+          children: [
+            const SizedBox(width: 14),
+            if (brand case final brand?) ...[
+              SizedBox.square(dimension: 54, child: CustomPaint(painter: BrandMarkPainter(brand, seal: true))),
+              const SizedBox(width: 12),
+            ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    title.toUpperCase(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'Georgia',
+                      fontFamilyFallback: const ['serif'],
+                      color: color,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.6,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    tagline,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: _cream, fontSize: 12.5, fontStyle: FontStyle.italic),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    count.toUpperCase(),
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(width: 100, height: 110, child: CustomPaint(painter: AvatarBustPainter(look))),
+            Icon(Icons.chevron_right, color: color),
+            const SizedBox(width: 6),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+/// Un pezzo sullo scaffale: grande, con la fascia della classe in alto, il
+/// busto che lo porta, il nome e il prezzo (o se è già tuo, o addosso).
+class _ItemCard extends StatelessWidget {
+  final ShopItem item;
+  final AvatarLook look;
+  final String name;
+  final ItemState state;
+  final ShopStrings strings;
+  final String? ends;
+  final VoidCallback onTap;
+
+  const _ItemCard({
+    super.key,
+    required this.item,
+    required this.look,
+    required this.name,
+    required this.state,
+    required this.strings,
+    required this.onTap,
+    this.ends,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = rarityColor(item.rarity);
+    final worn = state == ItemState.worn;
+    return GestureDetector(
+      onTap: pressed(onTap, Press.toggle),
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF241812),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: worn ? AppColors.gold : color.withValues(alpha: 0.7), width: worn ? 2.2 : 1.4),
+          boxShadow: const [BoxShadow(color: Color(0x99000000), blurRadius: 5, offset: Offset(0, 3))],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // La fascia della classe.
+            Container(
+              height: 24,
+              color: color,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      strings.rarity(item.rarity).toUpperCase(),
+                      style: const TextStyle(
+                        color: Color(0xFF1A120C),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.6,
+                      ),
+                    ),
+                  ),
+                  if (state != ItemState.forSale)
+                    _Badge(label: worn ? strings.worn : (item.free ? strings.free : strings.owned), worn: worn),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: RadialGradient(
+                          center: const Alignment(0, -0.1),
+                          radius: 0.8,
+                          colors: [color.withValues(alpha: 0.22), const Color(0xFF241812)],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned.fill(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+                      child: CustomPaint(painter: AvatarBustPainter(look), child: const SizedBox.expand()),
+                    ),
+                  ),
+                  if (item.brand case final brand?)
+                    Positioned(
+                      top: 6,
+                      right: 6,
+                      child: SizedBox.square(
+                        dimension: 24,
+                        child: CustomPaint(painter: BrandMarkPainter(brand, seal: true)),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            // La mensola su cui posa il pezzo.
+            Container(height: 5, color: _wood),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 7, 10, 9),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (item.brand case final brand?) _BrandLabel(brand: brand, size: 9.5),
+                  Text(
+                    name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: _cream, fontSize: 15, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      if (state == ItemState.forSale) ...[
+                        const SizedBox.square(dimension: 16, child: CustomPaint(painter: CoinPainter())),
+                        const SizedBox(width: 5),
+                        Text(
+                          '${item.price}',
+                          style: const TextStyle(color: _cream, fontWeight: FontWeight.w900, fontSize: 15),
+                        ),
+                      ] else
+                        Text(
+                          strings.slot(item.slot),
+                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                        ),
+                      if (ends case final ends?) ...[
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            ends,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.right,
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 11,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// «Tuo» o «Indossato», cucito sulla fascia.
+class _Badge extends StatelessWidget {
+  final String label;
+  final bool worn;
+
+  const _Badge({required this.label, required this.worn});
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    decoration: BoxDecoration(
+      color: worn ? const Color(0xFF1A120C) : const Color(0x33000000),
+      borderRadius: BorderRadius.circular(3),
+      border: Border.all(color: const Color(0xFF1A120C)),
+    ),
+    child: Text(
+      label,
+      style: TextStyle(
+        color: worn ? AppColors.gold : const Color(0xFF1A120C),
+        fontSize: 9.5,
+        fontWeight: FontWeight.w900,
+        letterSpacing: 1.1,
+      ),
+    ),
+  );
+}
+
 class CoinBalance extends StatelessWidget {
   final int coins;
   final String hint;
@@ -514,7 +1088,12 @@ class _Mirror extends StatelessWidget {
                   const SizedBox(width: 4),
                   Text(
                     brand.label.toUpperCase(),
-                    style: TextStyle(color: brand.color, fontSize: 8.5, fontWeight: FontWeight.w800, letterSpacing: 1.2),
+                    style: TextStyle(
+                      color: brand.color,
+                      fontSize: 8.5,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.2,
+                    ),
                   ),
                 ],
               ),
@@ -774,8 +1353,9 @@ class _SpeechCard extends StatelessWidget {
   final String text;
   final String? caption;
   final Color? color;
+  final bool big;
 
-  const _SpeechCard({required this.text, this.caption, this.color});
+  const _SpeechCard({required this.text, this.caption, this.color, this.big = false});
 
   @override
   Widget build(BuildContext context) => Container(
@@ -793,16 +1373,16 @@ class _SpeechCard extends StatelessWidget {
         if (caption != null)
           Text(
             caption!.toUpperCase(),
-            style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 1.6),
+            style: TextStyle(color: color, fontSize: big ? 11 : 9, fontWeight: FontWeight.w800, letterSpacing: 1.6),
           ),
         Text(
           text,
           key: const Key('shop.speech'),
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Georgia',
-            fontFamilyFallback: ['serif'],
-            color: Color(0xFF2A1A10),
-            fontSize: 12.5,
+            fontFamilyFallback: const ['serif'],
+            color: const Color(0xFF2A1A10),
+            fontSize: big ? 17 : 12.5,
             height: 1.25,
             fontStyle: FontStyle.italic,
           ),
@@ -816,8 +1396,9 @@ class _BrassButton extends StatelessWidget {
   final String label;
   final int? price;
   final VoidCallback? onTap;
+  final bool big;
 
-  const _BrassButton({super.key, required this.label, this.price, this.onTap});
+  const _BrassButton({super.key, required this.label, this.price, this.onTap, this.big = false});
 
   @override
   Widget build(BuildContext context) {
@@ -827,7 +1408,7 @@ class _BrassButton extends StatelessWidget {
       child: Opacity(
         opacity: enabled ? 1 : 0.55,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: big ? 15 : 10),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(6),
             gradient: const LinearGradient(
@@ -840,13 +1421,14 @@ class _BrassButton extends StatelessWidget {
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Flexible(
                 child: Text(
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppText.display(14, color: const Color(0xFF2A1A08)),
+                  style: AppText.display(big ? 18 : 14, color: const Color(0xFF2A1A08)),
                 ),
               ),
               if (price != null) ...[
@@ -878,252 +1460,27 @@ class _ShelfSign extends StatelessWidget {
   @override
   Widget build(BuildContext context) => AnimatedContainer(
     duration: const Duration(milliseconds: 160),
-    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 7),
+    padding: const EdgeInsets.symmetric(horizontal: 14),
+    alignment: Alignment.center,
     decoration: BoxDecoration(
       color: gilded
           ? (on ? const Color(0xFF2A2116) : const Color(0xFF14110D))
           : (on ? const Color(0xFF6B4226) : const Color(0xFF2E1D12)),
       borderRadius: BorderRadius.circular(3),
-      border: Border.all(
-        color: on || gilded ? AppColors.gold : const Color(0xFF5A3A22),
-        width: on ? 1.5 : 1,
-      ),
+      border: Border.all(color: on || gilded ? AppColors.gold : const Color(0xFF5A3A22), width: on ? 1.5 : 1),
       boxShadow: const [BoxShadow(color: Color(0x88000000), blurRadius: 3, offset: Offset(0, 2))],
     ),
-    child: FittedBox(
-      fit: BoxFit.scaleDown,
-      child: Text(
-        label.toUpperCase(),
-        maxLines: 1,
-        style: TextStyle(
-          color: gilded ? AppColors.gold : (on ? _cream : AppColors.textSecondary),
-          fontSize: 10.5,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 1.1,
-        ),
+    child: Text(
+      label.toUpperCase(),
+      maxLines: 1,
+      style: TextStyle(
+        color: gilded ? AppColors.gold : (on ? _cream : AppColors.textSecondary),
+        fontSize: 13,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 1.3,
       ),
     ),
   );
-}
-
-/// Lo stato o il prezzo, sotto il pezzo.
-class _PriceTag extends StatelessWidget {
-  final ShopItem item;
-  final ItemState state;
-  final ShopStrings strings;
-
-  const _PriceTag({required this.item, required this.state, required this.strings});
-
-  @override
-  Widget build(BuildContext context) {
-    if (state == ItemState.forSale) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox.square(dimension: 11, child: CustomPaint(painter: CoinPainter())),
-          const SizedBox(width: 3),
-          Text(
-            '${item.price}',
-            style: const TextStyle(color: _cream, fontWeight: FontWeight.w800, fontSize: 11.5),
-          ),
-        ],
-      );
-    }
-    final worn = state == ItemState.worn;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: worn ? AppColors.gold : Colors.transparent,
-        borderRadius: BorderRadius.circular(2),
-        border: Border.all(color: AppColors.gold),
-      ),
-      child: Text(
-        worn ? strings.worn : (item.free ? strings.free : strings.owned),
-        style: TextStyle(
-          color: worn ? const Color(0xFF2A1A08) : AppColors.gold,
-          fontSize: 9,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 1.2,
-        ),
-      ),
-    );
-  }
-}
-
-class _ItemTile extends StatelessWidget {
-  final ShopItem item;
-  final AvatarLook look;
-  final String name;
-  final ItemState state;
-  final ShopStrings strings;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _ItemTile({
-    super.key,
-    required this.item,
-    required this.look,
-    required this.name,
-    required this.state,
-    required this.strings,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final color = rarityColor(item.rarity);
-    return GestureDetector(
-      onTap: pressed(onTap, Press.toggle),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        decoration: BoxDecoration(
-          color: const Color(0xFF241812),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: selected ? color : color.withValues(alpha: 0.45), width: selected ? 2.2 : 1.2),
-          boxShadow: [
-            if (selected) BoxShadow(color: color.withValues(alpha: 0.45), blurRadius: 12),
-            const BoxShadow(color: Color(0x99000000), blurRadius: 4, offset: Offset(0, 3)),
-          ],
-        ),
-        child: Column(
-          children: [
-            Container(
-              height: 4,
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(5)),
-              ),
-            ),
-            Expanded(
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: Padding(
-                      padding: const EdgeInsets.all(6),
-                      child: CustomPaint(painter: AvatarBustPainter(look), child: const SizedBox.expand()),
-                    ),
-                  ),
-                  if (item.brand case final brand?)
-                    Positioned(
-                      top: 4,
-                      right: 4,
-                      child: SizedBox.square(dimension: 16, child: CustomPaint(painter: BrandMarkPainter(brand, seal: true))),
-                    ),
-                ],
-              ),
-            ),
-            // La mensola su cui posa il pezzo.
-            Container(height: 4, margin: const EdgeInsets.symmetric(horizontal: 4), color: _wood),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(4, 4, 4, 6),
-              child: Column(
-                children: [
-                  if (item.brand case final brand?) _BrandLabel(brand: brand, size: 8),
-                  Text(
-                    name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: _cream, fontSize: 11, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 3),
-                  _PriceTag(item: item, state: state, strings: strings),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _WindowCard extends StatelessWidget {
-  final ShopItem item;
-  final AvatarLook look;
-  final String name;
-  final String ends;
-  final ItemState state;
-  final ShopStrings strings;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _WindowCard({
-    super.key,
-    required this.item,
-    required this.look,
-    required this.name,
-    required this.ends,
-    required this.state,
-    required this.strings,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final color = rarityColor(item.rarity);
-    return GestureDetector(
-      onTap: pressed(onTap, Press.toggle),
-      child: Container(
-        width: 196,
-        margin: const EdgeInsets.only(right: 10),
-        padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(colors: [color.withValues(alpha: 0.28), const Color(0xFF1E1612)]),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: selected ? color : color.withValues(alpha: 0.6), width: selected ? 2 : 1),
-        ),
-        child: Row(
-          children: [
-            SizedBox.square(dimension: 60, child: CustomPaint(painter: AvatarBustPainter(look))),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (item.brand case final brand?)
-                    _BrandLabel(brand: brand, size: 9)
-                  else
-                    Text(
-                      strings.rarity(item.rarity).toUpperCase(),
-                      style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1.4),
-                    ),
-                  Text(
-                    name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: _cream, fontSize: 12.5, fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 3),
-                  Row(
-                    children: [
-                      _PriceTag(item: item, state: state, strings: strings),
-                      const SizedBox(width: 6),
-                      Flexible(
-                        child: Text(
-                          ends,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 9.5,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 /// La ricevuta del sarto: il pezzo, il prezzo, e quante monete restano.
@@ -1259,7 +1616,10 @@ class _BrandLabel extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      SizedBox.square(dimension: size + 3, child: CustomPaint(painter: BrandMarkPainter(brand))),
+      SizedBox.square(
+        dimension: size + 3,
+        child: CustomPaint(painter: BrandMarkPainter(brand)),
+      ),
       const SizedBox(width: 3),
       Flexible(
         child: Text(
@@ -1271,52 +1631,4 @@ class _BrandLabel extends StatelessWidget {
       ),
     ],
   );
-}
-
-/// L'insegna di una casa nella fila delle firme.
-class _BrandChip extends StatelessWidget {
-  final ShopBrand? brand;
-  final String label;
-  final String? tagline;
-  final bool on;
-
-  const _BrandChip({required this.brand, required this.label, required this.tagline, required this.on});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = brand?.color ?? AppColors.gold;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 160),
-      padding: const EdgeInsets.fromLTRB(6, 4, 10, 4),
-      decoration: BoxDecoration(
-        color: on ? const Color(0xFF2A2116) : const Color(0xFF17120E),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: on ? color : color.withValues(alpha: 0.35), width: on ? 1.5 : 1),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (brand case final brand?) ...[
-            SizedBox.square(dimension: 24, child: CustomPaint(painter: BrandMarkPainter(brand, seal: true))),
-            const SizedBox(width: 6),
-          ],
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label.toUpperCase(),
-                style: TextStyle(color: color, fontSize: 9.5, fontWeight: FontWeight.w900, letterSpacing: 1.1),
-              ),
-              if (tagline case final tagline?)
-                Text(
-                  tagline,
-                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 8.5, fontStyle: FontStyle.italic),
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 }

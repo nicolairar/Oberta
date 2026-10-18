@@ -101,6 +101,7 @@ void main() {
         'supabase/migrations/20261018180000_shop_houses.sql',
         'supabase/migrations/20261018200000_shop_oddities.sql',
         'supabase/migrations/20261018220000_shop_absurd.sql',
+        'supabase/migrations/20261020090000_barber_presentation.sql',
       ].map((path) => File(path).readAsStringSync()).join('\n');
       final rows = RegExp(r"\('(\w+)\.(\w+)', '(\w+)', '(\w+)', '(\w+)', (\d+), .*?(?:, (null|'(\w+)'))?(?:, '(circo|carnevale|assurdo)')?\)[,\n]")
           .allMatches(sql);

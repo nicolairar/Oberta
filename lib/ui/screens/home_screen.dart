@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../l10n/app_language.dart';
 import '../../l10n/app_strings.dart';
+import '../../l10n/settings_strings.dart';
 import '../../network/fake_local_session.dart';
 import '../../online/incoming_links.dart';
 import '../../online/join_code.dart';
@@ -16,6 +17,7 @@ import '../widgets/home_caption.dart';
 import '../widgets/home_neon_sign.dart';
 import '../widgets/home_posters.dart';
 import '../widgets/home_settings_plate.dart';
+import 'avatar/barber_mirror_screen.dart';
 import 'lobby_screen.dart';
 import 'online/online_room_screen.dart';
 import 'online/online_screen.dart';
@@ -74,10 +76,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     vsync: this,
     duration: Duration(milliseconds: (HomeStreetPainter.opening * 1000).round()),
   )..addListener(_wire);
-  late final AnimationController _iris =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 420));
-  late final AnimationController _short =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 620))..addListener(_wire);
+  late final AnimationController _iris = AnimationController(vsync: this, duration: const Duration(milliseconds: 420));
+  late final AnimationController _short = AnimationController(vsync: this, duration: const Duration(milliseconds: 620))
+    ..addListener(_wire);
 
   final _neon = HomeNeonState();
   final _caption = GlobalKey<HomeCaptionState>();
@@ -96,6 +97,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   /// Il suggerimento sulla targhetta «Accedi» è acceso.
   bool _coach = false;
 
+  /// La vetrina della bottega è cambiata da poco: l'insegna ha il «Nuovo».
+  bool _shopFresh = false;
+  bool _shopChecked = false;
+
   /// La stanza di un link, in attesa che chi l'ha aperto entri e abbia il profilo.
   String? _pendingRoom;
   bool _joining = false;
@@ -110,7 +115,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _account;
     _links.addListener(_linkArrived);
     // Un link arrivato prima del vicolo (l'app aperta proprio dal QR).
-    WidgetsBinding.instance.addPostFrameCallback((_) => _linkArrived());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _linkArrived();
+      if (_account?.signedIn ?? false) _checkShop();
+    });
   }
 
   void _accountChanged() {
@@ -119,6 +127,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     setState(() {
       if (account.signedIn) _coach = false;
     });
+    if (account.signedIn) {
+      _checkShop();
+    } else {
+      _shopChecked = false;
+    }
     if (account.error case final error? when _pendingRoom != null) {
       _pendingRoom = null;
       showFailure(context, error);
@@ -153,7 +166,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     if (_settingUp) return;
     _settingUp = true;
     final saved = await Navigator.of(context).push<Profile>(
-      MaterialPageRoute(builder: (_) => ProfileSetupScreen(services: _online!, profile: profile)),
+      MaterialPageRoute(
+        builder: (_) => ProfileSetupScreen(services: _online!, profile: profile),
+      ),
     );
     _settingUp = false;
     if (!mounted) return;
@@ -161,7 +176,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       _pendingRoom = null;
       return;
     }
+    // Subito dopo il nome, la faccia: lo specchio del barbiere (non se si
+    // stava entrando in una stanza da un invito).
+    final joining = _pendingRoom != null;
     _account!.saved(saved);
+    if (joining) return;
+    final faced = await BarberMirrorScreen.open(context, services: _online!, profile: saved, firstTime: true);
+    if (faced != null && mounted) _account.saved(faced);
   }
 
   Future<void> _joinRoom(String code, Profile me) async {
@@ -171,9 +192,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     try {
       final room = await _online!.rooms.join(code);
       if (!mounted) return;
-      await navigator.push(MaterialPageRoute<void>(
-        builder: (_) => OnlineRoomScreen(services: _online, room: room, me: me),
-      ));
+      await navigator.push(
+        MaterialPageRoute<void>(
+          builder: (_) => OnlineRoomScreen(services: _online, room: room, me: me),
+        ),
+      );
     } catch (error) {
       if (mounted) showFailure(context, error);
     } finally {
@@ -222,6 +245,34 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     showProfileSheet(context, account: account);
   }
 
+  /// Una volta per accesso: c'è in vetrina qualcosa messo negli ultimi tre giorni?
+  Future<void> _checkShop() async {
+    final shop = _online?.shop;
+    if (_shopChecked || shop == null) return;
+    _shopChecked = true;
+    try {
+      final now = DateTime.now();
+      final features = await shop.featured();
+      final fresh = features.any((f) => f.liveAt(now) && now.difference(f.startsAt) < const Duration(days: 3));
+      if (mounted && fresh != _shopFresh) setState(() => _shopFresh = fresh);
+    } catch (_) {
+      _shopChecked = false;
+    }
+  }
+
+  /// Lo specchio del barbiere: dal ritratto del cartellino.
+  Future<void> _openMirror() async {
+    final account = _account!;
+    final profile = account.profile;
+    if (profile == null) return;
+    if (!profile.isComplete) {
+      _openSetup(profile);
+      return;
+    }
+    final saved = await BarberMirrorScreen.open(context, services: _online!, profile: profile);
+    if (saved != null) account.saved(saved);
+  }
+
   /// La bottega: dalle monete del cartellino.
   void _openShop() {
     final account = _account!;
@@ -229,7 +280,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       _openSetup(profile);
       return;
     }
-    openShop(context, account: account, shop: _online!.shop!);
+    openShop(
+      context,
+      account: account,
+      shop: _online!.shop!,
+      onChangeFace: () async {
+        final profile = account.profile;
+        if (profile == null) return;
+        final saved = await BarberMirrorScreen.open(context, services: _online, profile: profile);
+        if (saved != null) account.saved(saved);
+      },
+    );
   }
 
   /// Porta la corrente all'insegna: chi si accende, chi sfarfalla.
@@ -237,12 +298,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final jolt = _short.isAnimating ? HomeNeonSign.shortAt(_short.value) : 1.0;
     final seconds = _ambient.value * HomeStreetPainter.loop;
     final intro = _intro.value * HomeStreetPainter.opening;
-    _neon.set(
-      [
-        for (final power in HomeNeonSign.powerAt(seconds, intro)) power * jolt,
-      ],
-      ghost: HomeNeonSign.ghostAt(seconds, intro, jolt: jolt),
-    );
+    _neon.set([
+      for (final power in HomeNeonSign.powerAt(seconds, intro)) power * jolt,
+    ], ghost: HomeNeonSign.ghostAt(seconds, intro, jolt: jolt));
   }
 
   /// Chi tocca l'insegna prende la scossa: i tubi saltano tutti insieme.
@@ -441,14 +499,27 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ),
                     ),
                   // Dopo l'accesso, al posto della targa ACCEDI c'è l'insegna
-                  // della bottega: il negozio si vede, non si cerca.
-                  if (signedIn && _online?.shop != null)
+                  // appesa della bottega: il negozio si vede, non si cerca.
+                  // Prima, un'insegna stretta: toccata indica «Accedi».
+                  if (_online?.shop != null && (signedIn || layout.shopCompact != null))
                     Positioned.fromRect(
-                      rect: layout.signIn,
-                      child: HomeSignInPlate(
-                        key: const Key('home.shopPlate'),
-                        label: t.shop.title,
-                        onTap: _openShop,
+                      rect: signedIn ? layout.shop : layout.shopCompact!,
+                      child: HomeShopSign(
+                        key: const Key('home.shopSign'),
+                        label: t.shop.homeSign,
+                        fresh: signedIn && _shopFresh ? t.shop.fresh : null,
+                        onTap: signedIn ? _openShop : () => setState(() => _coach = true),
+                      ),
+                    ),
+                  // Sotto la bottega, il barbiere: lo specchio si vede, non si cerca.
+                  if (signedIn)
+                    Positioned.fromRect(
+                      rect: layout.barber,
+                      child: HomeShopSign(
+                        key: const Key('home.barberSign'),
+                        label: SettingsStrings.of(context).barberSign,
+                        icon: const BarberPoleIconPainter(),
+                        onTap: _openMirror,
                       ),
                     ),
                   if (signedIn)
@@ -462,6 +533,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         coinsLabel: t.online.coins,
                         onTap: _openProfile,
                         onShop: _online?.shop == null ? null : _openShop,
+                        onMirror: _openMirror,
+                        mirrorLabel: SettingsStrings.of(context).yourLook,
                       ),
                     ),
                   _posted(

@@ -15,7 +15,7 @@ import 'sound/narrator_voice.dart';
 import 'sound/sound_stage.dart';
 import 'ui/screens/home_screen.dart';
 import 'ui/theme/app_theme.dart';
-import 'ui/widgets/settings_sheet.dart';
+import 'ui/screens/settings_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -57,7 +57,7 @@ class ObertaApp extends StatelessWidget {
         // Il telefono in italiano gioca in italiano; tutti gli altri in inglese.
         localeListResolutionCallback: (device, _) => AppLanguage.forDevice(device).locale,
         home: Builder(
-          builder: (context) => HomeScreen(onSettings: () => SettingsSheet.show(context, settings: settings)),
+          builder: (context) => HomeScreen(onSettings: () => SettingsScreen.open(context, settings: settings)),
         ),
       ),
     );

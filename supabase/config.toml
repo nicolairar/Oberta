@@ -403,3 +403,11 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/game/index.ts"
+
+# The Edge Function that deletes a player's account from inside the app
+# (supabase/functions/account). The caller's JWT identifies who is deleted;
+# the function uses its built-in service role to remove the auth user.
+[functions.account]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/account/index.ts"

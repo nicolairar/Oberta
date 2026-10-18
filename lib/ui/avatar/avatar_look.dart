@@ -4,6 +4,9 @@ import 'package:flutter/painting.dart';
 import '../../online/online_models.dart' show Profile, WornLooks;
 import '../../online/shop_models.dart' show ShopBrand;
 import '../widgets/noir_avatar.dart' show AvatarHead, avatarTints, avatarTraitsFor;
+import 'face_features.dart';
+
+export 'face_features.dart';
 
 /// Come si presenta un giocatore: la faccia, il cappello, gli occhiali,
 /// l'abito e un vezzo. Ogni pezzo ha un id di catalogo che non cambia mai,
@@ -21,12 +24,24 @@ class AvatarLook {
   final AvatarOutfit outfit;
   final AvatarAccessory accessory;
 
+  /// I lineamenti, gratis: la forma della testa, gli occhi, i capelli.
+  final FaceFeatures features;
+
+  /// Una pettinatura stravagante della bottega: se c'è, copre quella gratis.
+  final Hairdo hairdo;
+
+  /// Un tatuaggio della bottega, dove si vede la pelle.
+  final Tattoo tattoo;
+
   const AvatarLook({
     required this.base,
     required this.hat,
     required this.glasses,
     required this.outfit,
     required this.accessory,
+    this.features = FaceFeatures.standard,
+    this.hairdo = Hairdo.none,
+    this.tattoo = Tattoo.none,
   });
 
   /// Il look di chi non ha scelto niente: si ricava da [seed] (di solito il
@@ -84,6 +99,69 @@ class AvatarLook {
       glasses: glasses,
       outfit: AvatarOutfit.catalog[traits.tint.clamp(0, AvatarOutfit.catalog.length - 1)],
       accessory: accessory,
+      features: featuresFor(seed, tone: tone, hat: traits.head, dame: dame),
+    );
+  }
+
+  /// I lineamenti di chi non li ha scelti, da [seed]: un terzo conto, così
+  /// aggiungerli non ha cambiato cappelli e abiti di nessuno.
+  static FaceFeatures featuresFor(String seed, {required SkinTone tone, required AvatarHead hat, required bool dame}) {
+    var hash = stableHash('face:$seed');
+    hash = (hash ^ (hash >> 15)) * 0x2C1B3C6D & 0xFFFFFFFF;
+    int take(int options) {
+      final value = hash % options;
+      hash = hash ~/ options + 0x3A5F;
+      return value;
+    }
+
+    T one<T>(List<T> options) => options[take(options.length)];
+    final light = tone.light;
+    final age = one(const [FaceAge.none, FaceAge.none, FaceAge.none, FaceAge.lines, FaceAge.deep]);
+    final hair = switch (hat) {
+      AvatarHead.slicked => HairStyle.slicked,
+      AvatarHead.bob => HairStyle.bob,
+      AvatarHead.bun => HairStyle.bun,
+      _ when dame => one(const [
+          HairStyle.bob,
+          HairStyle.bun,
+          HairStyle.long,
+          HairStyle.fingerWaves,
+          HairStyle.victoryRolls,
+          HairStyle.pinCurls,
+          HairStyle.pageboy,
+          HairStyle.updo,
+        ]),
+      _ => one(const [
+          HairStyle.slicked,
+          HairStyle.sidePart,
+          HairStyle.crewCut,
+          HairStyle.wavy,
+          HairStyle.curly,
+          HairStyle.sidePart,
+          HairStyle.afro,
+          HairStyle.bald,
+          HairStyle.pompadour,
+          HairStyle.quiff,
+          HairStyle.receding,
+          HairStyle.middlePart,
+        ]),
+    };
+    final hairColor = age == FaceAge.deep && take(2) == 0
+        ? one(const [HairColor.grey, HairColor.white])
+        : light
+            ? one(const [HairColor.black, HairColor.darkBrown, HairColor.brown, HairColor.blonde, HairColor.red, HairColor.auburn])
+            : one(const [HairColor.black, HairColor.black, HairColor.darkBrown, HairColor.brown]);
+    return FaceFeatures(
+      shape: one(FaceShape.values),
+      eyes: one(EyeShape.values),
+      eyeColor: light ? one(EyeColor.values) : one(const [EyeColor.dark, EyeColor.brown, EyeColor.brown, EyeColor.hazel]),
+      brows: dame ? one(const [BrowShape.arched, BrowShape.thin, BrowShape.straight]) : one(BrowShape.values),
+      nose: one(NoseShape.values),
+      mouth: one([for (final m in MouthShape.values) if (dame || !m.painted) m]),
+      hair: hair,
+      hairColor: hairColor,
+      detail: one(const [FaceDetail.none, FaceDetail.none, FaceDetail.none, FaceDetail.freckles, FaceDetail.beautyMark, FaceDetail.none]),
+      age: age,
     );
   }
 
@@ -109,6 +187,9 @@ class AvatarLook {
       glasses: pick('glasses', (id) => _byName(AvatarGlasses.values, id), fallback.glasses),
       outfit: pick('outfit', AvatarOutfit.byId, fallback.outfit),
       accessory: pick('accessory', (id) => _byName(AvatarAccessory.values, id), fallback.accessory),
+      features: FaceFeatures.fromJson(json, fallback: fallback.features),
+      hairdo: pick('hairdo', (id) => _byName(Hairdo.values, id), fallback.hairdo),
+      tattoo: pick('tattoo', (id) => _byName(Tattoo.values, id), fallback.tattoo),
     );
   }
 
@@ -118,6 +199,9 @@ class AvatarLook {
     'glasses': glasses.name,
     'outfit': outfit.id,
     'accessory': accessory.name,
+    ...features.toJson(),
+    'hairdo': hairdo.name,
+    'tattoo': tattoo.name,
   };
 
   AvatarLook copyWith({
@@ -126,12 +210,18 @@ class AvatarLook {
     AvatarGlasses? glasses,
     AvatarOutfit? outfit,
     AvatarAccessory? accessory,
+    FaceFeatures? features,
+    Hairdo? hairdo,
+    Tattoo? tattoo,
   }) => AvatarLook(
     base: base ?? this.base,
     hat: hat ?? this.hat,
     glasses: glasses ?? this.glasses,
     outfit: outfit ?? this.outfit,
     accessory: accessory ?? this.accessory,
+    features: features ?? this.features,
+    hairdo: hairdo ?? this.hairdo,
+    tattoo: tattoo ?? this.tattoo,
   );
 
   /// L'id indossato in [slot], come lo vende la bottega: per la faccia è il
@@ -142,6 +232,8 @@ class AvatarLook {
     LookSlot.glasses => glasses.name,
     LookSlot.outfit => outfit.id,
     LookSlot.accessory => accessory.name,
+    LookSlot.hairdo => hairdo.name,
+    LookSlot.tattoo => tattoo.name,
   };
 
   /// Lo stesso look con [id] indossato in [slot], o null se il catalogo
@@ -152,11 +244,32 @@ class AvatarLook {
     LookSlot.glasses => _byName(AvatarGlasses.values, id).let((v) => copyWith(glasses: v)),
     LookSlot.outfit => AvatarOutfit.byId(id).let((v) => copyWith(outfit: v)),
     LookSlot.accessory => _byName(AvatarAccessory.values, id).let((v) => copyWith(accessory: v)),
+    LookSlot.hairdo => _byName(Hairdo.values, id).let((v) => copyWith(hairdo: v)),
+    LookSlot.tattoo => _byName(Tattoo.values, id).let((v) => copyWith(tattoo: v)),
   };
 
   /// Una signora: cambia il taglio delle spalle e dove cade la luce sui capelli.
-  bool get dame =>
-      hat == AvatarHead.bob || hat == AvatarHead.bun || hat == AvatarHead.wideBrim || hat == AvatarHead.cloche;
+  /// Chi ha scelto «Uomo» o «Donna» nello specchio decide lui; gli altri
+  /// (e i look ricavati dal nome) seguono il cappello e la pettinatura.
+  bool get dame => switch (features.presentation) {
+    Presentation.woman => true,
+    Presentation.man => false,
+    Presentation.other => _dameByLook,
+  };
+
+  bool get _dameByLook =>
+      hat == AvatarHead.bob ||
+      hat == AvatarHead.bun ||
+      hat == AvatarHead.wideBrim ||
+      hat == AvatarHead.cloche ||
+      features.hair.dame;
+
+  /// Senza cappello: si vede la pettinatura scelta nello specchio.
+  /// (`slicked`, `bob` e `bun` sono le teste nude del catalogo.)
+  bool get bareHead => hat == AvatarHead.slicked || hat == AvatarHead.bob || hat == AvatarHead.bun;
+
+  /// La pelle, come la si vede: il mimo se la dipinge di bianco.
+  Color get skin => base.skin;
 
   @override
   bool operator ==(Object other) =>
@@ -165,10 +278,13 @@ class AvatarLook {
       other.hat == hat &&
       other.glasses == glasses &&
       other.outfit == outfit &&
-      other.accessory == accessory;
+      other.accessory == accessory &&
+      other.features == features &&
+      other.hairdo == hairdo &&
+      other.tattoo == tattoo;
 
   @override
-  int get hashCode => Object.hash(base, hat, glasses, outfit, accessory);
+  int get hashCode => Object.hash(base, hat, glasses, outfit, accessory, features, hairdo, tattoo);
 
   @override
   String toString() => 'AvatarLook(${toJson()})';
@@ -176,7 +292,7 @@ class AvatarLook {
 
 /// I posti dove si indossa qualcosa, come li chiama il catalogo della
 /// bottega (`shop_items.slot`).
-enum LookSlot { hat, face, glasses, outfit, accessory }
+enum LookSlot { hat, face, glasses, outfit, accessory, hairdo, tattoo }
 
 extension _Let<T extends Object> on T? {
   R? let<R>(R Function(T value) f) {
@@ -209,11 +325,22 @@ enum SkinTone {
   olive(Color(0xFFC39868)),
   tan(Color(0xFFA77A4E)),
   umber(Color(0xFF7A5236)),
-  ebony(Color(0xFF4F3424));
+  ebony(Color(0xFF4F3424)),
+  // Lo specchio del barbiere: altre quattro pelli.
+  ivory(Color(0xFFF6DFC8)),
+  honey(Color(0xFFD9A774)),
+  sienna(Color(0xFF94603E)),
+  espresso(Color(0xFF3A2519));
 
   final Color color;
 
   const SkinTone(this.color);
+
+  /// Dalla più chiara alla più scura, per lo specchio.
+  static const ordered = [ivory, porcelain, rose, honey, olive, tan, sienna, umber, ebony, espresso];
+
+  /// Le pelli chiare: occhi e capelli di ogni colore.
+  bool get light => this == ivory || this == porcelain || this == rose || this == honey;
 }
 
 /// Quello che si porta in faccia da sempre.
@@ -385,6 +512,9 @@ enum CoatPattern {
   // Le case.
   canvas,
   baroque,
+  // Per le signore, gratis: l'abito intero e la camicetta.
+  dress,
+  blouse,
   // Le stramberie: costumi, non giacche.
   clown,
   leotard,
@@ -401,7 +531,10 @@ enum CoatPattern {
   bool get costume => index >= clown.index;
 
   /// Giacche senza risvolti a punta: hanno il loro collo.
-  bool get ownCollar => this == cape || this == track || this == cardigan || costume;
+  bool get ownCollar => this == cape || this == track || this == cardigan || feminine || costume;
+
+  /// Abiti e camicette: lo scollo morbido, senza risvolti.
+  bool get feminine => this == dress || this == blouse;
 }
 
 /// L'abito: il colore della giacca, la stoffa, la camicia e il colore del
@@ -451,6 +584,12 @@ class AvatarOutfit {
       shirt: Color(0xFFF6F0E4),
       satin: true,
     ),
+    // Per le signore, gratis anche questi: abiti e camicette.
+    const AvatarOutfit('rose_dress', Color(0xFF9E4A5A), CoatPattern.dress, Color(0xFFF2D7C9)),
+    const AvatarOutfit('black_dress', Color(0xFF1A171C), CoatPattern.dress, Color(0xFFE2C46A)),
+    const AvatarOutfit('emerald_dress', Color(0xFF1F5A44), CoatPattern.dress, Color(0xFFF2E6CF)),
+    const AvatarOutfit('ivory_blouse', Color(0xFFEDE4D2), CoatPattern.blouse, Color(0xFF7A2E3A), shirt: Color(0xFF2A2C3E)),
+    const AvatarOutfit('powder_blouse', Color(0xFFA9BCD3), CoatPattern.blouse, Color(0xFF1F2B48), shirt: Color(0xFF3A2A24)),
     // Dalla sartoria della bottega.
     const AvatarOutfit('navy_chalkstripe', Color(0xFF1B2440), CoatPattern.chalkstripe, Color(0xFF9B2335)),
     const AvatarOutfit('grey_flannel', Color(0xFF5A5A5E), CoatPattern.plain, Color(0xFF2E4A6B)),
@@ -615,4 +754,38 @@ class AvatarOutfit {
 /// del suo nome.
 extension ProfileLook on Profile {
   AvatarLook get look => AvatarLook.fromJson(avatar, fallback: AvatarLook.fallback(handle ?? id));
+}
+
+/// Le pettinature stravaganti della bottega: si comprano, e indossate coprono
+/// quella scelta nello specchio (e tolgono il cappello).
+enum Hairdo {
+  none,
+  beehive,
+  punkSpikes,
+  spaceBuns,
+  toweringPompadour,
+  flowerCrown,
+  mermaidWaves,
+  flameBouffant,
+  glitterAfro,
+  samuraiTopknot,
+  stripedUndercut,
+  rainbowPonytail,
+  birdNestMane,
+}
+
+/// I tatuaggi della bottega, alla marinara: dove si vede la pelle.
+enum Tattoo {
+  none,
+  anchor,
+  swallow,
+  roseDagger,
+  mammaHeart,
+  spiderWeb,
+  teardrop,
+  cheekStar,
+  koi,
+  playingCards,
+  skullTopHat,
+  familyCrest,
 }

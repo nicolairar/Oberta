@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oberta/ui/screens/avatar/barber_mirror_screen.dart';
 import 'package:oberta/l10n/app_language.dart';
 import 'package:oberta/main.dart';
 import 'package:oberta/online/fake_online.dart';
@@ -39,6 +40,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('SALVA'));
     await tester.pumpAndSettle();
+    // Poi lo specchio del barbiere (non per chi entra da un invito): la
+    // faccia si può fare dopo.
+    if (find.byKey(const Key('mirror.skip')).evaluate().isNotEmpty) {
+      await tester.tap(find.byKey(const Key('mirror.skip')));
+      await tester.pumpAndSettle();
+    }
   }
 
   group('chi non è entrato', () {
@@ -104,12 +111,20 @@ void main() {
       expect(find.text('Libero: è tuo, se lo vuoi.'), findsOneWidget);
       await tester.tap(find.text('SALVA'));
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('mirror.skip')));
+      await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('home.badge')), findsOneWidget);
       expect(find.text('an_na7'), findsOneWidget);
       expect(find.text('LIV. 1'), findsOneWidget);
       expect(find.text('ACCEDI'), findsNothing);
       expect(online.profileOf('me')!.handle, 'an_na7');
+
+      // La targhetta «Il tuo look» sotto il ritratto riapre lo specchio.
+      expect(find.text('IL TUO LOOK'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('home.mirror')));
+      await tester.pumpAndSettle();
+      expect(find.byType(BarberMirrorScreen), findsOneWidget);
     });
 
     testWidgets('se Apple non va, il messaggio gentile e sotto il motivo tecnico', (tester) async {
