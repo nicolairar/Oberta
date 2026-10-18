@@ -61,7 +61,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, WidgetsBindingObserver {
   /// Quante volte si è passati di qui: decide da che didascalia cominciare.
   static int _visits = Random().nextInt(AppLanguage.it.strings.homeCaptions.length);
 
@@ -114,6 +114,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _account;
+    WidgetsBinding.instance.addObserver(this);
     _links.addListener(_linkArrived);
     // Un link arrivato prima del vicolo (l'app aperta proprio dal QR).
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -243,7 +244,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       _openSetup(profile);
       return;
     }
-    showProfileSheet(context, account: account);
+    showProfileSheet(
+      context,
+      account: account,
+      onMirror: _openMirror,
+      onShop: _online?.shop == null ? null : _openShop,
+      onSettings: widget.onSettings,
+    );
   }
 
   /// Una volta per accesso: c'è in vetrina qualcosa messo negli ultimi tre giorni?
@@ -328,8 +335,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _wire();
   }
 
+  /// Di ritorno in primo piano: livello, esperienza e monete di nuovo dal server.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _account?.refresh();
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _links.removeListener(_linkArrived);
     _account?.dispose();
     _ambient.dispose();

@@ -277,6 +277,34 @@ class SupabaseProfiles implements ProfileRepository {
   String get _me => _client.auth.currentUser?.id ?? (throw const OnlineException(OnlineFailure.notSignedIn));
 
   @override
+  Stream<Wallet> watchWallet() {
+    final me = _me;
+    late final StreamController<Wallet> controller;
+    RealtimeChannel? channel;
+    controller = StreamController<Wallet>(
+      onListen: () {
+        channel = _client
+            .channel('wallet:$me')
+            .onPostgresChanges(
+              event: PostgresChangeEvent.all,
+              schema: 'public',
+              table: 'wallets',
+              filter: PostgresChangeFilter(type: PostgresChangeFilterType.eq, column: 'profile_id', value: me),
+              callback: (change) {
+                if (change.newRecord.isEmpty || controller.isClosed) return;
+                controller.add(Wallet.fromJson(change.newRecord));
+              },
+            )
+            .subscribe();
+      },
+      onCancel: () async {
+        if (channel case final channel?) await _client.removeChannel(channel);
+      },
+    );
+    return controller.stream;
+  }
+
+  @override
   Future<Profile> me() => _guard(() async {
         if (_client.auth.currentUser == null) throw const OnlineException(OnlineFailure.notSignedIn);
         // Livello, esperienza e monete non sono colonne pubbliche: il proprio
@@ -742,5 +770,11 @@ class SupabaseRanked implements RankedRepository {
   Future<MatchResult?> lastResult() => _guard(() async {
         final row = await _client.from('match_history').select().order('played_at', ascending: false).limit(1).maybeSingle();
         return row == null ? null : MatchResult.fromJson(row.cast<String, Object?>());
+      });
+
+  @override
+  Future<List<MatchResult>> history({int limit = 5}) => _guard(() async {
+        final rows = await _client.from('match_history').select().order('played_at', ascending: false).limit(limit);
+        return [for (final row in rows) MatchResult.fromJson(row.cast<String, Object?>())];
       });
 }

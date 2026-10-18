@@ -139,8 +139,18 @@ class FakeOnline {
   }
 
   /// Quello che solo il server scrive: livello, esperienza, monete.
-  void award(String id, {int? level, int? xp, int? coins}) =>
-      _profiles[id] = _profiles[id]!.copyWith(level: level, xp: xp, coins: coins);
+  void award(String id, {int? level, int? xp, int? coins}) {
+    _profiles[id] = _profiles[id]!.copyWith(level: level, xp: xp, coins: coins);
+    _pushWallet(id);
+  }
+
+  /// Come il trigger di `wallets` con Realtime: ogni cambio di saldo arriva.
+  final _wallets = StreamController<(String, Wallet)>.broadcast();
+
+  void _pushWallet(String id) {
+    final p = _profiles[id]!;
+    _wallets.add((id, Wallet(level: p.level, xp: p.xp, coins: p.coins)));
+  }
 
   /// Un vecchio nome unico che con le regole nuove non vale più: come fa la
   /// migrazione, torna vuoto e il profilo va rifatto.
@@ -367,6 +377,12 @@ class FakeProfiles implements ProfileRepository {
 
   @override
   Future<Profile> me() async => _online._profiles[_online._me]!;
+
+  @override
+  Stream<Wallet> watchWallet() {
+    final me = _online._me;
+    return _online._wallets.stream.where((w) => w.$1 == me).map((w) => w.$2);
+  }
 
   bool _taken(String handle, String me) => _online._profiles.values
       .any((profile) => profile.id != me && profile.handle?.toLowerCase() == Profile.normalizeHandle(handle));
@@ -928,7 +944,9 @@ class FakeShop implements ShopRepository {
     }
     if (me.coins < item.price) throw const OnlineException(OnlineFailure.notEnoughCoins);
     (_owned[me.id] ??= {}).add(item.id);
-    return _online._profiles[me.id] = me.copyWith(coins: me.coins - item.price);
+    final bought = _online._profiles[me.id] = me.copyWith(coins: me.coins - item.price);
+    _online._pushWallet(me.id);
+    return bought;
   }
 
   String? _tone(Map<String, String> avatar, String? tone) {
@@ -1049,6 +1067,7 @@ extension FakeRankedServer on FakeOnline {
       final id = p['profile'] as String;
       final profile = _profiles[id]!;
       _profiles[id] = profile.copyWith(level: p['level'] as int, xp: p['xp'] as int, coins: profile.coins + (p['coins'] as int));
+      _pushWallet(id);
       if (room.ranked) ratings[(id, room.language)] = Rating(p['mu'] as double, p['sigma'] as double);
       final match = MatchResult(
         gameId: game.gameId,
@@ -1212,4 +1231,8 @@ class FakeRanked implements RankedRepository {
 
   @override
   Future<MatchResult?> lastResult() async => _online.history[_me]?.lastOrNull;
+
+  @override
+  Future<List<MatchResult>> history({int limit = 5}) async =>
+      (_online.history[_me] ?? const []).reversed.take(limit).toList();
 }

@@ -233,17 +233,48 @@ void main() {
       await tester.tap(find.byKey(const Key('home.badge')));
       await tester.pumpAndSettle();
       expect(find.text('anna'), findsNWidgets(2), reason: 'sul cartellino e sul profilo, sempre il nome unico');
-      expect(find.text('LIVELLO'), findsOneWidget);
-      expect(find.text('MONETE'), findsOneWidget);
+      expect(find.byKey(const Key('profile.dossier')), findsOneWidget);
+      expect(find.byType(BarberMirrorScreen), findsNothing, reason: 'il cartellino apre il profilo, non lo specchio');
+      expect(find.text('LIV. 4'), findsNWidgets(2));
       expect(find.text('200 su 250 punti esperienza'), findsOneWidget);
-      final bar = tester.widget<LinearProgressIndicator>(find.byKey(const Key('profile.xp')));
-      expect(bar.value, closeTo(0.8, 1e-9));
 
-      await tester.tap(find.text('Esci dall\'account'));
+      // Il server cambia il saldo: il fascicolo e il cartellino si aggiornano da soli.
+      online.award('me', xp: 230, coins: 90);
+      await tester.pumpAndSettle();
+      expect(find.text('230 su 250 punti esperienza'), findsOneWidget);
+      expect(find.text('90'), findsNWidgets(2));
+
+      await tester.scrollUntilVisible(find.text('ESCI DALL\'ACCOUNT'), 200);
+
+      await tester.tap(find.text('ESCI DALL\'ACCOUNT'));
       await tester.pumpAndSettle();
       expect(online.auth.signedIn, isFalse);
       expect(find.text('ACCEDI'), findsOneWidget);
       expect(find.byKey(const Key('home.badge')), findsNothing);
+    });
+
+    testWidgets('il ritratto apre il profilo; solo «Il tuo look» apre lo specchio', (tester) async {
+      online.signInReady(handle: 'anna');
+      await openAlley(tester);
+      await tester.tap(find.byKey(const Key('home.portrait')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('profile.dossier')), findsOneWidget);
+      expect(find.byType(BarberMirrorScreen), findsNothing);
+      await tester.tapAt(const Offset(200, 20));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('home.mirror')));
+      await tester.pumpAndSettle();
+      expect(find.byType(BarberMirrorScreen), findsOneWidget);
+    });
+
+    testWidgets('il saldo spinto dal server arriva al cartellino senza ricaricare', (tester) async {
+      online.signInReady(handle: 'anna');
+      await openAlley(tester);
+      expect(find.text('LIV. 1'), findsOneWidget);
+      online.award('me', level: 2, xp: 30, coins: 150);
+      await tester.pumpAndSettle();
+      expect(find.text('LIV. 2'), findsOneWidget);
+      expect(find.text('150'), findsOneWidget);
     });
 
     testWidgets('dalle monete del cartellino si entra in bottega', (tester) async {

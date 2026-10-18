@@ -48,6 +48,10 @@ abstract class ProfileRepository {
   /// Il profilo di chi è entrato, con livello, esperienza e monete.
   Future<Profile> me();
 
+  /// Il proprio portafoglio, spinto dal server a ogni cambio (partite,
+  /// acquisti, regali). Sola lettura: il client non scrive mai i saldi.
+  Stream<Wallet> watchWallet();
+
   Future<Profile> update({required String handle, AppLanguage? language});
 
   /// Salva i lineamenti gratuiti dello specchio del barbiere ([face], con le
