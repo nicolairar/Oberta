@@ -138,7 +138,6 @@ void main() {
       await tester.pumpAndSettle();
       await _shot(tester, '${phone}_6_setup_taken');
       await tester.enterText(find.byKey(const Key('online.handle')), 'Nicolai');
-      await tester.enterText(find.byKey(const Key('online.name')), 'Nicolai');
       await tester.pump(const Duration(milliseconds: 500));
       await tester.pumpAndSettle();
       await _shot(tester, '${phone}_7_setup_free');

@@ -27,6 +27,21 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  Future<void> tab(WidgetTester tester, String name) async {
+    await tester.ensureVisible(find.byKey(Key('shop.tab.$name')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(Key('shop.tab.$name')));
+  }
+
+  Future<void> show(WidgetTester tester, String key) async {
+    await tester.scrollUntilVisible(
+      find.byKey(Key(key)),
+      300,
+      scrollable: find.descendant(of: find.byKey(const Key('shop.grid')), matching: find.byType(Scrollable)).first,
+    );
+    await tester.pumpAndSettle();
+  }
+
   String coins(WidgetTester tester) => tester.widget<Text>(find.byKey(const Key('shop.coins'))).data!;
 
   testWidgets('si prova davanti allo specchio, si compra, si indossa', (tester) async {
@@ -36,6 +51,9 @@ void main() {
     expect(find.text('IN VETRINA'), findsOneWidget);
     expect(coins(tester), '1000');
 
+    await tab(tester, 'hats');
+    await tester.pumpAndSettle();
+    await show(tester, 'shop.item.hat.borsalino');
     await tester.tap(find.byKey(const Key('shop.item.hat.borsalino')));
     await tester.pumpAndSettle();
     expect(find.text('Borsalino · Raro'), findsOneWidget);
@@ -49,18 +67,25 @@ void main() {
     await tester.pumpAndSettle();
     expect(coins(tester), '300');
     expect(account.profile!.coins, 300, reason: 'il cartellino del vicolo lo sa subito');
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
     expect(find.text('INDOSSA'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('shop.action')));
     await tester.pumpAndSettle();
     expect(online.profileOf('me')!.avatar['hat'], 'borsalino');
     expect(find.text('TOGLI'), findsOneWidget);
-    expect(find.text('INDOSSATO'), findsWidgets);
+    await tester.tap(find.byKey(const Key('shop.tryOn.back')));
+    await tester.pumpAndSettle();
+    expect(find.text('INDOSSATO'), findsWidgets, reason: 'sulla fascia del pezzo, nello scaffale');
   });
 
   testWidgets('senza monete il padrone non fa credito', (tester) async {
     online.award('me', coins: 300);
     await open(tester);
+    await tab(tester, 'hats');
+    await tester.pumpAndSettle();
+    await show(tester, 'shop.item.hat.topHat');
     await tester.tap(find.byKey(const Key('shop.item.hat.topHat')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('shop.action')));
@@ -74,18 +99,54 @@ void main() {
     online.award('me', coins: 1100);
     await online.shop.buy('outfit.grey_flannel');
     await open(tester);
-    await tester.tap(find.byKey(const Key('shop.tab.wardrobe')));
+    await tab(tester, 'wardrobe');
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('shop.slot.outfit')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('shop.item.outfit.grey_flannel')), findsOneWidget);
     expect(find.byKey(const Key('shop.item.outfit.white_dinner')), findsNothing);
+    await show(tester, 'shop.item.outfit.charcoal_pinstripe');
     expect(find.byKey(const Key('shop.item.outfit.charcoal_pinstripe')), findsOneWidget, reason: 'la base è di tutti');
+    await show(tester, 'shop.item.outfit.grey_flannel');
 
     await tester.tap(find.byKey(const Key('shop.item.outfit.grey_flannel')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('shop.action')));
     await tester.pumpAndSettle();
     expect(online.profileOf('me')!.avatar['outfit'], 'grey_flannel');
+  });
+
+  testWidgets('le firme sono insegne grandi: si apre una casa e si torna indietro', (tester) async {
+    await open(tester);
+    await tab(tester, 'brands');
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('shop.brand.vaugirard')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('shop.brand.vaugirard')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('shop.item.outfit.vaugirard_travel')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('shop.opened.back')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('shop.brand.arminio')), findsOneWidget);
+  });
+
+  testWidgets('i filtri: la classe e il portafoglio', (tester) async {
+    online.award('me', coins: 400);
+    await open(tester);
+    await tab(tester, 'hats');
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('shop.affordable')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('shop.affordable')));
+    await tester.pumpAndSettle();
+    expect(find.text('RARO'), findsNothing);
+    expect(find.text('COMUNE'), findsWidgets);
+    await tester.tap(find.byKey(const Key('shop.affordable')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('shop.rarity.raro')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('shop.rarity.raro')));
+    await tester.pumpAndSettle();
+    expect(find.text('COMUNE'), findsNothing);
+    expect(find.byKey(const Key('shop.item.hat.borsalino')), findsOneWidget);
   });
 }

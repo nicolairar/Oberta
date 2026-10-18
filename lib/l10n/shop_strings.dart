@@ -1,5 +1,8 @@
 import '../online/shop_models.dart';
 
+/// I reparti della bottega, nell'ordine delle linguette.
+enum ShopTab { window, tailoring, hats, accessories, brands, oddities, wardrobe }
+
 /// I testi della bottega: il bancone, lo specchio e il guardaroba. Come
 /// [OnlineStrings], ogni lingua dice tutto e ogni testo finisce nel [catalog].
 /// I nomi dei pezzi arrivano dal catalogo del server, in tutte e due le lingue.
@@ -40,6 +43,25 @@ abstract class ShopStrings {
   String get oddities;
   String brandTagline(ShopBrand brand);
 
+  /// Le linguette della bottega, una per reparto.
+  String tab(ShopTab tab);
+
+  /// L'insegna appesa nel vicolo, e il cartellino della vetrina nuova.
+  String get homeSign;
+  String get fresh;
+
+  /// I filtri sopra gli scaffali.
+  String get allRarities;
+  String get allSlots;
+  String get affordable;
+  String get cheapFirst;
+  String get dearFirst;
+  String pieces(int count);
+  String get emptyShelf;
+  String get changeFace;
+  String get changeFaceHint;
+  String get back;
+
   Map<String, String> get catalog => {
     'title': title,
     'subtitle': subtitle,
@@ -70,6 +92,19 @@ abstract class ShopStrings {
     'allBrands': allBrands,
     'oddities': oddities,
     for (final b in ShopBrand.values) 'brand.${b.name}': brandTagline(b),
+    for (final tab in ShopTab.values) 'tab.${tab.name}': this.tab(tab),
+    'homeSign': homeSign,
+    'fresh': fresh,
+    'allRarities': allRarities,
+    'allSlots': allSlots,
+    'affordable': affordable,
+    'cheapFirst': cheapFirst,
+    'dearFirst': dearFirst,
+    'pieces': pieces(3),
+    'emptyShelf': emptyShelf,
+    'changeFace': changeFace,
+    'changeFaceHint': changeFaceHint,
+    'back': back,
   };
 }
 
@@ -154,6 +189,40 @@ class ItalianShopStrings extends ShopStrings {
     ShopBrand.nikea => 'Corsa e atletica',
     ShopBrand.adelphi => 'Atletica dei due fratelli',
   };
+  @override
+  String tab(ShopTab tab) => switch (tab) {
+    ShopTab.window => 'Vetrina',
+    ShopTab.tailoring => 'Sartoria',
+    ShopTab.hats => 'Cappelleria',
+    ShopTab.accessories => 'Accessori',
+    ShopTab.brands => 'Firme',
+    ShopTab.oddities => 'Stramberie',
+    ShopTab.wardrobe => 'Armadio',
+  };
+  @override
+  String get homeSign => 'BOTTEGA';
+  @override
+  String get fresh => 'NUOVO';
+  @override
+  String get allRarities => 'Tutte';
+  @override
+  String get allSlots => 'Tutto';
+  @override
+  String get affordable => 'Alla mia portata';
+  @override
+  String get cheapFirst => 'Prezzo ↑';
+  @override
+  String get dearFirst => 'Prezzo ↓';
+  @override
+  String pieces(int count) => count == 1 ? '1 pezzo' : '$count pezzi';
+  @override
+  String get emptyShelf => 'Niente su questo scaffale.';
+  @override
+  String get changeFace => 'Cambia faccia';
+  @override
+  String get changeFaceHint => 'Il viso, la pelle, i baffi: dal barbiere.';
+  @override
+  String get back => 'Indietro';
 }
 
 class EnglishShopStrings extends ShopStrings {
@@ -237,4 +306,38 @@ class EnglishShopStrings extends ShopStrings {
     ShopBrand.nikea => 'Running and athletics',
     ShopBrand.adelphi => 'Athletics of two brothers',
   };
+  @override
+  String tab(ShopTab tab) => switch (tab) {
+    ShopTab.window => 'Window',
+    ShopTab.tailoring => 'Tailoring',
+    ShopTab.hats => 'Hats',
+    ShopTab.accessories => 'Accessories',
+    ShopTab.brands => 'Labels',
+    ShopTab.oddities => 'Oddities',
+    ShopTab.wardrobe => 'Wardrobe',
+  };
+  @override
+  String get homeSign => 'TAILOR';
+  @override
+  String get fresh => 'NEW';
+  @override
+  String get allRarities => 'All';
+  @override
+  String get allSlots => 'All';
+  @override
+  String get affordable => 'I can afford';
+  @override
+  String get cheapFirst => 'Price ↑';
+  @override
+  String get dearFirst => 'Price ↓';
+  @override
+  String pieces(int count) => count == 1 ? '1 piece' : '$count pieces';
+  @override
+  String get emptyShelf => 'Nothing on this shelf.';
+  @override
+  String get changeFace => 'Change face';
+  @override
+  String get changeFaceHint => 'Face, skin, moustache: see the barber.';
+  @override
+  String get back => 'Back';
 }

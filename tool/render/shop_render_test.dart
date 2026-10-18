@@ -113,25 +113,36 @@ void main() {
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 50));
     }
-    await _shot(tester, '00_counter');
-    await tester.tap(find.byKey(const Key('shop.featured.outfit.vaugirard_travel')));
+    Future<void> tab(String name) async {
+      await tester.ensureVisible(find.byKey(Key('shop.tab.$name')));
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(find.byKey(Key('shop.tab.$name')));
+      await tester.pump(const Duration(milliseconds: 300));
+    }
+
+    await _shot(tester, '00_window');
+    await tester.tap(find.byKey(const Key('shop.item.outfit.vaugirard_travel')));
+    await tester.pump(const Duration(milliseconds: 500));
     await _shot(tester, '01_try_trench');
     await tester.tap(find.byKey(const Key('shop.action')));
     await _shot(tester, '02_receipt');
     await tester.tap(find.byKey(const Key('shop.confirm')));
     await _shot(tester, '03_bought');
-    await tester.tap(find.byKey(const Key('shop.tab.wardrobe')));
-    await tester.tap(find.byKey(const Key('shop.slot.face')));
-    await _shot(tester, '04_wardrobe');
-    await tester.tap(find.byKey(const Key('shop.tab.counter')));
-    await tester.tap(find.byKey(const Key('shop.slot.brands')));
-    await tester.pump();
-    final pick = find.byKey(const Key('shop.item.accessory.chanterellePearls'));
-    if (pick.evaluate().isNotEmpty) await tester.tap(pick);
+    await tester.tap(find.byKey(const Key('shop.tryOn.back')));
+    await tester.pump(const Duration(milliseconds: 500));
+    await tab('hats');
+    await _shot(tester, '04_hats');
+    await tab('accessories');
+    await _shot(tester, '05_accessories');
+    await tab('brands');
     await _shot(tester, '06_brands');
-    await tester.tap(find.byKey(const Key('shop.slot.oddities')));
-    await tester.pump();
-    await _shot(tester, '07_oddities');
+    await tester.tap(find.byKey(const Key('shop.brand.chanterelle')));
+    await _shot(tester, '07_brand_open');
+    await tab('oddities');
+    await _shot(tester, '08_oddities');
+    await tab('wardrobe');
+    await _shot(tester, '09_wardrobe');
+    if (Platform.environment['SHEET'] == null) return;
 
     // I pezzi della seconda consegna (e quelli ritoccati), uno per moneta.
     final base = AvatarLook.fallback('anna');
@@ -144,7 +155,10 @@ void main() {
               if (item.brand != null) item,
           ]
         : Platform.environment['SHEET'] == 'absurd'
-        ? [for (final item in odditiesDrop) if (item.collection == ShopCollection.assurdo) item]
+        ? [
+            for (final item in odditiesDrop)
+              if (item.collection == ShopCollection.assurdo) item,
+          ]
         : odditiesDrop;
     tester.view.physicalSize = Size(97.0 * 8, 118.0 * ((items.length + 7) ~/ 8)) * 3;
     await tester.pumpWidget(

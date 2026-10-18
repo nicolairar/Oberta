@@ -33,6 +33,12 @@ class HomeAlleyLayout {
   /// Il cartellino di chi è entrato, in alto a sinistra al posto della targa.
   late final Rect badge;
 
+  /// L'insegna appesa della bottega: dopo l'accesso al posto della targhetta
+  /// «Accedi», alta come il cartellino; prima, stretta tra la targa del
+  /// vicolo e «Accedi» (null se lì non ci sta).
+  late final Rect shop;
+  late final Rect? shopCompact;
+
   /// Il riquadro delle lettere al neon (accento compreso) e la loro altezza.
   late final Rect sign;
   late final double cap;
@@ -68,6 +74,11 @@ class HomeAlleyLayout {
     final signInWidth = min(112.0, slot.left - 8 - plaque.right - 12);
     signIn = Rect.fromLTWH(slot.left - 8 - signInWidth, slot.center.dy - 17, signInWidth, 34);
     badge = Rect.fromLTWH(12, top + 4, min(196.0, slot.left - 22), 50);
+    final shopLeft = max(badge.right + 8, slot.left - 10 - 120);
+    shop = Rect.fromLTRB(shopLeft, top + 2, slot.left - 10, top + 54);
+    final compactRight = signIn.left - 6;
+    final compactLeft = max(plaque.right + 6, compactRight - 46);
+    shopCompact = compactRight - compactLeft >= 34 ? Rect.fromLTRB(compactLeft, top + 6, compactRight, top + 50) : null;
 
     cap = min((w - 56) / HomeNeonSign.width, usable * 0.118);
     sign = Rect.fromLTWH(
@@ -225,9 +236,7 @@ class HomeWallPainter extends CustomPainter {
   /// La raffica che ha mancato qualcuno, tanto tempo fa.
   void _holes(Canvas canvas) {
     final r = layout.cap * 0.045;
-    final from = plaque == null
-        ? Offset(layout.badge.right, layout.plaque.center.dy)
-        : layout.plaque.centerRight;
+    final from = plaque == null ? Offset(layout.badge.right, layout.plaque.center.dy) : layout.plaque.centerRight;
     final room = (signIn ? layout.signIn.left : layout.slot.left) - from.dx - 14;
     final crack = Paint()
       ..color = Colors.black.withValues(alpha: 0.7)
@@ -304,10 +313,7 @@ class HomeWallPainter extends CustomPainter {
       paint.color = _lit((0.50, 0.50, 0.54), center, gain: 0.42);
       canvas.drawRect(Rect.fromLTWH(x + 0.8, layout.ground + depth * 0.78, slab - 1.6, depth * 0.22), paint);
     }
-    canvas.drawRect(
-      Rect.fromLTWH(0, layout.ground, w, 1.2),
-      Paint()..color = Colors.white.withValues(alpha: 0.10),
-    );
+    canvas.drawRect(Rect.fromLTWH(0, layout.ground, w, 1.2), Paint()..color = Colors.white.withValues(alpha: 0.10));
   }
 
   @override
@@ -326,12 +332,8 @@ class HomeStreetPainter extends CustomPainter {
   final Animation<double> intro;
   final HomeNeonState neon;
 
-  HomeStreetPainter({
-    required this.layout,
-    required this.ambient,
-    required this.intro,
-    required this.neon,
-  }) : super(repaint: Listenable.merge([ambient, intro, neon]));
+  HomeStreetPainter({required this.layout, required this.ambient, required this.intro, required this.neon})
+    : super(repaint: Listenable.merge([ambient, intro, neon]));
 
   static const loop = 60.0;
   static const opening = 3.0;
@@ -441,7 +443,10 @@ class HomeStreetPainter extends CustomPainter {
         ..shader = LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [_warm.withValues(alpha: 0.26 * flicker), _warm.withValues(alpha: 0.04 * flicker)],
+          colors: [
+            _warm.withValues(alpha: 0.26 * flicker),
+            _warm.withValues(alpha: 0.04 * flicker),
+          ],
         ).createShader(Rect.fromLTRB(0, head.dy, size.width, left.dy)),
     );
     final pool = Rect.fromCenter(
@@ -453,7 +458,10 @@ class HomeStreetPainter extends CustomPainter {
       pool,
       Paint()
         ..shader = RadialGradient(
-          colors: [_warm.withValues(alpha: 0.22 * flicker), _warm.withValues(alpha: 0)],
+          colors: [
+            _warm.withValues(alpha: 0.22 * flicker),
+            _warm.withValues(alpha: 0),
+          ],
         ).createShader(pool),
     );
   }
@@ -495,7 +503,10 @@ class HomeStreetPainter extends CustomPainter {
         bounds,
         Paint()
           ..shader = RadialGradient(
-            colors: [color.withValues(alpha: strength), color.withValues(alpha: 0)],
+            colors: [
+              color.withValues(alpha: strength),
+              color.withValues(alpha: 0),
+            ],
           ).createShader(bounds),
       );
     }
@@ -517,7 +528,10 @@ class HomeStreetPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
     for (var i = 0; i < 12; i++) {
-      final center = Offset(rng.nextDouble() * size.width, layout.ground + rng.nextDouble() * (size.height - layout.ground));
+      final center = Offset(
+        rng.nextDouble() * size.width,
+        layout.ground + rng.nextDouble() * (size.height - layout.ground),
+      );
       final life = (ambient.value * (41 + rng.nextInt(20)) + rng.nextDouble()) % 1;
       final reach = 3 + 13 * life;
       ring.color = Colors.white.withValues(alpha: 0.22 * (1 - life));
@@ -562,7 +576,10 @@ class HomeStreetPainter extends CustomPainter {
         glare,
         Paint()
           ..shader = RadialGradient(
-            colors: [const Color(0xFFFFF0C8).withValues(alpha: 0.20 * swell), const Color(0x00FFF0C8)],
+            colors: [
+              const Color(0xFFFFF0C8).withValues(alpha: 0.20 * swell),
+              const Color(0x00FFF0C8),
+            ],
           ).createShader(glare),
       );
     }
@@ -620,7 +637,10 @@ class HomeStreetPainter extends CustomPainter {
       glow,
       Paint()
         ..shader = RadialGradient(
-          colors: [_warm.withValues(alpha: 0.55 * lamp), _warm.withValues(alpha: 0)],
+          colors: [
+            _warm.withValues(alpha: 0.55 * lamp),
+            _warm.withValues(alpha: 0),
+          ],
         ).createShader(glow),
     );
     canvas.drawOval(
@@ -902,7 +922,10 @@ class HomeStreetPainter extends CustomPainter {
         halo,
         Paint()
           ..shader = RadialGradient(
-            colors: [const Color(0xFFFF7A3B).withValues(alpha: 0.75 * ember), const Color(0x00FF7A3B)],
+            colors: [
+              const Color(0xFFFF7A3B).withValues(alpha: 0.75 * ember),
+              const Color(0x00FF7A3B),
+            ],
           ).createShader(halo),
       );
       canvas.drawCircle(tip, h * (0.011 + 0.008 * ember), Paint()..color = const Color(0xFFFF8A4B));
@@ -912,10 +935,7 @@ class HomeStreetPainter extends CustomPainter {
       final wisp = Path()..moveTo(tip.dx, tip.dy);
       for (var i = 1; i <= 18; i++) {
         final up = i / 18;
-        wisp.lineTo(
-          tip.dx + _wave(23, up * 0.9) * h * 0.07 * up + h * 0.05 * up * up,
-          tip.dy - up * h * 0.46,
-        );
+        wisp.lineTo(tip.dx + _wave(23, up * 0.9) * h * 0.07 * up + h * 0.05 * up * up, tip.dy - up * h * 0.46);
       }
       canvas.drawPath(
         wisp,
@@ -933,7 +953,8 @@ class HomeStreetPainter extends CustomPainter {
         final life = (puff * 1.25 - i * 0.06).clamp(0.0, 1.0);
         if (life <= 0 || life >= 1) continue;
         final drift = Curves.easeOut.transform(life);
-        final center = lips +
+        final center =
+            lips +
             Offset(h * (0.10 + 0.50 * drift + 0.03 * i), -h * (0.02 + 0.42 * drift * drift + 0.035 * i)) +
             Offset(_wave(11, i * 0.2) * h * 0.02, 0);
         final cloud = Rect.fromCircle(center: center, radius: h * (0.045 + 0.15 * drift));
@@ -941,7 +962,10 @@ class HomeStreetPainter extends CustomPainter {
           cloud,
           Paint()
             ..shader = RadialGradient(
-              colors: [Colors.white.withValues(alpha: 0.20 * (1 - life)), const Color(0x00FFFFFF)],
+              colors: [
+                Colors.white.withValues(alpha: 0.20 * (1 - life)),
+                const Color(0x00FFFFFF),
+              ],
             ).createShader(cloud),
         );
       }
