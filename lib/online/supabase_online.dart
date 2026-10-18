@@ -292,6 +292,13 @@ class SupabaseProfiles implements ProfileRepository {
       });
 
   @override
+  Future<Profile> saveFace(Map<String, String> face, {required String tone, String? mark}) => _guard(() async {
+        final rows = await _client.rpc<List<dynamic>>('save_face', params: {'p_face': face, 'p_tone': tone, 'p_mark': mark});
+        if (rows.isEmpty) throw const OnlineException(OnlineFailure.notSignedIn);
+        return Profile.fromJson(rows.first as Map<String, dynamic>);
+      });
+
+  @override
   Future<bool> handleAvailable(String handle) => _guard(() async {
         final rows = await _client
             .from('profiles')

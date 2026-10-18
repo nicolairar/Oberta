@@ -13,6 +13,7 @@ import '../../widgets/scene_scaffold.dart';
 import 'friends_screen.dart';
 import 'join_room_screen.dart';
 import 'online_room_screen.dart';
+import '../avatar/barber_mirror_screen.dart';
 import 'online_widgets.dart';
 import 'sign_in_sheet.dart';
 
@@ -90,7 +91,11 @@ class _OnlineScreenState extends State<OnlineScreen> {
           ProfileSetup(
             services: online,
             profile: _profile!,
-            onSaved: (profile) => setState(() => _profile = profile),
+            onSaved: (profile) async {
+              setState(() => _profile = profile);
+              final faced = await BarberMirrorScreen.open(context, services: online, profile: profile, firstTime: true);
+              if (faced != null && mounted) setState(() => _profile = faced);
+            },
           ),
         ),
       _ => (t.hubTitle, _Hub(services: online, profile: _profile!)),

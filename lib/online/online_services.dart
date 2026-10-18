@@ -48,6 +48,12 @@ abstract class ProfileRepository {
 
   Future<Profile> update({required String handle, AppLanguage? language});
 
+  /// Salva i lineamenti gratuiti dello specchio del barbiere ([face], con le
+  /// chiavi di `FaceFeatures.keys`) e la pelle [tone]. I pezzi della bottega
+  /// non si toccano; [mark] è il segno che l'app mostra a chi non ne ha mai
+  /// salvato uno (vale solo se è di base).
+  Future<Profile> saveFace(Map<String, String> face, {required String tone, String? mark});
+
   /// Vero se nessun altro ha già questo nome unico (in qualunque maiuscola).
   Future<bool> handleAvailable(String handle);
 
