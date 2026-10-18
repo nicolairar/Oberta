@@ -16,6 +16,7 @@ import '../widgets/home_caption.dart';
 import '../widgets/home_neon_sign.dart';
 import '../widgets/home_posters.dart';
 import '../widgets/home_settings_plate.dart';
+import 'avatar/barber_mirror_screen.dart';
 import 'lobby_screen.dart';
 import 'online/online_room_screen.dart';
 import 'online/online_screen.dart';
@@ -161,7 +162,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       _pendingRoom = null;
       return;
     }
+    // Subito dopo il nome, la faccia: lo specchio del barbiere (non se si
+    // stava entrando in una stanza da un invito).
+    final joining = _pendingRoom != null;
     _account!.saved(saved);
+    if (joining) return;
+    final faced = await BarberMirrorScreen.open(context, services: _online!, profile: saved, firstTime: true);
+    if (faced != null && mounted) _account.saved(faced);
   }
 
   Future<void> _joinRoom(String code, Profile me) async {

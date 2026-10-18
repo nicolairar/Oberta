@@ -39,6 +39,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('SALVA'));
     await tester.pumpAndSettle();
+    // Poi lo specchio del barbiere (non per chi entra da un invito): la
+    // faccia si può fare dopo.
+    if (find.byKey(const Key('mirror.skip')).evaluate().isNotEmpty) {
+      await tester.tap(find.byKey(const Key('mirror.skip')));
+      await tester.pumpAndSettle();
+    }
   }
 
   group('chi non è entrato', () {
@@ -103,6 +109,8 @@ void main() {
       expect(field.controller!.text, 'an_na7', reason: 'sempre minuscolo; spazi e segni non entrano');
       expect(find.text('Libero: è tuo, se lo vuoi.'), findsOneWidget);
       await tester.tap(find.text('SALVA'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('mirror.skip')));
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('home.badge')), findsOneWidget);

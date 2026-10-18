@@ -8,6 +8,7 @@ import 'avatar_look.dart';
 
 part 'oddities_painter.dart';
 part 'absurd_painter.dart';
+part 'face_painter.dart';
 
 /// Quello che si muove in un personaggio fermo al tavolo.
 @immutable
@@ -199,13 +200,13 @@ abstract final class LookPainter {
     final halo = Paint()..color = glow.withValues(alpha: lit ? 0.95 : 0.75);
     canvas.drawPath(torso, halo);
     _hairBack(canvas, look, halo);
-    canvas.drawOval(head, halo);
+    canvas.drawPath(_Face.path(look.features.shape), halo);
     _hat(canvas, look, halo, silhouette: true);
     canvas.restore();
 
-    _hairBack(canvas, look, Paint()..color = _hairColor(look));
+    _hairBack(canvas, look, null);
     _coat(canvas, look, torso, light);
-    _neck(canvas, look);
+    _neck(canvas, look, light);
     _face(canvas, look, head, pose, light);
     _hairFront(canvas, look);
     _glasses(canvas, look, pose);
@@ -1175,9 +1176,8 @@ abstract final class LookPainter {
     );
   }
 
-  static void _neck(Canvas canvas, AvatarLook look) {
-    final skin = look.base.skin;
-    canvas.drawRect(const Rect.fromLTRB(-0.075, -0.72, 0.075, -0.58), Paint()..color = _dark(skin, 0.62));
+  static void _neck(Canvas canvas, AvatarLook look, Offset light) {
+    _Face.neck(canvas, look.base.skin, light);
     final accent = look.outfit.accent;
     // La tuta ha il suo collo: niente cravatte sotto la cerniera.
     final zipped = (look.outfit.pattern == CoatPattern.track || look.outfit.pattern.costume) && !look.dame;
@@ -1594,53 +1594,22 @@ abstract final class LookPainter {
     }
   }
 
-  static Color _hairColor(AvatarLook look) => switch (look.base.tone) {
-    SkinTone.porcelain || SkinTone.rose => const Color(0xFF2A1C14),
-    _ => const Color(0xFF0E0B0A),
-  };
+  static Color _hairColor(AvatarLook look) => look.features.hairColor.color;
 
-  static void _hairBack(Canvas canvas, AvatarLook look, Paint paint) {
-    switch (look.hat) {
-      case AvatarHead.bob || AvatarHead.wideBrim:
-        canvas.drawRRect(
-          RRect.fromRectAndRadius(const Rect.fromLTRB(-0.215, -1.07, 0.215, -0.68), const Radius.circular(0.15)),
-          paint,
-        );
-      case AvatarHead.bun:
-        canvas.drawCircle(const Offset(0, -1.1), 0.075, paint);
-      default:
-        break;
-    }
-  }
+  static void _hairBack(Canvas canvas, AvatarLook look, Paint? halo) => _Face.hairBack(canvas, look, halo);
 
   static void _face(Canvas canvas, AvatarLook look, Rect head, CharacterPose pose, Offset light) {
     // Il mimo si dipinge la faccia di bianco.
     final skin = look.base.mark == FaceMark.mimeFace ? const Color(0xFFF4F0E8) : look.base.skin;
     // Le orecchie, poi la faccia: la lampada accende la fronte e uno zigomo,
     // il resto affonda nel buio.
-    final ear = Paint()..color = _dark(skin, 0.55);
-    canvas.drawOval(Rect.fromCenter(center: const Offset(-0.165, -0.85), width: 0.05, height: 0.09), ear);
-    canvas.drawOval(Rect.fromCenter(center: const Offset(0.165, -0.85), width: 0.05, height: 0.09), ear);
-    final face = Path()
-      ..moveTo(-0.16, -0.9)
-      ..quadraticBezierTo(-0.16, -1.06, 0, -1.06)
-      ..quadraticBezierTo(0.16, -1.06, 0.16, -0.9)
-      ..quadraticBezierTo(0.16, -0.76, 0.09, -0.7)
-      ..quadraticBezierTo(0, -0.64, -0.09, -0.7)
-      ..quadraticBezierTo(-0.16, -0.76, -0.16, -0.9)
-      ..close();
-    canvas.drawPath(
-      face,
-      Paint()
-        ..shader = RadialGradient(
-          center: Alignment(light.dx * 0.45, -0.25),
-          radius: 0.95,
-          colors: [_bright(skin, 0.06), _dark(skin, 0.3), _dark(skin, 0.72)],
-          stops: const [0, 0.5, 1],
-        ).createShader(head),
-    );
+    final face = _Face.path(look.features.shape);
+    _Face.ears(canvas, look, skin, light);
+    _Face.skin(canvas, look, face, skin, light);
     canvas.save();
     canvas.clipPath(face);
+    _Face.age(canvas, look, skin);
+    _Face.detail(canvas, look, skin);
     // Sotto la tesa gli occhi restano in ombra.
     final brim = switch (look.hat) {
       AvatarHead.fedora ||
@@ -1719,39 +1688,11 @@ abstract final class LookPainter {
     }
     canvas.restore();
 
-    // Gli occhi: un lampo di bianco e la pupilla che si sposta.
-    final look1 = pose.glance.clamp(-1.0, 1.0);
-    final white = Paint()..color = paper.withValues(alpha: 0.82);
-    final pupil = Paint()..color = ink;
-    final brow = Paint()
-      ..color = _dark(_hairColor(look), 0.2)
-      ..strokeWidth = 0.022
-      ..strokeCap = StrokeCap.round;
-    for (final x in [-0.065, 0.065]) {
-      final eye = Offset(x + look1 * 0.006, -0.875);
-      if (!look.glasses.dark) {
-        canvas.drawOval(Rect.fromCenter(center: eye, width: 0.058, height: 0.024), white);
-        canvas.drawCircle(eye.translate(look1 * 0.016, 0), 0.0125, pupil);
-      }
-      final inner = x < 0 ? 1.0 : -1.0;
-      canvas.drawLine(Offset(x - inner * 0.035, -0.915), Offset(x + inner * 0.03, -0.905 + (look.dame ? -0.006 : 0.004)), brow);
-    }
-    // Il naso, solo un'ombra e un filo di luce.
-    canvas.drawLine(
-      const Offset(0.008, -0.865),
-      const Offset(0.018, -0.8),
-      Paint()
-        ..color = _dark(skin, 0.6)
-        ..strokeWidth = 0.018
-        ..strokeCap = StrokeCap.round,
-    );
-    canvas.drawCircle(const Offset(-0.006, -0.81), 0.008, Paint()..color = _bright(skin, 0.3).withValues(alpha: 0.7));
-    // La bocca.
-    final mouth = Paint()
-      ..color = _dark(skin, 0.72)
-      ..strokeWidth = 0.014
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(const Offset(-0.035, -0.762), const Offset(0.035, -0.765), mouth);
+    _Face.eyes(canvas, look, pose, skin);
+    _Face.brows(canvas, look);
+    if (look.features.detail == FaceDetail.scar) _Face.detail(canvas, look, skin);
+    _Face.nose(canvas, look, skin, light);
+    _Face.mouth(canvas, look, skin);
 
     final dark = Paint()..color = _dark(_hairColor(look), 0.1);
     switch (mark) {
@@ -1957,134 +1898,7 @@ abstract final class LookPainter {
     }
   }
 
-  static void _hairFront(Canvas canvas, AvatarLook look) {
-    final hair = Paint()..color = _hairColor(look);
-    final shine = Paint()
-      ..color = Colors.white.withValues(alpha: 0.2)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.014
-      ..strokeCap = StrokeCap.round;
-    switch (look.hat) {
-      case AvatarHead.slicked:
-        canvas.drawPath(
-          Path()
-            ..moveTo(-0.168, -0.86)
-            ..quadraticBezierTo(-0.18, -1.1, 0.02, -1.095)
-            ..quadraticBezierTo(0.19, -1.09, 0.168, -0.86)
-            ..quadraticBezierTo(0.15, -0.97, 0.05, -0.985)
-            ..quadraticBezierTo(-0.1, -1.0, -0.168, -0.86)
-            ..close(),
-          hair,
-        );
-        canvas.drawArc(Rect.fromCenter(center: const Offset(0.0, -0.99), width: 0.22, height: 0.12), pi * 1.1, pi * 0.55, false, shine);
-      case AvatarHead.bob:
-        canvas.drawPath(
-          Path()
-            ..moveTo(-0.19, -0.8)
-            ..quadraticBezierTo(-0.21, -1.085, 0, -1.085)
-            ..quadraticBezierTo(0.21, -1.085, 0.19, -0.8)
-            ..quadraticBezierTo(0.15, -0.94, 0.04, -0.96)
-            ..quadraticBezierTo(-0.06, -0.93, -0.1, -0.97)
-            ..quadraticBezierTo(-0.16, -0.92, -0.19, -0.8)
-            ..close(),
-          hair,
-        );
-        canvas.drawArc(Rect.fromCenter(center: const Offset(-0.04, -1.0), width: 0.24, height: 0.13), pi * 1.1, pi * 0.5, false, shine);
-      case AvatarHead.bun:
-        canvas.drawPath(
-          Path()
-            ..moveTo(-0.17, -0.86)
-            ..quadraticBezierTo(-0.18, -1.09, 0, -1.09)
-            ..quadraticBezierTo(0.18, -1.09, 0.17, -0.86)
-            ..quadraticBezierTo(0.12, -0.98, 0, -0.99)
-            ..quadraticBezierTo(-0.12, -0.98, -0.17, -0.86)
-            ..close(),
-          hair,
-        );
-        canvas.drawLine(
-          const Offset(-0.07, -1.14),
-          const Offset(0.09, -1.07),
-          Paint()
-            ..color = gold
-            ..strokeWidth = 0.014
-            ..strokeCap = StrokeCap.round,
-        );
-      case AvatarHead.cloche:
-        // I riccioli che escono dalla campana del cappello.
-        for (final side in [-1.0, 1.0]) {
-          canvas.drawOval(Rect.fromCenter(center: Offset(side * 0.165, -0.86), width: 0.07, height: 0.1), hair);
-          canvas.drawOval(Rect.fromCenter(center: Offset(side * 0.17, -0.79), width: 0.06, height: 0.07), hair);
-        }
-      case AvatarHead.angelHalo ||
-          AvatarHead.devilHorns ||
-          AvatarHead.astronautHelmet ||
-          AvatarHead.unicornHorn ||
-          AvatarHead.spaghettiHat ||
-          AvatarHead.ufoHat ||
-          AvatarHead.birthdayCake ||
-          AvatarHead.starHalo ||
-          AvatarHead.catOnHead:
-        // Aureola e corna sopra i capelli pettinati.
-        canvas.drawPath(
-          Path()
-            ..moveTo(-0.168, -0.86)
-            ..quadraticBezierTo(-0.18, -1.1, 0.02, -1.095)
-            ..quadraticBezierTo(0.19, -1.09, 0.168, -0.86)
-            ..quadraticBezierTo(0.15, -0.97, 0.05, -0.985)
-            ..quadraticBezierTo(-0.1, -1.0, -0.168, -0.86)
-            ..close(),
-          hair,
-        );
-      case AvatarHead.clownWig ||
-          AvatarHead.roosterHead ||
-          AvatarHead.fishHead ||
-          AvatarHead.dinoHood ||
-          AvatarHead.octopusHat ||
-          AvatarHead.rainbowAfro ||
-          AvatarHead.flamingHair:
-        // La parrucca e il cappuccio coprono tutto.
-        break;
-      case AvatarHead.wideBrim:
-        canvas.drawPath(
-          Path()
-            ..moveTo(-0.2, -0.78)
-            ..quadraticBezierTo(-0.2, -0.95, -0.12, -0.97)
-            ..lineTo(-0.15, -0.8)
-            ..close()
-            ..moveTo(0.2, -0.78)
-            ..quadraticBezierTo(0.2, -0.95, 0.12, -0.97)
-            ..lineTo(0.15, -0.8)
-            ..close(),
-          hair,
-        );
-      case AvatarHead.fedora ||
-          AvatarHead.bowler ||
-          AvatarHead.coppola ||
-          AvatarHead.borsalino ||
-          AvatarHead.panama ||
-          AvatarHead.trilby ||
-          AvatarHead.homburg ||
-          AvatarHead.boater ||
-          AvatarHead.topHat ||
-          AvatarHead.porkPie ||
-          AvatarHead.beret ||
-          AvatarHead.pearlFedora ||
-          AvatarHead.morettiFedora ||
-          AvatarHead.morettiPanama ||
-          AvatarHead.morettiHomburg ||
-          AvatarHead.fulmineCap || AvatarHead.vaugirardCap || AvatarHead.adelphiCap ||
-          AvatarHead.magicianHat ||
-          AvatarHead.chefToque ||
-          AvatarHead.sombrero ||
-          AvatarHead.tricorn ||
-          AvatarHead.operaHelmet ||
-          AvatarHead.beekeeper ||
-          AvatarHead.propellerBeanie:
-        // Le basette sotto il cappello.
-        canvas.drawRect(const Rect.fromLTRB(-0.165, -0.95, -0.14, -0.86), hair);
-        canvas.drawRect(const Rect.fromLTRB(0.14, -0.95, 0.165, -0.86), hair);
-    }
-  }
+  static void _hairFront(Canvas canvas, AvatarLook look) => _Face.hairFront(canvas, look);
 
   static void _glasses(Canvas canvas, AvatarLook look, CharacterPose pose) {
     final frame = Paint()

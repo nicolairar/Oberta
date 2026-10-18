@@ -4,6 +4,9 @@ import 'package:flutter/painting.dart';
 import '../../online/online_models.dart' show Profile, WornLooks;
 import '../../online/shop_models.dart' show ShopBrand;
 import '../widgets/noir_avatar.dart' show AvatarHead, avatarTints, avatarTraitsFor;
+import 'face_features.dart';
+
+export 'face_features.dart';
 
 /// Come si presenta un giocatore: la faccia, il cappello, gli occhiali,
 /// l'abito e un vezzo. Ogni pezzo ha un id di catalogo che non cambia mai,
@@ -21,12 +24,16 @@ class AvatarLook {
   final AvatarOutfit outfit;
   final AvatarAccessory accessory;
 
+  /// I lineamenti, gratis: la forma della testa, gli occhi, i capelli.
+  final FaceFeatures features;
+
   const AvatarLook({
     required this.base,
     required this.hat,
     required this.glasses,
     required this.outfit,
     required this.accessory,
+    this.features = FaceFeatures.standard,
   });
 
   /// Il look di chi non ha scelto niente: si ricava da [seed] (di solito il
@@ -84,6 +91,56 @@ class AvatarLook {
       glasses: glasses,
       outfit: AvatarOutfit.catalog[traits.tint.clamp(0, AvatarOutfit.catalog.length - 1)],
       accessory: accessory,
+      features: featuresFor(seed, tone: tone, hat: traits.head, dame: dame),
+    );
+  }
+
+  /// I lineamenti di chi non li ha scelti, da [seed]: un terzo conto, così
+  /// aggiungerli non ha cambiato cappelli e abiti di nessuno.
+  static FaceFeatures featuresFor(String seed, {required SkinTone tone, required AvatarHead hat, required bool dame}) {
+    var hash = stableHash('face:$seed');
+    hash = (hash ^ (hash >> 15)) * 0x2C1B3C6D & 0xFFFFFFFF;
+    int take(int options) {
+      final value = hash % options;
+      hash = hash ~/ options + 0x3A5F;
+      return value;
+    }
+
+    T one<T>(List<T> options) => options[take(options.length)];
+    final light = tone.light;
+    final age = one(const [FaceAge.none, FaceAge.none, FaceAge.none, FaceAge.lines, FaceAge.deep]);
+    final hair = switch (hat) {
+      AvatarHead.slicked => HairStyle.slicked,
+      AvatarHead.bob => HairStyle.bob,
+      AvatarHead.bun => HairStyle.bun,
+      _ when dame => one(const [HairStyle.bob, HairStyle.bun, HairStyle.long, HairStyle.wavy, HairStyle.curly]),
+      _ => one(const [
+          HairStyle.slicked,
+          HairStyle.sidePart,
+          HairStyle.crewCut,
+          HairStyle.wavy,
+          HairStyle.curly,
+          HairStyle.sidePart,
+          HairStyle.afro,
+          HairStyle.bald,
+        ]),
+    };
+    final hairColor = age == FaceAge.deep && take(2) == 0
+        ? one(const [HairColor.grey, HairColor.white])
+        : light
+            ? one(const [HairColor.black, HairColor.darkBrown, HairColor.brown, HairColor.blonde, HairColor.red, HairColor.auburn])
+            : one(const [HairColor.black, HairColor.black, HairColor.darkBrown, HairColor.brown]);
+    return FaceFeatures(
+      shape: one(FaceShape.values),
+      eyes: one(EyeShape.values),
+      eyeColor: light ? one(EyeColor.values) : one(const [EyeColor.dark, EyeColor.brown, EyeColor.brown, EyeColor.hazel]),
+      brows: dame ? one(const [BrowShape.arched, BrowShape.thin, BrowShape.straight]) : one(BrowShape.values),
+      nose: one(NoseShape.values),
+      mouth: one(MouthShape.values),
+      hair: hair,
+      hairColor: hairColor,
+      detail: one(const [FaceDetail.none, FaceDetail.none, FaceDetail.none, FaceDetail.freckles, FaceDetail.beautyMark, FaceDetail.none]),
+      age: age,
     );
   }
 
@@ -109,6 +166,7 @@ class AvatarLook {
       glasses: pick('glasses', (id) => _byName(AvatarGlasses.values, id), fallback.glasses),
       outfit: pick('outfit', AvatarOutfit.byId, fallback.outfit),
       accessory: pick('accessory', (id) => _byName(AvatarAccessory.values, id), fallback.accessory),
+      features: FaceFeatures.fromJson(json, fallback: fallback.features),
     );
   }
 
@@ -118,6 +176,7 @@ class AvatarLook {
     'glasses': glasses.name,
     'outfit': outfit.id,
     'accessory': accessory.name,
+    ...features.toJson(),
   };
 
   AvatarLook copyWith({
@@ -126,12 +185,14 @@ class AvatarLook {
     AvatarGlasses? glasses,
     AvatarOutfit? outfit,
     AvatarAccessory? accessory,
+    FaceFeatures? features,
   }) => AvatarLook(
     base: base ?? this.base,
     hat: hat ?? this.hat,
     glasses: glasses ?? this.glasses,
     outfit: outfit ?? this.outfit,
     accessory: accessory ?? this.accessory,
+    features: features ?? this.features,
   );
 
   /// L'id indossato in [slot], come lo vende la bottega: per la faccia è il
@@ -156,7 +217,20 @@ class AvatarLook {
 
   /// Una signora: cambia il taglio delle spalle e dove cade la luce sui capelli.
   bool get dame =>
-      hat == AvatarHead.bob || hat == AvatarHead.bun || hat == AvatarHead.wideBrim || hat == AvatarHead.cloche;
+      hat == AvatarHead.bob ||
+      hat == AvatarHead.bun ||
+      hat == AvatarHead.wideBrim ||
+      hat == AvatarHead.cloche ||
+      features.hair == HairStyle.bob ||
+      features.hair == HairStyle.bun ||
+      features.hair == HairStyle.long;
+
+  /// Senza cappello: si vede la pettinatura scelta nello specchio.
+  /// (`slicked`, `bob` e `bun` sono le teste nude del catalogo.)
+  bool get bareHead => hat == AvatarHead.slicked || hat == AvatarHead.bob || hat == AvatarHead.bun;
+
+  /// La pelle, come la si vede: il mimo se la dipinge di bianco.
+  Color get skin => base.skin;
 
   @override
   bool operator ==(Object other) =>
@@ -165,10 +239,11 @@ class AvatarLook {
       other.hat == hat &&
       other.glasses == glasses &&
       other.outfit == outfit &&
-      other.accessory == accessory;
+      other.accessory == accessory &&
+      other.features == features;
 
   @override
-  int get hashCode => Object.hash(base, hat, glasses, outfit, accessory);
+  int get hashCode => Object.hash(base, hat, glasses, outfit, accessory, features);
 
   @override
   String toString() => 'AvatarLook(${toJson()})';
@@ -209,11 +284,22 @@ enum SkinTone {
   olive(Color(0xFFC39868)),
   tan(Color(0xFFA77A4E)),
   umber(Color(0xFF7A5236)),
-  ebony(Color(0xFF4F3424));
+  ebony(Color(0xFF4F3424)),
+  // Lo specchio del barbiere: altre quattro pelli.
+  ivory(Color(0xFFF6DFC8)),
+  honey(Color(0xFFD9A774)),
+  sienna(Color(0xFF94603E)),
+  espresso(Color(0xFF3A2519));
 
   final Color color;
 
   const SkinTone(this.color);
+
+  /// Dalla più chiara alla più scura, per lo specchio.
+  static const ordered = [ivory, porcelain, rose, honey, olive, tan, sienna, umber, ebony, espresso];
+
+  /// Le pelli chiare: occhi e capelli di ogni colore.
+  bool get light => this == ivory || this == porcelain || this == rose || this == honey;
 }
 
 /// Quello che si porta in faccia da sempre.

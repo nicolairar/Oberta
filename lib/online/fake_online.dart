@@ -4,6 +4,7 @@ import 'dart:math';
 
 import '../l10n/app_language.dart';
 import '../rules/intent.dart';
+import '../ui/avatar/face_features.dart' show FaceFeatures;
 import 'game/bot_brain.dart';
 import 'game/game_clock.dart';
 import 'game/game_schedule.dart';
@@ -355,6 +356,25 @@ class FakeProfiles implements ProfileRepository {
     }
     if (_taken(handle, me)) throw const OnlineException(OnlineFailure.handleTaken);
     return _online._profiles[me] = _online._profiles[me]!.copyWith(handle: handle, language: language);
+  }
+
+  /// Come `save_face`: solo le chiavi e gli id dello specchio, la pelle tra
+  /// quelle conosciute, il segno salvato che resta (o uno di base).
+  @override
+  Future<Profile> saveFace(Map<String, String> face, {required String tone, String? mark}) async {
+    final me = _online._profiles[_online._me]!;
+    for (final MapEntry(:key, :value) in face.entries) {
+      if (!(FaceFeatures.options[key]?.contains(value) ?? false)) throw const OnlineException(OnlineFailure.notAllowed);
+    }
+    if (!FakeShop._tones.contains(tone)) throw const OnlineException(OnlineFailure.notAllowed);
+    final saved = me.avatar['base'];
+    final cut = saved?.indexOf('_') ?? -1;
+    final keep = cut > 0
+        ? saved!.substring(cut + 1)
+        : mark != null && initialShopCatalog.any((i) => i.slot == 'face' && i.lookId == mark && i.free)
+            ? mark
+            : 'clean';
+    return _online._profiles[me.id] = me.copyWith(avatar: {...me.avatar, ...face, 'base': '${tone}_$keep'});
   }
 
   @override
@@ -835,7 +855,7 @@ class FakeShop implements ShopRepository {
 
   FakeShop._(this._online);
 
-  static const _tones = ['porcelain', 'rose', 'olive', 'tan', 'umber', 'ebony'];
+  static const _tones = ['porcelain', 'rose', 'olive', 'tan', 'umber', 'ebony', 'ivory', 'honey', 'sienna', 'espresso'];
 
   /// Quello che possiede un account (per i test).
   Set<String> ownedBy(String id) => {...?_owned[id]};
