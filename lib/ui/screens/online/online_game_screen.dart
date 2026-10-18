@@ -27,10 +27,10 @@ import '../../seating.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/avatar_spotlight.dart';
 import '../../widgets/death_scene.dart';
-import '../../widgets/role_reveal_card.dart';
 import '../../widgets/scene_scaffold.dart';
 import '../../widgets/verdict_scene.dart';
 import 'game/chat_dock.dart';
+import 'game/front_page.dart';
 import 'game/noir_role_card.dart';
 import 'game/noir_ui.dart';
 import 'game/saloon_table.dart';
@@ -897,89 +897,21 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   // ---------------------------------------------------------------------
   // La cronaca: l'alba e il verdetto, solo il racconto, su un giornale.
 
-  Widget _chronicle({
-    required Key key,
-    required String title,
-    required List<ScriptLine> lines,
-    List<String> portraits = const [],
-    bool fallen = false,
-    Role? revealed,
-    String? footnote,
-  }) =>
-      Column(
+  bool get _italian => _t.language.locale.languageCode == 'it';
+
+  String get _masthead =>
+      _italian ? 'Il Corriere di ${_city.name}' : 'The ${_city.name} Courier';
+
+  String _dateLine(String edition) => _italian
+      ? 'Anno XIX  ·  Giorno ${_public.round}  ·  $edition'
+      : 'Vol. XIX  ·  Day ${_public.round}  ·  $edition';
+
+  List<FrontPageLine> _printed(List<ScriptLine> lines) => [for (final l in lines) (text: l.text, fact: l.isFact)];
+
+  Widget _chronicle({required Key key, required Widget page}) => Column(
         key: key,
         children: [
-          if (portraits.isNotEmpty || revealed != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  for (final name in portraits)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: SeatCard(name: name, width: portraits.length > 2 ? 78 : 104, fallen: fallen),
-                    ),
-                  if (revealed != null) ...[
-                    const SizedBox(width: 14),
-                    RoleRevealCard(role: revealed, faceUp: true, height: 140),
-                  ],
-                ],
-              ),
-            ),
-          Expanded(
-            child: NewsPaper(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(_city.name.toUpperCase(),
-                      textAlign: TextAlign.center,
-                      style: AppText.overline.copyWith(color: Saloon.paperInk, fontSize: 11, letterSpacing: 4)),
-                  const Divider(color: Saloon.paperInk, thickness: 1.4, height: 10),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(title.toUpperCase(), style: AppText.display(26, color: Saloon.paperInk)),
-                  ),
-                  const Divider(color: Saloon.paperInk, thickness: 0.8, height: 12),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          if (footnote != null)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 10),
-                              child: Text(
-                                footnote,
-                                key: const Key('online.verdictVotes'),
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(fontFamily: 'Courier', color: Saloon.paperInk, fontSize: 13, height: 1.35, fontWeight: FontWeight.w700),
-                              ),
-                            ),
-                          for (final line in lines)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 9),
-                              child: Text(
-                                line.text,
-                                textAlign: TextAlign.justify,
-                                style: TextStyle(
-                                  fontFamily: 'Georgia',
-                                  color: Saloon.paperInk,
-                                  fontSize: 15,
-                                  height: 1.35,
-                                  fontWeight: line.isFact ? FontWeight.w700 : FontWeight.w400,
-                                  fontStyle: line.isFact ? FontStyle.normal : FontStyle.italic,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          Expanded(child: page),
           const SizedBox(height: 12),
           _readyButton(),
         ],
@@ -990,12 +922,25 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     if (dawn == null) return _connectingView();
     final lines = _script('dawn-${dawn.round}')
         .dawn(dawn, discussion: _board.settings.discussion, stories: _storiesOf(dawn), online: true);
+    final dead = [for (final attack in dawn.attacks) if (attack.isFatal) attack.target.name];
+    final names = dead.join(_italian ? ' E ' : ' AND ');
+    final headline = dawn.victims.isEmpty
+        ? _t.everyoneAlive
+        : _italian
+            ? (dead.length > 1 ? 'Trovati morti $names' : 'Trovato morto $names')
+            : '$names found dead';
     return _chronicle(
       key: const Key('online.dawn'),
-      title: dawn.victims.isEmpty ? _t.everyoneAlive : _t.crimePage,
-      lines: lines,
-      portraits: [for (final attack in dawn.attacks) if (attack.isFatal) attack.target.name],
-      fallen: dawn.victims.isNotEmpty,
+      page: FrontPage(
+        key: ValueKey('front-dawn-${dawn.round}'),
+        masthead: _masthead,
+        dateLine: _dateLine(_italian ? "Edizione dell'alba" : 'Dawn edition'),
+        headline: headline,
+        kicker: _t.crimePage,
+        portraits: dead,
+        fallen: dawn.victims.isNotEmpty,
+        lines: _printed(lines),
+      ),
     );
   }
 
@@ -1003,16 +948,36 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     final report = _public.lastLynch;
     if (report == null) return _connectingView();
     final condemned = report.condemned;
+    final role = report.role;
+    final mafia = role?.team == Team.mafia;
+    final String headline;
+    if (condemned == null) {
+      headline = _italian ? 'La piazza non si decide' : 'The square cannot decide';
+    } else if (role == null) {
+      headline = _italian ? 'Linciato ${condemned.name}' : '${condemned.name} lynched';
+    } else {
+      headline = _italian
+          ? 'Linciato ${condemned.name}: ${mafia ? 'era della Famiglia' : 'era innocente'}'
+          : '${condemned.name} lynched: ${mafia ? 'one of the Family' : 'an innocent man'}';
+    }
     return _chronicle(
       key: const Key('online.verdict'),
-      title: condemned?.name ?? _t.noConviction,
-      lines: _script('lynch-${report.round}').lynch(report),
-      portraits: [if (condemned != null) condemned.name],
-      fallen: condemned != null,
-      revealed: report.role,
-      footnote: _lastVotes.isEmpty
-          ? null
-          : [for (final vote in _lastVotes) '${vote.voter.name} → ${_short(vote.target)}'].join('  ·  '),
+      page: FrontPage(
+        key: ValueKey('front-verdict-${report.round}'),
+        masthead: _masthead,
+        dateLine: _dateLine(_italian ? 'Edizione della sera' : 'Evening edition'),
+        headline: headline,
+        kicker: condemned == null ? _t.noConviction : null,
+        portraits: [if (condemned != null) condemned.name],
+        fallen: condemned != null,
+        stamp: role == null ? null : _t.role(role).label,
+        stampTeam: role == null ? null : (mafia ? _t.familyBadge : _t.townBadge),
+        stampColor: role == null ? Colors.black : stampColorFor(role),
+        tallyTitle: _italian ? 'Lo scrutinio' : 'The tally',
+        tallyKey: const Key('online.verdictVotes'),
+        tally: [for (final vote in _lastVotes) '${vote.voter.name} → ${_short(vote.target)}'],
+        lines: _printed(_script('lynch-${report.round}').lynch(report)),
+      ),
     );
   }
 
