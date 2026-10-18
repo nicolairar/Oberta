@@ -1,5 +1,6 @@
 import '../online/handle_rules.dart';
 import '../online/online_models.dart';
+import '../online/ranked_models.dart';
 
 /// I testi del gioco online: il manifesto, l'ingresso, il profilo, le
 /// stanze e gli amici. Stanno da parte rispetto ad [AppStrings], che li
@@ -136,6 +137,30 @@ abstract class OnlineStrings {
   String get discussionHint;
   String get verdictWaiting;
   String get accusedTag;
+
+
+  // La classificata e i risultati.
+  String get rankedQueueTitle;
+  String get rankedStart;
+  String get rankedSearching;
+  String rankedWaiting(int people);
+  String rankedEstimate(String time);
+  String get rankedCancel;
+  String get rankedFound;
+  String get rankedTestMatch;
+  String get rankedWarning;
+  String rankedCooldown(String time);
+  String tierName(RankTier tier);
+  String get resultsTitle;
+  String get resultsWon;
+  String get resultsLost;
+  String get resultsLeft;
+  String resultsXp(int xp);
+  String resultsLevelUp(int level);
+  String resultsCoins(int coins);
+  String get resultsRatingUp;
+  String get resultsRatingDown;
+  String get resultsContinue;
 
   // La chat.
   String get chatHint;
@@ -292,10 +317,80 @@ abstract class OnlineStrings {
     'remove': remove,
     'withdraw': withdraw,
     for (final value in OnlineFailure.values) 'failure.${value.name}': failure(value),
+    'rankedQueueTitle': rankedQueueTitle,
+    'rankedStart': rankedStart,
+    'rankedSearching': rankedSearching,
+    'rankedWaiting': rankedWaiting(3),
+    'rankedEstimate': rankedEstimate('1:30'),
+    'rankedCancel': rankedCancel,
+    'rankedFound': rankedFound,
+    'rankedTestMatch': rankedTestMatch,
+    'rankedWarning': rankedWarning,
+    'rankedCooldown': rankedCooldown('5:00'),
+    for (final tier in RankTier.values) 'tier.${tier.name}': tierName(tier),
+    'resultsTitle': resultsTitle,
+    'resultsWon': resultsWon,
+    'resultsLost': resultsLost,
+    'resultsLeft': resultsLeft,
+    'resultsXp': resultsXp(100),
+    'resultsLevelUp': resultsLevelUp(2),
+    'resultsCoins': resultsCoins(150),
+    'resultsRatingUp': resultsRatingUp,
+    'resultsRatingDown': resultsRatingDown,
+    'resultsContinue': resultsContinue,
   };
 }
 
 final class ItalianOnlineStrings extends OnlineStrings {
+  @override
+  String get rankedQueueTitle => 'CLASSIFICATA';
+  @override
+  String get rankedStart => 'Cerca partita';
+  @override
+  String get rankedSearching => 'Si cercano facce nuove in città…';
+  @override
+  String rankedWaiting(int people) => people == 1 ? '1 in attesa' : '$people in attesa';
+  @override
+  String rankedEstimate(String time) => 'Attesa stimata: $time';
+  @override
+  String get rankedCancel => 'Annulla';
+  @override
+  String get rankedFound => 'Tavolo trovato!';
+  @override
+  String get rankedTestMatch => 'PROVA · NON CLASSIFICATA';
+  @override
+  String get rankedWarning => 'Chi abbandona le partite finisce a giocare con chi abbandona.';
+  @override
+  String rankedCooldown(String time) => 'Troppi abbandoni: puoi rientrare tra $time.';
+  @override
+  String tierName(RankTier tier) => switch (tier) {
+        RankTier.picciotto => 'Picciotto',
+        RankTier.capodecina => 'Capodecina',
+        RankTier.caporegime => 'Caporegime',
+        RankTier.consigliere => 'Consigliere',
+        RankTier.don => 'Don',
+      };
+  @override
+  String get resultsTitle => 'COM\'È ANDATA';
+  @override
+  String get resultsWon => 'Vittoria';
+  @override
+  String get resultsLost => 'Sconfitta';
+  @override
+  String get resultsLeft => 'Hai lasciato la città';
+  @override
+  String resultsXp(int xp) => '+$xp esperienza';
+  @override
+  String resultsLevelUp(int level) => 'Livello $level!';
+  @override
+  String resultsCoins(int coins) => '+$coins monete';
+  @override
+  String get resultsRatingUp => 'Il tuo grado sale';
+  @override
+  String get resultsRatingDown => 'Il tuo grado scende';
+  @override
+  String get resultsContinue => 'Continua';
+
   const ItalianOnlineStrings();
 
   @override
@@ -607,12 +702,63 @@ final class ItalianOnlineStrings extends OnlineStrings {
         OnlineFailure.notOwned => 'Prima devi comprarlo.',
         OnlineFailure.itemNotFound => 'Questo pezzo non è più in bottega.',
         OnlineFailure.cancelled => 'Accesso annullato.',
+        OnlineFailure.rankedCooldown => 'Troppi abbandoni: aspetta un po\' prima di rientrare.',
+        OnlineFailure.alreadyInGame => 'Sei già in una partita.',
         OnlineFailure.network => 'Niente rete. Riprova fra poco.',
         OnlineFailure.unknown => 'Qualcosa è andato storto. Riprova.',
       };
 }
 
 final class EnglishOnlineStrings extends OnlineStrings {
+  @override
+  String get rankedQueueTitle => 'RANKED';
+  @override
+  String get rankedStart => 'Find a game';
+  @override
+  String get rankedSearching => 'Looking for new faces in town…';
+  @override
+  String rankedWaiting(int people) => '$people waiting';
+  @override
+  String rankedEstimate(String time) => 'Estimated wait: $time';
+  @override
+  String get rankedCancel => 'Cancel';
+  @override
+  String get rankedFound => 'Table found!';
+  @override
+  String get rankedTestMatch => 'TEST · UNRANKED';
+  @override
+  String get rankedWarning => 'Players who leave games end up playing with players who leave.';
+  @override
+  String rankedCooldown(String time) => 'Too many games left: you can queue again in $time.';
+  @override
+  String tierName(RankTier tier) => switch (tier) {
+        RankTier.picciotto => 'Picciotto',
+        RankTier.capodecina => 'Capodecina',
+        RankTier.caporegime => 'Caporegime',
+        RankTier.consigliere => 'Consigliere',
+        RankTier.don => 'Don',
+      };
+  @override
+  String get resultsTitle => 'HOW IT WENT';
+  @override
+  String get resultsWon => 'Victory';
+  @override
+  String get resultsLost => 'Defeat';
+  @override
+  String get resultsLeft => 'You left town';
+  @override
+  String resultsXp(int xp) => '+$xp XP';
+  @override
+  String resultsLevelUp(int level) => 'Level $level!';
+  @override
+  String resultsCoins(int coins) => '+$coins coins';
+  @override
+  String get resultsRatingUp => 'Your rank goes up';
+  @override
+  String get resultsRatingDown => 'Your rank goes down';
+  @override
+  String get resultsContinue => 'Continue';
+
   const EnglishOnlineStrings();
 
   @override
@@ -922,6 +1068,8 @@ final class EnglishOnlineStrings extends OnlineStrings {
         OnlineFailure.notOwned => 'Buy it first.',
         OnlineFailure.itemNotFound => 'This item is no longer in the shop.',
         OnlineFailure.cancelled => 'Sign-in cancelled.',
+        OnlineFailure.rankedCooldown => 'Too many games left: wait a little before queueing.',
+        OnlineFailure.alreadyInGame => 'You are already in a game.',
         OnlineFailure.network => 'No connection. Try again shortly.',
         OnlineFailure.unknown => 'Something went wrong. Try again.',
       };

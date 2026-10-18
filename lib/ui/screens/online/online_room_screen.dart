@@ -12,6 +12,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/scene_scaffold.dart';
 import 'chat_panel.dart';
 import 'online_game_screen.dart';
+import 'ranked_queue_screen.dart' show showMatchResults;
 import 'online_widgets.dart';
 
 /// La stanza online prima della partita: il codice grande e il QR per chi
@@ -158,6 +159,7 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> {
       builder: (_) => OnlineGameScreen(services: widget.services, room: _room, me: widget.me),
     ));
     _inGame = false;
+    if (mounted) await showMatchResults(context, widget.services);
     try {
       final room = await widget.services.rooms.fetch(_room.id);
       if (room != null && mounted) {

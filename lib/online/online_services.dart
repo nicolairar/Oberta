@@ -3,10 +3,12 @@ import 'package:flutter/foundation.dart';
 import '../l10n/app_language.dart';
 import 'game/game_backend.dart';
 import 'online_models.dart';
+import 'ranked_models.dart';
 import 'shop_models.dart';
 
 export 'game/game_backend.dart';
 export 'online_models.dart';
+export 'ranked_models.dart';
 export 'shop_models.dart';
 
 /// L'account: chi è entrato, e come si entra. Avvisa chi ascolta quando
@@ -121,6 +123,9 @@ class OnlineServices {
   /// La bottega dei cosmetici. Null dove nessuno l'ha collegata.
   final ShopRepository? shop;
 
+  /// La classificata e i risultati delle partite. Null dove non c'è.
+  final RankedRepository? ranked;
+
   /// Esportare i dati ed eliminare l'account. Null dove nessuno l'ha collegato.
   final AccountRepository? account;
 
@@ -132,6 +137,7 @@ class OnlineServices {
     required this.game,
     this.shop,
     this.account,
+    this.ranked,
   });
 
   static OnlineServices? instance;

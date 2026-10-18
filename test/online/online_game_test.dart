@@ -443,4 +443,70 @@ void main() {
       expect(HandleRules.offensive('buonanotte a tutti'), isFalse);
     });
   });
+
+  group('risultati e classificata, sul server finto', () {
+    test('una partita tra amici dà esperienza (e monete) a chi l\'ha giocata, niente rating', () async {
+      await startWith(joiners: ['bruno'], bots: 3);
+      await playToTheEnd([_Human('anna', clientOf('anna'), Random(3)), _Human('bruno', clientOf('bruno'), Random(4))]);
+      final result = await online.ranked.lastResult();
+      expect(result, isNotNull);
+      expect(result!.ranked, isFalse);
+      expect(result.xpGained, result.won ? 200 : 30);
+      expect(result.ratingDelta, isNull);
+      expect(online.ratings, isEmpty);
+      expect(online.profileOf('anna')!.level, result.won ? 2 : 1);
+    });
+
+    test('otto in coda giocano una classificata senza bot; chi vince sale, chi perde scende', () async {
+      online = fresh();
+      final ids = ['anna', 'bruno', 'carla', for (var i = 0; i < 5; i++) 'p$i'];
+      for (final id in ids.skip(3)) {
+        online.addPlayer(id, handle: id);
+      }
+      for (final id in ids.take(7)) {
+        online.auth.debugSignIn(id);
+        await online.ranked.enqueue(AppLanguage.it);
+      }
+      expect(online.rankedQueue, hasLength(7));
+      online.auth.debugSignIn('p4');
+      await online.ranked.enqueue(AppLanguage.it);
+      expect(online.rankedQueue, isEmpty, reason: 'il tavolo è fatto');
+      await expectLater(
+        online.ranked.enqueue(AppLanguage.it),
+        throwsA(isA<OnlineException>().having((e) => e.failure, 'failure', OnlineFailure.alreadyInGame)),
+      );
+      final status = await online.ranked.status();
+      room = online.roomOf(status.roomId!)!;
+      expect((room.ranked, room.bots, room.testMatch), (true, 0, false));
+      await expectLater(online.gameAs(room.hostId).setBots(room.id, 2), throwsA(isA<OnlineException>()));
+      await settle();
+      await playToTheEnd([for (final (i, id) in ids.indexed) _Human(id, clientOf(id), Random(i + 9))]);
+      for (final id in ids) {
+        final match = online.history[id]!.single;
+        expect(match.ranked, isTrue);
+        final rating = online.ratings[(id, AppLanguage.it)]!;
+        expect(rating.sigma, lessThan(Rating.initial.sigma));
+        expect(rating.mu, match.won ? greaterThan(25) : lessThan(25));
+      }
+    });
+
+    test('SOLO PROVA: col flag due persone bastano, con i bot, e la partita non è classificata', () async {
+      online = fresh()..rankedTestHumans = 2;
+      online.auth.debugSignIn('anna');
+      await online.ranked.enqueue(AppLanguage.en);
+      online.auth.debugSignIn('bruno');
+      final status = await online.ranked.enqueue(AppLanguage.en);
+      room = online.roomOf(status.roomId!)!;
+      expect((room.ranked, room.testMatch, room.bots), (false, true, 6));
+      expect(status.testMatch, isTrue);
+    });
+
+    test('in pausa per abbandoni non si entra in coda', () async {
+      online.cooldowns['anna'] = clock.now().add(const Duration(minutes: 5));
+      await expectLater(
+        online.ranked.enqueue(AppLanguage.it),
+        throwsA(isA<OnlineException>().having((e) => e.failure, 'failure', OnlineFailure.rankedCooldown)),
+      );
+    });
+  });
 }

@@ -9,6 +9,7 @@ import 'game/bot_brain.dart';
 import 'game/game_clock.dart';
 import 'game/game_schedule.dart';
 import 'game/game_server.dart';
+import 'game/match_rewards.dart' show settleJson;
 import 'handle_rules.dart';
 import 'join_code.dart';
 import 'online_services.dart';
@@ -32,6 +33,26 @@ class FakeOnline {
   late final FakeRooms rooms = FakeRooms._(this);
   late final FakeGame game = FakeGame._(this, () => auth.userId);
   late final FakeShop shop = FakeShop._(this);
+  late final FakeRanked ranked = FakeRanked._(this);
+
+  /// La cronologia delle partite di ogni profilo (come `match_history`).
+  final Map<String, List<MatchResult>> history = {};
+
+  /// Il rating per profilo e lingua (come `ratings`).
+  final Map<(String, AppLanguage), Rating> ratings = {};
+
+  /// La coda della classificata: profilo → (lingua, da quando).
+  final Map<String, (AppLanguage, DateTime)> rankedQueue = {};
+
+  /// La pausa dopo troppi abbandoni in classificata, per profilo.
+  final Map<String, DateTime> cooldowns = {};
+
+  /// Quanti posti ha una partita classificata.
+  int rankedSize = 8;
+
+  /// SOLO PROVA: con un numero, tante persone in coda bastano (più i bot),
+  /// e la partita non è classificata. Null: spento.
+  int? rankedTestHumans;
   late final FakeAccount account = FakeAccount._(this);
 
   /// La partita vista da un altro account, come dal suo telefono.
@@ -96,7 +117,7 @@ class FakeOnline {
         clock = clock ?? const SystemGameClock();
 
   OnlineServices get services =>
-      OnlineServices(auth: auth, profiles: profiles, friends: friends, rooms: rooms, game: game, shop: shop, account: account);
+      OnlineServices(auth: auth, profiles: profiles, friends: friends, rooms: rooms, game: game, shop: shop, account: account, ranked: ranked);
 
   /// Gli account di prova: email → (password, id dell'account).
   final Map<String, (String, String)> _testAccounts = {};
@@ -268,6 +289,9 @@ class FakeAuth extends OnlineAuth {
   /// Se c'è, il prossimo accesso fallisce così (per esempio col provider
   /// spento sul server).
   OnlineException? failNext;
+
+  /// Per i test: questo telefono passa all'account [id], già esistente.
+  void debugSignIn(String id) => _signIn(id);
 
   void _signIn(String id) {
     _online._profiles.putIfAbsent(id, () => Profile(id: id));
@@ -557,7 +581,9 @@ class FakeGame implements GameBackend {
   Future<void> setBots(String roomId, int count) async {
     await _online._network();
     final room = _room(roomId);
-    if (room.room.hostId != _me) throw const OnlineException(OnlineFailure.notAllowed);
+    if (room.room.hostId != _me || room.room.ranked || room.room.testMatch) {
+      throw const OnlineException(OnlineFailure.notAllowed);
+    }
     if (room.room.status != RoomStatus.lobby) throw const OnlineException(OnlineFailure.roomClosed);
     if (count < 0 || count + room.seats.length > room.room.maxPlayers) {
       throw const OnlineException(OnlineFailure.roomFull);
@@ -573,8 +599,14 @@ class FakeGame implements GameBackend {
     final room = _room(roomId);
     if (room.room.hostId != me) throw const OnlineException(OnlineFailure.notAllowed);
     if (room.room.status != RoomStatus.lobby) throw const OnlineException(OnlineFailure.roomClosed);
+    if (room.room.ranked || room.room.testMatch) throw const OnlineException(OnlineFailure.notAllowed);
     final total = room.seats.length + room.room.bots;
     if (total < 4 || total > room.room.maxPlayers) throw const OnlineException(OnlineFailure.notAllowed);
+    _begin(roomId);
+  }
+
+  void _begin(String roomId) {
+    final room = _room(roomId);
     // Come il server: le persone nell'ordine dei posti, poi i bot.
     final people = room.members(_online);
     final seats = <String, SeatPlan>{};
@@ -829,6 +861,7 @@ extension on FakeOnline {
       published++;
       if (out['finished'] == true) {
         game.finished = true;
+        if (out['result'] case final Map<String, Object?> result) _settle(room.room, game, result);
         room.room = room.room.copyWith(status: RoomStatus.lobby);
         room.notify(this);
       }
@@ -973,4 +1006,156 @@ class FakeAccount implements AccountRepository {
     deleted.add(me);
     await _online.auth.signOut();
   }
+}
+
+extension on FakeOnline {
+  /// Come `internal.settle_input` + `obertaSettle` + `internal.record_match`.
+  void _settle(Room room, _FakeGameRoom game, Map<String, Object?> result) {
+    final seats = (result['seats'] as Map).cast<String, Object?>();
+    final today = clock.now().toUtc();
+    bool sameDay(DateTime d) => d.year == today.year && d.month == today.month && d.day == today.day;
+    final rows = [
+      for (final MapEntry(key: seat, value: raw) in seats.entries)
+        if (game.seats[seat]?.profileId case final id?)
+          () {
+            final r = (raw as Map).cast<String, Object?>();
+            final profile = _profiles[id]!;
+            final past = history[id] ?? const [];
+            final rating = ratings[(id, room.language)] ?? Rating.initial;
+            return {
+              ...r,
+              'profile': id,
+              'seat': seat,
+              'level': profile.level,
+              'xp': profile.xp,
+              'mu': rating.mu,
+              'sigma': rating.sigma,
+              'wonToday': past.any((m) => m.won && sameDay(_playedAt[m]!)),
+              'friendsGamesToday': past.where((m) => !m.ranked && sameDay(_playedAt[m]!)).length,
+            };
+          }(),
+    ];
+    final out = settleJson({'ranked': room.ranked, 'humans': rows.length, 'seats': rows});
+    for (final p in (out['players'] as List).cast<Map<String, Object?>>()) {
+      final id = p['profile'] as String;
+      final profile = _profiles[id]!;
+      _profiles[id] = profile.copyWith(level: p['level'] as int, xp: p['xp'] as int, coins: profile.coins + (p['coins'] as int));
+      if (room.ranked) ratings[(id, room.language)] = Rating(p['mu'] as double, p['sigma'] as double);
+      final match = MatchResult(
+        gameId: game.gameId,
+        ranked: room.ranked,
+        testMatch: room.testMatch,
+        won: p['won'] == true,
+        abandoned: p['abandoned'] == true,
+        role: p['role'] as String,
+        xpGained: p['xpGained'] as int,
+        levelBefore: p['levelBefore'] as int,
+        levelAfter: p['level'] as int,
+        coinsGained: p['coins'] as int,
+        ratingDelta: (p['ratingDelta'] as num?)?.toDouble(),
+        ordinalAfter: room.ranked ? (p['mu'] as double) - 3 * (p['sigma'] as double) : null,
+      );
+      _playedAt[match] = clock.now().toUtc();
+      (history[id] ??= []).add(match);
+    }
+  }
+
+  /// Il matcher, semplificato: [rankedSize] persone della stessa lingua (o,
+  /// col flag di prova, [rankedTestHumans] più i bot).
+  void _match() {
+    for (final language in AppLanguage.values) {
+      final waiting = [
+        for (final MapEntry(:key, :value) in rankedQueue.entries)
+          if (value.$1 == language) (key, value.$2),
+      ]..sort((a, b) => a.$2.compareTo(b.$2));
+      final test = rankedTestHumans;
+      final need = test ?? rankedSize;
+      if (waiting.length < need) continue;
+      final players = [for (final w in waiting.take(rankedSize)) w.$1];
+      for (final id in players) {
+        rankedQueue.remove(id);
+        _leaveAll(id);
+      }
+      final bots = test == null ? 0 : rankedSize - players.length;
+      final room = _FakeRoom(Room(
+        id: 'room-${_rooms.length + 1}',
+        code: 'RANK${_rooms.length + 10}'.substring(0, 6),
+        hostId: players.first,
+        language: language,
+        maxPlayers: players.length + bots,
+        bots: bots,
+        ranked: test == null,
+        testMatch: test != null,
+      ));
+      _rooms[room.room.id] = room;
+      for (final (i, id) in players.indexed) {
+        room.seats[id] = i + 1;
+      }
+      gameAs(players.first)._begin(room.room.id);
+    }
+  }
+}
+
+final Expando<DateTime> _playedAt = Expando();
+
+/// La classificata finta, con le regole del server (in piccolo).
+class FakeRanked implements RankedRepository {
+  final FakeOnline _online;
+
+  FakeRanked._(this._online);
+
+  String get _me => _online.auth.userId ?? (throw const OnlineException(OnlineFailure.notSignedIn));
+
+  @override
+  Future<RankedStatus> status() async {
+    await _online._network();
+    final me = _me;
+    final queued = _online.rankedQueue[me];
+    final room = _online._rooms.values
+        .where((r) => (r.room.ranked || r.room.testMatch) && r.room.status == RoomStatus.playing && r.seats.containsKey(me))
+        .lastOrNull;
+    final cooldown = _online.cooldowns[me];
+    return RankedStatus(
+      queued: queued != null,
+      language: queued?.$1,
+      since: queued?.$2,
+      waiting: queued == null ? 0 : _online.rankedQueue.values.where((q) => q.$1 == queued.$1).length,
+      estimate: queued == null ? null : const Duration(seconds: 45),
+      roomId: room?.room.id,
+      testMatch: room?.room.testMatch ?? false,
+      cooldownUntil: cooldown != null && cooldown.isAfter(_online.clock.now()) ? cooldown : null,
+    );
+  }
+
+  @override
+  Future<RankedStatus> enqueue(AppLanguage language) async {
+    await _online._network();
+    final me = _me;
+    _online._ready(me);
+    if (_online.cooldowns[me]?.isAfter(_online.clock.now()) ?? false) {
+      throw const OnlineException(OnlineFailure.rankedCooldown);
+    }
+    if (_online._rooms.values.any((r) => r.room.status == RoomStatus.playing && r.seats.containsKey(me))) {
+      throw const OnlineException(OnlineFailure.alreadyInGame);
+    }
+    final old = _online.rankedQueue[me];
+    _online.rankedQueue[me] = (language, old != null && old.$1 == language ? old.$2 : _online.clock.now());
+    _online._match();
+    return status();
+  }
+
+  @override
+  Future<void> leave() async {
+    await _online._network();
+    _online.rankedQueue.remove(_me);
+  }
+
+  @override
+  Future<Map<AppLanguage, Rating>> ratings() async => {
+        for (final MapEntry(:key, :value) in _online.ratings.entries)
+          if (key.$1 == _me) key.$2: value,
+      };
+
+  @override
+  Future<MatchResult?> lastResult() async => _online.history[_me]?.lastOrNull;
 }

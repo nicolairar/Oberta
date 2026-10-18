@@ -1,6 +1,6 @@
-import 'dart:math';
 
 import '../l10n/app_language.dart';
+import 'game/match_rewards.dart';
 import 'handle_rules.dart';
 
 /// I look indossati dai giocatori online, per nome: ogni profilo che arriva
@@ -68,8 +68,8 @@ class Profile {
   String get avatarSeed => avatar['base'] ?? handle ?? id;
 
   /// Quanta esperienza serve per passare dal livello [level] al seguente.
-  /// Provvisorio: quando il server darà l'esperienza deciderà lui la scala.
-  static int xpToNext(int level) => 100 * max(1, level);
+  /// La stessa scala del server (`match_rewards.dart`): 150 + 25·L.
+  static int xpToNext(int level) => Progression.xpToNext(level);
 
   /// Quanto manca al prossimo livello, da 0 a 1: la barra del profilo.
   double get levelProgress => (xp / xpToNext(level)).clamp(0.0, 1.0);
@@ -138,6 +138,11 @@ class Room {
   /// I bot di prova che il padrone di casa ha messo al tavolo.
   final int bots;
 
+  /// Aperta dal matchmaking della classificata: niente padrone di casa,
+  /// niente bot. [testMatch]: partita di prova (bot, non classificata).
+  final bool ranked;
+  final bool testMatch;
+
   const Room({
     required this.id,
     required this.code,
@@ -146,6 +151,8 @@ class Room {
     this.status = RoomStatus.lobby,
     this.maxPlayers = 16,
     this.bots = 0,
+    this.ranked = false,
+    this.testMatch = false,
   });
 
   factory Room.fromJson(Map<String, dynamic> json) => Room(
@@ -156,6 +163,8 @@ class Room {
         status: RoomStatus.values.byName(json['status'] as String),
         maxPlayers: (json['max_players'] as num).toInt(),
         bots: (json['bots'] as num?)?.toInt() ?? 0,
+        ranked: json['ranked'] == true,
+        testMatch: json['test_match'] == true,
       );
 
   Room copyWith({String? hostId, RoomStatus? status, int? bots}) => Room(
@@ -166,6 +175,8 @@ class Room {
         status: status ?? this.status,
         maxPlayers: maxPlayers,
         bots: bots ?? this.bots,
+        ranked: ranked,
+        testMatch: testMatch,
       );
 }
 
@@ -223,6 +234,10 @@ enum OnlineFailure {
   notOwned,
   itemNotFound,
   cancelled,
+
+  /// La classificata: in pausa dopo troppi abbandoni, o già in partita.
+  rankedCooldown,
+  alreadyInGame,
   network,
   unknown,
 }

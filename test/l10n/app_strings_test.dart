@@ -4,6 +4,7 @@ import 'package:oberta/l10n/app_language.dart';
 import 'package:oberta/l10n/app_strings.dart';
 import 'package:oberta/narration/english_pack.dart';
 import 'package:oberta/narration/italian_pack.dart';
+import 'package:oberta/online/game/match_rewards.dart' show RankTier;
 import 'package:oberta/rules/role.dart';
 
 import '../support/languages.dart';
@@ -59,7 +60,8 @@ void main() {
     test('le due lingue non si copiano: quasi ogni testo cambia', () {
       final italian = uiOf(AppLanguage.it.strings);
       final english = uiOf(AppLanguage.en.strings);
-      const same = {'plusMinute', 'lobbyDebugAdd', 'lobbyEmptyPlaceholder', 'online.posterStrip', 'online.addBot'};
+      final same = {'plusMinute', 'lobbyDebugAdd', 'lobbyEmptyPlaceholder', 'online.posterStrip', 'online.addBot',
+        for (final tier in RankTier.values) 'online.tier.${tier.name}'};
       for (final key in italian.keys) {
         if (same.contains(key)) continue;
         expect(english[key], isNot(italian[key]), reason: key);
