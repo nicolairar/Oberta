@@ -84,7 +84,7 @@ abstract final class _Oddities {
           canvas.drawOval(Rect.fromCenter(center: c, width: 0.035, height: 0.022), spot);
         }
       default:
-        break;
+        _Absurd.fabric(canvas, outfit);
     }
   }
 
@@ -158,7 +158,7 @@ abstract final class _Oddities {
         }
         canvas.drawOval(Rect.fromCenter(center: const Offset(0, -0.62), width: 0.17, height: 0.06), inner);
       default:
-        break;
+        _Absurd.collar(canvas, outfit);
     }
   }
 
@@ -223,7 +223,7 @@ abstract final class _Oddities {
           _fill(const Color(0xFFC8282E)),
         );
       default:
-        break;
+        _Absurd.mark(canvas, mark, hair);
     }
   }
 
@@ -315,7 +315,7 @@ abstract final class _Oddities {
           _line(Colors.white.withValues(alpha: 0.25), 0.006),
         );
       default:
-        break;
+        _Absurd.glasses(canvas, glasses);
     }
   }
 
@@ -612,7 +612,7 @@ abstract final class _Oddities {
           canvas.drawCircle(const Offset(0, -1.175), 0.016, _fill(const Color(0xFF3A3640)));
         }
       default:
-        break;
+        _Absurd.hat(canvas, hat, silhouette);
     }
   }
 
@@ -695,7 +695,7 @@ abstract final class _Oddities {
           }
         }
       default:
-        break;
+        _Absurd.back(canvas, accessory);
     }
   }
 
@@ -833,7 +833,7 @@ abstract final class _Oddities {
         canvas.drawCircle(const Offset(0.46, -0.688), 0.03, _fill(const Color(0xFF9A948A)));
         canvas.drawCircle(const Offset(0.468, -0.687), 0.018, _fill(LookPainter.ember));
       default:
-        break;
+        _Absurd.prop(canvas, look);
     }
   }
 }

@@ -7,6 +7,7 @@ import '../widgets/noir_avatar.dart' show AvatarHead;
 import 'avatar_look.dart';
 
 part 'oddities_painter.dart';
+part 'absurd_painter.dart';
 
 /// Quello che si muove in un personaggio fermo al tavolo.
 @immutable
@@ -477,7 +478,8 @@ abstract final class LookPainter {
         _trunkCanvas(canvas, outfit.coat);
       case CoatPattern.baroque:
         _baroqueScrolls(canvas, outfit.accent);
-      case CoatPattern.clown || CoatPattern.leotard || CoatPattern.breton || CoatPattern.chef || CoatPattern.banana:
+      case CoatPattern.clown || CoatPattern.leotard || CoatPattern.breton || CoatPattern.chef || CoatPattern.banana ||
+          CoatPattern.pizza || CoatPattern.cactus || CoatPattern.ghost || CoatPattern.mummy:
         _Oddities.fabric(canvas, outfit, look.base.skin);
     }
     _houseTrim(canvas, outfit);
@@ -1444,6 +1446,13 @@ abstract final class LookPainter {
           AvatarAccessory.angelWings ||
           AvatarAccessory.batWings ||
           AvatarAccessory.butterflyWings ||
+          AvatarAccessory.snailShell ||
+          AvatarAccessory.jetpack ||
+          AvatarAccessory.dragonWings ||
+          AvatarAccessory.balloons ||
+          AvatarAccessory.giantBowTie ||
+          AvatarAccessory.pigeon ||
+          AvatarAccessory.plungerSword ||
           AvatarAccessory.carnation ||
           AvatarAccessory.whiteCarnation ||
           AvatarAccessory.cigar ||
@@ -1931,7 +1940,7 @@ abstract final class LookPainter {
             ..close(),
           dark,
         );
-      case FaceMark.curledMoustache || FaceMark.giantMoustache || FaceMark.mimeFace:
+      case FaceMark.curledMoustache || FaceMark.giantMoustache || FaceMark.mimeFace || FaceMark.vikingBeard:
         _Oddities.mark(canvas, mark, dark.color);
       case FaceMark.muttonChops || FaceMark.fullBeard:
         // I baffi che si uniscono alla barba (disegnata sotto la pelle).
@@ -2006,7 +2015,15 @@ abstract final class LookPainter {
           canvas.drawOval(Rect.fromCenter(center: Offset(side * 0.165, -0.86), width: 0.07, height: 0.1), hair);
           canvas.drawOval(Rect.fromCenter(center: Offset(side * 0.17, -0.79), width: 0.06, height: 0.07), hair);
         }
-      case AvatarHead.angelHalo || AvatarHead.devilHorns:
+      case AvatarHead.angelHalo ||
+          AvatarHead.devilHorns ||
+          AvatarHead.astronautHelmet ||
+          AvatarHead.unicornHorn ||
+          AvatarHead.spaghettiHat ||
+          AvatarHead.ufoHat ||
+          AvatarHead.birthdayCake ||
+          AvatarHead.starHalo ||
+          AvatarHead.catOnHead:
         // Aureola e corna sopra i capelli pettinati.
         canvas.drawPath(
           Path()
@@ -2018,7 +2035,13 @@ abstract final class LookPainter {
             ..close(),
           hair,
         );
-      case AvatarHead.clownWig || AvatarHead.roosterHead:
+      case AvatarHead.clownWig ||
+          AvatarHead.roosterHead ||
+          AvatarHead.fishHead ||
+          AvatarHead.dinoHood ||
+          AvatarHead.octopusHat ||
+          AvatarHead.rainbowAfro ||
+          AvatarHead.flamingHair:
         // La parrucca e il cappuccio coprono tutto.
         break;
       case AvatarHead.wideBrim:
@@ -2072,7 +2095,8 @@ abstract final class LookPainter {
     switch (look.glasses) {
       case AvatarGlasses.none:
         break;
-      case AvatarGlasses.noseDisguise || AvatarGlasses.heartGlasses || AvatarGlasses.hypnoGlasses || AvatarGlasses.eyePatch || AvatarGlasses.giantGlasses || AvatarGlasses.giantShades:
+      case AvatarGlasses.noseDisguise || AvatarGlasses.heartGlasses || AvatarGlasses.hypnoGlasses || AvatarGlasses.eyePatch || AvatarGlasses.giantGlasses || AvatarGlasses.giantShades ||
+          AvatarGlasses.googlyEyes || AvatarGlasses.glasses3d || AvatarGlasses.bulbMonocle:
         _Oddities.glasses(canvas, look.glasses);
       case AvatarGlasses.round:
         for (final x in [-0.065, 0.065]) {
@@ -2763,7 +2787,19 @@ abstract final class LookPainter {
           AvatarHead.roosterHead ||
           AvatarHead.propellerBeanie ||
           AvatarHead.angelHalo ||
-          AvatarHead.devilHorns:
+          AvatarHead.devilHorns ||
+          AvatarHead.fishHead ||
+          AvatarHead.dinoHood ||
+          AvatarHead.astronautHelmet ||
+          AvatarHead.unicornHorn ||
+          AvatarHead.spaghettiHat ||
+          AvatarHead.octopusHat ||
+          AvatarHead.ufoHat ||
+          AvatarHead.birthdayCake ||
+          AvatarHead.rainbowAfro ||
+          AvatarHead.flamingHair ||
+          AvatarHead.starHalo ||
+          AvatarHead.catOnHead:
         _Oddities.hat(canvas, look.hat, silhouette ? paint : null);
       case AvatarHead.slicked || AvatarHead.bob || AvatarHead.bun:
         break;
@@ -2863,7 +2899,10 @@ abstract final class LookPainter {
           AvatarAccessory.parrot ||
           AvatarAccessory.rubberDuck ||
           AvatarAccessory.accordion ||
-          AvatarAccessory.baguetteCigar:
+          AvatarAccessory.baguetteCigar ||
+          AvatarAccessory.giantBowTie ||
+          AvatarAccessory.pigeon ||
+          AvatarAccessory.plungerSword:
         _Oddities.prop(canvas, look);
       default:
         break;

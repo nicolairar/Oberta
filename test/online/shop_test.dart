@@ -100,8 +100,9 @@ void main() {
         'supabase/migrations/20261018120000_shop_brands.sql',
         'supabase/migrations/20261018180000_shop_houses.sql',
         'supabase/migrations/20261018200000_shop_oddities.sql',
+        'supabase/migrations/20261018220000_shop_absurd.sql',
       ].map((path) => File(path).readAsStringSync()).join('\n');
-      final rows = RegExp(r"\('(\w+)\.(\w+)', '(\w+)', '(\w+)', '(\w+)', (\d+), .*?(?:, (null|'(\w+)'))?(?:, '(circo|carnevale)')?\)[,\n]")
+      final rows = RegExp(r"\('(\w+)\.(\w+)', '(\w+)', '(\w+)', '(\w+)', (\d+), .*?(?:, (null|'(\w+)'))?(?:, '(circo|carnevale|assurdo)')?\)[,\n]")
           .allMatches(sql);
       final fromSql = {for (final m in rows) '${m[1]}.${m[2]}': '${m[4]} ${m[5]} ${m[6]} ${m[8]} ${m[9]}'};
       final fromDart = {
@@ -124,6 +125,14 @@ void main() {
       for (final id in odditiesFeatured) {
         expect(initialShopCatalog.firstWhere((item) => item.id == id).rarity, ShopRarity.leggendario, reason: id);
       }
+    });
+
+    test("l'assurdo: almeno venticinque pezzi, i più grossi leggendari", () {
+      final absurd = odditiesDrop.where((item) => item.collection == ShopCollection.assurdo).toList();
+      expect(absurd.length, greaterThanOrEqualTo(25));
+      expect(absurd.every((item) => item.rarity.index >= ShopRarity.raro.index), isTrue);
+      expect(absurd.where((item) => item.rarity == ShopRarity.leggendario).length, greaterThanOrEqualTo(10));
+      expect(absurd.map((item) => item.slot).toSet(), {'hat', 'face', 'glasses', 'outfit', 'accessory'});
     });
 
     test('le case firmano i pezzi più cari', () {

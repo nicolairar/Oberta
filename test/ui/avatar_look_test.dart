@@ -40,7 +40,7 @@ void main() {
     test('un pezzo che il catalogo non conosce lascia quello di prima', () {
       final ada = AvatarLook.fallback('Ada');
       final look = AvatarLook.fromJson(
-        {'base': 'martian_green', 'hat': 'crown', 'glasses': 7, 'outfit': 'spacesuit', 'accessory': 'jetpack'},
+        {'base': 'martian_green', 'hat': 'crown', 'glasses': 7, 'outfit': 'spacesuit', 'accessory': 'hoverboard'},
         fallback: ada,
       );
       expect(look, ada);

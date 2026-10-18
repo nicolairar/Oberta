@@ -135,7 +135,6 @@ void main() {
 
     // I pezzi della seconda consegna (e quelli ritoccati), uno per moneta.
     final base = AvatarLook.fallback('anna');
-    tester.view.physicalSize = const Size(97.0 * 8, 118.0 * 5) * 3;
     const fixed = {'face.pencil', 'face.imperial', 'accessory.pocketWatch', 'outfit.black_tuxedo'};
     final items = Platform.environment['SHEET'] == 'houses'
         ? [
@@ -144,7 +143,10 @@ void main() {
             for (final item in [...brandDrop, ...houseDrop])
               if (item.brand != null) item,
           ]
+        : Platform.environment['SHEET'] == 'absurd'
+        ? [for (final item in odditiesDrop) if (item.collection == ShopCollection.assurdo) item]
         : odditiesDrop;
+    tester.view.physicalSize = Size(97.0 * 8, 118.0 * ((items.length + 7) ~/ 8)) * 3;
     await tester.pumpWidget(
       RepaintBoundary(
         key: _key,

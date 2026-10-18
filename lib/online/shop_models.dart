@@ -63,7 +63,10 @@ enum ShopCollection {
   circo('Circo', 'Circus'),
 
   /// I costumi e gli scherzi: il pirata, il cuoco, il gallo, le ali.
-  carnevale('Carnevale', 'Carnival');
+  carnevale('Carnevale', 'Carnival'),
+
+  /// L'assurdo: teste di pesce, razzi, piccioni, torte in testa.
+  assurdo('Assurdo', 'Absurd');
 
   final String it;
   final String en;
@@ -481,6 +484,34 @@ final List<ShopItem> odditiesDrop = [
   ShopItem.oddity('accessory', 'angelWings', ShopRarity.leggendario, "Ali d'angelo", 'Angel wings', 545, ShopCollection.carnevale),
   ShopItem.oddity('accessory', 'batWings', ShopRarity.leggendario, 'Ali da diavoletto', 'Devil bat wings', 546, ShopCollection.carnevale),
   ShopItem.oddity('accessory', 'butterflyWings', ShopRarity.leggendario, 'Ali di farfalla', 'Butterfly wings', 547, ShopCollection.carnevale),
+  // L'assurdo.
+  ShopItem.oddity('hat', 'fishHead', ShopRarity.leggendario, 'Testa di pesce', 'Fish head mask', 151, ShopCollection.assurdo),
+  ShopItem.oddity('hat', 'dinoHood', ShopRarity.leggendario, 'Cappuccio da dinosauro', 'Dinosaur hood', 152, ShopCollection.assurdo),
+  ShopItem.oddity('hat', 'astronautHelmet', ShopRarity.leggendario, 'Casco da astronauta', 'Astronaut bubble helmet', 153, ShopCollection.assurdo),
+  ShopItem.oddity('hat', 'unicornHorn', ShopRarity.epico, 'Corno da unicorno', 'Unicorn horn headband', 154, ShopCollection.assurdo),
+  ShopItem.oddity('hat', 'spaghettiHat', ShopRarity.epico, 'Piatto di spaghetti', 'Spaghetti plate hat', 155, ShopCollection.assurdo),
+  ShopItem.oddity('hat', 'octopusHat', ShopRarity.leggendario, 'Polpo in testa', 'Octopus hat', 156, ShopCollection.assurdo),
+  ShopItem.oddity('hat', 'ufoHat', ShopRarity.leggendario, 'Disco volante', 'UFO hat with alien', 157, ShopCollection.assurdo),
+  ShopItem.oddity('hat', 'birthdayCake', ShopRarity.epico, 'Torta di compleanno', 'Birthday cake hat', 158, ShopCollection.assurdo),
+  ShopItem.oddity('hat', 'rainbowAfro', ShopRarity.leggendario, 'Afro arcobaleno', 'Rainbow afro', 159, ShopCollection.assurdo),
+  ShopItem.oddity('hat', 'flamingHair', ShopRarity.leggendario, 'Capelli in fiamme', 'Flaming hair', 160, ShopCollection.assurdo),
+  ShopItem.oddity('hat', 'starHalo', ShopRarity.epico, 'Giro di stelle', 'Halo of stars', 161, ShopCollection.assurdo),
+  ShopItem.oddity('hat', 'catOnHead', ShopRarity.leggendario, 'Gatto in testa', 'Cat on the head', 162, ShopCollection.assurdo),
+  ShopItem.oddity('face', 'vikingBeard', ShopRarity.leggendario, 'Barba del vichingo', 'Braided viking beard', 223, ShopCollection.assurdo),
+  ShopItem.oddity('glasses', 'googlyEyes', ShopRarity.raro, 'Occhi mobili', 'Googly-eye glasses', 346, ShopCollection.assurdo),
+  ShopItem.oddity('glasses', 'glasses3d', ShopRarity.raro, 'Occhialini 3D', '3D glasses', 347, ShopCollection.assurdo),
+  ShopItem.oddity('glasses', 'bulbMonocle', ShopRarity.epico, "Monocolo dell'idea", 'Lightbulb monocle', 348, ShopCollection.assurdo),
+  ShopItem.oddity('outfit', 'pizza_suit', ShopRarity.leggendario, 'Costume da pizza', 'Pizza slice costume', 476, ShopCollection.assurdo),
+  ShopItem.oddity('outfit', 'cactus_suit', ShopRarity.leggendario, 'Costume da cactus', 'Cactus costume', 477, ShopCollection.assurdo),
+  ShopItem.oddity('outfit', 'ghost_sheet', ShopRarity.epico, 'Lenzuolo da fantasma', 'Ghost sheet', 478, ShopCollection.assurdo),
+  ShopItem.oddity('outfit', 'mummy_wraps', ShopRarity.epico, 'Bende da mummia', 'Mummy wraps', 479, ShopCollection.assurdo),
+  ShopItem.oddity('accessory', 'snailShell', ShopRarity.epico, 'Guscio di lumaca', 'Snail shell backpack', 548, ShopCollection.assurdo),
+  ShopItem.oddity('accessory', 'jetpack', ShopRarity.leggendario, 'Zaino a razzo', 'Jetpack', 549, ShopCollection.assurdo),
+  ShopItem.oddity('accessory', 'dragonWings', ShopRarity.leggendario, 'Ali di drago', 'Dragon wings', 550, ShopCollection.assurdo),
+  ShopItem.oddity('accessory', 'balloons', ShopRarity.leggendario, 'Mazzo di palloncini', 'Balloon bunch', 551, ShopCollection.assurdo),
+  ShopItem.oddity('accessory', 'giantBowTie', ShopRarity.raro, 'Papillon gigante', 'Giant bow tie', 552, ShopCollection.assurdo),
+  ShopItem.oddity('accessory', 'pigeon', ShopRarity.raro, 'Piccione sulla spalla', 'Shoulder pigeon', 553, ShopCollection.assurdo),
+  ShopItem.oddity('accessory', 'plungerSword', ShopRarity.epico, 'Spada sturalavandini', 'Plunger sword', 554, ShopCollection.assurdo),
 ];
 
 /// La vetrina di adesso, come nella migrazione delle case: la collezione

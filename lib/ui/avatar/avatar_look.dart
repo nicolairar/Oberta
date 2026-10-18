@@ -239,7 +239,9 @@ enum FaceMark {
   // Le stramberie.
   curledMoustache,
   giantMoustache,
-  mimeFace;
+  mimeFace,
+  // L'assurdo.
+  vikingBeard;
 
   /// I baffi: chi li porta ha bisogno del pelo, non del rossetto.
   bool get moustache => this == mustache || (index >= pencil.index && this != mimeFace);
@@ -297,7 +299,11 @@ enum AvatarGlasses {
   hypnoGlasses,
   eyePatch,
   giantGlasses,
-  giantShades;
+  giantShades,
+  // L'assurdo.
+  googlyEyes,
+  glasses3d,
+  bulbMonocle;
 
   /// Le lenti scure: gli occhi non si vedono.
   bool get dark => this == shades || this == aviator || this == delacroixShades || this == hypnoGlasses || this == giantShades;
@@ -343,7 +349,15 @@ enum AvatarAccessory {
   baguetteCigar,
   angelWings,
   batWings,
-  butterflyWings;
+  butterflyWings,
+  // L'assurdo.
+  snailShell,
+  jetpack,
+  dragonWings,
+  balloons,
+  giantBowTie,
+  pigeon,
+  plungerSword;
 
   /// Quello che fumano: il fumo sale da qui.
   bool get smokes =>
@@ -376,7 +390,12 @@ enum CoatPattern {
   leotard,
   breton,
   chef,
-  banana;
+  banana,
+  // L'assurdo.
+  pizza,
+  cactus,
+  ghost,
+  mummy;
 
   /// I costumi della bottega delle stramberie: niente camicia, niente cravatta.
   bool get costume => index >= clown.index;
@@ -571,6 +590,11 @@ class AvatarOutfit {
     ),
     const AvatarOutfit('chef_whites', Color(0xFFEDE9E0), CoatPattern.chef, Color(0xFFC8282E)),
     const AvatarOutfit('banana_suit', Color(0xFFF0CB2E), CoatPattern.banana, Color(0xFF5A3A1A)),
+    // L'assurdo.
+    const AvatarOutfit('pizza_suit', Color(0xFFF2C24A), CoatPattern.pizza, Color(0xFFC8282E)),
+    const AvatarOutfit('cactus_suit', Color(0xFF3E8E3E), CoatPattern.cactus, Color(0xFFE85A9A)),
+    const AvatarOutfit('ghost_sheet', Color(0xFFF4F2EC), CoatPattern.ghost, Color(0xFF1B1B22)),
+    const AvatarOutfit('mummy_wraps', Color(0xFFE6DCC2), CoatPattern.mummy, Color(0xFF8A7A58)),
   ];
 
   static AvatarOutfit? byId(String id) {
