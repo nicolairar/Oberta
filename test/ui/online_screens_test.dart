@@ -68,7 +68,7 @@ void main() {
     expect(find.text('anna_r2'), findsOneWidget, reason: 'in minuscolo, senza segni vietati');
     await tester.tap(find.text('SALVA'));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('mirror.save')), findsOneWidget);
+    expect(find.byKey(const Key('mirror.present.woman')), findsOneWidget, reason: 'lo specchio chiede prima uomo o donna');
     await tester.tap(find.byKey(const Key('mirror.skip')));
     await tester.pumpAndSettle();
     expect(find.text('GIOCA CON AMICI'), findsOneWidget);

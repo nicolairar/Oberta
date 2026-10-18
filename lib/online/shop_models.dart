@@ -206,7 +206,7 @@ abstract class ShopRepository {
 /// `supabase/migrations/20261017221000_shop.sql` e
 /// `supabase/migrations/20261018120000_shop_brands.sql` e seguenti (un test li
 /// confronta): la bottega finta lo usa, quella vera lo legge dal server.
-final List<ShopItem> initialShopCatalog = [..._firstDrop, ...brandDrop, ...houseDrop, ...odditiesDrop];
+final List<ShopItem> initialShopCatalog = [..._firstDrop, ...brandDrop, ...houseDrop, ...odditiesDrop, ...barberDrop];
 
 final List<ShopItem> _firstDrop = [
   ShopItem.seed('hat', 'fedora', ShopRarity.base, 'Fedora', 'Fedora', 100),
@@ -251,6 +251,11 @@ final List<ShopItem> _firstDrop = [
   ShopItem.seed('outfit', 'rust_tweed', ShopRarity.base, 'Tweed ruggine', 'Rust tweed', 408),
   ShopItem.seed('outfit', 'olive_pinstripe', ShopRarity.base, 'Gessato oliva', 'Olive pinstripe', 409),
   ShopItem.seed('outfit', 'black_tuxedo', ShopRarity.base, 'Smoking nero', 'Black tuxedo', 410),
+  ShopItem.seed('outfit', 'rose_dress', ShopRarity.base, 'Abito rosa antico', 'Dusty rose dress', 411),
+  ShopItem.seed('outfit', 'black_dress', ShopRarity.base, 'Tubino nero', 'Little black dress', 412),
+  ShopItem.seed('outfit', 'emerald_dress', ShopRarity.base, 'Abito smeraldo', 'Emerald dress', 413),
+  ShopItem.seed('outfit', 'ivory_blouse', ShopRarity.base, 'Camicetta avorio', 'Ivory blouse', 414),
+  ShopItem.seed('outfit', 'powder_blouse', ShopRarity.base, 'Camicetta celeste', 'Powder blue blouse', 415),
   ShopItem.seed('outfit', 'navy_chalkstripe', ShopRarity.epico, 'Gessato blu', 'Navy chalk stripe', 420),
   ShopItem.seed('outfit', 'grey_flannel', ShopRarity.epico, 'Flanella grigia', 'Grey flannel', 421),
   ShopItem.seed('outfit', 'brown_pinstripe', ShopRarity.epico, 'Gessato marrone', 'Brown pinstripe', 422),
@@ -530,4 +535,34 @@ const brandFeatured = [
   'outfit.vaugirard_travel',
   'hat.vaugirardCap',
   'accessory.vaugirardStrap',
+];
+
+/// Dal barbiere e dal tatuatore: le pettinature stravaganti e i tatuaggi
+/// alla marinara (`supabase/migrations/20261020090000_barber_presentation.sql`).
+final List<ShopItem> barberDrop = [
+  ShopItem.drop('hairdo', 'none', ShopRarity.base, 'I tuoi capelli', 'Your own hair', 600),
+  ShopItem.drop('hairdo', 'beehive', ShopRarity.epico, 'Alveare gigante', 'Giant beehive', 601),
+  ShopItem.drop('hairdo', 'punkSpikes', ShopRarity.epico, 'Creste punk al neon', 'Neon-pink punk spikes', 602),
+  ShopItem.drop('hairdo', 'spaceBuns', ShopRarity.raro, 'Due chignon spaziali', 'Double space buns', 603),
+  ShopItem.drop('hairdo', 'toweringPompadour', ShopRarity.epico, 'Ciuffo a torre col ricciolo', 'Towering pompadour with a curl', 604),
+  ShopItem.drop('hairdo', 'flowerCrown', ShopRarity.raro, 'Corona di trecce e fiori', 'Braided crown with flowers', 605),
+  ShopItem.drop('hairdo', 'mermaidWaves', ShopRarity.epico, 'Onde da sirena ghiaccio', 'Ice-blue mermaid waves', 606),
+  ShopItem.drop('hairdo', 'flameBouffant', ShopRarity.epico, 'Cotonatura rosso fiamma', 'Flame-red bouffant', 607),
+  ShopItem.drop('hairdo', 'glitterAfro', ShopRarity.leggendario, 'Afro di brillantini', 'Glitter afro', 608),
+  ShopItem.drop('hairdo', 'samuraiTopknot', ShopRarity.raro, 'Codino da samurai', 'Samurai topknot', 609),
+  ShopItem.drop('hairdo', 'stripedUndercut', ShopRarity.raro, 'Rasato a strisce', 'Striped undercut', 610),
+  ShopItem.drop('hairdo', 'rainbowPonytail', ShopRarity.leggendario, 'Coda arcobaleno lunghissima', 'Extra-long rainbow ponytail', 611),
+  ShopItem.drop('hairdo', 'birdNestMane', ShopRarity.leggendario, 'Criniera con uccellino', 'Curly mane with a hidden bird', 612),
+  ShopItem.drop('tattoo', 'none', ShopRarity.base, 'Pelle pulita', 'No tattoo', 700),
+  ShopItem.drop('tattoo', 'anchor', ShopRarity.comune, 'Ancora', 'Anchor', 701),
+  ShopItem.drop('tattoo', 'swallow', ShopRarity.comune, 'Rondine', 'Swallow', 702),
+  ShopItem.drop('tattoo', 'roseDagger', ShopRarity.raro, 'Rosa e pugnale', 'Rose and dagger', 703),
+  ShopItem.drop('tattoo', 'mammaHeart', ShopRarity.raro, 'Cuore MAMMA', 'MAMMA heart banner', 704),
+  ShopItem.drop('tattoo', 'spiderWeb', ShopRarity.epico, 'Ragnatela sul collo', 'Spider web on the neck', 705),
+  ShopItem.drop('tattoo', 'teardrop', ShopRarity.comune, 'Lacrima', 'Teardrop', 706),
+  ShopItem.drop('tattoo', 'cheekStar', ShopRarity.comune, 'Stellina sulla guancia', 'Star on the cheek', 707),
+  ShopItem.drop('tattoo', 'koi', ShopRarity.epico, 'Carpa koi sul collo', 'Koi on the neck', 708),
+  ShopItem.drop('tattoo', 'playingCards', ShopRarity.raro, 'Carte da gioco', 'Playing cards', 709),
+  ShopItem.drop('tattoo', 'skullTopHat', ShopRarity.raro, 'Teschio col cilindro', 'Skull in a top hat', 710),
+  ShopItem.drop('tattoo', 'familyCrest', ShopRarity.epico, 'Stemma di famiglia', 'Family crest', 711),
 ];

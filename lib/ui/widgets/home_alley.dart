@@ -39,6 +39,9 @@ class HomeAlleyLayout {
   late final Rect shop;
   late final Rect? shopCompact;
 
+  /// L'insegna del barbiere, appesa con le sue catenelle sotto la bottega.
+  late final Rect barber;
+
   /// Il riquadro delle lettere al neon (accento compreso) e la loro altezza.
   late final Rect sign;
   late final double cap;
@@ -76,6 +79,7 @@ class HomeAlleyLayout {
     badge = Rect.fromLTWH(12, top + 4, min(196.0, slot.left - 22), 50);
     final shopLeft = max(badge.right + 8, slot.left - 10 - 120);
     shop = Rect.fromLTRB(shopLeft, top + 2, slot.left - 10, top + 54);
+    barber = Rect.fromLTRB(shop.left, shop.bottom - 4, shop.right, shop.bottom + 44);
     final compactRight = signIn.left - 6;
     final compactLeft = max(plaque.right + 6, compactRight - 46);
     shopCompact = compactRight - compactLeft >= 34 ? Rect.fromLTRB(compactLeft, top + 6, compactRight, top + 50) : null;

@@ -511,6 +511,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         onTap: signedIn ? _openShop : () => setState(() => _coach = true),
                       ),
                     ),
+                  // Sotto la bottega, il barbiere: lo specchio si vede, non si cerca.
+                  if (signedIn)
+                    Positioned.fromRect(
+                      rect: layout.barber,
+                      child: HomeShopSign(
+                        key: const Key('home.barberSign'),
+                        label: SettingsStrings.of(context).barberSign,
+                        icon: const BarberPoleIconPainter(),
+                        onTap: _openMirror,
+                      ),
+                    ),
                   if (signedIn)
                     Positioned.fromRect(
                       rect: layout.badge,

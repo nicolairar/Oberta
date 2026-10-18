@@ -50,7 +50,7 @@ void main() {
     test('le scelte: quante ne promette lo specchio', () {
       expect(FaceFeatures.options.map((k, v) => MapEntry(k, v.length)), {
         'shape': 8, 'eyes': 12, 'eyeColor': 8, 'brows': 10, 'nose': 10, 'mouth': 12, //
-        'hair': 24, 'hairColor': 12, 'detail': 8, 'age': 3, 'lips': 7, 'shadow': 7,
+        'hair': 24, 'hairColor': 12, 'detail': 8, 'age': 3, 'lips': 7, 'shadow': 7, 'presentation': 3,
       });
       expect(FaceFeatures.keys, FaceFeatures.options.keys.toList());
     });
@@ -92,7 +92,7 @@ void main() {
     });
 
     test('gli id sono gli stessi della migrazione', () {
-      final sql = File('supabase/migrations/20261019120000_face_options.sql').readAsStringSync();
+      final sql = File('supabase/migrations/20261020090000_barber_presentation.sql').readAsStringSync();
       for (final MapEntry(:key, :value) in FaceFeatures.options.entries) {
         expect(sql, contains("'$key', jsonb_build_array(${value.map((v) => "'$v'").join(', ')})"), reason: key);
       }
@@ -158,6 +158,15 @@ void main() {
     await tester.tap(find.text('go'));
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
+    // Il primo passo: uomo, donna o altro.
+    expect(find.byKey(const Key('mirror.present.other')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('mirror.present.woman')));
+    await tester.pump();
+    expect(find.byKey(const Key('mirror.preset.vito')), findsNothing, reason: 'a una signora si propongono facce da signora');
+    expect(find.byKey(const Key('mirror.outfit.rose_dress')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('mirror.showAll')));
+    await tester.pump();
+    expect(find.byKey(const Key('mirror.preset.vito')), findsOneWidget, reason: 'con «Mostra tutto» si vede tutto');
     await tester.tap(find.byKey(const Key('mirror.preset.amara')));
     await tester.pump();
     await tester.tap(find.byKey(const Key('mirror.random')));
@@ -169,7 +178,9 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     expect(saved, isNotNull);
     final amara = FacePreset.all.firstWhere((p) => p.id == 'amara');
-    expect(saved!.look.features, amara.features);
+    expect(saved!.look.features, amara.features.copyWith(presentation: Presentation.woman));
+    expect(saved!.look.dame, isTrue);
+    expect(saved!.avatar['presentation'], 'woman');
     expect(saved!.look.base.tone, amara.tone);
   });
 }

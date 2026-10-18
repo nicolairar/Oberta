@@ -103,6 +103,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('shop.slot.outfit')));
     await tester.pumpAndSettle();
+    await show(tester, 'shop.item.outfit.grey_flannel');
     expect(find.byKey(const Key('shop.item.outfit.grey_flannel')), findsOneWidget);
     expect(find.byKey(const Key('shop.item.outfit.white_dinner')), findsNothing);
     await show(tester, 'shop.item.outfit.charcoal_pinstripe');

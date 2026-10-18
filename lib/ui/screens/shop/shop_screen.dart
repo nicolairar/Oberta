@@ -40,8 +40,9 @@ Color rarityColor(ShopRarity rarity) => switch (rarity) {
 };
 
 /// I posti del reparto accessori, e quelli dell'armadio.
-const _accessorySlots = ['glasses', 'accessory', 'face'];
-const _allSlots = ['hat', 'outfit', 'glasses', 'accessory', 'face'];
+const _accessorySlots = ['glasses', 'accessory', 'face', 'tattoo'];
+const _hatSlots = ['hat', 'hairdo'];
+const _allSlots = ['hat', 'hairdo', 'outfit', 'glasses', 'accessory', 'face', 'tattoo'];
 const _cream = Color(0xFFF2E6CF);
 const _wood = Color(0xFF4A2C1A);
 
@@ -341,7 +342,7 @@ class _ShopScreenState extends State<ShopScreen> {
     final wardrobe = _tab == ShopTab.wardrobe;
     final items = switch (_tab) {
       ShopTab.tailoring => _shop.forSale('outfit'),
-      ShopTab.hats => _shop.forSale('hat'),
+      ShopTab.hats => [for (final slot in _hatSlots) ..._shop.forSale(slot)],
       ShopTab.accessories => [for (final slot in _accessorySlots) ..._shop.forSale(slot)],
       ShopTab.brands => _shop.branded(_brand, wardrobe: false),
       ShopTab.oddities => _collected(_collection!),
@@ -461,6 +462,7 @@ class _ShopScreenState extends State<ShopScreen> {
     final wardrobe = _tab == ShopTab.wardrobe;
     final slots = switch (_tab) {
       ShopTab.accessories => _accessorySlots,
+      ShopTab.hats => _hatSlots,
       ShopTab.wardrobe => _allSlots,
       _ => const <String>[],
     };

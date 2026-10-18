@@ -71,7 +71,7 @@ abstract class ShopStrings {
     'endsIn': endsIn(3),
     'counterTab': counterTab,
     'wardrobeTab': wardrobeTab,
-    for (final s in const ['hat', 'face', 'glasses', 'outfit', 'accessory']) 'slot.$s': slot(s),
+    for (final s in const ['hat', 'face', 'glasses', 'outfit', 'accessory', 'hairdo', 'tattoo']) 'slot.$s': slot(s),
     for (final r in ShopRarity.values) 'rarity.${r.name}': rarity(r),
     'owned': owned,
     'worn': worn,
@@ -133,6 +133,8 @@ class ItalianShopStrings extends ShopStrings {
     'face' => 'Baffi',
     'glasses' => 'Occhiali',
     'outfit' => 'Abiti',
+    'hairdo' => 'Pettinature',
+    'tattoo' => 'Tatuaggi',
     _ => 'Vezzi',
   };
   @override
@@ -250,6 +252,8 @@ class EnglishShopStrings extends ShopStrings {
     'face' => 'Moustaches',
     'glasses' => 'Glasses',
     'outfit' => 'Suits',
+    'hairdo' => 'Hairdos',
+    'tattoo' => 'Tattoos',
     _ => 'Accessories',
   };
   @override

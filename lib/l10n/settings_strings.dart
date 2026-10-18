@@ -62,6 +62,8 @@ class SettingsStrings {
 
   /// La targhetta sotto il ritratto, in casa: apre lo specchio del barbiere.
   String get yourLook => _t('IL TUO LOOK', 'YOUR LOOK');
+  String get barberSign => _t('BARBIERE', 'BARBER');
+  String get changeLook => _t('Cambia il tuo look', 'Change your look');
 
   String get legalAsset => _en ? 'en' : 'it';
 }

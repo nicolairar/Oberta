@@ -134,6 +134,11 @@ enum EyeShadow {
   const EyeShadow(this.color);
 }
 
+/// Come si presenta chi si guarda nello specchio: filtra le proposte
+/// (pettinature, trucco, abiti) e il taglio del busto. `other` lascia tutto
+/// aperto e il busto segue la pettinatura, come prima.
+enum Presentation { other, man, woman }
+
 /// I lineamenti di una faccia: gratis, si scelgono nello specchio del
 /// barbiere. Si salvano nella colonna `avatar` dei profili con chiavi piatte
 /// (`"shape": "oval"`, `"eyes": "almond"`...) accanto ai pezzi della bottega.
@@ -154,6 +159,7 @@ class FaceFeatures {
   final FaceAge age;
   final LipColor lips;
   final EyeShadow shadow;
+  final Presentation presentation;
 
   const FaceFeatures({
     this.shape = FaceShape.oval,
@@ -168,6 +174,7 @@ class FaceFeatures {
     this.age = FaceAge.none,
     this.lips = LipColor.none,
     this.shadow = EyeShadow.none,
+    this.presentation = Presentation.other,
   });
 
   static const standard = FaceFeatures();
@@ -175,7 +182,7 @@ class FaceFeatures {
   /// Le chiavi della colonna `avatar`, nell'ordine dello specchio. Le stesse
   /// che la migrazione `face_options` controlla.
   static const keys = [
-    'shape', 'eyes', 'eyeColor', 'brows', 'nose', 'mouth', 'hair', 'hairColor', 'detail', 'age', 'lips', 'shadow', //
+    'shape', 'eyes', 'eyeColor', 'brows', 'nose', 'mouth', 'hair', 'hairColor', 'detail', 'age', 'lips', 'shadow', 'presentation', //
   ];
 
   /// Ogni chiave con i suoi id validi.
@@ -192,6 +199,7 @@ class FaceFeatures {
     'age': _names(FaceAge.values),
     'lips': _names(LipColor.values),
     'shadow': _names(EyeShadow.values),
+    'presentation': _names(Presentation.values),
   };
 
   /// Nomi vecchi o di comodo verso gli id di oggi.
@@ -217,6 +225,7 @@ class FaceFeatures {
     'age': age.name,
     'lips': lips.name,
     'shadow': shadow.name,
+    'presentation': presentation.name,
   };
 
   /// Quello che manca, o che questa versione non conosce, viene da [fallback].
@@ -244,6 +253,7 @@ class FaceFeatures {
       age: pick('age', FaceAge.values, fallback.age),
       lips: pick('lips', LipColor.values, fallback.lips),
       shadow: pick('shadow', EyeShadow.values, fallback.shadow),
+      presentation: pick('presentation', Presentation.values, fallback.presentation),
     );
   }
 
@@ -260,6 +270,7 @@ class FaceFeatures {
     FaceAge? age,
     LipColor? lips,
     EyeShadow? shadow,
+    Presentation? presentation,
   }) => FaceFeatures(
     shape: shape ?? this.shape,
     eyes: eyes ?? this.eyes,
@@ -273,6 +284,7 @@ class FaceFeatures {
     age: age ?? this.age,
     lips: lips ?? this.lips,
     shadow: shadow ?? this.shadow,
+    presentation: presentation ?? this.presentation,
   );
 
   /// Lo stesso id in [key], o null se non si conosce.
@@ -302,8 +314,9 @@ class FaceFeatures {
       other.detail == detail &&
       other.age == age &&
       other.lips == lips &&
-      other.shadow == shadow;
+      other.shadow == shadow &&
+      other.presentation == presentation;
 
   @override
-  int get hashCode => Object.hash(shape, eyes, eyeColor, brows, nose, mouth, hair, hairColor, detail, age, lips, shadow);
+  int get hashCode => Object.hash(shape, eyes, eyeColor, brows, nose, mouth, hair, hairColor, detail, age, lips, shadow, presentation);
 }

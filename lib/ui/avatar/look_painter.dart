@@ -9,6 +9,7 @@ import 'avatar_look.dart';
 part 'oddities_painter.dart';
 part 'absurd_painter.dart';
 part 'face_painter.dart';
+part 'extras_painter.dart';
 
 /// Quello che si muove in un personaggio fermo al tavolo.
 @immutable
@@ -185,6 +186,9 @@ abstract final class LookPainter {
     final glow = lit ? gold : rim;
     canvas.save();
     canvas.translate(0, lift);
+    // Una pettinatura della bottega toglie il cappello.
+    final styled = look.hairdo != Hairdo.none;
+    if (styled) look = look.copyWith(hat: AvatarHead.slicked);
 
     final broad = look.dame ? 0.86 : 1.0;
     final torso = _torso(broad);
@@ -199,16 +203,17 @@ abstract final class LookPainter {
     canvas.translate(light.dx * 0.03, light.dy * 0.03);
     final halo = Paint()..color = glow.withValues(alpha: lit ? 0.95 : 0.75);
     canvas.drawPath(torso, halo);
-    _hairBack(canvas, look, halo);
+    styled ? _Extras.hairdoBack(canvas, look, halo) : _hairBack(canvas, look, halo);
     canvas.drawPath(_Face.path(look.features.shape), halo);
     _hat(canvas, look, halo, silhouette: true);
     canvas.restore();
 
-    _hairBack(canvas, look, null);
+    styled ? _Extras.hairdoBack(canvas, look, null) : _hairBack(canvas, look, null);
     _coat(canvas, look, torso, light);
     _neck(canvas, look, light);
     _face(canvas, look, head, pose, light);
-    _hairFront(canvas, look);
+    _Extras.tattoo(canvas, look);
+    styled ? _Extras.hairdoFront(canvas, look) : _hairFront(canvas, look);
     _glasses(canvas, look, pose);
     _hat(canvas, look, Paint(), silhouette: false);
     if (look.accessory == AvatarAccessory.carnation) carnation(canvas, Offset(0.2 * broad, -0.44), 0.05);
@@ -475,6 +480,36 @@ abstract final class LookPainter {
         final band = Paint()..color = outfit.accent;
         canvas.drawRect(const Rect.fromLTRB(-0.6, -0.36, -0.12, -0.335), band);
         canvas.drawRect(const Rect.fromLTRB(0.12, -0.36, 0.6, -0.335), band);
+      case CoatPattern.dress:
+        // Il corpetto con le pince, la cintura in vita e la gonna che si apre.
+        final dart = Paint()
+          ..color = _dark(outfit.coat, 0.35)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.008;
+        for (final side in [-1.0, 1.0]) {
+          canvas.drawLine(Offset(side * 0.17, -0.4), Offset(side * 0.14, 0.12), dart);
+          canvas.drawLine(Offset(side * 0.14, 0.18), Offset(side * 0.3, 0.6), dart);
+        }
+        canvas.drawRect(const Rect.fromLTRB(-0.6, 0.12, 0.6, 0.18), Paint()..color = outfit.accent);
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(const Rect.fromLTRB(-0.04, 0.11, 0.04, 0.19), const Radius.circular(0.01)),
+          Paint()..color = _dark(outfit.accent, 0.3),
+        );
+      case CoatPattern.blouse:
+        // Le maniche a sbuffo, la pistagna e i bottoncini di madreperla.
+        final puff = Paint()..color = _bright(outfit.coat, 0.12);
+        for (final side in [-1.0, 1.0]) {
+          canvas.drawOval(Rect.fromCenter(center: Offset(side * 0.36, -0.46), width: 0.2, height: 0.16), puff);
+        }
+        canvas.drawLine(const Offset(0, -0.4), const Offset(0, 0.6), Paint()
+          ..color = _dark(outfit.coat, 0.2)
+          ..strokeWidth = 0.008);
+        final pearl = Paint()..color = const Color(0xFFF6F0E4);
+        for (final y in [-0.3, -0.18, -0.06, 0.06]) {
+          canvas.drawCircle(Offset(0, y), 0.012, pearl);
+        }
+        // La gonna scura a vita alta.
+        canvas.drawRect(const Rect.fromLTRB(-0.6, 0.2, 0.6, 0.7), Paint()..color = outfit.shirt);
       case CoatPattern.canvas:
         _trunkCanvas(canvas, outfit.coat);
       case CoatPattern.baroque:
@@ -526,7 +561,23 @@ abstract final class LookPainter {
     );
     canvas.restore();
 
-    if (look.dame) {
+    if (pattern == CoatPattern.blouse) {
+      // Il colletto tondo della camicetta, con il fiocco.
+      for (final side in [-1.0, 1.0]) {
+        canvas.drawPath(
+          Path()
+            ..moveTo(0, -0.6)
+            ..quadraticBezierTo(side * 0.06, -0.66, side * 0.15, -0.62)
+            ..quadraticBezierTo(side * 0.14, -0.53, 0, -0.55)
+            ..close(),
+          Paint()..color = _bright(outfit.coat, 0.2),
+        );
+      }
+      canvas.drawCircle(const Offset(0, -0.56), 0.02, Paint()..color = outfit.accent);
+      _patch(canvas, outfit, -0.2);
+      return;
+    }
+    if (look.dame || pattern == CoatPattern.dress) {
       // Uno scollo a V, senza risvolti.
       canvas.drawPath(
         Path()

@@ -81,4 +81,17 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(tester.hasRunningAnimations, isFalse, reason: 'senza animazioni nessuno respira');
   });
+
+  test('uomo o donna decide il busto; pettinature e tatuaggi della bottega si salvano', () {
+    final base = AvatarLook.fallback('Ada');
+    final woman = base.copyWith(features: base.features.copyWith(presentation: Presentation.woman, hair: HairStyle.crewCut));
+    final man = base.copyWith(hat: AvatarHead.bob, features: base.features.copyWith(presentation: Presentation.man, hair: HairStyle.bob));
+    expect(woman.dame, isTrue);
+    expect(man.dame, isFalse);
+    final styled = base.copyWith(hairdo: Hairdo.glitterAfro, tattoo: Tattoo.koi);
+    expect(AvatarLook.fromJson(styled.toJson(), fallback: base), styled);
+    expect(base.wearing(LookSlot.hairdo, 'beehive')?.hairdo, Hairdo.beehive);
+    expect(base.wearing(LookSlot.tattoo, 'anchor')?.tattoo, Tattoo.anchor);
+    expect(base.hairdo, Hairdo.none, reason: 'dal nome nessuno riceve una pettinatura pagata');
+  });
 }

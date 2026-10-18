@@ -14,8 +14,20 @@ class FacePreset {
 
   const FacePreset(this.id, this.tone, this.features);
 
-  AvatarLook applyTo(AvatarLook look) =>
-      look.copyWith(base: AvatarBase.of(tone, look.base.mark), features: features);
+  /// Le proposte per chi si presenta così: le signore hanno le loro pettinature.
+  Presentation get presentation => features.hair.dame || features.lips != LipColor.none ? Presentation.woman : Presentation.man;
+
+  /// Va bene per [p]? (`other` vede tutto.)
+  bool fits(Presentation p) => p == Presentation.other || p == presentation;
+
+  /// La faccia del modello, ma con la presentazione di chi la prova.
+  AvatarLook applyTo(AvatarLook look) => look.copyWith(
+    base: AvatarBase.of(tone, look.base.mark),
+    features: features.copyWith(presentation: look.features.presentation),
+  );
+
+  /// Lo stesso modello (la presentazione non conta).
+  bool worn(AvatarLook look) => tone == look.base.tone && features.copyWith(presentation: look.features.presentation) == look.features;
 
   /// Venti persone diverse: uomini e donne, di ogni età e di ogni parte.
   static const all = [
@@ -103,7 +115,12 @@ class FacePreset {
     T one<T>(List<T> values) => values[random.nextInt(values.length)];
     bool chance(double p) => random.nextDouble() < p;
     final tone = one(SkinTone.values);
-    final dame = chance(0.5);
+    final presentation = look.features.presentation;
+    final dame = switch (presentation) {
+      Presentation.woman => true,
+      Presentation.man => false,
+      Presentation.other => chance(0.5),
+    };
     final old = chance(0.15);
     final hairColor = old
         ? one(const [HairColor.grey, HairColor.white, HairColor.saltPepper])
@@ -166,6 +183,7 @@ class FacePreset {
         age: old ? one(const [FaceAge.lines, FaceAge.deep]) : (chance(0.12) ? FaceAge.lines : FaceAge.none),
         lips: lips,
         shadow: shadow,
+        presentation: presentation,
       ),
     );
   }

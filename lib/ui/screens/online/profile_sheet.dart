@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../l10n/app_strings.dart';
-import '../../../l10n/app_language.dart';
+import '../../../l10n/settings_strings.dart';
 import '../../../online/online_account.dart';
 import '../../avatar/avatar_look.dart';
 import '../avatar/barber_mirror_screen.dart';
@@ -50,15 +50,16 @@ class _ProfileCard extends StatelessWidget {
         children: [
           Center(child: PlayerAvatar(seed: profile.avatarSeed, look: profile.look, size: 92)),
           const SizedBox(height: 8),
-          Center(
-            child: TextButton.icon(
+          SizedBox(
+            height: 52,
+            child: FilledButton.icon(
               key: const Key('profile.mirror'),
               onPressed: () async {
                 final saved = await BarberMirrorScreen.open(context, services: account.services, profile: profile);
                 if (saved != null) account.saved(saved);
               },
-              icon: const Icon(Icons.face_retouching_natural),
-              label: Text(AppStrings.of(context).language == AppLanguage.en ? "The barber's mirror" : 'Lo specchio del barbiere'),
+              icon: const SizedBox.square(dimension: 26, child: CustomPaint(painter: BarberPoleIconPainter())),
+              label: Text(SettingsStrings.of(context).changeLook, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
             ),
           ),
           const SizedBox(height: 12),

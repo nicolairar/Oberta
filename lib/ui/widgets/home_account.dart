@@ -625,7 +625,11 @@ class HomeShopSign extends StatefulWidget {
   final String? fresh;
   final VoidCallback onTap;
 
-  const HomeShopSign({super.key, required this.label, required this.onTap, this.fresh});
+  /// Il disegno accanto alla scritta: il cappello e le forbici della
+  /// bottega, o il palo del barbiere.
+  final CustomPainter icon;
+
+  const HomeShopSign({super.key, required this.label, required this.onTap, this.fresh, this.icon = const ShopIconPainter()});
 
   @override
   State<HomeShopSign> createState() => _HomeShopSignState();
@@ -711,7 +715,7 @@ class _HomeShopSignState extends State<HomeShopSign> with SingleTickerProviderSt
                       children: [
                         SizedBox.square(
                           dimension: min(28.0, box.maxHeight - _ShopSignPainter.hang - 8),
-                          child: const CustomPaint(painter: ShopIconPainter()),
+                          child: CustomPaint(painter: widget.icon),
                         ),
                         if (!compact) ...[
                           const SizedBox(width: 6),
@@ -848,6 +852,49 @@ class _ShopSignPainter extends CustomPainter {
 
 /// Il segno della bottega: un cappello a tesa con, davanti, un paio di
 /// forbici da sarto aperte. Dipinto in oro.
+/// Il palo del barbiere: il cilindro a strisce rosse, bianche e blu, i
+/// pomelli d'ottone.
+class BarberPoleIconPainter extends CustomPainter {
+  const BarberPoleIconPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final s = size.shortestSide;
+    canvas.save();
+    canvas.translate((size.width - s) / 2, (size.height - s) / 2);
+    canvas.scale(s / 24);
+    const gold = Color(0xFFF3D27A);
+    final glass = RRect.fromRectAndRadius(const Rect.fromLTRB(8, 4, 16, 20), const Radius.circular(2));
+    canvas.drawRRect(glass, Paint()..color = const Color(0xFFF4EEE2));
+    canvas.save();
+    canvas.clipRRect(glass);
+    final red = Paint()
+      ..color = const Color(0xFFC8102E)
+      ..strokeWidth = 2.2;
+    final blue = Paint()
+      ..color = const Color(0xFF1F3F8A)
+      ..strokeWidth = 1.2;
+    for (var y = -4.0; y < 26; y += 5) {
+      canvas.drawLine(Offset(6, y + 6), Offset(18, y), red);
+      canvas.drawLine(Offset(6, y + 8.4), Offset(18, y + 2.4), blue);
+    }
+    canvas.restore();
+    canvas.drawRRect(glass, Paint()
+      ..color = gold
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.9);
+    final brass = Paint()..color = gold;
+    canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(7, 2.4, 17, 4.6), const Radius.circular(1)), brass);
+    canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(7, 19.4, 17, 21.6), const Radius.circular(1)), brass);
+    canvas.drawCircle(const Offset(12, 1.6), 1.5, brass);
+    canvas.drawCircle(const Offset(12, 22.6), 1.3, brass);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
 class ShopIconPainter extends CustomPainter {
   const ShopIconPainter();
 
