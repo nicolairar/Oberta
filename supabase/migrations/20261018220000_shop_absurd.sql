@@ -1,3 +1,7 @@
+-- Item look ids may contain digits (e.g. glasses3d).
+alter table public.shop_items drop constraint if exists shop_items_look_id_check;
+alter table public.shop_items add constraint shop_items_look_id_check check (look_id ~ '^[A-Za-z0-9_]{1,40}$');
+
 -- Stramberie / Oddities, part two: l'assurdo. The loudest pieces in the
 -- shop: fish heads, dinosaur hoods, jetpacks, a cat on the head.
 --
