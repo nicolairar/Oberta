@@ -354,9 +354,9 @@ class _HomeProfileBadgeState extends State<HomeProfileBadge> {
                   width: bust,
                   height: bust,
                   child: GestureDetector(
-                    key: const Key('home.mirror.portrait'),
+                    key: const Key('home.portrait'),
                     behavior: HitTestBehavior.opaque,
-                    onTap: pressed(widget.onMirror ?? widget.onTap, Press.toggle),
+                    onTap: pressed(widget.onTap, Press.toggle),
                     child: DecoratedBox(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,

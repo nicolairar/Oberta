@@ -29,6 +29,22 @@ abstract final class WornLooks {
 
 /// Un profilo online: chi è una persona per gli altri giocatori, su ogni
 /// telefono dove entra con lo stesso account.
+/// Livello, esperienza e monete: la riga `wallets` che il server spinge con
+/// Realtime. Solo il server la scrive; l'app la mostra e basta.
+class Wallet {
+  final int level;
+  final int xp;
+  final int coins;
+
+  const Wallet({required this.level, required this.xp, required this.coins});
+
+  factory Wallet.fromJson(Map<String, dynamic> json) => Wallet(
+        level: (json['level'] as num).toInt(),
+        xp: (json['xp'] as num).toInt(),
+        coins: (json['coins'] as num).toInt(),
+      );
+}
+
 class Profile {
   final String id;
 

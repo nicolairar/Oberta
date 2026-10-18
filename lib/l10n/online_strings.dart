@@ -170,6 +170,12 @@ abstract class OnlineStrings {
   String get resultsRatingDown;
   String get resultsContinue;
 
+  // Il fascicolo del profilo.
+  String get dossierTitle;
+  String get dossierHistory;
+  String get dossierNoHistory;
+  String get dossierSettings;
+
   // La chat.
   String get chatHint;
   String get chatLobby;
@@ -354,6 +360,10 @@ abstract class OnlineStrings {
     'resultsRatingUp': resultsRatingUp,
     'resultsRatingDown': resultsRatingDown,
     'resultsContinue': resultsContinue,
+    'dossierTitle': dossierTitle,
+    'dossierHistory': dossierHistory,
+    'dossierNoHistory': dossierNoHistory,
+    'dossierSettings': dossierSettings,
   };
 }
 
@@ -407,6 +417,14 @@ final class ItalianOnlineStrings extends OnlineStrings {
         RankTier.consigliere => 'Consigliere',
         RankTier.don => 'Don',
       };
+  @override
+  String get dossierTitle => 'IL TUO FASCICOLO';
+  @override
+  String get dossierHistory => 'GLI ULTIMI CASI';
+  @override
+  String get dossierNoHistory => 'Fedina pulita: nessuna partita ancora.';
+  @override
+  String get dossierSettings => 'Le impostazioni';
   @override
   String get resultsTitle => 'COM\'È ANDATA';
   @override
@@ -796,6 +814,14 @@ final class EnglishOnlineStrings extends OnlineStrings {
         RankTier.consigliere => 'Consigliere',
         RankTier.don => 'Don',
       };
+  @override
+  String get dossierTitle => 'PERSONAL FILE';
+  @override
+  String get dossierHistory => 'RECENT CASES';
+  @override
+  String get dossierNoHistory => 'Clean record: no games yet.';
+  @override
+  String get dossierSettings => 'Settings';
   @override
   String get resultsTitle => 'HOW IT WENT';
   @override

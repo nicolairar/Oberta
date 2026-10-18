@@ -1,3 +1,4 @@
+import 'online/online_account.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
@@ -46,6 +47,7 @@ class ObertaApp extends StatelessWidget {
       builder: (context, _) => MaterialApp(
         title: 'Obertà',
         theme: buildAppTheme(),
+        navigatorObservers: [AccountRefreshObserver.instance],
         locale: settings.language?.locale,
         supportedLocales: AppLanguage.locales,
         localizationsDelegates: const [

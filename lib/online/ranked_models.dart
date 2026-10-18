@@ -107,6 +107,9 @@ abstract class RankedRepository {
 
   /// L'ultima partita giocata, se c'è.
   Future<MatchResult?> lastResult();
+
+  /// Le ultime [limit] partite giocate, dalla più recente.
+  Future<List<MatchResult>> history({int limit = 5});
 }
 
 /// La classificata è pronta ma chiusa in questa build: la coda si apre solo
