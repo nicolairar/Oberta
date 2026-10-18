@@ -129,17 +129,22 @@ void main() {
     final pick = find.byKey(const Key('shop.item.accessory.chanterellePearls'));
     if (pick.evaluate().isNotEmpty) await tester.tap(pick);
     await _shot(tester, '06_brands');
+    await tester.tap(find.byKey(const Key('shop.slot.oddities')));
+    await tester.pump();
+    await _shot(tester, '07_oddities');
 
     // I pezzi della seconda consegna (e quelli ritoccati), uno per moneta.
     final base = AvatarLook.fallback('anna');
     tester.view.physicalSize = const Size(97.0 * 8, 118.0 * 5) * 3;
     const fixed = {'face.pencil', 'face.imperial', 'accessory.pocketWatch', 'outfit.black_tuxedo'};
-    final items = [
-      for (final item in initialShopCatalog)
-        if (fixed.contains(item.id)) item,
-      for (final item in [...brandDrop, ...houseDrop])
-        if (item.brand != null) item,
-    ];
+    final items = Platform.environment['SHEET'] == 'houses'
+        ? [
+            for (final item in initialShopCatalog)
+              if (fixed.contains(item.id)) item,
+            for (final item in [...brandDrop, ...houseDrop])
+              if (item.brand != null) item,
+          ]
+        : odditiesDrop;
     await tester.pumpWidget(
       RepaintBoundary(
         key: _key,

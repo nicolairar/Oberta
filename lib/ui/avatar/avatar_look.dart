@@ -235,10 +235,14 @@ enum FaceMark {
   horseshoe,
   vandyke,
   muttonChops,
-  fullBeard;
+  fullBeard,
+  // Le stramberie.
+  curledMoustache,
+  giantMoustache,
+  mimeFace;
 
   /// I baffi: chi li porta ha bisogno del pelo, non del rossetto.
-  bool get moustache => this == mustache || index >= pencil.index;
+  bool get moustache => this == mustache || (index >= pencil.index && this != mimeFace);
 }
 
 /// La faccia: pelle e segni. L'id è `pelle_segno`, come `olive_mustache`.
@@ -286,10 +290,17 @@ enum AvatarGlasses {
   browline,
   catEye,
   delacroixShades,
-  ricciMonocle;
+  ricciMonocle,
+  // Le stramberie.
+  noseDisguise,
+  heartGlasses,
+  hypnoGlasses,
+  eyePatch,
+  giantGlasses,
+  giantShades;
 
   /// Le lenti scure: gli occhi non si vedono.
-  bool get dark => this == shades || this == aviator || this == delacroixShades;
+  bool get dark => this == shades || this == aviator || this == delacroixShades || this == hypnoGlasses || this == giantShades;
 }
 
 /// Il vezzo: al collo, all'occhiello o tra i denti.
@@ -323,10 +334,20 @@ enum AvatarAccessory {
   delacroixAscot,
   // Le case.
   vaugirardStrap,
-  chanterellePearls;
+  chanterellePearls,
+  // Le stramberie.
+  clownNose,
+  parrot,
+  rubberDuck,
+  accordion,
+  baguetteCigar,
+  angelWings,
+  batWings,
+  butterflyWings;
 
   /// Quello che fumano: il fumo sale da qui.
-  bool get smokes => this == cigar || this == cigarette || this == pipe || this == cigaretteHolder;
+  bool get smokes =>
+      this == cigar || this == cigarette || this == pipe || this == cigaretteHolder || this == baguetteCigar;
 }
 
 /// Il disegno della stoffa.
@@ -349,10 +370,19 @@ enum CoatPattern {
   cardigan,
   // Le case.
   canvas,
-  baroque;
+  baroque,
+  // Le stramberie: costumi, non giacche.
+  clown,
+  leotard,
+  breton,
+  chef,
+  banana;
+
+  /// I costumi della bottega delle stramberie: niente camicia, niente cravatta.
+  bool get costume => index >= clown.index;
 
   /// Giacche senza risvolti a punta: hanno il loro collo.
-  bool get ownCollar => this == cape || this == track || this == cardigan;
+  bool get ownCollar => this == cape || this == track || this == cardigan || costume;
 }
 
 /// L'abito: il colore della giacca, la stoffa, la camicia e il colore del
@@ -527,6 +557,20 @@ class AvatarOutfit {
       shirt: Color(0xFFF2E6CF),
       brand: ShopBrand.adelphi,
     ),
+    // Le stramberie: il circo e il carnevale.
+    const AvatarOutfit('clown_suit', Color(0xFFE9C23A), CoatPattern.clown, Color(0xFFD23A2E), shirt: Color(0xFFF8F4EA)),
+    const AvatarOutfit('strongman_leotard', Color(0xFFB0262A), CoatPattern.leotard, Color(0xFFF2E6CF)),
+    const AvatarOutfit('mime_stripes', Color(0xFFF2EEE6), CoatPattern.breton, Color(0xFFC8282E)),
+    const AvatarOutfit(
+      'magician_cape',
+      Color(0xFF121016),
+      CoatPattern.cape,
+      Color(0xFFB0202C),
+      shirt: Color(0xFFF6F0E4),
+      satin: true,
+    ),
+    const AvatarOutfit('chef_whites', Color(0xFFEDE9E0), CoatPattern.chef, Color(0xFFC8282E)),
+    const AvatarOutfit('banana_suit', Color(0xFFF0CB2E), CoatPattern.banana, Color(0xFF5A3A1A)),
   ];
 
   static AvatarOutfit? byId(String id) {

@@ -38,6 +38,9 @@ const _slots = ['hat', 'face', 'glasses', 'outfit', 'accessory'];
 
 /// La targhetta in più, dopo i posti: le case di moda.
 const _brands = 'brands';
+
+/// E quella delle stramberie: il circo e il carnevale.
+const _oddities = 'oddities';
 const _cream = Color(0xFFF2E6CF);
 const _wood = Color(0xFF4A2C1A);
 
@@ -330,7 +333,7 @@ class _ShopScreenState extends State<ShopScreen> {
     padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
     child: Row(
       children: [
-        for (final slot in [..._slots, _brands])
+        for (final slot in [..._slots, _brands, _oddities])
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 2.5),
@@ -338,9 +341,13 @@ class _ShopScreenState extends State<ShopScreen> {
                 key: Key('shop.slot.$slot'),
                 onTap: pressed(() => setState(() => _slot = slot), Press.toggle),
                 child: _ShelfSign(
-                  label: slot == _brands ? t.brands : t.slot(slot),
+                  label: switch (slot) {
+                    _brands => t.brands,
+                    _oddities => t.oddities,
+                    _ => t.slot(slot),
+                  },
                   on: _slot == slot,
-                  gilded: slot == _brands,
+                  gilded: slot == _brands || slot == _oddities,
                 ),
               ),
             ),
@@ -390,6 +397,8 @@ class _ShopScreenState extends State<ShopScreen> {
     final language = AppStrings.of(context).language;
     final items = _slot == _brands
         ? _shop.branded(_brand, wardrobe: _wardrobe)
+        : _slot == _oddities
+        ? _shop.oddities(wardrobe: _wardrobe)
         : _wardrobe
         ? _shop.wardrobe(_slot)
         : _shop.forSale(_slot);

@@ -35,7 +35,7 @@ void main() {
       await shop.buy('outfit.trench_coat');
       await expectLater(shop.buy('outfit.trench_coat'), _fails(OnlineFailure.alreadyOwned));
       await expectLater(shop.buy('hat.fedora'), _fails(OnlineFailure.alreadyOwned));
-      await expectLater(shop.buy('hat.sombrero'), _fails(OnlineFailure.itemNotFound));
+      await expectLater(shop.buy('hat.stetson'), _fails(OnlineFailure.itemNotFound));
       expect((await online.profiles.me()).coins, 5000 - 1800);
     });
   });
@@ -99,18 +99,30 @@ void main() {
         'supabase/migrations/20261017221000_shop.sql',
         'supabase/migrations/20261018120000_shop_brands.sql',
         'supabase/migrations/20261018180000_shop_houses.sql',
+        'supabase/migrations/20261018200000_shop_oddities.sql',
       ].map((path) => File(path).readAsStringSync()).join('\n');
-      final rows = RegExp(r"\('(\w+)\.(\w+)', '(\w+)', '(\w+)', '(\w+)', (\d+), .*?(?:, (null|'(\w+)'))?\)[,\n]")
+      final rows = RegExp(r"\('(\w+)\.(\w+)', '(\w+)', '(\w+)', '(\w+)', (\d+), .*?(?:, (null|'(\w+)'))?(?:, '(circo|carnevale)')?\)[,\n]")
           .allMatches(sql);
-      final fromSql = {for (final m in rows) '${m[1]}.${m[2]}': '${m[4]} ${m[5]} ${m[6]} ${m[8]}'};
+      final fromSql = {for (final m in rows) '${m[1]}.${m[2]}': '${m[4]} ${m[5]} ${m[6]} ${m[8]} ${m[9]}'};
       final fromDart = {
         for (final item in initialShopCatalog)
-          item.id: '${item.lookId} ${item.rarity.name} ${item.price} ${item.brand?.name}',
+          item.id: '${item.lookId} ${item.rarity.name} ${item.price} ${item.brand?.name} ${item.collection?.name}',
       };
       expect(fromSql, fromDart);
       expect(initialShopCatalog.map((item) => item.id).toSet().length, initialShopCatalog.length);
-      for (final id in brandFeatured) {
+      for (final id in [...brandFeatured, ...odditiesFeatured]) {
         expect(sql, contains("('$id', "), reason: 'la vetrina delle case è anche nella migrazione');
+      }
+    });
+
+    test('le stramberie: tutte in una collezione, il clown intero è leggendario', () {
+      expect(odditiesDrop.length, greaterThanOrEqualTo(20));
+      for (final item in odditiesDrop) {
+        expect(item.collection, isNotNull, reason: item.id);
+        expect(item.brand, isNull, reason: item.id);
+      }
+      for (final id in odditiesFeatured) {
+        expect(initialShopCatalog.firstWhere((item) => item.id == id).rarity, ShopRarity.leggendario, reason: id);
       }
     });
 

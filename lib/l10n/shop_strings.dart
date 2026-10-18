@@ -35,6 +35,9 @@ abstract class ShopStrings {
   /// La targhetta delle case di moda, accanto a quelle dei posti.
   String get brands;
   String get allBrands;
+
+  /// La targhetta delle stramberie.
+  String get oddities;
   String brandTagline(ShopBrand brand);
 
   Map<String, String> get catalog => {
@@ -65,6 +68,7 @@ abstract class ShopStrings {
     'unavailable': unavailable,
     'brands': brands,
     'allBrands': allBrands,
+    'oddities': oddities,
     for (final b in ShopBrand.values) 'brand.${b.name}': brandTagline(b),
   };
 }
@@ -138,6 +142,8 @@ class ItalianShopStrings extends ShopStrings {
   String get brands => 'Firme';
   @override
   String get allBrands => 'Tutte';
+  @override
+  String get oddities => 'Stramberie';
   @override
   String brandTagline(ShopBrand brand) => switch (brand) {
     ShopBrand.vaugirard => 'Bauli e valigie · Parigi',
@@ -219,6 +225,8 @@ class EnglishShopStrings extends ShopStrings {
   String get brands => 'Labels';
   @override
   String get allBrands => 'All';
+  @override
+  String get oddities => 'Oddities';
   @override
   String brandTagline(ShopBrand brand) => switch (brand) {
     ShopBrand.vaugirard => 'Trunks and luggage · Paris',

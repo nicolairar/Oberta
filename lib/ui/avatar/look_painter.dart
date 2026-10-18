@@ -6,6 +6,8 @@ import '../../online/shop_models.dart' show ShopBrand;
 import '../widgets/noir_avatar.dart' show AvatarHead;
 import 'avatar_look.dart';
 
+part 'oddities_painter.dart';
+
 /// Quello che si muove in un personaggio fermo al tavolo.
 @immutable
 class CharacterPose {
@@ -185,6 +187,9 @@ abstract final class LookPainter {
     final broad = look.dame ? 0.86 : 1.0;
     final torso = _torso(broad);
     final head = Rect.fromCenter(center: const Offset(0, -0.86), width: 0.32, height: 0.40);
+
+    // Le ali, dietro a tutto.
+    _Oddities.wings(canvas, look.accessory);
 
     // Il filo di luce: la sagoma intera in chiaro, spostata verso la lampada,
     // poi tutto il resto sopra.
@@ -472,6 +477,8 @@ abstract final class LookPainter {
         _trunkCanvas(canvas, outfit.coat);
       case CoatPattern.baroque:
         _baroqueScrolls(canvas, outfit.accent);
+      case CoatPattern.clown || CoatPattern.leotard || CoatPattern.breton || CoatPattern.chef || CoatPattern.banana:
+        _Oddities.fabric(canvas, outfit, look.base.skin);
     }
     _houseTrim(canvas, outfit);
     // Le ombre dei fianchi: il petto gira e si allontana dalla lampada.
@@ -534,6 +541,7 @@ abstract final class LookPainter {
     final deep = switch (pattern) {
       CoatPattern.track => -0.5,
       CoatPattern.cardigan => -0.34,
+      _ when pattern.costume => -0.6,
       _ => -0.24,
     };
     final shirt = Path()
@@ -595,6 +603,8 @@ abstract final class LookPainter {
           canvas.drawCircle(Offset(side * 0.165, -0.5), 0.02, Paint()..color = gold);
         }
         if (outfit.brand case final brand?) brandMark(canvas, brand, const Offset(0.165, -0.5), 0.016, color: ink);
+      case _ when pattern.costume:
+        _Oddities.collar(canvas, outfit, look.base.skin);
       default:
         _lapels(canvas, outfit, light);
     }
@@ -1168,7 +1178,7 @@ abstract final class LookPainter {
     canvas.drawRect(const Rect.fromLTRB(-0.075, -0.72, 0.075, -0.58), Paint()..color = _dark(skin, 0.62));
     final accent = look.outfit.accent;
     // La tuta ha il suo collo: niente cravatte sotto la cerniera.
-    final zipped = look.outfit.pattern == CoatPattern.track && !look.dame;
+    final zipped = (look.outfit.pattern == CoatPattern.track || look.outfit.pattern.costume) && !look.dame;
     switch (look.accessory) {
       case AvatarAccessory.tie:
         if (look.dame || zipped) break;
@@ -1426,6 +1436,14 @@ abstract final class LookPainter {
         }
         brandMark(canvas, ShopBrand.chanterelle, const Offset(-0.14, -0.6), 0.03, color: const Color(0xFF151417));
       case AvatarAccessory.none ||
+          AvatarAccessory.clownNose ||
+          AvatarAccessory.parrot ||
+          AvatarAccessory.rubberDuck ||
+          AvatarAccessory.accordion ||
+          AvatarAccessory.baguetteCigar ||
+          AvatarAccessory.angelWings ||
+          AvatarAccessory.batWings ||
+          AvatarAccessory.butterflyWings ||
           AvatarAccessory.carnation ||
           AvatarAccessory.whiteCarnation ||
           AvatarAccessory.cigar ||
@@ -1587,7 +1605,8 @@ abstract final class LookPainter {
   }
 
   static void _face(Canvas canvas, AvatarLook look, Rect head, CharacterPose pose, Offset light) {
-    final skin = look.base.skin;
+    // Il mimo si dipinge la faccia di bianco.
+    final skin = look.base.mark == FaceMark.mimeFace ? const Color(0xFFF4F0E8) : look.base.skin;
     // Le orecchie, poi la faccia: la lampada accende la fronte e uno zigomo,
     // il resto affonda nel buio.
     final ear = Paint()..color = _dark(skin, 0.55);
@@ -1624,7 +1643,11 @@ abstract final class LookPainter {
       AvatarHead.morettiHomburg => 0.42,
       AvatarHead.panama || AvatarHead.trilby || AvatarHead.boater || AvatarHead.morettiPanama || AvatarHead.porkPie => 0.3,
       AvatarHead.bowler || AvatarHead.coppola || AvatarHead.topHat || AvatarHead.cloche || AvatarHead.fulmineCap || AvatarHead.vaugirardCap || AvatarHead.adelphiCap => 0.32,
-      AvatarHead.beret => 0.12,
+      AvatarHead.beret || AvatarHead.chefToque || AvatarHead.propellerBeanie => 0.12,
+      AvatarHead.sombrero => 0.42,
+      AvatarHead.magicianHat || AvatarHead.tricorn || AvatarHead.beekeeper => 0.32,
+      AvatarHead.operaHelmet || AvatarHead.roosterHead => 0.2,
+      AvatarHead.angelHalo => 0.0,
       _ => 0.0,
     };
     if (brim > 0) {
@@ -1908,6 +1931,8 @@ abstract final class LookPainter {
             ..close(),
           dark,
         );
+      case FaceMark.curledMoustache || FaceMark.giantMoustache || FaceMark.mimeFace:
+        _Oddities.mark(canvas, mark, dark.color);
       case FaceMark.muttonChops || FaceMark.fullBeard:
         // I baffi che si uniscono alla barba (disegnata sotto la pelle).
         canvas.drawPath(
@@ -1981,6 +2006,21 @@ abstract final class LookPainter {
           canvas.drawOval(Rect.fromCenter(center: Offset(side * 0.165, -0.86), width: 0.07, height: 0.1), hair);
           canvas.drawOval(Rect.fromCenter(center: Offset(side * 0.17, -0.79), width: 0.06, height: 0.07), hair);
         }
+      case AvatarHead.angelHalo || AvatarHead.devilHorns:
+        // Aureola e corna sopra i capelli pettinati.
+        canvas.drawPath(
+          Path()
+            ..moveTo(-0.168, -0.86)
+            ..quadraticBezierTo(-0.18, -1.1, 0.02, -1.095)
+            ..quadraticBezierTo(0.19, -1.09, 0.168, -0.86)
+            ..quadraticBezierTo(0.15, -0.97, 0.05, -0.985)
+            ..quadraticBezierTo(-0.1, -1.0, -0.168, -0.86)
+            ..close(),
+          hair,
+        );
+      case AvatarHead.clownWig || AvatarHead.roosterHead:
+        // La parrucca e il cappuccio coprono tutto.
+        break;
       case AvatarHead.wideBrim:
         canvas.drawPath(
           Path()
@@ -2009,7 +2049,14 @@ abstract final class LookPainter {
           AvatarHead.morettiFedora ||
           AvatarHead.morettiPanama ||
           AvatarHead.morettiHomburg ||
-          AvatarHead.fulmineCap || AvatarHead.vaugirardCap || AvatarHead.adelphiCap:
+          AvatarHead.fulmineCap || AvatarHead.vaugirardCap || AvatarHead.adelphiCap ||
+          AvatarHead.magicianHat ||
+          AvatarHead.chefToque ||
+          AvatarHead.sombrero ||
+          AvatarHead.tricorn ||
+          AvatarHead.operaHelmet ||
+          AvatarHead.beekeeper ||
+          AvatarHead.propellerBeanie:
         // Le basette sotto il cappello.
         canvas.drawRect(const Rect.fromLTRB(-0.165, -0.95, -0.14, -0.86), hair);
         canvas.drawRect(const Rect.fromLTRB(0.14, -0.95, 0.165, -0.86), hair);
@@ -2025,6 +2072,8 @@ abstract final class LookPainter {
     switch (look.glasses) {
       case AvatarGlasses.none:
         break;
+      case AvatarGlasses.noseDisguise || AvatarGlasses.heartGlasses || AvatarGlasses.hypnoGlasses || AvatarGlasses.eyePatch || AvatarGlasses.giantGlasses || AvatarGlasses.giantShades:
+        _Oddities.glasses(canvas, look.glasses);
       case AvatarGlasses.round:
         for (final x in [-0.065, 0.065]) {
           canvas.drawCircle(Offset(x, -0.875), 0.046, frame);
@@ -2704,6 +2753,18 @@ abstract final class LookPainter {
             ..close(),
           silhouette ? paint : (Paint()..color = visor),
         );
+      case AvatarHead.clownWig ||
+          AvatarHead.magicianHat ||
+          AvatarHead.chefToque ||
+          AvatarHead.sombrero ||
+          AvatarHead.tricorn ||
+          AvatarHead.operaHelmet ||
+          AvatarHead.beekeeper ||
+          AvatarHead.roosterHead ||
+          AvatarHead.propellerBeanie ||
+          AvatarHead.angelHalo ||
+          AvatarHead.devilHorns:
+        _Oddities.hat(canvas, look.hat, silhouette ? paint : null);
       case AvatarHead.slicked || AvatarHead.bob || AvatarHead.bun:
         break;
     }
@@ -2798,6 +2859,12 @@ abstract final class LookPainter {
           Paint()..color = const Color(0xFF5E3519),
         );
         canvas.drawOval(const Rect.fromLTRB(0.103, -0.776, 0.147, -0.762), Paint()..color = ember.withValues(alpha: 0.8));
+      case AvatarAccessory.clownNose ||
+          AvatarAccessory.parrot ||
+          AvatarAccessory.rubberDuck ||
+          AvatarAccessory.accordion ||
+          AvatarAccessory.baguetteCigar:
+        _Oddities.prop(canvas, look);
       default:
         break;
     }
@@ -2919,6 +2986,7 @@ abstract final class LookPainter {
       AvatarAccessory.cigar => const Offset(0.165, -0.75),
       AvatarAccessory.pipe => const Offset(0.125, -0.78),
       AvatarAccessory.cigaretteHolder => const Offset(0.245, -0.81),
+      AvatarAccessory.baguetteCigar => const Offset(0.47, -0.69),
       _ => const Offset(0.145, -0.76),
     }.translate(0, lift);
     paintSmoke(canvas, tip, 1, pose.time, seed: look.hashCode % 97);
