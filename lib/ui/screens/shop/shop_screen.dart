@@ -18,10 +18,15 @@ import '../online/online_widgets.dart' show showFailure;
 import 'shop_controller.dart';
 
 /// Apre la bottega di chi è entrato.
-Future<void> openShop(BuildContext context, {required OnlineAccount account, required ShopRepository shop}) =>
+Future<void> openShop(
+  BuildContext context, {
+  required OnlineAccount account,
+  required ShopRepository shop,
+  VoidCallback? onChangeFace,
+}) =>
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => ShopScreen(account: account, shop: shop),
+        builder: (_) => ShopScreen(account: account, shop: shop, onChangeFace: onChangeFace),
       ),
     );
 
@@ -52,7 +57,10 @@ class ShopScreen extends StatefulWidget {
   final OnlineAccount account;
   final ShopRepository shop;
 
-  const ShopScreen({super.key, required this.account, required this.shop});
+  /// Apre lo specchio del barbiere (le facce gratuite), se c'è.
+  final VoidCallback? onChangeFace;
+
+  const ShopScreen({super.key, required this.account, required this.shop, this.onChangeFace});
 
   /// Il padrone della bottega: baffi a tricheco, pince-nez e catena d'orologio.
   static final AvatarLook shopkeeper = AvatarLook(
@@ -148,8 +156,7 @@ class _ShopScreenState extends State<ShopScreen> {
   }
 
   bool get _hasAvatarRoute {
-    final navigator = Navigator.maybeOf(context);
-    return navigator?.widget.onGenerateRoute?.call(const RouteSettings(name: avatarRoute)) != null;
+    return widget.onChangeFace != null;
   }
 
   @override
@@ -421,7 +428,7 @@ class _ShopScreenState extends State<ShopScreen> {
     padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
     child: GestureDetector(
       key: const Key('shop.changeFace'),
-      onTap: pressed(() => Navigator.of(context).pushNamed(avatarRoute)),
+      onTap: pressed(widget.onChangeFace),
       child: Container(
         padding: const EdgeInsets.fromLTRB(10, 8, 14, 8),
         decoration: BoxDecoration(

@@ -266,7 +266,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       _openSetup(profile);
       return;
     }
-    openShop(context, account: account, shop: _online!.shop!);
+    openShop(
+      context,
+      account: account,
+      shop: _online!.shop!,
+      onChangeFace: () async {
+        final profile = account.profile;
+        if (profile == null) return;
+        final saved = await BarberMirrorScreen.open(context, services: _online, profile: profile);
+        if (saved != null) account.saved(saved);
+      },
+    );
   }
 
   /// Porta la corrente all'insegna: chi si accende, chi sfarfalla.
