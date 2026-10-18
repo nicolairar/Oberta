@@ -209,6 +209,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Settings'));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Screening room'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Screening room'));
     await tester.pumpAndSettle();
     expect(find.text('SCREENING ROOM'), findsOneWidget);

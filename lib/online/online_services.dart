@@ -96,6 +96,19 @@ abstract class RoomRepository {
   Future<Room?> current();
 }
 
+/// I dati e la vita dell'account: scaricare tutto quello che il server
+/// tiene di chi è entrato, ed eliminare l'account per sempre.
+abstract class AccountRepository {
+  /// Tutti i dati di chi è entrato (profilo, amici, armadio, monete, stanze,
+  /// messaggi, abbandoni), come un documento JSON.
+  Future<Map<String, dynamic>> exportData();
+
+  /// Elimina l'account e i dati personali, poi esce. Gli acquisti con soldi
+  /// veri restano solo come ricevute anonime (vedi la migrazione
+  /// 20261019150000_account_privacy.sql).
+  Future<void> deleteAccount();
+}
+
 /// Tutto quello che serve per giocare online. Null dove l'app è stata
 /// compilata senza la configurazione di Supabase: lì l'online non c'è.
 class OnlineServices {
@@ -108,6 +121,9 @@ class OnlineServices {
   /// La bottega dei cosmetici. Null dove nessuno l'ha collegata.
   final ShopRepository? shop;
 
+  /// Esportare i dati ed eliminare l'account. Null dove nessuno l'ha collegato.
+  final AccountRepository? account;
+
   const OnlineServices({
     required this.auth,
     required this.profiles,
@@ -115,6 +131,7 @@ class OnlineServices {
     required this.rooms,
     required this.game,
     this.shop,
+    this.account,
   });
 
   static OnlineServices? instance;

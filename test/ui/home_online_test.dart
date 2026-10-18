@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oberta/ui/screens/avatar/barber_mirror_screen.dart';
 import 'package:oberta/l10n/app_language.dart';
 import 'package:oberta/main.dart';
 import 'package:oberta/online/fake_online.dart';
@@ -118,6 +119,12 @@ void main() {
       expect(find.text('LIV. 1'), findsOneWidget);
       expect(find.text('ACCEDI'), findsNothing);
       expect(online.profileOf('me')!.handle, 'an_na7');
+
+      // La targhetta «Il tuo look» sotto il ritratto riapre lo specchio.
+      expect(find.text('IL TUO LOOK'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('home.mirror')));
+      await tester.pumpAndSettle();
+      expect(find.byType(BarberMirrorScreen), findsOneWidget);
     });
 
     testWidgets('se Apple non va, il messaggio gentile e sotto il motivo tecnico', (tester) async {

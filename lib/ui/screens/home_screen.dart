@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../l10n/app_language.dart';
 import '../../l10n/app_strings.dart';
+import '../../l10n/settings_strings.dart';
 import '../../network/fake_local_session.dart';
 import '../../online/incoming_links.dart';
 import '../../online/join_code.dart';
@@ -259,6 +260,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
+  /// Lo specchio del barbiere: dal ritratto del cartellino.
+  Future<void> _openMirror() async {
+    final account = _account!;
+    final profile = account.profile;
+    if (profile == null) return;
+    if (!profile.isComplete) {
+      _openSetup(profile);
+      return;
+    }
+    final saved = await BarberMirrorScreen.open(context, services: _online!, profile: profile);
+    if (saved != null) account.saved(saved);
+  }
+
   /// La bottega: dalle monete del cartellino.
   void _openShop() {
     final account = _account!;
@@ -508,6 +522,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         coinsLabel: t.online.coins,
                         onTap: _openProfile,
                         onShop: _online?.shop == null ? null : _openShop,
+                        onMirror: _openMirror,
+                        mirrorLabel: SettingsStrings.of(context).yourLook,
                       ),
                     ),
                   _posted(

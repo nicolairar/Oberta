@@ -215,6 +215,11 @@ class HomeProfileBadge extends StatefulWidget {
   /// Toccando le monete si entra in bottega.
   final VoidCallback? onShop;
 
+  /// Toccando il ritratto, o la targhetta «Il tuo look» appesa sotto, si
+  /// apre lo specchio del barbiere.
+  final VoidCallback? onMirror;
+  final String? mirrorLabel;
+
   const HomeProfileBadge({
     super.key,
     required this.profile,
@@ -223,6 +228,8 @@ class HomeProfileBadge extends StatefulWidget {
     required this.coinsLabel,
     required this.onTap,
     this.onShop,
+    this.onMirror,
+    this.mirrorLabel,
   });
 
   @override
@@ -346,19 +353,67 @@ class _HomeProfileBadgeState extends State<HomeProfileBadge> {
                   top: 0,
                   width: bust,
                   height: bust,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: _iron,
-                      border: Border.all(color: AppColors.gold.withValues(alpha: _pressed ? 0.5 : 0.9), width: 2),
-                      boxShadow: const [BoxShadow(color: Color(0x99000000), blurRadius: 6, offset: Offset(1, 3))],
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(2),
-                      child: PlayerAvatar(seed: profile?.name ?? '?', look: profile?.look, size: bust - 8),
+                  child: GestureDetector(
+                    key: const Key('home.mirror.portrait'),
+                    behavior: HitTestBehavior.opaque,
+                    onTap: pressed(widget.onMirror ?? widget.onTap, Press.toggle),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: _iron,
+                        border: Border.all(color: AppColors.gold.withValues(alpha: _pressed ? 0.5 : 0.9), width: 2),
+                        boxShadow: const [BoxShadow(color: Color(0x99000000), blurRadius: 6, offset: Offset(1, 3))],
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(2),
+                        child: PlayerAvatar(seed: profile?.name ?? '?', look: profile?.look, size: bust - 8),
+                      ),
                     ),
                   ),
                 ),
+                // La targhetta d'ottone sotto il ritratto: lo specchio del barbiere.
+                if (widget.onMirror != null && widget.mirrorLabel != null)
+                  Positioned(
+                    left: -4,
+                    width: bust + 8,
+                    bottom: 0,
+                    height: 15,
+                    child: GestureDetector(
+                      key: const Key('home.mirror'),
+                      behavior: HitTestBehavior.opaque,
+                      onTap: pressed(widget.onMirror, Press.toggle),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(colors: [Color(0xFFF0D27E), Color(0xFFB08A2E)]),
+                          borderRadius: BorderRadius.circular(3),
+                          border: Border.all(color: const Color(0xFF5A3F12), width: 0.8),
+                          boxShadow: const [BoxShadow(color: Color(0xAA000000), blurRadius: 3, offset: Offset(0, 1.5))],
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 3),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.content_cut, size: 9, color: Color(0xFF2A1E16)),
+                                const SizedBox(width: 2),
+                                Text(
+                                  widget.mirrorLabel!,
+                                  style: const TextStyle(
+                                    color: Color(0xFF2A1E16),
+                                    fontSize: 8.5,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 0.6,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -576,8 +631,32 @@ class HomeShopSign extends StatefulWidget {
   State<HomeShopSign> createState() => _HomeShopSignState();
 }
 
-class _HomeShopSignState extends State<HomeShopSign> {
+class _HomeShopSignState extends State<HomeShopSign> with SingleTickerProviderStateMixin {
   bool _pressed = false;
+
+  /// L'insegna dondola appena sulle catenelle, come mossa dal vento.
+  late final AnimationController _swing = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 3600),
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _swing
+        ..stop()
+        ..value = 0;
+    } else if (!_swing.isAnimating) {
+      _swing.repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _swing.dispose();
+    super.dispose();
+  }
 
   void _press(bool down) {
     if (_pressed != down) setState(() => _pressed = down);
@@ -594,81 +673,105 @@ class _HomeShopSignState extends State<HomeShopSign> {
       onTapUp: (_) => _press(false),
       onTapCancel: () => _press(false),
       onTap: pressed(widget.onTap, Press.toggle),
-      child: LayoutBuilder(
-        builder: (context, box) {
-          final compact = box.maxWidth < 76;
-          return Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Positioned.fill(
-                child: CustomPaint(painter: _ShopSignPainter(pressed: _pressed)),
-              ),
-              Positioned.fill(
-                top: _ShopSignPainter.hang,
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: compact ? 4 : 6),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      SizedBox.square(
-                        dimension: min(24.0, box.maxHeight - _ShopSignPainter.hang - 8),
-                        child: const CustomPaint(painter: ShopIconPainter()),
-                      ),
-                      if (!compact) ...[
-                        const SizedBox(width: 6),
-                        Flexible(
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              widget.label,
-                              maxLines: 1,
-                              style: TextStyle(
-                                fontFamily: 'Georgia',
-                                fontFamilyFallback: const ['serif'],
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.8,
-                                color: const Color(0xFFF3D27A).withValues(alpha: _pressed ? 0.6 : 1),
-                                shadows: const [Shadow(color: Colors.black, blurRadius: 2, offset: Offset(0, 1))],
+      child: AnimatedBuilder(
+        animation: _swing,
+        builder: (context, child) =>
+            Transform.rotate(angle: 0.035 * sin(_swing.value * 2 * pi), alignment: Alignment.topCenter, child: child),
+        child: LayoutBuilder(
+          builder: (context, box) {
+            final compact = box.maxWidth < 76;
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+                // La luce calda di una lampada sopra la tavola.
+                Positioned.fill(
+                  top: _ShopSignPainter.hang,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(6),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFFFB347).withValues(alpha: _pressed ? 0.15 : 0.32),
+                          blurRadius: 18,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Positioned.fill(
+                  child: CustomPaint(painter: _ShopSignPainter(pressed: _pressed)),
+                ),
+                Positioned.fill(
+                  top: _ShopSignPainter.hang,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: compact ? 4 : 6),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox.square(
+                          dimension: min(28.0, box.maxHeight - _ShopSignPainter.hang - 8),
+                          child: const CustomPaint(painter: ShopIconPainter()),
+                        ),
+                        if (!compact) ...[
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                widget.label,
+                                maxLines: 1,
+                                style: TextStyle(
+                                  fontFamily: 'Georgia',
+                                  fontFamilyFallback: const ['serif'],
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1,
+                                  color: const Color(0xFFFFDF8A).withValues(alpha: _pressed ? 0.6 : 1),
+                                  shadows: const [
+                                    Shadow(color: Colors.black, blurRadius: 2, offset: Offset(0, 1)),
+                                    Shadow(color: Color(0x99FFB347), blurRadius: 8),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
-                        ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
-              ),
-              if (widget.fresh case final fresh?)
-                Positioned(
-                  right: -6,
-                  top: _ShopSignPainter.hang - 7,
-                  child: Transform.rotate(
-                    angle: 0.18,
-                    child: Container(
-                      key: const Key('home.shopFresh'),
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFC8102E),
-                        borderRadius: BorderRadius.circular(2),
-                        border: Border.all(color: const Color(0xFFF3D27A), width: 0.8),
-                        boxShadow: const [BoxShadow(color: Color(0xAA000000), blurRadius: 3, offset: Offset(0, 1.5))],
-                      ),
-                      child: Text(
-                        fresh,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 8.5,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.1,
+                if (widget.fresh case final fresh?)
+                  Positioned(
+                    right: -6,
+                    top: _ShopSignPainter.hang - 7,
+                    child: Transform.rotate(
+                      angle: 0.18,
+                      child: Container(
+                        key: const Key('home.shopFresh'),
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFC8102E),
+                          borderRadius: BorderRadius.circular(2),
+                          border: Border.all(color: const Color(0xFFF3D27A), width: 0.8),
+                          boxShadow: const [BoxShadow(color: Color(0xAA000000), blurRadius: 3, offset: Offset(0, 1.5))],
+                        ),
+                        child: Text(
+                          fresh,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 8.5,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.1,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
     ),
   );

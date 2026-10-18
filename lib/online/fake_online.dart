@@ -32,6 +32,7 @@ class FakeOnline {
   late final FakeRooms rooms = FakeRooms._(this);
   late final FakeGame game = FakeGame._(this, () => auth.userId);
   late final FakeShop shop = FakeShop._(this);
+  late final FakeAccount account = FakeAccount._(this);
 
   /// La partita vista da un altro account, come dal suo telefono.
   FakeGame gameAs(String userId) => FakeGame._(this, () => userId);
@@ -95,7 +96,7 @@ class FakeOnline {
         clock = clock ?? const SystemGameClock();
 
   OnlineServices get services =>
-      OnlineServices(auth: auth, profiles: profiles, friends: friends, rooms: rooms, game: game, shop: shop);
+      OnlineServices(auth: auth, profiles: profiles, friends: friends, rooms: rooms, game: game, shop: shop, account: account);
 
   /// Gli account di prova: email → (password, id dell'account).
   final Map<String, (String, String)> _testAccounts = {};
@@ -920,5 +921,56 @@ class FakeShop implements ShopRepository {
       avatar.remove(slot);
     }
     return _online._profiles[me.id] = me.copyWith(avatar: avatar);
+  }
+}
+
+/// L'account finto: esporta quello che il server finto sa di chi è entrato,
+/// e lo dimentica del tutto quando lo si elimina.
+class FakeAccount implements AccountRepository {
+  final FakeOnline _online;
+
+  FakeAccount._(this._online);
+
+  /// Gli account eliminati, per i test.
+  final List<String> deleted = [];
+
+  /// Se c'è, la prossima chiamata fallisce così.
+  OnlineException? failNext;
+
+  String _me() => _online.auth.userId ?? (throw const OnlineException(OnlineFailure.notSignedIn));
+
+  void _maybeFail() {
+    if (failNext case final failure?) {
+      failNext = null;
+      throw failure;
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> exportData() async {
+    await _online._network();
+    _maybeFail();
+    final me = _me();
+    return {
+      'account_id': me,
+      'profile': {'id': me, 'handle': _online._profiles[me]?.handle},
+      'friendships': [
+        for (final link in _online._links)
+          if (link.requester == me || link.addressee == me) {"requester": link.requester, "addressee": link.addressee},
+      ],
+      'inventory': <Object>[],
+      'coin_ledger': <Object>[],
+    };
+  }
+
+  @override
+  Future<void> deleteAccount() async {
+    await _online._network();
+    _maybeFail();
+    final me = _me();
+    _online._profiles.remove(me);
+    _online._links.removeWhere((link) => link.requester == me || link.addressee == me);
+    deleted.add(me);
+    await _online.auth.signOut();
   }
 }

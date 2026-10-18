@@ -189,6 +189,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('IMPOSTAZIONI'), findsOneWidget);
     expect(find.text('Musica ed effetti'), findsOneWidget);
+    await tester.ensureVisible(find.text('Sala prove'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Sala prove'));
     await tester.pumpAndSettle();
     expect(find.text('SALA PROVE'), findsOneWidget);
