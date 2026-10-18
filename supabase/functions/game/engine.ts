@@ -25,13 +25,22 @@ export interface StepOutput {
   finished: boolean;
   chat: { mode: string; seats: Record<string, { alive: boolean; family: boolean; silenced: boolean; familyDay: boolean }> };
   departed: string[];
+  /** At the end of a game with a winner: the winner and each human seat's outcome. */
+  result: { winner: string; seats: Record<string, Record<string, unknown>> } | null;
 }
 
 export type Engine = (input: StepInput) => StepOutput;
 
-const g = globalThis as unknown as { obertaStep?: (input: string) => string };
-if (typeof g.obertaStep !== 'function') throw new Error('engine.js did not load');
+/** Experience, levels, coins and ratings for a finished game (lib/online/game/match_rewards.dart). */
+export type Settle = (input: Record<string, unknown>) => { players: Record<string, unknown>[] };
+
+const g = globalThis as unknown as { obertaStep?: (input: string) => string; obertaSettle?: (input: string) => string };
+if (typeof g.obertaStep !== 'function' || typeof g.obertaSettle !== 'function') throw new Error('engine.js did not load');
 const obertaStep = g.obertaStep;
+const obertaSettle = g.obertaSettle;
 
 /** One server step: in and out as JSON, through the Dart engine. */
 export const step: Engine = (input) => JSON.parse(obertaStep(JSON.stringify(input)));
+
+/** Settles a finished game, through the same Dart rules the app tests. */
+export const settle: Settle = (input) => JSON.parse(obertaSettle(JSON.stringify(input)));

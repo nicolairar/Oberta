@@ -62,6 +62,11 @@ class ServerStep {
   /// spento oltre la tolleranza): il database lo annota.
   final List<String> departed;
 
+  /// At the end of a game with a winner: the winning team and, for every
+  /// human seat, its team, role, whether it survived and whether it left
+  /// town. The server settles experience and ratings from it. Null before.
+  final Map<String, Object?>? result;
+
   const ServerStep({
     required this.changed,
     required this.version,
@@ -73,6 +78,7 @@ class ServerStep {
     required this.finished,
     required this.chat,
     this.departed = const [],
+    this.result,
   });
 
   Map<String, Object?> toJson() => {
@@ -86,6 +92,7 @@ class ServerStep {
         'finished': finished,
         'chat': chat,
         'departed': departed,
+        'result': result,
       };
 }
 
@@ -365,7 +372,30 @@ class ServerGame {
       finished: finished,
       chat: _chat(),
       departed: gone.departed,
+      result: _result(),
     );
+  }
+
+  Map<String, Object?>? _result() {
+    final winner = engine.winner;
+    if (!finished || winner == null) return null;
+    return {
+      'winner': winner.name,
+      'seats': {
+        for (final occupant in seating.occupants)
+          if (occupant.profileId != null)
+            occupant.seat: () {
+              final view = engine.viewFor(occupant.seat);
+              return {
+                'team': view.team.name,
+                'role': view.role.name,
+                'won': view.team == winner,
+                'survived': _alive(occupant.seat),
+                'abandoned': departed.contains(occupant.seat),
+              };
+            }(),
+      },
+    };
   }
 
   static DateTime? _soonest(DateTime? a, DateTime? b) => a == null || (b != null && b.isBefore(a)) ? b : a;
