@@ -5,7 +5,8 @@
 // read under that lock. game_commit also refuses a version that does not go
 // forward, so a stale step can never overwrite a newer one. One broken game
 // does not stop the others. The function keeps nothing between calls.
-import type { Engine, StepInput } from './engine.ts';
+import type { Engine, Settle, StepInput } from './engine.ts';
+import { settle as dartSettle } from './engine.ts';
 
 export interface Tx {
   query<T = Record<string, unknown>>(text: string, params?: unknown[]): Promise<T[]>;
@@ -34,7 +35,13 @@ async function clock(db: Tx, now?: number): Promise<number> {
 }
 
 /** Steps one game if it is due and nobody else holds it. True if stepped. */
-export async function stepRoom(db: Db, engine: Engine, room: string, now?: number): Promise<boolean> {
+export async function stepRoom(
+  db: Db,
+  engine: Engine,
+  room: string,
+  now?: number,
+  settle: Settle = dartSettle,
+): Promise<boolean> {
   return await db.transaction(async (tx) => {
     const at = await clock(tx, now);
     const games = await tx.query<{ state: unknown; language: string }>(
@@ -68,8 +75,24 @@ export async function stepRoom(db: Db, engine: Engine, room: string, now?: numbe
     };
     const out = engine(input);
     await tx.query(`select internal.game_commit($1::uuid, $2::text::jsonb)`, [room, JSON.stringify(out)]);
+    if (out.finished && out.result) await settleGame(tx, settle, room, out.result);
     return true;
   });
+}
+
+/**
+ * The end of a game, in the same transaction that saved it: experience,
+ * levels, coins, ratings (ranked) and the history. settle_input returns
+ * null once the game is settled, so a second finished step changes nothing.
+ */
+export async function settleGame(tx: Tx, settle: Settle, room: string, result: { winner: string }): Promise<void> {
+  const [row] = await tx.query<{ input: Record<string, unknown> | null }>(
+    `select internal.settle_input($1::uuid, $2::text::jsonb) as input`,
+    [room, JSON.stringify(result)],
+  );
+  if (!row?.input) return;
+  const settled = settle(row.input);
+  await tx.query(`select internal.record_match($1::uuid, $2, $3::text::jsonb)`, [room, result.winner, JSON.stringify(settled)]);
 }
 
 /** Steps every game due (the woken room first). Returns how many. */

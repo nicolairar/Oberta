@@ -5,12 +5,17 @@ alter table public.shop_items add constraint shop_items_look_id_check check (loo
 -- Stramberie / Oddities, part two: l'assurdo. The loudest pieces in the
 -- shop: fish heads, dinosaur hoods, jetpacks, a cat on the head.
 --
--- Widens the `collection` check with 'assurdo' and adds the pieces.
+-- Widens the `collection` check with 'assurdo', lets look ids carry digits
+-- (glasses3d), and adds the pieces.
 -- The CLI applies the file in one transaction; re-running is harmless.
 
 alter table public.shop_items drop constraint if exists shop_items_collection_check;
 alter table public.shop_items add constraint shop_items_collection_check
   check (collection is null or collection in ('circo', 'carnevale', 'assurdo'));
+
+alter table public.shop_items drop constraint if exists shop_items_look_id_check;
+alter table public.shop_items add constraint shop_items_look_id_check
+  check (look_id ~ '^[A-Za-z][A-Za-z0-9_]{0,39}$');
 
 insert into public.shop_items (id, slot, look_id, rarity, price_coins, name_it, name_en, released_on, sort, brand, collection) values
   ('hat.fishHead', 'hat', 'fishHead', 'leggendario', 1800, 'Testa di pesce', 'Fish head mask', '2026-10-18', 151, null, 'assurdo'),

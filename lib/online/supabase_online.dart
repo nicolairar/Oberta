@@ -32,6 +32,7 @@ Future<OnlineServices?> openSupabaseOnline(OnlineConfig config) async {
     rooms: SupabaseRooms(client),
     game: SupabaseGame(client),
     shop: SupabaseShop(client),
+    ranked: SupabaseRanked(client),
     account: SupabaseAccount(client),
   );
 }
@@ -121,6 +122,8 @@ OnlineException _classify(Object error, SignInDoor? door) {
       'message_blocked' => OnlineFailure.messageBlocked,
       'too_many_messages' => OnlineFailure.tooManyMessages,
       'silenced' || 'chat_closed' || 'invalid_message' => OnlineFailure.chatClosed,
+      'ranked_cooldown' => OnlineFailure.rankedCooldown,
+      'already_in_game' => OnlineFailure.alreadyInGame,
       _ => OnlineFailure.unknown,
     };
     return OnlineException(failure, error, detail);
@@ -703,5 +706,41 @@ class SupabaseAccount implements AccountRepository {
         try {
           await _client.auth.signOut();
         } catch (_) {}
+      });
+}
+
+/// La classificata su Supabase: la coda (funzioni del database), il rating
+/// e la cronologia (righe proprie, lette con le policy).
+class SupabaseRanked implements RankedRepository {
+  final SupabaseClient _client;
+
+  SupabaseRanked(this._client);
+
+  @override
+  Future<RankedStatus> status() => _guard(() async =>
+      RankedStatus.fromJson((await _client.rpc<Map<String, dynamic>>('ranked_status')).cast<String, Object?>()));
+
+  @override
+  Future<RankedStatus> enqueue(AppLanguage language) => _guard(() async => RankedStatus.fromJson(
+      (await _client.rpc<Map<String, dynamic>>('enqueue_ranked', params: {'queue_language': language.name}))
+          .cast<String, Object?>()));
+
+  @override
+  Future<void> leave() => _guard(() => _client.rpc<void>('leave_ranked_queue'));
+
+  @override
+  Future<Map<AppLanguage, Rating>> ratings() => _guard(() async {
+        final rows = await _client.from('ratings').select('language, mu, sigma');
+        return {
+          for (final row in rows)
+            (row['language'] == 'en' ? AppLanguage.en : AppLanguage.it):
+                Rating((row['mu'] as num).toDouble(), (row['sigma'] as num).toDouble()),
+        };
+      });
+
+  @override
+  Future<MatchResult?> lastResult() => _guard(() async {
+        final row = await _client.from('match_history').select().order('played_at', ascending: false).limit(1).maybeSingle();
+        return row == null ? null : MatchResult.fromJson(row.cast<String, Object?>());
       });
 }

@@ -235,9 +235,9 @@ void main() {
       expect(find.text('anna'), findsNWidgets(2), reason: 'sul cartellino e sul profilo, sempre il nome unico');
       expect(find.text('LIVELLO'), findsOneWidget);
       expect(find.text('MONETE'), findsOneWidget);
-      expect(find.text('200 su 400 punti esperienza'), findsOneWidget);
+      expect(find.text('200 su 250 punti esperienza'), findsOneWidget);
       final bar = tester.widget<LinearProgressIndicator>(find.byKey(const Key('profile.xp')));
-      expect(bar.value, closeTo(0.5, 1e-9));
+      expect(bar.value, closeTo(0.8, 1e-9));
 
       await tester.tap(find.text('Esci dall\'account'));
       await tester.pumpAndSettle();

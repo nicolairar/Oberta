@@ -83,7 +83,7 @@ void main() {
       online.award('me', level: 3, xp: 150, coins: 40);
       profile = await online.profiles.me();
       expect((profile.level, profile.xp, profile.coins), (3, 150, 40));
-      expect(profile.levelProgress, closeTo(0.5, 1e-9));
+      expect(profile.levelProgress, closeTo(150 / 225, 1e-9));
       profile = await online.profiles.update(handle: 'anna');
       expect(profile.coins, 40, reason: 'salvare il nome non tocca le monete');
     });

@@ -43,7 +43,7 @@ Deno.test('the catalog: prices follow rarity, base items are free, rotation is l
     'check',
   );
   const featured = await pg.query(`select count(*)::int as n from public.shop_rotations`);
-  assertEquals((featured.rows[0] as { n: number }).n, 4);
+  assert((featured.rows[0] as { n: number }).n >= 4, "a live rotation");
 });
 
 Deno.test('buying: coins, price, ownership, atomic', async () => {

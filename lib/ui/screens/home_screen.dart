@@ -20,6 +20,7 @@ import '../widgets/home_settings_plate.dart';
 import 'avatar/barber_mirror_screen.dart';
 import 'lobby_screen.dart';
 import 'online/online_room_screen.dart';
+import 'online/ranked_queue_screen.dart';
 import 'online/online_screen.dart';
 import 'online/online_widgets.dart';
 import 'online/profile_sheet.dart';
@@ -574,7 +575,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       emblem: HomeSoonEmblem.laurel,
                       paper: const Color(0xFF581019),
                       seed: 21,
-                      onTap: () => _notYet(t.rankedTeaser),
+                      // Ranked is built but locked in this build: the queue
+                      // opens only with --dart-define=RANKED_DEBUG=true.
+                      onTap: rankedDebug && signedIn && _online?.ranked != null
+                          ? () => Navigator.of(context).push(MaterialPageRoute<void>(
+                                builder: (_) => RankedQueueScreen(services: _online!),
+                              ))
+                          : () => _notYet(t.rankedTeaser),
                     ),
                   ),
                   IgnorePointer(
