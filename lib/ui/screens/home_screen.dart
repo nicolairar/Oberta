@@ -440,6 +440,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         onLongPress: () => _signIn(test: true),
                       ),
                     ),
+                  // Dopo l'accesso, al posto della targa ACCEDI c'è l'insegna
+                  // della bottega: il negozio si vede, non si cerca.
+                  if (signedIn && _online?.shop != null)
+                    Positioned.fromRect(
+                      rect: layout.signIn,
+                      child: HomeSignInPlate(
+                        key: const Key('home.shopPlate'),
+                        label: t.shop.title,
+                        onTap: _openShop,
+                      ),
+                    ),
                   if (signedIn)
                     Positioned.fromRect(
                       rect: layout.badge,
