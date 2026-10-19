@@ -1,10 +1,8 @@
-> Nota: testo preparato per il lancio; si consiglia una revisione legale prima della pubblicazione. TODO: aggiungere l'indirizzo del gestore.
-
 # Termini d'uso di Obertà
 
 Ultimo aggiornamento: 18 ottobre 2026
 
-Usando Obertà accetti questi termini. Il gioco è offerto da Nicolai Tana (contatto: niko.tana@outlook.com).
+Usando Obertà accetti questi termini. Il gioco è offerto da Nicolai Tana (contatto: niko.tana@outlook.com; PEC: nicolairar@pec.it).
 
 ## Account
 

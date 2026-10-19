@@ -1,5 +1,3 @@
-> Nota: testo preparato per il lancio; si consiglia una revisione legale prima della pubblicazione. TODO: aggiungere l'indirizzo del titolare.
-
 # Informativa sulla privacy di Obertà
 
 Ultimo aggiornamento: 18 ottobre 2026
@@ -8,7 +6,7 @@ Obertà è un gioco di società. Questa informativa spiega quali dati trattiamo,
 
 ## Titolare del trattamento
 
-Nicolai Tana — contatto per la privacy: niko.tana@outlook.com
+Nicolai Tana — contatto per la privacy: niko.tana@outlook.com — PEC: nicolairar@pec.it
 
 ## Il gioco senza account
 
