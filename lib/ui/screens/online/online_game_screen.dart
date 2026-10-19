@@ -38,6 +38,8 @@ import 'game/saloon_table.dart';
 import 'game/saloon_transitions.dart';
 import 'game/seat_card.dart';
 import 'online_widgets.dart';
+import '../../../l10n/roles_sheet_strings.dart';
+import '../../widgets/roles_sheet.dart';
 
 /// La partita online, vista dal proprio telefono. Tutto segue l'orologio del
 /// server: ogni fase ([Stage]) ha un inizio e una fine pubblicati sul tavolo,
@@ -405,6 +407,15 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                     tooltip: _t.leaveTooltip,
                     onPressed: pressed(_confirmExit, Press.back),
                   ),
+                  action: ready
+                      ? RolesButton(
+                          color: Saloon.brass,
+                          onPressed: pressed(
+                            () => RolesSheet.show(context, deck: _public.deck, revealed: publicReveals(_public)),
+                            Press.card,
+                          ),
+                        )
+                      : null,
                 ),
                 ?_connectionBanner(),
                 Expanded(
@@ -679,7 +690,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
           note: _offline(player)
               ? _t.online.offlineBadge
               : silenced
-              ? '🤐'
+              ? '🤐 ${RolesSheetStrings.of(context).silenced}'
               : role == null
               ? null
               : _t.role(role).label,

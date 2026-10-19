@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_strings.dart';
+import '../../l10n/roles_sheet_strings.dart';
 import '../../rules/knowledge.dart';
 import '../../rules/player.dart';
 import '../../rules/role.dart';
@@ -1075,13 +1076,13 @@ class _Seat extends StatelessWidget {
                       width: s * 0.6,
                       top: base.dy - s * 0.82,
                       height: s * 0.6,
-                      child: Center(child: _dagger(s)),
+                      child: Center(child: Tooltip(message: RolesSheetStrings.of(context).dead, triggerMode: TooltipTriggerMode.longPress, child: _dagger(s))),
                     ),
                   if (silenced && alive)
                     Positioned(
                       left: base.dx + s * 0.2,
                       top: base.dy - s * 1.15 + up.dy,
-                      child: _chip(chip, AppColors.gold, Icons.voice_over_off, ink: AppColors.background),
+                      child: _chip(chip, AppColors.gold, Icons.voice_over_off, ink: AppColors.background, tip: '🤐 ${RolesSheetStrings.of(context).silenced}'),
                     ),
                   if (badge != null)
                     Positioned(
@@ -1102,13 +1103,13 @@ class _Seat extends StatelessWidget {
                     Positioned(
                       left: plaque.dx - plaqueW / 2 - chip * 0.55,
                       top: plaque.dy - chip / 2,
-                      child: _chip(chip, role.color, role.icon),
+                      child: _chip(chip, role.color, role.icon, tip: AppStrings.of(context).role(role).label),
                     ),
                   if (selected && stamp == null)
                     Positioned(
                       left: plaque.dx + plaqueW / 2 - chip * 0.45,
                       top: plaque.dy - chip / 2,
-                      child: _chip(chip, AppColors.gold, Icons.check, ink: AppColors.background),
+                      child: _chip(chip, AppColors.gold, Icons.check, ink: AppColors.background, tip: RolesSheetStrings.of(context).selected),
                     ),
                   // Il timbro sul petto di chi si è alzato: la faccia resta scoperta.
                   if (selected && stamp != null)
@@ -1194,19 +1195,19 @@ class _OwnSeat extends StatelessWidget {
                     Positioned(
                       left: (w - plaqueW) / 2 - chip * 0.8,
                       top: h * 0.08 + plaqueH / 2 - chip / 2,
-                      child: _chip(chip, role.color, role.icon),
+                      child: _chip(chip, role.color, role.icon, tip: AppStrings.of(context).role(role).label),
                     ),
                   if (silenced)
                     Positioned(
                       left: (w + plaqueW) / 2 - chip * 0.2,
                       top: h * 0.08 + plaqueH / 2 - chip / 2,
-                      child: _chip(chip, AppColors.gold, Icons.voice_over_off, ink: AppColors.background),
+                      child: _chip(chip, AppColors.gold, Icons.voice_over_off, ink: AppColors.background, tip: '🤐 ${RolesSheetStrings.of(context).silenced}'),
                     ),
                   if (selected)
                     Positioned(
                       left: (w + plaqueW) / 2 - chip * 0.2,
                       top: h * 0.08 + plaqueH / 2 - chip / 2,
-                      child: _chip(chip, AppColors.gold, Icons.check, ink: AppColors.background),
+                      child: _chip(chip, AppColors.gold, Icons.check, ink: AppColors.background, tip: RolesSheetStrings.of(context).selected),
                     ),
                 ],
               ),
@@ -1339,8 +1340,8 @@ Widget _dagger(double s) => Text(
   ),
 );
 
-Widget _chip(double size, Color color, IconData icon, {Color ink = AppColors.textPrimary}) {
-  return Container(
+Widget _chip(double size, Color color, IconData icon, {Color ink = AppColors.textPrimary, String? tip}) {
+  final chip = Container(
     width: size,
     height: size,
     decoration: BoxDecoration(
@@ -1351,6 +1352,7 @@ Widget _chip(double size, Color color, IconData icon, {Color ink = AppColors.tex
     ),
     child: Icon(icon, size: size * 0.56, color: ink),
   );
+  return tip == null ? chip : Tooltip(message: tip, triggerMode: TooltipTriggerMode.longPress, child: chip);
 }
 
 Widget _label(String text, Color color, double d) {

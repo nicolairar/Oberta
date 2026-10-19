@@ -24,6 +24,7 @@ import '../widgets/day_board.dart';
 import '../widgets/death_scene.dart';
 import '../widgets/handoff_view.dart';
 import '../widgets/narrator_roles_sheet.dart';
+import '../widgets/roles_sheet.dart';
 import '../widgets/player_avatar.dart';
 import '../widgets/player_grid.dart';
 import '../widgets/city_backdrop.dart';
@@ -483,6 +484,15 @@ class _GameScreenState extends State<GameScreen> {
           ),
           title: Text(_title),
           actions: [
+            RolesButton(
+              onPressed: pressed(
+                () {
+                  final board = _engine.publicView();
+                  RolesSheet.show(context, deck: board.deck, revealed: publicReveals(board));
+                },
+                Press.card,
+              ),
+            ),
             if (_narrator != null && phoneIsWithNarrator)
               IconButton(
                 icon: const Icon(Icons.visibility),

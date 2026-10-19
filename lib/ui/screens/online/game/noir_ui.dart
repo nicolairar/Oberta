@@ -179,7 +179,10 @@ class StageHeader extends StatelessWidget {
   final bool urgent;
   final Widget? leading;
 
-  const StageHeader({super.key, required this.title, this.ribbon, this.countdown, this.urgent = false, this.leading});
+  /// Un bottone a destra, prima dell'orologio (il foglio dei ruoli).
+  final Widget? action;
+
+  const StageHeader({super.key, required this.title, this.ribbon, this.countdown, this.urgent = false, this.leading, this.action});
 
   @override
   Widget build(BuildContext context) {
@@ -221,8 +224,9 @@ class StageHeader extends StatelessWidget {
               ],
             ),
           ),
+          ?action,
           SizedBox(
-            width: 76,
+            width: action == null ? 76 : 64,
             child: countdown == null
                 ? null
                 : _Countdown(countdown!, urgent: urgent),

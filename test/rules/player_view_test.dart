@@ -40,6 +40,14 @@ List<String> leaksIn(GameEngine engine, Player? viewer, Object? json) {
         }
         for (final MapEntry(:key, :value) in node.entries) {
           if (key == 'finalRoles' && engine.phase == GamePhase.ended) continue;
+          // Il mazzo è pubblico, ma solo come conteggio: nessun posto dentro.
+          if (key == 'deck') {
+            final expected = [
+              for (final e in deckOf(engine.setup.roles.values).entries) {'role': e.key.name, 'count': e.value},
+            ];
+            if (value.toString() != expected.toString()) leaks.add('$path.deck: non è il mazzo');
+            continue;
+          }
           if (value is String && _roleNames.contains(value) && key != 'role') leaks.add('$path.$key: $value');
           walk(value, '$path.$key');
         }

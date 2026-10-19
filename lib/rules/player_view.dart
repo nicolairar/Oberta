@@ -108,6 +108,10 @@ class PublicView {
   /// A partita finita, tutte le carte scoperte. Vuoto fino ad allora.
   final Map<Player, Role> finalRoles;
 
+  /// Il mazzo della partita: quanti di ogni ruolo. È pubblico (chi c'è al
+  /// tavolo, non chi è chi). Vuoto se il server è vecchio.
+  final Map<Role, int> deck;
+
   const PublicView({
     required this.round,
     required this.phase,
@@ -121,6 +125,7 @@ class PublicView {
     required this.nightPending,
     required this.dayVotes,
     required this.finalRoles,
+    this.deck = const {},
   });
 
   Map<String, Object?> toJson() => {
@@ -137,6 +142,9 @@ class PublicView {
         'dayVotes': [for (final vote in dayVotes) _voteToJson(vote)],
         'finalRoles': [
           for (final entry in finalRoles.entries) {'seat': entry.key.id, 'role': entry.value.name},
+        ],
+        'deck': [
+          for (final entry in deck.entries) {'role': entry.key.name, 'count': entry.value},
         ],
       };
 
@@ -155,6 +163,10 @@ class PublicView {
         finalRoles: {
           for (final row in _rows(json['finalRoles']))
             resolve(row['seat'] as String): Role.values.byName(row['role'] as String),
+        },
+        deck: {
+          for (final row in _rows(json['deck'] ?? const []))
+            Role.values.byName(row['role'] as String): row['count'] as int,
         },
       );
 }
@@ -249,4 +261,13 @@ class PlayerView {
       board: PublicView.fromJson(json['board'] as Map<String, Object?>, resolve),
     );
   }
+}
+
+/// Quanti di ogni ruolo, nell'ordine delle carte.
+Map<Role, int> deckOf(Iterable<Role> roles) {
+  final counts = <Role, int>{};
+  for (final role in roles) {
+    counts[role] = (counts[role] ?? 0) + 1;
+  }
+  return {for (final role in Role.values) role: ?counts[role]};
 }

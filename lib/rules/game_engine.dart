@@ -763,6 +763,7 @@ class GameEngine {
             ? [for (final entry in _dayVotes.entries) (voter: entry.key, target: entry.value)]
             : const [],
         finalRoles: _phase == GamePhase.ended ? setup.roles : const {},
+        deck: deckOf(setup.roles.values),
       );
 
   /// Quello che il posto [seat], e solo lui, ha diritto di vedere adesso.

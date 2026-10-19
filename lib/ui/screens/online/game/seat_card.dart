@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../../../l10n/roles_sheet_strings.dart';
 import '../../../theme/app_theme.dart';
 import '../../../widgets/player_avatar.dart';
 import 'noir_ui.dart';
@@ -60,6 +61,7 @@ class SeatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tips = RolesSheetStrings.of(context);
     final height = width * 1.32;
     final arch = BorderRadius.vertical(top: Radius.circular(width / 2), bottom: Radius.circular(width * 0.12));
     final border = accused
@@ -135,10 +137,14 @@ class SeatCard extends StatelessWidget {
                 ),
                 if (offline && !fallen) ...[
                   SizedBox(width: plateHeight * 0.12),
-                  Container(
-                    width: plateHeight * 0.26,
-                    height: plateHeight * 0.26,
-                    decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF6B635C)),
+                  Tooltip(
+                    message: tips.offline,
+                    triggerMode: TooltipTriggerMode.tap,
+                    child: Container(
+                      width: plateHeight * 0.26,
+                      height: plateHeight * 0.26,
+                      decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF6B635C)),
+                    ),
                   ),
                 ],
               ],
@@ -149,7 +155,11 @@ class SeatCard extends StatelessWidget {
           Positioned(
             right: width * 0.02,
             top: height * 0.5,
-            child: CustomPaint(size: Size.square(width * 0.3), painter: _CarnationPainter()),
+            child: Tooltip(
+              message: tips.dead,
+              triggerMode: TooltipTriggerMode.longPress,
+              child: CustomPaint(size: Size.square(width * 0.3), painter: _CarnationPainter()),
+            ),
           ),
         if (accused && accusedLabel.isNotEmpty)
           Positioned(
@@ -182,14 +192,18 @@ class SeatCard extends StatelessWidget {
           Positioned(
             right: -width * 0.06,
             top: -width * 0.02,
-            child: _WaxSeal(votes, size: max(24, width * 0.3)),
+            child: Tooltip(
+              message: '$votes ${tips.votes}',
+              triggerMode: TooltipTriggerMode.longPress,
+              child: _WaxSeal(votes, size: max(24, width * 0.3)),
+            ),
           ),
         if (pizzino != null)
           Positioned(
             left: -width * 0.05,
             right: -width * 0.05,
             bottom: -plateHeight * 0.95,
-            child: Center(child: _Pizzino(key: pizzinoKey, text: pizzino!, color: pizzinoColor, size: max(10, width * 0.12))),
+            child: Center(child: Tooltip(message: tips.voteNote, triggerMode: TooltipTriggerMode.longPress, child: _Pizzino(key: pizzinoKey, text: pizzino!, color: pizzinoColor, size: max(10, width * 0.12)))),
           ),
         if (note != null)
           Positioned(
