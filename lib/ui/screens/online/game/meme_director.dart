@@ -181,7 +181,7 @@ class MemeDirector {
       case Stage.ended:
         if (now.winner != null) {
           beat.hit(
-            now.winner == Team.mafia ? MemeMoment.mafiaWins : MemeMoment.townWins,
+            now.winner != Team.citizens ? MemeMoment.mafiaWins : MemeMoment.townWins,
             after: const Duration(milliseconds: 800),
           );
         }

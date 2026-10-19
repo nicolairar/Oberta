@@ -106,6 +106,14 @@ abstract class AppStrings {
   String get itsMe;
   String get youBadge;
   String get innocentBadge;
+  String get neutralBadge;
+  String get youAreNeutral;
+  String get arsonistWins;
+  String get wonAlone;
+  String get revealAsMayor;
+  String get lightTheMatch;
+  String get dousePick;
+  String get dousedBadge;
   String get readAloud;
   String readerReadsAloud(String reader);
 
@@ -320,6 +328,14 @@ abstract class AppStrings {
     'itsMe': itsMe,
     'youBadge': youBadge,
     'innocentBadge': innocentBadge,
+    'neutralBadge': neutralBadge,
+    'youAreNeutral': youAreNeutral,
+    'arsonistWins': arsonistWins,
+    'wonAlone': wonAlone,
+    'revealAsMayor': revealAsMayor,
+    'lightTheMatch': lightTheMatch,
+    'dousePick': dousePick,
+    'dousedBadge': dousedBadge,
     'readAloud': readAloud,
     'readerReadsAloud': readerReadsAloud('Sara'),
     'narratorSpeaks': narratorSpeaks,

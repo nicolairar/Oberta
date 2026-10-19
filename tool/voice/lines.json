@@ -1391,6 +1391,11 @@
       "text": "Stava con gli onesti."
     },
     {
+      "key": "078c2f6b879e01a4",
+      "kind": "segment",
+      "text": "Giocava per sé."
+    },
+    {
       "key": "db63abc8f458059d",
       "kind": "segment",
       "text": "Complimenti a tutti. Davvero."
@@ -1586,6 +1591,111 @@
       "text": "Vince la famiglia: gli onesti non sono più in maggioranza."
     },
     {
+      "key": "91e321f4459c0e48",
+      "kind": "segment",
+      "text": "Odore di benzina, un fiammifero, e la notte diventa arancione."
+    },
+    {
+      "key": "417464efde5f6d46",
+      "kind": "segment",
+      "text": "Qualcuno ha acceso un fiammifero. Quando arrivano i pompieri, non c'è più niente da salvare."
+    },
+    {
+      "key": "82b3e4c75a3620ab",
+      "kind": "segment",
+      "text": "Per"
+    },
+    {
+      "key": "f3a1265cfd7f1e28",
+      "kind": "segment",
+      "text": "la notte è finita tra le fiamme: è fuori dal gioco."
+    },
+    {
+      "key": "23aa955247af58e8",
+      "kind": "segment",
+      "text": "Una mano spinge il coperchio della bara. La piazza si era scordata i chiodi."
+    },
+    {
+      "key": "7b628428b4ba0076",
+      "kind": "segment",
+      "text": "All'alba un fantasma entra al bar e ordina un caffè. Non è un fantasma."
+    },
+    {
+      "key": "d283b3916e11c2a5",
+      "kind": "segment",
+      "text": "torna in gioco, con la stessa carta di prima."
+    },
+    {
+      "key": "00c8fe55261e9f7c",
+      "kind": "segment",
+      "text": "La corda si tende, e sotto c'è un sorriso. Era il piano fin dall'inizio."
+    },
+    {
+      "key": "a8a5a228fd417a07",
+      "kind": "segment",
+      "text": "La folla applaude, e il Fesso fa l'inchino."
+    },
+    {
+      "key": "f7215b9cb0a6799f",
+      "kind": "segment",
+      "text": "era il Fesso: vince la sua partita, e il gioco continua."
+    },
+    {
+      "key": "e66c16c6a2d8a0c8",
+      "kind": "segment",
+      "text": "Chicago è cenere. Una figura se ne va fischiettando, con una scatola di fiammiferi. Titoli di coda."
+    },
+    {
+      "key": "3161d91d32ad5b1f",
+      "kind": "segment",
+      "text": "New York è cenere. Una figura se ne va fischiettando, con una scatola di fiammiferi. Titoli di coda."
+    },
+    {
+      "key": "334ef6d11091819e",
+      "kind": "segment",
+      "text": "Palermo è cenere. Una figura se ne va fischiettando, con una scatola di fiammiferi. Titoli di coda."
+    },
+    {
+      "key": "dbb7855e3c30123d",
+      "kind": "segment",
+      "text": "Napoli è cenere. Una figura se ne va fischiettando, con una scatola di fiammiferi. Titoli di coda."
+    },
+    {
+      "key": "bb9103fd00aef7b2",
+      "kind": "segment",
+      "text": "Las Vegas è cenere. Una figura se ne va fischiettando, con una scatola di fiammiferi. Titoli di coda."
+    },
+    {
+      "key": "614213a832a1361e",
+      "kind": "segment",
+      "text": "A Chicago non c'è più niente da bruciare. Dissolvenza in arancione."
+    },
+    {
+      "key": "686aea42e7ced961",
+      "kind": "segment",
+      "text": "A New York non c'è più niente da bruciare. Dissolvenza in arancione."
+    },
+    {
+      "key": "998b01b8c2f66880",
+      "kind": "segment",
+      "text": "A Palermo non c'è più niente da bruciare. Dissolvenza in arancione."
+    },
+    {
+      "key": "12aa8fd6d73bd573",
+      "kind": "segment",
+      "text": "A Napoli non c'è più niente da bruciare. Dissolvenza in arancione."
+    },
+    {
+      "key": "9b1df684a64ff6e4",
+      "kind": "segment",
+      "text": "A Las Vegas non c'è più niente da bruciare. Dissolvenza in arancione."
+    },
+    {
+      "key": "d7813e22a439231e",
+      "kind": "segment",
+      "text": "Vince il Piromane, da solo: non è rimasto nessuno a fermarlo."
+    },
+    {
       "key": "5265221cb1855434",
       "kind": "segment",
       "text": "qualcuno"
@@ -1649,6 +1759,31 @@
       "key": "2a665c132a74f781",
       "kind": "role",
       "text": "Il Pregiudicato"
+    },
+    {
+      "key": "3fbe5b925a5ee2e5",
+      "kind": "role",
+      "text": "Il Messia"
+    },
+    {
+      "key": "f35d03bcf108ef02",
+      "kind": "role",
+      "text": "Il Sindaco"
+    },
+    {
+      "key": "ef93290c4d09e8b6",
+      "kind": "role",
+      "text": "Il Portinaio"
+    },
+    {
+      "key": "2f83fb5ee6215db9",
+      "kind": "role",
+      "text": "Il Fesso"
+    },
+    {
+      "key": "68280c66b18253c0",
+      "kind": "role",
+      "text": "Il Piromane"
     },
     {
       "key": "2822e8c596bcbdef",
@@ -3183,6 +3318,11 @@
       "text": "On the town's side."
     },
     {
+      "key": "1744ab2cc5095501",
+      "kind": "segment",
+      "text": "Playing for themselves."
+    },
+    {
       "key": "1c4a080aab151508",
       "kind": "segment",
       "text": "Nice work, everybody. Really."
@@ -3378,6 +3518,106 @@
       "text": "The Family wins: the town no longer outnumbers them."
     },
     {
+      "key": "bcf6d97069bb399b",
+      "kind": "segment",
+      "text": "A smell of gasoline, a match, and the night turns orange."
+    },
+    {
+      "key": "0e981a2ca68d3e48",
+      "kind": "segment",
+      "text": "Somebody lit a match. By the time the fire trucks came, there was nothing left."
+    },
+    {
+      "key": "57f05ee0e6141903",
+      "kind": "segment",
+      "text": "burned in the night and is out of the game."
+    },
+    {
+      "key": "e7ec72e4f8052c7f",
+      "kind": "segment",
+      "text": "A hand pushes the coffin lid open. The town forgot to nail it shut."
+    },
+    {
+      "key": "729ac440cb32f71c",
+      "kind": "segment",
+      "text": "At dawn a ghost walks into the bar and orders a coffee. It isn't a ghost."
+    },
+    {
+      "key": "39f573dfadd4a123",
+      "kind": "segment",
+      "text": "is back in the game, with the same card as before."
+    },
+    {
+      "key": "e17de6e70ad0a2dc",
+      "kind": "segment",
+      "text": "The rope swings and the condemned is smiling. That was the plan all along."
+    },
+    {
+      "key": "082afbb4decb1f1b",
+      "kind": "segment",
+      "text": "The crowd cheers, and the Fool takes a bow."
+    },
+    {
+      "key": "7234d1842f2bc329",
+      "kind": "segment",
+      "text": "was the Fool and wins alone. The game goes on."
+    },
+    {
+      "key": "cfea7153492a89f1",
+      "kind": "segment",
+      "text": "Chicago is ashes. One figure walks away, whistling, a matchbox in hand. Roll credits."
+    },
+    {
+      "key": "1830a920cd716f64",
+      "kind": "segment",
+      "text": "New York is ashes. One figure walks away, whistling, a matchbox in hand. Roll credits."
+    },
+    {
+      "key": "06acb119c5d838e7",
+      "kind": "segment",
+      "text": "Palermo is ashes. One figure walks away, whistling, a matchbox in hand. Roll credits."
+    },
+    {
+      "key": "9694726ca1c6fe30",
+      "kind": "segment",
+      "text": "Naples is ashes. One figure walks away, whistling, a matchbox in hand. Roll credits."
+    },
+    {
+      "key": "a967f92156847633",
+      "kind": "segment",
+      "text": "Las Vegas is ashes. One figure walks away, whistling, a matchbox in hand. Roll credits."
+    },
+    {
+      "key": "733b482a4be09bf2",
+      "kind": "segment",
+      "text": "Nothing left to burn in Chicago. Fade to orange."
+    },
+    {
+      "key": "7c4e0115db9b5b5f",
+      "kind": "segment",
+      "text": "Nothing left to burn in New York. Fade to orange."
+    },
+    {
+      "key": "2e1bebbcc0b1779c",
+      "kind": "segment",
+      "text": "Nothing left to burn in Palermo. Fade to orange."
+    },
+    {
+      "key": "3327230bd3c7b75b",
+      "kind": "segment",
+      "text": "Nothing left to burn in Naples. Fade to orange."
+    },
+    {
+      "key": "23ceb45a62d94ae8",
+      "kind": "segment",
+      "text": "Nothing left to burn in Las Vegas. Fade to orange."
+    },
+    {
+      "key": "a436a39a7cc22f53",
+      "kind": "segment",
+      "text": "The Arsonist wins alone: nobody is left to stop them."
+    },
+    {
       "key": "cdfc170d0cbf0c32",
       "kind": "segment",
       "text": "someone"
@@ -3441,6 +3681,31 @@
       "key": "320176db6b3ad047",
       "kind": "role",
       "text": "The Ex-Con"
+    },
+    {
+      "key": "f02c1cc67f31f3f7",
+      "kind": "role",
+      "text": "The Messiah"
+    },
+    {
+      "key": "6ca115717bf519b5",
+      "kind": "role",
+      "text": "The Mayor"
+    },
+    {
+      "key": "ce5c683621020f1d",
+      "kind": "role",
+      "text": "The Doorman"
+    },
+    {
+      "key": "11a559fadbe66f83",
+      "kind": "role",
+      "text": "The Fool"
+    },
+    {
+      "key": "0ce79d00096fa1ac",
+      "kind": "role",
+      "text": "The Arsonist"
     },
     {
       "key": "91406e605da800c9",

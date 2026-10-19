@@ -147,6 +147,22 @@ final class EnglishStrings extends AppStrings {
   @override
   String get innocentBadge => 'INNOCENT';
   @override
+  String get neutralBadge => 'NEUTRAL';
+  @override
+  String get youAreNeutral => 'YOU PLAY FOR YOURSELF';
+  @override
+  String get arsonistWins => 'The Arsonist\nwins';
+  @override
+  String get wonAlone => 'WON ALONE';
+  @override
+  String get revealAsMayor => 'Reveal yourself: Mayor';
+  @override
+  String get lightTheMatch => 'Light the match';
+  @override
+  String get dousePick => 'Douse';
+  @override
+  String get dousedBadge => 'GASOLINE';
+  @override
   String get readAloud => 'READ IT OUT LOUD';
   @override
   String readerReadsAloud(String reader) => '${reader.toUpperCase()} READS IT OUT LOUD';

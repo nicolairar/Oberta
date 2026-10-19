@@ -389,7 +389,9 @@ class ServerGame {
               return {
                 'team': view.team.name,
                 'role': view.role.name,
-                'won': view.team == winner,
+                // Chi vince da solo (il Fesso linciato, il Piromane) vince
+                // anche se la sua fazione no.
+                'won': engine.hasWon(view.seat),
                 'survived': _alive(occupant.seat),
                 'abandoned': departed.contains(occupant.seat),
               };

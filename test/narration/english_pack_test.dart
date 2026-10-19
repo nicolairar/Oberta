@@ -642,7 +642,11 @@ void main() {
       final script = englishIn('new-york', 7);
       for (final role in Role.values) {
         final lines = script.lynch(LynchReport(round: 1, condemned: sara, role: role));
-        final side = role.team == Team.mafia ? 'On the Family\'s side.' : 'On the town\'s side.';
+        final side = switch (role.team) {
+          Team.mafia => 'On the Family\'s side.',
+          Team.citizens => 'On the town\'s side.',
+          Team.neutral => 'Playing for themselves.',
+        };
         expect(lines, hasLength(3));
         expect(lines[0].isFact, isFalse);
         expect(lines[0].text, contains('Sara'));

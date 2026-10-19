@@ -28,6 +28,7 @@ import '../../seating.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/avatar_spotlight.dart';
 import '../../widgets/death_scene.dart';
+import '../../widgets/night_notes.dart';
 import '../../widgets/scene_scaffold.dart';
 import '../../widgets/verdict_scene.dart';
 import 'game/chat_dock.dart';
@@ -204,8 +205,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       case Stage.ended:
         final winner = _public.winner;
         if (winner != null) {
-          stage.music(winner == Team.mafia ? MusicMood.winFamily : MusicMood.winTown);
-          stage.cue(winner == Team.mafia ? Cue.familyWins : Cue.townWins);
+          stage.music(winner != Team.citizens ? MusicMood.winFamily : MusicMood.winTown);
+          stage.cue(winner != Team.citizens ? Cue.familyWins : Cue.townWins);
         }
       case Stage.dawn || Stage.verdict:
         break;
@@ -266,10 +267,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   Future<void> _send(PlayerIntent intent) async {
     HapticFeedback.selectionClick();
     final key = _window?.key;
-    if (key != null) {
+    if (key != null && intent is! RevealMayor) {
       final hope = switch (intent) {
         DayVote(:final target) || MafiaVote(:final target) || NightAction(:final target) => (target: _seatOf(target), stage: key),
-        Pass() => (target: null, stage: key),
+        Pass() || RevealMayor() => (target: null, stage: key),
       };
       setState(() => _hope = hope);
     }
@@ -776,19 +777,32 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     final busy = _client.busy || !_open;
     final alternative = _alternative && option.alternative != null;
     final family = option.type == ActionType.mafiaVote && !alternative;
-    final shown = alternative ? NightTask(option.alternative!, option.targets) : task;
+    final alternativeTargets = option.alternativeTargets ?? option.targets;
+    final shown = alternative ? NightTask(option.alternative!, alternativeTargets) : task;
+    final labels = alternativeLabels(_t, option.alternative);
+    final lastWatch = _view.watches.isEmpty ? null : _view.watches.last;
     return Column(
       children: [
+        NightNotes(
+          lastWatch: lastWatch != null && lastWatch.round == _public.round - 1 ? lastWatch : null,
+          doused: _view.doused,
+        ),
         if (option.alternative != null) ...[
           SegmentedButton<bool>(
             key: const Key('online.alternative'),
             segments: [
-              ButtonSegment(value: false, label: Text(_t.voteTheHit)),
-              ButtonSegment(value: true, label: Text(_t.sewAMouth)),
+              ButtonSegment(value: false, label: Text(labels.$1)),
+              ButtonSegment(value: true, label: Text(labels.$2)),
             ],
             selected: {_alternative},
             showSelectedIcon: false,
-            onSelectionChanged: busy ? null : (choice) => setState(() => _alternative = choice.single),
+            onSelectionChanged: busy
+                ? null
+                : (choice) => setState(() {
+                      _alternative = choice.single;
+                      // Il fiammifero si accende scegliendo se stessi: già scelto.
+                      _selected = _alternative && option.alternativeTargets != null ? alternativeTargets.first : null;
+                    }),
           ),
           const SizedBox(height: 6),
         ],
@@ -816,7 +830,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         Expanded(
           child: _table(
             players: _secretTable(),
-            selectable: option.targets.toSet(),
+            selectable: (alternative ? alternativeTargets : option.targets).toSet(),
             selected: selected,
             onTap: busy ? null : (player) => setState(() => _selected = player),
             votes: family ? _withHope(_view.familyVotes) : const [],
@@ -997,7 +1011,16 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         if (attack.isFatal) attack.target.name,
     ];
     final names = dead.join(_italian ? ' E ' : ' AND ');
-    final headline = dawn.victims.isEmpty
+    final risen = dawn.resurrected?.name;
+    final burned = [
+      for (final attack in dawn.attacks)
+        if (attack.isFatal && attack.source == AttackSource.fire) attack.target.name,
+    ];
+    final headline = burned.isNotEmpty
+        ? (_italian ? 'Rogo nella notte: ${burned.join(' e ')}' : 'Night fire: ${burned.join(' and ')} burned')
+        : dawn.victims.isEmpty && risen != null
+        ? (_italian ? '$risen torna dalla tomba' : '$risen back from the grave')
+        : dawn.victims.isEmpty
         ? _t.everyoneAlive
         : _italian
         ? (dead.length > 1 ? 'Trovati morti $names' : 'Trovato morto $names')
@@ -1028,6 +1051,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       headline = _italian ? 'La piazza non si decide' : 'The square cannot decide';
     } else if (role == null) {
       headline = _italian ? 'Linciato ${condemned.name}' : '${condemned.name} lynched';
+    } else if (report.personalWin) {
+      headline = _italian ? 'Linciato ${condemned.name}: il Fesso ha vinto' : '${condemned.name} lynched: the Fool wins';
+    } else if (role.team == Team.neutral) {
+      headline = _italian
+          ? 'Linciato ${condemned.name}: era ${_t.role(role).label}'
+          : '${condemned.name} lynched: ${_t.role(role).label}';
     } else {
       headline = _italian
           ? 'Linciato ${condemned.name}: ${mafia ? 'era della Famiglia' : 'era innocente'}'
@@ -1044,7 +1073,13 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         portraits: [if (condemned != null) condemned.name],
         fallen: condemned != null,
         stamp: role == null ? null : _t.role(role).label,
-        stampTeam: role == null ? null : (mafia ? _t.familyBadge : _t.townBadge),
+        stampTeam: role == null
+            ? null
+            : switch (role.team) {
+                Team.mafia => _t.familyBadge,
+                Team.citizens => _t.townBadge,
+                Team.neutral => _t.neutralBadge,
+              },
         stampColor: role == null ? Colors.black : stampColorFor(role),
         tallyTitle: _italian ? 'Lo scrutinio' : 'The tally',
         tallyKey: const Key('online.verdictVotes'),
@@ -1092,6 +1127,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       key: const Key('online.vote'),
       children: [
         ScrimText(view.alive ? _t.online.voteHint : _t.online.youAreOut),
+        if (_public.mayor case final mayor?)
+          ScrimText(
+            _t.pack.mayorRevealed.replaceAll('{name}', mayor.name),
+            key: const Key('online.mayor'),
+            style: AppText.body.copyWith(color: Saloon.brass, fontSize: 13, fontWeight: FontWeight.w700),
+          ),
         const SizedBox(height: 4),
         Expanded(
           child: _table(
@@ -1137,6 +1178,17 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
             style: AppText.body.copyWith(color: Saloon.brass, fontSize: 14, fontWeight: FontWeight.w700),
           ),
         ],
+        if (option != null && option.canReveal) ...[
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: NoirButton(
+              key: const Key('online.revealMayor'),
+              label: _t.revealAsMayor,
+              onPressed: canVote ? () => _send(RevealMayor(view.seat.id)) : null,
+            ),
+          ),
+        ],
         if (option != null) ...[
           const SizedBox(height: 8),
           SizedBox(
@@ -1167,6 +1219,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   Widget _endView() {
     final winner = _public.winner;
     final mafiaWon = winner == Team.mafia;
+    final arsonistWon = winner == Team.neutral;
     final roles = _public.finalRoles;
     final players = [
       for (final p in publicSeating(_public.seats))
@@ -1185,7 +1238,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
               const SizedBox(height: 6),
               FittedBox(
                 fit: BoxFit.scaleDown,
-                child: Text(mafiaWon ? _t.familyWins : _t.townWins, style: Saloon.plate(32, color: mafiaWon ? Saloon.mafia : Saloon.brass)),
+                child: Text(arsonistWon ? _t.arsonistWins : mafiaWon ? _t.familyWins : _t.townWins, style: Saloon.plate(32, color: mafiaWon ? Saloon.mafia : Saloon.brass)),
               ),
               const SizedBox(height: 4),
               Text(_t.whoWasWho, style: AppText.overline.copyWith(color: AppColors.textPrimary)),
@@ -1214,13 +1267,13 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                               width: width,
                               fallen: !_isAlive(player),
                               me: player == _view.seat,
-                              selected: roles[player]!.team == winner,
+                              selected: _public.won(player),
                               note: _t.role(roles[player]!).label,
                               noteColor: roles[player]!.team == Team.mafia ? Saloon.mafia : Saloon.brass,
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              _fateOf(player),
+                              _public.personalWins.contains(player) ? '${_t.wonAlone}\n${_fateOf(player)}' : _fateOf(player),
                               textAlign: TextAlign.center,
                               maxLines: 2,
                               style: AppText.body.copyWith(color: const Color(0xFFD8CCBE), fontSize: 11.5, height: 1.2),

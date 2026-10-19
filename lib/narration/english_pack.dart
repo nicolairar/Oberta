@@ -79,6 +79,31 @@ const englishPack = NarrationPack(
       '“I did my time. My record didn\'t.”',
       'You\'re with the town, but your record is dirty: to the Commissioner, you look like Family.',
     ),
+    Role.messia: RoleText(
+      'The Messiah',
+      '“Get up. You\'re not done yet.”',
+      'Once a game, at night, you bring back someone the town lynched by mistake. If you live to see dawn.',
+    ),
+    Role.sindaco: RoleText(
+      'The Mayor',
+      '“I didn\'t win the election to sit quiet.”',
+      'Once a game, during the vote, you can reveal yourself: that day your vote counts double.',
+    ),
+    Role.portinaio: RoleText(
+      'The Doorman',
+      '“I don\'t ask who. I just see the door.”',
+      'Each night you watch someone\'s door. At dawn you know if anyone came by, not who.',
+    ),
+    Role.fesso: RoleText(
+      'The Fool',
+      '“Me? Guilty? Oh, absolutely.”',
+      'You play for yourself: get the town to lynch you and you win alone. Dying at night doesn\'t count.',
+    ),
+    Role.piromane: RoleText(
+      'The Arsonist',
+      '“Everybody loves a bonfire.”',
+      'Each night douse someone in gasoline, or light the match and burn them all. Outlast everyone.',
+    ),
   },
   cities: [
     CitySetting(
@@ -203,11 +228,7 @@ const englishPack = NarrationPack(
     'Don\'t get comfortable. This is usually how it starts.',
     'The cemetery night watchman slept eight straight hours, and doesn\'t trust it.',
   ],
-  secondVictims: [
-    'And that\'s not all.',
-    'Change of scene.',
-    'But it was a long night.',
-  ],
+  secondVictims: ['And that\'s not all.', 'Change of scene.', 'But it was a long night.'],
   victimFact: 'Last night one person died: {name}. Their role stays secret.',
   // Ogni variante ha il suo filmato: le battute raccontano quello che si vede.
   sniperShots: {
@@ -317,8 +338,14 @@ const englishPack = NarrationPack(
     StoryPiece('buio', 'The streetlamp goes dark. A thud. When it comes back, {name} is on the ground.'),
     StoryPiece('bacio', 'A stranger, a kiss, a lipstick to die for. {name} smiles, then does.'),
     StoryPiece('boccia', 'A bowling ball rolls out of the dark. {name} goes flying like a pin. Strike.'),
-    StoryPiece('pescespada', 'A swordfish pokes around the corner. En garde, lunge. {name} sleeps with the fishes now.'),
-    StoryPiece('arpione', 'A harpoon whistles through the dark and the rope goes taut. {name} vanishes around the corner.'),
+    StoryPiece(
+      'pescespada',
+      'A swordfish pokes around the corner. En garde, lunge. {name} sleeps with the fishes now.',
+    ),
+    StoryPiece(
+      'arpione',
+      'A harpoon whistles through the dark and the rope goes taut. {name} vanishes around the corner.',
+    ),
     StoryPiece('torta', 'A cream pie, right in {name}\'s face. Everyone laughs. Inside the cream, a grenade.'),
     StoryPiece('trombone', 'A trombone plays in the alley. The bell fires a shot. {name} hits a sour note.'),
     StoryPiece('tango', 'A stranger asks {name} for a tango. A spin, a dip, a dagger.'),
@@ -373,6 +400,7 @@ const englishPack = NarrationPack(
   cardTurns: 'The card flips. {name} was… {role}.',
   wasMafia: 'On the Family\'s side.',
   wasCitizen: 'On the town\'s side.',
+  wasNeutral: 'Playing for themselves.',
   lynchedInnocent: [
     'Nice work, everybody. Really.',
     'Somebody at this table is trying not to smile.',
@@ -404,6 +432,29 @@ const englishPack = NarrationPack(
     'In {city}, nobody saw a thing. As usual. Fade to black.',
   ],
   mafiaWinsFact: 'The Family wins: the town no longer outnumbers them.',
+  fires: [
+    'A smell of gasoline, a match, and the night turns orange.',
+    'Somebody lit a match. By the time the fire trucks came, there was nothing left.',
+  ],
+  burnedFact: '{name} burned in the night and is out of the game.',
+  resurrections: [
+    'A hand pushes the coffin lid open. The town forgot to nail it shut.',
+    'At dawn a ghost walks into the bar and orders a coffee. It isn\'t a ghost.',
+  ],
+  resurrectedFact: '{name} is back in the game, with the same card as before.',
+  foolWins: [
+    'The rope swings and the condemned is smiling. That was the plan all along.',
+    'The crowd cheers, and the Fool takes a bow.',
+  ],
+  foolWinsFact: '{name} was the Fool and wins alone. The game goes on.',
+  arsonistWins: [
+    '{city} is ashes. One figure walks away, whistling, a matchbox in hand. Roll credits.',
+    'Nothing left to burn in {city}. Fade to orange.',
+  ],
+  arsonistWinsFact: 'The Arsonist wins alone: nobody is left to stop them.',
+  mayorRevealed: '{name} is the Mayor: today their vote counts double.',
+  watchVisited: 'Last night somebody came to {name}\'s door.',
+  watchQuiet: 'Last night nobody came to {name}\'s door.',
   taskPrompts: {
     NightTaskKind.kill: 'Who does the Family eliminate tonight?',
     NightTaskKind.silence: 'Whose lips do you sew shut tonight?',
@@ -413,6 +464,10 @@ const englishPack = NarrationPack(
     NightTaskKind.dig: 'Whose grave do you dig up tonight?',
     NightTaskKind.snipe: 'Do you want to shoot somebody?',
     NightTaskKind.scoop: 'Who is your scoop about?',
+    NightTaskKind.douse: 'Who do you douse in gasoline tonight?',
+    NightTaskKind.ignite: 'Do you light the match tonight?',
+    NightTaskKind.resurrect: 'Who do you bring back tonight?',
+    NightTaskKind.watch: 'Whose door do you watch tonight?',
   },
   taskHints: {
     NightTaskKind.kill: 'Whoever you pick won\'t see the dawn. If there are several of you, majority rules.',
@@ -423,6 +478,10 @@ const englishPack = NarrationPack(
     NightTaskKind.dig: 'Pick someone who died at night. You, and only you, learn their role at once.',
     NightTaskKind.snipe: 'You have one bullet for the whole game. If you pass, you keep it.',
     NightTaskKind.scoop: 'You have one scoop: at dawn everyone learns your pick\'s side. Pass, and you keep it.',
+    NightTaskKind.douse: 'Nobody knows they\'re doused. Or light the match: everyone doused burns tonight.',
+    NightTaskKind.ignite: 'Everyone you doused burns tonight.',
+    NightTaskKind.resurrect: 'Only once: your pick returns at dawn, if you see it. Pass to keep it.',
+    NightTaskKind.watch: 'At dawn you\'ll know if anyone came to that door. Not who.',
     NightTaskKind.decoy: 'You have no move tonight: answer anyway, so nobody can tell who you are.',
   },
   decoyPrompts: [

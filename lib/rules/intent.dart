@@ -23,6 +23,7 @@ sealed class PlayerIntent {
       'mafiaVote' => MafiaVote(seat, json['target'] as String),
       'dayVote' => DayVote(seat, json['target'] as String),
       'pass' => Pass(seat),
+      'revealMayor' => RevealMayor(seat),
       final type => throw FormatException('intenzione sconosciuta: $type'),
     };
   }
@@ -77,6 +78,15 @@ class Pass extends PlayerIntent {
 
   @override
   Map<String, Object?> toJson() => {'type': 'pass', 'seat': seat};
+}
+
+/// Di giorno, il Sindaco si rivela: da quel momento, per il voto di oggi,
+/// il suo voto vale due. Una volta per partita.
+class RevealMayor extends PlayerIntent {
+  const RevealMayor(super.seat);
+
+  @override
+  Map<String, Object?> toJson() => {'type': 'revealMayor', 'seat': seat};
 }
 
 /// Perché un'intenzione è stata rifiutata.

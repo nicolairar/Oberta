@@ -81,7 +81,7 @@ void main() {
           expect(find.text(t.role(role).label.toUpperCase()), findsOneWidget);
           expect(find.text(t.role(role).motto), findsOneWidget);
           expect(find.text(t.role(role).description), findsOneWidget);
-          expect(find.text(role.team == Team.mafia ? t.youAreFamily : t.youAreTown), findsOneWidget, reason: role.name);
+          expect(find.text(switch (role.team) { Team.mafia => t.youAreFamily, Team.citizens => t.youAreTown, Team.neutral => t.youAreNeutral }), findsOneWidget, reason: role.name);
           expect(find.text(t.yourAccomplices), role.team == Team.mafia ? findsOneWidget : findsNothing);
           await hold.up();
           await tester.pumpAndSettle();
@@ -102,13 +102,14 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: role.name);
       expect(find.text(italianPack.role(role).label.toUpperCase()), findsOneWidget);
-      expect(find.text(role.team == Team.mafia ? 'FAMIGLIA' : 'ONESTI'), findsOneWidget, reason: role.name);
+      expect(find.text(switch (role.team) { Team.mafia => 'FAMIGLIA', Team.citizens => 'ONESTI', Team.neutral => 'NEUTRALE' }), findsOneWidget, reason: role.name);
     }
     expect(Role.pregiudicato.team, Team.citizens);
   });
 
   testWidgets('il narratore vede tutti i ruoli, la famiglia in rosso', (tester) async {
-    _useScreen(tester, const Size(393, 852));
+    // Uno schermo alto: con tutti i ruoli insieme l'elenco scorre.
+    _useScreen(tester, const Size(393, 1400));
     // Il narratore c'è solo sul telefono unico: lì il Compare non esiste.
     final roles = [for (final role in Role.values) if (role.playableIn(PlayMode.sharedPhone)) role];
     final players = _players(roles.length);

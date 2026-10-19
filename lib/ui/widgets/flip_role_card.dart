@@ -209,7 +209,7 @@ class _RoleFace extends StatelessWidget {
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
-                    isMafia ? t.youAreFamily : t.youAreTown,
+                    isMafia ? t.youAreFamily : role.team == Team.neutral ? t.youAreNeutral : t.youAreTown,
                     style: AppText.overline.copyWith(color: AppColors.textPrimary, fontSize: 11),
                   ),
                 ),

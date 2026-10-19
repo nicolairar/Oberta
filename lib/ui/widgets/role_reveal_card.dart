@@ -90,7 +90,7 @@ class RoleRevealCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            role.team == Team.mafia ? t.familyBadge : t.townBadge,
+            role.team == Team.mafia ? t.familyBadge : role.team == Team.neutral ? t.neutralBadge : t.townBadge,
             style: AppText.overline.copyWith(color: AppColors.gold, fontSize: 10),
           ),
         ],

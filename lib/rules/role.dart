@@ -1,4 +1,6 @@
-enum Team { citizens, mafia }
+/// Le fazioni. I neutrali (Fesso, Piromane) giocano per sé: non vincono con
+/// la città né con la famiglia, ma ognuno ha la sua vittoria personale.
+enum Team { citizens, mafia, neutral }
 
 enum Role {
   mafioso,
@@ -14,6 +16,11 @@ enum Role {
   guardaspalle,
   reduce,
   pregiudicato,
+  messia,
+  sindaco,
+  portinaio,
+  fesso,
+  piromane,
 }
 
 /// Come si gioca: un telefono passato di mano in mano, o un telefono a testa.
@@ -39,6 +46,12 @@ enum RoleCategory {
 
   /// Reduce, Pregiudicato: niente da fare di notte, ma pesano.
   passive,
+
+  /// Messia, Sindaco: un potere una volta per partita, per la piazza.
+  civic,
+
+  /// Fesso, Piromane: giocano per sé.
+  neutral,
 
   /// L'Onesto.
   plain,
@@ -67,6 +80,7 @@ class RoleRule {
 extension RoleInfo on Role {
   Team get team => switch (this) {
         Role.mafioso || Role.padrino || Role.sarto || Role.compare => Team.mafia,
+    Role.fesso || Role.piromane => Team.neutral,
         _ => Team.citizens,
       };
 
@@ -75,6 +89,8 @@ extension RoleInfo on Role {
   Team get apparentTeam => switch (this) {
         Role.padrino => Team.citizens,
         Role.pregiudicato => Team.mafia,
+    // I neutrali non sono della famiglia: alle carte risultano cittadini.
+    Role.fesso || Role.piromane => Team.citizens,
         _ => team,
       };
 
@@ -97,7 +113,15 @@ extension RoleInfo on Role {
         Role.guardaspalle => const RoleRule(RoleCategory.protector, minPlayers: 9),
         Role.reduce => const RoleRule(RoleCategory.passive, minPlayers: 9),
         Role.pregiudicato => const RoleRule(RoleCategory.passive, minPlayers: 10),
+    Role.messia => const RoleRule(RoleCategory.civic, minPlayers: 10),
+    Role.sindaco => const RoleRule(RoleCategory.civic, minPlayers: 9),
+    Role.portinaio => const RoleRule(RoleCategory.investigator, minPlayers: 9),
+    Role.fesso => const RoleRule(RoleCategory.neutral, minPlayers: 8),
+    Role.piromane => const RoleRule(RoleCategory.neutral, minPlayers: 13),
       };
+
+  /// Ostile alla città: finché è vivo la città non ha vinto.
+  bool get isHostileNeutral => this == Role.piromane;
 
   /// Esiste in questa modalità? Il Compare vive solo online, dove c'è la chat.
   bool playableIn(PlayMode mode) => rule.modes.contains(mode);

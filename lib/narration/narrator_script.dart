@@ -41,12 +41,7 @@ class NarratorScript {
 
   /// Senza [random] le morti si pescano dal mazzo della serata, che non si
   /// ripete da una partita all'altra; con un seme, da un mazzo tutto suo.
-  factory NarratorScript({
-    NarrationPack pack = italianPack,
-    CitySetting? city,
-    Random? random,
-    MethodDeck? deck,
-  }) {
+  factory NarratorScript({NarrationPack pack = italianPack, CitySetting? city, Random? random, MethodDeck? deck}) {
     final rng = random ?? Random();
     return NarratorScript._(
       pack,
@@ -71,8 +66,7 @@ class NarratorScript {
 
   /// Sorteggia come è morta una vittima. Chi mette in scena il delitto e chi
   /// lo racconta devono usare la stessa storia: si compone una volta sola.
-  DeathStory composeDeath() =>
-      DeathStory.compose(_picker, pack, city, method: _deck.draw(pack.methods));
+  DeathStory composeDeath() => DeathStory.compose(_picker, pack, city, method: _deck.draw(pack.methods));
 
   /// Un agguato che il Dottore manda a vuoto: l'agguato si pesca dallo
   /// stesso mazzo delle morti, fra quelli a cui il Dottore sa rimediare.
@@ -101,8 +95,8 @@ class NarratorScript {
           switch (attack.outcome) {
             AttackOutcome.healed => composeRescue(),
             AttackOutcome.shrugged => composeLucky(),
-            AttackOutcome.killed when attack.source == AttackSource.sniper =>
-              DeathStory.sniper(_picker, pack, city),
+        AttackOutcome.killed when attack.source == AttackSource.sniper => DeathStory.sniper(_picker, pack, city),
+        AttackOutcome.killed when attack.source == AttackSource.fire => DeathStory.fire(_picker, pack, city),
             AttackOutcome.killed => composeDeath(),
           },
       ];
@@ -133,6 +127,12 @@ class NarratorScript {
       lines.add(_fact(scenes[i].fact, name: name));
     }
 
+    final resurrected = report.resurrected;
+    if (resurrected != null) {
+      lines.add(_story(_picker.pick('resurrection', pack.resurrections)));
+      lines.add(_fact(pack.resurrectedFact, name: resurrected.name));
+    }
+
     final scoop = report.scoop;
     if (scoop != null) {
       final name = scoop.subject.name;
@@ -155,10 +155,7 @@ class NarratorScript {
     return lines;
   }
 
-  List<ScriptLine> voteCall() => [
-        _story(_picker.pick('vote', pack.voteCalls)),
-        _fact(pack.voteInstruction),
-      ];
+  List<ScriptLine> voteCall() => [_story(_picker.pick('vote', pack.voteCalls)), _fact(pack.voteInstruction)];
 
   /// La prima battuta porta il condannato al patibolo; la seconda gira la
   /// carta, e chi impagina il copione la tiene coperta fino a quel momento.
@@ -171,7 +168,9 @@ class NarratorScript {
     final role = report.role!;
     final isMafia = role.team == Team.mafia;
     final String reaction;
-    if (!isMafia) {
+    if (report.personalWin) {
+      reaction = _picker.pick('lynch.fool', pack.foolWins);
+    } else if (!isMafia) {
       reaction = _picker.pick('lynch.innocent', pack.lynchedInnocent);
     } else if (report.winner == Team.citizens) {
       reaction = _picker.pick('lynch.last', pack.lynchedLastMafioso);
@@ -180,18 +179,25 @@ class NarratorScript {
     }
     return [
       _story(_picker.pick('lynch.scene', pack.lynchScenes), name: condemned.name),
-      _line(
-        [
+      _line([
           ..._parts(pack.cardTurns, name: condemned.name, role: pack.role(role).label),
-          VoicePart.spoken(' ${isMafia ? pack.wasMafia : pack.wasCitizen}'),
-        ],
-        fact: true,
+        VoicePart.spoken(
+          ' ${switch (role.team) {
+            Team.mafia => pack.wasMafia,
+            Team.citizens => pack.wasCitizen,
+            Team.neutral => pack.wasNeutral,
+          }}',
       ),
+      ], fact: true),
       _story(reaction),
+      if (report.personalWin) _fact(pack.foolWinsFact, name: condemned.name),
     ];
   }
 
   List<ScriptLine> ending(Team winner) {
+    if (winner == Team.neutral) {
+      return [_fact(pack.arsonistWinsFact), _story(_picker.pick('ending.neutral', pack.arsonistWins))];
+    }
     final mafiaWon = winner == Team.mafia;
     return [
       _fact(mafiaWon ? pack.mafiaWinsFact : pack.citizensWinFact),

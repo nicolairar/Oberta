@@ -12,6 +12,9 @@ class DeathStory {
   static const rescueId = 'dottore';
   static const luckyId = 'fiaschetta';
 
+  /// Il fiammifero del Piromane.
+  static const fireId = 'incendio';
+
   /// Le varianti del colpo del Cecchino: ognuna ha il suo filmato e le sue
   /// battute, e l'id dice quale.
   static const belfryId = 'cecchino-campanile';
@@ -104,8 +107,7 @@ class DeathStory {
   });
 
   /// [method] arriva di solito dal mazzo della serata; se manca si pesca qui.
-  factory DeathStory.compose(Picker picker, NarrationPack pack, CitySetting city, {StoryPiece? method}) =>
-      DeathStory(
+  factory DeathStory.compose(Picker picker, NarrationPack pack, CitySetting city, {StoryPiece? method}) => DeathStory(
         scene: picker.pick('death.scene', city.scenes),
         method: method ?? picker.pick('death.method', pack.methods),
         epilogue: picker.pick('death.epilogue', pack.epilogues),
@@ -120,19 +122,21 @@ class DeathStory {
         fact: pack.victimFact,
       );
 
+  /// Il rogo del Piromane: stessa città, stesso finale, il fuoco.
+  factory DeathStory.fire(Picker picker, NarrationPack pack, CitySetting city) => DeathStory(
+    scene: picker.pick('death.scene', city.scenes),
+    method: StoryPiece(fireId, picker.pick('death.fire', pack.fires)),
+    epilogue: picker.pick('death.epilogue', pack.epilogues),
+    fact: pack.burnedFact,
+  );
+
   /// L'agguato andato a vuoto perché il Dottore è arrivato in tempo. Con
   /// [attack] (di solito dal mazzo della serata) si vede proprio
   /// quell'agguato, e il Dottore arriva con un rimedio adatto; senza, è un
   /// colpo di pistola qualunque.
-  factory DeathStory.rescue(Picker picker, NarrationPack pack, CitySetting city, {StoryPiece? attack}) =>
-      DeathStory(
+  factory DeathStory.rescue(Picker picker, NarrationPack pack, CitySetting city, {StoryPiece? attack}) => DeathStory(
         scene: picker.pick('death.scene', city.scenes),
-        method: _variant(
-          picker,
-          'death.rescue',
-          pack.rescues,
-          only: attack == null ? null : rescuesFor(attack.id),
-        ),
+    method: _variant(picker, 'death.rescue', pack.rescues, only: attack == null ? null : rescuesFor(attack.id)),
         epilogue: null,
         fact: pack.savedFact,
         attack: attack,
@@ -141,15 +145,9 @@ class DeathStory {
   /// L'agguato andato a vuoto da solo: il colpo c'è stato, ma chi era nel
   /// mirino ha la pelle dura e resta in piedi. Con [attack] si vede
   /// quell'agguato, e la fortuna che lo ferma.
-  factory DeathStory.lucky(Picker picker, NarrationPack pack, CitySetting city, {StoryPiece? attack}) =>
-      DeathStory(
+  factory DeathStory.lucky(Picker picker, NarrationPack pack, CitySetting city, {StoryPiece? attack}) => DeathStory(
         scene: picker.pick('death.scene', city.scenes),
-        method: _variant(
-          picker,
-          'death.lucky',
-          pack.shrugs,
-          only: attack == null ? null : luckFor(attack.id),
-        ),
+    method: _variant(picker, 'death.lucky', pack.shrugs, only: attack == null ? null : luckFor(attack.id)),
         epilogue: null,
         fact: pack.shruggedFact,
         attack: attack,
@@ -160,12 +158,7 @@ class DeathStory {
   /// mettono in scena la stessa cosa. Le varianti pesano tutte uguale, anche
   /// quelle con meno battute, e la stessa non torna subito. Con [only] si
   /// pesca solo fra quelle che vanno con l'agguato.
-  static StoryPiece _variant(
-    Picker picker,
-    String pool,
-    Map<String, List<String>> lines, {
-    List<String>? only,
-  }) {
+  static StoryPiece _variant(Picker picker, String pool, Map<String, List<String>> lines, {List<String>? only}) {
     final id = picker.pick(
       '$pool.variant',
       lines.keys.toList(),
