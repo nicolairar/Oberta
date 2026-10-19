@@ -27,7 +27,12 @@ class FrontPage extends StatefulWidget {
   final Key? tallyKey;
   final List<FrontPageLine> lines;
 
+  /// In poco spazio (lo spazio del tavolo): testate più piccole, il
+  /// ritratto accanto al racconto.
+  final bool compact;
+
   const FrontPage({
+    this.compact = false,
     super.key,
     required this.masthead,
     required this.dateLine,
@@ -113,10 +118,10 @@ class _FrontPageState extends State<FrontPage> with SingleTickerProviderStateMix
                   fit: BoxFit.scaleDown,
                   child: Text(
                     widget.masthead.toUpperCase(),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Georgia',
                       color: _ink,
-                      fontSize: 30,
+                      fontSize: widget.compact ? 22 : 30,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1.2,
                       height: 1.05,
@@ -140,10 +145,10 @@ class _FrontPageState extends State<FrontPage> with SingleTickerProviderStateMix
                 Text(
                   widget.headline.toUpperCase(),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Georgia',
                     color: _ink,
-                    fontSize: 25,
+                    fontSize: widget.compact ? 19 : 25,
                     height: 1.02,
                     fontWeight: FontWeight.w700,
                   ),
@@ -188,6 +193,28 @@ class _FrontPageState extends State<FrontPage> with SingleTickerProviderStateMix
           ],
         );
     final hasArt = widget.portraits.isNotEmpty || widget.stamp != null;
+    if (widget.compact) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (widget.portraits.isNotEmpty) ...[
+            SizedBox(
+              width: 76,
+              child: Wrap(
+                spacing: 4,
+                runSpacing: 4,
+                children: [
+                  for (final name in widget.portraits)
+                    _Halftone(name: name, fallen: widget.fallen, width: widget.portraits.length > 1 ? 36 : 76),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+          ],
+          Expanded(child: column(lines)),
+        ],
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

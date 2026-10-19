@@ -25,7 +25,6 @@ import '../../press.dart';
 import '../../avatar/avatar_look.dart';
 import '../../seating.dart';
 import '../../theme/app_theme.dart';
-import '../../widgets/avatar_spotlight.dart';
 import '../../widgets/death_scene.dart';
 import '../../widgets/night_notes.dart';
 import '../../widgets/scene_scaffold.dart';
@@ -53,6 +52,10 @@ import '../../widgets/roles_sheet.dart';
 ///
 /// Lo schermo conosce solo il [GameClient]: il tavolo di tutti, la vista del
 /// proprio posto e la chat. Nessun telefono sa i ruoli degli altri.
+/// Una fase del gioco: chi la riconosce, il tavolo (o il giornale) e la
+/// striscia dei comandi. Le misure le dà la pagina, sempre le stesse.
+typedef _Phase = ({Key key, Widget table, Widget strip});
+
 class OnlineGameScreen extends StatefulWidget {
   final OnlineServices services;
   final Room room;
@@ -430,10 +433,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                 ),
                 ?_connectionBanner(),
                 Expanded(
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: Padding(
+                  child: _inlineChat
+                      ? _gamePage()
+                      : Padding(
                           padding: const EdgeInsets.fromLTRB(10, 4, 10, 8),
                           child: AnimatedSwitcher(
                             duration: const Duration(milliseconds: 350),
@@ -443,24 +445,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
                 ),
-                if (ready && !_board.abandoned && !_inlineChat && _stage.chat == 'day' && _view.familyChat)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: SegmentedButton<bool>(
-                      key: const Key('online.chatSwitch'),
-                      segments: [
-                        ButtonSegment(value: false, label: Text(_t.online.chatTown)),
-                        ButtonSegment(value: true, label: Text(_t.online.chatFamily)),
-                      ],
-                      selected: {_familyTab},
-                      showSelectedIcon: false,
-                      onSelectionChanged: (choice) => setState(() => _familyTab = choice.single),
-                    ),
-                  ),
                 if (ready && !_board.abandoned && !_inlineChat) _chatDock(),
               ],
             ),
@@ -540,13 +525,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     if (_board.abandoned) return _closedView();
     return switch (_stage) {
       Stage.reveal => _cardView(),
-      Stage.night => _nightView(),
-      Stage.dawn => _dawnView(),
-      Stage.discussion => _discussionView(),
-      Stage.vote => _voteView(),
-      Stage.verdict || Stage.verdictFilm => _verdictView(),
       Stage.ended => _endView(),
-      Stage.dawnFilms => const SizedBox.shrink(),
+      // Le fasi del gioco hanno la loro pagina fissa (_gamePage).
+      _ => const SizedBox.shrink(),
     };
   }
 
@@ -643,8 +624,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     );
   }
 
-  /// Di giorno la chat sta dentro lo schermo, grande, sotto il tavolo.
-  bool get _inlineChat => _client.ready && !_board.abandoned && (_stage == Stage.discussion || _stage == Stage.vote);
+  /// Le fasi del gioco hanno tutte la stessa pagina, con le stesse misure:
+  /// il tavolo, la striscia dei comandi, la chat.
+  bool get _inlineChat =>
+      _client.ready &&
+      !_board.abandoned &&
+      const {Stage.night, Stage.dawn, Stage.discussion, Stage.vote, Stage.verdict, Stage.verdictFilm}.contains(_stage);
 
   /// I messaggi già visti: una chiamata in causa nuova dà un colpetto.
   int? _mentionSeen;
@@ -661,64 +646,136 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     if (called) HapticFeedback.lightImpact();
   }
 
-  /// Il tavolo in alto, stretto quanto basta, e la chat sotto con quasi
-  /// tutto lo spazio. Con la tastiera aperta resta solo la chat.
-  Widget _dayLayout({
-    required Key key,
-    required List<Widget> above,
-    required Widget table,
-    required List<Widget> below,
-  }) {
+  /// La striscia dei comandi tra il tavolo e la chat: sempre alta così.
+  static const _stripHeight = 70.0;
+
+  /// Il tavolo: la stessa altezza in ogni fase, poco più di un terzo dello
+  /// schermo, così la chat resta grande.
+  double get _tableHeight => (MediaQuery.sizeOf(context).height * 0.38).clamp(200.0, 330.0);
+
+  _Phase _phase() => switch (_stage) {
+    Stage.night => _view.action != null ? _taskPhase() : _waitingPhase(),
+    Stage.dawn => _dawnPhase(),
+    Stage.discussion => _discussionPhase(),
+    Stage.vote => _votePhase(),
+    _ => _verdictPhase(),
+  };
+
+  /// La pagina di ogni fase: il tavolo in alto, sotto la striscia dei
+  /// comandi della fase, poi la chat (sempre la stessa, anche di notte). Con
+  /// la tastiera aperta resta solo la chat.
+  Widget _gamePage() {
     final typing = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final phase = _phase();
     final now = _chatNow();
-    return LayoutBuilder(
-      key: key,
-      builder: (context, box) => Column(
+    final family = now.view.channel == ChatChannel.family;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+      child: Column(
         children: [
-          if (!typing) ...[
-            ...above,
-            SizedBox(height: max(140, box.maxHeight * 0.34), child: table),
-            ...below,
-            const SizedBox(height: 6),
-          ],
-          if (_view.familyChat)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: SegmentedButton<bool>(
-                key: const Key('online.chatSwitch'),
-                segments: [
-                  ButtonSegment(value: false, label: Text(_t.online.chatTown)),
-                  ButtonSegment(value: true, label: Text(_t.online.chatFamily)),
+          if (!typing)
+            KeyedSubtree(
+              key: phase.key,
+              child: Column(
+                children: [
+                  SizedBox(
+                    key: const Key('game.tableSlot'),
+                    height: _tableHeight,
+                    width: double.infinity,
+                    child: phase.table,
+                  ),
+                  SizedBox(
+                    key: const Key('game.stripSlot'),
+                    height: _stripHeight,
+                    width: double.infinity,
+                    child: Center(child: phase.strip),
+                  ),
                 ],
-                selected: {_familyTab},
-                showSelectedIcon: false,
-                onSelectionChanged: (choice) => setState(() => _familyTab = choice.single),
               ),
             ),
           Expanded(
-            child: Container(
-              key: Key(now.view.channel == ChatChannel.family ? 'online.familyChat' : 'online.townChat'),
-              decoration: BoxDecoration(
-                color: Saloon.ink.withValues(alpha: 0.92),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: now.view.accent.withValues(alpha: 0.8), width: 1.3),
-              ),
-              padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
-              child: ChatLog(
-                view: now.view,
-                messages: now.messages,
-                myId: widget.me.id,
-                labels: ChatLabels(hint: _t.online.chatHint, empty: _t.online.chatEmpty, send: _t.online.chatSend),
-                onSend: (body) => _client.sendChat(_chatView().channel, body),
-                seats: _chatSeats,
+            child: SizedBox(
+              key: const Key('game.chatSlot'),
+              width: double.infinity,
+              child: Container(
+                key: Key(family ? 'online.familyChat' : 'online.townChat'),
+                decoration: BoxDecoration(
+                  color: Saloon.ink.withValues(alpha: 0.92),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: now.view.accent.withValues(alpha: 0.8), width: 1.3),
+                ),
+                padding: const EdgeInsets.fromLTRB(12, 6, 8, 8),
+                child: ChatLog(
+                  view: now.view,
+                  messages: now.messages,
+                  myId: widget.me.id,
+                  labels: ChatLabels(hint: _t.online.chatHint, empty: _t.online.chatEmpty, send: _t.online.chatSend),
+                  onSend: (body) => _client.sendChat(_chatView().channel, body),
+                  seats: _chatSeats,
+                  trailing: _stage.chat == 'day' && _view.familyChat ? _chatSwitch() : null,
+                ),
               ),
             ),
           ),
-          SizedBox(height: typing ? 0 : max(MediaQuery.viewPaddingOf(context).bottom - 8, 0)),
+          SizedBox(height: typing ? 6 : max(MediaQuery.viewPaddingOf(context).bottom - 6, 8)),
         ],
       ),
     );
   }
+
+  /// Di giorno, con un Compare vivo: la piazza o la famiglia.
+  Widget _chatSwitch() => SizedBox(
+    height: 28,
+    child: SegmentedButton<bool>(
+      key: const Key('online.chatSwitch'),
+      style: const ButtonStyle(
+        visualDensity: VisualDensity(horizontal: -4, vertical: -4),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        textStyle: WidgetStatePropertyAll(TextStyle(fontSize: 12)),
+      ),
+      segments: [
+        ButtonSegment(value: false, label: Text(_t.online.chatTown)),
+        ButtonSegment(value: true, label: Text(_t.online.chatFamily)),
+      ],
+      selected: {_familyTab},
+      showSelectedIcon: false,
+      onSelectionChanged: (choice) => setState(() => _familyTab = choice.single),
+    ),
+  );
+
+  /// Le parole sul panno, al centro del tavolo: si stringono per starci.
+  Widget _felt(List<Widget> lines, {Key? key}) => FittedBox(
+    key: key,
+    fit: BoxFit.scaleDown,
+    child: Container(
+      width: 230,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(color: const Color(0xB0080605), borderRadius: BorderRadius.circular(12)),
+      child: Column(mainAxisSize: MainAxisSize.min, children: lines),
+    ),
+  );
+
+  Text _feltLine(
+    String text, {
+    Key? key,
+    double size = 13.5,
+    Color color = AppColors.textPrimary,
+    FontWeight? weight,
+    int maxLines = 4,
+  }) => Text(
+    text,
+    key: key,
+    textAlign: TextAlign.center,
+    maxLines: maxLines,
+    overflow: TextOverflow.ellipsis,
+    style: AppText.body.copyWith(
+      color: color,
+      fontSize: size,
+      fontWeight: weight,
+      height: 1.25,
+      shadows: const [Shadow(color: Colors.black, blurRadius: 6)],
+    ),
+  );
 
   // ---------------------------------------------------------------------
   // Il tavolo: tutti grandi uguali, intorno al panno.
@@ -823,6 +880,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
               ? null
               : _t.role(role).label,
           noteColor: role?.team == Team.mafia ? Saloon.mafia : Saloon.brass,
+          role: _publicKnowledge(player).role,
+          selectable: can && onTap != null && player != selected,
           dimmed: selectable.isNotEmpty && !can && _isAlive(player) && player != selected && player != _view.seat,
           onTap: can && onTap != null ? () => onTap(player) : null,
         );
@@ -915,12 +974,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   bool get _inFamilyChat => _view.alive && _view.team == Team.mafia;
 
-  Widget _nightView() {
-    final acting = _view.action != null;
-    return KeyedSubtree(key: const Key('online.night'), child: acting ? _taskView() : _waitingView());
-  }
-
-  Widget _taskView() {
+  _Phase _taskPhase() {
     final option = _view.action!;
     final task = NightTask(option.kind!, option.targets);
     final script = _script('task');
@@ -932,95 +986,97 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     final shown = alternative ? NightTask(option.alternative!, alternativeTargets) : task;
     final labels = alternativeLabels(_t, option.alternative);
     final lastWatch = _view.watches.isEmpty ? null : _view.watches.last;
-    return Column(
-      children: [
-        NightNotes(
-          lastWatch: lastWatch != null && lastWatch.round == _public.round - 1 ? lastWatch : null,
-          doused: _view.doused,
-          bounty: _view.bounty,
-        ),
-        if (option.alternative != null) ...[
-          SegmentedButton<bool>(
-            key: const Key('online.alternative'),
-            segments: [
-              ButtonSegment(value: false, label: Text(labels.$1)),
-              ButtonSegment(value: true, label: Text(labels.$2)),
-            ],
-            selected: {_alternative},
-            showSelectedIcon: false,
-            onSelectionChanged: busy
-                ? null
-                : (choice) => setState(() {
-                    _alternative = choice.single;
-                    // Il fiammifero si accende scegliendo se stessi: già scelto.
-                    _selected = _alternative && option.alternativeTargets != null ? alternativeTargets.first : null;
-                  }),
-          ),
-          const SizedBox(height: 6),
-        ],
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: Saloon.scrim(radius: 12, border: family ? Saloon.mafia : Saloon.brass),
-          child: Column(
-            children: [
-              Text(
-                script.taskPrompt(shown, _public.round),
-                textAlign: TextAlign.center,
-                style: AppText.display(19, color: AppColors.textPrimary),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                script.taskHint(shown),
-                textAlign: TextAlign.center,
-                style: AppText.body.copyWith(color: const Color(0xFFD8CCBE), fontSize: 13),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 6),
-        Expanded(
-          child: _table(
-            players: _secretTable(),
-            selectable: (alternative ? alternativeTargets : option.targets).toSet(),
-            selected: selected,
-            onTap: busy ? null : (player) => setState(() => _selected = player),
-            votes: family ? _withHope(_view.familyVotes) : const [],
-            voteColor: Saloon.mafia,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Row(
+    return (
+      key: const Key('online.night'),
+      table: _table(
+        players: _secretTable(),
+        selectable: (alternative ? alternativeTargets : option.targets).toSet(),
+        selected: selected,
+        onTap: busy ? null : (player) => setState(() => _selected = player),
+        votes: family ? _withHope(_view.familyVotes) : const [],
+        voteColor: Saloon.mafia,
+        center: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              flex: 2,
-              child: NoirButton(
-                key: const Key('online.pass'),
-                kind: NoirButtonKind.brass,
-                label: _t.pass,
-                onPressed: busy ? null : () => _send(Pass(_view.seat.id)),
+            if (option.alternative != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: SizedBox(
+                  height: 32,
+                  child: SegmentedButton<bool>(
+                    key: const Key('online.alternative'),
+                    style: const ButtonStyle(
+                      visualDensity: VisualDensity(horizontal: -3, vertical: -3),
+                      textStyle: WidgetStatePropertyAll(TextStyle(fontSize: 12)),
+                    ),
+                    segments: [
+                      ButtonSegment(value: false, label: Text(labels.$1)),
+                      ButtonSegment(value: true, label: Text(labels.$2)),
+                    ],
+                    selected: {_alternative},
+                    showSelectedIcon: false,
+                    onSelectionChanged: busy
+                        ? null
+                        : (choice) => setState(() {
+                            _alternative = choice.single;
+                            // Il fiammifero si accende scegliendo se stessi: già scelto.
+                            _selected = _alternative && option.alternativeTargets != null
+                                ? alternativeTargets.first
+                                : null;
+                          }),
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              flex: 3,
-              child: NoirButton(
-                key: const Key('online.confirm'),
-                label: selected == null ? _t.confirm : '${_t.confirm} · ${_tag(selected)}',
-                onPressed: selected == null || busy
-                    ? null
-                    : () => _send(
-                        family ? MafiaVote(_view.seat.id, selected.id) : NightAction(_view.seat.id, selected.id),
-                      ),
-              ),
+            Flexible(
+              child: _felt([
+                NightNotes(
+                  lastWatch: lastWatch != null && lastWatch.round == _public.round - 1 ? lastWatch : null,
+                  doused: _view.doused,
+                  bounty: _view.bounty,
+                ),
+                Text(
+                  script.taskPrompt(shown, _public.round),
+                  textAlign: TextAlign.center,
+                  style: AppText.display(17, color: family ? const Color(0xFFFFB3B3) : AppColors.textPrimary),
+                ),
+                const SizedBox(height: 4),
+                _feltLine(script.taskHint(shown), size: 12, color: const Color(0xFFD8CCBE)),
+              ]),
             ),
           ],
         ),
-      ],
+      ),
+      strip: Row(
+        children: [
+          Expanded(
+            flex: 2,
+            child: NoirButton(
+              key: const Key('online.pass'),
+              compact: true,
+              kind: NoirButtonKind.brass,
+              label: _t.pass,
+              onPressed: busy ? null : () => _send(Pass(_view.seat.id)),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            flex: 3,
+            child: NoirButton(
+              key: const Key('online.confirm'),
+              compact: true,
+              label: selected == null ? _t.confirm : '${_t.confirm} · ${_tag(selected)}',
+              onPressed: selected == null || busy
+                  ? null
+                  : () =>
+                        _send(family ? MafiaVote(_view.seat.id, selected.id) : NightAction(_view.seat.id, selected.id)),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _waitingView() {
+  _Phase _waitingPhase() {
     final view = _view;
     final finding = view.nightChoice != null ? _finding : null;
     final found = finding?.role;
@@ -1028,66 +1084,51 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     final pending = _public.phase == GamePhase.night && _public.nightPending > 0
         ? _t.online.waitingForOthers(_public.nightPending)
         : null;
+    final Widget center;
     if (finding == null) {
       final status = !view.alive
           ? _t.online.youAreOut
           : view.nightChoice == null
           ? _script('night-${_public.round}').nightFalls(_public.round, online: true).map((l) => l.text).join('\n')
           : _t.online.moveRegistered;
-      return Column(
-        key: const Key('online.waiting'),
-        children: [
-          Expanded(
-            child: DealingTable(
-              key: view.nightChoice != null && finding == null ? const Key('online.moveRegistered') : null,
-              status: status,
-            ),
-          ),
-          if (view.nightChoice != null) ScrimText(_t.nobodyWillKnow),
-          if (pending != null) ...[const SizedBox(height: 6), ScrimText(pending)],
-        ],
-      );
-    }
-    return Column(
-      key: const Key('online.waiting'),
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        AvatarSpotlight(seed: finding.subject.name, size: 130, fallen: found != null),
-        const SizedBox(height: 14),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: Saloon.scrim(radius: 14, border: isMafia ? Saloon.mafia : Saloon.brass),
-          child: Column(
-            children: [
-              Text(
-                found == null ? _t.yourInvestigation : _t.inTheGrave,
-                style: AppText.overline.copyWith(color: Saloon.brass),
-              ),
-              const SizedBox(height: 8),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  finding.subject.name.toUpperCase(),
-                  style: AppText.display(30, color: AppColors.textPrimary),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                found != null
-                    ? _t.wasRole(_t.role(found).label)
-                    : isMafia
-                    ? _t.isFamily
-                    : _t.isInnocent,
-                style: AppText.display(20, color: isMafia ? Saloon.mafia : Saloon.clean),
-              ),
-            ],
-          ),
+      center = _felt(key: const Key('online.waiting'), [
+        _feltLine(
+          status,
+          key: view.nightChoice != null ? const Key('online.moveRegistered') : null,
+          size: 13,
+          maxLines: 6,
         ),
-        if (pending != null) ...[const SizedBox(height: 12), ScrimText(pending)],
-      ],
+        if (view.nightChoice != null) ...[
+          const SizedBox(height: 4),
+          _feltLine(_t.nobodyWillKnow, size: 11.5, color: Saloon.brass),
+        ],
+      ]);
+    } else {
+      center = _felt(key: const Key('online.waiting'), [
+        Text(
+          found == null ? _t.yourInvestigation : _t.inTheGrave,
+          style: AppText.overline.copyWith(color: Saloon.brass),
+        ),
+        const SizedBox(height: 4),
+        Text(_tag(finding.subject).toUpperCase(), style: AppText.display(24, color: AppColors.textPrimary)),
+        const SizedBox(height: 4),
+        Text(
+          found != null
+              ? _t.wasRole(_t.role(found).label)
+              : isMafia
+              ? _t.isFamily
+              : _t.isInnocent,
+          textAlign: TextAlign.center,
+          style: AppText.display(18, color: isMafia ? Saloon.mafia : Saloon.clean),
+        ),
+      ]);
+    }
+    return (
+      key: const Key('online.night'),
+      table: _table(players: _secretTable(), selected: finding?.subject, center: center),
+      strip: pending == null ? const SizedBox.shrink() : ScrimText(pending),
     );
   }
-
   // ---------------------------------------------------------------------
   // I film, per tutti nello stesso momento.
 
@@ -1133,18 +1174,11 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   List<FrontPageLine> _printed(List<ScriptLine> lines) => [for (final l in lines) (text: l.text, fact: l.isFact)];
 
-  Widget _chronicle({required Key key, required Widget page}) => Column(
-    key: key,
-    children: [
-      Expanded(child: page),
-      const SizedBox(height: 12),
-      _readyButton(),
-    ],
-  );
+  _Phase _waitingPhaseFor(Key key) => (key: key, table: _connectingView(), strip: const SizedBox.shrink());
 
-  Widget _dawnView() {
+  _Phase _dawnPhase() {
     final dawn = _public.lastDawn;
-    if (dawn == null) return _connectingView();
+    if (dawn == null) return _waitingPhaseFor(const Key('online.dawn'));
     final lines = _script('dawn-${dawn.round}')
         .dawn(dawn, discussion: _board.settings.discussion, stories: _storiesOf(dawn), online: true);
     final dead = [
@@ -1172,10 +1206,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         : _italian
         ? (dead.length > 1 ? 'Trovati morti $names' : 'Trovato morto $names')
         : '$names found dead';
-    return _chronicle(
+    return (
       key: const Key('online.dawn'),
-      page: FrontPage(
+      strip: _readyButton(compact: true),
+      table: FrontPage(
         key: ValueKey('front-dawn-${dawn.round}'),
+        compact: true,
         masthead: _masthead,
         dateLine: _dateLine(_italian ? "Edizione dell'alba" : 'Dawn edition'),
         headline: headline,
@@ -1191,9 +1227,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   /// niente film. Il posto del condannato fa il linciaggio sul posto e poi
   /// mostra la carta, se la piazza l'ha vista; sopra, il titolo della sera,
   /// il racconto e lo scrutinio in poche righe.
-  Widget _verdictView() {
+  _Phase _verdictPhase() {
     final report = _public.lastLynch;
-    if (report == null) return _connectingView();
+    if (report == null) return _waitingPhaseFor(const Key('online.verdict'));
     final condemned = report.condemned;
     final role = report.role;
     final mafia = role?.team == Team.mafia;
@@ -1219,33 +1255,44 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     final tally = [for (final vote in _lastVotes) '${_tag(vote.voter)} → ${_short(vote.target)}'].join('  ·  ');
     final film = _stage == Stage.verdictFilm;
     final into = film ? _client.elapsed : LynchMark.length;
-    return _dayLayout(
+    return (
       key: const Key('online.verdict'),
-      above: [
-        ScrimText(
-          headline,
-          key: const Key('online.verdictHeadline'),
-          style: AppText.body.copyWith(
-            color: role == null ? Saloon.brass : stampColorFor(role),
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        if (story.isNotEmpty) ScrimText(story, key: const Key('online.verdictStory')),
-        if (tally.isNotEmpty)
-          ScrimText(
-            tally,
-            key: const Key('online.verdictVotes'),
-            style: AppText.body.copyWith(color: Saloon.brass, fontSize: 11),
-          ),
-        const SizedBox(height: 2),
-      ],
       table: _table(
         players: publicSeating(_public.seats),
         lynched: condemned,
         lynchedAt: into < Duration.zero ? Duration.zero : into,
+        center: _felt([
+          _feltLine(
+            headline,
+            key: const Key('online.verdictHeadline'),
+            size: 15,
+            weight: FontWeight.w800,
+            color: role == null ? Saloon.brass : Color.lerp(stampColorFor(role), Colors.white, 0.45)!,
+            maxLines: 3,
+          ),
+          if (story.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            _feltLine(story, key: const Key('online.verdictStory'), size: 12, maxLines: 5),
+          ],
+        ]),
       ),
-      below: [const SizedBox(height: 4), if (!film) _readyButton(compact: true)],
+      strip: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (tally.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text(
+                tally,
+                key: const Key('online.verdictVotes'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppText.body.copyWith(color: Saloon.brass, fontSize: 11.5),
+              ),
+            ),
+          if (!film) _readyButton(compact: true),
+        ],
+      ),
     );
   }
 
@@ -1260,14 +1307,16 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     return null;
   }
 
-  Widget _discussionView() => _dayLayout(
+  _Phase _discussionPhase() => (
     key: const Key('online.discussion'),
-    above: [ScrimText(_t.online.discussionHint), const SizedBox(height: 4)],
-    table: _table(players: publicSeating(_public.seats)),
-    below: [const SizedBox(height: 4), _readyButton(compact: true)],
+    table: _table(
+      players: publicSeating(_public.seats),
+      center: _felt([_feltLine(_t.online.discussionHint, size: 12.5, maxLines: 5)]),
+    ),
+    strip: _readyButton(compact: true),
   );
 
-  Widget _voteView() {
+  _Phase _votePhase() {
     final view = _view;
     final option = view.action;
     final votes = _withHope(_public.dayVotes);
@@ -1279,18 +1328,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     final selected = mine?.target;
     final cast = votes.length;
     final alive = _public.alive.length;
-    return _dayLayout(
+    return (
       key: const Key('online.vote'),
-      above: [
-        ScrimText(view.alive ? _t.online.voteHint : _t.online.youAreOut),
-        if (_public.mayor case final mayor?)
-          ScrimText(
-            _t.pack.mayorRevealed.replaceAll('{name}', _tag(mayor)),
-            key: const Key('online.mayor'),
-            style: AppText.body.copyWith(color: Saloon.brass, fontSize: 13, fontWeight: FontWeight.w700),
-          ),
-        const SizedBox(height: 2),
-      ],
       table: _table(
         players: publicSeating(_public.seats),
         selectable: canVote
@@ -1302,69 +1341,79 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         selected: selected,
         onTap: (player) => _send(DayVote(view.seat.id, player.id)),
         votes: votes,
+        center: _felt([
+          _feltLine(view.alive ? _t.online.voteHint : _t.online.youAreOut, size: 12.5, maxLines: 4),
+          if (_public.mayor case final mayor?) ...[
+            const SizedBox(height: 4),
+            _feltLine(
+              _t.pack.mayorRevealed.replaceAll('{name}', _tag(mayor)),
+              key: const Key('online.mayor'),
+              color: Saloon.brass,
+              size: 12.5,
+              weight: FontWeight.w700,
+            ),
+          ],
+        ]),
       ),
-      below: [
-        const SizedBox(height: 6),
-        Container(
-          padding: const EdgeInsets.fromLTRB(12, 6, 6, 6),
-          decoration: Saloon.scrim(radius: 12),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.how_to_vote, size: 14, color: cast > 0 ? Saloon.blood : const Color(0xFF4A423C)),
-                        const SizedBox(width: 6),
-                        Flexible(
-                          child: Text(
-                            _t.online.votesCast(cast, alive),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppText.overline.copyWith(color: AppColors.textPrimary, fontSize: 11),
-                          ),
+      strip: Container(
+        padding: const EdgeInsets.fromLTRB(12, 6, 6, 6),
+        decoration: Saloon.scrim(radius: 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.how_to_vote, size: 14, color: cast > 0 ? Saloon.blood : const Color(0xFF4A423C)),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          _t.online.votesCast(cast, alive),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppText.overline.copyWith(color: AppColors.textPrimary, fontSize: 11),
                         ),
-                      ],
-                    ),
-                    if (mine != null)
-                      Text(
-                        mine.target == null ? _t.online.abstained : _t.online.votedFor(_tag(mine.target!)),
-                        key: const Key('online.myVote'),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppText.body.copyWith(color: Saloon.brass, fontSize: 13, fontWeight: FontWeight.w700),
                       ),
-                  ],
-                ),
+                    ],
+                  ),
+                  if (mine != null)
+                    Text(
+                      mine.target == null ? _t.online.abstained : _t.online.votedFor(_tag(mine.target!)),
+                      key: const Key('online.myVote'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppText.body.copyWith(color: Saloon.brass, fontSize: 13, fontWeight: FontWeight.w700),
+                    ),
+                ],
               ),
-              if (option != null && option.canReveal) ...[
-                const SizedBox(width: 6),
-                NoirButton(
-                  key: const Key('online.revealMayor'),
-                  compact: true,
-                  label: _t.revealAsMayor,
-                  onPressed: canVote ? () => _send(RevealMayor(view.seat.id)) : null,
-                ),
-              ],
-              if (option != null) ...[
-                const SizedBox(width: 6),
-                NoirButton(
-                  key: const Key('online.abstain'),
-                  compact: true,
-                  kind: NoirButtonKind.brass,
-                  label: _t.online.abstain,
-                  onPressed: canVote && mine?.target != null || canVote && mine == null
-                      ? () => _send(Pass(view.seat.id))
-                      : null,
-                ),
-              ],
+            ),
+            if (option != null && option.canReveal) ...[
+              const SizedBox(width: 6),
+              NoirButton(
+                key: const Key('online.revealMayor'),
+                compact: true,
+                label: _t.revealAsMayor,
+                onPressed: canVote ? () => _send(RevealMayor(view.seat.id)) : null,
+              ),
             ],
-          ),
+            if (option != null) ...[
+              const SizedBox(width: 6),
+              NoirButton(
+                key: const Key('online.abstain'),
+                compact: true,
+                kind: NoirButtonKind.brass,
+                label: _t.online.abstain,
+                onPressed: canVote && mine?.target != null || canVote && mine == null
+                    ? () => _send(Pass(view.seat.id))
+                    : null,
+              ),
+            ],
+          ],
         ),
-      ],
+      ),
     );
   }
 

@@ -169,7 +169,7 @@ class SaloonTable extends StatelessWidget {
   /// La larghezza delle carte per [count] posti in [box]: la più grande per
   /// cui nessuna carta tocca la vicina.
   static double cardWidth(int count, Size box) {
-    final top = min(min(box.width * 0.3, box.height * 0.3 / cardAspect), 118.0);
+    final top = min(min(box.width * 0.3, box.height * 0.36 / cardAspect), 118.0);
     for (var width = top; width > minCard; width -= 1.5) {
       if (_fits(seats(count, box, width), width)) return width;
     }

@@ -222,6 +222,9 @@ class ChatLog extends StatefulWidget {
   /// Il titolo sopra i messaggi (nel foglio c'è già il suo).
   final bool header;
 
+  /// Accanto al titolo (la scelta tra piazza e famiglia).
+  final Widget? trailing;
+
   const ChatLog({
     super.key,
     required this.view,
@@ -232,6 +235,7 @@ class ChatLog extends StatefulWidget {
     this.seats = ChatSeats.none,
     this.autofocus = false,
     this.header = true,
+    this.trailing,
   });
 
   @override
@@ -283,6 +287,8 @@ class _ChatLogState extends State<ChatLog> {
                 Icon(view.note == null ? Icons.chat_bubble : Icons.lock, size: 13, color: view.accent),
                 const SizedBox(width: 6),
                 Text(view.title.toUpperCase(), style: AppText.overline.copyWith(color: view.accent, fontSize: 12)),
+                const Spacer(),
+                ?widget.trailing,
               ],
             ),
           ),

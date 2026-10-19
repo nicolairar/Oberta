@@ -24,16 +24,17 @@ class Saloon {
 
   /// Il fondo scuro dietro ogni testo: mai testo chiaro su fondo chiaro.
   static BoxDecoration scrim({double radius = 14, Color border = brassDeep}) => BoxDecoration(
-        color: ink.withValues(alpha: 0.86),
-        borderRadius: BorderRadius.circular(radius),
-        border: Border.all(color: border.withValues(alpha: 0.7)),
-        boxShadow: const [BoxShadow(color: Color(0xAA000000), blurRadius: 16, offset: Offset(0, 6))],
-      );
+    color: ink.withValues(alpha: 0.86),
+    borderRadius: BorderRadius.circular(radius),
+    border: Border.all(color: border.withValues(alpha: 0.7)),
+    boxShadow: const [BoxShadow(color: Color(0xAA000000), blurRadius: 16, offset: Offset(0, 6))],
+  );
 
   static TextStyle plate(double size, {Color color = AppColors.textPrimary}) =>
-      AppText.display(size, color: color).copyWith(letterSpacing: size * 0.12, shadows: const [
-        Shadow(color: Colors.black, blurRadius: 6, offset: Offset(0, 2)),
-      ]);
+      AppText.display(size, color: color).copyWith(
+        letterSpacing: size * 0.12,
+        shadows: const [Shadow(color: Colors.black, blurRadius: 6, offset: Offset(0, 2))],
+      );
 }
 
 enum NoirButtonKind {
@@ -123,10 +124,7 @@ class _NoirButtonState extends State<NoirButton> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (widget.icon != null) ...[
-                    Icon(widget.icon, size: 18, color: text),
-                    const SizedBox(width: 8),
-                  ],
+                  if (widget.icon != null) ...[Icon(widget.icon, size: 18, color: text), const SizedBox(width: 8)],
                   Flexible(
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
@@ -154,20 +152,26 @@ class ScrimText extends StatelessWidget {
   final TextAlign align;
   final EdgeInsetsGeometry padding;
 
-  const ScrimText(this.text, {super.key, this.style, this.align = TextAlign.center, this.padding = const EdgeInsets.symmetric(horizontal: 14, vertical: 8)});
+  const ScrimText(
+    this.text, {
+    super.key,
+    this.style,
+    this.align = TextAlign.center,
+    this.padding = const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+  });
 
   @override
   Widget build(BuildContext context) => DecoratedBox(
-        decoration: Saloon.scrim(radius: 10),
-        child: Padding(
-          padding: padding,
-          child: Text(
-            text,
-            textAlign: align,
-            style: style ?? AppText.body.copyWith(color: AppColors.textPrimary, fontSize: 14),
-          ),
-        ),
-      );
+    decoration: Saloon.scrim(radius: 10),
+    child: Padding(
+      padding: padding,
+      child: Text(
+        text,
+        textAlign: align,
+        style: style ?? AppText.body.copyWith(color: AppColors.textPrimary, fontSize: 14),
+      ),
+    ),
+  );
 }
 
 /// Il cartiglio in cima: il giorno (o la notte), la fase in un nastro
@@ -182,12 +186,22 @@ class StageHeader extends StatelessWidget {
   /// Un bottone a destra, prima dell'orologio (il foglio dei ruoli).
   final Widget? action;
 
-  const StageHeader({super.key, required this.title, this.ribbon, this.countdown, this.urgent = false, this.leading, this.action});
+  const StageHeader({
+    super.key,
+    required this.title,
+    this.ribbon,
+    this.countdown,
+    this.urgent = false,
+    this.leading,
+    this.action,
+  });
 
   @override
   Widget build(BuildContext context) {
+    // Sempre alta così, con o senza il nastro: la pagina sotto non si muove.
     return Container(
-      padding: const EdgeInsets.fromLTRB(4, 4, 12, 8),
+      height: 58,
+      padding: const EdgeInsets.fromLTRB(4, 3, 12, 5),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -201,35 +215,33 @@ class StageHeader extends StatelessWidget {
         children: [
           SizedBox(width: 44, child: leading),
           Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(width: 22, height: 1.2, color: Saloon.brass),
-                      const SizedBox(width: 10),
-                      Text(title.toUpperCase(), maxLines: 1, style: Saloon.plate(22)),
-                      const SizedBox(width: 10),
-                      Container(width: 22, height: 1.2, color: Saloon.brass),
-                    ],
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(width: 22, height: 1.2, color: Saloon.brass),
+                        const SizedBox(width: 10),
+                        Text(title.toUpperCase(), maxLines: 1, style: Saloon.plate(22)),
+                        const SizedBox(width: 10),
+                        Container(width: 22, height: 1.2, color: Saloon.brass),
+                      ],
+                    ),
                   ),
-                ),
-                if (ribbon != null) ...[
-                  const SizedBox(height: 4),
-                  _Ribbon(ribbon!),
+                  if (ribbon != null) ...[const SizedBox(height: 4), _Ribbon(ribbon!)],
                 ],
-              ],
+              ),
             ),
           ),
           ?action,
           SizedBox(
             width: action == null ? 76 : 64,
-            child: countdown == null
-                ? null
-                : _Countdown(countdown!, urgent: urgent),
+            child: countdown == null ? null : _Countdown(countdown!, urgent: urgent),
           ),
         ],
       ),
@@ -244,14 +256,17 @@ class _Ribbon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: [Saloon.enamelDeep, Saloon.enamel, Saloon.enamelDeep]),
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: Saloon.brass, width: 1),
-        ),
-        child: Text(text.toUpperCase(), style: AppText.display(12, color: const Color(0xFFFFE9C2)).copyWith(letterSpacing: 2.4)),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(colors: [Saloon.enamelDeep, Saloon.enamel, Saloon.enamelDeep]),
+      borderRadius: BorderRadius.circular(4),
+      border: Border.all(color: Saloon.brass, width: 1),
+    ),
+    child: Text(
+      text.toUpperCase(),
+      style: AppText.display(12, color: const Color(0xFFFFE9C2)).copyWith(letterSpacing: 2.4),
+    ),
+  );
 }
 
 class _Countdown extends StatelessWidget {
@@ -278,7 +293,10 @@ class _Countdown extends StatelessWidget {
               child: Text(
                 text,
                 key: const Key('online.countdown'),
-                style: AppText.display(20, color: color).copyWith(letterSpacing: 1, fontFeatures: const [FontFeature.tabularFigures()]),
+                style: AppText.display(
+                  20,
+                  color: color,
+                ).copyWith(letterSpacing: 1, fontFeatures: const [FontFeature.tabularFigures()]),
               ),
             ),
           ),
@@ -296,19 +314,19 @@ class NewsPaper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Transform.rotate(
-        angle: -0.012,
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFFF4EAD2), Saloon.paper, Color(0xFFD9CBA8)],
-            ),
-            borderRadius: BorderRadius.circular(3),
-            boxShadow: const [BoxShadow(color: Color(0xDD000000), blurRadius: 22, offset: Offset(0, 10))],
-          ),
-          padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-          child: child,
+    angle: -0.012,
+    child: Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFF4EAD2), Saloon.paper, Color(0xFFD9CBA8)],
         ),
-      );
+        borderRadius: BorderRadius.circular(3),
+        boxShadow: const [BoxShadow(color: Color(0xDD000000), blurRadius: 22, offset: Offset(0, 10))],
+      ),
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+      child: child,
+    ),
+  );
 }

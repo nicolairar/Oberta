@@ -3,7 +3,9 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../../../../l10n/roles_sheet_strings.dart';
+import '../../../../rules/role.dart';
 import '../../../theme/app_theme.dart';
+import '../../../theme/role_style.dart';
 import '../../../widgets/player_avatar.dart';
 import 'noir_ui.dart';
 
@@ -38,6 +40,12 @@ class SeatCard extends StatelessWidget {
   final String? note;
   final Color noteColor;
 
+  /// Il ruolo, se è pubblico: la sua icona sul ritratto.
+  final Role? role;
+
+  /// Si può scegliere adesso: un filo d'ottone acceso intorno al ritratto.
+  final bool selectable;
+
   /// Spento: non si può scegliere (resta leggibile).
   final bool dimmed;
   final VoidCallback? onTap;
@@ -59,6 +67,8 @@ class SeatCard extends StatelessWidget {
     this.pizzinoColor = Saloon.blood,
     this.note,
     this.noteColor = Saloon.brass,
+    this.role,
+    this.selectable = false,
     this.dimmed = false,
     this.onTap,
   });
@@ -70,14 +80,16 @@ class SeatCard extends StatelessWidget {
     final arch = BorderRadius.vertical(top: Radius.circular(width / 2), bottom: Radius.circular(width * 0.12));
     final border = accused
         ? Saloon.blood
-        : selected
-            ? Saloon.brass
-            : Saloon.brassDeep;
+        : selected || selectable
+        ? Saloon.brass
+        : Saloon.brassDeep;
     final glow = selected
         ? [BoxShadow(color: Saloon.brass.withValues(alpha: 0.75), blurRadius: 18, spreadRadius: 2)]
         : accused
-            ? [BoxShadow(color: Saloon.blood.withValues(alpha: 0.6), blurRadius: 16, spreadRadius: 1)]
-            : const [BoxShadow(color: Color(0xAA000000), blurRadius: 10, offset: Offset(0, 5))];
+        ? [BoxShadow(color: Saloon.blood.withValues(alpha: 0.6), blurRadius: 16, spreadRadius: 1)]
+        : selectable
+        ? [BoxShadow(color: Saloon.brass.withValues(alpha: 0.28), blurRadius: 10, spreadRadius: 0.5)]
+        : const [BoxShadow(color: Color(0xAA000000), blurRadius: 10, offset: Offset(0, 5))];
     final plateHeight = max(20.0, width * 0.27);
     final card = Stack(
       clipBehavior: Clip.none,
@@ -92,7 +104,14 @@ class SeatCard extends StatelessWidget {
             duration: const Duration(milliseconds: 220),
             decoration: BoxDecoration(
               borderRadius: arch,
-              border: Border.all(color: border, width: selected || accused ? 2.6 : 1.4),
+              border: Border.all(
+                color: border,
+                width: selected || accused
+                    ? 2.8
+                    : selectable
+                    ? 2
+                    : 1.4,
+              ),
               boxShadow: glow,
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
@@ -100,8 +119,8 @@ class SeatCard extends StatelessWidget {
                 colors: accused
                     ? const [Color(0xFF7A1018), Color(0xFF2A0508)]
                     : fallen
-                        ? const [Color(0xFF2A2725), Color(0xFF121110)]
-                        : const [Color(0xFF3A2A1E), Color(0xFF120C08)],
+                    ? const [Color(0xFF2A2725), Color(0xFF121110)]
+                    : const [Color(0xFF3A2A1E), Color(0xFF120C08)],
               ),
             ),
             child: ClipRRect(
@@ -118,8 +137,8 @@ class SeatCard extends StatelessWidget {
         ),
         // La targhetta del nome.
         Positioned(
-          left: number == null ? width * 0.04 : -width * 0.1,
-          right: number == null ? width * 0.04 : -width * 0.1,
+          left: -width * 0.08,
+          right: -width * 0.08,
           bottom: 0,
           height: plateHeight,
           child: Container(
@@ -132,19 +151,14 @@ class SeatCard extends StatelessWidget {
             padding: EdgeInsets.symmetric(horizontal: plateHeight * 0.28),
             child: Row(
               children: [
-                if (number != null) ...[
-                  Text(
-                    '$number',
-                    style: AppText.display(plateHeight * 0.62, color: Saloon.brass).copyWith(height: 1.05, fontWeight: FontWeight.w700),
-                  ),
-                  SizedBox(width: plateHeight * 0.16),
-                ],
                 Expanded(
                   child: _PlateName(
                     name,
-                    shrink: number == null ? 0.66 : 0.42,
-                    style: AppText.display(plateHeight * 0.64, color: fallen ? AppColors.textSecondary : AppColors.textPrimary)
-                        .copyWith(letterSpacing: 0.6, height: 1.05),
+                    shrink: 0.45,
+                    style: AppText.display(
+                      plateHeight * 0.64,
+                      color: fallen ? AppColors.textSecondary : AppColors.textPrimary,
+                    ).copyWith(letterSpacing: 0.6, height: 1.05),
                   ),
                 ),
                 if (offline && !fallen) ...[
@@ -163,6 +177,26 @@ class SeatCard extends StatelessWidget {
             ),
           ),
         ),
+        if (number != null)
+          Positioned(
+            left: -width * 0.08,
+            top: -width * 0.04,
+            child: _SeatNumber(number!, size: max(20, width * 0.32), me: me, fallen: fallen),
+          ),
+        if (role != null)
+          Positioned(
+            left: -width * 0.06,
+            bottom: plateHeight * 0.9,
+            child: Container(
+              padding: const EdgeInsets.all(1.5),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Saloon.ink,
+                border: Border.all(color: noteColor, width: 1.2),
+              ),
+              child: RoleIcon(role!, size: max(18, width * 0.3)),
+            ),
+          ),
         if (fallen)
           Positioned(
             right: width * 0.02,
@@ -193,7 +227,10 @@ class SeatCard extends StatelessWidget {
                     fit: BoxFit.scaleDown,
                     child: Text(
                       accusedLabel.toUpperCase(),
-                      style: AppText.display(max(10, width * 0.13), color: const Color(0xFFFFEBD6)).copyWith(letterSpacing: 1.4),
+                      style: AppText.display(
+                        max(10, width * 0.13),
+                        color: const Color(0xFFFFEBD6),
+                      ).copyWith(letterSpacing: 1.4),
                     ),
                   ),
                 ),
@@ -215,7 +252,13 @@ class SeatCard extends StatelessWidget {
             left: -width * 0.05,
             right: -width * 0.05,
             bottom: -plateHeight * 0.95,
-            child: Center(child: Tooltip(message: tips.voteNote, triggerMode: TooltipTriggerMode.longPress, child: _Pizzino(key: pizzinoKey, text: pizzino!, color: pizzinoColor, size: max(10, width * 0.12)))),
+            child: Center(
+              child: Tooltip(
+                message: tips.voteNote,
+                triggerMode: TooltipTriggerMode.longPress,
+                child: _Pizzino(key: pizzinoKey, text: pizzino!, color: pizzinoColor, size: max(10, width * 0.12)),
+              ),
+            ),
           ),
         if (note != null)
           Positioned(
@@ -226,8 +269,17 @@ class SeatCard extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                 decoration: Saloon.scrim(radius: 6, border: noteColor),
-                child: Text(note!, maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: noteColor, fontSize: max(9, width * 0.11), fontWeight: FontWeight.w700, letterSpacing: 0.8)),
+                child: Text(
+                  note!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: noteColor,
+                    fontSize: max(9, width * 0.11),
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                  ),
+                ),
               ),
             ),
           ),
@@ -237,7 +289,11 @@ class SeatCard extends StatelessWidget {
       duration: const Duration(milliseconds: 200),
       scale: selected ? 1.06 : 1,
       child: Opacity(
-        opacity: dimmed ? 0.62 : 1,
+        opacity: dimmed
+            ? 0.45
+            : fallen
+            ? 0.8
+            : 1,
         child: Material(
           type: MaterialType.transparency,
           child: InkWell(
@@ -263,27 +319,75 @@ class _PlateName extends StatelessWidget {
   const _PlateName(this.text, {required this.style, this.shrink = 0.66});
 
   @override
-  Widget build(BuildContext context) => LayoutBuilder(builder: (context, box) {
-        final label = text.toUpperCase();
-        final painter = TextPainter(
-          text: TextSpan(text: label, style: style),
-          textDirection: TextDirection.ltr,
-          maxLines: 1,
-          textScaler: MediaQuery.textScalerOf(context),
-        )..layout();
-        final fit = painter.width <= 0 ? 1.0 : (box.maxWidth / painter.width).clamp(shrink, 1.0);
-        painter.dispose();
-        return Center(
-          child: Text(
-            label,
-            maxLines: 1,
-            softWrap: false,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: style.copyWith(fontSize: style.fontSize! * fit),
-          ),
-        );
-      });
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, box) {
+      // I bot si chiamano «bot.alfa»: sulla targhetta basta «ALFA» con
+      // l'ingranaggio, così il nome si legge intero.
+      final bot = text.startsWith('bot.') && text.length > 4;
+      final label = (bot ? text.substring(4) : text).toUpperCase();
+      final mark = bot ? style.fontSize! * 0.95 : 0.0;
+      final painter = TextPainter(
+        text: TextSpan(text: label, style: style),
+        textDirection: TextDirection.ltr,
+        maxLines: 1,
+        textScaler: MediaQuery.textScalerOf(context),
+      )..layout();
+      final room = box.maxWidth - mark - 2;
+      final fit = painter.width <= 0 ? 1.0 : (room / painter.width).clamp(shrink, 1.0);
+      painter.dispose();
+      return Center(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (bot) Icon(Icons.settings, size: mark * 0.85, color: Saloon.brass),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                softWrap: false,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: style.copyWith(fontSize: style.fontSize! * fit),
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+/// Il numero di posto: un gettone d'ottone sull'angolo del ritratto.
+class _SeatNumber extends StatelessWidget {
+  final int number;
+  final double size;
+  final bool me;
+  final bool fallen;
+
+  const _SeatNumber(this.number, {required this.size, required this.me, required this.fallen});
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: size,
+    height: size,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      gradient: RadialGradient(
+        center: const Alignment(-0.3, -0.4),
+        colors: fallen ? const [Color(0xFF8A817A), Color(0xFF4A443F)] : const [Color(0xFFF2D58A), Saloon.brassDeep],
+      ),
+      border: Border.all(color: me ? Colors.white : const Color(0xFF1A120C), width: me ? 1.6 : 1.2),
+      boxShadow: const [BoxShadow(color: Colors.black, blurRadius: 4, offset: Offset(0, 1))],
+    ),
+    child: Text(
+      '$number',
+      style: AppText.display(
+        size * 0.58,
+        color: const Color(0xFF1A120C),
+      ).copyWith(height: 1, fontWeight: FontWeight.w800, letterSpacing: 0),
+    ),
+  );
 }
 
 /// Il bollo di ceralacca con il numero dei voti.
@@ -295,24 +399,24 @@ class _WaxSeal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => TweenAnimationBuilder<double>(
-        key: ValueKey(votes),
-        tween: Tween(begin: 1.5, end: 1),
-        duration: const Duration(milliseconds: 260),
-        curve: Curves.easeOutBack,
-        builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
-        child: Container(
-          width: size,
-          height: size,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: const RadialGradient(center: Alignment(-0.3, -0.3), colors: [Color(0xFFE0343F), Color(0xFF7A0A12)]),
-            border: Border.all(color: const Color(0xFF3A0508), width: 1.5),
-            boxShadow: const [BoxShadow(color: Colors.black, blurRadius: 6, offset: Offset(0, 2))],
-          ),
-          child: Text('$votes', style: AppText.display(size * 0.55, color: Colors.white).copyWith(letterSpacing: 0)),
-        ),
-      );
+    key: ValueKey(votes),
+    tween: Tween(begin: 1.5, end: 1),
+    duration: const Duration(milliseconds: 260),
+    curve: Curves.easeOutBack,
+    builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
+    child: Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: const RadialGradient(center: Alignment(-0.3, -0.3), colors: [Color(0xFFE0343F), Color(0xFF7A0A12)]),
+        border: Border.all(color: const Color(0xFF3A0508), width: 1.5),
+        boxShadow: const [BoxShadow(color: Colors.black, blurRadius: 6, offset: Offset(0, 2))],
+      ),
+      child: Text('$votes', style: AppText.display(size * 0.55, color: Colors.white).copyWith(letterSpacing: 0)),
+    ),
+  );
 }
 
 /// Il bigliettino di chi ha votato: «→ MARCO».
@@ -325,23 +429,23 @@ class _Pizzino extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Transform.rotate(
-        angle: 0.04,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-          decoration: BoxDecoration(
-            color: Saloon.paper,
-            borderRadius: BorderRadius.circular(2),
-            border: Border(left: BorderSide(color: color, width: 3)),
-            boxShadow: const [BoxShadow(color: Colors.black, blurRadius: 4, offset: Offset(0, 2))],
-          ),
-          child: Text(
-            text,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontFamily: 'Courier', color: Saloon.paperInk, fontSize: size, fontWeight: FontWeight.w700),
-          ),
-        ),
-      );
+    angle: 0.04,
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      decoration: BoxDecoration(
+        color: Saloon.paper,
+        borderRadius: BorderRadius.circular(2),
+        border: Border(left: BorderSide(color: color, width: 3)),
+        boxShadow: const [BoxShadow(color: Colors.black, blurRadius: 4, offset: Offset(0, 2))],
+      ),
+      child: Text(
+        text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(fontFamily: 'Courier', color: Saloon.paperInk, fontSize: size, fontWeight: FontWeight.w700),
+      ),
+    ),
+  );
 }
 
 /// Il garofano sul posto di chi non c'è più.
