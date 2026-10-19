@@ -44,7 +44,8 @@ platform :ios do
     # RANKED_DEBUG=1 bundle exec fastlane ios beta: build di prova con la
     # classificata sbloccata (di norma resta chiusa dalla home).
     online += " --dart-define=RANKED_DEBUG=true" if ENV["RANKED_DEBUG"] == "1"
-    sh("cd .. && flutter build ios --release --config-only#{online}")
+    # Flutter lancia CocoaPods: fuori dal bundle di fastlane, che non lo contiene.
+    Bundler.with_unbundled_env { sh("cd .. && flutter build ios --release --config-only#{online}") }
     sh("rm -rf ../build/ios/archive/Runner.xcarchive")
     sh(
       "cd .. && xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release " \
