@@ -119,14 +119,15 @@ void main() {
       expect(report.winner, isNull);
     });
 
-    test('vince da solo quando restano lui e al massimo un altro', () {
+    test('vince da solo solo quando resta l\'ultimo vivo', () {
       final engine = table({mob: Role.mafioso, arsonist: Role.piromane, a: Role.cittadino, b: Role.cittadino});
       endNight(engine);
       engine.lynch(mob);
       engine.submitNightChoice(arsonist, a);
       endNight(engine);
-      final report = engine.lynch(b);
-      expect(report.winner, Team.neutral);
+      expect(engine.lynch(b).winner, isNull);
+      engine.submitNightChoice(arsonist, arsonist, alternative: true);
+      expect(endNight(engine).winner, Team.neutral);
       expect(engine.hasWon(arsonist), isTrue);
       expect(engine.hasWon(a), isFalse);
     });

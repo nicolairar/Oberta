@@ -427,14 +427,19 @@ class GameEngine {
       (_winner != null && _winner != Team.neutral && _teamOf(player) == _winner) ||
       (_winner == Team.citizens && bountyLapsed(player));
 
+  bool _everDied(Player player) =>
+      _history.any((record) => record.lynched == player || record.nightVictims.contains(player));
+
   /// La taglia del Cacciatore [hunter], se ce l'ha.
   Player? bountyOf(Player hunter) => _bounties[hunter];
 
   /// La taglia di [hunter] è morta e lui non ha incassato: adesso gioca con
   /// la città.
+  /// Una volta morta, la taglia resta scaduta anche se il Messia la
+  /// riporta in vita.
   bool bountyLapsed(Player hunter) {
     final mark = _bounties[hunter];
-    return mark != null && !isAlive(mark) && !_personalWins.contains(hunter);
+    return mark != null && !_personalWins.contains(hunter) && (!isAlive(mark) || _everDied(mark));
   }
 
   /// Quello che [watcher] ha visto dalla guardiola, notte per notte.
@@ -669,14 +674,21 @@ class GameEngine {
     final messiah = _actorOf(NightTaskKind.resurrect);
     final risen = _targetOf(NightTaskKind.resurrect);
 
+    // La famiglia sceglie una sola porta: solo chi ha votato quella ci va
+    // davvero. Il sorteggio dello spareggio si fa qui, una volta sola.
+    final familyTarget = _resolveMafiaVote();
+
     // Il Portinaio: qualcuno è passato dalla porta che guardava? Contano le
-    // mosse vere, non i compiti di copertura.
+    // mosse vere, non i compiti di copertura, né i voti della famiglia
+    // finiti su un'altra porta.
     for (final entry in _choices.entries) {
       if (entry.value.kind != NightTaskKind.watch) continue;
       final watched = entry.value.target;
       if (watched == null) continue;
       final visited = _choices.entries.any(
-        (other) => other.key != entry.key && other.value.target == watched && other.value.kind.visits,
+        (other) => other.key != entry.key && other.value.target == watched &&
+            other.value.kind.visits &&
+            (other.value.kind != NightTaskKind.kill || watched == familyTarget),
       );
       _watches.add((watcher: entry.key, report: (round: _round, target: watched, visited: visited)));
     }
@@ -689,7 +701,7 @@ class GameEngine {
       struck.putIfAbsent(shielded ? guard! : target, () => source);
     }
 
-    aim(_resolveMafiaVote(), AttackSource.family);
+    aim(familyTarget, AttackSource.family);
     aim(sniped, AttackSource.sniper);
     aim(_targetOf(NightTaskKind.stab), AttackSource.assassin);
     if (ignited) {
@@ -734,9 +746,10 @@ class GameEngine {
     // Il Messia: se ha visto l'alba, chi ha scelto torna tra i vivi, prima
     // che si contino i vincitori.
     Player? resurrected;
-    if (messiah != null) {
+    // Passare non spende la resurrezione: la spende solo una scelta vera.
+    if (messiah != null && risen != null) {
       _resurrectionSpent = true;
-      if (risen != null && !victims.contains(messiah)) {
+      if (!victims.contains(messiah)) {
         resurrected = risen;
         _alive
           ..add(risen)
@@ -793,6 +806,7 @@ class GameEngine {
     if (condemned != null) {
       role = setup.roleOf(condemned);
       _alive.remove(condemned);
+      _doused.remove(condemned);
       _facts.add(Fact(subject: condemned, team: role.team, role: role, visibility: Visibility.public));
     }
     final record = _history.removeLast();
@@ -815,7 +829,7 @@ class GameEngine {
       round: _round,
       condemned: condemned,
       role: role,
-      winner: hunter != null ? (_winner = Team.neutral) : (_updateWinner() ? _winner : null),
+      winner: hunter != null ? _bountyWin() : (_updateWinner() ? _winner : null),
       personalWin: personalWin,
       bountyHunter: hunter,
     );
@@ -851,6 +865,7 @@ class GameEngine {
     _log.add(LeaveTownCommand(player.id));
     final role = setup.roleOf(player);
     _alive.remove(player);
+    _doused.remove(player);
     _facts.add(Fact(subject: player, team: role.team, role: role, visibility: Visibility.public));
     _choices.remove(player);
     _choices.removeWhere((_, choice) => choice.target == player);
@@ -895,19 +910,30 @@ class GameEngine {
   }
 
   /// Chi ha vinto, se qualcuno ha vinto:
-  /// - il Piromane o il Sicario, se resta da solo o con al massimo un altro;
+  /// - il Sicario, se resta da solo o con al massimo un altro; il Piromane
+  ///   solo se resta l'ultimo vivo;
   /// - la mafia, quando non può più essere messa in minoranza (i neutrali
   ///   contano come non mafiosi);
   /// - la città, quando non c'è più mafia né un Piromane vivo.
   bool _updateWinner() {
     final won = _decideWinner();
-    // Lo Strozzino vivo a fine partita incassa, chiunque abbia vinto.
-    if (won) {
-      for (final player in _alive) {
-        if (setup.roleOf(player) == Role.strozzino && !_personalWins.contains(player)) _personalWins.add(player);
-      }
-    }
+    if (won) _payLoanSharks();
     return won;
+  }
+
+  /// La taglia linciata chiude la partita: vince il Cacciatore (e lo
+  /// Strozzino vivo, come a ogni fine partita).
+  Team _bountyWin() {
+    _winner = Team.neutral;
+    _payLoanSharks();
+    return Team.neutral;
+  }
+
+  /// Lo Strozzino vivo a fine partita incassa, chiunque abbia vinto.
+  void _payLoanSharks() {
+    for (final player in _alive) {
+      if (setup.roleOf(player) == Role.strozzino && !_personalWins.contains(player)) _personalWins.add(player);
+    }
   }
 
   bool _decideWinner() {
@@ -915,9 +941,17 @@ class GameEngine {
       for (final player in _alive)
         if (setup.roleOf(player).isHostileNeutral) player,
     ];
-    if (arsonists.isNotEmpty && _alive.length <= 2) {
+    // Il Sicario vince se resta da solo o con un altro; il Piromane solo se
+    // resta l'ultimo vivo (con un altro la partita va avanti: lo cosparge e
+    // lo brucia). Contro un mafioso, però, vince la parità della famiglia.
+    final soloWinners = [
+      for (final player in arsonists)
+        if (setup.roleOf(player) == Role.piromane ? _alive.length == 1 : _alive.length <= 2) player,
+    ];
+    final familyLeft = _alive.any((player) => _teamOf(player) == Team.mafia);
+    if (soloWinners.isNotEmpty && !(familyLeft && setup.roleOf(soloWinners.first) == Role.piromane)) {
       _winner = Team.neutral;
-      for (final player in arsonists) {
+      for (final player in soloWinners) {
         if (!_personalWins.contains(player)) _personalWins.add(player);
       }
       return true;
