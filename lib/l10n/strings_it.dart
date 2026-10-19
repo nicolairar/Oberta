@@ -564,14 +564,6 @@ final class ItalianStrings extends AppStrings {
 
   @override
   String get screeningVerdicts => 'VERDETTI';
-  @override
-  String get screeningScenarios => 'NOTTI DI PROVA';
-  @override
-  String get screeningFilms => 'Guarda i film dell\'alba';
-  @override
-  String get screeningReplay => 'Rigioca';
-  @override
-  String get screeningNarrator => 'IL NARRATORE';
 
   @override
   String verdictName(VerdictTake take) => switch (take) {

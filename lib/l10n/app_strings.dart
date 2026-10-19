@@ -214,10 +214,6 @@ abstract class AppStrings {
   String get screeningSpliced;
   String get screeningEffects;
   String get screeningVerdicts;
-  String get screeningScenarios;
-  String get screeningFilms;
-  String get screeningReplay;
-  String get screeningNarrator;
   String get someoneSaved;
   String get musicVolumeLabel;
   String get effectsVolumeLabel;
@@ -425,10 +421,6 @@ abstract class AppStrings {
     'screeningSpliced': screeningSpliced,
     'screeningEffects': screeningEffects,
     'screeningVerdicts': screeningVerdicts,
-    'screeningScenarios': screeningScenarios,
-    'screeningFilms': screeningFilms,
-    'screeningReplay': screeningReplay,
-    'screeningNarrator': screeningNarrator,
     'someoneSaved': someoneSaved,
     'musicVolumeLabel': musicVolumeLabel,
     'effectsVolumeLabel': effectsVolumeLabel,
