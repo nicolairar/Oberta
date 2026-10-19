@@ -66,3 +66,4 @@ incoming/
 # Voice generator: local venv and Kokoro model files (see tool/voice/README.md)
 /tool/voice/.venv
 /tool/voice/models/
+.wrangler/
