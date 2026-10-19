@@ -288,7 +288,9 @@ class _DossierState extends State<_Dossier> {
                             ),
                             const SizedBox(width: 10),
                             if (_tier case final tier?)
-                              Flexible(child: _RankSeal(text: t.tierName(tier).toUpperCase())),
+                              Flexible(
+                                child: _Stamp(text: t.tierName(tier).toUpperCase(), angle: -0.06, color: _ink),
+                              ),
                           ],
                         ),
                         const SizedBox(height: 12),
@@ -568,7 +570,7 @@ class _LevelSeal extends StatelessWidget {
       size: 56,
       seed: level,
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text(label.split(' ').first, style: _sealSmall),
           Text(
@@ -580,35 +582,6 @@ class _LevelSeal extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    ),
-  );
-}
-
-/// Il grado della classificata: un sigillo di ceralacca come il livello,
-/// con il nome del grado impresso dentro.
-class _RankSeal extends StatelessWidget {
-  final String text;
-
-  const _RankSeal({required this.text});
-
-  @override
-  Widget build(BuildContext context) => Transform.rotate(
-    angle: -0.08,
-    child: _WaxSeal(
-      size: 76,
-      seed: text.hashCode,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 3),
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(text, style: _sealSmall.copyWith(fontSize: 16, letterSpacing: 0.3)),
-            ],
-          ),
-        ),
       ),
     ),
   );
@@ -638,8 +611,8 @@ class _WaxSeal extends StatelessWidget {
     child: CustomPaint(
       painter: _WaxPainter(seed),
       child: Padding(
-        padding: EdgeInsets.all(size * 0.2),
-        child: Center(child: child),
+        padding: EdgeInsets.all(size * 0.17),
+        child: Center(child: FittedBox(fit: BoxFit.scaleDown, child: child)),
       ),
     ),
   );
@@ -721,10 +694,10 @@ class _WaxPainter extends CustomPainter {
 class _Stamp extends StatelessWidget {
   final String text;
   final double angle;
-  static const color = _stamp;
+  final Color color;
   final double size;
 
-  const _Stamp({required this.text, required this.angle, this.size = 13});
+  const _Stamp({required this.text, required this.angle, this.color = _stamp, this.size = 13});
 
   @override
   Widget build(BuildContext context) => Transform.rotate(

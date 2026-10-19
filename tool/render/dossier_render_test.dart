@@ -11,7 +11,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/l10n/app_language.dart';
 import 'package:oberta/l10n/app_strings.dart';
 import 'package:oberta/online/fake_online.dart';
-import 'package:oberta/online/game/match_rewards.dart';
 import 'package:oberta/online/online_services.dart';
 import 'package:oberta/ui/screens/home_screen.dart';
 import 'package:oberta/ui/theme/app_theme.dart';
