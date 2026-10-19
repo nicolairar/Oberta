@@ -563,6 +563,14 @@ final class EnglishStrings extends AppStrings {
 
   @override
   String get screeningVerdicts => 'VERDICTS';
+  @override
+  String get screeningScenarios => 'TEST NIGHTS';
+  @override
+  String get screeningFilms => 'Watch the dawn films';
+  @override
+  String get screeningReplay => 'Replay';
+  @override
+  String get screeningNarrator => 'THE NARRATOR';
 
   @override
   String verdictName(VerdictTake take) => switch (take) {

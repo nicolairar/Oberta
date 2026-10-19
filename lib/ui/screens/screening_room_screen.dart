@@ -11,6 +11,8 @@ import '../widgets/death_scene.dart';
 import '../widgets/verdict_scene.dart';
 import '../widgets/scene_scaffold.dart';
 import '../press.dart';
+import 'screening/night_scenarios.dart';
+import 'screening/scenario_screen.dart';
 
 /// La sala prove: tutte le scene della notte, da rivedere una per una senza
 /// dover giocare una partita intera. Serve a chi le disegna e a chi vuole
@@ -156,6 +158,35 @@ class _ScreeningRoomScreenState extends State<ScreeningRoomScreen> {
                   ),
               ],
             ),
+            const SizedBox(height: 18),
+            Text(t.screeningScenarios, textAlign: TextAlign.center, style: AppText.overline),
+            const SizedBox(height: 10),
+            for (final scenario in nightScenarios)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: OutlinedButton(
+                  key: Key('scenario.${scenario.id}'),
+                  onPressed: pressed(
+                    () =>
+                        Navigator.of(context)
+                            .push(MaterialPageRoute<void>(builder: (_) => ScenarioScreen(scenario: scenario))),
+                    Press.tap,
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.nights_stay, size: 20, color: AppColors.gold),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Text(
+                          scenario.titleIn(t.language.locale.languageCode == 'it'),
+                          style: const TextStyle(letterSpacing: 0.5),
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right, size: 20),
+                    ],
+                  ),
+                ),
+              ),
           ],
         ),
       ),

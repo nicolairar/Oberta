@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import '../rules/game_engine.dart';
+import '../rules/player.dart';
 import '../rules/role.dart';
 import 'death_story.dart';
 import 'italian_pack.dart';
@@ -198,8 +199,12 @@ class NarratorScript {
     ];
   }
 
-  /// Con [assassin] la città l'ha ripulita il Sicario, non il Piromane.
-  List<ScriptLine> ending(Team winner, {bool assassin = false}) {
+  /// Con [assassin] la città l'ha ripulita il Sicario, non il Piromane; con
+  /// [bountyHunter] ha chiuso la partita una taglia pagata in piazza.
+  List<ScriptLine> ending(Team winner, {bool assassin = false, Player? bountyHunter}) {
+    if (winner == Team.neutral && bountyHunter != null) {
+      return [_fact(pack.bountyWinsFact, name: bountyHunter.name)];
+    }
     if (winner == Team.neutral && assassin) {
       return [_fact(pack.assassinWinsFact), _story(_picker.pick('ending.assassin', pack.assassinWins))];
     }

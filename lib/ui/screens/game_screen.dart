@@ -364,6 +364,7 @@ class _GameScreenState extends State<GameScreen> {
     _endingLines = _script.ending(
       winner,
       assassin: _engine.personalWins.any((player) => widget.setup.roleOf(player) == Role.sicario),
+      bountyHunter: _engine.personalWins.where((player) => widget.setup.roleOf(player) == Role.cacciatore).firstOrNull,
     );
     _stage = _Stage.end;
   }

@@ -30,6 +30,7 @@ import '../../widgets/night_notes.dart';
 import '../../widgets/scene_scaffold.dart';
 import '../../widgets/lynch_mark.dart';
 import 'game/chat_dock.dart';
+import 'game/chronicle_headlines.dart';
 import 'game/front_page.dart';
 import 'game/noir_role_card.dart';
 import 'game/noir_ui.dart';
@@ -1181,31 +1182,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     if (dawn == null) return _waitingPhaseFor(const Key('online.dawn'));
     final lines = _script('dawn-${dawn.round}')
         .dawn(dawn, discussion: _board.settings.discussion, stories: _storiesOf(dawn), online: true);
-    final dead = [
-      for (final attack in dawn.attacks)
-        if (attack.isFatal) attack.target.name,
-    ];
-    final names = dead.join(_italian ? ' E ' : ' AND ');
-    final risen = dawn.resurrected?.name;
-    final burned = [
-      for (final attack in dawn.attacks)
-        if (attack.isFatal && attack.source == AttackSource.fire) attack.target.name,
-    ];
-    final others = [
-      for (final name in dead)
-        if (!burned.contains(name)) name,
-    ];
-    final headline = burned.isNotEmpty
-        ? (_italian
-              ? 'Rogo nella notte: ${burned.join(' e ')}${others.isEmpty ? '' : '. Morto anche ${others.join(' e ')}'}'
-              : 'Night fire: ${burned.join(' and ')} burned${others.isEmpty ? '' : ', ${others.join(' and ')} also dead'}')
-        : dawn.victims.isEmpty && risen != null
-        ? (_italian ? '$risen torna dalla tomba' : '$risen back from the grave')
-        : dawn.victims.isEmpty
-        ? _t.everyoneAlive
-        : _italian
-        ? (dead.length > 1 ? 'Trovati morti $names' : 'Trovato morto $names')
-        : '$names found dead';
+    final (:headline, :dead) = dawnHeadline(dawn, italian: _italian, everyoneAlive: _t.everyoneAlive);
     return (
       key: const Key('online.dawn'),
       strip: _readyButton(compact: true),
@@ -1232,25 +1209,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     if (report == null) return _waitingPhaseFor(const Key('online.verdict'));
     final condemned = report.condemned;
     final role = report.role;
-    final mafia = role?.team == Team.mafia;
-    final String headline;
-    if (condemned == null) {
-      headline = _italian ? 'La piazza non si decide' : 'The square cannot decide';
-    } else if (role == null) {
-      headline = _italian ? 'Linciato ${_tag(condemned)}' : '${_tag(condemned)} lynched';
-    } else if (report.personalWin) {
-      headline = _italian
-          ? 'Linciato ${_tag(condemned)}: il Fesso ha vinto'
-          : '${_tag(condemned)} lynched: the Fool wins';
-    } else if (role.team == Team.neutral) {
-      headline = _italian
-          ? 'Linciato ${_tag(condemned)}: era ${_t.role(role).label}'
-          : '${_tag(condemned)} lynched: ${_t.role(role).label}';
-    } else {
-      headline = _italian
-          ? 'Linciato ${_tag(condemned)}: ${mafia ? 'era della Famiglia' : 'era innocente'}'
-          : '${_tag(condemned)} lynched: ${mafia ? 'one of the Family' : 'an innocent man'}';
-    }
+    final headline = lynchHeadline(report, italian: _italian, tag: _tag, roleLabel: (r) => _t.role(r).label);
     final story = [for (final line in _script('lynch-${report.round}').lynch(report)) line.text].join(' ');
     final tally = [for (final vote in _lastVotes) '${_tag(vote.voter)} → ${_short(vote.target)}'].join('  ·  ');
     final film = _stage == Stage.verdictFilm;
