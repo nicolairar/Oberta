@@ -82,7 +82,7 @@ const englishPack = NarrationPack(
     Role.messia: RoleText(
       'The Messiah',
       '“Get up. You\'re not done yet.”',
-      'Once a game, at night, you can bring back an innocent the square lynched. You win with the town.',
+      'Once a game, at night, you can bring back any one of the dead. You win with the town.',
     ),
     Role.sindaco: RoleText(
       'The Mayor',

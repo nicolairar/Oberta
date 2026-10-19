@@ -269,15 +269,15 @@ void main() {
   });
 
   group('Messia', () {
-    test('resuscita solo cittadini linciati, mai mafia o neutrali né morti di notte', () {
+    test('resuscita qualsiasi morto: linciato o ucciso di notte, anche della Famiglia', () {
       final engine = table({mob: Role.mafioso, mob2: Role.mafioso, messiah: Role.messia, fool: Role.fesso});
       expect(engine.taskFor(messiah).kind, NightTaskKind.decoy);
       night(engine, {mob: b, mob2: b});
       engine.lynch(a);
-      expect(engine.taskFor(messiah).targets, [a]);
+      expect(engine.taskFor(messiah).targets.toSet(), {a, b});
       night(engine, {});
       engine.lynch(mob2);
-      expect(engine.taskFor(messiah).targets, [a]);
+      expect(engine.taskFor(messiah).targets.toSet(), {a, b, mob2});
     });
 
     test('il Messia ucciso stanotte: la resurrezione fallisce ed è spesa', () {

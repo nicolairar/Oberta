@@ -80,7 +80,7 @@ const italianPack = NarrationPack(
     Role.messia: RoleText(
       'Il Messia',
       '«Alzati. Non hai ancora finito.»',
-      'Una volta a partita, di notte, puoi riportare in vita un innocente che la piazza ha linciato. Vinci con la Città.',
+      'Una volta a partita, di notte, puoi riportare in vita uno qualsiasi dei morti. Vinci con la Città.',
     ),
     Role.sindaco: RoleText(
       'Il Sindaco',

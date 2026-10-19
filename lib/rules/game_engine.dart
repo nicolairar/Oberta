@@ -551,11 +551,11 @@ class GameEngine {
       Role.cecchino => NightTask(_sniperSpent ? NightTaskKind.decoy : NightTaskKind.snipe, others),
       Role.giornalista => NightTask(_scoopSpent ? NightTaskKind.decoy : NightTaskKind.scoop, others),
       Role.portinaio => NightTask(NightTaskKind.watch, others),
-      // Il Messia, una volta per partita, sceglie un cittadino linciato.
+      // Il Messia, una volta per partita, sceglie un morto qualsiasi.
       Role.messia =>
-        _resurrectionSpent || _lynchedCitizens.isEmpty
+        _resurrectionSpent || _resurrectable.isEmpty
             ? NightTask(NightTaskKind.decoy, others)
-            : NightTask(NightTaskKind.resurrect, _lynchedCitizens),
+            : NightTask(NightTaskKind.resurrect, _resurrectable),
       // Il Piromane cosparge chi non è ancora cosparso; se c'è qualcuno da
       // bruciare, può invece accendere (scegliendo se stesso).
       Role.piromane => NightTask(
@@ -584,12 +584,12 @@ class GameEngine {
     };
   }
 
-  /// I cittadini linciati e ancora morti: il Messia può scegliere tra loro.
-  /// La mafia no, nemmeno se linciata.
-  List<Player> get _lynchedCitizens => [
+  /// I morti, comunque siano morti: il Messia può scegliere chiunque tra
+  /// loro, anche uno della Famiglia se si sbaglia. Chi torna da una morte
+  /// di notte resta con il ruolo segreto.
+  List<Player> get _resurrectable => [
     for (final player in setup.players)
-      if (!isAlive(player) && _teamOf(player) == Team.citizens && _history.any((record) => record.lynched == player))
-        player,
+      if (!isAlive(player)) player,
   ];
 
   /// Registra la mossa notturna di [actor]; `target` nullo significa "passo".

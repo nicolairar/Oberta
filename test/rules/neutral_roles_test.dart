@@ -177,11 +177,11 @@ void main() {
       expect(engine.isAlive(a), isFalse);
     });
 
-    test('non riporta un mafioso', () {
+    test('può riportare anche un mafioso, se si sbaglia', () {
       final engine = table(roles());
       endNight(engine);
       engine.lynch(mob);
-      expect(engine.taskFor(messiah).kind, NightTaskKind.decoy);
+      expect(engine.taskFor(messiah).targets, contains(mob));
     });
   });
 
