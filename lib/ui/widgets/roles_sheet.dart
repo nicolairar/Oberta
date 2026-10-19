@@ -6,6 +6,7 @@ import '../../rules/player_view.dart';
 import '../../rules/role.dart';
 import '../theme/app_theme.dart';
 import '../theme/role_style.dart';
+import 'role_rules.dart';
 
 /// Un ruolo scoperto davanti a tutti: chi era e cosa era.
 typedef RevealedRole = ({Role role, String name});
@@ -161,9 +162,9 @@ class RolesSheet extends StatelessWidget {
                   ),
                   if (done)
                     Text(s.revealedBy(revealedName), style: const TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.w700)),
-                  Text('«${text.motto}»', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12, fontStyle: FontStyle.italic)),
+                  Text(text.motto, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12, fontStyle: FontStyle.italic)),
                   const SizedBox(height: 2),
-                  Text(text.description, style: const TextStyle(color: AppColors.textPrimary, fontSize: 13)),
+                  RoleRules(role, color: AppColors.textPrimary, labelColor: AppColors.gold),
                 ],
               ),
             ),

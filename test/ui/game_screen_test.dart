@@ -241,7 +241,7 @@ void main() {
     // Prima notte: nessun morto, quindi una domanda di copertura come gli altri.
     await tap(tester, 'SONO IO');
     expect(find.text('Quale fossa scavi stanotte?'), findsNothing);
-    expect(find.textContaining('Stanotte non hai una mossa'), findsOneWidget);
+    expect(find.textContaining('Non hai mosse'), findsOneWidget);
     await tap(tester, 'PASSO');
     await tap(tester, 'FATTO');
     for (final player in [carla, dino, elio]) {
@@ -265,7 +265,7 @@ void main() {
     expect(find.text('BRUNO'), findsOneWidget);
     await tap(tester, 'SONO IO');
     expect(find.text('Quale fossa scavi stanotte?'), findsOneWidget);
-    expect(find.textContaining('scoprirai subito, solo tu'), findsOneWidget);
+    expect(find.textContaining('scopri subito, solo tu'), findsOneWidget);
     var grid = tester.widget<PlayerGrid>(find.byType(PlayerGrid));
     expect(grid.selectable, [carla], reason: 'si scava solo dove c\'è una croce');
 
@@ -300,7 +300,7 @@ void main() {
     await nightTurn(tester, ada);
     await tap(tester, 'FATTO');
     await tap(tester, 'SONO IO');
-    expect(find.textContaining('Stanotte non hai una mossa'), findsOneWidget, reason: 'le fosse sono finite');
+    expect(find.textContaining('Non hai mosse'), findsOneWidget, reason: 'le fosse sono finite');
     grid = tester.widget<PlayerGrid>(find.byType(PlayerGrid));
     expect(grid.knowledgeOf(carla).role, Role.cittadino, reason: 'il Becchino ricorda cosa ha trovato');
     expect(find.byWidgetPredicate((w) => w is RoleIcon && w.role == Role.cittadino), findsOneWidget);
@@ -319,7 +319,7 @@ void main() {
     await nightTurn(tester, ada, pick: bruno);
     await tap(tester, 'FATTO');
     await tap(tester, 'SONO IO');
-    expect(find.textContaining('Stanotte non hai una mossa'), findsOneWidget, reason: 'il Reduce di notte non agisce');
+    expect(find.textContaining('Non hai mosse'), findsOneWidget, reason: 'il Reduce di notte non agisce');
     await tap(tester, 'PASSO');
     await tap(tester, 'FATTO');
     for (final player in [carla, dino]) {
@@ -383,7 +383,7 @@ void main() {
     expect(find.text('Chi eliminate stanotte?'), findsOneWidget, reason: 'il Sarto vota l\'agguato');
     await tap(tester, 'CUCI UNA BOCCA');
     expect(find.text('A chi cuci la bocca stanotte?'), findsOneWidget);
-    expect(find.textContaining('domani non scrive in piazza'), findsOneWidget);
+    expect(find.textContaining('domani non potrà parlare'), findsOneWidget);
     await tap(tester, 'Elio');
     await tap(tester, 'CONFERMA');
     expect(find.text('Fatto.'), findsOneWidget);

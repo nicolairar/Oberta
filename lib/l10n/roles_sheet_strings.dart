@@ -28,6 +28,13 @@ class RolesSheetStrings {
   final String revealedRoleLegend;
   final String selected;
   final String meLegend;
+  final String teamLabel;
+  final String nightLabel;
+  final String winLabel;
+  final String twistLabel;
+  final String teamFamily;
+  final String teamTown;
+  final String teamAlone;
 
   const RolesSheetStrings({
     required this.button,
@@ -52,6 +59,13 @@ class RolesSheetStrings {
     required this.revealedRoleLegend,
     required this.selected,
     required this.meLegend,
+    required this.teamLabel,
+    required this.nightLabel,
+    required this.winLabel,
+    required this.twistLabel,
+    required this.teamFamily,
+    required this.teamTown,
+    required this.teamAlone,
   });
 
   static RolesSheetStrings of(BuildContext context) => forLanguage(AppStrings.of(context).language);
@@ -84,6 +98,13 @@ class RolesSheetStrings {
     revealedRoleLegend: 'icona o nome del ruolo sul posto: ruolo ormai noto a te',
     selected: 'scelto',
     meLegend: 'targhetta dorata: sei tu',
+    teamLabel: 'Squadra',
+    nightLabel: 'Di notte',
+    winLabel: 'Vinci se',
+    twistLabel: 'Attenzione',
+    teamFamily: 'Famiglia',
+    teamTown: 'Città',
+    teamAlone: 'Da solo',
   );
 
   static final en = RolesSheetStrings(
@@ -109,5 +130,12 @@ class RolesSheetStrings {
     revealedRoleLegend: 'role icon or name on a seat: a role known to you',
     selected: 'chosen',
     meLegend: 'gold name plate: that is you',
+    teamLabel: 'Team',
+    nightLabel: 'At night',
+    winLabel: 'You win if',
+    twistLabel: 'Watch out',
+    teamFamily: 'the Family',
+    teamTown: 'the town',
+    teamAlone: 'on your own',
   );
 }

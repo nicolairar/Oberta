@@ -32,7 +32,8 @@ void main() {
     expect(find.text(mafioso), findsNWidgets(2));
     expect(find.text('rivelato: Marco'), findsOneWidget);
     expect(find.text(medico), findsOneWidget);
-    expect(find.text(strings.role(Role.medico).description), findsOneWidget);
+    expect(find.textContaining(strings.role(Role.medico).night), findsOneWidget);
+    await tester.scrollUntilVisible(find.textContaining('zittito dal Sarto'), 200);
     expect(find.textContaining('zittito dal Sarto'), findsOneWidget);
     expect(find.textContaining('Luca'), findsNothing);
   });

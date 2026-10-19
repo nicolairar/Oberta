@@ -10,6 +10,7 @@ import '../../../../sound/cue_sounds.dart';
 import '../../../../sound/sound_stage.dart';
 import '../../../theme/app_theme.dart';
 import '../../../theme/role_style.dart';
+import '../../../widgets/role_rules.dart';
 import 'noir_ui.dart';
 
 /// La carta del ruolo, online: arriva scivolando sul panno, e si gira in
@@ -292,11 +293,7 @@ class _Face extends StatelessWidget {
                       color: Colors.black.withValues(alpha: 0.55),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Text(
-                      text.description,
-                      textAlign: TextAlign.center,
-                      style: AppText.body.copyWith(color: AppColors.textPrimary, fontSize: 14),
-                    ),
+                    child: RoleRules(role, color: AppColors.textPrimary, labelColor: Saloon.brass, fontSize: 14),
                   ),
                   if (bounty case final mark?) ...[
                     const SizedBox(height: 12),

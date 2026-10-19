@@ -18,13 +18,26 @@ extension VariantLines on Map<String, List<String>> {
 }
 
 /// Come si presenta un ruolo in una lingua: il nome di scena, la frase che
-/// il personaggio direbbe di sé, e cosa fa, in una riga o due.
+/// il personaggio direbbe di sé, e le regole in righe secche: cosa fa di
+/// notte, quando vince, e al massimo un'avvertenza. Niente metafore qui: il
+/// colore sta nel motto.
 class RoleText {
   final String label;
   final String motto;
-  final String description;
 
-  const RoleText(this.label, this.motto, this.description);
+  /// Cosa fa di notte, toccando un giocatore ("Niente." se non ha mosse).
+  final String night;
+
+  /// Quando vince: completa "Vinci se", quindi comincia minuscola.
+  final String win;
+
+  /// La cosa da non dimenticare, se c'è.
+  final String? twist;
+
+  const RoleText(this.label, this.motto, {required this.night, required this.win, this.twist});
+
+  /// Le regole tutte di seguito, per dove serve una riga sola.
+  String get description => [night, win[0].toUpperCase() + win.substring(1), ?twist].join(' ');
 }
 
 /// La città vera in cui è ambientata una partita, con i suoi luoghi veri.

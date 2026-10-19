@@ -80,7 +80,7 @@ void main() {
           expect(tester.takeException(), isNull, reason: role.name);
           expect(find.text(t.role(role).label.toUpperCase()), findsOneWidget);
           expect(find.text(t.role(role).motto), findsOneWidget);
-          expect(find.text(t.role(role).description), findsOneWidget);
+          expect(find.textContaining(t.role(role).night), findsOneWidget);
           expect(find.text(switch (role.team) { Team.mafia => t.youAreFamily, Team.citizens => t.youAreTown, Team.neutral => t.youAreNeutral }), findsOneWidget, reason: role.name);
           expect(find.text(t.yourAccomplices), role.team == Team.mafia ? findsOneWidget : findsNothing);
           await hold.up();

@@ -10,6 +10,7 @@ import '../../sound/cue_sounds.dart';
 import '../../sound/sound_stage.dart';
 import '../theme/app_theme.dart';
 import '../theme/role_style.dart';
+import 'role_rules.dart';
 import '../../sound/meme_beat.dart';
 
 /// Carta ruolo coperta: si gira in 3D finché il dito resta premuto e torna
@@ -214,10 +215,13 @@ class _RoleFace extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  text.description,
-                  textAlign: TextAlign.center,
-                  style: AppText.body.copyWith(color: AppColors.textPrimary.withValues(alpha: 0.85)),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: RoleRules(role, color: AppColors.textPrimary, labelColor: AppColors.gold, fontSize: 14),
                 ),
                 if (isMafia) ...[
                   const SizedBox(height: 20),

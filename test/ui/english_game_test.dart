@@ -175,7 +175,7 @@ void main() {
     // Nella notte di Dino, la griglia del Commissario non si vede: ognuno la sua.
     await tap(tester, 'IT\'S ME');
     expect(find.text('INNOCENT'), findsNothing);
-    expect(find.text('You have no move tonight: answer anyway, so nobody can tell who you are.'), findsOneWidget);
+    expect(find.text('No move tonight: tap any name, nothing happens. It keeps your role hidden.'), findsOneWidget);
   });
 
   testWidgets('una partita cominciata in italiano resta in italiano, anche se l\'app cambia lingua',
