@@ -334,7 +334,7 @@ class _HomeProfileBadgeState extends State<HomeProfileBadge> {
                                       ),
                                       if (widget.onShop != null) ...[
                                         const SizedBox(width: 3),
-                                        const Icon(Icons.add_circle, size: 11, color: AppColors.gold),
+                                        const Icon(Icons.add_circle, size: 13, color: Color(0xFFF3D27A)),
                                       ],
                                     ],
                                   ),
@@ -896,7 +896,10 @@ class BarberPoleIconPainter extends CustomPainter {
 }
 
 class ShopIconPainter extends CustomPainter {
-  const ShopIconPainter();
+  /// Il colore della pittura: oro sulle tavole scure, inchiostro sulla carta.
+  final Color color;
+
+  const ShopIconPainter({this.color = const Color(0xFFF3D27A)});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -904,7 +907,7 @@ class ShopIconPainter extends CustomPainter {
     canvas.save();
     canvas.translate((size.width - s) / 2, (size.height - s) / 2);
     canvas.scale(s / 24);
-    const gold = Color(0xFFF3D27A);
+    final gold = color;
     final fill = Paint()..color = gold;
     // Il cappello: la cupola con la piega, la fascia scura, la tesa.
     final crown = Path()
@@ -942,5 +945,5 @@ class ShopIconPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(ShopIconPainter old) => false;
+  bool shouldRepaint(ShopIconPainter old) => old.color != color;
 }

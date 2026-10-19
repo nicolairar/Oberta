@@ -175,6 +175,10 @@ abstract class OnlineStrings {
   String get dossierHistory;
   String get dossierNoHistory;
   String get dossierSettings;
+  String get dossierConfidential;
+  String get dossierName;
+  String get dossierRank;
+  String get dossierExperience;
 
   // La chat.
   String get chatHint;
@@ -364,6 +368,10 @@ abstract class OnlineStrings {
     'dossierHistory': dossierHistory,
     'dossierNoHistory': dossierNoHistory,
     'dossierSettings': dossierSettings,
+    'dossierConfidential': dossierConfidential,
+    'dossierName': dossierName,
+    'dossierRank': dossierRank,
+    'dossierExperience': dossierExperience,
   };
 }
 
@@ -425,6 +433,14 @@ final class ItalianOnlineStrings extends OnlineStrings {
   String get dossierNoHistory => 'Fedina pulita: nessuna partita ancora.';
   @override
   String get dossierSettings => 'Le impostazioni';
+  @override
+  String get dossierConfidential => 'RISERVATO';
+  @override
+  String get dossierName => 'NOMINATIVO';
+  @override
+  String get dossierRank => 'GRADO';
+  @override
+  String get dossierExperience => 'ESPERIENZA';
   @override
   String get resultsTitle => 'COM\'È ANDATA';
   @override
@@ -822,6 +838,14 @@ final class EnglishOnlineStrings extends OnlineStrings {
   String get dossierNoHistory => 'Clean record: no games yet.';
   @override
   String get dossierSettings => 'Settings';
+  @override
+  String get dossierConfidential => 'CONFIDENTIAL';
+  @override
+  String get dossierName => 'NAME';
+  @override
+  String get dossierRank => 'RANK';
+  @override
+  String get dossierExperience => 'EXPERIENCE';
   @override
   String get resultsTitle => 'HOW IT WENT';
   @override

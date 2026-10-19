@@ -235,13 +235,16 @@ void main() {
       expect(find.text('anna'), findsNWidgets(2), reason: 'sul cartellino e sul profilo, sempre il nome unico');
       expect(find.byKey(const Key('profile.dossier')), findsOneWidget);
       expect(find.byType(BarberMirrorScreen), findsNothing, reason: 'il cartellino apre il profilo, non lo specchio');
-      expect(find.text('LIV. 4'), findsNWidgets(2));
+      expect(find.descendant(of: find.byKey(const Key('profile.level')), matching: find.text('4')), findsOneWidget, reason: 'il sigillo del livello sul fascicolo');
       expect(find.text('200 su 250 punti esperienza'), findsOneWidget);
+      expect(find.text('200 / 250 XP'), findsOneWidget);
+      expect(tester.getSize(find.byKey(const Key('profile.xpFill'))).height, greaterThan(0), reason: 'la barra si vede');
 
       // Il server cambia il saldo: il fascicolo e il cartellino si aggiornano da soli.
       online.award('me', xp: 230, coins: 90);
       await tester.pumpAndSettle();
       expect(find.text('230 su 250 punti esperienza'), findsOneWidget);
+      expect(find.text('230 / 250 XP'), findsOneWidget);
       expect(find.text('90'), findsNWidgets(2));
 
       await tester.scrollUntilVisible(find.text('ESCI DALL\'ACCOUNT'), 200);
