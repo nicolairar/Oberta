@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/l10n/app_language.dart';
@@ -168,7 +169,7 @@ void main() {
   testWidgets('al voto i pizzini dicono chi accusa chi, e «registrato» arriva solo dal server', (tester) async {
     _usePhone(tester);
     final clock = ManualClock();
-    final online = FakeOnline(accountId: 'bruno', clock: clock)
+    final online = FakeOnline(accountId: 'bruno', clock: clock, random: Random(1))
       ..signInReady(handle: 'bruno')
       ..addPlayer('anna', handle: 'anna');
     final room = online.openRoomAs('anna', AppLanguage.it);

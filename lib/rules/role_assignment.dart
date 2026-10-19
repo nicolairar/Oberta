@@ -27,9 +27,12 @@ int maxFamilyPowersFor(int count) => count < 11 ? 1 : 2;
 /// giocatori, due da 12.
 int maxPerCategoryFor(int count) => count < 12 ? 1 : 2;
 
-/// Quanti cittadini speciali al massimo: circa il 40% dei cittadini, così
-/// almeno metà sono Onesti.
-int maxSpecialCitizensFor(int citizens) => (citizens * 2) ~/ 5;
+/// Quanti cittadini speciali al massimo: circa due terzi dei cittadini, così
+/// gli Onesti restano una minoranza.
+int maxSpecialCitizensFor(int citizens) => (citizens * 2) ~/ 3;
+
+/// Quanti neutrali almeno: nessuno sotto gli 8 giocatori, uno da 8, due da 11.
+int minNeutralsFor(int count) => count < 8 ? 0 : count < 11 ? 1 : 2;
 
 /// Quanti neutrali al massimo: il Fesso non sta mai con più di un altro
 /// neutrale.
@@ -52,7 +55,7 @@ int _categoryCap(RoleCategory category, int count) => switch (category) {
 /// - investigatori e protettori al massimo [maxPerCategoryFor], un solo
 ///   colpo extra, cittadini speciali al massimo [maxSpecialCitizensFor];
 /// - i neutrali (Fesso, Piromane) entrano prima, ognuno con probabilità 1/2,
-///   al posto di un cittadino speciale; con il Piromane niente Cecchino;
+///   al posto di un cittadino speciale, almeno [minNeutralsFor]; con il Piromane niente Cecchino;
 /// - si pesca prima un investigatore, poi un protettore, poi il resto a caso.
 ///
 /// Con lo stesso [random] (seminato) esce sempre lo stesso mazzo.
@@ -90,9 +93,10 @@ List<Role> rolesForPlayerCount(int count, {Random? random, PlayMode mode = PlayM
     for (final role in Role.values)
       if (role.rule.category == RoleCategory.neutral && eligible(role)) role,
   ]..shuffle(rng);
+  final wanted = min(minNeutralsFor(count), min(cap, maxNeutrals));
   for (final role in neutrals) {
     if (specials.length >= min(cap, maxNeutrals)) break;
-    if (rng.nextBool()) specials.add(role);
+    if (specials.length < wanted || rng.nextBool()) specials.add(role);
   }
   bool fits(Role role) {
     final rule = role.rule;

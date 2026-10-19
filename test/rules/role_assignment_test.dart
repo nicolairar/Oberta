@@ -88,11 +88,11 @@ void main() {
             expect(category(RoleCategory.protector), lessThanOrEqualTo(pairs), reason: why);
             expect(category(RoleCategory.extraKill), lessThanOrEqualTo(1), reason: why);
 
-            // Almeno metà dei cittadini sono Onesti, gli speciali circa il 40%.
+            // Gli speciali al massimo due terzi dei cittadini: gli Onesti restano almeno un terzo.
             final citizens = n - family.length;
             final onesti = _count(deck, Role.cittadino);
-            expect(onesti * 2, greaterThanOrEqualTo(citizens), reason: why);
-            expect(citizens - onesti, lessThanOrEqualTo((citizens * 0.4).floor()), reason: why);
+            expect(onesti * 3, greaterThanOrEqualTo(citizens), reason: why);
+            expect(citizens - onesti, lessThanOrEqualTo((citizens * 2) ~/ 3), reason: why);
           }
         }
         // La pesca è davvero a caso: ai tavoli grandi escono ruoli diversi.
