@@ -1,4 +1,4 @@
-> Note: text prepared for launch; a legal review is recommended before publication. TODO: add the controller's full name, surname and address.
+> Note: text prepared for launch; a legal review is recommended before publication. TODO: add the controller's address.
 
 # Obertà Privacy Policy
 
@@ -8,7 +8,7 @@ Obertà is a party game. This policy explains what data we process, why, for how
 
 ## Data controller
 
-Nicolai — privacy contact: niko.tana@outlook.com
+Nicolai Tana — privacy contact: niko.tana@outlook.com
 
 ## Playing without an account
 

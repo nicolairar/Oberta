@@ -1,10 +1,10 @@
-> Note: text prepared for launch; a legal review is recommended before publication. TODO: add the operator's full name, surname and address.
+> Note: text prepared for launch; a legal review is recommended before publication. TODO: add the operator's address.
 
 # Obertà Terms of Use
 
 Last updated: 18 October 2026
 
-By using Obertà you accept these terms. The game is offered by Nicolai (contact: niko.tana@outlook.com).
+By using Obertà you accept these terms. The game is offered by Nicolai Tana (contact: niko.tana@outlook.com).
 
 ## Account
 

@@ -1,4 +1,4 @@
-> Nota: testo preparato per il lancio; si consiglia una revisione legale prima della pubblicazione. TODO: aggiungere nome, cognome e indirizzo completi del titolare.
+> Nota: testo preparato per il lancio; si consiglia una revisione legale prima della pubblicazione. TODO: aggiungere l'indirizzo del titolare.
 
 # Informativa sulla privacy di Obertà
 
@@ -8,7 +8,7 @@ Obertà è un gioco di società. Questa informativa spiega quali dati trattiamo,
 
 ## Titolare del trattamento
 
-Nicolai — contatto per la privacy: niko.tana@outlook.com
+Nicolai Tana — contatto per la privacy: niko.tana@outlook.com
 
 ## Il gioco senza account
 
