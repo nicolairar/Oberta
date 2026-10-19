@@ -130,7 +130,7 @@ const italianPack = NarrationPack(
       'Il Piromane',
       '«A chi non piace un bel falò?»',
       night: 'Cospargi uno di benzina, oppure accendi: muoiono tutti i cosparsi.',
-      win: 'restate vivi solo tu e al massimo un altro.',
+      win: 'resti l\'ultimo vivo.',
       twist: 'Chi è cosparso non lo sa.',
     ),
     Role.cacciatore: RoleText(
@@ -150,7 +150,7 @@ const italianPack = NarrationPack(
       'Il Sicario',
       '«Lavoro da solo. Pago io il caffè.»',
       night: 'Scegli uno da uccidere, da solo.',
-      win: 'restate vivi solo tu e al massimo un altro.',
+      win: 'resti l\'ultimo vivo.',
       twist: 'Al Commissario risulti della Famiglia.',
     ),
   },

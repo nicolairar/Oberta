@@ -132,7 +132,7 @@ const englishPack = NarrationPack(
       'The Arsonist',
       '“Everybody loves a bonfire.”',
       night: 'Douse someone in gasoline, or light the match: everyone doused dies.',
-      win: 'only you and at most one other player are left alive.',
+      win: 'you are the last one alive.',
       twist: 'Doused players don\'t know it.',
     ),
     Role.cacciatore: RoleText(
@@ -152,7 +152,7 @@ const englishPack = NarrationPack(
       'The Hitman',
       '“I work alone. Coffee\'s on me.”',
       night: 'Pick someone to kill, on your own.',
-      win: 'only you and at most one other player are left alive.',
+      win: 'you are the last one alive.',
       twist: 'The Commissioner sees you as the Family.',
     ),
   },
