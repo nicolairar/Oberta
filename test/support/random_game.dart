@@ -34,6 +34,11 @@ GameCommand? randomCommand(GameEngine engine, Random random) {
       if (pending.isEmpty) return const ResolveNightCommand();
       final seat = _pick(random, pending).id;
       final option = engine.viewFor(seat).action!;
+      // Ogni tanto il compito alternativo: il Sarto che cuce, il Piromane che accende.
+      final alternatives = option.alternativeTargets ?? option.targets;
+      if (option.alternative != null && alternatives.isNotEmpty && random.nextInt(3) == 0) {
+        return IntentCommand(NightAction(seat, _pick(random, alternatives).id));
+      }
       if (option.targets.isEmpty || random.nextInt(5) == 0) return IntentCommand(Pass(seat));
       final target = _pick(random, option.targets).id;
       return IntentCommand(option.type == ActionType.mafiaVote ? MafiaVote(seat, target) : NightAction(seat, target));
@@ -48,6 +53,7 @@ GameCommand? randomCommand(GameEngine engine, Random random) {
       }
       final seat = _pick(random, alive).id;
       final option = engine.viewFor(seat).action!;
+      if (option.canReveal && random.nextInt(3) == 0) return IntentCommand(RevealMayor(seat));
       if (random.nextInt(6) == 0) return IntentCommand(Pass(seat));
       return IntentCommand(DayVote(seat, _pick(random, option.targets).id));
   }

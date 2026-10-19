@@ -103,6 +103,7 @@ Map<String, Object?> dawnToJson(DawnReport dawn) => {
       'attacks': [for (final attack in dawn.attacks) attackToJson(attack)],
       'scoop': dawn.scoop == null ? null : exposureToJson(dawn.scoop!),
       'silenced': seatOf(dawn.silenced),
+      if (dawn.resurrected != null) 'resurrected': seatOf(dawn.resurrected),
       'winner': dawn.winner?.name,
     };
 
@@ -114,6 +115,7 @@ DawnReport dawnFromJson(Map<String, Object?> json, SeatResolver resolve) => Dawn
       ],
       scoop: json['scoop'] == null ? null : exposureFromJson(json['scoop'] as Map<String, Object?>, resolve),
       silenced: optionalSeat(json['silenced'], resolve),
+      resurrected: optionalSeat(json['resurrected'], resolve),
       winner: optionalEnum(Team.values, json['winner']),
     );
 
@@ -122,6 +124,7 @@ Map<String, Object?> lynchToJson(LynchReport lynch) => {
       'condemned': seatOf(lynch.condemned),
       'role': lynch.role?.name,
       'winner': lynch.winner?.name,
+      if (lynch.personalWin) 'personalWin': true,
     };
 
 LynchReport lynchFromJson(Map<String, Object?> json, SeatResolver resolve) => LynchReport(
@@ -129,6 +132,7 @@ LynchReport lynchFromJson(Map<String, Object?> json, SeatResolver resolve) => Ly
       condemned: optionalSeat(json['condemned'], resolve),
       role: optionalEnum(Role.values, json['role']),
       winner: optionalEnum(Team.values, json['winner']),
+      personalWin: json['personalWin'] as bool? ?? false,
     );
 
 Map<String, Object?> roundToJson(RoundRecord record) => {

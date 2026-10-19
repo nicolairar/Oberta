@@ -120,6 +120,7 @@ DeathAct deathActFor(String methodId) => switch (methodId) {
   'rose' => DeathAct.bouquet,
   'lavanderia' => DeathAct.laundry,
   DeathStory.sniperId => DeathAct.sniper,
+  DeathStory.fireId => DeathAct.blast,
   DeathStory.rescueId => DeathAct.rescue,
   DeathStory.luckyId => DeathAct.lucky,
   DeathStory.belfryId => DeathAct.belfry,

@@ -21,6 +21,7 @@ import '../theme/app_theme.dart';
 import '../theme/role_style.dart';
 import '../widgets/avatar_spotlight.dart';
 import '../widgets/day_board.dart';
+import '../widgets/night_notes.dart';
 import '../widgets/death_scene.dart';
 import '../widgets/handoff_view.dart';
 import '../widgets/narrator_roles_sheet.dart';
@@ -374,12 +375,14 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _enterEnd(Team winner) {
-    SoundStage.instance.music(winner == Team.mafia ? MusicMood.winFamily : MusicMood.winTown);
+    // Il Piromane che vince suona come la famiglia: non ha vinto la città.
+    final dark = winner != Team.citizens;
+    SoundStage.instance.music(dark ? MusicMood.winFamily : MusicMood.winTown);
     SoundStage.instance.ambience(null);
-    SoundStage.instance.cue(winner == Team.mafia ? Cue.familyWins : Cue.townWins);
-    beat(winner == Team.mafia ? MemeMoment.mafiaWins : MemeMoment.townWins, after: const Duration(milliseconds: 800));
+    SoundStage.instance.cue(dark ? Cue.familyWins : Cue.townWins);
+    beat(dark ? MemeMoment.mafiaWins : MemeMoment.townWins, after: const Duration(milliseconds: 800));
     _title = _t.endTitle;
-    _mood = winner == Team.mafia ? SceneMood.night : SceneMood.dawn;
+    _mood = dark ? SceneMood.night : SceneMood.dawn;
     _endingLines = _script.ending(winner);
     _stage = _Stage.end;
   }
@@ -585,20 +588,36 @@ class _GameScreenState extends State<GameScreen> {
   Widget _taskView(Player actor) {
     final offered = _engine.taskFor(actor);
     final alternative = offered.alternative;
-    final task = _alternative && alternative != null ? NightTask(alternative, offered.targets) : offered;
+    final task =
+        _alternative && alternative != null ? NightTask(alternative, offered.alternativeTargets) : offered;
     final selected = _selected;
+    final labels = alternativeLabels(_t, alternative);
+    final watches = _engine.watchesOf(actor);
+    final lastWatch = watches.isNotEmpty && watches.last.round == _engine.round - 1 ? watches.last : null;
     return Column(
       children: [
+        NightNotes(
+          lastWatch: lastWatch,
+          doused: [
+            if (widget.setup.roleOf(actor) == Role.piromane)
+              for (final player in _seats)
+                if (_engine.doused.contains(player)) player,
+          ],
+        ),
         if (alternative != null) ...[
           SegmentedButton<bool>(
             key: const Key('task.alternative'),
             segments: [
-              ButtonSegment(value: false, label: Text(_t.voteTheHit)),
-              ButtonSegment(value: true, label: Text(_t.sewAMouth)),
+              ButtonSegment(value: false, label: Text(labels.$1)),
+              ButtonSegment(value: true, label: Text(labels.$2)),
             ],
             selected: {_alternative},
             showSelectedIcon: false,
-            onSelectionChanged: (choice) => setState(() => _alternative = choice.single),
+            onSelectionChanged: (choice) => setState(() {
+              _alternative = choice.single;
+              // Il fiammifero si accende scegliendo se stessi: già scelto.
+              _selected = _alternative && alternative == NightTaskKind.ignite ? actor : null;
+            }),
           ),
           const SizedBox(height: 12),
         ],
@@ -783,6 +802,7 @@ class _GameScreenState extends State<GameScreen> {
 
   Widget _endView() {
     final mafiaWon = _engine.winner == Team.mafia;
+    final arsonistWon = _engine.winner == Team.neutral;
     final suspects = _engine.suspicion.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     return ListView(
@@ -794,7 +814,11 @@ class _GameScreenState extends State<GameScreen> {
         ),
         const SizedBox(height: 12),
         Text(
-          mafiaWon ? _t.familyWins : _t.townWins,
+          arsonistWon
+              ? _t.arsonistWins
+              : mafiaWon
+                  ? _t.familyWins
+                  : _t.townWins,
           textAlign: TextAlign.center,
           style: AppText.display(36, color: mafiaWon ? _mafiaRed : AppColors.gold),
         ),
@@ -808,9 +832,9 @@ class _GameScreenState extends State<GameScreen> {
             name: player.name,
             role: widget.setup.roleOf(player),
             roleLabel: _t.role(widget.setup.roleOf(player)).label,
-            fate: _fateOf(player),
+            fate: _engine.personalWins.contains(player) ? '${_t.wonAlone} · ${_fateOf(player)}' : _fateOf(player),
             alive: _engine.isAlive(player),
-            winner: widget.setup.roleOf(player).team == _engine.winner,
+            winner: _engine.hasWon(player),
           ),
         if (suspects.isNotEmpty) ...[
           const SizedBox(height: 20),

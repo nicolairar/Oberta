@@ -145,6 +145,22 @@ final class ItalianStrings extends AppStrings {
   @override
   String get innocentBadge => 'INNOCENTE';
   @override
+  String get neutralBadge => 'NEUTRALE';
+  @override
+  String get youAreNeutral => 'GIOCHI PER TE';
+  @override
+  String get arsonistWins => 'Vince\nil Piromane';
+  @override
+  String get wonAlone => 'VITTORIA PERSONALE';
+  @override
+  String get revealAsMayor => 'Rivelati: sei il Sindaco';
+  @override
+  String get lightTheMatch => 'Accendi il fiammifero';
+  @override
+  String get dousePick => 'Cospargi';
+  @override
+  String get dousedBadge => 'BENZINA';
+  @override
   String get readAloud => 'LEGGETE AD ALTA VOCE';
   @override
   String readerReadsAloud(String reader) => 'LEGGE ${reader.toUpperCase()}, AD ALTA VOCE';

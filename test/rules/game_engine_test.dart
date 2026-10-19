@@ -1023,9 +1023,10 @@ void main() {
           final task = engine.taskFor(player);
           tasks.add(task.kind);
           expect(task.targets.toSet(), hasLength(task.targets.length), reason: 'seed=$seed');
-          final skip = task.targets.isEmpty || random.nextInt(5) == 0;
-          final target = skip ? null : task.targets[random.nextInt(task.targets.length)];
-          final sew = target != null && task.alternative != null && random.nextInt(3) == 0;
+          final sew = task.alternative != null && task.alternativeTargets.isNotEmpty && random.nextInt(3) == 0;
+          final pool = sew ? task.alternativeTargets : task.targets;
+          final skip = !sew && (pool.isEmpty || random.nextInt(5) == 0);
+          final target = skip ? null : pool[random.nextInt(pool.length)];
           if (sew) tasks.add(task.alternative!);
           final finding = engine.submitNightChoice(player, target, alternative: sew);
           if (task.kind == NightTaskKind.dig && target != null) {
@@ -1034,12 +1035,12 @@ void main() {
         }
         final report = engine.resolveNight();
         outcomes.addAll(report.attacks.map((attack) => attack.outcome));
-        expect(report.attacks.length, lessThanOrEqualTo(2), reason: 'seed=$seed');
+        if (!report.ignited) expect(report.attacks.length, lessThanOrEqualTo(2), reason: 'seed=$seed');
         for (final attack in report.attacks) {
           expect(before, contains(attack.target), reason: 'seed=$seed: si colpisce solo chi è vivo');
           expect(engine.isAlive(attack.target), !attack.isFatal, reason: 'seed=$seed');
         }
-        expect(engine.alivePlayers.length, before.length - report.victims.length, reason: 'seed=$seed');
+        expect(engine.alivePlayers.length, before.length - report.victims.length + (report.resurrected == null ? 0 : 1), reason: 'seed=$seed');
         if (report.silenced != null) {
           expect(engine.isAlive(report.silenced!), isTrue, reason: 'seed=$seed: i morti tacciono già');
         }

@@ -41,11 +41,18 @@ F. Testi IT/EN dei ruoli nuovi e voci (`tool/voice/regenerate.sh`).
 - Compare: solo online, mai nel mazzo del telefono unico. Nessun potere di notte (non vota l'agguato); finché è vivo la famiglia ha la chat privata anche di giorno, fatta rispettare dal server. Se resta l'unico mafioso la famiglia non uccide più.
 - Timer: notte 30 s (anche la prima), discussione 60 s, voto 30 s, uguali online e sul telefono unico (dove si usa solo la discussione).
 
+- Neutrali: `Team.neutral`, vittorie personali (`GameEngine.personalWins`, `hasWon`, `PublicView.personalWins`). Chi vince da solo conta come vittoria per XP e punteggio (`won` nel risultato del server). Il Commissario vede i neutrali come onesti; lo scoop scrive la fazione vera (neutrale).
+- Parità con neutrali vivi: la mafia vince quando i mafiosi vivi sono almeno quanti i non mafiosi (i neutrali contano come non mafiosi). La città vince quando non c'è più mafia né un Piromane vivo.
+- Fesso: da 8 giocatori, una copia. Vince da solo se la piazza lo lincia (non se muore di notte); la partita continua senza di lui. Di notte fa il compito di copertura.
+- Piromane: da 13 giocatori, una copia, mai con il Cecchino. Ogni notte cosparge qualcuno (non se stesso, non chi è già cosparso) oppure accende (sceglie se stesso): bruciano tutti i cosparsi vivi. Il fuoco passa per il Dottore, il Guardaspalle e il Reduce come ogni agguato. Chi è cosparso lo sa solo il Piromane. Vince da solo se resta in piedi da solo o con un altro; finché è vivo la città non vince.
+- Neutrali nel mazzo: entrano prima degli altri speciali, ognuno con probabilità 1/2, al posto di un cittadino speciale; al massimo due (quindi il Fesso mai con più di un altro neutrale).
+- Messia: da 10 giocatori, una copia. Una volta per partita, di notte, sceglie un cittadino linciato (mai un mafioso; il ruolo è già pubblico). Se il Messia vede l'alba il prescelto torna in vita con il suo ruolo e i poteri già spesi restano spesi; se muore quella notte la resurrezione fallisce ed è comunque spesa. Si applica prima del controllo dei vincitori. Il suo compito di notte non conta come visita per il Portinaio.
+- Sindaco: da 9 giocatori, una copia. Una volta per partita, durante il voto di giorno, si rivela (`RevealMayor`): il ruolo diventa pubblico e per il voto di quel giorno vale due. Sul telefono unico il narratore condanna di persona, quindi il voto doppio lo conta il tavolo.
+- Portinaio: da 9 giocatori, una copia, investigatore. Ogni notte guarda una porta e all'alba sa solo se qualcuno ci è passato: contano le mosse vere su quel bersaglio (agguato, protezione, scorta, indagine, colpo, scoop, silenzio, benzina, un altro Portinaio); non contano il compito di copertura, il fiammifero, lo scavo e la resurrezione. Lo legge la notte dopo, sopra la sua scelta.
+- Categorie: Messia e Sindaco sono "civici" (nessun tetto oltre la copia); Portinaio conta tra gli investigatori.
+
 ## Domande aperte per il proprietario
-- Cecchino e Piromane contano entrambi come colpi extra?
-- Piromane: come vince, chi può cospargere?
-- Fesso: con un neutrale vivo, come si conta la parità mafiosa?
-- Messia: può riportare un mafioso linciato? Il ruolo resta noto?
-- Sindaco: voto doppio per una giornata, rivelazione al momento del voto?
+- Sindaco: il voto doppio deve restare anche nei giorni dopo la rivelazione?
+- Portinaio: deve vedere anche i compiti di copertura (più rumore, meno informazione)?
 - Investigatore mafioso: cosa scopre e che prezzo paga?
 - Timer: tempi diversi per i bot?

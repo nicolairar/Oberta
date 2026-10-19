@@ -77,6 +77,31 @@ const italianPack = NarrationPack(
       '«Ho pagato tutto. La fedina non lo sa.»',
       'Stai con gli onesti, ma la fedina è sporca: al Commissario risulti della famiglia.',
     ),
+    Role.messia: RoleText(
+      'Il Messia',
+      '«Alzati. Non hai ancora finito.»',
+      'Una volta a partita, di notte, riporti in vita un onesto che la piazza ha linciato. Se vedi l\'alba.',
+    ),
+    Role.sindaco: RoleText(
+      'Il Sindaco',
+      '«Non ho vinto le elezioni per stare zitto.»',
+      'Una volta a partita, durante il voto, puoi rivelarti: quel giorno il tuo voto vale doppio.',
+    ),
+    Role.portinaio: RoleText(
+      'Il Portinaio',
+      '«Non chiedo chi. Guardo la porta.»',
+      'Ogni notte guardi la porta di qualcuno. All\'alba sai se è passato qualcuno, non chi.',
+    ),
+    Role.fesso: RoleText(
+      'Il Fesso',
+      '«Colpevole io? Ma certo, come no.»',
+      'Giochi per te: fatti linciare dalla piazza e vinci da solo. Morire di notte non vale.',
+    ),
+    Role.piromane: RoleText(
+      'Il Piromane',
+      '«A chi non piace un bel falò?»',
+      'Ogni notte cospargi qualcuno di benzina, o accendi e bruci tutti. Resta in piedi per ultimo.',
+    ),
   },
   cities: [
     CitySetting(
@@ -201,11 +226,7 @@ const italianPack = NarrationPack(
     'Non rilassatevi. Di solito è così che comincia.',
     'Il custode del cimitero ha dormito otto ore, e non sa cosa pensare.',
   ],
-  secondVictims: [
-    'E non è finita.',
-    'Cambio di scena.',
-    'Ma la notte è stata lunga.',
-  ],
+  secondVictims: ['E non è finita.', 'Cambio di scena.', 'Ma la notte è stata lunga.'],
   victimFact: 'Stanotte è morta una persona: {name}. Il suo ruolo resta segreto.',
   // Ogni variante ha il suo filmato: le battute raccontano quello che si vede.
   sniperShots: {
@@ -260,7 +281,8 @@ const italianPack = NarrationPack(
     ],
   },
   someone: 'qualcuno',
-  savedFact: 'Stanotte hanno provato a uccidere qualcuno, ma il Dottore ha fatto in tempo. Chi fosse, resta un segreto.',
+  savedFact:
+      'Stanotte hanno provato a uccidere qualcuno, ma il Dottore ha fatto in tempo. Chi fosse, resta un segreto.',
   // Il colpo andato a vuoto: in scena si vede proprio quello che dice la
   // battuta (la fiaschetta, la Bibbia, la buccia di banana...). Il fatto non
   // nomina nessun ruolo: al tavolo resta il dubbio su chi sia.
@@ -292,7 +314,8 @@ const italianPack = NarrationPack(
       'Porta sfortuna, dicono. Ma stanotte un gatto nero ha salvato {name}.',
     ],
   },
-  shruggedFact: 'Stanotte hanno provato a uccidere qualcuno, ma il colpo è andato a vuoto. Chi fosse, resta un segreto.',
+  shruggedFact:
+      'Stanotte hanno provato a uccidere qualcuno, ma il colpo è andato a vuoto. Chi fosse, resta un segreto.',
   methods: [
     StoryPiece('auto', 'Due fari nel buio. Un\'auto nera non frena. {name} si volta: troppo tardi.'),
     StoryPiece('pianoforte', 'Una corda si spezza. Un pianoforte precipita. {name} alza gli occhi.'),
@@ -321,7 +344,10 @@ const italianPack = NarrationPack(
     StoryPiece('trombone', 'Dal vicolo, un trombone suona una marcetta. Dalla campana parte un colpo. {name} stona.'),
     StoryPiece('tango', 'Una sconosciuta invita {name} a ballare un tango. Una giravolta, un casqué, un pugnale.'),
     StoryPiece('rose', 'Un mazzo di rose rosse per {name}. Tra le rose, una canna. Petali ovunque.'),
-    StoryPiece('lavanderia', 'Un furgone della lavanderia accosta. La porta scorre, due braccia. {name} non torna più.'),
+    StoryPiece(
+      'lavanderia',
+      'Un furgone della lavanderia accosta. La porta scorre, due braccia. {name} non torna più.',
+    ),
   ],
   epilogues: [
     StoryPiece('gatto', 'Un gatto ha visto tutto. Non parlerà.'),
@@ -347,8 +373,7 @@ const italianPack = NarrationPack(
     'Qualcuno ha fatto visita a {name}, stanotte. Con un ago e un consiglio.',
     'Sul cuscino di {name}, un rocchetto di filo nero. Il messaggio è arrivato.',
   ],
-  silencedFact:
-      'Oggi {name} non può parlare durante la discussione. Vota a gesti, e resta tra chi potete eliminare.',
+  silencedFact: 'Oggi {name} non può parlare durante la discussione. Vota a gesti, e resta tra chi potete eliminare.',
   silencedFactOnline: 'Oggi {name} non può scrivere nella piazza. Vota come tutti, e resta tra chi si può eliminare.',
   dayInstruction: 'Avete {minutes} per discutere. Poi votate chi eliminare.',
   oneMinute: 'un minuto',
@@ -371,6 +396,7 @@ const italianPack = NarrationPack(
   cardTurns: 'La carta si gira. {name} era… {role}.',
   wasMafia: 'Stava con la famiglia.',
   wasCitizen: 'Stava con gli onesti.',
+  wasNeutral: 'Giocava per sé.',
   lynchedInnocent: [
     'Complimenti a tutti. Davvero.',
     'Qualcuno, tra voi, trattiene un sorriso.',
@@ -402,6 +428,29 @@ const italianPack = NarrationPack(
     'A {city} nessuno ha visto niente. Come sempre. Dissolvenza in nero.',
   ],
   mafiaWinsFact: 'Vince la famiglia: gli onesti non sono più in maggioranza.',
+  fires: [
+    'Odore di benzina, un fiammifero, e la notte diventa arancione.',
+    'Qualcuno ha acceso un fiammifero. Quando arrivano i pompieri, non c\'è più niente da salvare.',
+  ],
+  burnedFact: 'Per {name} la notte è finita tra le fiamme: è fuori dal gioco.',
+  resurrections: [
+    'Una mano spinge il coperchio della bara. La piazza si era scordata i chiodi.',
+    'All\'alba un fantasma entra al bar e ordina un caffè. Non è un fantasma.',
+  ],
+  resurrectedFact: '{name} torna in gioco, con la stessa carta di prima.',
+  foolWins: [
+    'La corda si tende, e sotto c\'è un sorriso. Era il piano fin dall\'inizio.',
+    'La folla applaude, e il Fesso fa l\'inchino.',
+  ],
+  foolWinsFact: '{name} era il Fesso: vince la sua partita, e il gioco continua.',
+  arsonistWins: [
+    '{city} è cenere. Una figura se ne va fischiettando, con una scatola di fiammiferi. Titoli di coda.',
+    'A {city} non c\'è più niente da bruciare. Dissolvenza in arancione.',
+  ],
+  arsonistWinsFact: 'Vince il Piromane, da solo: non è rimasto nessuno a fermarlo.',
+  mayorRevealed: '{name} è il Sindaco: oggi il suo voto vale doppio.',
+  watchVisited: 'Stanotte qualcuno è passato dalla porta di {name}.',
+  watchQuiet: 'Stanotte nessuno è passato dalla porta di {name}.',
   taskPrompts: {
     NightTaskKind.kill: 'Chi eliminate stanotte?',
     NightTaskKind.silence: 'A chi cuci la bocca stanotte?',
@@ -411,6 +460,10 @@ const italianPack = NarrationPack(
     NightTaskKind.dig: 'Quale fossa scavi stanotte?',
     NightTaskKind.snipe: 'Vuoi sparare a qualcuno?',
     NightTaskKind.scoop: 'Su chi pubblichi lo scoop?',
+    NightTaskKind.douse: 'Chi cospargi di benzina stanotte?',
+    NightTaskKind.ignite: 'Accendi il fiammifero stanotte?',
+    NightTaskKind.resurrect: 'Chi riporti in vita stanotte?',
+    NightTaskKind.watch: 'Di chi guardi la porta stanotte?',
   },
   taskHints: {
     NightTaskKind.kill: 'Chi scegli non vedrà l\'alba. Se siete in più d\'uno, vince la maggioranza.',
@@ -421,6 +474,10 @@ const italianPack = NarrationPack(
     NightTaskKind.dig: 'Scegli tra chi è morto di notte: scoprirai subito, solo tu, che ruolo aveva.',
     NightTaskKind.snipe: 'Hai un solo proiettile in tutta la partita. Se passi, ti resta.',
     NightTaskKind.scoop: 'Hai un solo scoop: all\'alba tutti sapranno da che parte sta. Se passi, ti resta.',
+    NightTaskKind.douse: 'Nessuno sa di essere cosparso. Oppure accendi: stanotte brucia chi è cosparso.',
+    NightTaskKind.ignite: 'Stanotte brucia chiunque tu abbia cosparso.',
+    NightTaskKind.resurrect: 'Una volta sola: chi scegli torna all\'alba, se tu la vedi. Se passi, ti resta.',
+    NightTaskKind.watch: 'All\'alba saprai se qualcuno è passato da quella porta. Non chi.',
     NightTaskKind.decoy: 'Stanotte non hai una mossa: rispondi lo stesso, così nessuno capisce chi sei.',
   },
   decoyPrompts: [

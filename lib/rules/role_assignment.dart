@@ -31,11 +31,16 @@ int maxPerCategoryFor(int count) => count < 12 ? 1 : 2;
 /// almeno metà sono Onesti.
 int maxSpecialCitizensFor(int citizens) => (citizens * 2) ~/ 5;
 
+/// Quanti neutrali al massimo: il Fesso non sta mai con più di un altro
+/// neutrale.
+const maxNeutrals = 2;
+
 int _categoryCap(RoleCategory category, int count) => switch (category) {
       RoleCategory.investigator || RoleCategory.protector => maxPerCategoryFor(count),
       RoleCategory.extraKill => 1,
       RoleCategory.familyPower => maxFamilyPowersFor(count),
-      RoleCategory.family || RoleCategory.passive || RoleCategory.plain => count,
+      RoleCategory.family || RoleCategory.passive || RoleCategory.civic || RoleCategory.plain => count,
+      RoleCategory.neutral => maxNeutrals,
     };
 
 /// Un mazzo per [count] giocatori, pescato a caso dentro le regole di
@@ -46,6 +51,8 @@ int _categoryCap(RoleCategory category, int count) => switch (category) {
 ///   cui esiste (il Compare solo online);
 /// - investigatori e protettori al massimo [maxPerCategoryFor], un solo
 ///   colpo extra, cittadini speciali al massimo [maxSpecialCitizensFor];
+/// - i neutrali (Fesso, Piromane) entrano prima, ognuno con probabilità 1/2,
+///   al posto di un cittadino speciale; con il Piromane niente Cecchino;
 /// - si pesca prima un investigatore, poi un protettore, poi il resto a caso.
 ///
 /// Con lo stesso [random] (seminato) esce sempre lo stesso mazzo.
@@ -75,14 +82,25 @@ List<Role> rolesForPlayerCount(int count, {Random? random, PlayMode mode = PlayM
   }
   family.addAll(List.filled(mafia - family.length, Role.mafioso));
 
-  // I cittadini.
+  // I cittadini, e i neutrali che prendono il posto di qualcuno di loro.
   final citizens = count - mafia;
   final cap = maxSpecialCitizensFor(citizens);
   final specials = <Role>[];
+  final neutrals = [
+    for (final role in Role.values)
+      if (role.rule.category == RoleCategory.neutral && eligible(role)) role,
+  ]..shuffle(rng);
+  for (final role in neutrals) {
+    if (specials.length >= min(cap, maxNeutrals)) break;
+    if (rng.nextBool()) specials.add(role);
+  }
   bool fits(Role role) {
     final rule = role.rule;
     if (rule.category == RoleCategory.plain || rule.category == RoleCategory.family) return false;
-    if (rule.category == RoleCategory.familyPower || !eligible(role)) return false;
+    if (rule.category == RoleCategory.familyPower || rule.category == RoleCategory.neutral) return false;
+    if (!eligible(role)) return false;
+    // Il Piromane è già un colpo in più: niente Cecchino con lui.
+    if (rule.category == RoleCategory.extraKill && specials.contains(Role.piromane)) return false;
     if (specials.where((r) => r == role).length >= (rule.maxCopies ?? count)) return false;
     return specials.where((r) => r.rule.category == rule.category).length < _categoryCap(rule.category, count);
   }

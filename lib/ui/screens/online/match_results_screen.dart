@@ -107,6 +107,7 @@ class _MatchResultsScreenState extends State<MatchResultsScreen> with SingleTick
     String faction(Team team) => switch (team) {
           Team.mafia => en ? 'THE FAMILY WINS' : 'VINCE LA FAMIGLIA',
           Team.citizens => en ? 'THE TOWN WINS' : 'VINCE LA CITTÀ',
+          Team.neutral => en ? 'A LONE WOLF WINS' : 'VINCE UN CANE SCIOLTO',
         };
     final winners = r.abandoned || role == null
         ? null

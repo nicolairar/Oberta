@@ -29,7 +29,10 @@ String botName(int index) => HandleRules.botHandle(_nato[index % _nato.length]);
 ///   giorno non vota un complice;
 /// - chi sa che qualcuno è della famiglia (un'indagine, uno scoop, una
 ///   carta girata) lo vota;
-/// - il Medico ogni tanto protegge sé stesso.
+/// - il Medico ogni tanto protegge sé stesso;
+/// - il Piromane cosparge, e accende quando ha almeno due cosparsi (o il
+///   tavolo è piccolo); il Messia riporta subito chi può; il Sindaco, prima
+///   o poi, si rivela.
 class BotBrain {
   final Random random;
 
@@ -65,8 +68,15 @@ class BotBrain {
         }
         return MafiaVote(seat, _pick(targets).id);
       case ActionType.nightAction:
-        if (option.targets.isEmpty) return Pass(seat);
         final kind = option.kind;
+        final match = option.alternativeTargets;
+        if (option.alternative == NightTaskKind.ignite && match != null && match.isNotEmpty) {
+          final alive = view.board.alive.length;
+          if (option.targets.isEmpty || view.doused.length >= 2 || alive <= 4 || random.nextInt(4) == 0) {
+            return NightAction(seat, match.first.id);
+          }
+        }
+        if (option.targets.isEmpty) return Pass(seat);
         if (kind == NightTaskKind.protect && option.targets.contains(view.seat) && random.nextInt(3) == 0) {
           return NightAction(seat, seat);
         }
@@ -85,6 +95,7 @@ class BotBrain {
         }
         return NightAction(seat, _pick(option.targets).id);
       case ActionType.dayVote:
+        if (option.canReveal && random.nextInt(3) == 0) return RevealMayor(seat);
         final targets = option.targets;
         if (targets.isEmpty) return Pass(seat);
         if (!mafia) {

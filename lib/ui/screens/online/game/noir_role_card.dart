@@ -249,7 +249,7 @@ class _Face extends StatelessWidget {
                       borderRadius: BorderRadius.circular(4),
                       border: Border.all(color: Saloon.brass),
                     ),
-                    child: Text(isMafia ? t.youAreFamily : t.youAreTown,
+                    child: Text(isMafia ? t.youAreFamily : role.team == Team.neutral ? t.youAreNeutral : t.youAreTown,
                         style: AppText.overline.copyWith(color: AppColors.textPrimary, fontSize: 11)),
                   ),
                   const SizedBox(height: 12),

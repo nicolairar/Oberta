@@ -969,6 +969,7 @@ enum _Choice { none, open, closed }
 
 const _mafiaRed = Color(0xFFE5606A);
 const _cleanGreen = Color(0xFF6FBF9A);
+const _neutralAmber = Color(0xFFE0A33A);
 const _ink = Color(0xFFE2323D);
 
 /// Chi si può scegliere sta in piena luce, anche da morto. Gli altri
@@ -1134,6 +1135,7 @@ class _Seat extends StatelessWidget {
     return switch (knowledge.team) {
       Team.mafia => _label(t.familyBadge, _mafiaRed, d),
       Team.citizens => _label(t.innocentBadge, _cleanGreen, d),
+      Team.neutral => _label(t.neutralBadge, _neutralAmber, d),
       null => null,
     };
   }

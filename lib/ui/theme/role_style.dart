@@ -19,6 +19,11 @@ extension RoleStyle on Role {
         Role.guardaspalle => const Color(0xFF256A73),
         Role.reduce => const Color(0xFF5E6426),
         Role.pregiudicato => const Color(0xFFA0561C),
+        Role.messia => const Color(0xFF8C7A3A),
+        Role.sindaco => const Color(0xFF2E5E8C),
+        Role.portinaio => const Color(0xFF55606B),
+        Role.fesso => const Color(0xFFB08A1E),
+        Role.piromane => const Color(0xFFC0471A),
       };
 
   IconData get icon => switch (this) {
@@ -35,5 +40,10 @@ extension RoleStyle on Role {
         Role.guardaspalle => Icons.shield,
         Role.reduce => Icons.military_tech,
         Role.pregiudicato => Icons.fingerprint,
+        Role.messia => Icons.wb_twilight,
+        Role.sindaco => Icons.account_balance,
+        Role.portinaio => Icons.door_front_door,
+        Role.fesso => Icons.sentiment_very_satisfied,
+        Role.piromane => Icons.local_fire_department,
       };
 }

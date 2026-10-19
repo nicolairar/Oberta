@@ -122,6 +122,9 @@ class NarrationPack {
   final String cardTurns;
   final String wasMafia;
   final String wasCitizen;
+
+  /// Il condannato non stava con nessuno: Fesso o Piromane.
+  final String wasNeutral;
   final List<String> lynchedInnocent;
   final List<String> lynchedMafioso;
   final List<String> lynchedLastMafioso;
@@ -132,6 +135,29 @@ class NarrationPack {
   final String citizensWinFact;
   final List<String> mafiaWins;
   final String mafiaWinsFact;
+
+  /// Il Piromane accende il fiammifero: chi era cosparso brucia.
+  final List<String> fires;
+  final String burnedFact;
+
+  /// Il Messia riporta in vita un linciato: torna con il suo ruolo.
+  final List<String> resurrections;
+  final String resurrectedFact;
+
+  /// Il Fesso linciato: vince da solo, e la partita va avanti.
+  final List<String> foolWins;
+  final String foolWinsFact;
+
+  /// Il Piromane resta in piedi: vince da solo.
+  final List<String> arsonistWins;
+  final String arsonistWinsFact;
+
+  /// Il Sindaco si rivela (solo online, nella chat della piazza).
+  final String mayorRevealed;
+
+  /// Quello che il Portinaio ha visto dalla guardiola, la notte prima.
+  final String watchVisited;
+  final String watchQuiet;
 
   final Map<NightTaskKind, String> taskPrompts;
   final Map<NightTaskKind, String> taskHints;
@@ -171,6 +197,7 @@ class NarrationPack {
     required this.cardTurns,
     required this.wasMafia,
     required this.wasCitizen,
+    required this.wasNeutral,
     required this.lynchedInnocent,
     required this.lynchedMafioso,
     required this.lynchedLastMafioso,
@@ -180,6 +207,17 @@ class NarrationPack {
     required this.citizensWinFact,
     required this.mafiaWins,
     required this.mafiaWinsFact,
+    required this.fires,
+    required this.burnedFact,
+    required this.resurrections,
+    required this.resurrectedFact,
+    required this.foolWins,
+    required this.foolWinsFact,
+    required this.arsonistWins,
+    required this.arsonistWinsFact,
+    required this.mayorRevealed,
+    required this.watchVisited,
+    required this.watchQuiet,
     required this.taskPrompts,
     required this.taskHints,
     required this.decoyPrompts,

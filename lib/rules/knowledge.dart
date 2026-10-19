@@ -40,8 +40,7 @@ class Fact {
     this.apparent = false,
   });
 
-  bool visibleTo(Player? viewer) =>
-      visibility == Visibility.public || (viewer != null && audience.contains(viewer));
+  bool visibleTo(Player? viewer) => visibility == Visibility.public || (viewer != null && audience.contains(viewer));
 }
 
 /// Quello che un certo giocatore sa di un altro.

@@ -15,9 +15,9 @@ class SeatKnowledge {
   Map<String, Object?> toJson() => {'seat': seat.id, 'team': knowledge.team?.name, 'role': knowledge.role?.name};
 
   factory SeatKnowledge.fromJson(Map<String, Object?> json, SeatResolver resolve) => SeatKnowledge(
-        resolve(json['seat'] as String),
-        Knowledge(role: optionalEnum(Role.values, json['role']), team: optionalEnum(Team.values, json['team'])),
-      );
+    resolve(json['seat'] as String),
+    Knowledge(role: optionalEnum(Role.values, json['role']), team: optionalEnum(Team.values, json['team'])),
+  );
 }
 
 /// Un voto: della piazza, o della famiglia per l'agguato. `null`: astensione.
@@ -60,23 +60,42 @@ class ActionOption {
   /// bersagli, mandando un [NightAction]: il Sarto che cuce invece di votare.
   final NightTaskKind? alternative;
 
-  const ActionOption({required this.type, this.kind, required this.targets, this.current, this.alternative});
+  /// Chi si può scegliere per il compito alternativo, se non sono gli stessi
+  /// [targets]: il Piromane accende scegliendo se stesso.
+  final List<Player>? alternativeTargets;
+
+  /// Di giorno, il Sindaco può ancora rivelarsi ([RevealMayor]).
+  final bool canReveal;
+
+  const ActionOption({
+    required this.type,
+    this.kind,
+    required this.targets,
+    this.current,
+    this.alternative,
+    this.alternativeTargets,
+    this.canReveal = false,
+  });
 
   Map<String, Object?> toJson() => {
-        'type': type.name,
-        'kind': kind?.name,
-        'targets': seatsOf(targets),
-        'current': seatOf(current),
-        'alternative': alternative?.name,
-      };
+    'type': type.name,
+    'kind': kind?.name,
+    'targets': seatsOf(targets),
+    'current': seatOf(current),
+    'alternative': alternative?.name,
+    if (alternativeTargets != null) 'alternativeTargets': seatsOf(alternativeTargets!),
+    if (canReveal) 'canReveal': true,
+  };
 
   factory ActionOption.fromJson(Map<String, Object?> json, SeatResolver resolve) => ActionOption(
-        type: ActionType.values.byName(json['type'] as String),
-        kind: optionalEnum(NightTaskKind.values, json['kind']),
-        targets: seatsFrom(json['targets'], resolve),
-        current: optionalSeat(json['current'], resolve),
-        alternative: optionalEnum(NightTaskKind.values, json['alternative']),
-      );
+    type: ActionType.values.byName(json['type'] as String),
+    kind: optionalEnum(NightTaskKind.values, json['kind']),
+    targets: seatsFrom(json['targets'], resolve),
+    current: optionalSeat(json['current'], resolve),
+    alternative: optionalEnum(NightTaskKind.values, json['alternative']),
+    alternativeTargets: json['alternativeTargets'] == null ? null : seatsFrom(json['alternativeTargets'], resolve),
+    canReveal: json['canReveal'] as bool? ?? false,
+  );
 }
 
 /// Quello che lo schermo di tutti può mostrare: niente che non sia pubblico.
@@ -112,6 +131,13 @@ class PublicView {
   /// tavolo, non chi è chi). Vuoto se il server è vecchio.
   final Map<Role, int> deck;
 
+  /// Chi ha vinto da solo: il Fesso linciato (anche a partita in corso), il
+  /// Piromane rimasto in piedi.
+  final List<Player> personalWins;
+
+  /// Il Sindaco che si è rivelato oggi: il suo voto vale due.
+  final Player? mayor;
+
   const PublicView({
     required this.round,
     required this.phase,
@@ -126,49 +152,59 @@ class PublicView {
     required this.dayVotes,
     required this.finalRoles,
     this.deck = const {},
+    this.personalWins = const [],
+    this.mayor,
   });
 
+  /// [player] ha vinto: con la sua fazione o da solo. Si sa a partita finita
+  /// (le carte di tutti), o da subito per chi vince da solo.
+  bool won(Player player) =>
+      personalWins.contains(player) || (winner != null && winner != Team.neutral && finalRoles[player]?.team == winner);
+
   Map<String, Object?> toJson() => {
-        'round': round,
-        'phase': phase.name,
-        'winner': winner?.name,
-        'seats': seatsOf(seats),
-        'alive': seatsOf(alive),
-        'revealed': [for (final known in revealed) known.toJson()],
-        'history': [for (final record in history) roundToJson(record)],
-        'lastDawn': lastDawn == null ? null : dawnToJson(lastDawn!),
-        'lastLynch': lastLynch == null ? null : lynchToJson(lastLynch!),
-        'nightPending': nightPending,
-        'dayVotes': [for (final vote in dayVotes) _voteToJson(vote)],
-        'finalRoles': [
-          for (final entry in finalRoles.entries) {'seat': entry.key.id, 'role': entry.value.name},
-        ],
-        'deck': [
-          for (final entry in deck.entries) {'role': entry.key.name, 'count': entry.value},
-        ],
-      };
+    'round': round,
+    'phase': phase.name,
+    'winner': winner?.name,
+    'seats': seatsOf(seats),
+    'alive': seatsOf(alive),
+    'revealed': [for (final known in revealed) known.toJson()],
+    'history': [for (final record in history) roundToJson(record)],
+    'lastDawn': lastDawn == null ? null : dawnToJson(lastDawn!),
+    'lastLynch': lastLynch == null ? null : lynchToJson(lastLynch!),
+    'nightPending': nightPending,
+    'dayVotes': [for (final vote in dayVotes) _voteToJson(vote)],
+    'finalRoles': [
+      for (final entry in finalRoles.entries) {'seat': entry.key.id, 'role': entry.value.name},
+    ],
+    'deck': [
+      for (final entry in deck.entries) {'role': entry.key.name, 'count': entry.value},
+    ],
+    'personalWins': seatsOf(personalWins),
+    'mayor': seatOf(mayor),
+  };
 
   factory PublicView.fromJson(Map<String, Object?> json, [SeatResolver resolve = seatPlayer]) => PublicView(
-        round: json['round'] as int,
-        phase: GamePhase.values.byName(json['phase'] as String),
-        winner: optionalEnum(Team.values, json['winner']),
-        seats: seatsFrom(json['seats'], resolve),
-        alive: seatsFrom(json['alive'], resolve),
-        revealed: [for (final row in _rows(json['revealed'])) SeatKnowledge.fromJson(row, resolve)],
-        history: [for (final row in _rows(json['history'])) roundFromJson(row, resolve)],
-        lastDawn: json['lastDawn'] == null ? null : dawnFromJson(json['lastDawn'] as Map<String, Object?>, resolve),
-        lastLynch: json['lastLynch'] == null ? null : lynchFromJson(json['lastLynch'] as Map<String, Object?>, resolve),
-        nightPending: json['nightPending'] as int,
-        dayVotes: [for (final row in _rows(json['dayVotes'])) _voteFromJson(row, resolve)],
-        finalRoles: {
-          for (final row in _rows(json['finalRoles']))
-            resolve(row['seat'] as String): Role.values.byName(row['role'] as String),
-        },
-        deck: {
-          for (final row in _rows(json['deck'] ?? const []))
-            Role.values.byName(row['role'] as String): row['count'] as int,
-        },
-      );
+    round: json['round'] as int,
+    phase: GamePhase.values.byName(json['phase'] as String),
+    winner: optionalEnum(Team.values, json['winner']),
+    seats: seatsFrom(json['seats'], resolve),
+    alive: seatsFrom(json['alive'], resolve),
+    revealed: [for (final row in _rows(json['revealed'])) SeatKnowledge.fromJson(row, resolve)],
+    history: [for (final row in _rows(json['history'])) roundFromJson(row, resolve)],
+    lastDawn: json['lastDawn'] == null ? null : dawnFromJson(json['lastDawn'] as Map<String, Object?>, resolve),
+    lastLynch: json['lastLynch'] == null ? null : lynchFromJson(json['lastLynch'] as Map<String, Object?>, resolve),
+    nightPending: json['nightPending'] as int,
+    dayVotes: [for (final row in _rows(json['dayVotes'])) _voteFromJson(row, resolve)],
+    finalRoles: {
+      for (final row in _rows(json['finalRoles']))
+        resolve(row['seat'] as String): Role.values.byName(row['role'] as String),
+    },
+    deck: {
+      for (final row in _rows(json['deck'] ?? const [])) Role.values.byName(row['role'] as String): row['count'] as int,
+    },
+    personalWins: json['personalWins'] == null ? const [] : seatsFrom(json['personalWins'], resolve),
+    mayor: optionalSeat(json['mayor'], resolve),
+  );
 }
 
 /// Quello che un posto, e solo lui, ha diritto di vedere. È tutto ciò che
@@ -205,6 +241,13 @@ class PlayerView {
   /// Adesso può usare la chat della famiglia: di notte, o di giorno finché
   /// c'è un Compare vivo.
   final bool familyChat;
+
+  /// Per il Piromane: chi ha cosparso ed è ancora vivo. Vuoto per tutti gli
+  /// altri: nessuno sa di essere cosparso.
+  final List<Player> doused;
+
+  /// Per il Portinaio: le porte che ha guardato e se qualcuno ci è passato.
+  final List<WatchReport> watches;
   final PublicView board;
 
   const PlayerView({
@@ -219,24 +262,29 @@ class PlayerView {
     required this.familyVotes,
     this.silenced = false,
     this.familyChat = false,
+    this.doused = const [],
+    this.watches = const [],
     required this.board,
   });
 
   Map<String, Object?> toJson() => {
-        'seat': seat.id,
-        'alive': alive,
-        'role': role.name,
-        'team': team.name,
-        'teammates': seatsOf(teammates),
-        'known': [for (final known in known) known.toJson()],
-        'action': action?.toJson(),
-        'nightChoice':
-            nightChoice == null ? null : {'kind': nightChoice!.kind.name, 'target': seatOf(nightChoice!.target)},
-        'familyVotes': [for (final vote in familyVotes) _voteToJson(vote)],
-        'silenced': silenced,
-        'familyChat': familyChat,
-        'board': board.toJson(),
-      };
+    'seat': seat.id,
+    'alive': alive,
+    'role': role.name,
+    'team': team.name,
+    'teammates': seatsOf(teammates),
+    'known': [for (final known in known) known.toJson()],
+    'action': action?.toJson(),
+    'nightChoice': nightChoice == null ? null : {'kind': nightChoice!.kind.name, 'target': seatOf(nightChoice!.target)},
+    'familyVotes': [for (final vote in familyVotes) _voteToJson(vote)],
+    'silenced': silenced,
+    'familyChat': familyChat,
+    'doused': seatsOf(doused),
+    'watches': [
+      for (final watch in watches) {'round': watch.round, 'seat': watch.target.id, 'visited': watch.visited},
+    ],
+    'board': board.toJson(),
+  };
 
   factory PlayerView.fromJson(Map<String, Object?> json, [SeatResolver resolve = seatPlayer]) {
     final choice = json['nightChoice'] as Map<String, Object?>?;
@@ -258,6 +306,11 @@ class PlayerView {
       familyVotes: [for (final row in _rows(json['familyVotes'])) _voteFromJson(row, resolve)],
       silenced: json['silenced'] as bool? ?? false,
       familyChat: json['familyChat'] as bool? ?? false,
+      doused: json['doused'] == null ? const [] : seatsFrom(json['doused'], resolve),
+      watches: [
+        for (final row in _rows(json['watches'] ?? const []))
+          (round: row['round'] as int, target: resolve(row['seat'] as String), visited: row['visited'] as bool),
+      ],
       board: PublicView.fromJson(json['board'] as Map<String, Object?>, resolve),
     );
   }

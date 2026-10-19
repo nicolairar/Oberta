@@ -47,6 +47,21 @@ class GameSnapshot {
   final Set<Player> scarred;
   final DawnReport? lastDawn;
   final LynchReport? lastLynch;
+
+  /// Chi il Piromane ha cosparso ed è ancora vivo.
+  final Set<Player> doused;
+
+  /// Quello che ogni Portinaio ha visto.
+  final List<({Player watcher, WatchReport report})> watches;
+
+  /// Chi ha vinto da solo (Fesso, Piromane).
+  final List<Player> personalWins;
+
+  /// Il Messia ha già usato la sua resurrezione.
+  final bool resurrectionSpent;
+
+  /// Il giro in cui il Sindaco si è rivelato.
+  final int? mayorRound;
   final List<GameCommand> log;
 
   const GameSnapshot({
@@ -71,6 +86,11 @@ class GameSnapshot {
     required this.scarred,
     required this.lastDawn,
     required this.lastLynch,
+    this.doused = const {},
+    this.watches = const [],
+    this.personalWins = const [],
+    this.resurrectionSpent = false,
+    this.mayorRound,
     required this.log,
   });
 
@@ -104,6 +124,19 @@ class GameSnapshot {
         'scarred': seatsOf(scarred),
         'lastDawn': lastDawn == null ? null : dawnToJson(lastDawn!),
         'lastLynch': lastLynch == null ? null : lynchToJson(lastLynch!),
+    'doused': seatsOf(doused),
+    'watches': [
+      for (final watch in watches)
+        {
+          'watcher': watch.watcher.id,
+          'round': watch.report.round,
+          'seat': watch.report.target.id,
+          'visited': watch.report.visited,
+        },
+    ],
+    'personalWins': seatsOf(personalWins),
+    'resurrectionSpent': resurrectionSpent,
+    'mayorRound': mayorRound,
         'log': [for (final command in log) command.toJson()],
       };
 
@@ -152,6 +185,18 @@ class GameSnapshot {
       scarred: seatsFrom(json['scarred'], seat).toSet(),
       lastDawn: object('lastDawn') == null ? null : dawnFromJson(object('lastDawn')!, seat),
       lastLynch: object('lastLynch') == null ? null : lynchFromJson(object('lastLynch')!, seat),
+      // Le fotografie di prima dei neutrali non hanno questi campi.
+      doused: json['doused'] == null ? const {} : seatsFrom(json['doused'], seat).toSet(),
+      watches: [
+        for (final row in (json['watches'] as List<Object?>? ?? const []).cast<Map<String, Object?>>())
+          (
+            watcher: seat(row['watcher'] as String),
+            report: (round: row['round'] as int, target: seat(row['seat'] as String), visited: row['visited'] as bool),
+          ),
+      ],
+      personalWins: json['personalWins'] == null ? const [] : seatsFrom(json['personalWins'], seat),
+      resurrectionSpent: json['resurrectionSpent'] as bool? ?? false,
+      mayorRound: json['mayorRound'] as int?,
       log: [for (final row in rows('log')) GameCommand.fromJson(row)],
     );
   }
