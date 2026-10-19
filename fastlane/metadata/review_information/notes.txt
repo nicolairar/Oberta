@@ -9,7 +9,7 @@ The app has no in-app purchases and no real-money currency. Coins are earned onl
 
 USER-GENERATED CONTENT
 Online rooms have a text chat (open square by day, private Family chat at night), only with people in the same room. Every message is checked server-side against a blocked-words filter before it is stored; blocked messages are rejected. Usernames go through the same filter.
-<REPORT_AND_BLOCK_INSTRUCTIONS>
+Report and block: long-press any other player's seat or any chat message to report (with a reason) or block them. Blocked players' messages are hidden, friend requests and room joins between you are refused. Blocked players can be managed in Settings > Blocked players; the community rules are in Settings > Community rules.
 
 ACCOUNT DELETION
 Settings (gear icon on the home screen) > "Elimina account" / "Delete account". After typing the confirmation word, the account, profile, friends, wardrobe and coins are deleted permanently and the Sign in with Apple token is revoked.
