@@ -25,19 +25,10 @@ class RoleText {
   final String label;
   final String motto;
 
-  /// Cosa fa di notte, toccando un giocatore ("Niente." se non ha mosse).
-  final String night;
+  /// Cosa fa il ruolo e quando vince, in poche frasi semplici.
+  final String description;
 
-  /// Quando vince: completa "Vinci se", quindi comincia minuscola.
-  final String win;
-
-  /// La cosa da non dimenticare, se c'è.
-  final String? twist;
-
-  const RoleText(this.label, this.motto, {required this.night, required this.win, this.twist});
-
-  /// Le regole tutte di seguito, per dove serve una riga sola.
-  String get description => [night, win[0].toUpperCase() + win.substring(1), ?twist].join(' ');
+  const RoleText(this.label, this.motto, this.description);
 }
 
 /// La città vera in cui è ambientata una partita, con i suoi luoghi veri.

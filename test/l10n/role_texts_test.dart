@@ -25,7 +25,7 @@ void main() {
     expect(englishPack.role(Role.pregiudicato).label, 'The Ex-Con');
   });
 
-  test('ogni motto tra virgolette della sua lingua, e una spiegazione breve', () {
+  test('ogni motto tra virgolette della sua lingua, e una spiegazione semplice', () {
     const quotes = {AppLanguage.it: ('«', '»'), AppLanguage.en: ('“', '”')};
     for (final language in AppLanguage.values) {
       final (open, close) = quotes[language]!;
@@ -35,13 +35,10 @@ void main() {
         expect(text.motto, startsWith(open), reason: reason);
         expect(text.motto, endsWith(close), reason: reason);
         expect(text.motto.length, lessThanOrEqualTo(48), reason: '$reason: sulla carta sta in due righe');
-        // Le regole in righe secche: ognuna corta, e finisce col punto.
-        for (final line in [text.night, text.win, ?text.twist]) {
-          expect(line, endsWith('.'), reason: '$reason: $line');
-          expect(line.length, lessThanOrEqualTo(80), reason: '$reason: $line');
-          expect(RegExp(r'[.!?](\s|$)').allMatches(line).length, lessThanOrEqualTo(2), reason: '$reason: $line');
-        }
-        expect(text.win[0], text.win[0].toLowerCase(), reason: '$reason: completa "Vinci se"');
+        // Poche frasi semplici: chiare, non un romanzo.
+        expect(text.description, endsWith('.'), reason: reason);
+        expect(text.description.length, inInclusiveRange(40, 170), reason: '$reason: ${text.description}');
+        expect(RegExp(r'[.!?](\s|$)').allMatches(text.description).length, lessThanOrEqualTo(3), reason: reason);
       }
     }
   });
@@ -49,7 +46,7 @@ void main() {
   test('i ruoli in inglese sono tutti in inglese, e nessuno ha un genere', () {
     for (final role in Role.values) {
       final text = englishPack.role(role);
-      for (final line in [text.label, text.motto, text.night, text.win, ?text.twist]) {
+      for (final line in [text.label, text.motto, text.description]) {
         expect(italianWords.hasMatch(line.toLowerCase()), isFalse, reason: '${role.name}: $line');
         expect(genderedWords.hasMatch(line), isFalse, reason: '${role.name}: $line');
       }
