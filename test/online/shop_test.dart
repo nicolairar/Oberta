@@ -144,4 +144,50 @@ void main() {
       }
     });
   });
+
+  group('i pacchetti', () {
+    final catalog = {for (final item in initialShopCatalog) item.id: item};
+
+    test('sono gli stessi della migrazione, e ogni pezzo si vende anche da solo', () {
+      final sql = File('supabase/migrations/20261022120000_shop_bundles.sql').readAsStringSync();
+      final heads = {
+        for (final m in RegExp(r"\('([a-z_]+)', '(set|premium)', (\d+), ").allMatches(sql)) m[1]!: '${m[2]} ${m[3]}',
+      };
+      final contents = <String, Set<String>>{};
+      for (final m in RegExp(r"\('([a-z_]+)', '(\w+\.\w+)'\)").allMatches(sql)) {
+        (contents[m[1]!] ??= {}).add(m[2]!);
+      }
+      expect(heads, {for (final b in initialShopBundles) b.id: '${b.tier} ${b.discountPct}'});
+      expect(contents, {for (final b in initialShopBundles) b.id: b.itemIds.toSet()});
+      for (final bundle in initialShopBundles) {
+        for (final id in bundle.itemIds) {
+          expect(catalog[id], isNotNull, reason: '${bundle.id}: $id');
+          expect(catalog[id]!.free, isFalse, reason: '${bundle.id}: $id');
+        }
+      }
+    });
+
+    test('conviene: dal 30 al 45% sotto i pezzi presi uno a uno; il lusso è caro', () {
+      for (final bundle in initialShopBundles) {
+        final singles = bundle.singles(catalog, const {});
+        final price = bundle.price(catalog, const {});
+        expect(price * 100, lessThanOrEqualTo(singles * 70), reason: bundle.id);
+        expect(price * 100, greaterThanOrEqualTo(singles * 54), reason: bundle.id);
+        expect(price % 10, 0);
+        if (bundle.premium) expect(price, inInclusiveRange(4000, 12000), reason: bundle.id);
+      }
+    });
+
+    test('si paga solo quello che manca, sempre scontato', () async {
+      online.award('me', coins: 700);
+      await shop.buy('hat.trilby');
+      online.award('me', coins: 1620);
+      final after = await shop.buyBundle('detective');
+      expect(after.coins, 0, reason: '(1800 + 350 + 350) meno il 35%, alla decina: 1620');
+      expect(await shop.owned(), containsAll(['outfit.trench_coat', 'hat.trilby', 'face.pencil', 'accessory.pipe']));
+      await expectLater(shop.buyBundle('detective'), _fails(OnlineFailure.alreadyOwned));
+      await expectLater(shop.buyBundle('padrino'), _fails(OnlineFailure.notEnoughCoins));
+      await expectLater(shop.buyBundle('nope'), _fails(OnlineFailure.itemNotFound));
+    });
+  });
 }

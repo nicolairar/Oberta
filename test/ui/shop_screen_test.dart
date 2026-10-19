@@ -150,4 +150,26 @@ void main() {
     expect(find.text('COMUNE'), findsNothing);
     expect(find.byKey(const Key('shop.item.hat.borsalino')), findsOneWidget);
   });
+
+  testWidgets('i pacchetti: lo sconto, i pezzi uno per uno, si compra tutto', (tester) async {
+    online.award('me', coins: 2500);
+    await open(tester);
+    expect(find.byKey(const Key('shop.bundle.pirata')), findsOneWidget, reason: 'in vetrina, il completo che conviene');
+    await tab(tester, 'bundles');
+    await tester.pumpAndSettle();
+    expect(find.text('RISPARMI IL 35%'), findsWidgets);
+    await tester.tap(find.byKey(const Key('shop.bundle.detective')));
+    await tester.pumpAndSettle();
+    expect(find.text('Il Detective'), findsOneWidget);
+    expect(find.text('3200'), findsOneWidget, reason: 'la somma dei pezzi, barrata');
+    expect(find.text('1800'), findsOneWidget, reason: 'ogni pezzo col suo prezzo da solo');
+    await tester.tap(find.byKey(const Key('shop.bundle.buy')));
+    await tester.pumpAndSettle();
+    expect(find.text('Comprare Il Detective?'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('shop.confirm')));
+    await tester.pumpAndSettle();
+    expect(coins(tester), '420');
+    expect(find.text('COMPLETO'), findsOneWidget);
+    expect(online.shop.ownedBy('me'), containsAll(['outfit.trench_coat', 'accessory.pipe']));
+  });
 }

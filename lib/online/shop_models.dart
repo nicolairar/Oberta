@@ -175,6 +175,70 @@ class ShopFeature {
   );
 }
 
+/// Un pacchetto: pezzi del catalogo venduti insieme, con lo sconto. Ogni
+/// pezzo si compra anche da solo, ma il pacchetto conviene. Il prezzo lo fa
+/// il server (`bundle_price`): la somma dei pezzi che mancano, meno lo
+/// sconto, arrotondata per difetto alla decina. [price] fa lo stesso conto,
+/// solo per mostrarlo.
+class ShopBundle {
+  final String id;
+
+  /// `set` o `premium`: i pacchetti di lusso stanno in cima ai prezzi.
+  final String tier;
+  final int discountPct;
+  final String nameIt;
+  final String nameEn;
+  final String taglineIt;
+  final String taglineEn;
+  final int sort;
+  final List<String> itemIds;
+
+  const ShopBundle({
+    required this.id,
+    required this.tier,
+    required this.discountPct,
+    required this.nameIt,
+    required this.nameEn,
+    required this.taglineIt,
+    required this.taglineEn,
+    required this.itemIds,
+    this.sort = 0,
+  });
+
+  bool get premium => tier == 'premium';
+
+  String name(AppLanguage language) => language == AppLanguage.en ? nameEn : nameIt;
+  String tagline(AppLanguage language) => language == AppLanguage.en ? taglineEn : taglineIt;
+
+  /// I pezzi a pagamento che [owned] non ha ancora.
+  List<ShopItem> missing(Map<String, ShopItem> catalog, Set<String> owned) => [
+    for (final id in itemIds)
+      if (catalog[id] case final item? when !item.free && !owned.contains(id)) item,
+  ];
+
+  /// Quanto costerebbero i pezzi che mancano, presi uno a uno.
+  int singles(Map<String, ShopItem> catalog, Set<String> owned) =>
+      missing(catalog, owned).fold(0, (sum, item) => sum + item.price);
+
+  /// Il prezzo del pacchetto per chi possiede [owned]: 0 se ha già tutto.
+  int price(Map<String, ShopItem> catalog, Set<String> owned) =>
+      singles(catalog, owned) * (100 - discountPct) ~/ 100 ~/ 10 * 10;
+
+  factory ShopBundle.fromJson(Map<String, dynamic> json) => ShopBundle(
+    id: json['id'] as String,
+    tier: json['tier'] as String? ?? 'set',
+    discountPct: (json['discount_pct'] as num).toInt(),
+    nameIt: json['name_it'] as String,
+    nameEn: json['name_en'] as String,
+    taglineIt: json['tagline_it'] as String? ?? '',
+    taglineEn: json['tagline_en'] as String? ?? '',
+    sort: (json['sort'] as num?)?.toInt() ?? 0,
+    itemIds: [
+      for (final row in (json['shop_bundle_items'] as List? ?? const [])) (row as Map)['item_id'] as String,
+    ],
+  );
+}
+
 /// La bottega vista dal telefono. Il saldo, l'inventario e il look indossato
 /// li scrive solo il server: qui si chiede, e si riceve il profilo nuovo.
 abstract class ShopRepository {
@@ -190,6 +254,13 @@ abstract class ShopRepository {
   /// Compra con le monete: [OnlineFailure.notEnoughCoins],
   /// [OnlineFailure.alreadyOwned] o [OnlineFailure.itemNotFound] se non si può.
   Future<Profile> buy(String itemId);
+
+  /// I pacchetti accesi, in ordine.
+  Future<List<ShopBundle>> bundles();
+
+  /// Compra i pezzi che mancano di un pacchetto, al prezzo del pacchetto:
+  /// [OnlineFailure.alreadyOwned] se si ha già tutto.
+  Future<Profile> buyBundle(String bundleId);
 
   /// Indossa un pezzo posseduto ([OnlineFailure.notOwned] altrimenti).
   /// [tone] è la pelle che l'app mostra, per chi non ha mai salvato un look:
@@ -565,4 +636,21 @@ final List<ShopItem> barberDrop = [
   ShopItem.drop('tattoo', 'playingCards', ShopRarity.raro, 'Carte da gioco', 'Playing cards', 709),
   ShopItem.drop('tattoo', 'skullTopHat', ShopRarity.raro, 'Teschio col cilindro', 'Skull in a top hat', 710),
   ShopItem.drop('tattoo', 'familyCrest', ShopRarity.epico, 'Stemma di famiglia', 'Family crest', 711),
+];
+
+/// I pacchetti, gli stessi di `supabase/migrations/20261022120000_shop_bundles.sql`
+/// (un test li confronta).
+const List<ShopBundle> initialShopBundles = [
+  ShopBundle(id: 'ragioniere', tier: 'set', discountPct: 30, nameIt: 'Il Ragioniere', nameEn: 'The Bookkeeper', taglineIt: 'Conti in ordine, baffo in ordine.', taglineEn: 'Neat books, neat moustache.', sort: 10, itemIds: ['glasses.browline', 'face.pencil', 'accessory.knitTie', 'hat.porkPie']),
+  ShopBundle(id: 'detective', tier: 'set', discountPct: 35, nameIt: 'Il Detective', nameEn: 'The Private Eye', taglineIt: 'Impermeabile, trilby e una pipa che pensa.', taglineEn: 'Trench coat, trilby and a thinking pipe.', sort: 20, itemIds: ['outfit.trench_coat', 'hat.trilby', 'face.pencil', 'accessory.pipe']),
+  ShopBundle(id: 'padrino', tier: 'set', discountPct: 35, nameIt: 'Il Padrino', nameEn: 'The Godfather', taglineIt: "Un'offerta che non potrai rifiutare.", taglineEn: "An offer you can't refuse.", sort: 30, itemIds: ['hat.borsalino', 'outfit.midnight_double', 'face.walrus', 'accessory.pocketWatch', 'accessory.whiteCarnation']),
+  ShopBundle(id: 'pirata', tier: 'set', discountPct: 38, nameIt: 'Il Pirata', nameEn: 'The Pirate', taglineIt: 'Tricorno, benda, barba e pappagallo.', taglineEn: 'Tricorn, patch, beard and parrot.', sort: 40, itemIds: ['hat.tricorn', 'glasses.eyePatch', 'face.fullBeard', 'accessory.parrot']),
+  ShopBundle(id: 'nikea', tier: 'set', discountPct: 35, nameIt: 'Squadra Nikea', nameEn: 'Team Nikea', taglineIt: 'Tutto il guardaroba da pista.', taglineEn: 'The whole track wardrobe.', sort: 50, itemIds: ['hat.fulmineCap', 'outfit.fulmine_track', 'outfit.fulmine_cardigan']),
+  ShopBundle(id: 'adelphi', tier: 'set', discountPct: 35, nameIt: 'Squadra Adelphi', nameEn: 'Team Adelphi', taglineIt: 'Il campo dei due fratelli.', taglineEn: "The two brothers' squad.", sort: 60, itemIds: ['hat.adelphiCap', 'outfit.adelphi_track', 'outfit.adelphi_cardigan']),
+  ShopBundle(id: 'vaugirard', tier: 'set', discountPct: 35, nameIt: 'Il Viaggiatore', nameEn: 'The Traveller', taglineIt: 'La collezione Vaugirard al completo.', taglineEn: 'The full Vaugirard collection.', sort: 70, itemIds: ['outfit.vaugirard_travel', 'hat.vaugirardCap', 'accessory.vaugirardStrap']),
+  ShopBundle(id: 'versalli', tier: 'premium', discountPct: 40, nameIt: 'Casa Versalli', nameEn: 'House of Versalli', taglineIt: "Tutto l'oro del barocco, in un colpo.", taglineEn: 'All the baroque gold, in one go.', sort: 100, itemIds: ['outfit.versalli_baroque', 'glasses.ricciMonocle', 'accessory.ricciChain', 'accessory.ricciTiePin', 'accessory.ricciWatch']),
+  ShopBundle(id: 'chanterelle', tier: 'premium', discountPct: 40, nameIt: 'Maison Chanterelle', nameEn: 'Maison Chanterelle', taglineIt: "L'alta moda intera, perle comprese.", taglineEn: 'The whole couture line, pearls included.', sort: 110, itemIds: ['outfit.delacroix_cape', 'outfit.delacroix_velvet', 'glasses.delacroixShades', 'accessory.delacroixScarf', 'accessory.delacroixAscot', 'accessory.chanterellePearls']),
+  ShopBundle(id: 'ali', tier: 'premium', discountPct: 40, nameIt: 'Paradiso e Inferno', nameEn: 'Heaven and Hell', taglineIt: "Aureola, cornetti e quattro paia d'ali.", taglineEn: 'Halo, horns and four pairs of wings.', sort: 120, itemIds: ['hat.angelHalo', 'hat.devilHorns', 'accessory.angelWings', 'accessory.batWings', 'accessory.butterflyWings', 'accessory.dragonWings']),
+  ShopBundle(id: 'tendone', tier: 'premium', discountPct: 45, nameIt: 'Il Grande Tendone', nameEn: 'The Big Top', taglineIt: 'Il circo intero: clown, mimo, forzuto e mago.', taglineEn: 'The whole circus: clown, mime, strongman and magician.', sort: 130, itemIds: ['hat.clownWig', 'hat.magicianHat', 'face.curledMoustache', 'face.mimeFace', 'glasses.hypnoGlasses', 'outfit.clown_suit', 'outfit.strongman_leotard', 'outfit.mime_stripes', 'outfit.magician_cape', 'accessory.clownNose']),
+  ShopBundle(id: 'leggende', tier: 'premium', discountPct: 40, nameIt: 'Le Leggende', nameEn: 'The Legends', taglineIt: "Dieci pezzi leggendari: il guardaroba di un boss.", taglineEn: "Ten legendary pieces: a boss's wardrobe.", sort: 140, itemIds: ['outfit.trench_coat', 'outfit.gold_brocade', 'hat.morettiHomburg', 'outfit.vanetti_tuxedo', 'outfit.vanetti_ivory', 'outfit.delacroix_cape', 'accessory.ricciWatch', 'outfit.vaugirard_travel', 'outfit.versalli_baroque', 'accessory.chanterellePearls']),
 ];

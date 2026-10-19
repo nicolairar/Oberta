@@ -909,6 +909,7 @@ class FakeShop implements ShopRepository {
   /// Il catalogo e la vetrina: quelli di partenza, o altri per un test.
   List<ShopItem> items = initialShopCatalog;
   List<ShopFeature> features = initialShopFeatured;
+  List<ShopBundle> packs = initialShopBundles;
 
   final Map<String, Set<String>> _owned = {};
 
@@ -945,6 +946,26 @@ class FakeShop implements ShopRepository {
     if (me.coins < item.price) throw const OnlineException(OnlineFailure.notEnoughCoins);
     (_owned[me.id] ??= {}).add(item.id);
     final bought = _online._profiles[me.id] = me.copyWith(coins: me.coins - item.price);
+    _online._pushWallet(me.id);
+    return bought;
+  }
+
+  @override
+  Future<List<ShopBundle>> bundles() async => [...packs]..sort((a, b) => a.sort.compareTo(b.sort));
+
+  @override
+  Future<Profile> buyBundle(String bundleId) async {
+    final me = _me();
+    final bundle = packs.where((b) => b.id == bundleId).firstOrNull ?? (throw const OnlineException(OnlineFailure.itemNotFound));
+    final catalog = {for (final item in items) item.id: item};
+    if (bundle.itemIds.any((id) => !catalog.containsKey(id))) throw const OnlineException(OnlineFailure.itemNotFound);
+    final mine = _owned[me.id] ?? const <String>{};
+    final missing = bundle.missing(catalog, mine);
+    if (missing.isEmpty) throw const OnlineException(OnlineFailure.alreadyOwned);
+    final price = bundle.price(catalog, mine);
+    if (me.coins < price) throw const OnlineException(OnlineFailure.notEnoughCoins);
+    (_owned[me.id] ??= {}).addAll(missing.map((item) => item.id));
+    final bought = _online._profiles[me.id] = me.copyWith(coins: me.coins - price);
     _online._pushWallet(me.id);
     return bought;
   }

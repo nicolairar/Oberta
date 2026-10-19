@@ -17,6 +17,8 @@ import '../../widgets/player_avatar.dart' show AvatarBustPainter;
 import '../online/online_widgets.dart' show showFailure;
 import 'shop_controller.dart';
 
+part 'shop_bundles.dart';
+
 /// Apre la bottega di chi è entrato.
 Future<void> openShop(
   BuildContext context, {
@@ -231,7 +233,11 @@ class _ShopScreenState extends State<ShopScreen> {
                 child: _ShelfSign(
                   label: t.tab(tab),
                   on: _tab == tab,
-                  gilded: tab == ShopTab.brands || tab == ShopTab.oddities || tab == ShopTab.window,
+                  gilded:
+                      tab == ShopTab.brands ||
+                      tab == ShopTab.oddities ||
+                      tab == ShopTab.window ||
+                      tab == ShopTab.bundles,
                 ),
               ),
             ),
@@ -257,6 +263,7 @@ class _ShopScreenState extends State<ShopScreen> {
     switch (_tab) {
       case ShopTab.window:
         slivers.add(SliverToBoxAdapter(child: _greeting(t)));
+        slivers.addAll(_bundleTeaser(t, language));
         final now = DateTime.now();
         slivers.add(
           _grid(t, language, [
@@ -264,6 +271,8 @@ class _ShopScreenState extends State<ShopScreen> {
               (item, t.endsIn(max(1, feature.endsAt.difference(now).inHours ~/ 24 + 1))),
           ]),
         );
+      case ShopTab.bundles:
+        slivers.addAll(_bundleShelf(t, language));
       case ShopTab.brands when _brand == null:
         slivers.add(
           SliverList.list(
@@ -347,7 +356,7 @@ class _ShopScreenState extends State<ShopScreen> {
       ShopTab.brands => _shop.branded(_brand, wardrobe: false),
       ShopTab.oddities => _collected(_collection!),
       ShopTab.wardrobe => [for (final slot in _allSlots) ..._shop.wardrobe(slot)],
-      ShopTab.window => const <ShopItem>[],
+      ShopTab.window || ShopTab.bundles => const <ShopItem>[],
     };
     final picked = [
       for (final item in items)

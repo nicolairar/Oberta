@@ -22,6 +22,7 @@ class ShopController extends ChangeNotifier {
   List<ShopItem> catalog = const [];
   List<ShopFeature> featured = const [];
   Set<String> owned = const {};
+  List<ShopBundle> bundles = const [];
   bool loading = true;
   Object? error;
 
@@ -113,6 +114,8 @@ class ShopController extends ChangeNotifier {
       catalog = results[0] as List<ShopItem>;
       featured = results[1] as List<ShopFeature>;
       owned = results[2] as Set<String>;
+      // Un server senza pacchetti non chiude la bottega.
+      bundles = await shop.bundles().catchError((_) => const <ShopBundle>[]);
     } catch (failure) {
       error = failure;
     }
@@ -141,6 +144,45 @@ class ShopController extends ChangeNotifier {
   Future<void> buy(ShopItem item) => _call(() async {
     final profile = await shop.buy(item.id);
     owned = {...owned, item.id};
+    account.saved(profile);
+  });
+
+  Map<String, ShopItem> get _byId => {for (final item in catalog) item.id: item};
+
+  /// I pacchetti che si sanno disegnare tutti: prima i completi, poi il lusso.
+  List<ShopBundle> get shelfBundles => [
+    for (final bundle in bundles)
+      if (bundleItems(bundle).length == bundle.itemIds.length && bundle.itemIds.isNotEmpty) bundle,
+  ];
+
+  /// I pezzi di un pacchetto, nell'ordine del pacchetto.
+  List<ShopItem> bundleItems(ShopBundle bundle) => [
+    for (final id in bundle.itemIds)
+      if (item(id) case final item? when drawable(item)) item,
+  ];
+
+  /// La somma dei pezzi interi presi uno a uno, e quella dei soli mancanti.
+  int bundleFull(ShopBundle bundle) => bundle.singles(_byId, const {});
+  int bundleSingles(ShopBundle bundle) => bundle.singles(_byId, owned);
+  int bundlePrice(ShopBundle bundle) => bundle.price(_byId, owned);
+  int bundleOwnedCount(ShopBundle bundle) => bundle.itemIds.where(owned.contains).length;
+  bool bundleComplete(ShopBundle bundle) => bundle.missing(_byId, owned).isEmpty;
+
+  /// Il pacchetto addosso: un pezzo per posto, il primo che c'è.
+  AvatarLook bundleLook(ShopBundle bundle) {
+    var dressed = look;
+    final used = <String>{};
+    for (final item in bundleItems(bundle)) {
+      final slot = slotOf(item);
+      if (slot == null || !used.add(item.slot)) continue;
+      dressed = dressed.wearing(slot, item.lookId) ?? dressed;
+    }
+    return dressed;
+  }
+
+  Future<void> buyBundle(ShopBundle bundle) => _call(() async {
+    final profile = await shop.buyBundle(bundle.id);
+    owned = {...owned, for (final item in bundleItems(bundle)) if (!item.free) item.id};
     account.saved(profile);
   });
 

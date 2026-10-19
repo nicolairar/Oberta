@@ -1,7 +1,7 @@
 import '../online/shop_models.dart';
 
 /// I reparti della bottega, nell'ordine delle linguette.
-enum ShopTab { window, tailoring, hats, accessories, brands, oddities, wardrobe }
+enum ShopTab { window, bundles, tailoring, hats, accessories, brands, oddities, wardrobe }
 
 /// I testi della bottega: il bancone, lo specchio e il guardaroba. Come
 /// [OnlineStrings], ogni lingua dice tutto e ogni testo finisce nel [catalog].
@@ -62,6 +62,22 @@ abstract class ShopStrings {
   String get changeFaceHint;
   String get back;
 
+  /// I pacchetti.
+  String save(int pct);
+  String get bundlesHeading;
+  String get bundlesHint;
+  String get premiumHeading;
+  String get premium;
+  String get complete;
+  String get buyBundle;
+  String get bundleContents;
+  String get singlesLabel;
+  String ownedPart(int owned, int total);
+  String bundleConfirmTitle(String bundle);
+  String bundleConfirmBody(int price, int saved, int left);
+  String bundleBought(String bundle);
+  String get seeAll;
+
   Map<String, String> get catalog => {
     'title': title,
     'subtitle': subtitle,
@@ -105,6 +121,20 @@ abstract class ShopStrings {
     'changeFace': changeFace,
     'changeFaceHint': changeFaceHint,
     'back': back,
+    'save': save(35),
+    'bundlesHeading': bundlesHeading,
+    'bundlesHint': bundlesHint,
+    'premiumHeading': premiumHeading,
+    'premium': premium,
+    'complete': complete,
+    'buyBundle': buyBundle,
+    'bundleContents': bundleContents,
+    'singlesLabel': singlesLabel,
+    'ownedPart': ownedPart(2, 5),
+    'bundleConfirmTitle': bundleConfirmTitle('Detective'),
+    'bundleConfirmBody': bundleConfirmBody(1850, 1000, 150),
+    'bundleBought': bundleBought('Detective'),
+    'seeAll': seeAll,
   };
 }
 
@@ -194,6 +224,7 @@ class ItalianShopStrings extends ShopStrings {
   @override
   String tab(ShopTab tab) => switch (tab) {
     ShopTab.window => 'Vetrina',
+    ShopTab.bundles => 'Pacchetti',
     ShopTab.tailoring => 'Sartoria',
     ShopTab.hats => 'Cappelleria',
     ShopTab.accessories => 'Accessori',
@@ -225,6 +256,35 @@ class ItalianShopStrings extends ShopStrings {
   String get changeFaceHint => 'Il viso, la pelle, i baffi: dal barbiere.';
   @override
   String get back => 'Indietro';
+  @override
+  String save(int pct) => 'RISPARMI IL $pct%';
+  @override
+  String get bundlesHeading => 'I COMPLETI';
+  @override
+  String get bundlesHint => 'Tutto insieme costa meno che pezzo per pezzo.';
+  @override
+  String get premiumHeading => 'IL GRAN LUSSO';
+  @override
+  String get premium => 'GRAN LUSSO';
+  @override
+  String get complete => 'COMPLETO';
+  @override
+  String get buyBundle => 'COMPRA TUTTO';
+  @override
+  String get bundleContents => 'DENTRO IL PACCHETTO';
+  @override
+  String get singlesLabel => 'Pezzo per pezzo';
+  @override
+  String ownedPart(int owned, int total) => 'Ne hai già $owned su $total: paghi solo il resto.';
+  @override
+  String bundleConfirmTitle(String bundle) => 'Comprare $bundle?';
+  @override
+  String bundleConfirmBody(int price, int saved, int left) =>
+      'Costa $price monete, $saved meno che pezzo per pezzo. Te ne restano $left.';
+  @override
+  String bundleBought(String bundle) => 'È tutto tuo: $bundle.';
+  @override
+  String get seeAll => 'Tutti i pacchetti';
 }
 
 class EnglishShopStrings extends ShopStrings {
@@ -313,6 +373,7 @@ class EnglishShopStrings extends ShopStrings {
   @override
   String tab(ShopTab tab) => switch (tab) {
     ShopTab.window => 'Window',
+    ShopTab.bundles => 'Bundles',
     ShopTab.tailoring => 'Tailoring',
     ShopTab.hats => 'Hats',
     ShopTab.accessories => 'Accessories',
@@ -344,4 +405,33 @@ class EnglishShopStrings extends ShopStrings {
   String get changeFaceHint => 'Face, skin, moustache: see the barber.';
   @override
   String get back => 'Back';
+  @override
+  String save(int pct) => 'SAVE $pct%';
+  @override
+  String get bundlesHeading => 'FULL LOOKS';
+  @override
+  String get bundlesHint => 'Together costs less than piece by piece.';
+  @override
+  String get premiumHeading => 'GRAND LUXE';
+  @override
+  String get premium => 'GRAND LUXE';
+  @override
+  String get complete => 'COMPLETE';
+  @override
+  String get buyBundle => 'BUY IT ALL';
+  @override
+  String get bundleContents => 'IN THE BUNDLE';
+  @override
+  String get singlesLabel => 'One by one';
+  @override
+  String ownedPart(int owned, int total) => 'You own $owned of $total: you only pay for the rest.';
+  @override
+  String bundleConfirmTitle(String bundle) => 'Buy $bundle?';
+  @override
+  String bundleConfirmBody(int price, int saved, int left) =>
+      'It costs $price coins, $saved less than piece by piece. You\'ll have $left left.';
+  @override
+  String bundleBought(String bundle) => '$bundle is all yours.';
+  @override
+  String get seeAll => 'All bundles';
 }
