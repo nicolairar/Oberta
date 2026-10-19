@@ -165,6 +165,8 @@ final class EnglishStrings extends AppStrings {
   @override
   String get bountyBadge => 'BOUNTY';
   @override
+  String get bountyLine => 'You have a bounty on {name}: get the town to lynch them.';
+  @override
   String get readAloud => 'READ IT OUT LOUD';
   @override
   String readerReadsAloud(String reader) => '${reader.toUpperCase()} READS IT OUT LOUD';

@@ -20,10 +20,13 @@ class NoirRoleCard extends StatefulWidget {
   final Role role;
   final List<Player> teammates;
 
+  /// Il bersaglio, se è il Cacciatore di taglie.
+  final Player? bounty;
+
   /// Chiamata la prima volta che la carta arriva scoperta.
   final VoidCallback? onRevealed;
 
-  const NoirRoleCard({super.key, required this.role, this.teammates = const [], this.onRevealed});
+  const NoirRoleCard({super.key, required this.role, this.teammates = const [], this.bounty, this.onRevealed});
 
   @override
   State<NoirRoleCard> createState() => _NoirRoleCardState();
@@ -85,7 +88,11 @@ class _NoirRoleCardState extends State<NoirRoleCard> with TickerProviderStateMix
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
-                        BoxShadow(color: Colors.black.withValues(alpha: 0.8), blurRadius: 24 + lift * 20, offset: Offset(0, 12 + lift * 18)),
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.8),
+                          blurRadius: 24 + lift * 20,
+                          offset: Offset(0, 12 + lift * 18),
+                        ),
                         if (faceUp) BoxShadow(color: widget.role.color.withValues(alpha: 0.5 * t), blurRadius: 40),
                       ],
                     ),
@@ -93,7 +100,7 @@ class _NoirRoleCardState extends State<NoirRoleCard> with TickerProviderStateMix
                         ? Transform(
                             alignment: Alignment.center,
                             transform: Matrix4.rotationY(pi),
-                            child: _Face(role: widget.role, teammates: widget.teammates),
+                            child: _Face(role: widget.role, teammates: widget.teammates, bounty: widget.bounty),
                           )
                         : const _Back(),
                   ),
@@ -112,47 +119,50 @@ class _Back extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: CustomPaint(
-          painter: _BackPainter(),
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 96,
-                  height: 96,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Saloon.ink,
-                    border: Border.all(color: Saloon.brass, width: 2),
-                  ),
-                  child: Text('O', style: AppText.display(54, color: Saloon.brass)),
-                ),
-                const SizedBox(height: 22),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: Saloon.scrim(radius: 8, border: Saloon.brass),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.fingerprint, color: Saloon.brass, size: 20),
-                      const SizedBox(width: 6),
-                      Flexible(
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(AppStrings.of(context).pressAndHold, style: AppText.overline.copyWith(color: AppColors.textPrimary)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+    borderRadius: BorderRadius.circular(20),
+    child: CustomPaint(
+      painter: _BackPainter(),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 96,
+              height: 96,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Saloon.ink,
+                border: Border.all(color: Saloon.brass, width: 2),
+              ),
+              child: Text('O', style: AppText.display(54, color: Saloon.brass)),
             ),
-          ),
+            const SizedBox(height: 22),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: Saloon.scrim(radius: 8, border: Saloon.brass),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.fingerprint, color: Saloon.brass, size: 20),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        AppStrings.of(context).pressAndHold,
+                        style: AppText.overline.copyWith(color: AppColors.textPrimary),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-      );
+      ),
+    ),
+  );
 }
 
 class _BackPainter extends CustomPainter {
@@ -162,8 +172,10 @@ class _BackPainter extends CustomPainter {
     canvas.drawRect(
       all,
       Paint()
-        ..shader = const RadialGradient(colors: [Color(0xFF8E1620), Color(0xFF4A0910), Color(0xFF22040A)], stops: [0, 0.6, 1])
-            .createShader(all),
+        ..shader = const RadialGradient(
+          colors: [Color(0xFF8E1620), Color(0xFF4A0910), Color(0xFF22040A)],
+          stops: [0, 0.6, 1],
+        ).createShader(all),
     );
     // La filigrana: rombi d'ottone.
     final line = Paint()
@@ -190,8 +202,9 @@ class _BackPainter extends CustomPainter {
 class _Face extends StatelessWidget {
   final Role role;
   final List<Player> teammates;
+  final Player? bounty;
 
-  const _Face({required this.role, required this.teammates});
+  const _Face({required this.role, required this.teammates, this.bounty});
 
   @override
   Widget build(BuildContext context) {
@@ -204,7 +217,11 @@ class _Face extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color.lerp(role.color, Colors.white, 0.08)!, Color.lerp(role.color, Colors.black, 0.55)!, Saloon.ink],
+          colors: [
+            Color.lerp(role.color, Colors.white, 0.08)!,
+            Color.lerp(role.color, Colors.black, 0.55)!,
+            Saloon.ink,
+          ],
           stops: const [0, 0.5, 1],
         ),
         border: Border.all(color: Saloon.brass, width: 2.4),
@@ -244,7 +261,12 @@ class _Face extends StatelessWidget {
                   Text(
                     text.motto,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(fontFamily: 'Georgia', fontStyle: FontStyle.italic, fontSize: 15, color: Saloon.brass),
+                    style: const TextStyle(
+                      fontFamily: 'Georgia',
+                      fontStyle: FontStyle.italic,
+                      fontSize: 15,
+                      color: Saloon.brass,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Container(
@@ -254,24 +276,50 @@ class _Face extends StatelessWidget {
                       borderRadius: BorderRadius.circular(4),
                       border: Border.all(color: Saloon.brass),
                     ),
-                    child: Text(isMafia ? t.youAreFamily : role.team == Team.neutral ? t.youAreNeutral : t.youAreTown,
-                        style: AppText.overline.copyWith(color: AppColors.textPrimary, fontSize: 11)),
+                    child: Text(
+                      isMafia
+                          ? t.youAreFamily
+                          : role.team == Team.neutral
+                          ? t.youAreNeutral
+                          : t.youAreTown,
+                      style: AppText.overline.copyWith(color: AppColors.textPrimary, fontSize: 11),
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Container(
                     padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.55), borderRadius: BorderRadius.circular(8)),
-                    child: Text(text.description,
-                        textAlign: TextAlign.center, style: AppText.body.copyWith(color: AppColors.textPrimary, fontSize: 14)),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.55),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      text.description,
+                      textAlign: TextAlign.center,
+                      style: AppText.body.copyWith(color: AppColors.textPrimary, fontSize: 14),
+                    ),
                   ),
+                  if (bounty case final mark?) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      t.bountyLine.replaceAll('{name}', mark.name),
+                      key: const Key('role.bounty'),
+                      textAlign: TextAlign.center,
+                      style: AppText.body.copyWith(color: Saloon.brass, fontSize: 15, fontWeight: FontWeight.w800),
+                    ),
+                  ],
                   if (isMafia) ...[
                     const SizedBox(height: 14),
-                    Text(teammates.isEmpty ? t.youActAlone : t.yourAccomplices, style: AppText.overline.copyWith(color: Saloon.brass)),
+                    Text(
+                      teammates.isEmpty ? t.youActAlone : t.yourAccomplices,
+                      style: AppText.overline.copyWith(color: Saloon.brass),
+                    ),
                     if (teammates.isNotEmpty) ...[
                       const SizedBox(height: 4),
-                      Text(teammates.map((p) => p.name).join(' · '),
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(color: AppColors.textPrimary, fontSize: 17, fontWeight: FontWeight.w700)),
+                      Text(
+                        teammates.map((p) => p.name).join(' · '),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: AppColors.textPrimary, fontSize: 17, fontWeight: FontWeight.w700),
+                      ),
                     ],
                   ],
                 ],

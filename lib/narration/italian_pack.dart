@@ -105,7 +105,7 @@ const italianPack = NarrationPack(
     Role.cacciatore: RoleText(
       'Il Cacciatore di taglie',
       '«Niente di personale. È lavoro.»',
-      'Hai una taglia su un onesto: fallo linciare e vinci da solo. Se muore prima, stai con la città.',
+      'Hai una taglia su un onesto: devi farlo linciare dal villaggio. Se muore prima, stai con la città.',
     ),
     Role.strozzino: RoleText(
       'Lo Strozzino',

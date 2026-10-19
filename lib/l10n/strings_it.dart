@@ -163,6 +163,8 @@ final class ItalianStrings extends AppStrings {
   @override
   String get bountyBadge => 'TAGLIA';
   @override
+  String get bountyLine => 'Hai una taglia su {name}: devi farlo linciare dal villaggio.';
+  @override
   String get readAloud => 'LEGGETE AD ALTA VOCE';
   @override
   String readerReadsAloud(String reader) => 'LEGGE ${reader.toUpperCase()}, AD ALTA VOCE';

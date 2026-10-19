@@ -107,7 +107,7 @@ const englishPack = NarrationPack(
     Role.cacciatore: RoleText(
       'The Bounty Hunter',
       '“Nothing personal. It\'s business.”',
-      'A bounty on an honest citizen: get them lynched to win alone. If they die first, join the town.',
+      'A bounty on an honest citizen: get the town to lynch them. If they die first, join the town.',
     ),
     Role.strozzino: RoleText(
       'The Loan Shark',

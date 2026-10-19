@@ -31,7 +31,7 @@ class NightNotes extends StatelessWidget {
       if (watch != null)
         (watch.visited ? t.pack.watchVisited : t.pack.watchQuiet).replaceAll('{name}', watch.target.name),
       if (doused.isNotEmpty) '${t.dousedBadge}: ${doused.map((p) => p.name).join(', ')}',
-      if (bounty case final mark?) '${t.bountyBadge}: ${mark.name}',
+      if (bounty case final mark?) t.bountyLine.replaceAll('{name}', mark.name),
     ];
     if (lines.isEmpty) return const SizedBox.shrink();
     return Padding(

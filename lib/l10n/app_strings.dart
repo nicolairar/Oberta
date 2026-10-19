@@ -115,6 +115,9 @@ abstract class AppStrings {
   String get dousePick;
   String get dousedBadge;
   String get bountyBadge;
+
+  /// Il bersaglio del Cacciatore di taglie, con {name}.
+  String get bountyLine;
   String get readAloud;
   String readerReadsAloud(String reader);
 
@@ -338,6 +341,7 @@ abstract class AppStrings {
     'dousePick': dousePick,
     'dousedBadge': dousedBadge,
     'bountyBadge': bountyBadge,
+    'bountyLine': bountyLine,
     'readAloud': readAloud,
     'readerReadsAloud': readerReadsAloud('Sara'),
     'narratorSpeaks': narratorSpeaks,

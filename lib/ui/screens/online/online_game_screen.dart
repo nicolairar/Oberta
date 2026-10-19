@@ -82,7 +82,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   late final GameClient _client = _connect();
 
   GameClient _connect() =>
-      GameClient(backend: widget.services.game, roomId: widget.room.id, clock: widget.clock, me: widget.me.id)..addListener(_changed);
+      GameClient(backend: widget.services.game, roomId: widget.room.id, clock: widget.clock, me: widget.me.id)
+        ..addListener(_changed);
   late final AppStrings _t = widget.room.language.strings;
   late final Random _shuffle = widget.seating ?? Random();
   Timer? _ticker;
@@ -245,7 +246,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   SkylineStyle get _style => skylineFor(_city.id);
 
-  List<DeathStory> _storiesOf(DawnReport dawn) => _stories.putIfAbsent(dawn.round, () => _script('dawn-${dawn.round}').stage(dawn));
+  List<DeathStory> _storiesOf(DawnReport dawn) =>
+      _stories.putIfAbsent(dawn.round, () => _script('dawn-${dawn.round}').stage(dawn));
 
   // ---------------------------------------------------------------------
   // Il tempo.
@@ -261,7 +263,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   /// Il server tace da ben oltre la fine della fase: forse manca la rete.
   bool get _serverSilent {
     final window = _window;
-    return window != null && _stage != Stage.ended && _client.serverNow.isAfter(window.endsAt.add(const Duration(seconds: 12)));
+    return window != null &&
+        _stage != Stage.ended &&
+        _client.serverNow.isAfter(window.endsAt.add(const Duration(seconds: 12)));
   }
 
   // ---------------------------------------------------------------------
@@ -272,7 +276,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     final key = _window?.key;
     if (key != null && intent is! RevealMayor) {
       final hope = switch (intent) {
-        DayVote(:final target) || MafiaVote(:final target) || NightAction(:final target) => (target: _seatOf(target), stage: key),
+        DayVote(:final target) ||
+        MafiaVote(:final target) ||
+        NightAction(:final target) => (target: _seatOf(target), stage: key),
         Pass() || RevealMayor() => (target: null, stage: key),
       };
       setState(() => _hope = hope);
@@ -383,7 +389,11 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         child: Scaffold(backgroundColor: Colors.black, body: _stage == Stage.dawnFilms ? _dawnFilm() : _verdictFilm()),
       );
     }
-    final night = !ready || _stage == Stage.reveal || _stage == Stage.night || (_stage == Stage.ended && _public.winner == Team.mafia);
+    final night =
+        !ready ||
+        _stage == Stage.reveal ||
+        _stage == Stage.night ||
+        (_stage == Stage.ended && _public.winner == Team.mafia);
     final left = _client.timeLeft;
     final showClock = ready && _stage != Stage.ended && !_board.abandoned;
     return PopScope(
@@ -428,7 +438,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                           padding: const EdgeInsets.fromLTRB(10, 4, 10, 8),
                           child: AnimatedSwitcher(
                             duration: const Duration(milliseconds: 350),
-                            child: KeyedSubtree(key: ValueKey(ready ? '${_window?.key}-${_board.abandoned}' : 'connecting'), child: _stageView()),
+                            child: KeyedSubtree(
+                              key: ValueKey(ready ? '${_window?.key}-${_board.abandoned}' : 'connecting'),
+                              child: _stageView(),
+                            ),
                           ),
                         ),
                       ),
@@ -542,7 +555,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       ? DealingTable(status: _t.online.gameConnecting)
       : DealingTable(
           status: _t.online.connectionLost,
-          below: NoirButton(key: const Key('online.reconnect'), label: _t.online.rejoin, feel: Press.confirm, onPressed: _rejoin),
+          below: NoirButton(
+            key: const Key('online.reconnect'),
+            label: _t.online.rejoin,
+            feel: Press.confirm,
+            onPressed: _rejoin,
+          ),
         );
 
   Widget _closedView() => Column(
@@ -555,7 +573,11 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       const Spacer(),
       SizedBox(
         width: double.infinity,
-        child: NoirButton(label: _t.online.backToRoom, feel: Press.confirm, onPressed: () => Navigator.of(context).pop()),
+        child: NoirButton(
+          label: _t.online.backToRoom,
+          feel: Press.confirm,
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
     ],
   );
@@ -642,7 +664,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   /// Il tavolo in alto, stretto quanto basta, e la chat sotto con quasi
   /// tutto lo spazio. Con la tastiera aperta resta solo la chat.
-  Widget _dayLayout({required Key key, required List<Widget> above, required Widget table, required List<Widget> below}) {
+  Widget _dayLayout({
+    required Key key,
+    required List<Widget> above,
+    required Widget table,
+    required List<Widget> below,
+  }) {
     final typing = MediaQuery.viewInsetsOf(context).bottom > 0;
     final now = _chatNow();
     return LayoutBuilder(
@@ -721,7 +748,14 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   SeatHand _handOf(Player voter, int from, int to, Color accent) {
     final look = AvatarLook.fallback(voter.name);
-    return (from: from, to: to, sleeve: look.outfit.coat, skin: look.base.skin, mine: voter == _view.seat, accent: accent);
+    return (
+      from: from,
+      to: to,
+      sleeve: look.outfit.coat,
+      skin: look.base.skin,
+      mine: voter == _view.seat,
+      accent: accent,
+    );
   }
 
   Widget _table({
@@ -854,7 +888,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
           child: Center(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 14),
-              child: NoirRoleCard(role: view.role, teammates: view.teammates, onRevealed: () => setState(() => _cardTurned = true)),
+              child: NoirRoleCard(
+                role: view.role,
+                teammates: view.teammates,
+                bounty: view.bounty,
+                onRevealed: () => setState(() => _cardTurned = true),
+              ),
             ),
           ),
         ),
@@ -906,10 +945,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
             onSelectionChanged: busy
                 ? null
                 : (choice) => setState(() {
-                      _alternative = choice.single;
-                      // Il fiammifero si accende scegliendo se stessi: già scelto.
-                      _selected = _alternative && option.alternativeTargets != null ? alternativeTargets.first : null;
-                    }),
+                    _alternative = choice.single;
+                    // Il fiammifero si accende scegliendo se stessi: già scelto.
+                    _selected = _alternative && option.alternativeTargets != null ? alternativeTargets.first : null;
+                  }),
           ),
           const SizedBox(height: 6),
         ],
@@ -964,7 +1003,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                 label: selected == null ? _t.confirm : '${_t.confirm} · ${_tag(selected)}',
                 onPressed: selected == null || busy
                     ? null
-                    : () => _send(family ? MafiaVote(_view.seat.id, selected.id) : NightAction(_view.seat.id, selected.id)),
+                    : () => _send(
+                        family ? MafiaVote(_view.seat.id, selected.id) : NightAction(_view.seat.id, selected.id),
+                      ),
               ),
             ),
           ],
@@ -978,7 +1019,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     final finding = view.nightChoice != null ? _finding : null;
     final found = finding?.role;
     final isMafia = finding?.team == Team.mafia;
-    final pending = _public.phase == GamePhase.night && _public.nightPending > 0 ? _t.online.waitingForOthers(_public.nightPending) : null;
+    final pending = _public.phase == GamePhase.night && _public.nightPending > 0
+        ? _t.online.waitingForOthers(_public.nightPending)
+        : null;
     if (finding == null) {
       final status = !view.alive
           ? _t.online.youAreOut
@@ -989,7 +1032,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         key: const Key('online.waiting'),
         children: [
           Expanded(
-            child: DealingTable(key: view.nightChoice != null && finding == null ? const Key('online.moveRegistered') : null, status: status),
+            child: DealingTable(
+              key: view.nightChoice != null && finding == null ? const Key('online.moveRegistered') : null,
+              status: status,
+            ),
           ),
           if (view.nightChoice != null) ScrimText(_t.nobodyWillKnow),
           if (pending != null) ...[const SizedBox(height: 6), ScrimText(pending)],
@@ -1007,11 +1053,17 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
           decoration: Saloon.scrim(radius: 14, border: isMafia ? Saloon.mafia : Saloon.brass),
           child: Column(
             children: [
-              Text(found == null ? _t.yourInvestigation : _t.inTheGrave, style: AppText.overline.copyWith(color: Saloon.brass)),
+              Text(
+                found == null ? _t.yourInvestigation : _t.inTheGrave,
+                style: AppText.overline.copyWith(color: Saloon.brass),
+              ),
               const SizedBox(height: 8),
               FittedBox(
                 fit: BoxFit.scaleDown,
-                child: Text(finding.subject.name.toUpperCase(), style: AppText.display(30, color: AppColors.textPrimary)),
+                child: Text(
+                  finding.subject.name.toUpperCase(),
+                  style: AppText.display(30, color: AppColors.textPrimary),
+                ),
               ),
               const SizedBox(height: 8),
               Text(
@@ -1080,7 +1132,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         : VerdictScene(
             key: key,
             condemnedName: condemned.name,
-            variant: VerdictScene.variants[Random(_board.narrationSeed + report.round).nextInt(VerdictScene.variants.length)],
+            variant:
+                VerdictScene.variants[Random(_board.narrationSeed + report.round)
+                    .nextInt(VerdictScene.variants.length)],
             town: _city.name,
             style: _style,
             startAt: startAt,
@@ -1112,7 +1166,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   Widget _dawnView() {
     final dawn = _public.lastDawn;
     if (dawn == null) return _connectingView();
-    final lines = _script('dawn-${dawn.round}').dawn(dawn, discussion: _board.settings.discussion, stories: _storiesOf(dawn), online: true);
+    final lines = _script('dawn-${dawn.round}')
+        .dawn(dawn, discussion: _board.settings.discussion, stories: _storiesOf(dawn), online: true);
     final dead = [
       for (final attack in dawn.attacks)
         if (attack.isFatal) attack.target.name,
@@ -1159,7 +1214,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     } else if (role == null) {
       headline = _italian ? 'Linciato ${condemned.name}' : '${condemned.name} lynched';
     } else if (report.personalWin) {
-      headline = _italian ? 'Linciato ${condemned.name}: il Fesso ha vinto' : '${condemned.name} lynched: the Fool wins';
+      headline = _italian
+          ? 'Linciato ${condemned.name}: il Fesso ha vinto'
+          : '${condemned.name} lynched: the Fool wins';
     } else if (role.team == Team.neutral) {
       headline = _italian
           ? 'Linciato ${condemned.name}: era ${_t.role(role).label}'
@@ -1304,7 +1361,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                   compact: true,
                   kind: NoirButtonKind.brass,
                   label: _t.online.abstain,
-                  onPressed: canVote && mine?.target != null || canVote && mine == null ? () => _send(Pass(view.seat.id)) : null,
+                  onPressed: canVote && mine?.target != null || canVote && mine == null
+                      ? () => _send(Pass(view.seat.id))
+                      : null,
                 ),
               ],
             ],
@@ -1343,11 +1402,22 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
           decoration: Saloon.scrim(radius: 14, border: mafiaWon ? Saloon.mafia : Saloon.brass),
           child: Column(
             children: [
-              Icon(mafiaWon ? Icons.theater_comedy : Icons.balance, color: mafiaWon ? Saloon.mafia : Saloon.brass, size: 40),
+              Icon(
+                mafiaWon ? Icons.theater_comedy : Icons.balance,
+                color: mafiaWon ? Saloon.mafia : Saloon.brass,
+                size: 40,
+              ),
               const SizedBox(height: 6),
               FittedBox(
                 fit: BoxFit.scaleDown,
-                child: Text(arsonistWon ? _t.arsonistWins : mafiaWon ? _t.familyWins : _t.townWins, style: Saloon.plate(32, color: mafiaWon ? Saloon.mafia : Saloon.brass)),
+                child: Text(
+                  arsonistWon
+                      ? _t.arsonistWins
+                      : mafiaWon
+                      ? _t.familyWins
+                      : _t.townWins,
+                  style: Saloon.plate(32, color: mafiaWon ? Saloon.mafia : Saloon.brass),
+                ),
               ),
               const SizedBox(height: 4),
               Text(_t.whoWasWho, style: AppText.overline.copyWith(color: AppColors.textPrimary)),
@@ -1383,7 +1453,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              _public.personalWins.contains(player) ? '${_t.wonAlone}\n${_fateOf(player)}' : _fateOf(player),
+                              _public.personalWins.contains(player)
+                                  ? '${_t.wonAlone}\n${_fateOf(player)}'
+                                  : _fateOf(player),
                               textAlign: TextAlign.center,
                               maxLines: 2,
                               style: AppText.body.copyWith(color: const Color(0xFFD8CCBE), fontSize: 11.5, height: 1.2),
