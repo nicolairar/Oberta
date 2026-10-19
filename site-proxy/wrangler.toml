@@ -1,0 +1,8 @@
+name = "oberta-proxy"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+workers_dev = false
+routes = [
+  { pattern = "charliemobile.dev/oberta", zone_name = "charliemobile.dev" },
+  { pattern = "charliemobile.dev/oberta/*", zone_name = "charliemobile.dev" },
+]
