@@ -765,14 +765,11 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     void Function(Player player)? onTap,
     List<SeatVote> votes = const [],
     Color voteColor = Saloon.blood,
-    bool showDead = true,
     Widget? center,
     Animation<double>? arrival,
   }) {
-    final present = [
-      for (final p in players)
-        if (showDead || _isAlive(p)) p,
-    ];
+    // I morti restano al loro posto, segnati come caduti.
+    final present = [...players];
     // Il proprio posto è sempre in basso al centro: si gira il tavolo.
     final mine = present.indexOf(_view.seat);
     final seats = mine <= 0 ? present : [...present.skip(mine), ...present.take(mine)];
@@ -1306,7 +1303,6 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         selected: selected,
         onTap: (player) => _send(DayVote(view.seat.id, player.id)),
         votes: votes,
-        showDead: false,
       ),
       below: [
         const SizedBox(height: 6),
