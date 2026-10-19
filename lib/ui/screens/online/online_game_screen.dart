@@ -176,6 +176,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       if (_stage == Stage.vote) _lastVotes = _public.dayVotes;
       _enterStage();
       _announceDepartures();
+      _feelMentions();
     }
     setState(() {});
   }
@@ -434,7 +435,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                     ],
                   ),
                 ),
-                if (ready && !_board.abandoned && _stage.chat == 'day' && _view.familyChat)
+                if (ready && !_board.abandoned && !_inlineChat && _stage.chat == 'day' && _view.familyChat)
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
                     child: SegmentedButton<bool>(
@@ -448,7 +449,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                       onSelectionChanged: (choice) => setState(() => _familyTab = choice.single),
                     ),
                   ),
-                if (ready && !_board.abandoned) _chatDock(),
+                if (ready && !_board.abandoned && !_inlineChat) _chatDock(),
               ],
             ),
           ),
@@ -561,12 +562,13 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   /// Il pulsante della conferma: «pronto», poi l'attesa degli altri.
   /// Chi è fuori dal gioco non conferma niente: il server non lo aspetta.
-  Widget _readyButton({bool enabled = true}) => !_view.alive
+  Widget _readyButton({bool enabled = true, bool compact = false}) => !_view.alive
       ? const SizedBox.shrink()
       : SizedBox(
           width: double.infinity,
           child: NoirButton(
             key: const Key('online.ready'),
+            compact: compact,
             feel: Press.confirm,
             kind: _acked ? NoirButtonKind.brass : NoirButtonKind.enamel,
             onPressed: _acked || !enabled || !_open ? null : _ack,
@@ -616,6 +618,79 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       onSend: (body) => _client.sendChat(_chatView().channel, body),
       source: _client,
       read: _chatNow,
+      seats: _chatSeats,
+    );
+  }
+
+  /// Di giorno la chat sta dentro lo schermo, grande, sotto il tavolo.
+  bool get _inlineChat => _client.ready && !_board.abandoned && (_stage == Stage.discussion || _stage == Stage.vote);
+
+  /// I messaggi già visti: una chiamata in causa nuova dà un colpetto.
+  int? _mentionSeen;
+
+  void _feelMentions() {
+    final chat = _client.chat;
+    if (chat.isEmpty) return;
+    final last = chat.last.id;
+    final seen = _mentionSeen;
+    _mentionSeen = last;
+    if (seen == null) return;
+    final seats = _chatSeats;
+    final called = chat.any((m) => m.id > seen && seats.calls(m, mine: m.profileId == widget.me.id));
+    if (called) HapticFeedback.lightImpact();
+  }
+
+  /// Il tavolo in alto, stretto quanto basta, e la chat sotto con quasi
+  /// tutto lo spazio. Con la tastiera aperta resta solo la chat.
+  Widget _dayLayout({required Key key, required List<Widget> above, required Widget table, required List<Widget> below}) {
+    final typing = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final now = _chatNow();
+    return LayoutBuilder(
+      key: key,
+      builder: (context, box) => Column(
+        children: [
+          if (!typing) ...[
+            ...above,
+            SizedBox(height: max(140, box.maxHeight * 0.34), child: table),
+            ...below,
+            const SizedBox(height: 6),
+          ],
+          if (_view.familyChat)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: SegmentedButton<bool>(
+                key: const Key('online.chatSwitch'),
+                segments: [
+                  ButtonSegment(value: false, label: Text(_t.online.chatTown)),
+                  ButtonSegment(value: true, label: Text(_t.online.chatFamily)),
+                ],
+                selected: {_familyTab},
+                showSelectedIcon: false,
+                onSelectionChanged: (choice) => setState(() => _familyTab = choice.single),
+              ),
+            ),
+          Expanded(
+            child: Container(
+              key: Key(now.view.channel == ChatChannel.family ? 'online.familyChat' : 'online.townChat'),
+              decoration: BoxDecoration(
+                color: Saloon.ink.withValues(alpha: 0.92),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: now.view.accent.withValues(alpha: 0.8), width: 1.3),
+              ),
+              padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+              child: ChatLog(
+                view: now.view,
+                messages: now.messages,
+                myId: widget.me.id,
+                labels: ChatLabels(hint: _t.online.chatHint, empty: _t.online.chatEmpty, send: _t.online.chatSend),
+                onSend: (body) => _client.sendChat(_chatView().channel, body),
+                seats: _chatSeats,
+              ),
+            ),
+          ),
+          SizedBox(height: typing ? 0 : max(MediaQuery.viewPaddingOf(context).bottom - 8, 0)),
+        ],
+      ),
     );
   }
 
@@ -623,7 +698,26 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   // Il tavolo: tutti grandi uguali, intorno al panno.
 
   /// I nomi brevi sui pizzini.
-  String _short(Player? player) => player == null ? _t.online.abstainTag : player.name;
+  String _short(Player? player) => player == null ? _t.online.abstainTag : _tag(player);
+
+  /// Il numero di posto (1..N), lo stesso per tutta la partita: l'ordine
+  /// dei seggi sul tavolo pubblico del server.
+  int? _numberOf(Player player) {
+    final i = _public.seats.indexOf(player);
+    return i < 0 ? null : i + 1;
+  }
+
+  /// «3 anna».
+  String _tag(Player player) => switch (_numberOf(player)) {
+    final n? => '$n ${player.name}',
+    null => player.name,
+  };
+
+  ChatSeats get _chatSeats => ChatSeats(
+    numbers: {for (var i = 0; i < _public.seats.length; i++) _public.seats[i].id: i + 1},
+    myNumber: _numberOf(_view.seat),
+    myName: _view.seat.name,
+  );
 
   SeatHand _handOf(Player voter, int from, int to, Color accent) {
     final look = AvatarLook.fallback(voter.name);
@@ -677,6 +771,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         final seat = SeatCard(
           key: ValueKey('seat-${player.id}'),
           name: player.name,
+          number: _numberOf(player),
           width: width,
           fallen: !_isAlive(player),
           offline: _offline(player),
@@ -865,7 +960,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
               flex: 3,
               child: NoirButton(
                 key: const Key('online.confirm'),
-                label: selected == null ? _t.confirm : '${_t.confirm} · ${selected.name}',
+                label: selected == null ? _t.confirm : '${_t.confirm} · ${_tag(selected)}',
                 onPressed: selected == null || busy
                     ? null
                     : () => _send(family ? MafiaVote(_view.seat.id, selected.id) : NightAction(_view.seat.id, selected.id)),
@@ -1094,7 +1189,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         stampColor: role == null ? Colors.black : stampColorFor(role),
         tallyTitle: _italian ? 'Lo scrutinio' : 'The tally',
         tallyKey: const Key('online.verdictVotes'),
-        tally: [for (final vote in _lastVotes) '${vote.voter.name} → ${_short(vote.target)}'],
+        tally: [for (final vote in _lastVotes) '${_tag(vote.voter)} → ${_short(vote.target)}'],
         lines: _printed(_script('lynch-${report.round}').lynch(report)),
       ),
     );
@@ -1111,15 +1206,11 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     return null;
   }
 
-  Widget _discussionView() => Column(
+  Widget _discussionView() => _dayLayout(
     key: const Key('online.discussion'),
-    children: [
-      ScrimText(_t.online.discussionHint),
-      const SizedBox(height: 6),
-      Expanded(child: _table(players: publicSeating(_public.seats))),
-      const SizedBox(height: 10),
-      _readyButton(),
-    ],
+    above: [ScrimText(_t.online.discussionHint), const SizedBox(height: 4)],
+    table: _table(players: publicSeating(_public.seats)),
+    below: [const SizedBox(height: 4), _readyButton(compact: true)],
   );
 
   Widget _voteView() {
@@ -1134,84 +1225,90 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     final selected = mine?.target;
     final cast = votes.length;
     final alive = _public.alive.length;
-    return Column(
+    return _dayLayout(
       key: const Key('online.vote'),
-      children: [
+      above: [
         ScrimText(view.alive ? _t.online.voteHint : _t.online.youAreOut),
         if (_public.mayor case final mayor?)
           ScrimText(
-            _t.pack.mayorRevealed.replaceAll('{name}', mayor.name),
+            _t.pack.mayorRevealed.replaceAll('{name}', _tag(mayor)),
             key: const Key('online.mayor'),
             style: AppText.body.copyWith(color: Saloon.brass, fontSize: 13, fontWeight: FontWeight.w700),
           ),
-        const SizedBox(height: 4),
-        Expanded(
-          child: _table(
-            players: publicSeating(_public.seats),
-            selectable: canVote
-                ? {
-                    for (final p in option.targets)
-                      if (p != selected) p,
-                  }
-                : const {},
-            selected: selected,
-            onTap: (player) => _send(DayVote(view.seat.id, player.id)),
-            votes: votes,
-            showDead: false,
-          ),
-        ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 2),
+      ],
+      table: _table(
+        players: publicSeating(_public.seats),
+        selectable: canVote
+            ? {
+                for (final p in option.targets)
+                  if (p != selected) p,
+              }
+            : const {},
+        selected: selected,
+        onTap: (player) => _send(DayVote(view.seat.id, player.id)),
+        votes: votes,
+        showDead: false,
+      ),
+      below: [
+        const SizedBox(height: 6),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: const EdgeInsets.fromLTRB(12, 6, 6, 6),
           decoration: Saloon.scrim(radius: 12),
           child: Row(
             children: [
               Expanded(
-                child: Wrap(
-                  spacing: 1,
-                  runSpacing: 1,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    for (var i = 0; i < alive; i++)
-                      Icon(Icons.person, size: alive > 10 ? 13 : 16, color: i < cast ? Saloon.blood : const Color(0xFF4A423C)),
+                    Row(
+                      children: [
+                        Icon(Icons.how_to_vote, size: 14, color: cast > 0 ? Saloon.blood : const Color(0xFF4A423C)),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            _t.online.votesCast(cast, alive),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppText.overline.copyWith(color: AppColors.textPrimary, fontSize: 11),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (mine != null)
+                      Text(
+                        mine.target == null ? _t.online.abstained : _t.online.votedFor(_tag(mine.target!)),
+                        key: const Key('online.myVote'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppText.body.copyWith(color: Saloon.brass, fontSize: 13, fontWeight: FontWeight.w700),
+                      ),
                   ],
                 ),
               ),
-              const SizedBox(width: 6),
-              Text(_t.online.votesCast(cast, alive), style: AppText.overline.copyWith(color: AppColors.textPrimary, fontSize: 11)),
+              if (option != null && option.canReveal) ...[
+                const SizedBox(width: 6),
+                NoirButton(
+                  key: const Key('online.revealMayor'),
+                  compact: true,
+                  label: _t.revealAsMayor,
+                  onPressed: canVote ? () => _send(RevealMayor(view.seat.id)) : null,
+                ),
+              ],
+              if (option != null) ...[
+                const SizedBox(width: 6),
+                NoirButton(
+                  key: const Key('online.abstain'),
+                  compact: true,
+                  kind: NoirButtonKind.brass,
+                  label: _t.online.abstain,
+                  onPressed: canVote && mine?.target != null || canVote && mine == null ? () => _send(Pass(view.seat.id)) : null,
+                ),
+              ],
             ],
           ),
         ),
-        if (mine != null) ...[
-          const SizedBox(height: 6),
-          ScrimText(
-            mine.target == null ? _t.online.abstained : _t.online.votedFor(mine.target!.name),
-            key: const Key('online.myVote'),
-            style: AppText.body.copyWith(color: Saloon.brass, fontSize: 14, fontWeight: FontWeight.w700),
-          ),
-        ],
-        if (option != null && option.canReveal) ...[
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: NoirButton(
-              key: const Key('online.revealMayor'),
-              label: _t.revealAsMayor,
-              onPressed: canVote ? () => _send(RevealMayor(view.seat.id)) : null,
-            ),
-          ),
-        ],
-        if (option != null) ...[
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: NoirButton(
-              key: const Key('online.abstain'),
-              kind: NoirButtonKind.brass,
-              label: _t.online.abstain,
-              onPressed: canVote && mine?.target != null || canVote && mine == null ? () => _send(Pass(view.seat.id)) : null,
-            ),
-          ),
-        ],
       ],
     );
   }
@@ -1275,6 +1372,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                           children: [
                             SeatCard(
                               name: player.name,
+                              number: _numberOf(player),
                               width: width,
                               fallen: !_isAlive(player),
                               me: player == _view.seat,

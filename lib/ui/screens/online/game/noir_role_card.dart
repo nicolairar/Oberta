@@ -139,7 +139,12 @@ class _Back extends StatelessWidget {
                     children: [
                       const Icon(Icons.fingerprint, color: Saloon.brass, size: 20),
                       const SizedBox(width: 6),
-                      Text(AppStrings.of(context).pressAndHold, style: AppText.overline.copyWith(color: AppColors.textPrimary)),
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(AppStrings.of(context).pressAndHold, style: AppText.overline.copyWith(color: AppColors.textPrimary)),
+                        ),
+                      ),
                     ],
                   ),
                 ),

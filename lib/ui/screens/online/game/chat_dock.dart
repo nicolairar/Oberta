@@ -6,6 +6,7 @@ import '../../../../online/online_services.dart';
 import '../../../press.dart';
 import '../../../theme/app_theme.dart';
 import '../online_widgets.dart';
+import 'chat_mentions.dart';
 import 'noir_ui.dart';
 
 /// Quale chat si vede adesso, e se si può scrivere. Lo decide la fase (e
@@ -42,6 +43,7 @@ class ChatDock extends StatelessWidget {
   /// Per tenere aggiornato il foglio aperto: chi lo ricostruisce, e come.
   final Listenable source;
   final ({ChatChannelView view, List<ChatMessage> messages}) Function() read;
+  final ChatSeats seats;
 
   const ChatDock({
     super.key,
@@ -52,6 +54,7 @@ class ChatDock extends StatelessWidget {
     required this.onSend,
     required this.source,
     required this.read,
+    this.seats = ChatSeats.none,
   });
 
   void _open(BuildContext context) {
@@ -64,7 +67,7 @@ class ChatDock extends StatelessWidget {
         listenable: source,
         builder: (context, _) {
           final now = read();
-          return ChatSheet(view: now.view, messages: now.messages, myId: myId, labels: labels, onSend: onSend);
+          return ChatSheet(view: now.view, messages: now.messages, myId: myId, labels: labels, onSend: onSend, seats: seats);
         },
       ),
     );
@@ -114,7 +117,7 @@ class ChatDock extends StatelessWidget {
                   if (last.isEmpty)
                     Text(labels.empty, style: AppText.body.copyWith(fontSize: 13, fontStyle: FontStyle.italic))
                   else
-                    for (final message in last) _Line(message, mine: message.profileId == myId, accent: view.accent, maxLines: 1),
+                    for (final message in last) _Line(message, mine: message.profileId == myId, accent: view.accent, seats: seats, maxLines: 1),
                 ],
               ),
             ),
@@ -138,52 +141,108 @@ class ChatDock extends StatelessWidget {
   }
 }
 
+/// Chi è chi nella chat: il numero di posto di ogni seggio (stabile per
+/// tutta la partita) e il proprio numero e nome, per le chiamate in causa.
+class ChatSeats {
+  final Map<String, int> numbers;
+  final int? myNumber;
+  final String? myName;
+
+  const ChatSeats({this.numbers = const {}, this.myNumber, this.myName});
+
+  static const none = ChatSeats();
+
+  int? numberOf(ChatMessage message) => message.seat == null ? null : numbers[message.seat];
+
+  /// «3 anna», o solo il nome se il posto non si sa.
+  String tagOf(ChatMessage message) => switch (numberOf(message)) {
+        final n? => '$n ${message.name}',
+        null => message.name,
+      };
+
+  /// Il messaggio chiama in causa questo telefono (mai i propri).
+  bool calls(ChatMessage message, {required bool mine}) =>
+      mentions(message.body, number: myNumber, name: myName, fromMe: mine);
+}
+
+/// La fascia delle chiamate in causa: un ottone caldo, appena acceso.
+const _mentionBand = Color(0x40D9B45A);
+
 class _Line extends StatelessWidget {
   final ChatMessage message;
   final bool mine;
   final Color accent;
   final int? maxLines;
+  final ChatSeats seats;
 
-  const _Line(this.message, {required this.mine, required this.accent, this.maxLines});
+  const _Line(this.message, {required this.mine, required this.accent, required this.seats, this.maxLines});
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 1.5),
-        child: Text.rich(
-          TextSpan(children: [
-            TextSpan(
-              text: '${message.name}  ',
-              style: TextStyle(color: mine ? accent : Saloon.brass, fontWeight: FontWeight.w800),
-            ),
-            TextSpan(text: message.body),
-          ]),
-          maxLines: maxLines,
-          overflow: maxLines == null ? null : TextOverflow.ellipsis,
-          style: const TextStyle(color: AppColors.textPrimary, fontSize: 14.5, height: 1.3),
-        ),
-      );
+  Widget build(BuildContext context) {
+    final called = seats.calls(message, mine: mine);
+    return Container(
+      key: called ? ValueKey('chat.mention-${message.id}') : null,
+      margin: const EdgeInsets.symmetric(vertical: 1),
+      padding: EdgeInsets.symmetric(horizontal: called ? 6 : 0, vertical: called ? 2 : 1),
+      decoration: called
+          ? BoxDecoration(
+              color: _mentionBand,
+              borderRadius: BorderRadius.circular(6),
+              border: const Border(left: BorderSide(color: Saloon.brass, width: 3)),
+            )
+          : null,
+      child: Text.rich(
+        TextSpan(children: [
+          TextSpan(
+            text: '${seats.tagOf(message)}: ',
+            style: TextStyle(color: mine ? accent : Saloon.brass, fontWeight: FontWeight.w800),
+          ),
+          TextSpan(text: message.body),
+        ]),
+        maxLines: maxLines,
+        overflow: maxLines == null ? null : TextOverflow.ellipsis,
+        style: const TextStyle(color: AppColors.textPrimary, fontSize: 14.5, height: 1.3),
+      ),
+    );
+  }
 }
 
-/// La chat aperta: tutti i messaggi e, se si può, il campo per scrivere.
-class ChatSheet extends StatefulWidget {
+/// La chat dentro lo schermo, senza foglio: tutti i messaggi (i più nuovi in
+/// basso) e, se si può, il campo per scrivere. Di giorno prende quasi tutto
+/// lo spazio sotto il tavolo; con la tastiera aperta si stringe.
+class ChatLog extends StatefulWidget {
   final ChatChannelView view;
   final List<ChatMessage> messages;
   final String myId;
   final ChatLabels labels;
   final Future<void> Function(String body) onSend;
+  final ChatSeats seats;
+  final bool autofocus;
 
-  const ChatSheet({super.key, required this.view, required this.messages, required this.myId, required this.labels, required this.onSend});
+  /// Il titolo sopra i messaggi (nel foglio c'è già il suo).
+  final bool header;
+
+  const ChatLog({
+    super.key,
+    required this.view,
+    required this.messages,
+    required this.myId,
+    required this.labels,
+    required this.onSend,
+    this.seats = ChatSeats.none,
+    this.autofocus = false,
+    this.header = true,
+  });
 
   @override
-  State<ChatSheet> createState() => _ChatSheetState();
+  State<ChatLog> createState() => _ChatLogState();
 }
 
-class _ChatSheetState extends State<ChatSheet> {
+class _ChatLogState extends State<ChatLog> {
   final _text = TextEditingController();
   bool _sending = false;
 
-  /// Perché l'ultimo messaggio non è partito: si legge qui, nel foglio (un
-  /// avviso in fondo allo schermo resterebbe nascosto dietro).
+  /// Perché l'ultimo messaggio non è partito: si legge qui, accanto al campo.
   String? _failure;
 
   @override
@@ -213,6 +272,115 @@ class _ChatSheetState extends State<ChatSheet> {
   Widget build(BuildContext context) {
     final view = widget.view;
     final messages = widget.messages;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (widget.header)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Row(
+              children: [
+                Icon(view.note == null ? Icons.chat_bubble : Icons.lock, size: 13, color: view.accent),
+                const SizedBox(width: 6),
+                Text(view.title.toUpperCase(), style: AppText.overline.copyWith(color: view.accent, fontSize: 12)),
+              ],
+            ),
+          ),
+        Expanded(
+          child: messages.isEmpty
+              ? Center(child: Text(widget.labels.empty, style: AppText.body.copyWith(fontSize: 13, fontStyle: FontStyle.italic)))
+              : ListView.builder(
+                  key: const Key('chat.messages'),
+                  reverse: true,
+                  padding: EdgeInsets.zero,
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    final message = messages[messages.length - 1 - index];
+                    return _Line(message, mine: message.profileId == widget.myId, accent: view.accent, seats: widget.seats);
+                  },
+                ),
+        ),
+        const SizedBox(height: 6),
+        if (_failure case final failure? when view.note == null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Text(failure, key: const Key('chat.failure'), textAlign: TextAlign.center,
+                style: AppText.body.copyWith(color: const Color(0xFFFF8A80), fontSize: 13)),
+          ),
+        if (view.note case final note?)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: Saloon.scrim(radius: 10),
+            child: Text(note, key: const Key('chat.note'), textAlign: TextAlign.center,
+                style: AppText.body.copyWith(color: AppColors.textPrimary, fontSize: 13.5)),
+          )
+        else
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E1712),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Saloon.brassDeep),
+            ),
+            padding: const EdgeInsets.only(left: 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    key: const Key('chat.field'),
+                    controller: _text,
+                    autofocus: widget.autofocus,
+                    maxLength: 300,
+                    minLines: 1,
+                    maxLines: 3,
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: (_) => _send(),
+                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 15),
+                    cursorColor: Saloon.brass,
+                    decoration: InputDecoration(
+                      hintText: widget.labels.hint,
+                      hintStyle: const TextStyle(color: AppColors.textSecondary),
+                      counterText: '',
+                      isDense: true,
+                      border: InputBorder.none,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  key: const Key('chat.send'),
+                  tooltip: widget.labels.send,
+                  visualDensity: VisualDensity.compact,
+                  onPressed: _sending ? null : _send,
+                  icon: Icon(Icons.send, color: view.accent),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// La chat aperta: tutti i messaggi e, se si può, il campo per scrivere.
+class ChatSheet extends StatelessWidget {
+  final ChatChannelView view;
+  final List<ChatMessage> messages;
+  final String myId;
+  final ChatLabels labels;
+  final Future<void> Function(String body) onSend;
+  final ChatSeats seats;
+
+  const ChatSheet({
+    super.key,
+    required this.view,
+    required this.messages,
+    required this.myId,
+    required this.labels,
+    required this.onSend,
+    this.seats = ChatSeats.none,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
     return Padding(
       padding: EdgeInsets.only(bottom: media.viewInsets.bottom),
@@ -242,72 +410,17 @@ class _ChatSheetState extends State<ChatSheet> {
               ),
               const Divider(color: Saloon.brassDeep, height: 18),
               Expanded(
-                child: messages.isEmpty
-                    ? Center(child: Text(widget.labels.empty, style: AppText.body.copyWith(fontStyle: FontStyle.italic)))
-                    : ListView.builder(
-                        key: const Key('chat.messages'),
-                        reverse: true,
-                        itemCount: messages.length,
-                        itemBuilder: (context, index) {
-                          final message = messages[messages.length - 1 - index];
-                          return _Line(message, mine: message.profileId == widget.myId, accent: view.accent);
-                        },
-                      ),
+                child: ChatLog(
+                  view: view,
+                  messages: messages,
+                  myId: myId,
+                  labels: labels,
+                  onSend: onSend,
+                  seats: seats,
+                  autofocus: true,
+                  header: false,
+                ),
               ),
-              const SizedBox(height: 8),
-              if (_failure case final failure? when view.note == null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Text(failure, key: const Key('chat.failure'), textAlign: TextAlign.center,
-                      style: AppText.body.copyWith(color: const Color(0xFFFF8A80), fontSize: 13)),
-                ),
-              if (view.note case final note?)
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: Saloon.scrim(radius: 10),
-                  child: Text(note, key: const Key('chat.note'), textAlign: TextAlign.center,
-                      style: AppText.body.copyWith(color: AppColors.textPrimary, fontSize: 14)),
-                )
-              else
-                Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E1712),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Saloon.brassDeep),
-                  ),
-                  padding: const EdgeInsets.only(left: 12),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          key: const Key('chat.field'),
-                          controller: _text,
-                          autofocus: true,
-                          maxLength: 300,
-                          minLines: 1,
-                          maxLines: 3,
-                          textInputAction: TextInputAction.send,
-                          onSubmitted: (_) => _send(),
-                          style: const TextStyle(color: AppColors.textPrimary, fontSize: 15),
-                          cursorColor: Saloon.brass,
-                          decoration: InputDecoration(
-                            hintText: widget.labels.hint,
-                            hintStyle: const TextStyle(color: AppColors.textSecondary),
-                            counterText: '',
-                            isDense: true,
-                            border: InputBorder.none,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        key: const Key('chat.send'),
-                        tooltip: widget.labels.send,
-                        onPressed: _sending ? null : _send,
-                        icon: Icon(Icons.send, color: view.accent),
-                      ),
-                    ],
-                  ),
-                ),
             ],
           ),
         ),

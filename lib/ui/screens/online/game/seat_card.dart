@@ -13,6 +13,9 @@ import 'noir_ui.dart';
 /// il pizzino con chi accusa, morto (grigio, con il garofano).
 class SeatCard extends StatelessWidget {
   final String name;
+
+  /// Il numero di posto, stabile per tutta la partita: «3 anna».
+  final int? number;
   final double width;
   final bool fallen;
   final bool offline;
@@ -42,6 +45,7 @@ class SeatCard extends StatelessWidget {
   const SeatCard({
     super.key,
     required this.name,
+    this.number,
     required this.width,
     this.fallen = false,
     this.offline = false,
@@ -114,8 +118,8 @@ class SeatCard extends StatelessWidget {
         ),
         // La targhetta del nome.
         Positioned(
-          left: width * 0.04,
-          right: width * 0.04,
+          left: number == null ? width * 0.04 : -width * 0.1,
+          right: number == null ? width * 0.04 : -width * 0.1,
           bottom: 0,
           height: plateHeight,
           child: Container(
@@ -128,9 +132,17 @@ class SeatCard extends StatelessWidget {
             padding: EdgeInsets.symmetric(horizontal: plateHeight * 0.28),
             child: Row(
               children: [
+                if (number != null) ...[
+                  Text(
+                    '$number',
+                    style: AppText.display(plateHeight * 0.62, color: Saloon.brass).copyWith(height: 1.05, fontWeight: FontWeight.w700),
+                  ),
+                  SizedBox(width: plateHeight * 0.16),
+                ],
                 Expanded(
                   child: _PlateName(
                     name,
+                    shrink: number == null ? 0.66 : 0.42,
                     style: AppText.display(plateHeight * 0.64, color: fallen ? AppColors.textSecondary : AppColors.textPrimary)
                         .copyWith(letterSpacing: 0.6, height: 1.05),
                   ),
@@ -246,7 +258,9 @@ class _PlateName extends StatelessWidget {
   final String text;
   final TextStyle style;
 
-  const _PlateName(this.text, {required this.style});
+  final double shrink;
+
+  const _PlateName(this.text, {required this.style, this.shrink = 0.66});
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(builder: (context, box) {
@@ -257,7 +271,7 @@ class _PlateName extends StatelessWidget {
           maxLines: 1,
           textScaler: MediaQuery.textScalerOf(context),
         )..layout();
-        final fit = painter.width <= 0 ? 1.0 : (box.maxWidth / painter.width).clamp(0.66, 1.0);
+        final fit = painter.width <= 0 ? 1.0 : (box.maxWidth / painter.width).clamp(shrink, 1.0);
         painter.dispose();
         return Center(
           child: Text(
