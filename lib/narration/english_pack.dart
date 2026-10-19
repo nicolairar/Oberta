@@ -471,7 +471,7 @@ const englishPack = NarrationPack(
     'At the back of the square someone is counting banknotes. The bounty is paid.',
     'A hat tips in the crowd, by way of thanks. Pleasure doing business.',
   ],
-  bountyWinsFact: '{name} was the Bounty Hunter: they cash in and win alone. The game goes on.',
+  bountyWinsFact: '{name} was the Bounty Hunter: they cash in and win alone. The game ends here.',
   assassinWins: [
     'Only empty chairs are left in {city}. The Hitman pays for the coffee and leaves.',
     'The last light goes out in {city}. Somebody wipes a blade and whistles. Roll credits.',

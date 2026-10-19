@@ -56,7 +56,7 @@ void main() {
       expect(engine.taskFor(hunter).kind, NightTaskKind.decoy);
     });
 
-    test('la taglia linciata: incassa, si scopre, e la partita continua', () {
+    test('la taglia linciata: incassa, si scopre, e la partita finisce', () {
       final engine = table(roles());
       final mark = engine.bountyOf(hunter)!;
       endNight(engine);
@@ -65,7 +65,8 @@ void main() {
       expect(report.personalWin, isFalse);
       expect(engine.personalWins, [hunter]);
       expect(engine.hasWon(hunter), isTrue);
-      expect(engine.phase, GamePhase.night);
+      expect(engine.phase, GamePhase.ended);
+      expect(engine.winner, Team.neutral);
       expect(engine.knowledgeOf(null, hunter).role, Role.cacciatore);
     });
 

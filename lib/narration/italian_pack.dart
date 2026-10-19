@@ -467,7 +467,7 @@ const italianPack = NarrationPack(
     'In fondo alla piazza qualcuno conta le banconote. La taglia è pagata.',
     'Un cappello si alza tra la folla, in segno di ringraziamento. Affare fatto.',
   ],
-  bountyWinsFact: '{name} era il Cacciatore di taglie: incassa e vince da solo. Il gioco continua.',
+  bountyWinsFact: '{name} era il Cacciatore di taglie: incassa e vince da solo. La partita finisce qui.',
   assassinWins: [
     'A {city} restano solo le sedie vuote. Il Sicario paga il caffè e se ne va.',
     'L\'ultima luce si spegne a {city}. Qualcuno pulisce la lama e fischietta. Titoli di coda.',

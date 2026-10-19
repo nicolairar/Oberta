@@ -802,7 +802,7 @@ class GameEngine {
     final personalWin = role == Role.fesso;
     if (personalWin) _personalWins.add(condemned!);
     // Il Cacciatore di taglie vivo la cui taglia sale sul patibolo incassa:
-    // vince da solo, si scopre, e la partita va avanti.
+    // vince da solo, si scopre, e la partita finisce lì.
     Player? hunter;
     for (final entry in _bounties.entries) {
       if (condemned == null || entry.value != condemned || !isAlive(entry.key)) continue;
@@ -815,7 +815,7 @@ class GameEngine {
       round: _round,
       condemned: condemned,
       role: role,
-      winner: _updateWinner() ? _winner : null,
+      winner: hunter != null ? (_winner = Team.neutral) : (_updateWinner() ? _winner : null),
       personalWin: personalWin,
       bountyHunter: hunter,
     );
