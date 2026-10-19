@@ -21,7 +21,6 @@ import '../../../rules/player_view.dart';
 import '../../../rules/role.dart';
 import '../../../sound/cue_sounds.dart';
 import '../../../sound/sound_stage.dart';
-import '../../../sound/verdict_stage.dart';
 import '../../press.dart';
 import '../../avatar/avatar_look.dart';
 import '../../seating.dart';
@@ -30,7 +29,7 @@ import '../../widgets/avatar_spotlight.dart';
 import '../../widgets/death_scene.dart';
 import '../../widgets/night_notes.dart';
 import '../../widgets/scene_scaffold.dart';
-import '../../widgets/verdict_scene.dart';
+import '../../widgets/lynch_mark.dart';
 import 'game/chat_dock.dart';
 import 'game/front_page.dart';
 import 'game/noir_role_card.dart';
@@ -202,7 +201,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
           ]);
         }
       case Stage.verdictFilm:
-        stage.prepareVerdicts();
+        if (_public.lastLynch?.condemned != null) stage.cue(Cue.drumroll);
       case Stage.discussion || Stage.vote:
         stage.music(MusicMood.day);
         stage.ambience(null);
@@ -383,10 +382,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   Widget _screen() {
     final ready = _client.ready;
-    if (ready && !_board.abandoned && (_stage == Stage.dawnFilms || _stage == Stage.verdictFilm)) {
+    if (ready && !_board.abandoned && _stage == Stage.dawnFilms) {
       return PopScope(
         canPop: false,
-        child: Scaffold(backgroundColor: Colors.black, body: _stage == Stage.dawnFilms ? _dawnFilm() : _verdictFilm()),
+        child: Scaffold(backgroundColor: Colors.black, body: _dawnFilm()),
       );
     }
     final night =
@@ -545,9 +544,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       Stage.dawn => _dawnView(),
       Stage.discussion => _discussionView(),
       Stage.vote => _voteView(),
-      Stage.verdict => _verdictView(),
+      Stage.verdict || Stage.verdictFilm => _verdictView(),
       Stage.ended => _endView(),
-      Stage.dawnFilms || Stage.verdictFilm => const SizedBox.shrink(),
+      Stage.dawnFilms => const SizedBox.shrink(),
     };
   }
 
@@ -767,6 +766,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     Color voteColor = Saloon.blood,
     Widget? center,
     Animation<double>? arrival,
+    Player? lynched,
+    Duration lynchedAt = Duration.zero,
   }) {
     // I morti restano al loro posto, segnati come caduti.
     final present = [...players];
@@ -825,6 +826,14 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
           dimmed: selectable.isNotEmpty && !can && _isAlive(player) && player != selected && player != _view.seat,
           onTap: can && onTap != null ? () => onTap(player) : null,
         );
+        if (player == lynched) {
+          return LynchMark(
+            key: ValueKey('lynch-${_public.lastLynch?.round}-${player.id}'),
+            label: _italian ? 'Linciato' : 'Lynched',
+            startAt: lynchedAt,
+            child: seat,
+          );
+        }
         if (arrival == null) return seat;
         // L'arrivo: ognuno entra dal bordo dello schermo dietro il suo posto
         // e si siede, uno dopo l'altro.
@@ -1112,33 +1121,6 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     );
   }
 
-  Widget _verdictFilm() {
-    final report = _public.lastLynch;
-    final elapsed = _client.elapsed;
-    if (report == null || elapsed < Duration.zero) return _waitingFilm();
-    final length = OnlinePacing.verdictFilm(condemns: report.condemned != null);
-    final startAt = elapsed > length ? length : elapsed;
-    final condemned = report.condemned;
-    void done() {
-      if (mounted) setState(() {});
-    }
-
-    final key = ValueKey('online-verdict-${report.round}');
-    return condemned == null
-        ? VerdictScene.acquittal(key: key, style: _style, startAt: startAt, onFinished: done)
-        : VerdictScene(
-            key: key,
-            condemnedName: condemned.name,
-            variant:
-                VerdictScene.variants[Random(_board.narrationSeed + report.round)
-                    .nextInt(VerdictScene.variants.length)],
-            town: _city.name,
-            style: _style,
-            startAt: startAt,
-            onFinished: done,
-          );
-  }
-
   // ---------------------------------------------------------------------
   // La cronaca: l'alba e il verdetto, solo il racconto, su un giornale.
 
@@ -1199,6 +1181,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     );
   }
 
+  /// Il verdetto, sul tavolo: tutti hanno appena visto il voto, quindi
+  /// niente film. Il posto del condannato fa il linciaggio sul posto e poi
+  /// mostra la carta, se la piazza l'ha vista; sopra, il titolo della sera,
+  /// il racconto e lo scrutinio in poche righe.
   Widget _verdictView() {
     final report = _public.lastLynch;
     if (report == null) return _connectingView();
@@ -1209,44 +1195,51 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     if (condemned == null) {
       headline = _italian ? 'La piazza non si decide' : 'The square cannot decide';
     } else if (role == null) {
-      headline = _italian ? 'Linciato ${condemned.name}' : '${condemned.name} lynched';
+      headline = _italian ? 'Linciato ${_tag(condemned)}' : '${_tag(condemned)} lynched';
     } else if (report.personalWin) {
       headline = _italian
-          ? 'Linciato ${condemned.name}: il Fesso ha vinto'
-          : '${condemned.name} lynched: the Fool wins';
+          ? 'Linciato ${_tag(condemned)}: il Fesso ha vinto'
+          : '${_tag(condemned)} lynched: the Fool wins';
     } else if (role.team == Team.neutral) {
       headline = _italian
-          ? 'Linciato ${condemned.name}: era ${_t.role(role).label}'
-          : '${condemned.name} lynched: ${_t.role(role).label}';
+          ? 'Linciato ${_tag(condemned)}: era ${_t.role(role).label}'
+          : '${_tag(condemned)} lynched: ${_t.role(role).label}';
     } else {
       headline = _italian
-          ? 'Linciato ${condemned.name}: ${mafia ? 'era della Famiglia' : 'era innocente'}'
-          : '${condemned.name} lynched: ${mafia ? 'one of the Family' : 'an innocent man'}';
+          ? 'Linciato ${_tag(condemned)}: ${mafia ? 'era della Famiglia' : 'era innocente'}'
+          : '${_tag(condemned)} lynched: ${mafia ? 'one of the Family' : 'an innocent man'}';
     }
-    return _chronicle(
+    final story = [for (final line in _script('lynch-${report.round}').lynch(report)) line.text].join(' ');
+    final tally = [for (final vote in _lastVotes) '${_tag(vote.voter)} → ${_short(vote.target)}'].join('  ·  ');
+    final film = _stage == Stage.verdictFilm;
+    final into = film ? _client.elapsed : LynchMark.length;
+    return _dayLayout(
       key: const Key('online.verdict'),
-      page: FrontPage(
-        key: ValueKey('front-verdict-${report.round}'),
-        masthead: _masthead,
-        dateLine: _dateLine(_italian ? 'Edizione della sera' : 'Evening edition'),
-        headline: headline,
-        kicker: condemned == null ? _t.noConviction : null,
-        portraits: [if (condemned != null) condemned.name],
-        fallen: condemned != null,
-        stamp: role == null ? null : _t.role(role).label,
-        stampTeam: role == null
-            ? null
-            : switch (role.team) {
-                Team.mafia => _t.familyBadge,
-                Team.citizens => _t.townBadge,
-                Team.neutral => _t.neutralBadge,
-              },
-        stampColor: role == null ? Colors.black : stampColorFor(role),
-        tallyTitle: _italian ? 'Lo scrutinio' : 'The tally',
-        tallyKey: const Key('online.verdictVotes'),
-        tally: [for (final vote in _lastVotes) '${_tag(vote.voter)} → ${_short(vote.target)}'],
-        lines: _printed(_script('lynch-${report.round}').lynch(report)),
+      above: [
+        ScrimText(
+          headline,
+          key: const Key('online.verdictHeadline'),
+          style: AppText.body.copyWith(
+            color: role == null ? Saloon.brass : stampColorFor(role),
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        if (story.isNotEmpty) ScrimText(story, key: const Key('online.verdictStory')),
+        if (tally.isNotEmpty)
+          ScrimText(
+            tally,
+            key: const Key('online.verdictVotes'),
+            style: AppText.body.copyWith(color: Saloon.brass, fontSize: 11),
+          ),
+        const SizedBox(height: 2),
+      ],
+      table: _table(
+        players: publicSeating(_public.seats),
+        lynched: condemned,
+        lynchedAt: into < Duration.zero ? Duration.zero : into,
       ),
+      below: [const SizedBox(height: 4), if (!film) _readyButton(compact: true)],
     );
   }
 

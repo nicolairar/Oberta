@@ -16,7 +16,6 @@ import '../../sound/fx_groups.dart';
 import '../../sound/meme_beat.dart';
 import '../../sound/narrator_voice.dart';
 import '../../sound/sound_stage.dart';
-import '../../sound/verdict_stage.dart';
 import '../theme/app_theme.dart';
 import '../theme/role_style.dart';
 import '../widgets/avatar_spotlight.dart';
@@ -33,7 +32,6 @@ import '../widgets/sky_events.dart';
 import '../widgets/scene_scaffold.dart';
 import '../widgets/script_page_view.dart';
 import '../widgets/spoken_script_card.dart';
-import '../widgets/verdict_scene.dart';
 import '../press.dart';
 import '../seating.dart';
 
@@ -88,12 +86,10 @@ class _GameScreenState extends State<GameScreen> {
   bool _alternative = false;
   Exposure? _finding;
   late DawnReport _dawn;
-  // Il verdetto della piazza, tra il filmato e la pagina della carta. Il
-  // filmato si sceglie con un dado tutto suo: non guarda mai il ruolo.
-  final Random _dice = Random();
+  // Il verdetto della piazza, sul tavolo.
   Player? _condemned;
   late LynchReport _verdict;
-  late String _verdictTake;
+  List<ScriptLine> _verdictLines = const [];
   List<DeathStory> _deaths = const [];
   int _crime = 0;
   List<ScriptLine> _voteLines = const [];
@@ -237,19 +233,25 @@ class _GameScreenState extends State<GameScreen> {
           if (_hasBellTower && _atmosphere.nextBool()) _seenAndHeard(FxGroup.bellsfar, volume: 0.6);
           // La piazza di giorno: la strada sveglia, piano, sotto la discussione.
           SoundStage.instance.ambience(FxGroup.morningstreet);
-          SoundStage.instance.prepareVerdicts();
           _stage = _Stage.day;
         }
       }),
     );
   }
 
-  /// La piazza ha votato: prima il filmato (che non dice niente del ruolo),
-  /// poi la pagina del verdetto con la carta da girare.
+  /// La piazza ha votato e l'ha visto tutto il tavolo: niente film. Il posto
+  /// del condannato fa il linciaggio sul posto e mostra la carta, se ora è
+  /// pubblica; sotto, il copione del verdetto da leggere.
   void _enterVerdict(Player? condemned) {
     _verdict = _engine.lynch(condemned);
     _condemned = condemned;
-    _verdictTake = VerdictScene.variants[_dice.nextInt(VerdictScene.variants.length)];
+    final report = _verdict;
+    if (report.role != null) SoundStage.instance.cue(report.role!.team == Team.mafia ? Cue.caught : Cue.drumroll);
+    // Nessuna condanna: il silenzio imbarazzato della battuta che non ride nessuno.
+    if (condemned == null) beat(MemeMoment.noConviction, after: const Duration(milliseconds: 600));
+    _verdictLines = _script.lynch(report);
+    _title = _t.verdictTitle;
+    _mood = SceneMood.dusk;
     _stage = _Stage.verdict;
   }
 
@@ -350,30 +352,6 @@ class _GameScreenState extends State<GameScreen> {
     if (_hasBellTower && _atmosphere.nextBool()) stage.atmosphere(FxGroup.bellsfar, after: const Duration(seconds: 6), volume: 0.6);
   }
 
-  void _afterVerdictScene() => _advance(_enterVerdictPage);
-
-  void _enterVerdictPage() {
-    final report = _verdict;
-    final condemned = _condemned;
-    final winner = report.winner;
-    // Il rullo di tamburi accompagna il condannato fino alla carta.
-    if (report.role != null) SoundStage.instance.cue(Cue.drumroll);
-    // Nessuna condanna: il silenzio imbarazzato della battuta che non ride nessuno.
-    if (condemned == null) beat(MemeMoment.noConviction, after: const Duration(milliseconds: 600));
-    _title = _t.verdictTitle;
-    _mood = SceneMood.dusk;
-    _stage = _Stage.script;
-    _page = ScriptPage(
-      icon: Icons.gavel,
-      title: condemned?.name ?? _t.noConviction,
-      lines: _script.lynch(report),
-      portraits: [if (condemned != null) condemned.name],
-      revealed: report.role,
-      action: winner != null ? _t.finale : _t.continueLabel,
-      onAction: () => _advance(() => winner != null ? _enterEnd(winner) : _enterNight()),
-    );
-  }
-
   void _enterEnd(Team winner) {
     // Il Piromane che vince suona come la famiglia: non ha vinto la città.
     final dark = winner != Team.citizens;
@@ -433,26 +411,6 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _screen() {
-    if (_stage == _Stage.verdict) {
-      final condemned = _condemned;
-      final style = skylineFor(_script.city.id);
-      return PopScope(
-        canPop: false,
-        child: Scaffold(
-          backgroundColor: Colors.black,
-          body: condemned == null
-              ? VerdictScene.acquittal(key: ValueKey('verdict-$_step'), style: style, onFinished: _afterVerdictScene)
-              : VerdictScene(
-                  key: ValueKey('verdict-$_step'),
-                  condemnedName: condemned.name,
-                  variant: _verdictTake,
-                  town: _script.city.name,
-                  style: style,
-                  onFinished: _afterVerdictScene,
-                ),
-        ),
-      );
-    }
     if (_stage == _Stage.crime) {
       // Il delitto va in scena a tutto schermo, senza barre né pulsanti.
       final story = _deaths[_crime];
@@ -541,7 +499,8 @@ class _GameScreenState extends State<GameScreen> {
         _Stage.task => _taskView(_queue[_turn]),
         _Stage.taskDone => _taskDoneView(),
         _Stage.crimeIntro => _crimeIntroView(),
-        _Stage.crime || _Stage.verdict => const SizedBox.shrink(),
+        _Stage.crime => const SizedBox.shrink(),
+        _Stage.verdict => _verdictView(),
         _Stage.toNarrator => HandoffView(name: _narrator!.name, onReady: () => _advance(_enterDawn)),
         _Stage.day => DayBoard(
             strings: _t,
@@ -743,8 +702,10 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   /// La griglia del giorno, uguale per tutti: sta in mezzo al tavolo.
-  Widget _publicGrid({List<Player>? selectable}) {
+  Widget _publicGrid({List<Player>? selectable, Player? lynched}) {
     return PlayerGrid(
+      lynched: lynched,
+      lynchedLabel: _t.language.locale.languageCode == 'it' ? 'Linciato' : 'Lynched',
       players: _table,
       isAlive: _engine.isAlive,
       knowledgeOf: (player) => _engine.knowledgeOf(null, player),
@@ -757,6 +718,44 @@ class _GameScreenState extends State<GameScreen> {
         if (player != _selected) beat(_selected == null ? MemeMoment.accused : MemeMoment.voteChanged);
         setState(() => _selected = player);
       },
+    );
+  }
+
+  /// Il verdetto sul tavolo: il linciaggio sul posto, il copione sotto.
+  Widget _verdictView() {
+    final winner = _verdict.winner;
+    return LayoutBuilder(
+      key: const Key('game.verdict'),
+      builder: (context, box) => Column(
+        children: [
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              _condemned?.name ?? _t.noConviction,
+              key: const Key('game.verdictTitle'),
+              style: AppText.display(26, color: AppColors.textPrimary),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Expanded(child: _publicGrid(lynched: _condemned)),
+          const SizedBox(height: 12),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: box.maxHeight * 0.3),
+            child: SingleChildScrollView(child: SpokenScriptCard(reader: _narrator?.name, lines: _verdictLines)),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: pressed(
+                () => _advance(() => winner != null ? _enterEnd(winner) : _enterNight()),
+                Press.confirm,
+              ),
+              child: Text(winner != null ? _t.finale : _t.continueLabel),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

@@ -10,7 +10,7 @@ import 'package:oberta/ui/screens/online/online_room_screen.dart';
 import 'package:oberta/ui/widgets/death_scene.dart';
 import 'package:oberta/ui/screens/online/game/noir_role_card.dart';
 import 'package:oberta/ui/screens/online/game/noir_ui.dart';
-import 'package:oberta/ui/widgets/verdict_scene.dart';
+import 'package:oberta/ui/widgets/lynch_mark.dart';
 
 import '../support/languages.dart';
 import '../support/manual_clock.dart';
@@ -52,8 +52,8 @@ Future<void> flush(WidgetTester tester) async {
 void main() {
   test('i film online durano quanto dice il server', () {
     expect(DeathScene.length, OnlinePacing.deathFilm);
-    expect(VerdictTake.molo.length, OnlinePacing.verdictFilm(condemns: true));
-    expect(VerdictTake.assoluzione.length, OnlinePacing.verdictFilm(condemns: false));
+    expect(OnlinePacing.verdictFilm(condemns: true) >= LynchMark.length, isTrue,
+        reason: 'il linciaggio sul tavolo finisce prima della fase');
   });
 
   testWidgets('la partita segue l\'orologio del server: carta, notte, e via fino alla fine', (tester) async {

@@ -9,6 +9,7 @@ import '../../l10n/roles_sheet_strings.dart';
 import '../../rules/knowledge.dart';
 import '../../rules/player.dart';
 import '../../rules/role.dart';
+import 'lynch_mark.dart';
 import '../avatar/avatar_look.dart';
 import '../avatar/look_painter.dart';
 import '../avatar/seated_character.dart';
@@ -58,6 +59,11 @@ class PlayerGrid extends StatefulWidget {
   /// Il look di ognuno; senza, quello che gli spetta dal nome.
   final AvatarLook Function(Player)? lookOf;
 
+  /// Chi la piazza ha appena linciato: il suo posto fa il linciaggio sul
+  /// posto ([LynchMark]) con il timbro [lynchedLabel].
+  final Player? lynched;
+  final String lynchedLabel;
+
   const PlayerGrid({
     super.key,
     required this.players,
@@ -71,6 +77,8 @@ class PlayerGrid extends StatefulWidget {
     this.stamp,
     this.shuffled = false,
     this.lookOf,
+    this.lynched,
+    this.lynchedLabel = 'Linciato',
   });
 
   @override
@@ -247,7 +255,7 @@ class _PlayerGridState extends State<PlayerGrid> with SingleTickerProviderStateM
       height: box.height,
       child: Opacity(
         opacity: place.opacity,
-        child: _Seat(
+        child: _lynch(player, _Seat(
           player: player,
           look: _lookOf(player),
           seat: seat,
@@ -263,10 +271,14 @@ class _PlayerGridState extends State<PlayerGrid> with SingleTickerProviderStateM
           stamp: widget.stamp,
           choice: _choiceOf(player),
           onTap: open && widget.onSelect != null ? () => widget.onSelect!(player) : null,
-        ),
+        )),
       ),
     );
   }
+
+  Widget _lynch(Player player, Widget seat) => player == widget.lynched
+      ? LynchMark(key: ValueKey('lynch-${player.id}'), label: widget.lynchedLabel, child: seat)
+      : seat;
 
   /// La propria sedia: le proprie mani sul bordo del tavolo, le carte
   /// coperte e la targhetta. Si tocca anche questa, se ci si può scegliere.

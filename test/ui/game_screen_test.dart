@@ -64,14 +64,10 @@ Future<void> pumpGame(
   await tap(tester, 'GIOCA');
 }
 
-/// Il filmato della piazza: lo si salta fino al ritratto, poi avanti.
-Future<void> watchVerdict(WidgetTester tester, {String skip = 'SALTA', String next = 'AVANTI'}) async {
-  expect(find.byType(VerdictScene), findsOneWidget, reason: 'prima della carta va in scena la piazza');
-  if (find.text(skip).evaluate().isNotEmpty) {
-    await tester.tap(find.text(skip));
-    await tester.pump();
-  }
-  await tester.tap(find.text(next));
+/// Il verdetto sul tavolo: niente film, il linciaggio si gioca sul posto.
+Future<void> watchVerdict(WidgetTester tester) async {
+  expect(find.byType(VerdictScene), findsNothing, reason: 'il voto l\'hanno visto tutti: niente film');
+  expect(find.byKey(const Key('game.verdict')), findsOneWidget);
   await tester.pumpAndSettle();
 }
 
@@ -164,10 +160,7 @@ void main() {
     await watchVerdict(tester);
 
     expect(find.text('IL VERDETTO'), findsOneWidget);
-    expect(find.textContaining('PICCIOTTO'), findsNothing, reason: 'la carta è ancora coperta');
-    expect(find.text('FINALE'), findsNothing);
-    await tap(tester, 'GIRA LA CARTA');
-    expect(find.text('IL PICCIOTTO'), findsOneWidget);
+    expect(find.byKey(const Key('lynch.stamp')), findsOneWidget, reason: 'il linciaggio sul posto di Ada');
     expect(find.text('La carta si gira. Ada era… IL PICCIOTTO. Stava con la famiglia.'), findsOneWidget);
     await tap(tester, 'FINALE');
 

@@ -133,19 +133,11 @@ void main() {
     expect(find.text('NOBODY'), findsOneWidget);
     await tap(tester, 'Ada');
     await tap(tester, 'CONDEMN');
-    // The town square's film comes first; skip it to the portrait.
-    if (find.text('SKIP').evaluate().isNotEmpty) {
-      await tester.tap(find.text('SKIP'));
-      await tester.pump();
-    }
-    await tester.tap(find.text('NEXT'));
+    // No film: everyone saw the vote. The seat plays the lynch in place.
     await tester.pumpAndSettle();
 
     expect(find.text('THE VERDICT'), findsOneWidget);
-    expect(find.textContaining('SOLDIER'), findsNothing, reason: 'the card is still face down');
-    await tap(tester, 'FLIP THE CARD');
-    expect(find.text('THE SOLDIER'), findsOneWidget, reason: 'la carta girata, in inglese');
-    expect(find.text('FAMILY'), findsOneWidget);
+    expect(find.text('LYNCHED'), findsOneWidget);
     expect(find.text('The card flips. Ada was… THE SOLDIER. On the Family\'s side.'), findsOneWidget);
     await tap(tester, 'THE FINALE');
 

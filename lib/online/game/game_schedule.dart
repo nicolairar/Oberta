@@ -58,10 +58,11 @@ class OnlinePacing {
   /// Un film d'agguato (`DeathScene.length`).
   static const deathFilm = Duration(seconds: 14);
 
-  /// Il film del verdetto (`VerdictScene.length`): la condanna è più lunga
-  /// dell'assoluzione.
+  /// Il linciaggio sul tavolo (`LynchMark.length`, con un filo di respiro):
+  /// il voto l'hanno visto tutti, quindi niente film. L'assoluzione è un
+  /// battito.
   static Duration verdictFilm({required bool condemns}) =>
-      condemns ? const Duration(seconds: 11) : const Duration(seconds: 7);
+      condemns ? const Duration(seconds: 2) : const Duration(seconds: 1);
 
   /// Fra la pubblicazione di una fase e il suo inizio: il tempo perché
   /// arrivi a tutti, così tutti cambiano schermata insieme.
