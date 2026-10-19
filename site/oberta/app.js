@@ -1,21 +1,27 @@
 const phases = {
+  notte: {
+    image: 'img/notte.png',
+    alt: 'La notte: un giocatore legge il proprio compito segreto e sceglie cosa fare',
+    title: 'Cala la notte',
+    description: 'Ognuno riceve il suo compito segreto: la famiglia sceglie chi colpire, gli altri indagano o proteggono.'
+  },
   piazza: {
     image: 'img/piazza.png',
     alt: 'La piazza durante la discussione: giocatori numerati sopra la chat',
     title: 'La piazza parla',
     description: 'Alibi, accuse, mezze verità. Ogni parola può cambiare il voto.'
   },
-  notte: {
-    image: 'img/notte.png',
-    alt: 'La notte: un giocatore legge il proprio compito segreto e sceglie cosa fare',
-    title: 'Cala la notte',
-    description: 'Ognuno riceve il proprio compito. Le mosse si risolvono tutte insieme.'
-  },
   alba: {
     image: 'img/alba.png',
     alt: 'Il giornale dell’alba racconta il delitto senza svelare il ruolo della vittima',
     title: 'Arriva l’alba',
-    description: 'Il narratore ricostruisce la notte. La piazza si prepara al verdetto.'
+    description: 'Il giornale racconta chi non si è svegliato. Il suo ruolo resta un segreto.'
+  },
+  voto: {
+    image: 'img/voto.png',
+    alt: 'Il voto: ogni giocatore indica chi accusa, la chat resta visibile',
+    title: 'Si vota',
+    description: 'Ognuno punta il dito. Chi prende più voti viene linciato e il suo ruolo si scopre.'
   }
 };
 

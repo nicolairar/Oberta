@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#a51d25">
-    <meta name="description" content="Obertà è un gioco di ruoli segreti: la piazza parla, la notte decide, all'alba il quartiere ascolta.">
+    <meta name="description" content="Obertà è un gioco di ruoli segreti: la notte decide, all'alba si contano i morti, la piazza parla e vota.">
     <title>Obertà — Chi sa, tace</title>
     <link rel="icon" href="favicon.png" type="image/png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -29,7 +29,7 @@
         <div class="hero__copy">
           <img class="hero__icon" src="img/icon-512.png" alt="L'icona di Obertà" width="112" height="112">
           <h1 id="hero-title">CHI SA,<br><span>TACE.</span></h1>
-          <p>Un gioco di ruoli segreti. La piazza parla, la notte decide, all’alba il quartiere ascolta.</p>
+          <p>Un gioco di ruoli segreti. La notte decide, all’alba si contano i morti, poi la piazza parla e vota.</p>
           <a class="button button--paper" href="#partita">Fai un giro in città <span aria-hidden="true">↓</span></a>
           <p class="hero__soon">Presto su App Store, per iPhone.</p>
         </div>
@@ -42,23 +42,24 @@
 
       <section class="chronicle" id="partita" aria-labelledby="chronicle-title">
         <div class="chronicle__intro">
-          <h2 id="chronicle-title">Una notte.<br>Tre atti.</h2>
-          <p>La città cambia ritmo, ma nessuno resta a guardare. Tocca una fase e guarda la partita prendere forma.</p>
+          <h2 id="chronicle-title">Un giro.<br>Quattro atti.</h2>
+          <p>Ogni giro va così: la notte, l’alba, la discussione, il voto. Poi si ricomincia, finché una parte resta in piedi. Tocca una fase per vederla.</p>
           <div class="phase-tabs" role="group" aria-label="Scegli una fase della partita">
-            <button type="button" class="phase-tab is-active" data-phase="piazza" aria-pressed="true"><span aria-hidden="true">↗</span> La piazza parla</button>
-            <button type="button" class="phase-tab" data-phase="notte" aria-pressed="false"><span aria-hidden="true">↗</span> Cala la notte</button>
+            <button type="button" class="phase-tab is-active" data-phase="notte" aria-pressed="true"><span aria-hidden="true">↗</span> Cala la notte</button>
             <button type="button" class="phase-tab" data-phase="alba" aria-pressed="false"><span aria-hidden="true">↗</span> Arriva l’alba</button>
+            <button type="button" class="phase-tab" data-phase="piazza" aria-pressed="false"><span aria-hidden="true">↗</span> La piazza parla</button>
+            <button type="button" class="phase-tab" data-phase="voto" aria-pressed="false"><span aria-hidden="true">↗</span> Si vota</button>
           </div>
         </div>
         <div class="chronicle__view" data-ui aria-live="polite">
-          <img id="phase-image" src="img/piazza.png" alt="La piazza durante la discussione: giocatori numerati sopra la chat" width="585" height="1266" loading="lazy">
+          <img id="phase-image" src="img/notte.png" alt="La notte: un giocatore legge il proprio compito segreto e sceglie cosa fare" width="585" height="1266" loading="lazy">
           <div class="chronicle__caption">
-            <p id="phase-title">La piazza parla</p>
-            <p id="phase-description">Alibi, accuse, mezze verità. Ogni parola può cambiare il voto.</p>
+            <p id="phase-title">Cala la notte</p>
+            <p id="phase-description">Ognuno riceve il suo compito segreto: la famiglia sceglie chi colpire, gli altri indagano o proteggono.</p>
           </div>
         </div>
         <div class="chronicle__fallback" aria-hidden="true">
-          <img src="img/notte.png" alt="" width="585" height="1266" loading="lazy">
+          <img src="img/piazza.png" alt="" width="585" height="1266" loading="lazy">
           <img src="img/alba.png" alt="" width="585" height="1266" loading="lazy">
         </div>
       </section>
@@ -66,7 +67,7 @@
       <section class="vote" aria-labelledby="vote-title">
         <div class="vote__heading">
           <h2 id="vote-title">La chat<br>è il tavolo.</h2>
-          <p>Leggi i messaggi, guarda i voti cambiare, decidi chi mandare al rogo. Gli avatar e i numeri restano visibili mentre la partita si scalda.</p>
+          <p>Leggi i messaggi, guarda i voti cambiare, decidi chi condannare. Chi prende più voti viene linciato e il suo ruolo si scopre. Gli avatar e i numeri restano visibili mentre la partita si scalda.</p>
           <a class="text-link" href="#modalita">Scegli il tuo posto <span aria-hidden="true">↘</span></a>
         </div>
         <figure class="vote__image" data-ui>
@@ -77,19 +78,19 @@
 
       <section class="verdict" aria-labelledby="verdict-title">
         <figure class="verdict__image" data-ui>
-          <img src="img/verdetto.png" alt="Il giornale del verdetto racconta il linciaggio e l'esito della partita" width="585" height="1266" loading="lazy">
-          <figcaption>Edizione della sera.</figcaption>
+          <img src="img/verdetto.png" alt="Il giornale dell'alba racconta i morti della notte" width="585" height="1266" loading="lazy">
+          <figcaption>Edizione del mattino.</figcaption>
         </figure>
         <div class="verdict__copy">
           <h2 id="verdict-title">Ogni città<br>ha una storia.</h2>
-          <p>Le notti diventano scene. Le albe, pagine di giornale. Il narratore cuce gli eventi della partita in una cronaca tutta sua.</p>
+          <p>Le notti diventano scene. Le albe, pagine di giornale con i morti della notte. Il narratore cuce gli eventi della partita in una cronaca tutta sua.</p>
         </div>
       </section>
 
       <section class="cast" id="ruoli" aria-labelledby="cast-title">
         <div class="cast__copy">
           <h2 id="cast-title">Ventuno facce.<br>Nessuna innocente.</h2>
-          <p>La <strong>famiglia</strong> si conosce e uccide di notte: Mafioso, Padrino, Sarto, Compare. La <strong>città</strong> indaga e protegge: Detective, Medico, Cecchino, Giornalista, Becchino, Guardaspalle, Reduce, Pregiudicato, Messia, Sindaco, Portinaio e gli Onesti. E poi chi gioca <strong>per sé</strong>: il Fesso, il Piromane, il Cacciatore di taglie, lo Strozzino, il Sicario.</p>
+          <p>La <strong>famiglia</strong> si conosce e uccide di notte: Picciotto, Padrino, Sarto, Compare. La <strong>città</strong> indaga e protegge: Commissario, Dottore, Cecchino, Cronista, Becchino, Guardaspalle, Reduce, Pregiudicato, Messia, Sindaco, Portinaio e gli Onesti. E poi chi gioca <strong>per sé</strong>: il Fesso, il Piromane, il Cacciatore di taglie, lo Strozzino, il Sicario.</p>
         </div>
         <figure class="cast__image" data-ui>
           <img src="img/carta.png" alt="Una carta ruolo di Obertà girata" width="585" height="1266" loading="lazy">
