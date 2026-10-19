@@ -1,0 +1,18 @@
+SIGN-IN
+No demo account is needed.
+- One-phone mode ("Un telefono per tutti" / "One phone for everyone", the poster in the middle of the home screen) works fully offline, without any account.
+- Online features (rooms with friends, shop, barber) use Sign in with Apple only: tap "ACCEDI" / "SIGN IN" on the home screen and sign in with your own Apple ID. On first sign-in you choose a unique username; the barber's mirror then lets you pick a face (it can be skipped).
+- To play an online game, open "Gioca con amici" / "Play with friends", create a room and let a second device signed in with another Apple ID join with the code or QR.
+
+COINS AND PURCHASES
+The app has no in-app purchases and no real-money currency. Coins are earned only by playing online matches and are spent in the in-game shop on cosmetic items (hats, outfits, frames).
+
+USER-GENERATED CONTENT
+Online rooms have a text chat (open square by day, private Family chat at night), only with people in the same room. Every message is checked server-side against a blocked-words filter before it is stored; blocked messages are rejected. Usernames go through the same filter.
+<REPORT_AND_BLOCK_INSTRUCTIONS>
+
+ACCOUNT DELETION
+Settings (gear icon on the home screen) > "Elimina account" / "Delete account". After typing the confirmation word, the account, profile, friends, wardrobe and coins are deleted permanently and the Sign in with Apple token is revoked.
+
+RANKED
+The "Classificata" / "Ranked" poster is marked "coming soon" and is not playable in this version.
