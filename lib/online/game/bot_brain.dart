@@ -32,7 +32,7 @@ String botName(int index) => HandleRules.botHandle(_nato[index % _nato.length]);
 /// - il Medico ogni tanto protegge sé stesso;
 /// - il Piromane cosparge, e accende quando ha almeno due cosparsi (o il
 ///   tavolo è piccolo); il Messia riporta subito chi può; il Sindaco, prima
-///   o poi, si rivela.
+///   o poi, si rivela; il Cacciatore di taglie vota la sua taglia.
 class BotBrain {
   final Random random;
 
@@ -98,6 +98,8 @@ class BotBrain {
         if (option.canReveal && random.nextInt(3) == 0) return RevealMayor(seat);
         final targets = option.targets;
         if (targets.isEmpty) return Pass(seat);
+        // Il Cacciatore di taglie vota la sua taglia, se è ancora in piazza.
+        if (view.bounty case final mark? when targets.contains(mark)) return DayVote(seat, mark.id);
         if (!mafia) {
           final suspects = [for (final p in targets) if (knownMafia(p)) p];
           if (suspects.isNotEmpty) return DayVote(seat, _pick(suspects).id);

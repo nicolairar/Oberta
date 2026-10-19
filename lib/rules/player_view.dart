@@ -246,6 +246,10 @@ class PlayerView {
   /// altri: nessuno sa di essere cosparso.
   final List<Player> doused;
 
+  /// Per il Cacciatore di taglie: chi deve far linciare. `null` per tutti
+  /// gli altri.
+  final Player? bounty;
+
   /// Per il Portinaio: le porte che ha guardato e se qualcuno ci è passato.
   final List<WatchReport> watches;
   final PublicView board;
@@ -263,6 +267,7 @@ class PlayerView {
     this.silenced = false,
     this.familyChat = false,
     this.doused = const [],
+    this.bounty,
     this.watches = const [],
     required this.board,
   });
@@ -280,6 +285,7 @@ class PlayerView {
     'silenced': silenced,
     'familyChat': familyChat,
     'doused': seatsOf(doused),
+    if (bounty != null) 'bounty': seatOf(bounty),
     'watches': [
       for (final watch in watches) {'round': watch.round, 'seat': watch.target.id, 'visited': watch.visited},
     ],
@@ -307,6 +313,7 @@ class PlayerView {
       silenced: json['silenced'] as bool? ?? false,
       familyChat: json['familyChat'] as bool? ?? false,
       doused: json['doused'] == null ? const [] : seatsFrom(json['doused'], resolve),
+      bounty: optionalSeat(json['bounty'], resolve),
       watches: [
         for (final row in _rows(json['watches'] ?? const []))
           (round: row['round'] as int, target: resolve(row['seat'] as String), visited: row['visited'] as bool),

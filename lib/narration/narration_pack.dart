@@ -152,6 +152,15 @@ class NarrationPack {
   final List<String> arsonistWins;
   final String arsonistWinsFact;
 
+  /// La taglia sale sul patibolo: il Cacciatore incassa, e la partita va
+  /// avanti. Il fatto nomina il Cacciatore.
+  final List<String> bountyWins;
+  final String bountyWinsFact;
+
+  /// Il Sicario resta in piedi: vince da solo.
+  final List<String> assassinWins;
+  final String assassinWinsFact;
+
   /// Il Sindaco si rivela (solo online, nella chat della piazza).
   final String mayorRevealed;
 
@@ -215,6 +224,10 @@ class NarrationPack {
     required this.foolWinsFact,
     required this.arsonistWins,
     required this.arsonistWinsFact,
+    required this.bountyWins,
+    required this.bountyWinsFact,
+    required this.assassinWins,
+    required this.assassinWinsFact,
     required this.mayorRevealed,
     required this.watchVisited,
     required this.watchQuiet,

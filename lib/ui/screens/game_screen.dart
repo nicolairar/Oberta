@@ -383,7 +383,10 @@ class _GameScreenState extends State<GameScreen> {
     beat(dark ? MemeMoment.mafiaWins : MemeMoment.townWins, after: const Duration(milliseconds: 800));
     _title = _t.endTitle;
     _mood = dark ? SceneMood.night : SceneMood.dawn;
-    _endingLines = _script.ending(winner);
+    _endingLines = _script.ending(
+      winner,
+      assassin: _engine.personalWins.any((player) => widget.setup.roleOf(player) == Role.sicario),
+    );
     _stage = _Stage.end;
   }
 
@@ -603,6 +606,7 @@ class _GameScreenState extends State<GameScreen> {
               for (final player in _seats)
                 if (_engine.doused.contains(player)) player,
           ],
+          bounty: _engine.bountyOf(actor),
         ),
         if (alternative != null) ...[
           SegmentedButton<bool>(

@@ -104,6 +104,21 @@ const englishPack = NarrationPack(
       '“Everybody loves a bonfire.”',
       'Each night douse someone in gasoline, or light the match and burn them all. Outlast everyone.',
     ),
+    Role.cacciatore: RoleText(
+      'The Bounty Hunter',
+      '“Nothing personal. It\'s business.”',
+      'A bounty on an honest citizen: get them lynched to win alone. If they die first, join the town.',
+    ),
+    Role.strozzino: RoleText(
+      'The Loan Shark',
+      '“A dead debtor doesn\'t pay.”',
+      'Each night lend to someone: nobody can kill them tonight. Win if you are alive at the end.',
+    ),
+    Role.sicario: RoleText(
+      'The Hitman',
+      '“I work alone. Coffee\'s on me.”',
+      'Each night eliminate someone, on your own. The Detective sees you as Family. Outlast everyone.',
+    ),
   },
   cities: [
     CitySetting(
@@ -452,6 +467,16 @@ const englishPack = NarrationPack(
     'Nothing left to burn in {city}. Fade to orange.',
   ],
   arsonistWinsFact: 'The Arsonist wins alone: nobody is left to stop them.',
+  bountyWins: [
+    'At the back of the square someone is counting banknotes. The bounty is paid.',
+    'A hat tips in the crowd, by way of thanks. Pleasure doing business.',
+  ],
+  bountyWinsFact: '{name} was the Bounty Hunter: they cash in and win alone. The game goes on.',
+  assassinWins: [
+    'Only empty chairs are left in {city}. The Hitman pays for the coffee and leaves.',
+    'The last light goes out in {city}. Somebody wipes a blade and whistles. Roll credits.',
+  ],
+  assassinWinsFact: 'The Hitman wins alone: a clean sweep.',
   mayorRevealed: '{name} is the Mayor: today their vote counts double.',
   watchVisited: 'Last night somebody came to {name}\'s door.',
   watchQuiet: 'Last night nobody came to {name}\'s door.',
@@ -468,6 +493,8 @@ const englishPack = NarrationPack(
     NightTaskKind.ignite: 'Do you light the match tonight?',
     NightTaskKind.resurrect: 'Who do you bring back tonight?',
     NightTaskKind.watch: 'Whose door do you watch tonight?',
+    NightTaskKind.lend: 'Who do you lend money to tonight?',
+    NightTaskKind.stab: 'Who do you eliminate tonight?',
   },
   taskHints: {
     NightTaskKind.kill: 'Whoever you pick won\'t see the dawn. If there are several of you, majority rules.',
@@ -482,6 +509,8 @@ const englishPack = NarrationPack(
     NightTaskKind.ignite: 'Everyone you doused burns tonight.',
     NightTaskKind.resurrect: 'Only once: your pick returns at dawn, if you see it. Pass to keep it.',
     NightTaskKind.watch: 'At dawn you\'ll know if anyone came to that door. Not who.',
+    NightTaskKind.lend: 'A dead debtor doesn\'t pay: nobody can kill them tonight. Never twice running.',
+    NightTaskKind.stab: 'Whoever you pick won\'t see the dawn, unless someone protects them.',
     NightTaskKind.decoy: 'You have no move tonight: answer anyway, so nobody can tell who you are.',
   },
   decoyPrompts: [

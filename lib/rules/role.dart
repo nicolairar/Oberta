@@ -1,4 +1,5 @@
-/// Le fazioni. I neutrali (Fesso, Piromane) giocano per sé: non vincono con
+/// Le fazioni. I neutrali (Fesso, Piromane, Cacciatore di taglie, Strozzino,
+/// Sicario) giocano per sé: non vincono con
 /// la città né con la famiglia, ma ognuno ha la sua vittoria personale.
 enum Team { citizens, mafia, neutral }
 
@@ -21,6 +22,9 @@ enum Role {
   portinaio,
   fesso,
   piromane,
+  cacciatore,
+  strozzino,
+  sicario,
 }
 
 /// Come si gioca: un telefono passato di mano in mano, o un telefono a testa.
@@ -50,7 +54,7 @@ enum RoleCategory {
   /// Messia, Sindaco: un potere una volta per partita, per la piazza.
   civic,
 
-  /// Fesso, Piromane: giocano per sé.
+  /// Fesso, Piromane, Cacciatore, Strozzino, Sicario: giocano per sé.
   neutral,
 
   /// L'Onesto.
@@ -80,7 +84,7 @@ class RoleRule {
 extension RoleInfo on Role {
   Team get team => switch (this) {
         Role.mafioso || Role.padrino || Role.sarto || Role.compare => Team.mafia,
-    Role.fesso || Role.piromane => Team.neutral,
+    Role.fesso || Role.piromane || Role.cacciatore || Role.strozzino || Role.sicario => Team.neutral,
         _ => Team.citizens,
       };
 
@@ -89,8 +93,10 @@ extension RoleInfo on Role {
   Team get apparentTeam => switch (this) {
         Role.padrino => Team.citizens,
         Role.pregiudicato => Team.mafia,
-    // I neutrali non sono della famiglia: alle carte risultano cittadini.
-    Role.fesso || Role.piromane => Team.citizens,
+    // Il Sicario ha la faccia del mestiere: alle carte risulta della famiglia.
+    Role.sicario => Team.mafia,
+    // Gli altri neutrali non sono della famiglia: alle carte risultano cittadini.
+    Role.fesso || Role.piromane || Role.cacciatore || Role.strozzino => Team.citizens,
         _ => team,
       };
 
@@ -118,10 +124,18 @@ extension RoleInfo on Role {
     Role.portinaio => const RoleRule(RoleCategory.investigator, minPlayers: 9),
     Role.fesso => const RoleRule(RoleCategory.neutral, minPlayers: 8),
     Role.piromane => const RoleRule(RoleCategory.neutral, minPlayers: 13),
+    Role.cacciatore => const RoleRule(RoleCategory.neutral, minPlayers: 9),
+    Role.strozzino => const RoleRule(RoleCategory.neutral, minPlayers: 10),
+    Role.sicario => const RoleRule(RoleCategory.neutral, minPlayers: 14),
       };
 
-  /// Ostile alla città: finché è vivo la città non ha vinto.
-  bool get isHostileNeutral => this == Role.piromane;
+  /// Ostile alla città, un assassino in proprio (Piromane, Sicario): finché
+  /// è vivo la città non ha vinto. Al tavolo ce n'è al massimo uno.
+  bool get isHostileNeutral => this == Role.piromane || this == Role.sicario;
+
+  /// Vince con un linciaggio (Fesso, Cacciatore di taglie): al tavolo ce n'è
+  /// al massimo uno, o la piazza diventa una lotteria.
+  bool get isLynchSeeker => this == Role.fesso || this == Role.cacciatore;
 
   /// Esiste in questa modalità? Il Compare vive solo online, dove c'è la chat.
   bool playableIn(PlayMode mode) => rule.modes.contains(mode);

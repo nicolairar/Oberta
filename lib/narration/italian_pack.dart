@@ -102,6 +102,21 @@ const italianPack = NarrationPack(
       '«A chi non piace un bel falò?»',
       'Ogni notte cospargi qualcuno di benzina, o accendi e bruci tutti. Resta in piedi per ultimo.',
     ),
+    Role.cacciatore: RoleText(
+      'Il Cacciatore di taglie',
+      '«Niente di personale. È lavoro.»',
+      'Hai una taglia su un onesto: fallo linciare e vinci da solo. Se muore prima, stai con la città.',
+    ),
+    Role.strozzino: RoleText(
+      'Lo Strozzino',
+      '«Un debitore morto non paga.»',
+      'Ogni notte presti a qualcuno: stanotte nessuno lo tocca. Vinci se arrivi vivo alla fine.',
+    ),
+    Role.sicario: RoleText(
+      'Il Sicario',
+      '«Lavoro da solo. Pago io il caffè.»',
+      'Ogni notte elimini qualcuno, per conto tuo. Al Commissario sembri della famiglia. Resta per ultimo.',
+    ),
   },
   cities: [
     CitySetting(
@@ -448,6 +463,16 @@ const italianPack = NarrationPack(
     'A {city} non c\'è più niente da bruciare. Dissolvenza in arancione.',
   ],
   arsonistWinsFact: 'Vince il Piromane, da solo: non è rimasto nessuno a fermarlo.',
+  bountyWins: [
+    'In fondo alla piazza qualcuno conta le banconote. La taglia è pagata.',
+    'Un cappello si alza tra la folla, in segno di ringraziamento. Affare fatto.',
+  ],
+  bountyWinsFact: '{name} era il Cacciatore di taglie: incassa e vince da solo. Il gioco continua.',
+  assassinWins: [
+    'A {city} restano solo le sedie vuote. Il Sicario paga il caffè e se ne va.',
+    'L\'ultima luce si spegne a {city}. Qualcuno pulisce la lama e fischietta. Titoli di coda.',
+  ],
+  assassinWinsFact: 'Vince il Sicario, da solo: ha fatto piazza pulita.',
   mayorRevealed: '{name} è il Sindaco: oggi il suo voto vale doppio.',
   watchVisited: 'Stanotte qualcuno è passato dalla porta di {name}.',
   watchQuiet: 'Stanotte nessuno è passato dalla porta di {name}.',
@@ -464,6 +489,8 @@ const italianPack = NarrationPack(
     NightTaskKind.ignite: 'Accendi il fiammifero stanotte?',
     NightTaskKind.resurrect: 'Chi riporti in vita stanotte?',
     NightTaskKind.watch: 'Di chi guardi la porta stanotte?',
+    NightTaskKind.lend: 'A chi presti i soldi stanotte?',
+    NightTaskKind.stab: 'Chi elimini stanotte?',
   },
   taskHints: {
     NightTaskKind.kill: 'Chi scegli non vedrà l\'alba. Se siete in più d\'uno, vince la maggioranza.',
@@ -478,6 +505,8 @@ const italianPack = NarrationPack(
     NightTaskKind.ignite: 'Stanotte brucia chiunque tu abbia cosparso.',
     NightTaskKind.resurrect: 'Una volta sola: chi scegli torna all\'alba, se tu la vedi. Se passi, ti resta.',
     NightTaskKind.watch: 'All\'alba saprai se qualcuno è passato da quella porta. Non chi.',
+    NightTaskKind.lend: 'Un debitore morto non paga: stanotte nessuno può ucciderlo. Mai lo stesso due notti di fila.',
+    NightTaskKind.stab: 'Chi scegli non vedrà l\'alba, a meno che qualcuno lo protegga.',
     NightTaskKind.decoy: 'Stanotte non hai una mossa: rispondi lo stesso, così nessuno capisce chi sei.',
   },
   decoyPrompts: [

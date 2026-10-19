@@ -18,7 +18,10 @@ class NightNotes extends StatelessWidget {
   final WatchReport? lastWatch;
   final List<Player> doused;
 
-  const NightNotes({super.key, this.lastWatch, this.doused = const []});
+  /// Per il Cacciatore di taglie: chi deve far linciare.
+  final Player? bounty;
+
+  const NightNotes({super.key, this.lastWatch, this.doused = const [], this.bounty});
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +31,7 @@ class NightNotes extends StatelessWidget {
       if (watch != null)
         (watch.visited ? t.pack.watchVisited : t.pack.watchQuiet).replaceAll('{name}', watch.target.name),
       if (doused.isNotEmpty) '${t.dousedBadge}: ${doused.map((p) => p.name).join(', ')}',
+      if (bounty case final mark?) '${t.bountyBadge}: ${mark.name}',
     ];
     if (lines.isEmpty) return const SizedBox.shrink();
     return Padding(

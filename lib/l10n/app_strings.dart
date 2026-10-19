@@ -114,6 +114,7 @@ abstract class AppStrings {
   String get lightTheMatch;
   String get dousePick;
   String get dousedBadge;
+  String get bountyBadge;
   String get readAloud;
   String readerReadsAloud(String reader);
 
@@ -336,6 +337,7 @@ abstract class AppStrings {
     'lightTheMatch': lightTheMatch,
     'dousePick': dousePick,
     'dousedBadge': dousedBadge,
+    'bountyBadge': bountyBadge,
     'readAloud': readAloud,
     'readerReadsAloud': readerReadsAloud('Sara'),
     'narratorSpeaks': narratorSpeaks,

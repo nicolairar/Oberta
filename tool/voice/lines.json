@@ -1696,6 +1696,76 @@
       "text": "Vince il Piromane, da solo: non è rimasto nessuno a fermarlo."
     },
     {
+      "key": "19212aa13a0c7eb9",
+      "kind": "segment",
+      "text": "In fondo alla piazza qualcuno conta le banconote. La taglia è pagata."
+    },
+    {
+      "key": "62ae0ca60a0289e2",
+      "kind": "segment",
+      "text": "Un cappello si alza tra la folla, in segno di ringraziamento. Affare fatto."
+    },
+    {
+      "key": "664fcc2501566681",
+      "kind": "segment",
+      "text": "era il Cacciatore di taglie: incassa e vince da solo. Il gioco continua."
+    },
+    {
+      "key": "aff75d4fff809bf3",
+      "kind": "segment",
+      "text": "A Chicago restano solo le sedie vuote. Il Sicario paga il caffè e se ne va."
+    },
+    {
+      "key": "238be7a30c3c59ea",
+      "kind": "segment",
+      "text": "A New York restano solo le sedie vuote. Il Sicario paga il caffè e se ne va."
+    },
+    {
+      "key": "54b524113a15f925",
+      "kind": "segment",
+      "text": "A Palermo restano solo le sedie vuote. Il Sicario paga il caffè e se ne va."
+    },
+    {
+      "key": "b0d315572f07b1f4",
+      "kind": "segment",
+      "text": "A Napoli restano solo le sedie vuote. Il Sicario paga il caffè e se ne va."
+    },
+    {
+      "key": "ad81342a17a17d09",
+      "kind": "segment",
+      "text": "A Las Vegas restano solo le sedie vuote. Il Sicario paga il caffè e se ne va."
+    },
+    {
+      "key": "0384f888290bba78",
+      "kind": "segment",
+      "text": "L'ultima luce si spegne a Chicago. Qualcuno pulisce la lama e fischietta. Titoli di coda."
+    },
+    {
+      "key": "e119cf5512fe135f",
+      "kind": "segment",
+      "text": "L'ultima luce si spegne a New York. Qualcuno pulisce la lama e fischietta. Titoli di coda."
+    },
+    {
+      "key": "8c3276319bd86906",
+      "kind": "segment",
+      "text": "L'ultima luce si spegne a Palermo. Qualcuno pulisce la lama e fischietta. Titoli di coda."
+    },
+    {
+      "key": "7c14be92f6fcee01",
+      "kind": "segment",
+      "text": "L'ultima luce si spegne a Napoli. Qualcuno pulisce la lama e fischietta. Titoli di coda."
+    },
+    {
+      "key": "983decbba64d8da2",
+      "kind": "segment",
+      "text": "L'ultima luce si spegne a Las Vegas. Qualcuno pulisce la lama e fischietta. Titoli di coda."
+    },
+    {
+      "key": "d5134c2620e23be5",
+      "kind": "segment",
+      "text": "Vince il Sicario, da solo: ha fatto piazza pulita."
+    },
+    {
       "key": "5265221cb1855434",
       "kind": "segment",
       "text": "qualcuno"
@@ -1784,6 +1854,21 @@
       "key": "68280c66b18253c0",
       "kind": "role",
       "text": "Il Piromane"
+    },
+    {
+      "key": "e030a7eb67fac038",
+      "kind": "role",
+      "text": "Il Cacciatore di taglie"
+    },
+    {
+      "key": "bbdc24ae1e216d75",
+      "kind": "role",
+      "text": "Lo Strozzino"
+    },
+    {
+      "key": "7db45a4efdc279ab",
+      "kind": "role",
+      "text": "Il Sicario"
     },
     {
       "key": "2822e8c596bcbdef",
@@ -3618,6 +3703,76 @@
       "text": "The Arsonist wins alone: nobody is left to stop them."
     },
     {
+      "key": "1f46325f3762d530",
+      "kind": "segment",
+      "text": "At the back of the square someone is counting banknotes. The bounty is paid."
+    },
+    {
+      "key": "6aeab2a0bd005395",
+      "kind": "segment",
+      "text": "A hat tips in the crowd, by way of thanks. Pleasure doing business."
+    },
+    {
+      "key": "6a20cd74b22aa46b",
+      "kind": "segment",
+      "text": "was the Bounty Hunter: they cash in and win alone. The game goes on."
+    },
+    {
+      "key": "84f0c106550273ad",
+      "kind": "segment",
+      "text": "Only empty chairs are left in Chicago. The Hitman pays for the coffee and leaves."
+    },
+    {
+      "key": "16329b6f382caf1e",
+      "kind": "segment",
+      "text": "Only empty chairs are left in New York. The Hitman pays for the coffee and leaves."
+    },
+    {
+      "key": "988f4e53a078573b",
+      "kind": "segment",
+      "text": "Only empty chairs are left in Palermo. The Hitman pays for the coffee and leaves."
+    },
+    {
+      "key": "c51005f2e354f34e",
+      "kind": "segment",
+      "text": "Only empty chairs are left in Naples. The Hitman pays for the coffee and leaves."
+    },
+    {
+      "key": "9d3df84ad0e9efc7",
+      "kind": "segment",
+      "text": "Only empty chairs are left in Las Vegas. The Hitman pays for the coffee and leaves."
+    },
+    {
+      "key": "a3b845732fceb442",
+      "kind": "segment",
+      "text": "The last light goes out in Chicago. Somebody wipes a blade and whistles. Roll credits."
+    },
+    {
+      "key": "0ab1275ab9900a57",
+      "kind": "segment",
+      "text": "The last light goes out in New York. Somebody wipes a blade and whistles. Roll credits."
+    },
+    {
+      "key": "1ac74311f7b825d8",
+      "kind": "segment",
+      "text": "The last light goes out in Palermo. Somebody wipes a blade and whistles. Roll credits."
+    },
+    {
+      "key": "6a38a4ebc99b16c3",
+      "kind": "segment",
+      "text": "The last light goes out in Naples. Somebody wipes a blade and whistles. Roll credits."
+    },
+    {
+      "key": "974810ffeec82d94",
+      "kind": "segment",
+      "text": "The last light goes out in Las Vegas. Somebody wipes a blade and whistles. Roll credits."
+    },
+    {
+      "key": "a027f9cae8df1da6",
+      "kind": "segment",
+      "text": "The Hitman wins alone: a clean sweep."
+    },
+    {
       "key": "cdfc170d0cbf0c32",
       "kind": "segment",
       "text": "someone"
@@ -3706,6 +3861,21 @@
       "key": "0ce79d00096fa1ac",
       "kind": "role",
       "text": "The Arsonist"
+    },
+    {
+      "key": "8925a4aa435754ae",
+      "kind": "role",
+      "text": "The Bounty Hunter"
+    },
+    {
+      "key": "8ac9f98bf9653c90",
+      "kind": "role",
+      "text": "The Loan Shark"
+    },
+    {
+      "key": "41582600193b08f0",
+      "kind": "role",
+      "text": "The Hitman"
     },
     {
       "key": "91406e605da800c9",

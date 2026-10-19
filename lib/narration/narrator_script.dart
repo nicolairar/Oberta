@@ -168,8 +168,11 @@ class NarratorScript {
     final role = report.role!;
     final isMafia = role.team == Team.mafia;
     final String reaction;
+    final hunter = report.bountyHunter;
     if (report.personalWin) {
       reaction = _picker.pick('lynch.fool', pack.foolWins);
+    } else if (hunter != null) {
+      reaction = _picker.pick('lynch.bounty', pack.bountyWins);
     } else if (!isMafia) {
       reaction = _picker.pick('lynch.innocent', pack.lynchedInnocent);
     } else if (report.winner == Team.citizens) {
@@ -191,10 +194,15 @@ class NarratorScript {
       ], fact: true),
       _story(reaction),
       if (report.personalWin) _fact(pack.foolWinsFact, name: condemned.name),
+      if (hunter != null) _fact(pack.bountyWinsFact, name: hunter.name),
     ];
   }
 
-  List<ScriptLine> ending(Team winner) {
+  /// Con [assassin] la città l'ha ripulita il Sicario, non il Piromane.
+  List<ScriptLine> ending(Team winner, {bool assassin = false}) {
+    if (winner == Team.neutral && assassin) {
+      return [_fact(pack.assassinWinsFact), _story(_picker.pick('ending.assassin', pack.assassinWins))];
+    }
     if (winner == Team.neutral) {
       return [_fact(pack.arsonistWinsFact), _story(_picker.pick('ending.neutral', pack.arsonistWins))];
     }

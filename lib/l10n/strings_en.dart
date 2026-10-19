@@ -151,7 +151,7 @@ final class EnglishStrings extends AppStrings {
   @override
   String get youAreNeutral => 'YOU PLAY FOR YOURSELF';
   @override
-  String get arsonistWins => 'The Arsonist\nwins';
+  String get arsonistWins => 'A lone wolf\nwins';
   @override
   String get wonAlone => 'WON ALONE';
   @override
@@ -162,6 +162,8 @@ final class EnglishStrings extends AppStrings {
   String get dousePick => 'Douse';
   @override
   String get dousedBadge => 'GASOLINE';
+  @override
+  String get bountyBadge => 'BOUNTY';
   @override
   String get readAloud => 'READ IT OUT LOUD';
   @override

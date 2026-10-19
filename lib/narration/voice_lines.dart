@@ -180,4 +180,8 @@ List<String> spokenTemplates(NarrationPack pack) => [
       pack.foolWinsFact,
       ...pack.arsonistWins,
       pack.arsonistWinsFact,
+      ...pack.bountyWins,
+      pack.bountyWinsFact,
+      ...pack.assassinWins,
+      pack.assassinWinsFact,
     ];

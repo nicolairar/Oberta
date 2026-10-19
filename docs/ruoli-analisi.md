@@ -51,8 +51,19 @@ F. Testi IT/EN dei ruoli nuovi e voci (`tool/voice/regenerate.sh`).
 - Portinaio: da 9 giocatori, una copia, investigatore. Ogni notte guarda una porta e all'alba sa solo se qualcuno ci è passato: contano le mosse vere su quel bersaglio (agguato, protezione, scorta, indagine, colpo, scoop, silenzio, benzina, un altro Portinaio); non contano il compito di copertura, il fiammifero, lo scavo e la resurrezione. Lo legge la notte dopo, sopra la sua scelta.
 - Categorie: Messia e Sindaco sono "civici" (nessun tetto oltre la copia); Portinaio conta tra gli investigatori.
 
+## Neutrali nuovi (19 ottobre 2026): Cacciatore di taglie, Strozzino, Sicario
+Riferimento Wolvesville: nelle partite rapide a 16 ci sono 4 lupi, 1 solitario assassino, 1 solitario "da voto", 1 ruolo che cambia squadra e 9 paesani. Da lì le regole: mai due assassini in proprio, mai due che vincono col linciaggio.
+- Cacciatore di taglie (Headhunter): da 9 giocatori, entrambe le modalità. All'inizio il motore tira a sorte (col seme) un cittadino come taglia; la vede solo lui (`PlayerView.bounty`, nelle note della notte). Se la taglia viene linciata mentre lui è vivo vince da solo (`LynchReport.bountyHunter`), la sua carta diventa pubblica e la partita continua. Se la taglia muore in altro modo passa con la città: vince se vince lei (`bountyLapsed`). Di notte fa il compito di copertura; il bot vota la sua taglia.
+- Strozzino: da 10 giocatori, entrambe le modalità. Ogni notte presta a qualcuno (non se stesso, mai lo stesso due notti di fila): quel debitore stanotte non muore, come col Dottore (conta come visita per il Portinaio). Vince se è vivo a fine partita, chiunque vinca; non blocca nessuna vittoria. Al Commissario risulta onesto.
+- Sicario (Serial Killer): da 14 giocatori, entrambe le modalità. Ogni notte uccide qualcuno (`AttackSource.assassin`, raccontato come un omicidio qualunque); Dottore, Strozzino, Guardaspalle e Reduce lo fermano come ogni agguato. Al Commissario risulta della famiglia. Ostile come il Piromane: finché è vivo la città non vince, vince lui se resta da solo o con un altro.
+- Mazzo (`neutralFits`): neutrali al massimo 2 fino a 13 giocatori, 3 da 14 (`maxNeutralsFor`); al massimo un assassino in proprio (Piromane o Sicario) e mai col Cecchino; al massimo uno che vince col voto (Fesso o Cacciatore); con il Fesso al massimo un altro neutrale. Minimo invariato (`minNeutralsFor`: 1 da 8, 2 da 11). A 12: 3 famiglia, 2 neutrali, fino a 4 speciali, almeno 2 Onesti.
+- Simulazione a mosse casuali (300 partite, 9–16 giocatori, test `test/rules/new_neutrals_test.dart`): mafia 215, città 64, neutrale (Piromane/Sicario) 21; vittorie personali: Strozzino 36, Fesso 29, Cacciatore 23, Sicario 11, Piromane 10. Le mosse a caso premiano la mafia (la piazza lincia alla cieca); i neutrali restano sotto il 10% delle vittorie di partita.
+- Schermo finale: "Vince un cane sciolto" per qualunque assassino in proprio; il narratore ha finali e battute proprie per Sicario e Cacciatore, con le voci registrate.
+
 ## Domande aperte per il proprietario
 - Sindaco: il voto doppio deve restare anche nei giorni dopo la rivelazione?
 - Portinaio: deve vedere anche i compiti di copertura (più rumore, meno informazione)?
 - Investigatore mafioso: cosa scopre e che prezzo paga?
+- Cacciatore: alla taglia morta di notte meglio una taglia nuova invece del passaggio alla città?
+- Strozzino: deve anche "comprare" il voto del debitore online?
 - Timer: tempi diversi per i bot?

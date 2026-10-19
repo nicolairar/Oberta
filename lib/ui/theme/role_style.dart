@@ -24,6 +24,9 @@ extension RoleStyle on Role {
         Role.portinaio => const Color(0xFF55606B),
         Role.fesso => const Color(0xFFB08A1E),
         Role.piromane => const Color(0xFFC0471A),
+        Role.cacciatore => const Color(0xFF7A5C2E),
+        Role.strozzino => const Color(0xFF3E7A3A),
+        Role.sicario => const Color(0xFF3A3A48),
       };
 
   IconData get icon => switch (this) {
@@ -45,5 +48,8 @@ extension RoleStyle on Role {
         Role.portinaio => Icons.door_front_door,
         Role.fesso => Icons.sentiment_very_satisfied,
         Role.piromane => Icons.local_fire_department,
+        Role.cacciatore => Icons.assignment_ind,
+        Role.strozzino => Icons.payments,
+        Role.sicario => Icons.dangerous,
       };
 }

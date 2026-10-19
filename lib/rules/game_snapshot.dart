@@ -62,6 +62,12 @@ class GameSnapshot {
 
   /// Il giro in cui il Sindaco si è rivelato.
   final int? mayorRound;
+
+  /// La taglia di ogni Cacciatore: cacciatore -> bersaglio.
+  final Map<Player, Player> bounties;
+
+  /// A chi lo Strozzino ha prestato la notte scorsa.
+  final Player? lastLent;
   final List<GameCommand> log;
 
   const GameSnapshot({
@@ -91,6 +97,8 @@ class GameSnapshot {
     this.personalWins = const [],
     this.resurrectionSpent = false,
     this.mayorRound,
+    this.bounties = const {},
+    this.lastLent,
     required this.log,
   });
 
@@ -137,6 +145,10 @@ class GameSnapshot {
     'personalWins': seatsOf(personalWins),
     'resurrectionSpent': resurrectionSpent,
     'mayorRound': mayorRound,
+    'bounties': [
+      for (final entry in bounties.entries) {'hunter': entry.key.id, 'seat': entry.value.id},
+    ],
+    'lastLent': seatOf(lastLent),
         'log': [for (final command in log) command.toJson()],
       };
 
@@ -197,6 +209,11 @@ class GameSnapshot {
       personalWins: json['personalWins'] == null ? const [] : seatsFrom(json['personalWins'], seat),
       resurrectionSpent: json['resurrectionSpent'] as bool? ?? false,
       mayorRound: json['mayorRound'] as int?,
+      bounties: {
+        for (final row in (json['bounties'] as List<Object?>? ?? const []).cast<Map<String, Object?>>())
+          seat(row['hunter'] as String): seat(row['seat'] as String),
+      },
+      lastLent: optionalSeat(json['lastLent'], seat),
       log: [for (final row in rows('log')) GameCommand.fromJson(row)],
     );
   }

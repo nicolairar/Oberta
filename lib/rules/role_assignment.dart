@@ -34,16 +34,31 @@ int maxSpecialCitizensFor(int citizens) => (citizens * 2) ~/ 3;
 /// Quanti neutrali almeno: nessuno sotto gli 8 giocatori, uno da 8, due da 11.
 int minNeutralsFor(int count) => count < 8 ? 0 : count < 11 ? 1 : 2;
 
-/// Quanti neutrali al massimo: il Fesso non sta mai con più di un altro
-/// neutrale.
-const maxNeutrals = 2;
+/// Quanti neutrali al massimo, in assoluto: tre, e solo da 14 giocatori.
+const maxNeutrals = 3;
+
+/// Quanti neutrali al massimo per [count] giocatori: due fino a 13, tre da 14
+/// (come Wolvesville a 16: un assassino in proprio, uno che vince col voto,
+/// uno che cambia le carte). Il Fesso non sta mai con più di un altro neutrale.
+int maxNeutralsFor(int count) => count < 14 ? 2 : maxNeutrals;
+
+/// [role] può entrare tra i neutrali già pescati ([neutrals])? Al massimo un
+/// assassino in proprio, al massimo uno che vince col linciaggio, e con il
+/// Fesso al massimo un altro neutrale.
+bool neutralFits(Role role, List<Role> neutrals, int count) {
+  final all = [...neutrals, role];
+  if (all.length > maxNeutralsFor(count)) return false;
+  if (all.where((r) => r.isHostileNeutral).length > 1) return false;
+  if (all.where((r) => r.isLynchSeeker).length > 1) return false;
+  return !all.contains(Role.fesso) || all.length <= 2;
+}
 
 int _categoryCap(RoleCategory category, int count) => switch (category) {
       RoleCategory.investigator || RoleCategory.protector => maxPerCategoryFor(count),
       RoleCategory.extraKill => 1,
       RoleCategory.familyPower => maxFamilyPowersFor(count),
       RoleCategory.family || RoleCategory.passive || RoleCategory.civic || RoleCategory.plain => count,
-      RoleCategory.neutral => maxNeutrals,
+      RoleCategory.neutral => maxNeutralsFor(count),
     };
 
 /// Un mazzo per [count] giocatori, pescato a caso dentro le regole di
@@ -54,8 +69,9 @@ int _categoryCap(RoleCategory category, int count) => switch (category) {
 ///   cui esiste (il Compare solo online);
 /// - investigatori e protettori al massimo [maxPerCategoryFor], un solo
 ///   colpo extra, cittadini speciali al massimo [maxSpecialCitizensFor];
-/// - i neutrali (Fesso, Piromane) entrano prima, ognuno con probabilità 1/2,
-///   al posto di un cittadino speciale, almeno [minNeutralsFor]; con il Piromane niente Cecchino;
+/// - i neutrali entrano prima, ognuno con probabilità 1/2, al posto di un
+///   cittadino speciale, almeno [minNeutralsFor], al massimo [maxNeutralsFor]
+///   e dentro [neutralFits]; con un assassino in proprio niente Cecchino;
 /// - si pesca prima un investigatore, poi un protettore, poi il resto a caso.
 ///
 /// Con lo stesso [random] (seminato) esce sempre lo stesso mazzo.
@@ -93,9 +109,11 @@ List<Role> rolesForPlayerCount(int count, {Random? random, PlayMode mode = PlayM
     for (final role in Role.values)
       if (role.rule.category == RoleCategory.neutral && eligible(role)) role,
   ]..shuffle(rng);
-  final wanted = min(minNeutralsFor(count), min(cap, maxNeutrals));
+  final most = min(cap, maxNeutralsFor(count));
+  final wanted = min(minNeutralsFor(count), most);
   for (final role in neutrals) {
-    if (specials.length >= min(cap, maxNeutrals)) break;
+    if (specials.length >= most) break;
+    if (!neutralFits(role, specials, count)) continue;
     if (specials.length < wanted || rng.nextBool()) specials.add(role);
   }
   bool fits(Role role) {
@@ -103,8 +121,8 @@ List<Role> rolesForPlayerCount(int count, {Random? random, PlayMode mode = PlayM
     if (rule.category == RoleCategory.plain || rule.category == RoleCategory.family) return false;
     if (rule.category == RoleCategory.familyPower || rule.category == RoleCategory.neutral) return false;
     if (!eligible(role)) return false;
-    // Il Piromane è già un colpo in più: niente Cecchino con lui.
-    if (rule.category == RoleCategory.extraKill && specials.contains(Role.piromane)) return false;
+    // Il Piromane e il Sicario sono già un colpo in più: niente Cecchino.
+    if (rule.category == RoleCategory.extraKill && specials.any((r) => r.isHostileNeutral)) return false;
     if (specials.where((r) => r == role).length >= (rule.maxCopies ?? count)) return false;
     return specials.where((r) => r.rule.category == rule.category).length < _categoryCap(rule.category, count);
   }

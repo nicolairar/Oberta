@@ -149,7 +149,7 @@ final class ItalianStrings extends AppStrings {
   @override
   String get youAreNeutral => 'GIOCHI PER TE';
   @override
-  String get arsonistWins => 'Vince\nil Piromane';
+  String get arsonistWins => 'Vince\nun cane sciolto';
   @override
   String get wonAlone => 'VITTORIA PERSONALE';
   @override
@@ -160,6 +160,8 @@ final class ItalianStrings extends AppStrings {
   String get dousePick => 'Cospargi';
   @override
   String get dousedBadge => 'BENZINA';
+  @override
+  String get bountyBadge => 'TAGLIA';
   @override
   String get readAloud => 'LEGGETE AD ALTA VOCE';
   @override

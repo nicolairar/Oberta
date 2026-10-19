@@ -242,7 +242,7 @@ void main() {
         expect(deck.where((r) => r == role).length, lessThanOrEqualTo(1));
         if (deck.contains(role)) expect(count, greaterThanOrEqualTo(role.rule.minPlayers));
       }
-      expect(deck.where((r) => r.team == Team.neutral).length, lessThanOrEqualTo(2));
+      expect(deck.where((r) => r.team == Team.neutral).length, lessThanOrEqualTo(maxNeutralsFor(count)));
       if (deck.contains(Role.piromane)) expect(deck, isNot(contains(Role.cecchino)));
       neutrals += deck.where((r) => r.team == Team.neutral).length;
     }

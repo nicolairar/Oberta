@@ -892,6 +892,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         NightNotes(
           lastWatch: lastWatch != null && lastWatch.round == _public.round - 1 ? lastWatch : null,
           doused: _view.doused,
+          bounty: _view.bounty,
         ),
         if (option.alternative != null) ...[
           SegmentedButton<bool>(

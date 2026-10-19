@@ -37,6 +37,13 @@ enum NightTaskKind {
   /// Il Messia riporta in vita un cittadino linciato.
   resurrect,
 
+  /// Lo Strozzino presta soldi a qualcuno: un debitore morto non paga, e
+  /// stanotte nessuno glielo tocca.
+  lend,
+
+  /// Il Sicario colpisce, in proprio, ogni notte.
+  stab,
+
   /// Il Portinaio guarda una porta: saprà se qualcuno ci è passato.
   watch,
   decoy,
@@ -79,7 +86,7 @@ class Exposure {
 }
 
 /// Chi ha colpito, di notte.
-enum AttackSource { family, sniper, fire }
+enum AttackSource { family, sniper, fire, assassin }
 
 /// Com'è finito un agguato: a segno, fermato in tempo dal Dottore, o
 /// incassato da chi ha la pelle dura.
@@ -150,7 +157,17 @@ class LynchReport {
   /// Il condannato vince da solo: il Fesso voleva proprio questo.
   final bool personalWin;
 
-  const LynchReport({required this.round, this.condemned, this.role, this.winner, this.personalWin = false});
+  /// Il Cacciatore di taglie che incassa: il condannato era la sua taglia.
+  final Player? bountyHunter;
+
+  const LynchReport({
+    required this.round,
+    this.condemned,
+    this.role,
+    this.winner,
+    this.personalWin = false,
+    this.bountyHunter,
+  });
 }
 
 class RoundRecord {
@@ -218,6 +235,13 @@ class GameEngine {
   /// Chi il Piromane ha cosparso e non è ancora bruciato. Lo sa solo lui.
   final Set<Player> _doused = {};
 
+  /// La taglia di ogni Cacciatore: un cittadino da far linciare, tirato a
+  /// sorte all'inizio. Lo sa solo lui.
+  final Map<Player, Player> _bounties = {};
+
+  /// A chi lo Strozzino ha prestato la notte scorsa: mai due notti di fila.
+  Player? _lastLent;
+
   /// Quello che il Portinaio ha visto, notte per notte.
   final List<({Player watcher, WatchReport report})> _watches = [];
 
@@ -254,6 +278,15 @@ class GameEngine {
           audience: isMafia ? mafiosi : {player},
         ),
       );
+    }
+    // Ogni Cacciatore di taglie riceve la sua: un cittadino, a sorte.
+    for (final hunter in _alive) {
+      if (setup.roleOf(hunter) != Role.cacciatore) continue;
+      final marks = [
+        for (final player in _alive)
+          if (_teamOf(player) == Team.citizens) player,
+      ];
+      if (marks.isNotEmpty) _bounties[hunter] = marks[_draw(marks.length)];
     }
   }
 
@@ -292,6 +325,8 @@ class GameEngine {
     _personalWins.addAll(snapshot.personalWins);
     _resurrectionSpent = snapshot.resurrectionSpent;
     _mayorRound = snapshot.mayorRound;
+    _bounties.addAll(snapshot.bounties);
+    _lastLent = snapshot.lastLent;
   }
 
   /// Rigioca una partita dal principio: stesso tavolo, stesso seme, stessi
@@ -342,6 +377,8 @@ class GameEngine {
       personalWins: List.unmodifiable(_personalWins),
       resurrectionSpent: _resurrectionSpent,
       mayorRound: _mayorRound,
+      bounties: Map.unmodifiable(_bounties),
+      lastLent: _lastLent,
       log: List.unmodifiable(_log),
     );
   }
@@ -382,8 +419,23 @@ class GameEngine {
   List<Player> get personalWins => List.unmodifiable(_personalWins);
 
   /// [player] ha vinto: con la sua fazione, o da solo.
+  ///
+  /// Il Cacciatore la cui taglia è morta senza passare dalla piazza si mette
+  /// con la città: vince se vince lei.
   bool hasWon(Player player) =>
-      _personalWins.contains(player) || (_winner != null && _winner != Team.neutral && _teamOf(player) == _winner);
+      _personalWins.contains(player) ||
+      (_winner != null && _winner != Team.neutral && _teamOf(player) == _winner) ||
+      (_winner == Team.citizens && bountyLapsed(player));
+
+  /// La taglia del Cacciatore [hunter], se ce l'ha.
+  Player? bountyOf(Player hunter) => _bounties[hunter];
+
+  /// La taglia di [hunter] è morta e lui non ha incassato: adesso gioca con
+  /// la città.
+  bool bountyLapsed(Player hunter) {
+    final mark = _bounties[hunter];
+    return mark != null && !isAlive(mark) && !_personalWins.contains(hunter);
+  }
 
   /// Quello che [watcher] ha visto dalla guardiola, notte per notte.
   List<WatchReport> watchesOf(Player watcher) => [
@@ -510,7 +562,16 @@ class GameEngine {
         alternative: _doused.any(isAlive) ? NightTaskKind.ignite : null,
         alternativeTargets: [actor],
       ),
+      // Lo Strozzino presta a chi vuole, ma non alla stessa persona due notti
+      // di fila: un debitore morto non paga, e stanotte lo protegge.
+      Role.strozzino => NightTask(NightTaskKind.lend, [
+        for (final player in others)
+          if (player != _lastLent) player,
+      ]),
+      // Il Sicario lavora da solo, ogni notte.
+      Role.sicario => NightTask(NightTaskKind.stab, others),
       Role.cittadino ||
+      Role.cacciatore ||
       Role.reduce ||
       Role.pregiudicato ||
       Role.sindaco ||
@@ -595,7 +656,8 @@ class GameEngine {
     if (!nightComplete) throw StateError('la notte non è finita: manca qualcuno');
     _log.add(const ResolveNightCommand());
 
-    final protected = _targetOf(NightTaskKind.protect);
+    final protected = {?_targetOf(NightTaskKind.protect), ?_targetOf(NightTaskKind.lend)};
+    final lent = _targetOf(NightTaskKind.lend);
     final guard = _actorOf(NightTaskKind.guard);
     final guarded = _targetOf(NightTaskKind.guard);
     final sniped = _targetOf(NightTaskKind.snipe);
@@ -623,12 +685,13 @@ class GameEngine {
     final struck = <Player, AttackSource>{};
     void aim(Player? target, AttackSource source) {
       if (target == null) return;
-      final shielded = target == guarded && target != protected;
+      final shielded = target == guarded && !protected.contains(target);
       struck.putIfAbsent(shielded ? guard! : target, () => source);
     }
 
     aim(_resolveMafiaVote(), AttackSource.family);
     aim(sniped, AttackSource.sniper);
+    aim(_targetOf(NightTaskKind.stab), AttackSource.assassin);
     if (ignited) {
       for (final player in _alive) {
         if (_doused.contains(player)) aim(player, AttackSource.fire);
@@ -637,7 +700,7 @@ class GameEngine {
     }
 
     AttackOutcome land(Player target) {
-      if (target == protected) return AttackOutcome.healed;
+      if (protected.contains(target)) return AttackOutcome.healed;
       final tough = setup.roleOf(target) == Role.reduce && _scarred.add(target);
       return tough ? AttackOutcome.shrugged : AttackOutcome.killed;
     }
@@ -661,7 +724,8 @@ class GameEngine {
       }
     }
 
-    _lastProtected = protected;
+    _lastProtected = _targetOf(NightTaskKind.protect);
+    _lastLent = lent;
     _lastSilenced = silenceTarget;
     if (silenceTarget != null) _silenceSpent = true;
     _alive.removeWhere(victims.contains);
@@ -737,12 +801,23 @@ class GameEngine {
     // Il Fesso voleva farsi linciare: ha vinto lui, e la partita va avanti.
     final personalWin = role == Role.fesso;
     if (personalWin) _personalWins.add(condemned!);
+    // Il Cacciatore di taglie vivo la cui taglia sale sul patibolo incassa:
+    // vince da solo, si scopre, e la partita va avanti.
+    Player? hunter;
+    for (final entry in _bounties.entries) {
+      if (condemned == null || entry.value != condemned || !isAlive(entry.key)) continue;
+      if (_personalWins.contains(entry.key)) continue;
+      hunter = entry.key;
+      _personalWins.add(hunter);
+      _facts.add(Fact(subject: hunter, team: Team.neutral, role: Role.cacciatore, visibility: Visibility.public));
+    }
     final report = _lastLynch = LynchReport(
       round: _round,
       condemned: condemned,
       role: role,
       winner: _updateWinner() ? _winner : null,
       personalWin: personalWin,
+      bountyHunter: hunter,
     );
     if (_winner != null) {
       _phase = GamePhase.ended;
@@ -820,11 +895,22 @@ class GameEngine {
   }
 
   /// Chi ha vinto, se qualcuno ha vinto:
-  /// - il Piromane, se resta da solo o con al massimo un altro;
+  /// - il Piromane o il Sicario, se resta da solo o con al massimo un altro;
   /// - la mafia, quando non può più essere messa in minoranza (i neutrali
   ///   contano come non mafiosi);
   /// - la città, quando non c'è più mafia né un Piromane vivo.
   bool _updateWinner() {
+    final won = _decideWinner();
+    // Lo Strozzino vivo a fine partita incassa, chiunque abbia vinto.
+    if (won) {
+      for (final player in _alive) {
+        if (setup.roleOf(player) == Role.strozzino && !_personalWins.contains(player)) _personalWins.add(player);
+      }
+    }
+    return won;
+  }
+
+  bool _decideWinner() {
     final arsonists = [
       for (final player in _alive)
         if (setup.roleOf(player).isHostileNeutral) player,
@@ -994,6 +1080,7 @@ class GameEngine {
                 if (_doused.contains(player)) player,
             ]
           : const [],
+      bounty: _bounties[viewer],
       watches: [
         for (final watch in _watches)
           if (watch.watcher == viewer) watch.report,
