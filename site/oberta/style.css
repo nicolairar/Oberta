@@ -558,3 +558,7 @@ button { color: inherit; font: inherit; }
 @media (max-width: 420px) {
   .neon { width: 170px; }
 }
+
+.role-card__icon { width: 46%; aspect-ratio: 1; margin: 0 auto 10px; display: block; }
+.hero__icon { width: 84px; height: 84px; border-radius: 20px; margin-bottom: 18px; box-shadow: 0 14px 40px rgba(0,0,0,.45); }
+html, body { overflow-x: clip; }
