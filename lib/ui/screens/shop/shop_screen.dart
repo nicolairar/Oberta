@@ -15,6 +15,7 @@ import '../../widgets/home_account.dart' show CoinPainter;
 import '../../widgets/noir_avatar.dart' show AvatarHead;
 import '../../widgets/player_avatar.dart' show AvatarBustPainter;
 import '../online/online_widgets.dart' show showFailure;
+import '../../widgets/content_width.dart';
 import 'shop_controller.dart';
 
 part 'shop_bundles.dart';
@@ -175,12 +176,15 @@ class _ShopScreenState extends State<ShopScreen> {
         listenable: _shop,
         builder: (context, _) => SafeArea(
           bottom: false,
-          child: Column(
+          child: ContentWidth(
+            maxWidth: 900,
+            child: Column(
             children: [
               _header(t),
               _tabs(t),
               Expanded(child: _body(t)),
             ],
+          ),
           ),
         ),
       ),
@@ -622,8 +626,9 @@ class _ShopScreenState extends State<ShopScreen> {
     return SliverPadding(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
       sliver: SliverGrid.builder(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
+        // Due pezzi per fila sul telefono, tre sull'iPad.
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: MediaQuery.sizeOf(context).width >= 700 ? 3 : 2,
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
           childAspectRatio: 0.68,

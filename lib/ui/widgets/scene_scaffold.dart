@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 import 'city_backdrop.dart';
+import 'content_width.dart';
 
 export 'city_backdrop.dart' show SceneMood, SkylineStyle;
 
@@ -35,7 +36,7 @@ class SceneScaffold extends StatelessWidget {
       resizeToAvoidBottomInset: resizeForKeyboard,
       backgroundColor: AppColors.background,
       appBar: appBar,
-      body: CityBackdrop(mood: mood, style: style, rain: rain, child: body),
+      body: CityBackdrop(mood: mood, style: style, rain: rain, child: ContentWidth(child: body)),
     );
   }
 }

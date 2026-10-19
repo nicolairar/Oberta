@@ -9,6 +9,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../l10n/app_language.dart';
+import '../widgets/content_width.dart';
 import '../../l10n/app_strings.dart';
 import '../../l10n/settings_strings.dart';
 import '../../online/online_services.dart';
@@ -166,8 +167,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ),
-          body: Stack(
-            children: [
+          body: ContentWidth(
+            child: Stack(
+              children: [
               SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                 child: Column(
@@ -336,7 +338,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: Center(child: CircularProgressIndicator(color: AppColors.gold)),
                   ),
                 ),
-            ],
+              ],
+            ),
           ),
         );
       },
