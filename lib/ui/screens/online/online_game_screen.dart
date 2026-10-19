@@ -1157,8 +1157,14 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       for (final attack in dawn.attacks)
         if (attack.isFatal && attack.source == AttackSource.fire) attack.target.name,
     ];
+    final others = [
+      for (final name in dead)
+        if (!burned.contains(name)) name,
+    ];
     final headline = burned.isNotEmpty
-        ? (_italian ? 'Rogo nella notte: ${burned.join(' e ')}' : 'Night fire: ${burned.join(' and ')} burned')
+        ? (_italian
+              ? 'Rogo nella notte: ${burned.join(' e ')}${others.isEmpty ? '' : '. Morto anche ${others.join(' e ')}'}'
+              : 'Night fire: ${burned.join(' and ')} burned${others.isEmpty ? '' : ', ${others.join(' and ')} also dead'}')
         : dawn.victims.isEmpty && risen != null
         ? (_italian ? '$risen torna dalla tomba' : '$risen back from the grave')
         : dawn.victims.isEmpty
