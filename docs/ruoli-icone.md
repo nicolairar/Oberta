@@ -1,5 +1,7 @@
 # Icone dei ruoli: brief per le SVG
 
+Per generare e controllare gli asset, seguire la [guida per le icone dei ruoli](guida-generazione-icone-ruoli.md). La tabella in questo file resta la fonte canonica per id, fazione e simbolo.
+
 Stile: noir mafioso anni '20–'50, coerente con l'app (ottone #D6AD48, rosso sangue #A51D25, carta #EFDFB9, inchiostro #100B09).
 Silhouette piatte, leggibili a 24 px, contorno pulito, niente sfumature complicate, viewBox 0 0 64 64, un file per ruolo (`<id>.svg`).
 Colore per fazione: famiglia rosso, città ottone, neutrali verde salvia #7A9A6A.
