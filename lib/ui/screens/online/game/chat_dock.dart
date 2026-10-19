@@ -46,6 +46,9 @@ class ChatDock extends StatelessWidget {
   final ({ChatChannelView view, List<ChatMessage> messages}) Function() read;
   final ChatSeats seats;
 
+  /// Tenendo premuto il messaggio di un altro (segnalarlo, bloccarlo).
+  final void Function(ChatMessage message)? onHold;
+
   const ChatDock({
     super.key,
     required this.view,
@@ -56,6 +59,7 @@ class ChatDock extends StatelessWidget {
     required this.source,
     required this.read,
     this.seats = ChatSeats.none,
+    this.onHold,
   });
 
   void _open(BuildContext context) {
@@ -68,14 +72,27 @@ class ChatDock extends StatelessWidget {
         listenable: source,
         builder: (context, _) {
           final now = read();
-          return ChatSheet(view: now.view, messages: now.messages, myId: myId, labels: labels, onSend: onSend, seats: seats);
+          return ChatSheet(
+            view: now.view,
+            messages: now.messages,
+            myId: myId,
+            labels: labels,
+            onSend: onSend,
+            seats: seats,
+            onHold: onHold,
+          );
         },
       ),
     );
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ValueListenableBuilder(
+        valueListenable: BlockedPlayers.ids,
+        builder: (context, _, _) => _strip(context, BlockedPlayers.visible(messages, (m) => m.profileId)),
+      );
+
+  Widget _strip(BuildContext context, List<ChatMessage> messages) {
     final last = messages.length > 2 ? messages.sublist(messages.length - 2) : messages;
     return GestureDetector(
       key: const Key('chat.dock'),
@@ -227,6 +244,9 @@ class ChatLog extends StatefulWidget {
   /// Accanto al titolo (la scelta tra piazza e famiglia).
   final Widget? trailing;
 
+  /// Tenendo premuto il messaggio di un altro (segnalarlo, bloccarlo).
+  final void Function(ChatMessage message)? onHold;
+
   const ChatLog({
     super.key,
     required this.view,
@@ -238,6 +258,7 @@ class ChatLog extends StatefulWidget {
     this.autofocus = false,
     this.header = true,
     this.trailing,
+    this.onHold,
   });
 
   @override
@@ -275,9 +296,13 @@ class _ChatLogState extends State<ChatLog> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ValueListenableBuilder(
+        valueListenable: BlockedPlayers.ids,
+        builder: (context, _, _) => _log(context, BlockedPlayers.visible(widget.messages, (m) => m.profileId)),
+      );
+
+  Widget _log(BuildContext context, List<ChatMessage> messages) {
     final view = widget.view;
-    final messages = widget.messages;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -304,7 +329,16 @@ class _ChatLogState extends State<ChatLog> {
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
                     final message = messages[messages.length - 1 - index];
-                    return _Line(message, mine: message.profileId == widget.myId, accent: view.accent, seats: widget.seats);
+                    final mine = message.profileId == widget.myId;
+                    final line = _Line(message, mine: mine, accent: view.accent, seats: widget.seats);
+                    final hold = widget.onHold;
+                    if (mine || hold == null) return line;
+                    return GestureDetector(
+                      key: ValueKey('chat.hold-${message.id}'),
+                      behavior: HitTestBehavior.opaque,
+                      onLongPress: () => hold(message),
+                      child: line,
+                    );
                   },
                 ),
         ),
@@ -376,6 +410,7 @@ class ChatSheet extends StatelessWidget {
   final ChatLabels labels;
   final Future<void> Function(String body) onSend;
   final ChatSeats seats;
+  final void Function(ChatMessage message)? onHold;
 
   const ChatSheet({
     super.key,
@@ -385,6 +420,7 @@ class ChatSheet extends StatelessWidget {
     required this.labels,
     required this.onSend,
     this.seats = ChatSeats.none,
+    this.onHold,
   });
 
   @override
@@ -427,6 +463,7 @@ class ChatSheet extends StatelessWidget {
                   seats: seats,
                   autofocus: true,
                   header: false,
+                  onHold: onHold,
                 ),
               ),
             ],

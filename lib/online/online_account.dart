@@ -62,9 +62,12 @@ class OnlineAccount extends ChangeNotifier {
     _error = null;
     _wallet?.cancel();
     _wallet = null;
+    BlockedPlayers.clear();
     notifyListeners();
     if (userId != null) {
       refresh();
+      // Chi si è bloccato, per nasconderne subito i messaggi.
+      services.safety?.blocked().ignore();
       _wallet = services.profiles.watchWallet().listen(_walletArrived, onError: (_) {});
     }
   }

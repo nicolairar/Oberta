@@ -34,6 +34,15 @@ class FakeOnline {
   late final FakeGame game = FakeGame._(this, () => auth.userId);
   late final FakeShop shop = FakeShop._(this);
   late final FakeRanked ranked = FakeRanked._(this);
+  late final FakeSafety safety = FakeSafety._(this);
+
+  /// I blocchi, come `player_blocks`: (chi blocca, chi è bloccato).
+  final Set<(String, String)> blocks = {};
+
+  /// Le segnalazioni ricevute dal server, come `internal.reports`.
+  final List<FakeReport> reports = [];
+
+  bool _blockedBetween(String a, String b) => blocks.contains((a, b)) || blocks.contains((b, a));
 
   /// La cronologia delle partite di ogni profilo (come `match_history`).
   final Map<String, List<MatchResult>> history = {};
@@ -121,7 +130,7 @@ class FakeOnline {
         clock = clock ?? const SystemGameClock();
 
   OnlineServices get services =>
-      OnlineServices(auth: auth, profiles: profiles, friends: friends, rooms: rooms, game: game, shop: shop, account: account, ranked: ranked);
+      OnlineServices(auth: auth, profiles: profiles, friends: friends, rooms: rooms, game: game, shop: shop, account: account, ranked: ranked, safety: safety);
 
   /// Gli account di prova: email → (password, id dell'account).
   final Map<String, (String, String)> _testAccounts = {};
@@ -217,6 +226,7 @@ class FakeOnline {
     if (room == null) throw const OnlineException(OnlineFailure.roomNotFound);
     if (room.seats.containsKey(id)) return room.room;
     if (room.room.status != RoomStatus.lobby) throw const OnlineException(OnlineFailure.roomClosed);
+    if (blocks.contains((room.room.hostId, id))) throw const OnlineException(OnlineFailure.notAllowed);
     if (room.seats.length + room.room.bots >= room.room.maxPlayers) throw const OnlineException(OnlineFailure.roomFull);
     final taken = room.seats.values.toSet();
     final seat = [for (var s = 1; s <= room.room.maxPlayers; s++) s].where((s) => !taken.contains(s)).firstOrNull;
@@ -464,6 +474,7 @@ class FakeFriends implements FriendsRepository {
     if (profileId == me || !(_online._profiles[profileId]?.isComplete ?? false)) {
       throw const OnlineException(OnlineFailure.playerNotFound);
     }
+    if (_online._blockedBetween(me, profileId)) throw const OnlineException(OnlineFailure.notAllowed);
     final link = _online._linkBetween(me, profileId);
     if (link == null) {
       _online._links.add(_Link(me, profileId, FriendStatus.pending));
@@ -496,6 +507,99 @@ class FakeFriends implements FriendsRepository {
           (l.requester == me && l.addressee == profileId) ||
           (l.requester == profileId && l.addressee == me && l.status != FriendStatus.blocked),
     );
+  }
+}
+
+/// Una segnalazione arrivata al server finto.
+class FakeReport {
+  final String reporter;
+  final String target;
+  final ReportReason reason;
+  final String? note;
+  final String? gameId;
+  final int? messageId;
+
+  /// La copia del messaggio segnalato, come la tiene il server.
+  final String? messageText;
+
+  const FakeReport({
+    required this.reporter,
+    required this.target,
+    required this.reason,
+    this.note,
+    this.gameId,
+    this.messageId,
+    this.messageText,
+  });
+}
+
+class FakeSafety implements SafetyRepository {
+  final FakeOnline _online;
+
+  FakeSafety._(this._online);
+
+  @override
+  Future<void> report(String targetId, ReportReason reason, {String? note, String? gameId, int? messageId}) async {
+    await _online._network();
+    final me = _online._me;
+    if (targetId == me || !_online._profiles.containsKey(targetId)) {
+      throw const OnlineException(OnlineFailure.playerNotFound);
+    }
+    final mine = _online.reports.where((r) => r.reporter == me).length;
+    if (mine >= 10) throw const OnlineException(OnlineFailure.tooManyReports);
+    final again = _online.reports.any(
+      (r) => r.reporter == me && (messageId != null ? r.messageId == messageId : r.target == targetId && r.messageId == null),
+    );
+    if (again) return;
+    final message = messageId == null
+        ? null
+        : _online._chat.where((m) => m.message.id == messageId && m.message.profileId == targetId).firstOrNull;
+    final text = note?.trim();
+    _online.reports.add(
+      FakeReport(
+        reporter: me,
+        target: targetId,
+        reason: reason,
+        note: text == null || text.isEmpty ? null : text,
+        gameId: gameId ?? message?.game,
+        messageId: message == null ? null : messageId,
+        messageText: message?.message.body,
+      ),
+    );
+  }
+
+  @override
+  Future<List<Profile>> blocked() async {
+    final me = _online._me;
+    final ids = [
+      for (final (blocker, blocked) in _online.blocks)
+        if (blocker == me) blocked,
+    ];
+    BlockedPlayers.set(ids);
+    return [
+      for (final id in ids) ?_online._profiles[id],
+    ];
+  }
+
+  @override
+  Future<void> block(String profileId) async {
+    final me = _online._me;
+    if (profileId == me || !_online._profiles.containsKey(profileId)) {
+      throw const OnlineException(OnlineFailure.playerNotFound);
+    }
+    _online._links.removeWhere(
+      (l) => (l.requester == me && l.addressee == profileId) || (l.requester == profileId && l.addressee == me),
+    );
+    _online.blocks.add((me, profileId));
+    BlockedPlayers.add(profileId);
+    _online._notifyGame('');
+  }
+
+  @override
+  Future<void> unblock(String profileId) async {
+    _online.blocks.remove((_online._me, profileId));
+    BlockedPlayers.remove(profileId);
+    _online._notifyGame('');
   }
 }
 
@@ -810,6 +914,7 @@ class FakeGame implements GameBackend {
     return [
       for (final m in _online._chat)
         if (m.room == roomId &&
+            !_online.blocks.contains((me, m.message.profileId)) &&
             (m.message.channel != ChatChannel.family || (family && m.game == game?.gameId)))
           m.message,
     ];

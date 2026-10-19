@@ -22,6 +22,9 @@ class ChatPanel extends StatefulWidget {
   final Future<void> Function(String body) onSend;
   final Color accent;
 
+  /// Tenendo premuto il messaggio di un altro (segnalarlo, bloccarlo).
+  final void Function(ChatMessage message)? onHold;
+
   const ChatPanel({
     super.key,
     required this.title,
@@ -33,6 +36,7 @@ class ChatPanel extends StatefulWidget {
     required this.sendLabel,
     required this.onSend,
     this.accent = AppColors.gold,
+    this.onHold,
   });
 
   @override
@@ -64,8 +68,12 @@ class _ChatPanelState extends State<ChatPanel> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final messages = widget.messages;
+  Widget build(BuildContext context) => ValueListenableBuilder(
+        valueListenable: BlockedPlayers.ids,
+        builder: (context, _, _) => _panel(context, BlockedPlayers.visible(widget.messages, (m) => m.profileId)),
+      );
+
+  Widget _panel(BuildContext context, List<ChatMessage> messages) {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -89,7 +97,12 @@ class _ChatPanelState extends State<ChatPanel> {
                       itemBuilder: (context, index) {
                         final message = messages[messages.length - 1 - index];
                         final mine = message.profileId == widget.myId;
-                        return Padding(
+                        final hold = widget.onHold;
+                        return GestureDetector(
+                          key: ValueKey('chat.hold-${message.id}'),
+                          behavior: HitTestBehavior.opaque,
+                          onLongPress: mine || hold == null ? null : () => hold(message),
+                          child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 2),
                           child: Text.rich(
                             TextSpan(
@@ -107,6 +120,7 @@ class _ChatPanelState extends State<ChatPanel> {
                             ),
                             style: AppText.body.copyWith(color: AppColors.textPrimary, fontSize: 15, height: 1.3),
                           ),
+                        ),
                         );
                       },
                     ),

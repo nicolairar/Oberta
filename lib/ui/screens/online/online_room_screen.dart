@@ -14,6 +14,8 @@ import 'chat_panel.dart';
 import 'online_game_screen.dart';
 import 'match_results_screen.dart' show showMatchResults;
 import 'online_widgets.dart';
+import 'safety_sheets.dart';
+import '../../../l10n/safety_strings.dart';
 
 /// La stanza online prima della partita: il codice grande e il QR per chi
 /// deve ancora entrare, e la fila di chi è già seduto, aggiornata dal vivo.
@@ -326,12 +328,31 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> {
                         if (member.profile.id == widget.me.id)
                           OnlineBadge(strings.youBadge, color: AppColors.textSecondary),
                       ],
-                      trailing: member.profile.id == widget.me.id || _linked.contains(member.profile.id)
+                      trailing: member.profile.id == widget.me.id
                           ? null
-                          : IconButton(
-                              tooltip: t.addFriend,
-                              icon: const Icon(Icons.person_add_alt_1, color: AppColors.gold),
-                              onPressed: () => _addFriend(member.profile),
+                          : Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (!_linked.contains(member.profile.id))
+                                  IconButton(
+                                    tooltip: t.addFriend,
+                                    icon: const Icon(Icons.person_add_alt_1, color: AppColors.gold),
+                                    onPressed: () => _addFriend(member.profile),
+                                  ),
+                                if (widget.services.safety != null)
+                                  IconButton(
+                                    key: Key('online.memberActions.${member.profile.id}'),
+                                    tooltip: SafetyStrings.of(context).report,
+                                    icon: const Icon(Icons.more_vert, color: AppColors.textSecondary),
+                                    onPressed: () => showPlayerActions(
+                                      context,
+                                      services: widget.services,
+                                      profileId: member.profile.id,
+                                      name: member.profile.name,
+                                      myId: widget.me.id,
+                                    ),
+                                  ),
+                              ],
                             ),
                     ),
                   for (var i = 0; i < _room.bots; i++)
@@ -395,6 +416,14 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> {
                 empty: t.chatEmpty,
                 sendLabel: t.chatSend,
                 onSend: (body) => widget.services.game.sendChat(_room.id, ChatChannel.lobby, body),
+                onHold: (message) => showPlayerActions(
+                  context,
+                  services: widget.services,
+                  profileId: message.profileId,
+                  name: message.name,
+                  myId: widget.me.id,
+                  message: message,
+                ),
               ),
             ),
             const SizedBox(height: 12),

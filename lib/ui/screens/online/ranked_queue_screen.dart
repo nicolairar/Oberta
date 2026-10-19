@@ -13,6 +13,7 @@ import 'game/chat_dock.dart';
 import 'game/noir_ui.dart';
 import 'online_game_screen.dart';
 import 'online_widgets.dart';
+import 'safety_sheets.dart';
 import 'match_results_screen.dart';
 import 'ranked_entry.dart';
 import 'ranked_lobby.dart';
@@ -381,6 +382,14 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
                 onSend: (body) => widget.services.game.sendChat(lobby.id, ChatChannel.lobby, body),
                 source: _chatVersion,
                 read: () => (view: lobbyView, messages: _chat),
+                onHold: (message) => showPlayerActions(
+                  context,
+                  services: widget.services,
+                  profileId: message.profileId,
+                  name: message.name,
+                  myId: _myId ?? '',
+                  message: message,
+                ),
               ),
             ],
           ),

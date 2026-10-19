@@ -4,11 +4,13 @@ import '../l10n/app_language.dart';
 import 'game/game_backend.dart';
 import 'online_models.dart';
 import 'ranked_models.dart';
+import 'safety.dart';
 import 'shop_models.dart';
 
 export 'game/game_backend.dart';
 export 'online_models.dart';
 export 'ranked_models.dart';
+export 'safety.dart';
 export 'shop_models.dart';
 
 /// L'account: chi è entrato, e come si entra. Avvisa chi ascolta quando
@@ -133,6 +135,9 @@ class OnlineServices {
   /// Esportare i dati ed eliminare l'account. Null dove nessuno l'ha collegato.
   final AccountRepository? account;
 
+  /// Segnalare e bloccare giocatori. Null dove nessuno l'ha collegato.
+  final SafetyRepository? safety;
+
   const OnlineServices({
     required this.auth,
     required this.profiles,
@@ -142,6 +147,7 @@ class OnlineServices {
     this.shop,
     this.account,
     this.ranked,
+    this.safety,
   });
 
   static OnlineServices? instance;

@@ -38,6 +38,7 @@ import 'game/saloon_table.dart';
 import 'game/saloon_transitions.dart';
 import 'game/seat_card.dart';
 import 'online_widgets.dart';
+import 'safety_sheets.dart';
 import '../../../l10n/roles_sheet_strings.dart';
 import '../../widgets/roles_sheet.dart';
 
@@ -622,8 +623,19 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       source: _client,
       read: _chatNow,
       seats: _chatSeats,
+      onHold: _holdMessage,
     );
   }
+
+  /// Il messaggio di un altro, tenuto premuto: segnalarlo o bloccarlo.
+  void _holdMessage(ChatMessage message) => showPlayerActions(
+        context,
+        services: widget.services,
+        profileId: message.profileId,
+        name: message.name,
+        myId: widget.me.id,
+        message: message,
+      );
 
   /// Le fasi del gioco hanno tutte la stessa pagina, con le stesse misure:
   /// il tavolo, la striscia dei comandi, la chat.
@@ -713,6 +725,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                   labels: ChatLabels(hint: _t.online.chatHint, empty: _t.online.chatEmpty, send: _t.online.chatSend),
                   onSend: (body) => _client.sendChat(_chatView().channel, body),
                   seats: _chatSeats,
+                  onHold: _holdMessage,
                   trailing: _stage.chat == 'day' && _view.familyChat ? _chatSwitch() : null,
                 ),
               ),
@@ -885,6 +898,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
           selectable: can && onTap != null && player != selected,
           dimmed: selectable.isNotEmpty && !can && _isAlive(player) && player != selected && player != _view.seat,
           onTap: can && onTap != null ? () => onTap(player) : null,
+          onLongPress: player == _view.seat
+              ? null
+              : () => showSeatActions(context, services: widget.services, name: player.name, myId: widget.me.id),
         );
         if (player == lynched) {
           return LynchMark(

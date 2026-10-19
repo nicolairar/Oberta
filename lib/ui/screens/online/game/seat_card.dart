@@ -53,6 +53,9 @@ class SeatCard extends StatelessWidget {
   final bool dimmed;
   final VoidCallback? onTap;
 
+  /// Tenendo premuto: il foglio del giocatore (segnalarlo, bloccarlo).
+  final VoidCallback? onLongPress;
+
   const SeatCard({
     super.key,
     required this.name,
@@ -74,6 +77,7 @@ class SeatCard extends StatelessWidget {
     this.selectable = false,
     this.dimmed = false,
     this.onTap,
+    this.onLongPress,
   });
 
   @override
@@ -306,6 +310,7 @@ class SeatCard extends StatelessWidget {
           type: MaterialType.transparency,
           child: InkWell(
             onTap: onTap,
+            onLongPress: onLongPress,
             customBorder: RoundedRectangleBorder(borderRadius: arch),
             splashColor: Saloon.brass.withValues(alpha: 0.2),
             child: SizedBox(width: width, height: height, child: card),

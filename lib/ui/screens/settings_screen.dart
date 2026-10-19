@@ -11,10 +11,12 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../l10n/app_language.dart';
 import '../widgets/content_width.dart';
 import '../../l10n/app_strings.dart';
+import '../../l10n/safety_strings.dart';
 import '../../l10n/settings_strings.dart';
 import '../../online/online_services.dart';
 import '../../settings/app_settings.dart';
 import '../theme/app_theme.dart';
+import 'online/safety_sheets.dart';
 import 'screening_room_screen.dart';
 
 /// Dove vivranno informativa e termini sul web.
@@ -288,6 +290,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     _Section(
                       title: s.privacy,
                       children: [
+                        ListTile(
+                          key: const Key('settings.rules'),
+                          leading: const Icon(Icons.menu_book_outlined, color: AppColors.gold),
+                          title: Text(SafetyStrings.of(context).rulesTitle),
+                          subtitle: Text(SafetyStrings.of(context).rulesHint),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => showCommunityRules(context),
+                        ),
+                        if (signedIn && widget.online?.safety != null)
+                          ListTile(
+                            key: const Key('settings.blocked'),
+                            leading: const Icon(Icons.block, color: AppColors.gold),
+                            title: Text(SafetyStrings.of(context).blockedPlayers),
+                            subtitle: Text(SafetyStrings.of(context).blockedHint),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => BlockedPlayersScreen(safety: widget.online!.safety!),
+                              ),
+                            ),
+                          ),
                         ListTile(
                           leading: const Icon(Icons.privacy_tip_outlined, color: AppColors.gold),
                           title: Text(s.privacyPolicy),

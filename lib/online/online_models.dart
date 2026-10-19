@@ -252,6 +252,9 @@ enum OnlineFailure {
   tooManyMessages,
   chatClosed,
 
+  /// Troppe segnalazioni in poco tempo.
+  tooManyReports,
+
   /// La bottega: monete che non bastano, un pezzo già posseduto, un pezzo
   /// da comprare prima di indossarlo, un pezzo che il catalogo non ha più.
   notEnoughCoins,

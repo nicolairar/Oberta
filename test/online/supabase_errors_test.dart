@@ -59,4 +59,9 @@ void main() {
     expect(translate(const PostgrestException(message: 'check', code: '23514')).failure, OnlineFailure.invalidHandle);
     expect(translate(const PostgrestException(message: 'room_full')).failure, OnlineFailure.roomFull);
   });
+
+  test('le segnalazioni: troppe di fila, o un motivo che il server non conosce', () {
+    expect(translate(const PostgrestException(message: 'too_many_reports')).failure, OnlineFailure.tooManyReports);
+    expect(translate(const PostgrestException(message: 'invalid_report')).failure, OnlineFailure.notAllowed);
+  });
 }

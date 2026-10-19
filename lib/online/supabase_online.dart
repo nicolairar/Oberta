@@ -34,6 +34,7 @@ Future<OnlineServices?> openSupabaseOnline(OnlineConfig config) async {
     shop: SupabaseShop(client),
     ranked: SupabaseRanked(client),
     account: SupabaseAccount(client),
+    safety: SupabaseSafety(client),
   );
 }
 
@@ -121,6 +122,8 @@ OnlineException _classify(Object error, SignInDoor? door) {
       'item_not_found' || 'tone_required' || 'bad_slot' => OnlineFailure.itemNotFound,
       'message_blocked' => OnlineFailure.messageBlocked,
       'too_many_messages' => OnlineFailure.tooManyMessages,
+      'too_many_reports' => OnlineFailure.tooManyReports,
+      'invalid_report' => OnlineFailure.notAllowed,
       'silenced' || 'chat_closed' || 'invalid_message' => OnlineFailure.chatClosed,
       'ranked_cooldown' => OnlineFailure.rankedCooldown,
       'already_in_game' => OnlineFailure.alreadyInGame,
@@ -397,6 +400,56 @@ class SupabaseFriends implements FriendsRepository {
   @override
   Future<void> remove(String profileId) =>
       _guard(() => _client.rpc<void>('remove_friend', params: {'other': profileId}));
+}
+
+/// Segnalare e bloccare: `report_player`, `block_player`, `unblock_player`;
+/// i propri blocchi si leggono da `player_blocks` (la policy mostra solo i
+/// propri).
+class SupabaseSafety implements SafetyRepository {
+  final SupabaseClient _client;
+
+  SupabaseSafety(this._client);
+
+  @override
+  Future<void> report(String targetId, ReportReason reason, {String? note, String? gameId, int? messageId}) =>
+      _guard(
+        () => _client.rpc<void>(
+          'report_player',
+          params: {
+            'target': targetId,
+            'reason': reason.name,
+            'note': note,
+            'game_id': gameId,
+            'message_id': messageId,
+          },
+        ),
+      );
+
+  @override
+  Future<List<Profile>> blocked() => _guard(() async {
+        final rows = await _client
+            .from('player_blocks')
+            .select('blocked, profile:profiles!player_blocks_blocked_fkey($_profileColumns)')
+            .order('created_at', ascending: false);
+        final profiles = [
+          for (final row in rows)
+            if (row['profile'] case final Map<String, dynamic> profile) Profile.fromJson(profile),
+        ];
+        BlockedPlayers.set([for (final row in rows) row['blocked'] as String]);
+        return profiles;
+      });
+
+  @override
+  Future<void> block(String profileId) => _guard(() async {
+        await _client.rpc<void>('block_player', params: {'other': profileId});
+        BlockedPlayers.add(profileId);
+      });
+
+  @override
+  Future<void> unblock(String profileId) => _guard(() async {
+        await _client.rpc<void>('unblock_player', params: {'other': profileId});
+        BlockedPlayers.remove(profileId);
+      });
 }
 
 class SupabaseRooms implements RoomRepository {
