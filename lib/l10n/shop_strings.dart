@@ -1,7 +1,7 @@
 import '../online/shop_models.dart';
 
 /// I reparti della bottega, nell'ordine delle linguette.
-enum ShopTab { window, bundles, tailoring, hats, accessories, brands, oddities, calcio, wardrobe }
+enum ShopTab { window, bundles, tailoring, hats, accessories, brands, oddities, calcio, frames, wardrobe }
 
 /// I testi della bottega: il bancone, lo specchio e il guardaroba. Come
 /// [OnlineStrings], ogni lingua dice tutto e ogni testo finisce nel [catalog].
@@ -90,7 +90,7 @@ abstract class ShopStrings {
     'endsIn': endsIn(3),
     'counterTab': counterTab,
     'wardrobeTab': wardrobeTab,
-    for (final s in const ['hat', 'face', 'glasses', 'outfit', 'accessory', 'hairdo', 'tattoo']) 'slot.$s': slot(s),
+    for (final s in const ['hat', 'face', 'glasses', 'outfit', 'accessory', 'hairdo', 'tattoo', 'border', 'nameStyle']) 'slot.$s': slot(s),
     for (final r in ShopRarity.values) 'rarity.${r.name}': rarity(r),
     'owned': owned,
     'worn': worn,
@@ -169,6 +169,8 @@ class ItalianShopStrings extends ShopStrings {
     'outfit' => 'Abiti',
     'hairdo' => 'Pettinature',
     'tattoo' => 'Tatuaggi',
+    'border' => 'Le cornici',
+    'nameStyle' => 'Nomi',
     _ => 'Vezzi',
   };
   @override
@@ -237,6 +239,7 @@ class ItalianShopStrings extends ShopStrings {
     ShopTab.brands => 'Firme',
     ShopTab.oddities => 'Stramberie',
     ShopTab.calcio => 'Calcio',
+    ShopTab.frames => 'Cornici & nomi',
     ShopTab.wardrobe => 'Armadio',
   };
   @override
@@ -321,6 +324,8 @@ class EnglishShopStrings extends ShopStrings {
     'outfit' => 'Suits',
     'hairdo' => 'Hairdos',
     'tattoo' => 'Tattoos',
+    'border' => 'Frames',
+    'nameStyle' => 'Names',
     _ => 'Accessories',
   };
   @override
@@ -389,6 +394,7 @@ class EnglishShopStrings extends ShopStrings {
     ShopTab.brands => 'Labels',
     ShopTab.oddities => 'Oddities',
     ShopTab.calcio => 'Football',
+    ShopTab.frames => 'Frames & names',
     ShopTab.wardrobe => 'Wardrobe',
   };
   @override

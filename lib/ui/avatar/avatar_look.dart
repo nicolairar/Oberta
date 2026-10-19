@@ -3,9 +3,11 @@ import 'package:flutter/painting.dart';
 
 import '../../online/online_models.dart' show Profile, WornLooks;
 import '../../online/shop_models.dart' show CalcioTeam, ShopBrand;
+import '../widgets/cosmetics/cosmetic_ids.dart';
 import '../widgets/noir_avatar.dart' show AvatarHead, avatarTints, avatarTraitsFor;
 import 'face_features.dart';
 
+export '../widgets/cosmetics/cosmetic_ids.dart';
 export 'face_features.dart';
 
 /// Come si presenta un giocatore: la faccia, il cappello, gli occhiali,
@@ -33,6 +35,12 @@ class AvatarLook {
   /// Un tatuaggio della bottega, dove si vede la pelle.
   final Tattoo tattoo;
 
+  /// La cornice del posto al tavolo, della bottega.
+  final SeatBorder border;
+
+  /// Il colore del nome sulla targhetta e in chat, della bottega.
+  final NameStyle nameStyle;
+
   const AvatarLook({
     required this.base,
     required this.hat,
@@ -42,6 +50,8 @@ class AvatarLook {
     this.features = FaceFeatures.standard,
     this.hairdo = Hairdo.none,
     this.tattoo = Tattoo.none,
+    this.border = SeatBorder.none,
+    this.nameStyle = NameStyle.plain,
   });
 
   /// Il look di chi non ha scelto niente: si ricava da [seed] (di solito il
@@ -190,6 +200,8 @@ class AvatarLook {
       features: FaceFeatures.fromJson(json, fallback: fallback.features),
       hairdo: pick('hairdo', (id) => _byName(Hairdo.values, id), fallback.hairdo),
       tattoo: pick('tattoo', (id) => _byName(Tattoo.values, id), fallback.tattoo),
+      border: pick('border', (id) => _byName(SeatBorder.values, id), fallback.border),
+      nameStyle: pick('nameStyle', (id) => _byName(NameStyle.values, id), fallback.nameStyle),
     );
   }
 
@@ -202,6 +214,8 @@ class AvatarLook {
     ...features.toJson(),
     'hairdo': hairdo.name,
     'tattoo': tattoo.name,
+    'border': border.name,
+    'nameStyle': nameStyle.name,
   };
 
   AvatarLook copyWith({
@@ -213,6 +227,8 @@ class AvatarLook {
     FaceFeatures? features,
     Hairdo? hairdo,
     Tattoo? tattoo,
+    SeatBorder? border,
+    NameStyle? nameStyle,
   }) => AvatarLook(
     base: base ?? this.base,
     hat: hat ?? this.hat,
@@ -222,6 +238,8 @@ class AvatarLook {
     features: features ?? this.features,
     hairdo: hairdo ?? this.hairdo,
     tattoo: tattoo ?? this.tattoo,
+    border: border ?? this.border,
+    nameStyle: nameStyle ?? this.nameStyle,
   );
 
   /// L'id indossato in [slot], come lo vende la bottega: per la faccia è il
@@ -234,6 +252,8 @@ class AvatarLook {
     LookSlot.accessory => accessory.name,
     LookSlot.hairdo => hairdo.name,
     LookSlot.tattoo => tattoo.name,
+    LookSlot.border => border.name,
+    LookSlot.nameStyle => nameStyle.name,
   };
 
   /// Lo stesso look con [id] indossato in [slot], o null se il catalogo
@@ -246,6 +266,8 @@ class AvatarLook {
     LookSlot.accessory => _byName(AvatarAccessory.values, id).let((v) => copyWith(accessory: v)),
     LookSlot.hairdo => _byName(Hairdo.values, id).let((v) => copyWith(hairdo: v)),
     LookSlot.tattoo => _byName(Tattoo.values, id).let((v) => copyWith(tattoo: v)),
+    LookSlot.border => _byName(SeatBorder.values, id).let((v) => copyWith(border: v)),
+    LookSlot.nameStyle => _byName(NameStyle.values, id).let((v) => copyWith(nameStyle: v)),
   };
 
   /// Una signora: cambia il taglio delle spalle e dove cade la luce sui capelli.
@@ -281,10 +303,12 @@ class AvatarLook {
       other.accessory == accessory &&
       other.features == features &&
       other.hairdo == hairdo &&
-      other.tattoo == tattoo;
+      other.tattoo == tattoo &&
+      other.border == border &&
+      other.nameStyle == nameStyle;
 
   @override
-  int get hashCode => Object.hash(base, hat, glasses, outfit, accessory, features, hairdo, tattoo);
+  int get hashCode => Object.hash(base, hat, glasses, outfit, accessory, features, hairdo, tattoo, border, nameStyle);
 
   @override
   String toString() => 'AvatarLook(${toJson()})';
@@ -292,7 +316,20 @@ class AvatarLook {
 
 /// I posti dove si indossa qualcosa, come li chiama il catalogo della
 /// bottega (`shop_items.slot`).
-enum LookSlot { hat, face, glasses, outfit, accessory, hairdo, tattoo }
+enum LookSlot {
+  hat,
+  face,
+  glasses,
+  outfit,
+  accessory,
+  hairdo,
+  tattoo,
+  border,
+  nameStyle;
+
+  /// Non si indossano addosso ma intorno: la cornice del posto e il nome.
+  bool get around => this == border || this == nameStyle;
+}
 
 extension _Let<T extends Object> on T? {
   R? let<R>(R Function(T value) f) {

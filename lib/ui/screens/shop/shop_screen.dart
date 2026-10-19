@@ -11,6 +11,7 @@ import '../../avatar/avatar_look.dart';
 import '../../avatar/look_painter.dart';
 import '../../press.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/cosmetics/seat_preview.dart';
 import '../../widgets/home_account.dart' show CoinPainter;
 import '../../widgets/noir_avatar.dart' show AvatarHead;
 import '../../widgets/player_avatar.dart' show AvatarBustPainter;
@@ -45,7 +46,8 @@ Color rarityColor(ShopRarity rarity) => switch (rarity) {
 /// I posti del reparto accessori, e quelli dell'armadio.
 const _accessorySlots = ['glasses', 'accessory', 'face', 'tattoo'];
 const _hatSlots = ['hat', 'hairdo'];
-const _allSlots = ['hat', 'hairdo', 'outfit', 'glasses', 'accessory', 'face', 'tattoo'];
+const _frameSlots = ['border', 'nameStyle'];
+const _allSlots = ['hat', 'hairdo', 'outfit', 'glasses', 'accessory', 'face', 'tattoo', 'border', 'nameStyle'];
 const _cream = Color(0xFFF2E6CF);
 const _wood = Color(0xFF4A2C1A);
 
@@ -245,6 +247,7 @@ class _ShopScreenState extends State<ShopScreen> {
                       tab == ShopTab.brands ||
                       tab == ShopTab.oddities ||
                       tab == ShopTab.window ||
+                      tab == ShopTab.frames ||
                       tab == ShopTab.bundles,
                 ),
               ),
@@ -422,6 +425,7 @@ class _ShopScreenState extends State<ShopScreen> {
       ShopTab.oddities => _collected(_collection!),
       ShopTab.wardrobe => [for (final slot in _allSlots) ..._shop.wardrobe(slot)],
       ShopTab.calcio => _teamItems(_team!),
+      ShopTab.frames => [for (final slot in _frameSlots) ..._shop.forSale(slot)],
       ShopTab.window || ShopTab.bundles => const <ShopItem>[],
     };
     final picked = [
@@ -543,6 +547,7 @@ class _ShopScreenState extends State<ShopScreen> {
       ShopTab.accessories => _accessorySlots,
       ShopTab.hats => _hatSlots,
       ShopTab.wardrobe => _allSlots,
+      ShopTab.frames => _frameSlots,
       _ => const <String>[],
     };
     Widget row(List<Widget> chips) => SizedBox(
@@ -640,6 +645,7 @@ class _ShopScreenState extends State<ShopScreen> {
             key: Key('shop.item.${item.id}'),
             item: item,
             look: _shop.tryOn(item),
+            who: _shop.who,
             name: item.name(language),
             state: _shop.stateOf(item),
             strings: t,
@@ -705,7 +711,9 @@ class _TryOnPage extends StatelessWidget {
                               top: max(56.0, (box.maxHeight - mirrorH) / 2 + 16),
                               height: mirrorH,
                               width: mirrorW,
-                              child: _Mirror(look: shop.mirror, brand: item.brand),
+                              child: item.around
+                                  ? SeatPreview(key: const Key('shop.tryOn.seat'), look: shop.mirror, name: shop.who)
+                                  : _Mirror(look: shop.mirror, brand: item.brand),
                             ),
                             Positioned(
                               right: 0,
@@ -913,6 +921,7 @@ class _CollectionCard extends StatelessWidget {
 class _ItemCard extends StatelessWidget {
   final ShopItem item;
   final AvatarLook look;
+  final String who;
   final String name;
   final ItemState state;
   final ShopStrings strings;
@@ -923,6 +932,7 @@ class _ItemCard extends StatelessWidget {
     super.key,
     required this.item,
     required this.look,
+    this.who = '',
     required this.name,
     required this.state,
     required this.strings,
@@ -986,8 +996,10 @@ class _ItemCard extends StatelessWidget {
                   ),
                   Positioned.fill(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-                      child: CustomPaint(painter: AvatarBustPainter(look), child: const SizedBox.expand()),
+                      padding: item.around ? const EdgeInsets.fromLTRB(26, 12, 26, 4) : const EdgeInsets.fromLTRB(8, 8, 8, 0),
+                      child: item.around
+                          ? SeatPreview(look: look, name: who)
+                          : CustomPaint(painter: AvatarBustPainter(look), child: const SizedBox.expand()),
                     ),
                   ),
                   if (item.brand case final brand?)

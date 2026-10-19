@@ -149,6 +149,17 @@ class ShopItem {
       brand = null,
       collection = ShopCollection.calcio;
 
+  /// Una cornice o un inchiostro per il nome: si indossano intorno.
+  ShopItem.around(this.slot, this.lookId, this.rarity, this.nameIt, this.nameEn, this.sort)
+    : id = '$slot.$lookId',
+      price = rarity.price,
+      releasedOn = DateTime.utc(2026, 10, 24),
+      brand = null,
+      collection = null;
+
+  /// Non si porta addosso ma intorno: la cornice del posto o il nome.
+  bool get around => slot == 'border' || slot == 'nameStyle';
+
   bool get free => rarity == ShopRarity.base;
 
   String name(AppLanguage language) => language == AppLanguage.en ? nameEn : nameIt;
@@ -289,7 +300,7 @@ abstract class ShopRepository {
 /// `supabase/migrations/20261017221000_shop.sql` e
 /// `supabase/migrations/20261018120000_shop_brands.sql` e seguenti (un test li
 /// confronta): la bottega finta lo usa, quella vera lo legge dal server.
-final List<ShopItem> initialShopCatalog = [..._firstDrop, ...brandDrop, ...houseDrop, ...odditiesDrop, ...barberDrop, ...calcioDrop];
+final List<ShopItem> initialShopCatalog = [..._firstDrop, ...brandDrop, ...houseDrop, ...odditiesDrop, ...barberDrop, ...calcioDrop, ...framesDrop];
 
 final List<ShopItem> _firstDrop = [
   ShopItem.seed('hat', 'fedora', ShopRarity.base, 'Fedora', 'Fedora', 100),
@@ -666,6 +677,7 @@ final List<ShopBundle> initialShopBundles = [
   ShopBundle(id: 'tendone', tier: 'premium', discountPct: 45, nameIt: 'Il Grande Tendone', nameEn: 'The Big Top', taglineIt: 'Il circo intero: clown, mimo, forzuto e mago.', taglineEn: 'The whole circus: clown, mime, strongman and magician.', sort: 130, itemIds: ['hat.clownWig', 'hat.magicianHat', 'face.curledMoustache', 'face.mimeFace', 'glasses.hypnoGlasses', 'outfit.clown_suit', 'outfit.strongman_leotard', 'outfit.mime_stripes', 'outfit.magician_cape', 'accessory.clownNose']),
   ShopBundle(id: 'leggende', tier: 'premium', discountPct: 40, nameIt: 'Le Leggende', nameEn: 'The Legends', taglineIt: "Dieci pezzi leggendari: il guardaroba di un boss.", taglineEn: "Ten legendary pieces: a boss's wardrobe.", sort: 140, itemIds: ['outfit.trench_coat', 'outfit.gold_brocade', 'hat.morettiHomburg', 'outfit.vanetti_tuxedo', 'outfit.vanetti_ivory', 'outfit.delacroix_cape', 'accessory.ricciWatch', 'outfit.vaugirard_travel', 'outfit.versalli_baroque', 'accessory.chanterellePearls']),
   ...calcioBundles,
+  ...framesBundles,
 ];
 
 /// Come veste la maglia: le righe verticali, tinta unita, la fascia
@@ -779,4 +791,39 @@ final List<ShopBundle> calcioBundles = [
     sort: 400,
     itemIds: [for (final team in CalcioTeam.values) ...team.itemIds],
   ),
+];
+
+/// Le cornici dei posti e gli inchiostri dei nomi: si indossano intorno.
+final List<ShopItem> framesDrop = [
+  ShopItem.around('border', 'none', ShopRarity.base, 'Nessuna cornice', 'No frame', 800),
+  ShopItem.around('border', 'brass', ShopRarity.comune, "Filigrana d'ottone", 'Brass filigree', 801),
+  ShopItem.around('border', 'velvet', ShopRarity.comune, 'Velluto rosso sangue', 'Blood-red velvet', 802),
+  ShopItem.around('border', 'mosaic', ShopRarity.raro, 'Mosaico', 'Mosaic', 803),
+  ShopItem.around('border', 'filmStrip', ShopRarity.raro, 'Pellicola', 'Film strip', 804),
+  ShopItem.around('border', 'suits', ShopRarity.raro, 'Quattro semi', 'Four suits', 805),
+  ShopItem.around('border', 'artDeco', ShopRarity.epico, 'Oro art déco', 'Art deco gold', 806),
+  ShopItem.around('border', 'barbedWire', ShopRarity.epico, 'Filo spinato', 'Barbed wire', 807),
+  ShopItem.around('border', 'roseThorns', ShopRarity.epico, 'Rose e spine', 'Roses and thorns', 808),
+  ShopItem.around('border', 'neonPink', ShopRarity.epico, 'Neon rosa', 'Pink neon', 809),
+  ShopItem.around('border', 'flame', ShopRarity.leggendario, 'Cornice di fuoco', 'Ring of fire', 810),
+  ShopItem.around('border', 'neonPulse', ShopRarity.leggendario, 'Neon pulsante', 'Pulsing neon', 811),
+  ShopItem.around('nameStyle', 'plain', ShopRarity.base, 'Inchiostro semplice', 'Plain ink', 900),
+  ShopItem.around('nameStyle', 'crimson', ShopRarity.comune, 'Rosso cremisi', 'Crimson', 901),
+  ShopItem.around('nameStyle', 'emerald', ShopRarity.comune, 'Verde smeraldo', 'Emerald', 902),
+  ShopItem.around('nameStyle', 'sapphire', ShopRarity.comune, 'Blu zaffiro', 'Sapphire', 903),
+  ShopItem.around('nameStyle', 'violet', ShopRarity.comune, 'Viola', 'Violet', 904),
+  ShopItem.around('nameStyle', 'goldFoil', ShopRarity.raro, "Foglia d'oro", 'Gold foil', 905),
+  ShopItem.around('nameStyle', 'silverFoil', ShopRarity.raro, "Foglia d'argento", 'Silver foil', 906),
+  ShopItem.around('nameStyle', 'tramonto', ShopRarity.epico, 'Tramonto', 'Sunset', 907),
+  ShopItem.around('nameStyle', 'neonGlow', ShopRarity.epico, 'Insegna al neon', 'Neon sign', 908),
+  ShopItem.around('nameStyle', 'shimmer', ShopRarity.leggendario, 'Oro scintillante', 'Shimmering gold', 909),
+  ShopItem.around('nameStyle', 'inferno', ShopRarity.leggendario, 'Inferno', 'Inferno', 910),
+];
+
+/// I pacchetti delle cornici e dei nomi.
+final List<ShopBundle> framesBundles = [
+  ShopBundle(id: 'insegna_neon', tier: 'set', discountPct: 35, nameIt: 'Insegna al Neon', nameEn: 'Neon Sign', taglineIt: 'Rosa neon intorno, rosa neon nel nome.', taglineEn: 'Pink neon round the seat and in the name.', sort: 500, itemIds: ['border.neonPink', 'nameStyle.neonGlow']),
+  ShopBundle(id: 'bisca', tier: 'set', discountPct: 35, nameIt: 'La Bisca', nameEn: 'The Card Den', taglineIt: "Velluto, quattro semi e un nome d'oro.", taglineEn: 'Velvet, four suits and a golden name.', sort: 510, itemIds: ['border.suits', 'border.velvet', 'nameStyle.goldFoil']),
+  ShopBundle(id: 'giardino', tier: 'set', discountPct: 30, nameIt: 'Il Giardino', nameEn: 'The Rose Garden', taglineIt: 'Rose, spine e un nome al tramonto.', taglineEn: 'Roses, thorns and a sunset name.', sort: 520, itemIds: ['border.roseThorns', 'nameStyle.tramonto', 'nameStyle.crimson']),
+  ShopBundle(id: 'leggenda', tier: 'premium', discountPct: 40, nameIt: 'La Leggenda', nameEn: 'The Legend', taglineIt: 'Fuoco, neon e oro che si muovono: al tavolo ti vedono da lontano.', taglineEn: 'Moving fire, neon and gold: the whole table sees you coming.', sort: 530, itemIds: ['border.flame', 'border.neonPulse', 'border.artDeco', 'nameStyle.shimmer', 'nameStyle.inferno']),
 ];

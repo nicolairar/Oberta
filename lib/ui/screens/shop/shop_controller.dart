@@ -35,6 +35,9 @@ class ShopController extends ChangeNotifier {
   Profile? get profile => account.profile;
   int get coins => profile?.coins ?? 0;
 
+  /// Il nome con cui gli altri lo vedono, per provare cornici e inchiostri.
+  String get who => profile?.handle ?? '?';
+
   /// Il look indossato adesso.
   AvatarLook get look => profile?.look ?? AvatarLook.fallback('?');
 
@@ -154,6 +157,9 @@ class ShopController extends ChangeNotifier {
     for (final bundle in bundles)
       if (bundleItems(bundle).length == bundle.itemIds.length && bundle.itemIds.isNotEmpty) bundle,
   ];
+
+  /// Un pacchetto di cornici e nomi: si prova sul posto del tavolo.
+  bool bundleAround(ShopBundle bundle) => bundleItems(bundle).any((item) => item.around);
 
   /// I pezzi di un pacchetto, nell'ordine del pacchetto.
   List<ShopItem> bundleItems(ShopBundle bundle) => [

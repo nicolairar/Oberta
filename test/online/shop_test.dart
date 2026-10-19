@@ -75,6 +75,43 @@ void main() {
     });
   });
 
+  group('cornici e nomi', () {
+    test('si comprano, si indossano e gli altri li vedono', () async {
+      online.award('me', coins: 1800 + 700);
+      await expectLater(shop.equip('border.flame'), _fails(OnlineFailure.notOwned));
+      await shop.buy('border.flame');
+      await shop.buy('nameStyle.goldFoil');
+      await shop.equip('border.flame');
+      final me = await shop.equip('nameStyle.goldFoil');
+      expect(me.avatar['border'], 'flame');
+      expect(me.avatar['nameStyle'], 'goldFoil');
+      WornLooks.remember(me);
+      expect(AvatarLook.of('anna').border, SeatBorder.flame);
+      expect(AvatarLook.of('anna').nameStyle, NameStyle.goldFoil);
+      final bare = await shop.unequip('border');
+      expect(bare.look.border, SeatBorder.none);
+      expect(bare.look.nameStyle, NameStyle.goldFoil);
+    });
+
+    test('ogni classe ha i suoi pezzi, le leggendarie si muovono', () {
+      for (final slot in ['border', 'nameStyle']) {
+        final items = framesDrop.where((item) => item.slot == slot).toList();
+        expect(items.where((item) => item.free).length, 1, reason: slot);
+        for (final rarity in ShopRarity.values) {
+          expect(items.where((item) => item.rarity == rarity), isNotEmpty, reason: '$slot ${rarity.name}');
+        }
+      }
+      for (final border in SeatBorder.values) {
+        final item = framesDrop.firstWhere((item) => item.id == 'border.${border.name}');
+        expect(border.animated, item.rarity == ShopRarity.leggendario, reason: item.id);
+      }
+      for (final style in NameStyle.values) {
+        final item = framesDrop.firstWhere((item) => item.id == 'nameStyle.${style.name}');
+        expect(style.animated, item.rarity == ShopRarity.leggendario, reason: item.id);
+      }
+    });
+  });
+
   group('il catalogo', () {
     test('ogni pezzo si sa disegnare, e la base è il look che si riceve dal nome', () {
       final look = AvatarLook.fallback('anna');
@@ -103,6 +140,7 @@ void main() {
         'supabase/migrations/20261018220000_shop_absurd.sql',
         'supabase/migrations/20261020090000_barber_presentation.sql',
         'supabase/migrations/20261023090000_shop_calcio.sql',
+        'supabase/migrations/20261024090000_shop_frames_names.sql',
       ].map((path) => File(path).readAsStringSync()).join('\n');
       final rows = RegExp(r"\('(\w+)\.(\w+)', '(\w+)', '(\w+)', '(\w+)', (\d+), .*?(?:, (null|'(\w+)'))?(?:, '(circo|carnevale|assurdo|calcio)')?\)[,\n]")
           .allMatches(sql);
@@ -153,6 +191,7 @@ void main() {
       final sql = [
         'supabase/migrations/20261022120000_shop_bundles.sql',
         'supabase/migrations/20261023090000_shop_calcio.sql',
+        'supabase/migrations/20261024090000_shop_frames_names.sql',
       ].map((path) => File(path).readAsStringSync()).join('\n');
       final heads = {
         for (final m in RegExp(r"\('([a-z_]+)', '(set|premium)', (\d+), ").allMatches(sql)) m[1]!: '${m[2]} ${m[3]}',

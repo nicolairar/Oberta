@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../online/online_services.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/cosmetics/styled_name.dart';
 import 'online_widgets.dart';
 
 /// Una chat semplice: i messaggi dal più vecchio (in alto) al più nuovo (in
@@ -93,7 +94,8 @@ class _ChatPanelState extends State<ChatPanel> {
                           child: Text.rich(
                             TextSpan(
                               children: [
-                                TextSpan(
+                                StyledName.span(
+                                  message.name,
                                   text: '${message.name}  ',
                                   style: TextStyle(
                                     color: mine ? widget.accent : AppColors.textSecondary,

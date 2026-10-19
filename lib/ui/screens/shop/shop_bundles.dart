@@ -45,6 +45,8 @@ extension _Bundles on _ShopScreenState {
     language: language,
     strings: t,
     look: _shop.bundleLook(bundle),
+    around: _shop.bundleAround(bundle),
+    who: _shop.who,
     count: _shop.bundleItems(bundle).length,
     singles: _shop.bundleSingles(bundle),
     price: _shop.bundlePrice(bundle),
@@ -234,6 +236,10 @@ class _BundleCard extends StatelessWidget {
   final AppLanguage language;
   final ShopStrings strings;
   final AvatarLook look;
+
+  /// Cornici e nomi: si mostra il posto del tavolo, non il busto.
+  final bool around;
+  final String who;
   final int count;
   final int singles;
   final int price;
@@ -246,6 +252,8 @@ class _BundleCard extends StatelessWidget {
     required this.language,
     required this.strings,
     required this.look,
+    this.around = false,
+    this.who = '',
     required this.count,
     required this.singles,
     required this.price,
@@ -296,7 +304,12 @@ class _BundleCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    Positioned.fill(top: 8, child: CustomPaint(painter: AvatarBustPainter(look))),
+                    Positioned.fill(
+                      top: 8,
+                      child: around
+                          ? Padding(padding: const EdgeInsets.fromLTRB(14, 4, 14, 8), child: SeatPreview(look: look, name: who))
+                          : CustomPaint(painter: AvatarBustPainter(look)),
+                    ),
                   ],
                 ),
               ),
@@ -466,7 +479,12 @@ class _BundlePage extends StatelessWidget {
                                     top: 54,
                                     width: 150,
                                     height: 190,
-                                    child: _Mirror(look: shop.bundleLook(bundle)),
+                                    child: shop.bundleAround(bundle)
+                                        ? Padding(
+                                            padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+                                            child: SeatPreview(look: shop.bundleLook(bundle), name: shop.who),
+                                          )
+                                        : _Mirror(look: shop.bundleLook(bundle)),
                                   ),
                                   Positioned(
                                     left: 184,
@@ -537,6 +555,7 @@ class _BundlePage extends StatelessWidget {
                               key: Key('shop.bundle.item.${item.id}'),
                               item: item,
                               look: shop.tryOn(item),
+                              who: shop.who,
                               name: item.name(language),
                               state: shop.stateOf(item),
                               strings: t,
@@ -605,6 +624,7 @@ class _BundlePage extends StatelessWidget {
 class _BundleRow extends StatelessWidget {
   final ShopItem item;
   final AvatarLook look;
+  final String who;
   final String name;
   final ItemState state;
   final ShopStrings strings;
@@ -614,6 +634,7 @@ class _BundleRow extends StatelessWidget {
     super.key,
     required this.item,
     required this.look,
+    this.who = '',
     required this.name,
     required this.state,
     required this.strings,
@@ -645,7 +666,9 @@ class _BundleRow extends StatelessWidget {
                   gradient: RadialGradient(radius: 0.7, colors: [color.withValues(alpha: 0.25), Colors.transparent]),
                 ),
                 padding: const EdgeInsets.only(top: 6),
-                child: CustomPaint(painter: AvatarBustPainter(look), child: const SizedBox.expand()),
+                child: item.around
+                    ? Padding(padding: const EdgeInsets.fromLTRB(10, 0, 10, 4), child: SeatPreview(look: look, name: who))
+                    : CustomPaint(painter: AvatarBustPainter(look), child: const SizedBox.expand()),
               ),
               const SizedBox(width: 8),
               Expanded(

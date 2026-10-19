@@ -142,6 +142,13 @@ void main() {
     await _shot(tester, '08_oddities');
     await tab('wardrobe');
     await _shot(tester, '09_wardrobe');
+    await tab('frames');
+    await _shot(tester, '10_frames');
+    await tester.tap(find.byKey(const Key('shop.item.border.flame')));
+    await tester.pump(const Duration(milliseconds: 500));
+    await _shot(tester, '11_try_flame');
+    await tester.tap(find.byKey(const Key('shop.tryOn.back')));
+    await tester.pump(const Duration(milliseconds: 500));
     if (Platform.environment['SHEET'] == null) return;
 
     // I pezzi della seconda consegna (e quelli ritoccati), uno per moneta.
