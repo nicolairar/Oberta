@@ -52,7 +52,7 @@ const englishPack = NarrationPack(
       '“Everybody lies. Some do it better.”',
       night: 'Pick someone: learn at once if they\'re the Family or the town.',
       win: 'the town wipes out the Family and any lone killer, if there is one.',
-      twist: 'Some cards lie: the Godfather reads as town, the Ex-Con and the Hitman as Family.',
+      twist: 'The Godfather reads as town; the Ex-Con and the Hitman as Family.',
     ),
     Role.medico: RoleText(
       'The Doc',
