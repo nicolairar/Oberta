@@ -2,6 +2,9 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../../widgets/cosmetics/seat_frame.dart';
+import '../../../widgets/cosmetics/styled_name.dart';
+
 import '../../../../l10n/roles_sheet_strings.dart';
 import '../../../../rules/role.dart';
 import '../../../theme/app_theme.dart';
@@ -100,36 +103,41 @@ class SeatCard extends StatelessWidget {
           right: 0,
           top: 0,
           bottom: plateHeight * 0.45,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 220),
-            decoration: BoxDecoration(
-              borderRadius: arch,
-              border: Border.all(
-                color: border,
-                width: selected || accused
-                    ? 2.8
-                    : selectable
-                    ? 2
-                    : 1.4,
+          child: SeatFrame.of(
+            name,
+            radius: width / 2,
+            thickness: SeatFrame.thicknessFor(width),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              decoration: BoxDecoration(
+                borderRadius: arch,
+                border: Border.all(
+                  color: border,
+                  width: selected || accused
+                      ? 2.8
+                      : selectable
+                      ? 2
+                      : 1.4,
+                ),
+                boxShadow: glow,
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: accused
+                      ? const [Color(0xFF7A1018), Color(0xFF2A0508)]
+                      : fallen
+                      ? const [Color(0xFF2A2725), Color(0xFF121110)]
+                      : const [Color(0xFF3A2A1E), Color(0xFF120C08)],
+                ),
               ),
-              boxShadow: glow,
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: accused
-                    ? const [Color(0xFF7A1018), Color(0xFF2A0508)]
-                    : fallen
-                    ? const [Color(0xFF2A2725), Color(0xFF121110)]
-                    : const [Color(0xFF3A2A1E), Color(0xFF120C08)],
-              ),
-            ),
-            child: ClipRRect(
-              borderRadius: arch,
-              child: Align(
-                alignment: const Alignment(0, -0.1),
-                child: Opacity(
-                  opacity: offline ? 0.5 : 1,
-                  child: PlayerAvatar(seed: name, size: width * 0.86, fallen: fallen),
+              child: ClipRRect(
+                borderRadius: arch,
+                child: Align(
+                  alignment: const Alignment(0, -0.1),
+                  child: Opacity(
+                    opacity: offline ? 0.5 : 1,
+                    child: PlayerAvatar(seed: name, size: width * 0.86, fallen: fallen),
+                  ),
                 ),
               ),
             ),
@@ -341,13 +349,13 @@ class _PlateName extends StatelessWidget {
           children: [
             if (bot) Icon(Icons.settings, size: mark * 0.85, color: Saloon.brass),
             Flexible(
-              child: Text(
-                label,
+              child: StyledName(
+                text,
+                text: label,
                 maxLines: 1,
-                softWrap: false,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
-                style: style.copyWith(fontSize: style.fontSize! * fit),
+                base: style.copyWith(fontSize: style.fontSize! * fit),
               ),
             ),
           ],
