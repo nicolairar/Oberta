@@ -113,6 +113,7 @@ platform :ios do
     upload_to_testflight(
       api_key: asc_api_key,
       distribute_only: true, # nessun upload: si distribuisce la build più recente
+      app_platform: "ios",
       distribute_external: true,
       groups: ["Amici"],
       notify_external_testers: true,
