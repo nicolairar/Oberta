@@ -102,8 +102,9 @@ void main() {
         'supabase/migrations/20261018200000_shop_oddities.sql',
         'supabase/migrations/20261018220000_shop_absurd.sql',
         'supabase/migrations/20261020090000_barber_presentation.sql',
+        'supabase/migrations/20261023090000_shop_calcio.sql',
       ].map((path) => File(path).readAsStringSync()).join('\n');
-      final rows = RegExp(r"\('(\w+)\.(\w+)', '(\w+)', '(\w+)', '(\w+)', (\d+), .*?(?:, (null|'(\w+)'))?(?:, '(circo|carnevale|assurdo)')?\)[,\n]")
+      final rows = RegExp(r"\('(\w+)\.(\w+)', '(\w+)', '(\w+)', '(\w+)', (\d+), .*?(?:, (null|'(\w+)'))?(?:, '(circo|carnevale|assurdo|calcio)')?\)[,\n]")
           .allMatches(sql);
       final fromSql = {for (final m in rows) '${m[1]}.${m[2]}': '${m[4]} ${m[5]} ${m[6]} ${m[8]} ${m[9]}'};
       final fromDart = {
@@ -149,7 +150,10 @@ void main() {
     final catalog = {for (final item in initialShopCatalog) item.id: item};
 
     test('sono gli stessi della migrazione, e ogni pezzo si vende anche da solo', () {
-      final sql = File('supabase/migrations/20261022120000_shop_bundles.sql').readAsStringSync();
+      final sql = [
+        'supabase/migrations/20261022120000_shop_bundles.sql',
+        'supabase/migrations/20261023090000_shop_calcio.sql',
+      ].map((path) => File(path).readAsStringSync()).join('\n');
       final heads = {
         for (final m in RegExp(r"\('([a-z_]+)', '(set|premium)', (\d+), ").allMatches(sql)) m[1]!: '${m[2]} ${m[3]}',
       };
@@ -174,8 +178,27 @@ void main() {
         expect(price * 100, lessThanOrEqualTo(singles * 70), reason: bundle.id);
         expect(price * 100, greaterThanOrEqualTo(singles * 54), reason: bundle.id);
         expect(price % 10, 0);
-        if (bundle.premium) expect(price, inInclusiveRange(4000, 12000), reason: bundle.id);
+        if (bundle.id == 'curva') {
+          expect(price, greaterThan(30000), reason: 'la curva intera è il pacchetto più caro');
+        } else if (bundle.premium) {
+          expect(price, inInclusiveRange(4000, 12000), reason: bundle.id);
+        }
       }
+    });
+
+    test('il calcio: dieci squadre, quattro pezzi leggendari ciascuna, un pacchetto per squadra', () {
+      expect(calcioDrop.length, 40);
+      expect(calcioDrop.every((item) => item.rarity == ShopRarity.leggendario && item.collection == ShopCollection.calcio), isTrue);
+      final look = AvatarLook.fallback('anna');
+      for (final team in CalcioTeam.values) {
+        for (final id in team.itemIds) {
+          expect(CalcioTeam.of(id), team, reason: id);
+          final item = catalog[id]!;
+          expect(look.wearing(LookSlot.values.byName(item.slot), item.lookId), isNotNull, reason: id);
+        }
+        expect(initialShopBundles.where((b) => b.id == 'curva_${team.name}').single.itemIds, team.itemIds);
+      }
+      expect(initialShopBundles.firstWhere((b) => b.id == 'curva').itemIds.length, 40);
     });
 
     test('si paga solo quello che manca, sempre scontato', () async {

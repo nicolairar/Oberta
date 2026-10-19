@@ -2,12 +2,13 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
-import '../../online/shop_models.dart' show ShopBrand;
+import '../../online/shop_models.dart' show CalcioEmblem, CalcioKit, CalcioProp, CalcioTeam, ShopBrand;
 import '../widgets/noir_avatar.dart' show AvatarHead;
 import 'avatar_look.dart';
 
 part 'oddities_painter.dart';
 part 'absurd_painter.dart';
+part 'calcio_painter.dart';
 part 'face_painter.dart';
 part 'extras_painter.dart';
 
@@ -515,7 +516,7 @@ abstract final class LookPainter {
       case CoatPattern.baroque:
         _baroqueScrolls(canvas, outfit.accent);
       case CoatPattern.clown || CoatPattern.leotard || CoatPattern.breton || CoatPattern.chef || CoatPattern.banana ||
-          CoatPattern.pizza || CoatPattern.cactus || CoatPattern.ghost || CoatPattern.mummy:
+          CoatPattern.pizza || CoatPattern.cactus || CoatPattern.ghost || CoatPattern.mummy || CoatPattern.jersey:
         _Oddities.fabric(canvas, outfit, look.base.skin);
     }
     _houseTrim(canvas, outfit);
@@ -1504,6 +1505,26 @@ abstract final class LookPainter {
           AvatarAccessory.giantBowTie ||
           AvatarAccessory.pigeon ||
           AvatarAccessory.plungerSword ||
+          AvatarAccessory.blaugranaScarf ||
+          AvatarAccessory.blaugranaFlare ||
+          AvatarAccessory.merenguesScarf ||
+          AvatarAccessory.merenguesTrophy ||
+          AvatarAccessory.celestiScarf ||
+          AvatarAccessory.celestiMegaphone ||
+          AvatarAccessory.diavoliScarf ||
+          AvatarAccessory.diavoliFlare ||
+          AvatarAccessory.redsScarf ||
+          AvatarAccessory.redsMegaphone ||
+          AvatarAccessory.rossoneriScarf ||
+          AvatarAccessory.rossoneriFlare ||
+          AvatarAccessory.nerazzurriScarf ||
+          AvatarAccessory.nerazzurriFlag ||
+          AvatarAccessory.bianconeriScarf ||
+          AvatarAccessory.bianconeriTrophy ||
+          AvatarAccessory.giallorossiScarf ||
+          AvatarAccessory.giallorossiFlare ||
+          AvatarAccessory.azzurriScarf ||
+          AvatarAccessory.azzurriFlag ||
           AvatarAccessory.carnation ||
           AvatarAccessory.whiteCarnation ||
           AvatarAccessory.cigar ||
@@ -2664,7 +2685,7 @@ abstract final class LookPainter {
           AvatarHead.rainbowAfro ||
           AvatarHead.flamingHair ||
           AvatarHead.starHalo ||
-          AvatarHead.catOnHead:
+          AvatarHead.catOnHead || AvatarHead.blaugranaCap || AvatarHead.merenguesCap || AvatarHead.celestiCap || AvatarHead.diavoliCap || AvatarHead.redsCap || AvatarHead.rossoneriCap || AvatarHead.nerazzurriCap || AvatarHead.bianconeriCap || AvatarHead.giallorossiCap || AvatarHead.azzurriCap:
         _Oddities.hat(canvas, look.hat, silhouette ? paint : null);
       case AvatarHead.slicked || AvatarHead.bob || AvatarHead.bun:
         break;
@@ -2768,6 +2789,8 @@ abstract final class LookPainter {
           AvatarAccessory.giantBowTie ||
           AvatarAccessory.pigeon ||
           AvatarAccessory.plungerSword:
+        _Oddities.prop(canvas, look);
+      case _ when CalcioTeam.of(look.accessory.name) != null:
         _Oddities.prop(canvas, look);
       default:
         break;

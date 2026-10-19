@@ -94,6 +94,9 @@ class _ShopScreenState extends State<ShopScreen> {
   ShopBrand? _brand;
   ShopCollection? _collection;
 
+  /// La squadra aperta nel calcio.
+  CalcioTeam? _team;
+
   @override
   void dispose() {
     _shop.dispose();
@@ -153,6 +156,7 @@ class _ShopScreenState extends State<ShopScreen> {
       _slot = null;
       _brand = null;
       _collection = null;
+      _team = null;
       _rarity = null;
       _affordable = false;
     });
@@ -297,7 +301,7 @@ class _ShopScreenState extends State<ShopScreen> {
           SliverList.list(
             children: [
               for (final collection in ShopCollection.values)
-                if (_collected(collection) case final items when items.isNotEmpty)
+                if (_collected(collection) case final items when items.isNotEmpty && collection != ShopCollection.calcio)
                   _CollectionCard(
                     key: Key('shop.collection.${collection.name}'),
                     title: language == AppLanguage.en ? collection.en : collection.it,
@@ -310,6 +314,42 @@ class _ShopScreenState extends State<ShopScreen> {
             ],
           ),
         );
+      case ShopTab.calcio when _team == null:
+        final curva = [
+          for (final b in _shop.shelfBundles)
+            if (b.id == 'curva') b,
+        ];
+        slivers.add(SliverToBoxAdapter(child: _heading('⚽ ${t.tab(ShopTab.calcio).toUpperCase()}', hint: t.calcioHint)));
+        if (curva.isNotEmpty) slivers.add(SliverList.list(children: [for (final b in curva) _bundleCard(t, language, b)]));
+        slivers.add(
+          SliverList.list(
+            children: [
+              for (final team in CalcioTeam.values)
+                if (_teamItems(team) case final items when items.isNotEmpty)
+                  _CollectionCard(
+                    key: Key('shop.team.${team.name}'),
+                    title: team.label,
+                    tagline: team.tagline(language),
+                    count: t.pieces(items.length),
+                    color: team.primary.computeLuminance() > 0.6 ? team.secondary : _bright(team.primary),
+                    look: _teamLook(team),
+                    onTap: () => setState(() => _team = team),
+                  ),
+            ],
+          ),
+        );
+      case ShopTab.calcio:
+        final team = _team!;
+        slivers.add(SliverToBoxAdapter(child: _openedHeader(t, language)));
+        slivers.add(
+          SliverList.list(
+            children: [
+              for (final b in _shop.shelfBundles)
+                if (b.id == 'curva_${team.name}') _bundleCard(t, language, b),
+            ],
+          ),
+        );
+        slivers.add(_grid(t, language, [for (final item in _teamItems(team)) (item, null)]));
       default:
         if (_tab == ShopTab.brands || _tab == ShopTab.oddities) {
           slivers.add(SliverToBoxAdapter(child: _openedHeader(t, language)));
@@ -340,10 +380,31 @@ class _ShopScreenState extends State<ShopScreen> {
       if (item.collection == collection) item,
   ];
 
+  /// I pezzi di una squadra, nell'ordine della curva: maglia, berretto,
+  /// sciarpa e pezzo forte.
+  List<ShopItem> _teamItems(CalcioTeam team) => [
+    for (final id in team.itemIds)
+      for (final item in _shop.oddities(wardrobe: false))
+        if (item.id == id) item,
+  ];
+
+  /// La squadra addosso: maglia, berretto e pezzo forte.
+  AvatarLook _teamLook(CalcioTeam team) {
+    var look = _shop.look;
+    for (final item in _teamItems(team)) {
+      if (item.lookId == team.scarfId) continue;
+      look = look.wearing(LookSlot.values.byName(item.slot), item.lookId) ?? look;
+    }
+    return look;
+  }
+
+  static Color _bright(Color c) => Color.lerp(c, Colors.white, 0.3)!;
+
   static Color _collectionColor(ShopCollection collection) => switch (collection) {
     ShopCollection.circo => const Color(0xFFD9483B),
     ShopCollection.carnevale => const Color(0xFF3FB59E),
     ShopCollection.assurdo => const Color(0xFFE7C33A),
+    ShopCollection.calcio => const Color(0xFF4FA3E0),
   };
 
   /// I pezzi del reparto aperto, filtrati e messi in ordine.
@@ -356,6 +417,7 @@ class _ShopScreenState extends State<ShopScreen> {
       ShopTab.brands => _shop.branded(_brand, wardrobe: false),
       ShopTab.oddities => _collected(_collection!),
       ShopTab.wardrobe => [for (final slot in _allSlots) ..._shop.wardrobe(slot)],
+      ShopTab.calcio => _teamItems(_team!),
       ShopTab.window || ShopTab.bundles => const <ShopItem>[],
     };
     final picked = [
@@ -401,15 +463,19 @@ class _ShopScreenState extends State<ShopScreen> {
   Widget _openedHeader(ShopStrings t, AppLanguage language) {
     final brand = _brand;
     final collection = _collection;
-    final title = brand?.label ?? (language == AppLanguage.en ? collection!.en : collection!.it);
-    final color = brand?.color ?? _collectionColor(collection!);
+    final team = _team;
+    final title = brand?.label ?? team?.label ?? (language == AppLanguage.en ? collection!.en : collection!.it);
+    final color = brand?.color ?? (team != null ? _bright(team.primary) : _collectionColor(collection!));
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 6, 14, 0),
       child: Row(
         children: [
           TextButton.icon(
             key: const Key('shop.opened.back'),
-            onPressed: pressed(() => setState(() => _brand = _collection = null), Press.toggle),
+            onPressed: pressed(() => setState(() {
+              _brand = _collection = null;
+              _team = null;
+            }), Press.toggle),
             icon: const Icon(Icons.chevron_left, color: AppColors.gold),
             label: Text(
               t.back,

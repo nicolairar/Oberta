@@ -1,7 +1,7 @@
 import '../online/shop_models.dart';
 
 /// I reparti della bottega, nell'ordine delle linguette.
-enum ShopTab { window, bundles, tailoring, hats, accessories, brands, oddities, wardrobe }
+enum ShopTab { window, bundles, tailoring, hats, accessories, brands, oddities, calcio, wardrobe }
 
 /// I testi della bottega: il bancone, lo specchio e il guardaroba. Come
 /// [OnlineStrings], ogni lingua dice tutto e ogni testo finisce nel [catalog].
@@ -41,6 +41,9 @@ abstract class ShopStrings {
 
   /// La targhetta delle stramberie.
   String get oddities;
+
+  /// Sopra le squadre del calcio.
+  String get calcioHint;
   String brandTagline(ShopBrand brand);
 
   /// Le linguette della bottega, una per reparto.
@@ -107,6 +110,7 @@ abstract class ShopStrings {
     'brands': brands,
     'allBrands': allBrands,
     'oddities': oddities,
+    'calcioHint': calcioHint,
     for (final b in ShopBrand.values) 'brand.${b.name}': brandTagline(b),
     for (final tab in ShopTab.values) 'tab.${tab.name}': this.tab(tab),
     'homeSign': homeSign,
@@ -212,6 +216,8 @@ class ItalianShopStrings extends ShopStrings {
   @override
   String get oddities => 'Stramberie';
   @override
+  String get calcioHint => "Le curve d'anteguerra: scegli la tua squadra.";
+  @override
   String brandTagline(ShopBrand brand) => switch (brand) {
     ShopBrand.vaugirard => 'Bauli e valigie · Parigi',
     ShopBrand.arminio => 'Sartoria morbida · Milano',
@@ -230,6 +236,7 @@ class ItalianShopStrings extends ShopStrings {
     ShopTab.accessories => 'Accessori',
     ShopTab.brands => 'Firme',
     ShopTab.oddities => 'Stramberie',
+    ShopTab.calcio => 'Calcio',
     ShopTab.wardrobe => 'Armadio',
   };
   @override
@@ -361,6 +368,8 @@ class EnglishShopStrings extends ShopStrings {
   @override
   String get oddities => 'Oddities';
   @override
+  String get calcioHint => 'The old terraces: pick your team.';
+  @override
   String brandTagline(ShopBrand brand) => switch (brand) {
     ShopBrand.vaugirard => 'Trunks and luggage · Paris',
     ShopBrand.arminio => 'Soft tailoring · Milan',
@@ -379,6 +388,7 @@ class EnglishShopStrings extends ShopStrings {
     ShopTab.accessories => 'Accessories',
     ShopTab.brands => 'Labels',
     ShopTab.oddities => 'Oddities',
+    ShopTab.calcio => 'Football',
     ShopTab.wardrobe => 'Wardrobe',
   };
   @override

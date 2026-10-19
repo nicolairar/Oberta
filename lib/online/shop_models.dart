@@ -66,7 +66,10 @@ enum ShopCollection {
   carnevale('Carnevale', 'Carnival'),
 
   /// L'assurdo: teste di pesce, razzi, piccioni, torte in testa.
-  assurdo('Assurdo', 'Absurd');
+  assurdo('Assurdo', 'Absurd'),
+
+  /// Il calcio: le maglie, le sciarpe e i fumogeni delle curve.
+  calcio('Calcio', 'Football');
 
   final String it;
   final String en;
@@ -136,6 +139,15 @@ class ShopItem {
       price = rarity.price,
       releasedOn = DateTime.utc(2026, 10, 18),
       brand = null;
+
+  /// Un pezzo da stadio: la squadra la dice l'id ([CalcioTeam.of]).
+  ShopItem.calcio(this.slot, this.lookId, this.nameIt, this.nameEn, this.sort)
+    : id = '$slot.$lookId',
+      rarity = ShopRarity.leggendario,
+      price = ShopRarity.leggendario.price,
+      releasedOn = DateTime.utc(2026, 10, 23),
+      brand = null,
+      collection = ShopCollection.calcio;
 
   bool get free => rarity == ShopRarity.base;
 
@@ -277,7 +289,7 @@ abstract class ShopRepository {
 /// `supabase/migrations/20261017221000_shop.sql` e
 /// `supabase/migrations/20261018120000_shop_brands.sql` e seguenti (un test li
 /// confronta): la bottega finta lo usa, quella vera lo legge dal server.
-final List<ShopItem> initialShopCatalog = [..._firstDrop, ...brandDrop, ...houseDrop, ...odditiesDrop, ...barberDrop];
+final List<ShopItem> initialShopCatalog = [..._firstDrop, ...brandDrop, ...houseDrop, ...odditiesDrop, ...barberDrop, ...calcioDrop];
 
 final List<ShopItem> _firstDrop = [
   ShopItem.seed('hat', 'fedora', ShopRarity.base, 'Fedora', 'Fedora', 100),
@@ -640,7 +652,7 @@ final List<ShopItem> barberDrop = [
 
 /// I pacchetti, gli stessi di `supabase/migrations/20261022120000_shop_bundles.sql`
 /// (un test li confronta).
-const List<ShopBundle> initialShopBundles = [
+final List<ShopBundle> initialShopBundles = [
   ShopBundle(id: 'ragioniere', tier: 'set', discountPct: 30, nameIt: 'Il Ragioniere', nameEn: 'The Bookkeeper', taglineIt: 'Conti in ordine, baffo in ordine.', taglineEn: 'Neat books, neat moustache.', sort: 10, itemIds: ['glasses.browline', 'face.pencil', 'accessory.knitTie', 'hat.porkPie']),
   ShopBundle(id: 'detective', tier: 'set', discountPct: 35, nameIt: 'Il Detective', nameEn: 'The Private Eye', taglineIt: 'Impermeabile, trilby e una pipa che pensa.', taglineEn: 'Trench coat, trilby and a thinking pipe.', sort: 20, itemIds: ['outfit.trench_coat', 'hat.trilby', 'face.pencil', 'accessory.pipe']),
   ShopBundle(id: 'padrino', tier: 'set', discountPct: 35, nameIt: 'Il Padrino', nameEn: 'The Godfather', taglineIt: "Un'offerta che non potrai rifiutare.", taglineEn: "An offer you can't refuse.", sort: 30, itemIds: ['hat.borsalino', 'outfit.midnight_double', 'face.walrus', 'accessory.pocketWatch', 'accessory.whiteCarnation']),
@@ -653,4 +665,118 @@ const List<ShopBundle> initialShopBundles = [
   ShopBundle(id: 'ali', tier: 'premium', discountPct: 40, nameIt: 'Paradiso e Inferno', nameEn: 'Heaven and Hell', taglineIt: "Aureola, cornetti e quattro paia d'ali.", taglineEn: 'Halo, horns and four pairs of wings.', sort: 120, itemIds: ['hat.angelHalo', 'hat.devilHorns', 'accessory.angelWings', 'accessory.batWings', 'accessory.butterflyWings', 'accessory.dragonWings']),
   ShopBundle(id: 'tendone', tier: 'premium', discountPct: 45, nameIt: 'Il Grande Tendone', nameEn: 'The Big Top', taglineIt: 'Il circo intero: clown, mimo, forzuto e mago.', taglineEn: 'The whole circus: clown, mime, strongman and magician.', sort: 130, itemIds: ['hat.clownWig', 'hat.magicianHat', 'face.curledMoustache', 'face.mimeFace', 'glasses.hypnoGlasses', 'outfit.clown_suit', 'outfit.strongman_leotard', 'outfit.mime_stripes', 'outfit.magician_cape', 'accessory.clownNose']),
   ShopBundle(id: 'leggende', tier: 'premium', discountPct: 40, nameIt: 'Le Leggende', nameEn: 'The Legends', taglineIt: "Dieci pezzi leggendari: il guardaroba di un boss.", taglineEn: "Ten legendary pieces: a boss's wardrobe.", sort: 140, itemIds: ['outfit.trench_coat', 'outfit.gold_brocade', 'hat.morettiHomburg', 'outfit.vanetti_tuxedo', 'outfit.vanetti_ivory', 'outfit.delacroix_cape', 'accessory.ricciWatch', 'outfit.vaugirard_travel', 'outfit.versalli_baroque', 'accessory.chanterellePearls']),
+  ...calcioBundles,
+];
+
+/// Come veste la maglia: le righe verticali, tinta unita, la fascia
+/// trasversale o le due metà.
+enum CalcioKit { stripes, plain, sash, halves }
+
+/// Il segno inventato sul petto: niente stemmi veri, solo figure semplici.
+enum CalcioEmblem { comet, sun, moon, bolt, anchor, star, compass, horseshoe, laurel, volcano }
+
+/// Il pezzo forte della curva, con l'alone nei colori della squadra.
+enum CalcioProp {
+  flare('Fumogeno', 'smoke flare'),
+  megaphone('Megafono', 'megaphone'),
+  trophy('Coppa', 'trophy'),
+  flag('Bandiera', 'flag');
+
+  final String it;
+  final String en;
+
+  const CalcioProp(this.it, this.en);
+
+  String get suffix => '${name[0].toUpperCase()}${name.substring(1)}';
+}
+
+/// Le squadre della curva: soprannomi e colori di città, niente nomi veri,
+/// niente stemmi né divise ufficiali. L'id fa da prefisso ai pezzi:
+/// `outfit.<id>_kit`, `hat.<id>Cap`, `accessory.<id>Scarf`,
+/// `accessory.<id><Prop>`.
+enum CalcioTeam {
+  blaugrana('Blaugrana', 'Blu e granata, a righe.', 'Blue and garnet stripes.', Color(0xFF1F3F94), Color(0xFF9A1B3F), Color(0xFFE9C23A), Color(0xFF6E1A3C), CalcioKit.stripes, CalcioEmblem.comet, CalcioProp.flare),
+  merengues('Merengues', 'Bianco candido e oro.', 'Spotless white and gold.', Color(0xFFF4F1EA), Color(0xFFD4A93A), Color(0xFF5B3A8E), Color(0xFF4E3C80), CalcioKit.sash, CalcioEmblem.sun, CalcioProp.trophy),
+  celesti('Celesti', 'Il celeste del cielo sopra le fabbriche.', 'Sky blue over the factory chimneys.', Color(0xFF8EC6EE), Color(0xFFF4F1EA), Color(0xFF1C2C4C), Color(0xFF2C5C8E), CalcioKit.plain, CalcioEmblem.moon, CalcioProp.megaphone),
+  diavoli('Diavoli Rossi', 'Rosso fuoco, collo nero.', 'Fire red, black collar.', Color(0xFFC8202A), Color(0xFF16151A), Color(0xFFF4F1EA), Color(0xFF3C3A46), CalcioKit.plain, CalcioEmblem.bolt, CalcioProp.flare),
+  reds('Reds del Porto', 'Rosso dal porto, e cantano sempre.', 'Harbour red, and always singing.', Color(0xFFB81C2C), Color(0xFFF4F1EA), Color(0xFFE9C23A), Color(0xFF9A3A22), CalcioKit.plain, CalcioEmblem.anchor, CalcioProp.megaphone),
+  rossoneri('Rossoneri', 'Righe rosse e nere.', 'Red and black stripes.', Color(0xFFC8202A), Color(0xFF16151A), Color(0xFFF4F1EA), Color(0xFF7A1A1E), CalcioKit.stripes, CalcioEmblem.star, CalcioProp.flare),
+  nerazzurri('Nerazzurri', 'Righe nere e azzurre.', 'Black and blue stripes.', Color(0xFF1E4FB0), Color(0xFF141418), Color(0xFFE9C23A), Color(0xFF1C3C7C), CalcioKit.stripes, CalcioEmblem.compass, CalcioProp.flag),
+  bianconeri('Bianconeri', "Bianco e nero, nient'altro.", 'Black and white, nothing else.', Color(0xFFF4F1EA), Color(0xFF16151A), Color(0xFFE9C23A), Color(0xFF66666E), CalcioKit.stripes, CalcioEmblem.horseshoe, CalcioProp.trophy),
+  giallorossi('Giallorossi', 'Porpora e oro, a metà.', 'Maroon and gold, halved.', Color(0xFF8A1C2C), Color(0xFFF0B42A), Color(0xFFF0B42A), Color(0xFFB07A1E), CalcioKit.halves, CalcioEmblem.laurel, CalcioProp.flare),
+  azzurri('Azzurri del Golfo', "L'azzurro del golfo e del vulcano.", 'The blue of the bay and the volcano.', Color(0xFF2F8FD8), Color(0xFFF4F1EA), Color(0xFF14306E), Color(0xFF1E5A9A), CalcioKit.plain, CalcioEmblem.volcano, CalcioProp.flag);
+
+  final String label;
+  final String taglineIt;
+  final String taglineEn;
+
+  /// La maglia, le righe (o la fascia, o la seconda metà) e il colletto.
+  final Color primary;
+  final Color secondary;
+  final Color trim;
+
+  /// Il fondo del ritratto.
+  final Color backdrop;
+  final CalcioKit kit;
+  final CalcioEmblem emblem;
+  final CalcioProp prop;
+
+  const CalcioTeam(this.label, this.taglineIt, this.taglineEn, this.primary, this.secondary, this.trim, this.backdrop, this.kit, this.emblem, this.prop);
+
+  String get kitId => '${name}_kit';
+  String get capId => '${name}Cap';
+  String get scarfId => '${name}Scarf';
+  String get propId => '$name${prop.suffix}';
+
+  String tagline(AppLanguage language) => language == AppLanguage.en ? taglineEn : taglineIt;
+
+  /// I quattro pezzi, come li vende la bottega.
+  List<String> get itemIds => ['outfit.$kitId', 'hat.$capId', 'accessory.$scarfId', 'accessory.$propId'];
+
+  /// La squadra di un pezzo (un id di look o di catalogo), o null.
+  static CalcioTeam? of(String id) {
+    final look = id.contains('.') ? id.substring(id.indexOf('.') + 1) : id;
+    for (final team in values) {
+      if (look == team.kitId || look == team.capId || look == team.scarfId || look == team.propId) return team;
+    }
+    return null;
+  }
+}
+
+/// Il calcio (`supabase/migrations/20261023090000_shop_calcio.sql`): quattro
+/// pezzi leggendari per squadra.
+final List<ShopItem> calcioDrop = [
+  for (final (i, team) in CalcioTeam.values.indexed) ...[
+    ShopItem.calcio('outfit', team.kitId, 'Maglia ${team.label}', '${team.label} jersey', 480 + i),
+    ShopItem.calcio('hat', team.capId, 'Berretto ${team.label}', '${team.label} bobble hat', 170 + i),
+    ShopItem.calcio('accessory', team.scarfId, 'Sciarpa ${team.label}', '${team.label} scarf', 560 + 2 * i),
+    ShopItem.calcio('accessory', team.propId, '${team.prop.it} ${team.label}', '${team.label} ${team.prop.en}', 561 + 2 * i),
+  ],
+];
+
+/// Un pacchetto per squadra, e la curva intera.
+final List<ShopBundle> calcioBundles = [
+  for (final (i, team) in CalcioTeam.values.indexed)
+    ShopBundle(
+      id: 'curva_${team.name}',
+      tier: 'premium',
+      discountPct: 40,
+      nameIt: 'Curva ${team.label}',
+      nameEn: '${team.label} End',
+      taglineIt: team.taglineIt,
+      taglineEn: team.taglineEn,
+      sort: 200 + 10 * i,
+      itemIds: team.itemIds,
+    ),
+  ShopBundle(
+    id: 'curva',
+    tier: 'premium',
+    discountPct: 45,
+    nameIt: 'La Curva',
+    nameEn: 'The Whole Stand',
+    taglineIt: 'Tutte e dieci le squadre: quaranta pezzi leggendari.',
+    taglineEn: 'All ten teams: forty legendary pieces.',
+    sort: 400,
+    itemIds: [for (final team in CalcioTeam.values) ...team.itemIds],
+  ),
 ];

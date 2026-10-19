@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 
 import '../../online/online_models.dart' show Profile, WornLooks;
-import '../../online/shop_models.dart' show ShopBrand;
+import '../../online/shop_models.dart' show CalcioTeam, ShopBrand;
 import '../widgets/noir_avatar.dart' show AvatarHead, avatarTints, avatarTraitsFor;
 import 'face_features.dart';
 
@@ -484,7 +484,28 @@ enum AvatarAccessory {
   balloons,
   giantBowTie,
   pigeon,
-  plungerSword;
+  plungerSword,
+  // Il calcio.
+  blaugranaScarf,
+  blaugranaFlare,
+  merenguesScarf,
+  merenguesTrophy,
+  celestiScarf,
+  celestiMegaphone,
+  diavoliScarf,
+  diavoliFlare,
+  redsScarf,
+  redsMegaphone,
+  rossoneriScarf,
+  rossoneriFlare,
+  nerazzurriScarf,
+  nerazzurriFlag,
+  bianconeriScarf,
+  bianconeriTrophy,
+  giallorossiScarf,
+  giallorossiFlare,
+  azzurriScarf,
+  azzurriFlag;
 
   /// Quello che fumano: il fumo sale da qui.
   bool get smokes =>
@@ -525,7 +546,9 @@ enum CoatPattern {
   pizza,
   cactus,
   ghost,
-  mummy;
+  mummy,
+  // Il calcio: la maglia d'epoca col collo allacciato.
+  jersey;
 
   /// I costumi della bottega delle stramberie: niente camicia, niente cravatta.
   bool get costume => index >= clown.index;
@@ -734,6 +757,9 @@ class AvatarOutfit {
     const AvatarOutfit('cactus_suit', Color(0xFF3E8E3E), CoatPattern.cactus, Color(0xFFE85A9A)),
     const AvatarOutfit('ghost_sheet', Color(0xFFF4F2EC), CoatPattern.ghost, Color(0xFF1B1B22)),
     const AvatarOutfit('mummy_wraps', Color(0xFFE6DCC2), CoatPattern.mummy, Color(0xFF8A7A58)),
+    // Il calcio: la maglia nel colore della squadra, il fondo della sua città.
+    for (final team in CalcioTeam.values)
+      AvatarOutfit(team.kitId, team.primary, CoatPattern.jersey, team.backdrop, shirt: team.trim),
   ];
 
   static AvatarOutfit? byId(String id) {

@@ -135,7 +135,7 @@ abstract final class _Absurd {
           canvas.drawOval(Rect.fromCenter(center: c, width: 0.09, height: 0.05), _fill(outfit.accent.withValues(alpha: 0.35)));
         }
       default:
-        break;
+        _Calcio.fabric(canvas, outfit);
     }
   }
 
@@ -152,7 +152,7 @@ abstract final class _Absurd {
         canvas.drawRect(const Rect.fromLTRB(-0.1, -0.68, 0.1, -0.58), _fill(outfit.coat));
         canvas.drawLine(const Offset(-0.1, -0.64), const Offset(0.1, -0.66), _line(_dark(outfit.coat, 0.22), 0.01));
       default:
-        break;
+        _Calcio.collar(canvas, outfit);
     }
   }
 
@@ -657,7 +657,7 @@ abstract final class _Absurd {
           }
         }
       default:
-        break;
+        _Calcio.hat(canvas, hat, silhouette);
     }
   }
 
@@ -758,7 +758,7 @@ abstract final class _Absurd {
           );
         }
       default:
-        break;
+        _Calcio.back(canvas, accessory);
     }
   }
 
@@ -834,7 +834,7 @@ abstract final class _Absurd {
         // L'elsa: una guardia di spago e la mano.
         canvas.drawLine(const Offset(0.1, -0.02), const Offset(0.28, 0.06), _line(const Color(0xFFDCD6CA), 0.025));
       default:
-        break;
+        _Calcio.prop(canvas, look);
     }
   }
 }
