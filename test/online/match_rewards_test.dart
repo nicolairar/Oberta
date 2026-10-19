@@ -24,15 +24,15 @@ SettleSeat _seat(
 
 void main() {
   group('esperienza, livelli e monete', () {
-    test('la scala: 150 + 25·L, 150 monete a livello e 250 in più ogni cinque', () {
+    test('la scala: 150 + 25·L, 50 monete a livello e 200 in più ogni cinque', () {
       expect(Progression.xpToNext(1), 175);
       expect(Progression.xpToNext(4), 250);
-      expect(Progression.coinsForLevel(2), 150);
-      expect(Progression.coinsForLevel(5), 400);
+      expect(Progression.coinsForLevel(2), 50);
+      expect(Progression.coinsForLevel(5), 250);
       final up = Progression.addXp(4, 200, 100);
-      expect((up.level, up.xp, up.levelsGained, up.coins), (5, 50, 1, 400));
+      expect((up.level, up.xp, up.levelsGained, up.coins), (5, 50, 1, 250));
       final many = Progression.addXp(1, 0, 175 + 200 + 10);
-      expect((many.level, many.xp, many.coins), (3, 10, 300));
+      expect((many.level, many.xp, many.coins), (3, 10, 100));
     });
 
     test('vittoria 100, sconfitta 30, prima vittoria del giorno +100, chi abbandona nulla', () {
@@ -44,7 +44,7 @@ void main() {
 
     test('tra amici: esperienza sì, monete solo nelle prime cinque partite del giorno, niente da soli coi bot', () {
       final early = settle(ranked: false, humans: 2, seats: [_seat('a', won: true, xp: 100)]).single;
-      expect((early.xpGained, early.level, early.coins, early.rating), (200, 2, 150, null));
+      expect((early.xpGained, early.level, early.coins, early.rating), (200, 2, 50, null));
       final late = settle(ranked: false, humans: 2, seats: [_seat('a', won: true, xp: 100, friendsGamesToday: 5)]).single;
       expect((late.xpGained, late.level, late.coins), (200, 2, 0));
       final alone = settle(ranked: false, humans: 1, seats: [_seat('a', won: true)]).single;

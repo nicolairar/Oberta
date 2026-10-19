@@ -8,8 +8,8 @@ import 'dart:math';
 //
 // The numbers are the ones in docs/visione.md, in one place so they can be
 // tuned: a win is worth 100 XP, a loss 30, the first win of the (UTC) day
-// +100; from level L to L+1 takes 150 + 25·L XP; every level gives 150
-// coins, every fifth level 250 more.
+// +100; from level L to L+1 takes 150 + 25·L XP; every level gives 50
+// coins, every fifth level 200 more.
 //
 // Friends games give experience too. Coins from levels reached in friends
 // games are paid only for the first [Progression.friendsCoinGames] friends
@@ -32,7 +32,7 @@ abstract final class Progression {
   static int xpToNext(int level) => 150 + 25 * max(1, level);
 
   /// Coins for reaching [level].
-  static int coinsForLevel(int level) => 150 + (level % 5 == 0 ? 250 : 0);
+  static int coinsForLevel(int level) => 50 + (level % 5 == 0 ? 200 : 0);
 
   /// Experience for a game: nothing to who abandoned it.
   static int xpFor({required bool won, required bool abandoned, required bool firstWinOfDay}) {
