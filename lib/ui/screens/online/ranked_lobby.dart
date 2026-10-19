@@ -25,7 +25,7 @@ class LobbyTable extends StatefulWidget {
   /// Quanto dura il conto alla rovescia, per la lancetta.
   final double countdownTotal;
 
-  const LobbyTable({super.key, required this.members, required this.size, this.myId, this.countdown, this.countdownTotal = 10});
+  const LobbyTable({super.key, required this.members, required this.size, this.myId, this.countdown, this.countdownTotal = 5});
 
   @override
   State<LobbyTable> createState() => _LobbyTableState();
