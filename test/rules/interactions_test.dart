@@ -302,6 +302,8 @@ void main() {
       expect(dawn.resurrected, a);
       expect(dawn.winner, isNull);
       expect(engine.alivePlayers, [mob, messiah, a]);
+      // Il ruolo scoperto al linciaggio resta scoperto anche da vivo.
+      expect(engine.publicView().revealed.where((known) => known.seat == a).single.knowledge.role, Role.cittadino);
       expectNoLeaks(engine);
       expectRoundTrip(engine);
     });
