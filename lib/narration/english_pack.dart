@@ -112,7 +112,7 @@ const englishPack = NarrationPack(
     Role.strozzino: RoleText(
       'The Loan Shark',
       '“A dead debtor doesn\'t pay.”',
-      'Each night lend to someone: nobody can kill them tonight. Win if you are alive at the end.',
+      'You play for yourself. Each night protect a debtor. Win if you are alive at the end, whoever wins.',
     ),
     Role.sicario: RoleText(
       'The Hitman',
@@ -493,7 +493,7 @@ const englishPack = NarrationPack(
     NightTaskKind.ignite: 'Do you light the match tonight?',
     NightTaskKind.resurrect: 'Who do you bring back tonight?',
     NightTaskKind.watch: 'Whose door do you watch tonight?',
-    NightTaskKind.lend: 'Who do you lend money to tonight?',
+    NightTaskKind.lend: 'Who do you protect tonight by lending them money?',
     NightTaskKind.stab: 'Who do you eliminate tonight?',
   },
   taskHints: {
@@ -509,7 +509,7 @@ const englishPack = NarrationPack(
     NightTaskKind.ignite: 'Everyone you doused burns tonight.',
     NightTaskKind.resurrect: 'Only once: your pick returns at dawn, if you see it. Pass to keep it.',
     NightTaskKind.watch: 'At dawn you\'ll know if anyone came to that door. Not who.',
-    NightTaskKind.lend: 'A dead debtor doesn\'t pay: nobody can kill them tonight. Never twice running.',
+    NightTaskKind.lend: 'Whoever you pick cannot die tonight. Never the same twice running.',
     NightTaskKind.stab: 'Whoever you pick won\'t see the dawn, unless someone protects them.',
     NightTaskKind.decoy: 'You have no move tonight: answer anyway, so nobody can tell who you are.',
   },

@@ -110,7 +110,7 @@ const italianPack = NarrationPack(
     Role.strozzino: RoleText(
       'Lo Strozzino',
       '«Un debitore morto non paga.»',
-      'Ogni notte presti a qualcuno: stanotte nessuno lo tocca. Vinci se arrivi vivo alla fine.',
+      'Giochi per te. Ogni notte proteggi un debitore. Vinci se arrivi vivo alla fine, chiunque vinca.',
     ),
     Role.sicario: RoleText(
       'Il Sicario',
@@ -489,7 +489,7 @@ const italianPack = NarrationPack(
     NightTaskKind.ignite: 'Accendi il fiammifero stanotte?',
     NightTaskKind.resurrect: 'Chi riporti in vita stanotte?',
     NightTaskKind.watch: 'Di chi guardi la porta stanotte?',
-    NightTaskKind.lend: 'A chi presti i soldi stanotte?',
+    NightTaskKind.lend: 'Chi proteggi stanotte, prestandogli i soldi?',
     NightTaskKind.stab: 'Chi elimini stanotte?',
   },
   taskHints: {
@@ -505,7 +505,7 @@ const italianPack = NarrationPack(
     NightTaskKind.ignite: 'Stanotte brucia chiunque tu abbia cosparso.',
     NightTaskKind.resurrect: 'Una volta sola: chi scegli torna all\'alba, se tu la vedi. Se passi, ti resta.',
     NightTaskKind.watch: 'All\'alba saprai se qualcuno è passato da quella porta. Non chi.',
-    NightTaskKind.lend: 'Un debitore morto non paga: stanotte nessuno può ucciderlo. Mai lo stesso due notti di fila.',
+    NightTaskKind.lend: 'Chi scegli stanotte non può morire. Mai lo stesso due notti di fila.',
     NightTaskKind.stab: 'Chi scegli non vedrà l\'alba, a meno che qualcuno lo protegga.',
     NightTaskKind.decoy: 'Stanotte non hai una mossa: rispondi lo stesso, così nessuno capisce chi sei.',
   },

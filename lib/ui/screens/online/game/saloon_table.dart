@@ -438,7 +438,7 @@ class _HandPainter extends CustomPainter {
       }
     }
 
-    final base = (card.width * 0.17).clamp(6.0, 13.0);
+    final base = (card.width * 0.09).clamp(3.0, 7.0);
     // Prima le mani sbiadite, poi quelle verso l'accusato in testa, la propria
     // per ultima (sopra tutte).
     final ordered = [...hands]..sort((x, y) => _rank(x.hand).compareTo(_rank(y.hand)));
@@ -470,7 +470,7 @@ class _HandPainter extends CustomPainter {
   }
 
   /// La mano è più larga della manica: si deve leggere il dito.
-  static const _handScale = 1.5;
+  static const _handScale = 1.7;
 
   int _rank(SeatHand hand) => hand.mine ? 2 : (hand.to == leading ? 1 : 0);
 
