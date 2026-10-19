@@ -1,6 +1,5 @@
 import 'dart:math';
 import 'dart:typed_data';
-import 'dart:ui' show PointMode;
 
 import 'package:flutter/material.dart';
 
@@ -463,16 +462,10 @@ class _HandPainter extends CustomPainter {
       if (total < handLength + 4) continue;
       final reach = (total - handLength) * entry.t;
       final at = metric.getTangentForOffset(reach)!;
+      // Le mani verso altri accusati restano piene, solo un po' più scure.
       final faded = many && leading != null && hand.to != leading && !hand.mine;
-      final alpha = faded ? 0.55 : 1.0;
-      // Con tanti posti la manica è corta: prima c'è solo un filo d'inchiostro.
-      final sleeveFrom = many ? max(0.0, reach - card.width * 1.5) : 0.0;
-      if (sleeveFrom > 0) {
-        final trail = metric.extractPath(0, sleeveFrom);
-        _dotted(canvas, trail, hand.accent.withValues(alpha: 0.5 * alpha), w * 0.22);
-      }
-      final sleeve = metric.extractPath(sleeveFrom, reach);
-      _drawArm(canvas, sleeve, at.position, at.vector, w, hand, alpha);
+      final sleeve = metric.extractPath(0, reach);
+      _drawArm(canvas, sleeve, at.position, at.vector, w, hand, faded ? 0.35 : 0);
     }
   }
 
@@ -481,21 +474,9 @@ class _HandPainter extends CustomPainter {
 
   int _rank(SeatHand hand) => hand.mine ? 2 : (hand.to == leading ? 1 : 0);
 
-  void _dotted(Canvas canvas, Path path, Color color, double width) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = max(1.2, width)
-      ..strokeCap = StrokeCap.round;
-    for (final metric in path.computeMetrics()) {
-      for (var d = 0.0; d < metric.length; d += 7) {
-        final p = metric.getTangentForOffset(d)!.position;
-        canvas.drawPoints(PointMode.points, [p], paint);
-      }
-    }
-  }
-
-  void _drawArm(Canvas canvas, Path sleeve, Offset wrist, Offset dir, double w, SeatHand hand, double alpha) {
-    Color fade(Color c) => c.withValues(alpha: c.a * alpha);
+  void _drawArm(Canvas canvas, Path sleeve, Offset wrist, Offset dir, double w, SeatHand hand, double dim) {
+    const alpha = 1.0;
+    Color fade(Color c) => Color.lerp(c, Colors.black, dim)!.withValues(alpha: c.a);
     final normal = Offset(-dir.dy, dir.dx);
     final coat = hand.sleeve;
     final dark = Color.lerp(coat, Colors.black, 0.55)!;
@@ -521,34 +502,45 @@ class _HandPainter extends CustomPainter {
     canvas.drawPath(silhouette, shadow);
     canvas.restore();
 
-    // La manica: bordo scuro, stoffa, un filo di luce sul lato in alto.
-    canvas.drawPath(
-      sleeve,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = w + 2
-        ..strokeCap = StrokeCap.butt
-        ..color = fade(Color.lerp(dark, Colors.black, 0.4)!),
-    );
-    canvas.drawPath(
-      sleeve,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = w
-        ..strokeCap = StrokeCap.butt
-        ..color = fade(coat),
-    );
+    // La manica: contorno d'inchiostro pieno, stoffa, l'ombra sul lato in
+    // basso, un filo di luce in alto e la cucitura lungo il braccio.
+    Paint stroke(double width, Color color, [StrokeCap cap = StrokeCap.butt]) => Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = width
+      ..strokeCap = cap
+      ..strokeJoin = StrokeJoin.round
+      ..color = color;
+    canvas.drawPath(sleeve, stroke(w + 3.5, fade(const Color(0xFF0A0706)), StrokeCap.round));
+    canvas.drawPath(sleeve, stroke(w, fade(coat), StrokeCap.round));
     canvas.save();
-    canvas.translate(-normal.dx * w * 0.22, -normal.dy * w * 0.22);
-    canvas.drawPath(
-      sleeve,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = w * 0.22
-        ..strokeCap = StrokeCap.round
-        ..color = fade(light.withValues(alpha: 0.55)),
-    );
+    canvas.translate(normal.dx * w * 0.26, normal.dy * w * 0.26);
+    canvas.drawPath(sleeve, stroke(w * 0.42, fade(dark.withValues(alpha: 0.75))));
     canvas.restore();
+    canvas.save();
+    canvas.translate(-normal.dx * w * 0.24, -normal.dy * w * 0.24);
+    canvas.drawPath(sleeve, stroke(w * 0.2, fade(light.withValues(alpha: 0.7)), StrokeCap.round));
+    canvas.restore();
+    final seam = stroke(max(0.8, w * 0.07), fade(dark.withValues(alpha: 0.9)));
+    for (final metric in sleeve.computeMetrics()) {
+      for (var d = w; d < metric.length - w; d += w * 0.7) {
+        final t = metric.getTangentForOffset(d)!;
+        final n = Offset(-t.vector.dy, t.vector.dx);
+        final p = t.position + n * w * 0.06;
+        canvas.drawLine(p, p + t.vector * w * 0.32, seam);
+      }
+    }
+    // Il risvolto della giacca, prima del polsino della camicia.
+    final turnBack = wrist - dir * w * 0.42;
+    final turnFront = turnBack - dir * w * 0.55;
+    final turn = Path()
+      ..moveTo(turnFront.dx + normal.dx * w * 0.62, turnFront.dy + normal.dy * w * 0.62)
+      ..lineTo(turnBack.dx + normal.dx * w * 0.66, turnBack.dy + normal.dy * w * 0.66)
+      ..lineTo(turnBack.dx - normal.dx * w * 0.66, turnBack.dy - normal.dy * w * 0.66)
+      ..lineTo(turnFront.dx - normal.dx * w * 0.62, turnFront.dy - normal.dy * w * 0.62)
+      ..close();
+    canvas.drawPath(turn, Paint()..color = fade(Color.lerp(coat, Colors.black, 0.25)!));
+    canvas.drawPath(turn, stroke(1.4, fade(const Color(0xFF0A0706))));
+    canvas.drawCircle(Offset.lerp(turnFront, turnBack, 0.5)! - normal * w * 0.32, max(1.2, w * 0.11), Paint()..color = fade(Saloon.brass));
 
     // Il polsino: bianco, d'ottone per la propria mano, con il filo del voto.
     final cuffColor = hand.mine ? Saloon.brass : const Color(0xFFF2EAE1);
