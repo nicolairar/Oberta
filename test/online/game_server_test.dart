@@ -167,7 +167,7 @@ void main() {
     expect(server.schedule['endsAt'], server.now + 1500 + 30000);
   });
 
-  test('l\'ultimo voto si vede: la fase chiude solo dopo una breve attesa', () {
+  test('l\'ultimo voto si vede, e notte e voto durano comunque fino alla scadenza', () {
     final server = ServerHarness(table(humans: 5, bots: 0), seed: 2);
     final random = Random(2);
     server.step();
@@ -191,7 +191,17 @@ void main() {
       expect(server.schedule['key'], key, reason: 'prima dell\'attesa resta aperta');
       server.now = hold;
       server.step();
+      expect(server.schedule['key'], key, reason: 'anche se hanno agito tutti, si va a tempo');
+      final ends = server.schedule['endsAt'] as int;
+      server.now = ends - 1;
+      server.step();
+      expect(server.schedule['key'], key, reason: 'si può cambiare scelta fino alla fine');
+      while (server.schedule['key'] == key && server.last['finished'] != true) {
+        server.now = max(server.now + 1, server.last['nextDue'] as int);
+        server.step();
+      }
       if (server.schedule['key'] != key) {
+        expect(server.now, greaterThanOrEqualTo(ends));
         held.add(stage);
         expect(server.state!['settleUntil'], isNull, reason: 'la fase nuova riparte senza attesa');
       }

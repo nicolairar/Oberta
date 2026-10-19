@@ -12,6 +12,7 @@ import 'package:oberta/l10n/app_language.dart';
 import 'package:oberta/l10n/app_strings.dart';
 import 'package:oberta/online/fake_online.dart';
 import 'package:oberta/online/online_services.dart';
+import 'package:oberta/ui/screens/online/match_results_screen.dart';
 import 'package:oberta/ui/screens/online/ranked_queue_screen.dart';
 import 'package:oberta/ui/theme/app_theme.dart';
 
@@ -120,6 +121,7 @@ void main() {
       ),
     ));
     await _flush(tester);
+    await _shot(tester, '00_entry');
     await tester.tap(find.byKey(const Key('ranked.start')));
     await _flush(tester);
     online.gameAs('p0').sendChat('ranked-1', ChatChannel.lobby, 'buonasera a tutti').ignore();
@@ -132,5 +134,37 @@ void main() {
     online.rankedQueue.clear();
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 5));
+  });
+
+  testWidgets('risultati a tutto schermo', (tester) async {
+    await tester.runAsync(_loadFonts);
+    tester.view.physicalSize = const Size(390, 844) * 3;
+    tester.view.devicePixelRatio = 3;
+    for (final (name, result) in [
+      ('10_results_won', const MatchResult(gameId: 'g', ranked: true, won: true, role: 'mafioso', xpGained: 120, levelBefore: 4, levelAfter: 5, coinsGained: 400, ratingDelta: 1.2, ordinalAfter: 16)),
+      ('11_results_lost', const MatchResult(gameId: 'g', won: false, role: 'detective', xpGained: 40, levelBefore: 3, levelAfter: 3)),
+    ]) {
+      await tester.pumpWidget(RepaintBoundary(
+        key: _key,
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: _theme(),
+          locale: AppLanguage.it.locale,
+          supportedLocales: AppLanguage.locales,
+          localizationsDelegates: const [
+            AppStrings.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+          ],
+          home: MatchResultsScreen(result: result, xpNow: 60, offerReplay: true),
+        ),
+      ));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 2600));
+      await _shot(tester, '${name}_mid', settle: false);
+      await tester.pump(const Duration(seconds: 3));
+      await _shot(tester, name);
+    }
   });
 }
