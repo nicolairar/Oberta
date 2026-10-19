@@ -1,3 +1,4 @@
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const phases = {
   notte: {
     image: 'img/notte.png',
@@ -29,6 +30,29 @@ const phaseImage = document.querySelector('#phase-image');
 const phaseTitle = document.querySelector('#phase-title');
 const phaseDescription = document.querySelector('#phase-description');
 
+const phaseCaption = document.querySelector('.chronicle__caption');
+let swapTimer;
+
+function swapPhase(phase) {
+  clearTimeout(swapTimer);
+  const same = phaseImage.getAttribute('src') === phase.image;
+  if (!same) phaseImage.classList.add('is-changing');
+  phaseCaption?.classList.add('is-changing');
+  swapTimer = setTimeout(() => {
+    const done = () => phaseImage.classList.remove('is-changing');
+    if (!same) {
+      phaseImage.addEventListener('load', done, { once: true });
+      phaseImage.addEventListener('error', done, { once: true });
+      phaseImage.src = phase.image;
+      if (phaseImage.complete) requestAnimationFrame(done);
+    }
+    phaseImage.alt = phase.alt;
+    phaseTitle.textContent = phase.title;
+    phaseDescription.textContent = phase.description;
+    phaseCaption?.classList.remove('is-changing');
+  }, reduceMotion ? 0 : 230);
+}
+
 for (const button of document.querySelectorAll('[data-phase]')) {
   button.addEventListener('click', () => {
     const phase = phases[button.dataset.phase];
@@ -40,16 +64,88 @@ for (const button of document.querySelectorAll('[data-phase]')) {
       tab.setAttribute('aria-pressed', String(active));
     }
 
-    if (phaseImage.getAttribute('src') !== phase.image) {
-      phaseImage.classList.add('is-changing');
-      phaseImage.addEventListener('load', () => phaseImage.classList.remove('is-changing'), { once: true });
-      phaseImage.src = phase.image;
-    }
-    phaseImage.alt = phase.alt;
-    phaseTitle.textContent = phase.title;
-    phaseDescription.textContent = phase.description;
+    swapPhase(phase);
   });
 }
 
 const year = document.querySelector('#year');
 if (year) year.textContent = String(new Date().getFullYear());
+
+// Carta ruolo: tieni premuto per scoprirla, come nel gioco.
+const roles = [
+  ['Padrino', 'La famiglia', 'famiglia'], ['Onesto', 'La città', 'citta'], ['Commissario', 'La città', 'citta'],
+  ['Picciotto', 'La famiglia', 'famiglia'], ['Dottore', 'La città', 'citta'], ['Fesso', 'Per sé', 'neutrale'],
+  ['Cecchino', 'La città', 'citta'], ['Sarto', 'La famiglia', 'famiglia'], ['Piromane', 'Per sé', 'neutrale'],
+  ['Cronista', 'La città', 'citta'], ['Compare', 'La famiglia', 'famiglia'], ['Sicario', 'Per sé', 'neutrale'],
+  ['Becchino', 'La città', 'citta'], ['Guardaspalle', 'La città', 'citta'], ['Strozzino', 'Per sé', 'neutrale'],
+  ['Reduce', 'La città', 'citta'], ['Pregiudicato', 'La città', 'citta'], ['Cacciatore di taglie', 'Per sé', 'neutrale'],
+  ['Messia', 'La città', 'citta'], ['Sindaco', 'La città', 'citta'], ['Portinaio', 'La città', 'citta']
+];
+const card = document.querySelector('.role-card');
+if (card) {
+  let index = 0;
+  const nameEl = card.querySelector('.role-card__name');
+  const factionEl = card.querySelector('.role-card__faction');
+  const show = () => {
+    const [name, faction, key] = roles[index % roles.length];
+    nameEl.textContent = name;
+    factionEl.textContent = faction;
+    card.dataset.faction = key;
+    card.classList.add('is-flipped');
+    card.setAttribute('aria-pressed', 'true');
+  };
+  const hide = () => {
+    if (!card.classList.contains('is-flipped')) return;
+    card.classList.remove('is-flipped');
+    card.setAttribute('aria-pressed', 'false');
+    index += 1;
+  };
+  card.addEventListener('pointerdown', (event) => { event.preventDefault(); show(); });
+  for (const type of ['pointerup', 'pointerleave', 'pointercancel']) card.addEventListener(type, hide);
+  card.addEventListener('contextmenu', (event) => event.preventDefault());
+  card.addEventListener('keydown', (event) => {
+    if ((event.key === ' ' || event.key === 'Enter') && !event.repeat) { event.preventDefault(); show(); }
+  });
+  card.addEventListener('keyup', (event) => { if (event.key === ' ' || event.key === 'Enter') hide(); });
+  card.addEventListener('blur', hide);
+}
+
+// Entrate delle sezioni, in ordine di lettura. Senza JS tutto resta visibile.
+if ('IntersectionObserver' in window && !reduceMotion) {
+  const groups = [
+    ['.chronicle', ['h2', '.chronicle__intro > p', ['.phase-tab', 'row'], ['.chronicle__view', 'pic']]],
+    ['.vote', ['h2', '.vote__heading > p', '.text-link', ['.vote__image', 'pic']]],
+    ['.verdict', [['.verdict__image', 'pic'], 'h2', '.verdict__copy > p']],
+    ['.cast', ['h2', '.cast__copy p', ['.role-card', 'pic'], '.cast figcaption']],
+    ['.look', [['.look__image', 'pic'], 'h2', '.look__copy p', ['.look__image--second', 'pic']]],
+    ['.modes', ['h2', ['.mode', 'row'], '.button--gold']]
+  ];
+  const targets = [];
+  for (const [section, parts] of groups) {
+    let step = 0;
+    const seen = new Set();
+    for (const part of parts) {
+      const [selector, kind] = Array.isArray(part) ? part : [part, 'up'];
+      for (const el of document.querySelectorAll(`${section} ${selector}`)) {
+        if (seen.has(el)) continue;
+        seen.add(el);
+        el.dataset.reveal = kind;
+        el.style.setProperty('--d', `${Math.min(step, 8) * 80}ms`);
+        targets.push(el);
+        step += 1;
+      }
+    }
+  }
+  const stamp = document.querySelector('.mode__label--stamp');
+  if (stamp) targets.push(stamp);
+  document.documentElement.classList.add('js');
+  const observer = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      entry.target.classList.add('is-in');
+      if (entry.target === stamp) stamp.closest('.mode')?.classList.add('is-shaking');
+      observer.unobserve(entry.target);
+    }
+  }, { rootMargin: '0px 0px -12% 0px' });
+  for (const el of targets) observer.observe(el);
+}

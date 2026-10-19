@@ -27,8 +27,12 @@
     <main id="contenuto">
       <section class="hero" id="inizio" aria-labelledby="hero-title">
         <div class="hero__copy">
-          <img class="hero__icon" src="img/icon-512.png" alt="L'icona di Obertà" width="112" height="112">
-          <h1 id="hero-title">CHI SA,<br><span>TACE.</span></h1>
+          <div class="neon" role="img" aria-label="L'insegna al neon di Obertà">
+            <img class="neon__ghost" src="img/neon_ghost.png" alt="" width="1170" height="540">
+            <img class="neon__off" src="img/neon_off.png" alt="" width="1170" height="540">
+            <img class="neon__on" src="img/neon_on.png" alt="" width="1170" height="540">
+          </div>
+          <h1 id="hero-title" class="hero__title"><span class="line">CHI SA,</span><br><span class="line line--paper">TACE.</span></h1>
           <p>Un gioco di ruoli segreti. La notte decide, all’alba si contano i morti, poi la piazza parla e vota.</p>
           <a class="button button--paper" href="#partita">Fai un giro in città <span aria-hidden="true">↓</span></a>
           <p class="hero__soon">Presto su App Store, per iPhone.</p>
@@ -83,7 +87,7 @@
         </figure>
         <div class="verdict__copy">
           <h2 id="verdict-title">Ogni città<br>ha una storia.</h2>
-          <p>Le notti diventano scene. Le albe, pagine di giornale con i morti della notte. Il narratore cuce gli eventi della partita in una cronaca tutta sua.</p>
+          <p>Ogni partita ha la sua città e il suo anno. All’alba esce il giornale con i morti della notte, ma non dice chi erano davvero. A un telefono solo, il narratore legge la cronaca ad alta voce.</p>
         </div>
       </section>
 
@@ -92,8 +96,18 @@
           <h2 id="cast-title">Ventuno facce.<br>Nessuna innocente.</h2>
           <p>La <strong>famiglia</strong> si conosce e uccide di notte: Picciotto, Padrino, Sarto, Compare. La <strong>città</strong> indaga e protegge: Commissario, Dottore, Cecchino, Cronista, Becchino, Guardaspalle, Reduce, Pregiudicato, Messia, Sindaco, Portinaio e gli Onesti. E poi chi gioca <strong>per sé</strong>: il Fesso, il Piromane, il Cacciatore di taglie, lo Strozzino, il Sicario.</p>
         </div>
-        <figure class="cast__image" data-ui>
-          <img src="img/carta.png" alt="Una carta ruolo di Obertà girata" width="585" height="1266" loading="lazy">
+        <figure class="cast__image">
+          <button type="button" class="role-card" data-faction="famiglia" aria-pressed="false" aria-label="Tieni premuto per scoprire un ruolo">
+            <span class="role-card__inner">
+              <img class="role-card__back" src="img/dorso.png" alt="" width="444" height="627" loading="lazy">
+              <span class="role-card__front" aria-live="polite">
+                <span class="role-card__seal" aria-hidden="true">O</span>
+                <span class="role-card__faction">La famiglia</span>
+                <span class="role-card__name">Padrino</span>
+                <span class="role-card__hint">Non farla vedere.</span>
+              </span>
+            </span>
+          </button>
           <figcaption>Tieni premuto. Non farla vedere.</figcaption>
         </figure>
       </section>
@@ -105,7 +119,7 @@
         </figure>
         <div class="look__copy">
           <h2 id="look-title">Fatti un nome.<br>E una faccia.</h2>
-          <p>Dal barbiere scegli viso, capelli e baffi. In bottega cappelli, completi e pacchetti interi: le monete si guadagnano solo giocando e salendo di livello. Il tuo fascicolo tiene il conto.</p>
+          <p>Dal barbiere scegli viso, capelli e baffi. In bottega cappelli, completi, pacchetti interi e la collezione Calcio: le monete si guadagnano solo giocando e salendo di livello. Il tuo fascicolo tiene il conto.</p>
         </div>
         <figure class="look__image look__image--second" data-ui>
           <img src="img/bottega.png" alt="La bottega di Obertà con i pacchetti di vestiti" width="585" height="1266" loading="lazy">
@@ -120,14 +134,14 @@
         <div class="mode mode--pass">
           <div>
             <h3>Un telefono per tutti.</h3>
-            <p>Ci si trova attorno al tavolo e ci si passa il telefono per i ruoli e le scelte segrete. Poi si torna a guardarsi in faccia.</p>
+            <p>Da 4 a 16 giocatori attorno al tavolo, anche senza rete. Ci si passa il telefono per i ruoli e le scelte segrete, il narratore guida la notte a voce. Poi si torna a guardarsi in faccia.</p>
           </div>
           <span class="mode__label">Dal vivo</span>
         </div>
         <div class="mode mode--online">
           <div>
-            <h3>Ognuno dal proprio telefono.</h3>
-            <p>Crea una stanza con gli amici: ciascuno segue la partita sul suo schermo e discute nella chat del quartiere.</p>
+            <h3>Gioca con amici.</h3>
+            <p>Crea una stanza e condividi il codice o il QR: ciascuno gioca dal suo schermo. Di giorno si discute nella chat della piazza, con i posti numerati e le menzioni; di notte la famiglia ha una chat tutta sua.</p>
           </div>
           <span class="mode__label">Online</span>
         </div>
@@ -136,7 +150,7 @@
             <h3>La classificata.</h3>
             <p>Dodici sconosciuti, un tavolo. Si entra in coda, si aspetta il tavolo pieno e si gioca per il grado: ogni partita sposta il tuo nome in classifica. Chi abbandona paga.</p>
           </div>
-          <span class="mode__label">Prossimamente</span>
+          <span class="mode__label mode__label--stamp">Prossimamente</span>
         </div>
         <a class="button button--gold" href="#inizio">Torna all’insegna <span aria-hidden="true">↑</span></a>
       </section>
