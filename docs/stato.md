@@ -22,3 +22,7 @@
 - Build: `bundle exec fastlane ios beta` (firma con la chiave API, controlla il permesso Accedi con Apple).
 - Migrazioni in `supabase/migrations`, applicate da GitHub a ogni push su `main`: numeri di versione unici, provarle prima con begin…rollback (token in `fastlane/.env`).
 - Ogni frase nuova del narratore va registrata (`tool/voice/regenerate.sh`).
+
+## 19 ottobre 2026
+- Fazione neutrale (Fesso, Piromane) e nuovi ruoli Messia, Sindaco, Portinaio uniti in main.
+- Foglio ruoli in partita, schermata risultati a tutto schermo. Build 48 (classificata visibile solo in debug).
