@@ -426,9 +426,9 @@
       "text": "Ma la notte è stata lunga."
     },
     {
-      "key": "6ab661292e306326",
+      "key": "c91b012916f71bc8",
       "kind": "segment",
-      "text": "Stanotte è morta una persona:"
+      "text": "Tra i morti di stanotte:"
     },
     {
       "key": "10869defe5883655",
@@ -686,9 +686,9 @@
       "text": "non lo sente nemmeno."
     },
     {
-      "key": "43a7b30f4c858214",
+      "key": "48c41623d5ad3ecf",
       "kind": "segment",
-      "text": "Stanotte hanno provato a uccidere qualcuno, ma il Dottore ha fatto in tempo. Chi fosse, resta un segreto."
+      "text": "Stanotte hanno provato a uccidere qualcuno, ma qualcuno l'ha salvato in tempo. Chi fosse, resta un segreto."
     },
     {
       "key": "ca75c7e8b3ee7e06",
@@ -1711,6 +1711,11 @@
       "text": "era il Cacciatore di taglie: incassa e vince da solo. La partita finisce qui."
     },
     {
+      "key": "79b6943a1939d6e4",
+      "kind": "segment",
+      "text": "era lo Strozzino: è arrivato vivo alla fine, e incassa anche lui."
+    },
+    {
       "key": "aff75d4fff809bf3",
       "kind": "segment",
       "text": "A Chicago restano solo le sedie vuote. Il Sicario paga il caffè e se ne va."
@@ -2423,9 +2428,9 @@
       "text": "But it was a long night."
     },
     {
-      "key": "29b95f1742d10c19",
+      "key": "88b9292f0ea77c6e",
       "kind": "segment",
-      "text": "Last night one person died:"
+      "text": "Among last night's dead:"
     },
     {
       "key": "3e5707a00dd27b84",
@@ -2683,9 +2688,9 @@
       "text": "doesn't feel a thing."
     },
     {
-      "key": "fee5599fbf2938ca",
+      "key": "247ea367493c3d16",
       "kind": "segment",
-      "text": "Last night someone nearly died, but the Doc made it in time. Who it was stays a secret."
+      "text": "Last night someone nearly died, but someone saved them in time. Who it was stays a secret."
     },
     {
       "key": "6a610c5b435622a3",
@@ -3716,6 +3721,11 @@
       "key": "4b35191266d1001e",
       "kind": "segment",
       "text": "was the Bounty Hunter: they cash in and win alone. The game ends here."
+    },
+    {
+      "key": "57a889c10d2bea73",
+      "kind": "segment",
+      "text": "was the Loan Shark: alive at the end, they cash in too."
     },
     {
       "key": "84f0c106550273ad",

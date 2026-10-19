@@ -278,7 +278,7 @@ const italianPack = NarrationPack(
     'Il custode del cimitero ha dormito otto ore, e non sa cosa pensare.',
   ],
   secondVictims: ['E non è finita.', 'Cambio di scena.', 'Ma la notte è stata lunga.'],
-  victimFact: 'Stanotte è morta una persona: {name}. Il suo ruolo resta segreto.',
+  victimFact: 'Tra i morti di stanotte: {name}. Il suo ruolo resta segreto.',
   // Ogni variante ha il suo filmato: le battute raccontano quello che si vede.
   sniperShots: {
     DeathStory.sniperId: [
@@ -333,7 +333,7 @@ const italianPack = NarrationPack(
   },
   someone: 'qualcuno',
   savedFact:
-      'Stanotte hanno provato a uccidere qualcuno, ma il Dottore ha fatto in tempo. Chi fosse, resta un segreto.',
+      'Stanotte hanno provato a uccidere qualcuno, ma qualcuno l\'ha salvato in tempo. Chi fosse, resta un segreto.',
   // Il colpo andato a vuoto: in scena si vede proprio quello che dice la
   // battuta (la fiaschetta, la Bibbia, la buccia di banana...). Il fatto non
   // nomina nessun ruolo: al tavolo resta il dubbio su chi sia.
@@ -503,6 +503,7 @@ const italianPack = NarrationPack(
     'In fondo alla piazza qualcuno conta le banconote. La taglia è pagata.',
     'Un cappello si alza tra la folla, in segno di ringraziamento. Affare fatto.',
   ],
+  loanSharkWinsFact: '{name} era lo Strozzino: è arrivato vivo alla fine, e incassa anche lui.',
   bountyWinsFact: '{name} era il Cacciatore di taglie: incassa e vince da solo. La partita finisce qui.',
   assassinWins: [
     'A {city} restano solo le sedie vuote. Il Sicario paga il caffè e se ne va.',

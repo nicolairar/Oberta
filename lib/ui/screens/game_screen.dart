@@ -365,6 +365,10 @@ class _GameScreenState extends State<GameScreen> {
       winner,
       assassin: _engine.personalWins.any((player) => widget.setup.roleOf(player) == Role.sicario),
       bountyHunter: _engine.personalWins.where((player) => widget.setup.roleOf(player) == Role.cacciatore).firstOrNull,
+      loanSharks: [
+        for (final player in _engine.personalWins)
+          if (widget.setup.roleOf(player) == Role.strozzino) player,
+      ],
     );
     _stage = _Stage.end;
   }

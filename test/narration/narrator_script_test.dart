@@ -417,7 +417,7 @@ void main() {
         expect(lines.sublist(0, 3).where((line) => line.isFact), isEmpty);
         expect(lines[1].text, contains('Sara'), reason: 'l\'azione ha un protagonista');
         expect(lines[3].isFact, isTrue);
-        expect(lines[3].text, 'Stanotte è morta una persona: Sara. Il suo ruolo resta segreto.');
+        expect(lines[3].text, 'Tra i morti di stanotte: Sara. Il suo ruolo resta segreto.');
         expect(lines[4].isFact, isTrue);
       }
     });
@@ -569,9 +569,9 @@ void main() {
 
       final lines = script.dawn(report, discussion: threeMinutes, stories: stories);
       final facts = factsOf(lines);
-      expect(facts[0], 'Stanotte hanno provato a uccidere qualcuno, ma il Dottore ha fatto in tempo. Chi fosse, resta un segreto.');
+      expect(facts[0], "Stanotte hanno provato a uccidere qualcuno, ma qualcuno l'ha salvato in tempo. Chi fosse, resta un segreto.");
       expect(textOf(lines), isNot(contains('Sara')), reason: 'chi si salva resta anonimo');
-      expect(facts[1], 'Stanotte è morta una persona: Luca. Il suo ruolo resta segreto.');
+      expect(facts[1], 'Tra i morti di stanotte: Luca. Il suo ruolo resta segreto.');
       expect(textOf(lines), isNot(contains('{name}')));
       expect(textOf(lines), isNot(contains(italianPack.nobodyDied)));
     });
@@ -633,7 +633,7 @@ void main() {
         final lines = script.dawn(night(2, [sara], silenced: luca), discussion: threeMinutes);
         final facts = factsOf(lines);
         expect(facts, [
-          'Stanotte è morta una persona: Sara. Il suo ruolo resta segreto.',
+          'Tra i morti di stanotte: Sara. Il suo ruolo resta segreto.',
           'Oggi Luca non può parlare durante la discussione. Vota a gesti, e resta tra chi potete eliminare.',
           'Avete 3 minuti per discutere. Poi votate chi eliminare.',
         ]);

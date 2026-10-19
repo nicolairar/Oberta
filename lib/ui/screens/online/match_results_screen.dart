@@ -109,9 +109,22 @@ class _MatchResultsScreenState extends State<MatchResultsScreen> with SingleTick
           Team.citizens => en ? 'THE TOWN WINS' : 'VINCE LA CITTÀ',
           Team.neutral => en ? 'A LONE WOLF WINS' : 'VINCE UN CANE SCIOLTO',
         };
+    // Il risultato dice solo se hai vinto tu: chi ha vinto davvero, quando
+    // hai perso, non si indovina.
     final winners = r.abandoned || role == null
         ? null
-        : faction(won ? role.team : (role.team == Team.mafia ? Team.citizens : Team.mafia));
+        : !won
+            ? (en ? 'YOU LOST' : 'HAI PERSO')
+            : role.team != Team.neutral
+                ? faction(role.team)
+                : switch (role) {
+                    Role.cacciatore => en ? 'THE BOUNTY IS PAID' : 'LA TAGLIA È PAGATA',
+                    Role.strozzino => en ? 'THE LOAN SHARK CASHES IN' : 'LO STROZZINO INCASSA',
+                    Role.fesso => en ? 'THE FOOL HAD THE LAST LAUGH' : 'IL FESSO RIDE PER ULTIMO',
+                    Role.sicario => en ? 'THE HITMAN STANDS ALONE' : 'IL SICARIO RESTA SOLO',
+                    Role.piromane => en ? 'THE CITY BURNS' : 'LA CITTÀ BRUCIA',
+                    _ => faction(Team.neutral),
+                  };
     return Scaffold(
       key: const Key('results.screen'),
       backgroundColor: const Color(0xFF080504),

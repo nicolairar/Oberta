@@ -364,7 +364,6 @@ void main() {
       expect(all.toLowerCase(), isNot(contains('mafia')));
       expect(all.toLowerCase(), isNot(contains('citizen')));
       expect(all.toLowerCase(), isNot(contains('villager')));
-      expect(englishPack.savedFact, contains('the Doc'));
       expect(englishPack.rescues.allLines.where((line) => line.contains(RegExp(r'\b[Tt]he Doc\b'))), isNotEmpty);
       for (final line in [englishPack.howToPlay, englishPack.citizensWinFact, englishPack.mafiaWinsFact]) {
         expect(line, contains('Family'), reason: line);
@@ -401,7 +400,7 @@ void main() {
     });
 
     test('i fatti sono chiari: chi è morto, chi tace, chi ha vinto', () {
-      expect(englishPack.victimFact, 'Last night one person died: {name}. Their role stays secret.');
+      expect(englishPack.victimFact, "Among last night's dead: {name}. Their role stays secret.");
       expect(englishPack.nobodyDied, 'Nobody died last night.');
       expect(englishPack.silencedFact, contains('can\'t talk'));
       expect(englishPack.silencedFact, contains('votes'));
@@ -559,7 +558,7 @@ void main() {
         expect(lines[0].text, matches(RegExp('^(Exterior|Interior), night')));
         expect(lines[1].text, contains('Sara'), reason: 'l\'azione ha un protagonista');
         expect(lines[3].isFact, isTrue);
-        expect(lines[3].text, 'Last night one person died: Sara. Their role stays secret.');
+        expect(lines[3].text, "Among last night's dead: Sara. Their role stays secret.");
       }
     });
 
@@ -571,9 +570,9 @@ void main() {
       ]);
       final lines = script.dawn(report, discussion: threeMinutes);
       final facts = factsOf(lines);
-      expect(facts[0], 'Last night someone nearly died, but the Doc made it in time. Who it was stays a secret.');
+      expect(facts[0], 'Last night someone nearly died, but someone saved them in time. Who it was stays a secret.');
       expect(textOf(lines), isNot(contains('Sara')), reason: 'chi si salva resta anonimo');
-      expect(facts[1], 'Last night one person died: Luca. Their role stays secret.');
+      expect(facts[1], "Among last night's dead: Luca. Their role stays secret.");
       expect(
         englishPack.sniperShots.allLines.map((line) => line.replaceAll('{name}', 'Luca')),
         contains(lines[lines.length - 4].text),

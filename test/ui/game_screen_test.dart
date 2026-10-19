@@ -137,7 +137,7 @@ void main() {
 
     expect(find.text('ALBA'), findsOneWidget);
     expect(find.text('Cronaca nera'), findsOneWidget);
-    expect(find.text('Stanotte è morta una persona: Carla. Il suo ruolo resta segreto.'), findsOneWidget);
+    expect(find.text('Tra i morti di stanotte: Carla. Il suo ruolo resta segreto.'), findsOneWidget);
     expect(find.textContaining('notte.'), findsWidgets, reason: 'la morte è raccontata come una scena');
     expect(find.textContaining('L\'Onesto'), findsNothing, reason: 'di notte il ruolo resta segreto');
     expect(find.text('Avete un minuto per discutere. Poi votate chi eliminare.'), findsOneWidget);
@@ -406,7 +406,7 @@ void main() {
     await tap(tester, 'AVANTI');
 
     expect(find.text('Cronaca nera'), findsOneWidget);
-    expect(find.text('Stanotte è morta una persona: Dino. Il suo ruolo resta segreto.'), findsOneWidget);
+    expect(find.text('Tra i morti di stanotte: Dino. Il suo ruolo resta segreto.'), findsOneWidget);
     expect(
       find.text('Oggi Elio non può parlare durante la discussione. Vota a gesti, e resta tra chi potete eliminare.'),
       findsOneWidget,

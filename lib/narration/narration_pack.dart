@@ -170,6 +170,9 @@ class NarrationPack {
   final List<String> bountyWins;
   final String bountyWinsFact;
 
+  /// Lo Strozzino vivo a fine partita, con {name}: vince insieme a chiunque.
+  final String loanSharkWinsFact;
+
   /// Il Sicario resta in piedi: vince da solo.
   final List<String> assassinWins;
   final String assassinWinsFact;
@@ -239,6 +242,7 @@ class NarrationPack {
     required this.arsonistWinsFact,
     required this.bountyWins,
     required this.bountyWinsFact,
+    required this.loanSharkWinsFact,
     required this.assassinWins,
     required this.assassinWinsFact,
     required this.mayorRevealed,

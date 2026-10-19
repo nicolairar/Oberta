@@ -280,7 +280,7 @@ const englishPack = NarrationPack(
     'The cemetery night watchman slept eight straight hours, and doesn\'t trust it.',
   ],
   secondVictims: ['And that\'s not all.', 'Change of scene.', 'But it was a long night.'],
-  victimFact: 'Last night one person died: {name}. Their role stays secret.',
+  victimFact: 'Among last night\'s dead: {name}. Their role stays secret.',
   // Ogni variante ha il suo filmato: le battute raccontano quello che si vede.
   sniperShots: {
     DeathStory.sniperId: [
@@ -334,7 +334,7 @@ const englishPack = NarrationPack(
     ],
   },
   someone: 'someone',
-  savedFact: 'Last night someone nearly died, but the Doc made it in time. Who it was stays a secret.',
+  savedFact: 'Last night someone nearly died, but someone saved them in time. Who it was stays a secret.',
   // Il colpo andato a vuoto: in scena si vede proprio quello che dice la
   // battuta (la fiaschetta, la Bibbia, la buccia di banana...). Il fatto non
   // nomina nessun ruolo: al tavolo resta il dubbio su chi sia.
@@ -507,6 +507,7 @@ const englishPack = NarrationPack(
     'At the back of the square someone is counting banknotes. The bounty is paid.',
     'A hat tips in the crowd, by way of thanks. Pleasure doing business.',
   ],
+  loanSharkWinsFact: '{name} was the Loan Shark: alive at the end, they cash in too.',
   bountyWinsFact: '{name} was the Bounty Hunter: they cash in and win alone. The game ends here.',
   assassinWins: [
     'Only empty chairs are left in {city}. The Hitman pays for the coffee and leaves.',

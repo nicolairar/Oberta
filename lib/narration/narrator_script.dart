@@ -201,20 +201,22 @@ class NarratorScript {
 
   /// Con [assassin] la città l'ha ripulita il Sicario, non il Piromane; con
   /// [bountyHunter] ha chiuso la partita una taglia pagata in piazza.
-  List<ScriptLine> ending(Team winner, {bool assassin = false, Player? bountyHunter}) {
+  List<ScriptLine> ending(Team winner, {bool assassin = false, Player? bountyHunter, List<Player> loanSharks = const []}) {
+    final sharks = [for (final shark in loanSharks) _fact(pack.loanSharkWinsFact, name: shark.name)];
     if (winner == Team.neutral && bountyHunter != null) {
-      return [_fact(pack.bountyWinsFact, name: bountyHunter.name)];
+      return [_fact(pack.bountyWinsFact, name: bountyHunter.name), ...sharks];
     }
     if (winner == Team.neutral && assassin) {
-      return [_fact(pack.assassinWinsFact), _story(_picker.pick('ending.assassin', pack.assassinWins))];
+      return [_fact(pack.assassinWinsFact), _story(_picker.pick('ending.assassin', pack.assassinWins)), ...sharks];
     }
     if (winner == Team.neutral) {
-      return [_fact(pack.arsonistWinsFact), _story(_picker.pick('ending.neutral', pack.arsonistWins))];
+      return [_fact(pack.arsonistWinsFact), _story(_picker.pick('ending.neutral', pack.arsonistWins)), ...sharks];
     }
     final mafiaWon = winner == Team.mafia;
     return [
       _fact(mafiaWon ? pack.mafiaWinsFact : pack.citizensWinFact),
       _story(_picker.pick('ending.${winner.name}', mafiaWon ? pack.mafiaWins : pack.citizensWin)),
+      ...sharks,
     ];
   }
 

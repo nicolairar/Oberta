@@ -115,7 +115,7 @@ void main() {
 
     expect(find.text('DAWN'), findsOneWidget);
     expect(find.text('The crime page'), findsOneWidget);
-    expect(find.text('Last night one person died: Carla. Their role stays secret.'), findsOneWidget);
+    expect(find.text("Among last night's dead: Carla. Their role stays secret."), findsOneWidget);
     expect(find.textContaining('The Honest One'), findsNothing, reason: 'at night the role stays secret');
     expect(find.text('You have one minute to discuss. Then vote on who to eliminate.'), findsOneWidget);
     await tap(tester, 'OPEN THE FLOOR');
