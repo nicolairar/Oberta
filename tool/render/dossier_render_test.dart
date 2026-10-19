@@ -11,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/l10n/app_language.dart';
 import 'package:oberta/l10n/app_strings.dart';
 import 'package:oberta/online/fake_online.dart';
+import 'package:oberta/online/game/match_rewards.dart';
 import 'package:oberta/online/online_services.dart';
 import 'package:oberta/ui/screens/home_screen.dart';
 import 'package:oberta/ui/theme/app_theme.dart';
@@ -118,7 +119,8 @@ void main() {
         online.auth.googleAvailable = false;
         online
           ..signInReady(handle: 'nicolai')
-          ..award('me', level: 7, xp: 210, coins: 1250);
+          ..award('me', level: 7, xp: 210, coins: 1250)
+          ..ratings[('me', AppLanguage.it)] = const Rating(40, 4);
         await _pump(tester, size, top, bottom, online.services, lang == 'en' ? AppLanguage.en : AppLanguage.it);
         await _shot(tester, '${phone}_${lang}_1_home');
 

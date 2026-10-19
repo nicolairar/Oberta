@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -101,7 +102,11 @@ class _Folder extends StatelessWidget {
         right: 8,
         child: DecoratedBox(
           decoration: const BoxDecoration(
-            gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [_paper, _paperDark]),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [_paper, _paperDark],
+            ),
             borderRadius: BorderRadius.vertical(top: Radius.circular(3)),
             boxShadow: [BoxShadow(color: Color(0x55000000), blurRadius: 6, offset: Offset(0, 2))],
           ),
@@ -242,7 +247,10 @@ class _DossierState extends State<_Dossier> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(t.dossierTitle, style: _typed.copyWith(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 2.5)),
+                  Text(
+                    t.dossierTitle,
+                    style: _typed.copyWith(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 2.5),
+                  ),
                   Container(height: 2, color: _ink, margin: const EdgeInsets.only(top: 6)),
                   Container(height: 0.8, color: _ink, margin: const EdgeInsets.only(top: 2, bottom: 18)),
                 ],
@@ -273,12 +281,14 @@ class _DossierState extends State<_Dossier> {
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            _LevelSeal(key: const Key('profile.level'), level: profile.level, label: t.levelShort(profile.level)),
+                            _LevelSeal(
+                              key: const Key('profile.level'),
+                              level: profile.level,
+                              label: t.levelShort(profile.level),
+                            ),
                             const SizedBox(width: 10),
                             if (_tier case final tier?)
-                              Flexible(
-                                child: _Stamp(text: t.tierName(tier).toUpperCase(), angle: -0.06, color: _ink),
-                              ),
+                              Flexible(child: _RankSeal(text: t.tierName(tier).toUpperCase())),
                           ],
                         ),
                         const SizedBox(height: 12),
@@ -396,7 +406,12 @@ class _Field extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
     '$text:',
-    style: TextStyle(color: _ink.withValues(alpha: 0.6), fontSize: 10.5, fontWeight: FontWeight.w800, letterSpacing: 1.8),
+    style: TextStyle(
+      color: _ink.withValues(alpha: 0.6),
+      fontSize: 10.5,
+      fontWeight: FontWeight.w800,
+      letterSpacing: 1.8,
+    ),
   );
 }
 
@@ -464,7 +479,11 @@ class _HeightLinesPainter extends CustomPainter {
     for (var i = 0; i * 9.0 < size.height; i++) {
       final y = size.height - i * 9.0;
       final long = i % 5 == 0;
-      canvas.drawLine(Offset(0, y), Offset(long ? size.width : size.width * 0.16, y), line..strokeWidth = long ? 1.1 : 0.7);
+      canvas.drawLine(
+        Offset(0, y),
+        Offset(long ? size.width : size.width * 0.16, y),
+        line..strokeWidth = long ? 1.1 : 0.7,
+      );
     }
   }
 
@@ -545,59 +564,167 @@ class _LevelSeal extends StatelessWidget {
   Widget build(BuildContext context) => Semantics(
     label: label,
     excludeSemantics: true,
-    child: Container(
-      width: 52,
-      height: 52,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: const RadialGradient(
-          center: Alignment(-0.3, -0.4),
-          colors: [Color(0xFFC8343C), Color(0xFF8A1A22), Color(0xFF5E0F15)],
-        ),
-        boxShadow: const [BoxShadow(color: Color(0x77000000), blurRadius: 4, offset: Offset(1, 2))],
-        border: Border.all(color: const Color(0xFF6E141B), width: 2),
+    child: _WaxSeal(
+      size: 56,
+      seed: level,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(label.split(' ').first, style: _sealSmall),
+          Text(
+            '$level',
+            style: AppText.display(level >= 100 ? 15 : 19, color: const Color(0xFFFFE9DA)).copyWith(
+              letterSpacing: 0,
+              height: 1.05,
+              shadows: const [Shadow(color: Color(0x88000000), offset: Offset(0, -1))],
+            ),
+          ),
+        ],
       ),
-      child: Container(
-        margin: const EdgeInsets.all(4),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: const Color(0x66FFD9C0), width: 1),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              label.split(' ').first,
-              style: const TextStyle(
-                color: Color(0xFFF6D9C8),
-                fontSize: 8,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1,
-                height: 1,
-              ),
-            ),
-            Text(
-              '$level',
-              style: AppText.display(
-                level >= 100 ? 15 : 19,
-                color: const Color(0xFFFFE9DA),
-              ).copyWith(letterSpacing: 0, height: 1.05),
-            ),
-          ],
+    ),
+  );
+}
+
+/// Il grado della classificata: un sigillo di ceralacca come il livello,
+/// con il nome del grado impresso dentro.
+class _RankSeal extends StatelessWidget {
+  final String text;
+
+  const _RankSeal({required this.text});
+
+  @override
+  Widget build(BuildContext context) => Transform.rotate(
+    angle: -0.08,
+    child: _WaxSeal(
+      size: 76,
+      seed: text.hashCode,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 3),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(text, style: _sealSmall.copyWith(fontSize: 16, letterSpacing: 0.3)),
+            ],
+          ),
         ),
       ),
     ),
   );
 }
 
+const _sealSmall = TextStyle(
+  color: Color(0xFFF6D9C8),
+  fontSize: 8,
+  fontWeight: FontWeight.w900,
+  letterSpacing: 1,
+  height: 1,
+  shadows: [Shadow(color: Color(0x88000000), offset: Offset(0, -0.6))],
+);
+
+/// Una goccia di ceralacca rossa: bordo irregolare e colato, anello
+/// impresso dal sigillo, luce in alto a sinistra.
+class _WaxSeal extends StatelessWidget {
+  final double size;
+  final int seed;
+  final Widget child;
+
+  const _WaxSeal({required this.size, required this.seed, required this.child});
+
+  @override
+  Widget build(BuildContext context) => SizedBox.square(
+    dimension: size,
+    child: CustomPaint(
+      painter: _WaxPainter(seed),
+      child: Padding(
+        padding: EdgeInsets.all(size * 0.2),
+        child: Center(child: child),
+      ),
+    ),
+  );
+}
+
+class _WaxPainter extends CustomPainter {
+  final int seed;
+
+  const _WaxPainter(this.seed);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.center(Offset.zero);
+    final r = size.shortestSide / 2;
+    final rng = math.Random(seed);
+    final blob = Path();
+    const n = 28;
+    final bumps = [for (var i = 0; i < n; i++) 0.86 + rng.nextDouble() * 0.1 + (rng.nextDouble() < 0.12 ? 0.08 : 0)];
+    for (var i = 0; i <= n; i++) {
+      final a = i / n * math.pi * 2;
+      final p = c + Offset(math.cos(a), math.sin(a)) * r * bumps[i % n];
+      if (i == 0) {
+        blob.moveTo(p.dx, p.dy);
+      } else {
+        final pa = (i - 0.5) / n * math.pi * 2;
+        final ctrl = c + Offset(math.cos(pa), math.sin(pa)) * r * (bumps[i % n] + bumps[i - 1]) / 2 * 1.02;
+        blob.quadraticBezierTo(ctrl.dx, ctrl.dy, p.dx, p.dy);
+      }
+    }
+    blob.close();
+    canvas.drawShadow(blob, const Color(0xFF000000), 2.5, false);
+    canvas.drawPath(
+      blob,
+      Paint()
+        ..shader = const RadialGradient(
+          center: Alignment(-0.35, -0.45),
+          radius: 0.9,
+          colors: [Color(0xFFD63A42), Color(0xFF9A1C25), Color(0xFF5E0F15)],
+          stops: [0, 0.55, 1],
+        ).createShader(Offset.zero & size),
+    );
+    // L'anello impresso: ombra sotto, luce sopra.
+    final ring = r * 0.68;
+    canvas.drawCircle(
+      c + const Offset(0, 0.8),
+      ring,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.2
+        ..color = const Color(0x66FFB9A6),
+    );
+    canvas.drawCircle(
+      c,
+      ring,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.2
+        ..color = const Color(0x995A0C12),
+    );
+    // Un lampo di luce sulla cera.
+    canvas.drawArc(
+      Rect.fromCircle(center: c, radius: r * 0.8),
+      math.pi * 1.05,
+      math.pi * 0.45,
+      false,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..strokeCap = StrokeCap.round
+        ..color = const Color(0x55FFFFFF),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_WaxPainter old) => old.seed != seed;
+}
+
 /// Un timbro a inchiostro, un po' storto.
 class _Stamp extends StatelessWidget {
   final String text;
   final double angle;
-  final Color color;
+  static const color = _stamp;
   final double size;
 
-  const _Stamp({required this.text, required this.angle, this.color = _stamp, this.size = 13});
+  const _Stamp({required this.text, required this.angle, this.size = 13});
 
   @override
   Widget build(BuildContext context) => Transform.rotate(
@@ -613,7 +740,12 @@ class _Stamp extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.fade,
         softWrap: false,
-        style: TextStyle(color: color.withValues(alpha: 0.85), fontWeight: FontWeight.w900, fontSize: size, letterSpacing: 1.8),
+        style: TextStyle(
+          color: color.withValues(alpha: 0.85),
+          fontWeight: FontWeight.w900,
+          fontSize: size,
+          letterSpacing: 1.8,
+        ),
       ),
     ),
   );
