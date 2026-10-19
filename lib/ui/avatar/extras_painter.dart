@@ -53,18 +53,7 @@ abstract final class _Extras {
         if (halo != null) {
           canvas.drawPath(_ponytail(), halo);
         } else {
-          const colors = [Color(0xFFE53935), Color(0xFFFB8C00), Color(0xFFFDD835), Color(0xFF43A047), Color(0xFF1E88E5), Color(0xFF8E24AA)];
-          for (var i = 0; i < colors.length; i++) {
-            canvas.save();
-            canvas.translate(0.235 + i * 0.012, -0.98 + i * 0.012);
-            canvas.drawPath(
-              Path()
-                ..moveTo(0, 0)
-                ..quadraticBezierTo(0.16, 0.3, 0.06 + i * 0.01, 0.62),
-              _line(colors[i], 0.03),
-            );
-            canvas.restore();
-          }
+          _rainbowTail(canvas);
         }
       case Hairdo.glitterAfro || Hairdo.birdNestMane:
         canvas.drawCircle(const Offset(0, -0.95), 0.29, back);
@@ -77,12 +66,82 @@ abstract final class _Extras {
     }
   }
 
-  static Path _ponytail() => Path()
-    ..moveTo(0.2, -1.0)
-    ..quadraticBezierTo(0.46, -0.6, 0.3, -0.3)
-    ..lineTo(0.22, -0.32)
-    ..quadraticBezierTo(0.36, -0.62, 0.16, -0.96)
-    ..close();
+  static const _rainbow = [
+    Color(0xFFD23A2E),
+    Color(0xFFE8842A),
+    Color(0xFFE9C23A),
+    Color(0xFF2E9E4A),
+    Color(0xFF2E5BC8),
+    Color(0xFF8A3EB0),
+  ];
+
+  /// La coda lunghissima: raccolta stretta nel fiocco sulla tempia, si gonfia
+  /// scendendo dietro la spalla e si assottiglia in punta. I due bordi sono
+  /// campionati lungo la linea mediana, così le fasce seguono la forma.
+  static (List<Offset>, List<Offset>) _tailEdges() {
+    const p0 = Offset(0.2, -1.0), p1 = Offset(0.44, -0.98), p2 = Offset(0.46, -0.6), p3 = Offset(0.27, -0.2);
+    const n = 40;
+    final left = <Offset>[], right = <Offset>[];
+    for (var i = 0; i <= n; i++) {
+      final t = i / n, u = 1 - t;
+      final pt = p0 * (u * u * u) + p1 * (3 * u * u * t) + p2 * (3 * u * t * t) + p3 * (t * t * t);
+      final d = (p1 - p0) * (3 * u * u) + (p2 - p1) * (6 * u * t) + (p3 - p2) * (3 * t * t);
+      final normal = Offset(-d.dy, d.dx) / d.distance;
+      final w = 0.022 * u + 0.075 * pow(sin(pi * t), 0.6) * (1 - 0.3 * t);
+      left.add(pt - normal * w);
+      right.add(pt + normal * w);
+    }
+    return (left, right);
+  }
+
+  static Path _strip(List<Offset> a, List<Offset> b) {
+    final path = Path()..moveTo(a.first.dx, a.first.dy);
+    for (final p in a.skip(1)) {
+      path.lineTo(p.dx, p.dy);
+    }
+    for (final p in b.reversed) {
+      path.lineTo(p.dx, p.dy);
+    }
+    return path..close();
+  }
+
+  static Path _ponytail() {
+    final (l, r) = _tailEdges();
+    return _strip(l, r);
+  }
+
+  /// Le fasce arcobaleno corrono lungo la coda, una accanto all'altra.
+  static void _rainbowTail(Canvas canvas) {
+    final (l, r) = _tailEdges();
+    final tail = _strip(l, r);
+    final bands = _rainbow.length;
+    List<Offset> at(double k) => [for (var i = 0; i < l.length; i++) Offset.lerp(l[i], r[i], k)!];
+    canvas.save();
+    canvas.clipPath(tail);
+    for (var i = 0; i < bands; i++) {
+      // Un filo di sovrapposizione, perché tra due fasce non resti una crepa.
+      canvas.drawPath(_strip(at(i / bands), at(min(1.0, (i + 1.15) / bands))), _fill(_rainbow[i]));
+    }
+    final b = tail.getBounds();
+    canvas.drawRect(
+      b,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.white.withValues(alpha: 0.18), Colors.white.withValues(alpha: 0), Colors.black.withValues(alpha: 0.35)],
+        ).createShader(b),
+    );
+    // Il lucido: un filo chiaro lungo la curva, verso l'esterno.
+    final shine = Path();
+    final sh = at(0.72);
+    for (var i = 4; i < 24; i++) {
+      i == 4 ? shine.moveTo(sh[i].dx, sh[i].dy) : shine.lineTo(sh[i].dx, sh[i].dy);
+    }
+    canvas.drawPath(shine, _line(Colors.white.withValues(alpha: 0.4), 0.012));
+    canvas.restore();
+    canvas.drawPath(tail, _line(LookPainter._dark(_rainbow[5], 0.6), 0.008)..strokeJoin = StrokeJoin.round);
+  }
 
   /// La calotta sulla fronte, comune a quasi tutte.
   static Path _cap({double top = -1.1, double fringe = -0.96}) => Path()

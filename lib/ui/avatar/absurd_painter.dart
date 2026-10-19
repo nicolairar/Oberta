@@ -530,26 +530,64 @@ abstract final class _Absurd {
           }
         }
       case AvatarHead.rainbowAfro:
-        // L'afro gigante a fasce arcobaleno.
-        for (final (i, c) in _rainbow.indexed) {
-          final r = 0.36 - i * 0.04;
-          canvas.drawPath(
-            Path.combine(
-              PathOperation.difference,
-              Path()..addOval(Rect.fromCircle(center: Offset(0, -0.94 - i * 0.012), radius: r)),
-              Path()..addOval(Rect.fromCenter(center: const Offset(0, -0.84), width: 0.29, height: 0.34)),
-            ),
-            p(c),
-          );
-        }
-        if (detail) {
-          final curl = _line(Colors.black.withValues(alpha: 0.16), 0.008);
-          for (var i = 0; i < 14; i++) {
-            final a = i * pi / 7;
-            final c = Offset(cos(a) * 0.3, -0.94 + sin(a) * 0.3);
-            canvas.drawArc(Rect.fromCenter(center: c, width: 0.06, height: 0.05), a, pi * 1.3, false, curl);
+        // L'afro gigante: una nuvola di riccioli con le fasce arcobaleno
+        // che seguono la curva della testa, rosso fuori e viola dentro.
+        const centre = Offset(0, -0.95);
+        final cloud = Path();
+        const bumps = 18;
+        for (var i = 0; i <= bumps; i++) {
+          final a = i * 2 * pi / bumps;
+          final pt = centre + Offset(cos(a) * 0.35, sin(a) * 0.33);
+          if (i == 0) {
+            cloud.moveTo(pt.dx, pt.dy);
+          } else {
+            final m = (i - 0.5) * 2 * pi / bumps;
+            final ctl = centre + Offset(cos(m) * 0.405, sin(m) * 0.385);
+            cloud.quadraticBezierTo(ctl.dx, ctl.dy, pt.dx, pt.dy);
           }
         }
+        cloud.close();
+        final hole = Path()
+          ..moveTo(-0.15, -0.4)
+          ..lineTo(-0.15, -0.8)
+          ..quadraticBezierTo(-0.16, -1.0, 0, -1.01)
+          ..quadraticBezierTo(0.16, -1.0, 0.15, -0.8)
+          ..lineTo(0.15, -0.4)
+          ..close();
+        final afro = Path.combine(PathOperation.difference, cloud, hole);
+        if (!detail) {
+          canvas.drawPath(afro, p(_rainbow[0]));
+          break;
+        }
+        const bounds = Rect.fromLTRB(-0.42, -1.36, 0.42, -0.54);
+        const focus = Offset(0, -0.84);
+        canvas.save();
+        canvas.clipPath(afro);
+        for (final (i, c) in _rainbow.indexed) {
+          canvas.drawCircle(focus, 0.5 - i * 0.052, _fill(c));
+        }
+        // Ombra ai bordi e un lampo di luce in alto a sinistra.
+        canvas.drawRect(
+          bounds,
+          Paint()
+            ..shader = RadialGradient(
+              center: const Alignment(-0.35, -0.45),
+              radius: 0.9,
+              colors: [Colors.white.withValues(alpha: 0.28), Colors.white.withValues(alpha: 0), Colors.black.withValues(alpha: 0.3)],
+              stops: const [0.0, 0.45, 1.0],
+            ).createShader(bounds),
+        );
+        // I riccioli, appena accennati.
+        final curl = _line(Colors.black.withValues(alpha: 0.1), 0.007);
+        final rnd = Random(11);
+        for (var i = 0; i < 30; i++) {
+          final a = rnd.nextDouble() * 2 * pi;
+          final r = 0.18 + rnd.nextDouble() * 0.15;
+          final c = centre + Offset(cos(a) * r, sin(a) * r * 0.95);
+          canvas.drawArc(Rect.fromCenter(center: c, width: 0.05, height: 0.04), a, pi * 1.1, false, curl);
+        }
+        canvas.restore();
+        canvas.drawPath(afro, _line(_dark(_rainbow[0], 0.55), 0.01));
       case AvatarHead.flamingHair:
         // I capelli in fiamme: rosso fuori, giallo dentro.
         for (final (k, c) in const [(1.0, Color(0xFFD8322E)), (0.75, Color(0xFFF07A1E)), (0.5, Color(0xFFFFD23A))]) {
