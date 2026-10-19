@@ -92,7 +92,7 @@ class _NarratorRolesSheetState extends State<NarratorRolesSheet> {
         leading: CircleAvatar(
           radius: 16,
           backgroundColor: role.color,
-          child: Icon(role.icon, size: 17, color: AppColors.textPrimary),
+          child: RoleIcon(role, size: 30),
         ),
         title: Text(
           player.name,

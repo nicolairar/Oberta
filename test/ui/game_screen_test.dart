@@ -281,7 +281,7 @@ void main() {
     expect(find.text('CARLA'), findsOneWidget);
     expect(find.text('ERA L\'ONESTO'), findsOneWidget);
     expect(find.text('STAVA CON GLI ONESTI'), findsOneWidget);
-    expect(find.byIcon(Role.cittadino.icon), findsOneWidget);
+    expect(find.byWidgetPredicate((w) => w is RoleIcon && w.role == Role.cittadino), findsOneWidget);
     await tap(tester, 'FATTO');
 
     for (final player in [dino, elio]) {
@@ -290,7 +290,7 @@ void main() {
     }
     expect(find.text('Tutti vivi'), findsOneWidget);
     await tap(tester, 'APRI LA DISCUSSIONE');
-    expect(find.byIcon(Role.cittadino.icon), findsNothing, reason: 'quello che ha scoperto non è pubblico');
+    expect(find.byWidgetPredicate((w) => w is RoleIcon && w.role == Role.cittadino), findsNothing, reason: 'quello che ha scoperto non è pubblico');
     await tap(tester, 'AL VOTO');
     await tap(tester, 'NESSUNO');
     await watchVerdict(tester);
@@ -303,8 +303,8 @@ void main() {
     expect(find.textContaining('Stanotte non hai una mossa'), findsOneWidget, reason: 'le fosse sono finite');
     grid = tester.widget<PlayerGrid>(find.byType(PlayerGrid));
     expect(grid.knowledgeOf(carla).role, Role.cittadino, reason: 'il Becchino ricorda cosa ha trovato');
-    expect(find.byIcon(Role.cittadino.icon), findsOneWidget);
-    expect(find.byIcon(Role.becchino.icon), findsOneWidget);
+    expect(find.byWidgetPredicate((w) => w is RoleIcon && w.role == Role.cittadino), findsOneWidget);
+    expect(find.byWidgetPredicate((w) => w is RoleIcon && w.role == Role.becchino), findsOneWidget);
   });
 
   testWidgets('il Reduce incassa il primo colpo: va in scena un agguato che va a vuoto, e resta in gioco', (tester) async {
@@ -372,8 +372,8 @@ void main() {
 
     await tap(tester, 'SONO IO');
     expect(find.text('Chi eliminate stanotte?'), findsOneWidget);
-    expect(find.byIcon(Role.padrino.icon), findsOneWidget);
-    expect(find.byIcon(Role.sarto.icon), findsOneWidget, reason: 'la famiglia si riconosce');
+    expect(find.byWidgetPredicate((w) => w is RoleIcon && w.role == Role.padrino), findsOneWidget);
+    expect(find.byWidgetPredicate((w) => w is RoleIcon && w.role == Role.sarto), findsOneWidget, reason: 'la famiglia si riconosce');
     await tap(tester, 'Dino');
     await tap(tester, 'CONFERMA');
     await tap(tester, 'FATTO');

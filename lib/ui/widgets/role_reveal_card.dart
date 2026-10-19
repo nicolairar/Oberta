@@ -79,7 +79,7 @@ class RoleRevealCard extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(role.icon, color: AppColors.textPrimary, size: height * 0.28),
+          RoleIcon(role, size: height * 0.34),
           const SizedBox(height: 8),
           FittedBox(
             fit: BoxFit.scaleDown,

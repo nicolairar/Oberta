@@ -306,7 +306,7 @@ class RevealRow extends StatelessWidget {
                           shape: BoxShape.circle,
                           border: Border.all(color: AppColors.background, width: 2),
                         ),
-                        child: Icon(role.icon, size: 13, color: AppColors.textPrimary),
+                        child: RoleIcon(role, size: 18),
                       ),
                     ),
                   ],

@@ -250,7 +250,7 @@ class _Face extends StatelessWidget {
                       border: Border.all(color: Saloon.brass, width: 2),
                       boxShadow: const [BoxShadow(color: Colors.black, blurRadius: 12)],
                     ),
-                    child: Icon(role.icon, color: const Color(0xFFFFF1D6), size: 58),
+                    child: RoleIcon(role, size: 84),
                   ),
                   const SizedBox(height: 16),
                   FittedBox(

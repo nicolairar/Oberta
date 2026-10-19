@@ -656,7 +656,9 @@ class _GameScreenState extends State<GameScreen> {
                       color: found?.color ?? (isMafia ? AppColors.accent : const Color(0xFF1E6B52)),
                       border: Border.all(color: AppColors.background, width: 3),
                     ),
-                    child: Icon(found?.icon ?? Icons.search, color: AppColors.textPrimary, size: 26),
+                    child: found == null
+                        ? const Icon(Icons.search, color: AppColors.textPrimary, size: 26)
+                        : RoleIcon(found, size: 44),
                   ),
                 ),
               ],

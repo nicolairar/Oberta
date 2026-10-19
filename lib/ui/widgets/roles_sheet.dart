@@ -144,7 +144,7 @@ class RolesSheet extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CircleAvatar(radius: 18, backgroundColor: role.color, child: Icon(role.icon, size: 19, color: AppColors.textPrimary)),
+            RoleIcon(role, size: 40),
             const SizedBox(width: 12),
             Expanded(
               child: Column(

@@ -119,7 +119,7 @@ class _RoleChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(role.icon, size: 16, color: AppColors.textPrimary),
+          RoleIcon(role, size: 20),
           const SizedBox(width: 6),
           Text(
             '$count × ${AppStrings.of(context).role(role).label}',

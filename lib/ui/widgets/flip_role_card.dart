@@ -181,7 +181,7 @@ class _RoleFace extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(role.icon, color: AppColors.textPrimary, size: 76),
+                RoleIcon(role, size: 104),
                 const SizedBox(height: 18),
                 FittedBox(
                   fit: BoxFit.scaleDown,

@@ -133,8 +133,8 @@ void main() {
       final label = tester.widget<Text>(find.text(italianPack.role(role).label));
       expect(label.style!.color == _mafiaRed, role.team == Team.mafia, reason: role.name);
     }
-    expect(find.byIcon(Icons.smoking_rooms), findsOneWidget);
-    expect(find.byIcon(Icons.content_cut), findsOneWidget);
+    expect(find.byWidgetPredicate((w) => w is RoleIcon && w.role == Role.padrino), findsOneWidget);
+    expect(find.byWidgetPredicate((w) => w is RoleIcon && w.role == Role.sarto), findsOneWidget);
     await hold.up();
     await tester.pumpAndSettle();
     expect(find.text('Il Padrino'), findsNothing);
@@ -280,7 +280,7 @@ void main() {
               player == players[2] ? const Knowledge(role: Role.reduce, team: Team.citizens) : Knowledge.none,
         ),
       );
-      expect(find.byIcon(Role.reduce.icon), findsOneWidget);
+      expect(find.byWidgetPredicate((w) => w is RoleIcon && w.role == Role.reduce), findsOneWidget);
       expect(find.text('INNOCENTE'), findsNothing, reason: 'il ruolo dice già tutto');
     });
   });

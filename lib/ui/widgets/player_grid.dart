@@ -1116,7 +1116,7 @@ class _Seat extends StatelessWidget {
                     Positioned(
                       left: plaque.dx - plaqueW / 2 - chip * 0.55,
                       top: plaque.dy - chip / 2,
-                      child: _chip(chip, role.color, role.icon, tip: AppStrings.of(context).role(role).label),
+                      child: Tooltip(message: AppStrings.of(context).role(role).label, triggerMode: TooltipTriggerMode.longPress, child: RoleIcon(role, size: chip * 1.15)),
                     ),
                   if (selected && stamp == null)
                     Positioned(
@@ -1209,7 +1209,7 @@ class _OwnSeat extends StatelessWidget {
                     Positioned(
                       left: (w - plaqueW) / 2 - chip * 0.8,
                       top: h * 0.08 + plaqueH / 2 - chip / 2,
-                      child: _chip(chip, role.color, role.icon, tip: AppStrings.of(context).role(role).label),
+                      child: Tooltip(message: AppStrings.of(context).role(role).label, triggerMode: TooltipTriggerMode.longPress, child: RoleIcon(role, size: chip * 1.15)),
                     ),
                   if (silenced)
                     Positioned(

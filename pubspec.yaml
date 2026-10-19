@@ -78,6 +78,8 @@ flutter:
     - assets/music/
     - assets/meme/
     - assets/particles/
+    # Le icone dei ruoli.
+    - assets/roles/
     # La voce del narratore automatico, incisa da tool/voice/regenerate.sh.
     - assets/voice/
     - assets/voice/it/

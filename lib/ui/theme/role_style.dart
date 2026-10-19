@@ -29,6 +29,9 @@ extension RoleStyle on Role {
         Role.sicario => const Color(0xFF3A3A48),
       };
 
+  /// L'icona disegnata del ruolo (`assets/roles/<ruolo>.png`).
+  String get iconAsset => 'assets/roles/$name.png';
+
   IconData get icon => switch (this) {
         Role.mafioso => Icons.theater_comedy,
         Role.padrino => Icons.smoking_rooms,
@@ -52,4 +55,21 @@ extension RoleStyle on Role {
         Role.strozzino => Icons.payments,
         Role.sicario => Icons.dangerous,
       };
+}
+
+/// L'icona disegnata di [role], tonda e già incorniciata.
+class RoleIcon extends StatelessWidget {
+  final Role role;
+  final double size;
+
+  const RoleIcon(this.role, {super.key, required this.size});
+
+  @override
+  Widget build(BuildContext context) => Image.asset(
+    role.iconAsset,
+    width: size,
+    height: size,
+    filterQuality: FilterQuality.medium,
+    errorBuilder: (_, _, _) => Icon(role.icon, size: size * 0.8, color: Colors.white),
+  );
 }
