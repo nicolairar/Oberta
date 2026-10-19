@@ -67,3 +67,4 @@ incoming/
 /tool/voice/.venv
 /tool/voice/models/
 .wrangler/
+.taste-skill/
