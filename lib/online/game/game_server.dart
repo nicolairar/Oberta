@@ -504,15 +504,14 @@ class ServerGame {
     return engine.apply(intent);
   }
 
-  /// La fase è finita per tutti prima del tempo? Di notte e al voto quando
-  /// hanno agito tutti i vivi; altrove quando hanno confermato tutti i vivi
-  /// collegati (e almeno uno è collegato: senza nessuno si va a tempo).
+  /// La fase è finita per tutti prima del tempo? La notte e il voto durano
+  /// sempre fino alla scadenza (si può cambiare scelta fino all'ultimo);
+  /// altrove quando hanno confermato tutti i vivi collegati (e almeno uno è
+  /// collegato: senza nessuno si va a tempo).
   bool _everyoneDone(Set<String>? connected) {
     switch (stage) {
       case Stage.night:
-        return engine.phase == GamePhase.night && engine.nightComplete;
       case Stage.vote:
-        return engine.phase == GamePhase.day && engine.pendingDayVoters.isEmpty;
       case Stage.ended:
         return false;
       default:
