@@ -29,6 +29,7 @@ import '../../widgets/death_scene.dart';
 import '../../widgets/night_notes.dart';
 import '../../widgets/scene_scaffold.dart';
 import '../../widgets/content_width.dart';
+import '../../widgets/roles_panel.dart';
 import '../../widgets/wide_scale.dart';
 import '../../widgets/lynch_mark.dart';
 import 'game/chat_dock.dart';
@@ -754,7 +755,18 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
               ),
             ),
             const SizedBox(width: 12),
-            SizedBox(key: const Key('game.chatSlot'), width: _wideChatWidth, child: chatBox),
+            SizedBox(
+              width: _wideChatWidth,
+              child: Column(
+                children: [
+                  RolesPanel(deck: _public.deck, revealed: publicReveals(_public)),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: SizedBox(key: const Key('game.chatSlot'), width: double.infinity, child: chatBox),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       );
