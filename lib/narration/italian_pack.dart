@@ -115,7 +115,7 @@ const italianPack = NarrationPack(
     Role.sicario: RoleText(
       'Il Sicario',
       '«Lavoro da solo. Pago io il caffè.»',
-      'Giochi da solo e ogni notte uccidi una persona. Attenzione: al Commissario risulti della Famiglia. Vinci se resti l\'ultimo in piedi.',
+      'Giochi da solo e ogni notte uccidi una persona. Attenzione: al Commissario risulti della Famiglia. Vinci se resti da solo, o con una sola persona: anche con la Famiglia.',
     ),
   },
   cities: [

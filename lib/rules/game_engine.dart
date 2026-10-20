@@ -704,14 +704,25 @@ class GameEngine {
     aim(familyTarget, AttackSource.family);
     aim(sniped, AttackSource.sniper);
     aim(_targetOf(NightTaskKind.stab), AttackSource.assassin);
+    // Il fuoco non si ferma: niente Dottore, Strozzino, Guardaspalle o pelle
+    // dura del Reduce. Chi brucia, brucia.
+    final burning = <Player>{};
     if (ignited) {
       for (final player in _alive) {
-        if (_doused.contains(player)) aim(player, AttackSource.fire);
+        if (!_doused.contains(player)) continue;
+        burning.add(player);
+        // Protetto dagli altri colpi ma cosparso: lo prende il fuoco.
+        if (protected.contains(player) || setup.roleOf(player) == Role.reduce) {
+          struck[player] = AttackSource.fire;
+        } else {
+          struck.putIfAbsent(player, () => AttackSource.fire);
+        }
       }
       _doused.clear();
     }
 
     AttackOutcome land(Player target) {
+      if (burning.contains(target)) return AttackOutcome.killed;
       if (protected.contains(target)) return AttackOutcome.healed;
       final tough = setup.roleOf(target) == Role.reduce && _scarred.add(target);
       return tough ? AttackOutcome.shrugged : AttackOutcome.killed;

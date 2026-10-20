@@ -93,3 +93,8 @@ Vittorie personali che si sommano: Fesso linciato (anche se il linciaggio chiude
 - Cacciatore: alla taglia morta di notte meglio una taglia nuova invece del passaggio alla città?
 - Strozzino: deve anche "comprare" il voto del debitore online?
 - Timer: tempi diversi per i bot?
+
+## Aggiornamento 20 ottobre 2026
+
+- Il fuoco del Piromane non si ferma: Dottore, Strozzino, Guardaspalle e Reduce non salvano chi brucia.
+- Il Sicario vince se resta da solo o con una sola persona, anche se è della Famiglia.

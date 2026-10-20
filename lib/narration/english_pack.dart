@@ -117,7 +117,7 @@ const englishPack = NarrationPack(
     Role.sicario: RoleText(
       'The Hitman',
       '“I work alone. Coffee\'s on me.”',
-      'You play alone and kill someone every night. Watch out: the Detective sees you as Family. You win if you are the last one standing.',
+      'You play alone and kill someone every night. Watch out: the Detective sees you as Family. You win if you are alone, or left with just one other player, even Family.',
     ),
   },
   cities: [

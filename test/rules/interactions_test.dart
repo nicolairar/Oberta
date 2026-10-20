@@ -221,18 +221,19 @@ void main() {
       expect(engine.doused, isEmpty);
     });
 
-    test('il fuoco passa per Dottore, Strozzino, Guardaspalle e Reduce', () {
+    test('il fuoco non lo ferma nessuno: Dottore, Strozzino, Guardaspalle e Reduce non servono', () {
       final engine = pyroTable({doc: Role.medico, shark: Role.strozzino, guard: Role.guardaspalle, vet: Role.reduce});
       for (final target in [a, b, c, vet]) {
         night(engine, {pyro: target});
         engine.lynch(null);
       }
       final dawn = night(engine, {pyro: pyro, doc: a, shark: b, guard: c}, alternative: {pyro});
-      expect(attackOn(dawn, a)!.outcome, AttackOutcome.healed);
-      expect(attackOn(dawn, b)!.outcome, AttackOutcome.healed);
-      expect(attackOn(dawn, guard)!.outcome, AttackOutcome.killed);
-      expect(attackOn(dawn, vet)!.outcome, AttackOutcome.shrugged);
-      expect(dawn.victims, [guard]);
+      for (final burned in [a, b, c, vet]) {
+        expect(attackOn(dawn, burned)!.outcome, AttackOutcome.killed, reason: burned.id);
+        expect(attackOn(dawn, burned)!.source, AttackSource.fire, reason: burned.id);
+      }
+      expect(attackOn(dawn, guard), isNull, reason: 'il Guardaspalle non entra nel rogo');
+      expect(engine.isAlive(guard), isTrue);
     });
 
     test('il cosparso ucciso dalla famiglia non brucia due volte', () {
