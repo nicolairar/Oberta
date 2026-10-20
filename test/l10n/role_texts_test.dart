@@ -15,14 +15,14 @@ void main() {
     }
   });
 
-  test('i nomi di scena: "Il Dottore" in italiano, "The Doc" in inglese', () {
+  test('i nomi di scena: "Il Dottore" in italiano, "Doctor" in inglese', () {
     for (final role in Role.values) {
       expect(italianPack.role(role).label, matches(RegExp(r"^(Il |Lo |L')\p{Lu}", unicode: true)), reason: role.name);
-      expect(englishPack.role(role).label, matches(RegExp(r'^The \p{Lu}', unicode: true)), reason: role.name);
+      expect(englishPack.role(role).label, matches(RegExp(r'^\p{Lu}', unicode: true)), reason: role.name);
     }
-    expect(englishPack.role(Role.medico).label, 'The Doc');
-    expect(englishPack.role(Role.cittadino).label, 'The Honest One');
-    expect(englishPack.role(Role.pregiudicato).label, 'The Ex-Con');
+    expect(englishPack.role(Role.medico).label, 'Doctor');
+    expect(englishPack.role(Role.cittadino).label, 'Honest Citizen');
+    expect(englishPack.role(Role.pregiudicato).label, 'Ex-Con');
   });
 
   test('ogni motto tra virgolette della sua lingua, e una spiegazione semplice', () {

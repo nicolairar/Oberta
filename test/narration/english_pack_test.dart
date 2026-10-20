@@ -326,12 +326,12 @@ void main() {
       expect(englishRoleNames.keys.toSet(), Role.values.toSet());
       expect(englishRoleNames.values.toSet(), hasLength(Role.values.length));
       for (final name in englishRoleNames.values) {
-        expect(name, startsWith('The '), reason: 'come "Il Dottore": un nome di scena');
+        expect(name, isNot(startsWith('The ')), reason: 'come "Il Dottore": un nome di scena');
       }
     });
 
     test('nessuna battuta d\'atmosfera ruba il nome a un ruolo', () {
-      // "The gravedigger slept in" suonerebbe come un indizio su The Gravedigger.
+      // "The gravedigger slept in" suonerebbe come un indizio su Gravedigger.
       final atmosphere = [
         ...englishPack.firstNights,
         ...englishPack.nights,
@@ -351,7 +351,7 @@ void main() {
         for (final piece in englishPack.epilogues) piece.text,
       ].join(' ');
       for (final name in englishRoleNames.values) {
-        final noun = RegExp('\\b${RegExp.escape(name.substring(4))}\\b', caseSensitive: false);
+        final noun = RegExp('\\b${RegExp.escape(name)}\\b', caseSensitive: false);
         expect(noun.hasMatch(atmosphere), isFalse, reason: name);
       }
       expect(englishPack.rescues.allLines.join(' ').toLowerCase(), isNot(contains('gravedigger')));
@@ -359,7 +359,6 @@ void main() {
 
     test('il Dottore si chiama sempre "the Doc", le fazioni "the Family" e "the town"', () {
       final all = everyLineOf(englishPack).join(' ');
-      expect(all.toLowerCase(), isNot(contains('doctor')));
       expect(all, isNot(contains(RegExp(r'\bfamily\b'))), reason: 'la Famiglia ha la maiuscola');
       expect(all.toLowerCase(), isNot(contains('mafia')));
       expect(all.toLowerCase(), isNot(contains('citizen')));
@@ -650,7 +649,7 @@ void main() {
         expect(lines[0].isFact, isFalse);
         expect(lines[0].text, contains('Sara'));
         expect(lines[1].isFact, isTrue);
-        expect(lines[1].text, 'The card flips. Sara was… ${englishRoleNames[role]!.toUpperCase()}. $side');
+        expect(lines[1].text, 'The card flips. Sara was… THE ${englishRoleNames[role]!.toUpperCase()}. $side');
         expect(
           role.team == Team.mafia ? englishPack.lynchedMafioso : englishPack.lynchedInnocent,
           contains(lines[2].text),
@@ -669,7 +668,7 @@ void main() {
     test('la carta chiama il ruolo col suo nome inglese', () {
       final script = englishIn('palermo', 2);
       String card(Role role) => script.lynch(LynchReport(round: 1, condemned: sara, role: role))[1].text;
-      expect(card(Role.medico), 'The card flips. Sara was… THE DOC. On the town\'s side.');
+      expect(card(Role.medico), 'The card flips. Sara was… THE DOCTOR. On the town\'s side.');
       expect(card(Role.sarto), 'The card flips. Sara was… THE TAILOR. On the Family\'s side.');
       for (final role in Role.values) {
         expect(card(role), contains(englishRoleNames[role]!.toUpperCase()), reason: role.name);

@@ -181,7 +181,7 @@ void main() {
     expect(find.text('THE CARDS'), findsOneWidget);
     expect(find.text('Automatic'), findsOneWidget);
     expect(find.text('The cards are dealt'), findsOneWidget);
-    expect(find.textContaining('× The '), findsWidgets, reason: 'i ruoli in gioco, in inglese');
+    expect(find.textContaining('× '), findsWidgets, reason: 'i ruoli in gioco, in inglese');
     await tester.tap(find.text('CHECK YOUR CARDS'));
     await tester.pumpAndSettle();
 

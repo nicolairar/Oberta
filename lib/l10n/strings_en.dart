@@ -239,7 +239,7 @@ final class EnglishStrings extends AppStrings {
   @override
   String get inTheGrave => 'IN THE GRAVE';
   @override
-  String wasRole(String role) => 'WAS ${role.toUpperCase()}';
+  String wasRole(String role) => 'WAS THE ${role.toUpperCase()}';
   @override
   String get isFamily => 'IS WITH THE FAMILY';
   @override

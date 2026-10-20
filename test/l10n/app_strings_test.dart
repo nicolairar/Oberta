@@ -113,7 +113,7 @@ void main() {
       expect(it.suspicion('Sara', 1, rightly: true), 'Sara, con 1 dito puntato nel buio. A ragione.');
       expect(it.suspicion('Sara', 2, rightly: false), 'Sara, con 2 dita puntate nel buio. A torto.');
       expect(en.readerReadsAloud('Sara'), 'SARA READS IT OUT LOUD');
-      expect(en.wasRole(en.role(Role.medico).label), 'WAS THE DOC');
+      expect(en.wasRole(en.role(Role.medico).label), 'WAS THE DOCTOR');
     });
   });
 

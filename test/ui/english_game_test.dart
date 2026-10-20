@@ -116,7 +116,7 @@ void main() {
     expect(find.text('DAWN'), findsOneWidget);
     expect(find.text('The crime page'), findsOneWidget);
     expect(find.text("Among last night's dead: Carla. Their role stays secret."), findsOneWidget);
-    expect(find.textContaining('The Honest One'), findsNothing, reason: 'at night the role stays secret');
+    expect(find.textContaining('Honest Citizen'), findsNothing, reason: 'at night the role stays secret');
     expect(find.text('You have one minute to discuss. Then vote on who to eliminate.'), findsOneWidget);
     await tap(tester, 'OPEN THE FLOOR');
 
@@ -145,14 +145,14 @@ void main() {
     expect(find.text('The town\nwins'), findsOneWidget);
     expect(find.text('The town wins: the whole Family has been eliminated.'), findsOneWidget);
     expect(find.text('WHO WAS WHO'), findsOneWidget);
-    expect(find.text('The Soldier'), findsOneWidget);
-    expect(find.text('The Commissioner'), findsOneWidget);
+    expect(find.text('Soldier'), findsOneWidget);
+    expect(find.text('Detective'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('BACK TO THE ALLEY'), 200);
     await tester.pumpAndSettle();
     expect(find.text('Night 1'), findsOneWidget);
     expect(find.text('Gallows, day 1'), findsOneWidget);
     expect(find.text('Still standing'), findsWidgets);
-    expect(find.text('The Honest One'), findsWidgets);
+    expect(find.text('Honest Citizen'), findsWidgets);
     await tap(tester, 'BACK TO THE ALLEY');
     expect(find.text('PLAY'), findsOneWidget);
   });

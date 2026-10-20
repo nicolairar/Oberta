@@ -1204,7 +1204,7 @@ final class EnglishOnlineStrings extends OnlineStrings {
   @override
   String get resultsAfk => 'You were away: no rewards';
   @override
-  String leftTown(String name, String role) => '$name left town. They were $role.';
+  String leftTown(String name, String role) => '$name left town. They were the $role.';
   @override
   String get gameClosed => 'The game was closed: nobody was playing any more.';
   @override
