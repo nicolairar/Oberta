@@ -115,7 +115,7 @@ platform :ios do
       distribute_only: true, # nessun upload: si distribuisce la build più recente
       app_platform: "ios",
       distribute_external: true,
-      groups: ["Amici"],
+      groups: ["External Tester"],
       notify_external_testers: true,
       changelog: File.read("testflight/what_to_test_it.txt"),
       localized_build_info: {
