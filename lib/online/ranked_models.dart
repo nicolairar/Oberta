@@ -14,6 +14,9 @@ class RankedStatus {
   final Duration? estimate;
   final String? roomId;
 
+  /// Quanti siedono nella sala d'attesa (mai chi).
+  final int seated;
+
   /// Partita di prova (bot, non classificata): solo col flag di prova del server.
   final bool testMatch;
   final DateTime? cooldownUntil;
@@ -26,6 +29,7 @@ class RankedStatus {
     this.waiting = 0,
     this.estimate,
     this.roomId,
+    this.seated = 0,
     this.testMatch = false,
     this.cooldownUntil,
     this.warning = false,
@@ -40,6 +44,7 @@ class RankedStatus {
         waiting: (json['waiting'] as num?)?.toInt() ?? 0,
         estimate: json['estimate'] == null ? null : Duration(seconds: (json['estimate'] as num).toInt()),
         roomId: json['room'] as String?,
+        seated: (json['seated'] as num?)?.toInt() ?? 0,
         testMatch: json['test'] == true,
         cooldownUntil: _ms(json['cooldown_until']),
         warning: json['warning'] == true,
@@ -96,11 +101,38 @@ class MatchResult {
       );
 }
 
+/// Quanti giocatori ci sono adesso, per la locandina della home.
+class OnlineCounts {
+  final int online;
+  final Map<AppLanguage, int> queued;
+
+  const OnlineCounts({this.online = 0, this.queued = const {}});
+
+  /// Sotto questa soglia la locandina tace: pochi numeri fanno sembrare la
+  /// città vuota.
+  static const encouraging = 20;
+
+  factory OnlineCounts.fromJson(Map<String, Object?> json) {
+    final queued = (json['queued'] as Map?)?.cast<String, Object?>() ?? const {};
+    return OnlineCounts(
+      online: (json['online'] as num?)?.toInt() ?? 0,
+      queued: {
+        for (final language in AppLanguage.values)
+          if (queued[language.name] case final num n) language: n.toInt(),
+      },
+    );
+  }
+}
+
 /// La coda della classificata e i risultati. Il server decide tutto.
 abstract class RankedRepository {
   Future<RankedStatus> status();
   Future<RankedStatus> enqueue(AppLanguage language);
   Future<void> leave();
+
+  /// Quanti sono in giro (in partita, in sala, in coda) e quanti in coda per
+  /// lingua: solo numeri, presi da una cache del server.
+  Future<OnlineCounts> counts();
 
   /// Il proprio rating per lingua (solo per il grado: il numero non si mostra).
   Future<Map<AppLanguage, Rating>> ratings();

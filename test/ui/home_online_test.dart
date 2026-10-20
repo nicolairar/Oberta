@@ -217,6 +217,19 @@ void main() {
   });
 
   group('chi è entrato', () {
+    testWidgets('la locandina della classificata dice quanti sono solo quando sono tanti', (tester) async {
+      online
+        ..signInReady(handle: 'anna')
+        ..extraOnline = 12;
+      await openAlley(tester);
+      expect(find.byKey(const Key('home.rankedCount')), findsNothing, reason: 'dodici in giro: meglio tacere');
+
+      online.extraOnline = 40;
+      await tester.pump(const Duration(minutes: 1));
+      await tester.pumpAndSettle();
+      expect(find.text('40 GIOCATORI IN GIRO PER LA CITTÀ'), findsOneWidget);
+    });
+
     testWidgets('ha il cartellino in alto a sinistra, e dal cartellino il profilo', (tester) async {
       online
         ..signInReady(handle: 'anna')

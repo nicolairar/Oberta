@@ -456,6 +456,9 @@ class HomeSoonPoster extends StatefulWidget {
   final String blurb;
   /// La fascetta di traverso («presto»); null: niente fascetta.
   final String? strip;
+
+  /// Il timbro in alto («24 in coda»); null: niente timbro.
+  final String? stamp;
   final HomeSoonEmblem emblem;
   final Color paper;
   final int seed;
@@ -466,6 +469,7 @@ class HomeSoonPoster extends StatefulWidget {
     required this.title,
     required this.blurb,
     this.strip,
+    this.stamp,
     required this.emblem,
     required this.paper,
     required this.seed,
@@ -541,6 +545,28 @@ class _HomeSoonPosterState extends State<HomeSoonPoster> with SingleTickerProvid
                 ),
               ),
             ),
+            if (widget.stamp case final stamp?)
+              Positioned(
+                top: 4,
+                right: -6,
+                child: Transform.rotate(
+                  angle: 0.09,
+                  child: Container(
+                    key: const Key('home.rankedCount'),
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                    decoration: BoxDecoration(
+                      color: _red,
+                      border: Border.all(color: _cream, width: 1),
+                      boxShadow: const [BoxShadow(color: Color(0x99000000), offset: Offset(1, 2))],
+                    ),
+                    constraints: const BoxConstraints(maxWidth: 118),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(stamp.toUpperCase(), style: _print(8.5, color: _cream, spacing: 1.2)),
+                    ),
+                  ),
+                ),
+              ),
             if (widget.strip != null)
             Positioned(
               left: -5,

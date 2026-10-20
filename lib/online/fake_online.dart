@@ -59,6 +59,9 @@ class FakeOnline {
   /// Quanti posti ha una partita classificata: sempre esattamente tanti.
   int rankedSize = 12;
 
+  /// Altri giocatori in giro, per la locandina della home (solo il numero).
+  int extraOnline = 0;
+
   /// Il conto alla rovescia del tavolo pieno.
   Duration rankedCountdown = const Duration(seconds: 10);
   int _rankedIds = 0;
@@ -282,9 +285,12 @@ class _FakeRoom {
 
   _FakeRoom(this.room);
 
-  List<RoomMember> members(FakeOnline online) => [
+  /// Come la policy del server: nella sala d'attesa della classificata
+  /// ognuno vede solo sé stesso.
+  List<RoomMember> members(FakeOnline online, {bool all = false}) => [
         for (final MapEntry(key: id, value: seat) in seats.entries)
-          RoomMember(profile: online._profiles[id]!, seat: seat),
+          if (all || !(room.ranked || room.testMatch) || room.status != RoomStatus.lobby || id == online.auth.userId)
+            RoomMember(profile: online._profiles[id]!, seat: seat),
       ]..sort((a, b) => a.seat.compareTo(b.seat));
 
   void notify(FakeOnline online) {
@@ -630,7 +636,7 @@ class FakeRooms implements RoomRepository {
   Future<Room?> fetch(String roomId) async {
     final room = _online._rooms[roomId];
     if (room == null || !room.seats.containsKey(_online._me)) return null;
-    return room.room;
+    return room.room.copyWith(seated: room.seats.length);
   }
 
   @override
@@ -737,7 +743,7 @@ class FakeGame implements GameBackend {
   void _begin(String roomId) {
     final room = _room(roomId);
     // Come il server: le persone nell'ordine dei posti, poi i bot.
-    final people = room.members(_online);
+    final people = room.members(_online, all: true);
     final seats = <String, SeatPlan>{};
     for (final (index, member) in people.indexed) {
       final seat = 's${index + 1}';
@@ -1316,6 +1322,7 @@ class FakeRanked implements RankedRepository {
       waiting: queued == null ? 0 : _online.rankedQueue.values.where((q) => q.$1 == queued.$1).length,
       estimate: queued == null ? null : const Duration(seconds: 45),
       roomId: room?.room.id,
+      seated: room?.seats.length ?? 0,
       testMatch: room?.room.testMatch ?? false,
       cooldownUntil: cooldown != null && cooldown.isAfter(_online.clock.now()) ? cooldown : null,
     );
@@ -1347,6 +1354,19 @@ class FakeRanked implements RankedRepository {
     for (final r in [..._online._rooms.values]) {
       if (_online._inRankedLobby(r)) _online._leave(r.room.id, me);
     }
+  }
+
+  @override
+  Future<OnlineCounts> counts() async {
+    await _online._network();
+    final seated = {for (final r in _online._rooms.values) if (r.room.status != RoomStatus.ended) ...r.seats.keys};
+    return OnlineCounts(
+      online: _online.extraOnline + {...seated, ..._online.rankedQueue.keys}.length,
+      queued: {
+        for (final language in AppLanguage.values)
+          language: _online.rankedQueue.values.where((q) => q.$1 == language).length,
+      },
+    );
   }
 
   @override

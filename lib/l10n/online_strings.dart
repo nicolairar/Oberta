@@ -157,6 +157,9 @@ abstract class OnlineStrings {
   String get rankedLeaveLobby;
   String get rankedNoPenalty;
   String get rankedTipsTitle;
+  String get rankedStrangers;
+  String homeQueued(int n);
+  String homeOnline(int n);
   List<String> get rankedTips;
   String tierName(RankTier tier);
   String get resultsTitle;
@@ -352,6 +355,9 @@ abstract class OnlineStrings {
     'rankedLeaveLobby': rankedLeaveLobby,
     'rankedNoPenalty': rankedNoPenalty,
     'rankedTipsTitle': rankedTipsTitle,
+    'rankedStrangers': rankedStrangers,
+    'homeQueued': homeQueued(24),
+    'homeOnline': homeOnline(31),
     for (final (i, tip) in rankedTips.indexed) 'rankedTip$i': tip,
     for (final tier in RankTier.values) 'tier.${tier.name}': tierName(tier),
     'resultsTitle': resultsTitle,
@@ -410,6 +416,12 @@ final class ItalianOnlineStrings extends OnlineStrings {
   String get rankedNoPenalty => 'Prima che cominci si può uscire senza penalità.';
   @override
   String get rankedTipsTitle => 'MENTRE ASPETTI';
+  @override
+  String get rankedStrangers => 'Chi siede con te lo scopri quando si gioca.';
+  @override
+  String homeQueued(int n) => '$n in coda per un tavolo';
+  @override
+  String homeOnline(int n) => '$n giocatori in giro per la città';
   @override
   List<String> get rankedTips => const [
         'Di giorno parla, ma non troppo: chi parla troppo finisce nel mirino.',
@@ -816,6 +828,12 @@ final class EnglishOnlineStrings extends OnlineStrings {
   String get rankedNoPenalty => 'Before the start you can leave with no penalty.';
   @override
   String get rankedTipsTitle => 'WHILE YOU WAIT';
+  @override
+  String get rankedStrangers => 'You find out who sits with you when the game starts.';
+  @override
+  String homeQueued(int n) => '$n waiting for a table';
+  @override
+  String homeOnline(int n) => '$n players around town';
   @override
   List<String> get rankedTips => const [
         'Talk during the day, but not too much: the loudest end up in the crosshairs.',

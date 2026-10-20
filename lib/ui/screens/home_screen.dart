@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -110,6 +111,33 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
   /// L'account per cui si è già chiesto di finire il profilo: si chiede una volta.
   String? _setupAskedFor;
 
+  /// Quanti giocatori ci sono (per la locandina della classificata), riletti
+  /// ogni minuto. Si mostrano solo da [OnlineCounts.encouraging] in su.
+  OnlineCounts? _counts;
+  Timer? _countsTimer;
+
+  Future<void> _readCounts() async {
+    final ranked = _online?.ranked;
+    if (ranked == null || !(_account?.signedIn ?? false)) return;
+    try {
+      final counts = await ranked.counts();
+      if (mounted) setState(() => _counts = counts);
+    } catch (_) {
+      // Senza numeri la locandina resta com'è.
+    }
+  }
+
+  /// La riga sotto il titolo: chi è in coda nella propria lingua, se no
+  /// quanti sono in giro; niente se i numeri sono piccoli.
+  String? _countsLine(AppStrings t) {
+    final counts = _counts;
+    if (counts == null) return null;
+    final queued = counts.queued[t.language] ?? 0;
+    if (queued >= OnlineCounts.encouraging) return t.online.homeQueued(queued);
+    if (counts.online >= OnlineCounts.encouraging) return t.online.homeOnline(counts.online);
+    return null;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -120,7 +148,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _linkArrived();
       if (_account?.signedIn ?? false) _checkShop();
+      _readCounts();
     });
+    _countsTimer = Timer.periodic(const Duration(minutes: 1), (_) => _readCounts());
   }
 
   void _accountChanged() {
@@ -131,6 +161,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
     });
     if (account.signedIn) {
       _checkShop();
+      _readCounts();
     } else {
       _shopChecked = false;
     }
@@ -344,6 +375,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _countsTimer?.cancel();
     _links.removeListener(_linkArrived);
     _account?.dispose();
     _ambient.dispose();
@@ -585,6 +617,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                     child: HomeSoonPoster(
                       title: t.rankedTitle,
                       blurb: t.rankedBlurb,
+                      stamp: _countsLine(t),
                       strip: rankedDebug ? 'EARLY ACCESS' : t.soon,
                       emblem: HomeSoonEmblem.laurel,
                       paper: const Color(0xFF581019),

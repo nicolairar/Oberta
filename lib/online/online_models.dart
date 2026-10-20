@@ -163,6 +163,9 @@ class Room {
   /// finisce e la partita comincia. Null mentre si aspetta.
   final DateTime? startsAt;
 
+  /// Quanti siedono (la classificata non dice chi prima dell'inizio).
+  final int seated;
+
   const Room({
     required this.id,
     required this.code,
@@ -174,12 +177,14 @@ class Room {
     this.ranked = false,
     this.testMatch = false,
     this.startsAt,
+    this.seated = 0,
   });
 
   factory Room.fromJson(Map<String, dynamic> json) => Room(
         id: json['id'] as String,
         code: json['code'] as String,
-        hostId: json['host'] as String,
+        // La sala d'attesa della classificata non ha padrone di casa.
+        hostId: json['host'] as String? ?? '',
         language: json['language'] == 'en' ? AppLanguage.en : AppLanguage.it,
         status: RoomStatus.values.byName(json['status'] as String),
         maxPlayers: (json['max_players'] as num).toInt(),
@@ -187,11 +192,12 @@ class Room {
         ranked: json['ranked'] == true,
         testMatch: json['test_match'] == true,
         startsAt: json['starts_at'] == null ? null : DateTime.parse(json['starts_at'] as String),
+        seated: (json['seated'] as num?)?.toInt() ?? 0,
       );
 
   static const _keep = Object();
 
-  Room copyWith({String? hostId, RoomStatus? status, int? bots, Object? startsAt = _keep}) => Room(
+  Room copyWith({String? hostId, RoomStatus? status, int? bots, Object? startsAt = _keep, int? seated}) => Room(
         id: id,
         code: code,
         hostId: hostId ?? this.hostId,
@@ -202,6 +208,7 @@ class Room {
         ranked: ranked,
         testMatch: testMatch,
         startsAt: identical(startsAt, _keep) ? this.startsAt : startsAt as DateTime?,
+        seated: seated ?? this.seated,
       );
 }
 

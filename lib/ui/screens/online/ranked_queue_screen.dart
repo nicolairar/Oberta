@@ -9,11 +9,9 @@ import '../../../l10n/app_strings.dart';
 import '../../../online/online_services.dart';
 import '../../../rules/role.dart';
 import '../../theme/app_theme.dart';
-import 'game/chat_dock.dart';
 import 'game/noir_ui.dart';
 import 'online_game_screen.dart';
 import 'online_widgets.dart';
-import 'safety_sheets.dart';
 import 'match_results_screen.dart';
 import 'ranked_entry.dart';
 import 'ranked_lobby.dart';
@@ -21,8 +19,10 @@ import 'ranked_lobby.dart';
 /// La classificata: lingua, poi subito la sala d'attesa. Il server fa
 /// sedere chi entra al tavolo di una sala (stessa lingua, livello vicino):
 /// i posti si riempiono dal vivo, a tavolo pieno parte il conto alla
-/// rovescia, poi la partita. Mentre si aspetta: la chat della sala, i
-/// consigli e le carte dei ruoli. Uscire prima dell'inizio non costa nulla.
+/// rovescia, poi la partita. Mentre si aspetta: i consigli e le carte dei
+/// ruoli. Prima dell'inizio non si sa chi c'è (né nomi né facce, né chat:
+/// lo garantisce anche il server), così nessuno se ne va per antipatia.
+/// Uscire prima dell'inizio non costa nulla.
 ///
 /// Chiusa in questa build: ci si arriva solo con RANKED_DEBUG.
 class RankedQueueScreen extends StatefulWidget {
@@ -48,16 +48,12 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
   /// Ora del server meno ora del telefono (vedi [GameClient.serverNow]).
   Duration _offset = Duration.zero;
   Duration? _bestTrip;
-  final ValueNotifier<int> _chatVersion = ValueNotifier(0);
   bool _entering = false;
 
-  /// La sala d'attesa in cui si siede, con chi c'è e la sua chat.
+  /// La sala d'attesa in cui si siede: solo quanti sono, mai chi.
   Room? _lobby;
-  List<RoomMember> _members = const [];
-  List<ChatMessage> _chat = const [];
-  StreamSubscription<List<RoomMember>>? _membersWatch;
-  StreamSubscription<List<ChatMessage>>? _chatWatch;
-  String? _myId;
+  StreamSubscription<List<RoomMember>>? _lobbyWatch;
+  Profile? _me;
 
   RankedRepository get _ranked => widget.services.ranked!;
 
@@ -70,7 +66,7 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
       if (mounted) setState(() => _ticks++);
     });
     widget.services.profiles.me().then((me) {
-      if (mounted) setState(() => _myId = me.id);
+      if (mounted) setState(() => _me = me);
     }).ignore();
   }
 
@@ -79,35 +75,21 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
     _timer?.cancel();
     _second?.cancel();
     _sweep.dispose();
-    _chatVersion.dispose();
     _unwatch();
     if (_status.queued || _lobby != null) unawaited(_ranked.leave().catchError((_) {}));
     super.dispose();
   }
 
   void _unwatch() {
-    _membersWatch?.cancel();
-    _chatWatch?.cancel();
-    _membersWatch = null;
-    _chatWatch = null;
+    _lobbyWatch?.cancel();
+    _lobbyWatch = null;
   }
 
   void _watch(String roomId) {
     _unwatch();
-    _membersWatch = widget.services.rooms.watchMembers(roomId).listen((members) {
-      if (mounted) setState(() => _members = members);
-    }, onError: (Object _) {});
-    _chatWatch = widget.services.game.watchChat(roomId).listen((messages) {
-      if (mounted) {
-        setState(
-          () => _chat = [
-            for (final m in messages)
-              if (m.channel == ChatChannel.lobby) m,
-          ],
-        );
-        _chatVersion.value++;
-      }
-    }, onError: (Object _) {});
+    // Ogni cambio della sala (qualcuno si siede, il conto parte) fa rileggere
+    // lo stato: chi sia l'altro non arriva, la policy mostra solo sé stessi.
+    _lobbyWatch = widget.services.rooms.watchMembers(roomId).listen((_) => _refresh(), onError: (Object _) {});
     _bestTrip = null;
     _ping(roomId);
   }
@@ -146,8 +128,6 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
       if (room?.id != _lobby?.id) {
         if (room == null) {
           _unwatch();
-          _members = const [];
-          _chat = const [];
         } else {
           _watch(room.id);
         }
@@ -181,8 +161,6 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
         setState(() {
           _status = const RankedStatus();
           _lobby = null;
-          _members = const [];
-          _chat = const [];
         });
       }
     } catch (error) {
@@ -201,8 +179,6 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
       if (!mounted) return;
       _status = const RankedStatus();
       _lobby = null;
-      _members = const [];
-      _chat = const [];
       HapticFeedback.heavyImpact();
       await navigator.push(
         MaterialPageRoute<void>(
@@ -251,7 +227,8 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
     final roles = Role.values;
     final slot = (_ticks ~/ 28) % (tips.length + roles.length);
     final still = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
-    final lobbyView = ChatChannelView(channel: ChatChannel.lobby, title: t.chatLobby, accent: Saloon.brass);
+    // Il server conta chi siede (sé compresi): mai meno di sé stessi.
+    final seated = max(1, max(lobby.seated, _status.roomId == lobby.id ? _status.seated : 0));
     return Scaffold(
       backgroundColor: const Color(0xFF120C08),
       body: DecoratedBox(
@@ -295,13 +272,13 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: LobbyTable(key: const Key('ranked.table'), members: _members, size: size, myId: _myId, countdown: left?.toDouble()),
+                  child: LobbyTable(key: const Key('ranked.table'), seated: seated, size: size, me: _me, countdown: left?.toDouble()),
                 ),
               ),
               Semantics(
                 liveRegion: true,
                 child: Text(
-                  t.rankedSeats(_members.length, size),
+                  t.rankedSeats(seated, size),
                   key: const Key('ranked.seats'),
                   textAlign: TextAlign.center,
                   style: AppText.overline.copyWith(color: Saloon.paper, fontSize: 12),
@@ -311,7 +288,7 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 250),
                 child: Text(
-                  left == null ? t.rankedMissing(max(0, size - _members.length)) : t.rankedStartsIn(left.ceil()),
+                  left == null ? t.rankedMissing(max(0, size - seated)) : t.rankedStartsIn(left.ceil()),
                   key: ValueKey(left == null ? 'wait' : 'go${left.ceil()}'),
                   textAlign: TextAlign.center,
                   style: AppText.body.copyWith(
@@ -373,24 +350,14 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
                 textAlign: TextAlign.center,
                 style: AppText.body.copyWith(fontSize: 11, color: AppColors.textSecondary),
               ),
-              ChatDock(
-                key: const Key('ranked.lobbyChat'),
-                view: lobbyView,
-                messages: _chat,
-                myId: _myId ?? '',
-                labels: ChatLabels(hint: t.chatHint, empty: t.chatEmpty, send: t.chatSend),
-                onSend: (body) => widget.services.game.sendChat(lobby.id, ChatChannel.lobby, body),
-                source: _chatVersion,
-                read: () => (view: lobbyView, messages: _chat),
-                onHold: (message) => showPlayerActions(
-                  context,
-                  services: widget.services,
-                  profileId: message.profileId,
-                  name: message.name,
-                  myId: _myId ?? '',
-                  message: message,
-                ),
+              const SizedBox(height: 2),
+              Text(
+                t.rankedStrangers,
+                key: const Key('ranked.strangers'),
+                textAlign: TextAlign.center,
+                style: AppText.body.copyWith(fontSize: 11, fontStyle: FontStyle.italic, color: AppColors.textSecondary),
               ),
+              SizedBox(height: 12 + MediaQuery.paddingOf(context).bottom),
             ],
           ),
         ),

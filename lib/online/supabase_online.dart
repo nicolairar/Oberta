@@ -820,6 +820,10 @@ class SupabaseRanked implements RankedRepository {
   Future<void> leave() => _guard(() => _client.rpc<void>('leave_ranked_queue'));
 
   @override
+  Future<OnlineCounts> counts() => _guard(() async =>
+      OnlineCounts.fromJson((await _client.rpc<Map<String, dynamic>>('online_counts')).cast<String, Object?>()));
+
+  @override
   Future<Map<AppLanguage, Rating>> ratings() => _guard(() async {
         final rows = await _client.from('ratings').select('language, mu, sigma');
         return {

@@ -10,14 +10,17 @@ import '../../widgets/player_avatar.dart';
 import 'game/noir_ui.dart';
 
 /// Il retrobottega della classificata: la lampada che dondola, il panno
-/// verde, le sedie intorno. Chi arriva entra dal buio e si siede, chi se ne
-/// va si alza ed esce; le sedie vuote restano in penombra. Al centro il
-/// contatore d'ottone e, a tavolo pieno, il conto alla rovescia con le
-/// carte che si mescolano.
+/// verde, le sedie intorno. Prima dell'inizio nessuno sa chi c'è: si vede
+/// sé stessi e, sulle altre sedie, sagome col cappello che entrano dal buio
+/// e si siedono (o si alzano ed escono). Al centro il contatore d'ottone e,
+/// a tavolo pieno, il conto alla rovescia con le carte che si mescolano.
 class LobbyTable extends StatefulWidget {
-  final List<RoomMember> members;
+  /// Quanti siedono, compreso chi guarda.
+  final int seated;
   final int size;
-  final String? myId;
+
+  /// Chi guarda: l'unico volto al tavolo.
+  final Profile? me;
 
   /// Secondi alla partenza (null: si aspetta ancora gente).
   final double? countdown;
@@ -25,7 +28,22 @@ class LobbyTable extends StatefulWidget {
   /// Quanto dura il conto alla rovescia, per la lancetta.
   final double countdownTotal;
 
-  const LobbyTable({super.key, required this.members, required this.size, this.myId, this.countdown, this.countdownTotal = 5});
+  const LobbyTable({super.key, required this.seated, required this.size, this.me, this.countdown, this.countdownTotal = 5});
+
+  /// L'ordine in cui le sedie si riempiono: la propria in cima, poi a salti
+  /// intorno al tavolo, come gente che entra da porte diverse.
+  static List<int> fillOrder(int size) {
+    final order = <int>[0];
+    for (var step = 1; step < size && order.length < size; step++) {
+      for (final i in [step * 5 % size, (size - step * 5 % size) % size, step]) {
+        if (!order.contains(i) && order.length < size) order.add(i);
+      }
+    }
+    for (var i = 0; i < size; i++) {
+      if (!order.contains(i)) order.add(i);
+    }
+    return order;
+  }
 
   @override
   State<LobbyTable> createState() => _LobbyTableState();
@@ -55,8 +73,9 @@ class _LobbyTableState extends State<LobbyTable> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
-    final bySeat = {for (final m in widget.members) m.seat: m};
     final countdown = widget.countdown;
+    final seated = widget.seated.clamp(0, widget.size);
+    final rank = {for (final (n, chair) in LobbyTable.fillOrder(widget.size).indexed) chair: n};
     return LayoutBuilder(
       builder: (context, box) {
         final w = box.maxWidth;
@@ -90,8 +109,8 @@ class _LobbyTableState extends State<LobbyTable> with SingleTickerProviderStateM
                     width: avatar * 1.6,
                     child: _Seat(
                       key: ValueKey('lobby-seat-$i'),
-                      member: bySeat[i + 1],
-                      mine: bySeat[i + 1]?.profile.id == widget.myId,
+                      occupied: rank[i]! < seated,
+                      me: i == 0 ? widget.me : null,
                       size: avatar,
                       away: Offset(cos(angle), sin(angle)) * (avatar * 3.2),
                       still: _still,
@@ -106,7 +125,7 @@ class _LobbyTableState extends State<LobbyTable> with SingleTickerProviderStateM
                   child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 450),
                     child: countdown == null
-                        ? _BrassCounter(key: const ValueKey('count'), seated: widget.members.length, size: widget.size, height: table.height)
+                        ? _BrassCounter(key: const ValueKey('count'), seated: seated, size: widget.size, height: table.height)
                         : _Shuffle(
                             key: const ValueKey('shuffle'),
                             seconds: countdown,
@@ -127,15 +146,15 @@ class _LobbyTableState extends State<LobbyTable> with SingleTickerProviderStateM
 }
 
 /// Una sedia: vuota in penombra, oppure qualcuno che entra, si siede, e un
-/// giorno si alza ed esce.
+/// giorno si alza ed esce. Chi non è [me] resta una sagoma senza nome.
 class _Seat extends StatefulWidget {
-  final RoomMember? member;
-  final bool mine;
+  final bool occupied;
+  final Profile? me;
   final double size;
   final Offset away;
   final bool still;
 
-  const _Seat({super.key, required this.member, required this.mine, required this.size, required this.away, required this.still});
+  const _Seat({super.key, required this.occupied, this.me, required this.size, required this.away, required this.still});
 
   @override
   State<_Seat> createState() => _SeatState();
@@ -145,35 +164,24 @@ class _SeatState extends State<_Seat> with SingleTickerProviderStateMixin {
   late final AnimationController _walk = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1100),
-    value: widget.member == null ? 0 : 1,
+    value: widget.occupied ? 1 : 0,
   );
 
-  /// Chi c'era: resta in scena mentre esce.
-  RoomMember? _shown;
-
-  @override
-  void initState() {
-    super.initState();
-    _shown = widget.member;
-  }
+  /// Qualcuno in scena, anche mentre esce.
+  late bool _shown = widget.occupied;
 
   @override
   void didUpdateWidget(_Seat old) {
     super.didUpdateWidget(old);
-    final now = widget.member;
-    if (now?.profile.id == _shown?.profile.id) {
-      _shown = now ?? _shown;
-      return;
-    }
-    if (_shown != null && now == null) {
+    if (widget.occupied == old.occupied) return;
+    if (widget.occupied) {
+      _shown = true;
+      _walk.forward();
+    } else {
       // Si alza ed esce.
       _walk.reverse().whenComplete(() {
-        if (mounted && widget.member == null) setState(() => _shown = null);
+        if (mounted && !widget.occupied) setState(() => _shown = false);
       });
-    } else {
-      // Qualcuno di nuovo (anche al posto di chi è uscito): entra.
-      _shown = now;
-      _walk.forward(from: 0);
     }
   }
 
@@ -186,7 +194,8 @@ class _SeatState extends State<_Seat> with SingleTickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final size = widget.size;
-    final member = _shown;
+    final me = widget.me;
+    final shown = _shown || widget.occupied;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -202,10 +211,10 @@ class _SeatState extends State<_Seat> with SingleTickerProviderStateMixin {
                 animation: _walk,
                 builder: (context, _) => CustomPaint(
                   size: Size(size * 0.9, size * 0.95),
-                  painter: _ChairPainter(lit: member == null ? 0 : _walk.value),
+                  painter: _ChairPainter(lit: shown ? _walk.value : 0),
                 ),
               ),
-              if (member != null)
+              if (shown)
                 AnimatedBuilder(
                   animation: _walk,
                   builder: (context, child) {
@@ -223,39 +232,86 @@ class _SeatState extends State<_Seat> with SingleTickerProviderStateMixin {
                       ),
                     );
                   },
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      boxShadow: [if (widget.mine) BoxShadow(color: Saloon.brass.withValues(alpha: 0.55), blurRadius: 12)],
-                    ),
-                    child: PlayerAvatar(seed: member.profile.avatarSeed, look: member.profile.look, size: size),
-                  ),
+                  child: me != null
+                      ? DecoratedBox(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            boxShadow: [BoxShadow(color: Saloon.brass.withValues(alpha: 0.55), blurRadius: 12)],
+                          ),
+                          child: PlayerAvatar(seed: me.avatarSeed, look: me.look, size: size),
+                        )
+                      : CustomPaint(
+                          key: const Key('ranked.stranger'),
+                          size: Size.square(size),
+                          painter: const _StrangerPainter(),
+                        ),
                 ),
             ],
           ),
         ),
         AnimatedOpacity(
           duration: const Duration(milliseconds: 300),
-          opacity: member == null ? 0 : 1,
+          opacity: me != null && shown ? 1 : 0,
           child: Container(
             margin: const EdgeInsets.only(top: 1),
             padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
             decoration: BoxDecoration(
-              gradient: LinearGradient(colors: widget.mine ? const [Saloon.brass, Saloon.brassDeep] : const [Color(0xFF3A2A1C), Color(0xFF1E140C)]),
+              gradient: const LinearGradient(colors: [Saloon.brass, Saloon.brassDeep]),
               borderRadius: BorderRadius.circular(3),
               border: Border.all(color: Saloon.brassDeep, width: 0.8),
             ),
             child: Text(
-              member?.profile.name ?? '',
+              me?.name ?? '',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: AppText.body.copyWith(fontSize: 9.5, fontWeight: FontWeight.w700, color: widget.mine ? Saloon.paperInk : Saloon.paper),
+              style: AppText.body.copyWith(fontSize: 9.5, fontWeight: FontWeight.w700, color: Saloon.paperInk),
             ),
           ),
         ),
       ],
     );
   }
+}
+
+/// Uno sconosciuto: spalle e cappello in controluce, il filo d'ottone della
+/// lampada sul profilo. Nessun volto, nessun nome.
+class _StrangerPainter extends CustomPainter {
+  const _StrangerPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final ink = Paint()..color = const Color(0xFF0B0806);
+    final rim = Paint()
+      ..color = Saloon.brass.withValues(alpha: 0.5)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = max(1.0, w * 0.025);
+    final shoulders = Path()
+      ..moveTo(w * 0.1, h)
+      ..quadraticBezierTo(w * 0.12, h * 0.66, w * 0.5, h * 0.62)
+      ..quadraticBezierTo(w * 0.88, h * 0.66, w * 0.9, h)
+      ..close();
+    final head = Rect.fromCenter(center: Offset(w * 0.5, h * 0.46), width: w * 0.34, height: h * 0.36);
+    final brim = Rect.fromCenter(center: Offset(w * 0.5, h * 0.33), width: w * 0.66, height: h * 0.1);
+    final crown = RRect.fromRectAndCorners(
+      Rect.fromLTRB(w * 0.33, h * 0.12, w * 0.67, h * 0.34),
+      topLeft: Radius.circular(w * 0.08),
+      topRight: Radius.circular(w * 0.08),
+    );
+    canvas.drawCircle(Offset(w / 2, h * 0.55), w * 0.5, Paint()..color = Colors.black.withValues(alpha: 0.35));
+    for (final paint in [ink, rim]) {
+      canvas.drawPath(shoulders, paint);
+      canvas.drawOval(head, paint);
+      canvas.drawOval(brim, paint);
+      canvas.drawRRect(crown, paint);
+    }
+    // La fascia del cappello.
+    canvas.drawRect(Rect.fromLTRB(w * 0.33, h * 0.27, w * 0.67, h * 0.31), Paint()..color = const Color(0xFF3A1A14));
+  }
+
+  @override
+  bool shouldRepaint(_StrangerPainter old) => false;
 }
 
 /// Il contatore d'ottone al centro del panno: «7/12».
