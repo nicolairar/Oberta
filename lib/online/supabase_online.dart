@@ -13,6 +13,7 @@ import '../l10n/app_language.dart';
 import '../rules/intent.dart';
 import 'online_config.dart';
 import 'online_services.dart';
+import 'steam_login.dart';
 
 /// L'online vero, su Supabase. Lo apre `main` quando l'app è stata compilata
 /// con la configurazione; i test usano invece `FakeOnline`.
@@ -42,6 +43,7 @@ Future<OnlineServices?> openSupabaseOnline(OnlineConfig config, {String? deviceS
     account: SupabaseAccount(client),
     safety: SupabaseSafety(client),
     sessions: SupabaseDeviceSessions(client),
+    links: SupabaseAccountLinks(client),
   );
 }
 
@@ -136,6 +138,10 @@ OnlineException _classify(Object error, SignInDoor? door) {
       'ranked_cooldown' => OnlineFailure.rankedCooldown,
       'already_in_game' => OnlineFailure.alreadyInGame,
       'other_device' => OnlineFailure.otherDevice,
+      'link_code_invalid' => OnlineFailure.linkCodeInvalid,
+      'link_same_account' => OnlineFailure.linkSameAccount,
+      'link_conflict' => OnlineFailure.linkConflict,
+      'too_many_attempts' => OnlineFailure.tooManyAttempts,
       _ => OnlineFailure.unknown,
     };
     return OnlineException(failure, error, detail);
@@ -186,13 +192,42 @@ class SupabaseAuth extends OnlineAuth {
   String? get userId => _client.auth.currentUser?.id;
 
   @override
-  bool get appleAvailable => !kIsWeb && (Platform.isIOS || Platform.isMacOS);
+  bool get appleAvailable => !kIsWeb && (Platform.isIOS || (Platform.isMacOS && _macAppleSignIn));
+
+  /// Sign in with Apple sull'app Mac vuole la capability nel profilo di
+  /// firma del target macOS: finché il proprietario non la aggiunge, la
+  /// build Mac entra solo con Steam (vedi docs/steam.md).
+  static const _macAppleSignIn = bool.fromEnvironment('MAC_APPLE_SIGN_IN');
 
   @override
   bool get googleAvailable => _config.hasGoogle && !kIsWeb && Platform.isIOS;
 
   @override
   String? get suggestedName => _suggestedName;
+
+  @override
+  bool get steamAvailable => !kIsWeb && (Platform.isMacOS || Platform.isWindows || Platform.isLinux);
+
+  /// Il browser porta a Steam e torna sulla porta di loopback con un codice
+  /// monouso; la Edge Function `steam-auth` lo scambia con un token di
+  /// accesso, e da lì la sessione è quella solita di Supabase (salvata:
+  /// i prossimi avvii entrano da soli).
+  @override
+  Future<void> signInWithSteam() => _guard(() async {
+        final state = SteamLoopback.newState();
+        final functionUrl = Uri.parse('${_config.supabaseUrl.replaceAll(RegExp(r'/$'), '')}/functions/v1/steam-auth');
+        final code = await SteamLoopback.waitForCode(functionUrl: functionUrl, state: state);
+        final response = await _client.functions.invoke('steam-auth', body: {
+          'action': 'exchange',
+          'code': code,
+          'state': state,
+        });
+        final tokenHash = (response.data as Map?)?['token_hash'] as String?;
+        if (response.status != 200 || tokenHash == null) {
+          throw OnlineException(OnlineFailure.unknown, null, 'steam-auth · ${response.status} · ${response.data}');
+        }
+        await _client.auth.verifyOTP(type: OtpType.magiclink, tokenHash: tokenHash);
+      });
 
   @override
   Future<void> signInWithApple() => _guard(() async {
@@ -809,6 +844,34 @@ class SupabaseAccount implements AccountRepository {
         try {
           await _client.auth.signOut();
         } catch (_) {}
+      });
+}
+
+/// «Collega account» con le funzioni del database `link_code_create` e
+/// `link_code_redeem` (migrazione 20261031090000_steam_login_and_links.sql).
+class SupabaseAccountLinks implements AccountLinkRepository {
+  final SupabaseClient _client;
+
+  SupabaseAccountLinks(this._client);
+
+  @override
+  Future<LinkCode> createCode() => _guard(() async {
+        final data = Map<String, dynamic>.from(await _client.rpc<dynamic>('link_code_create') as Map);
+        return LinkCode(data['code'] as String, DateTime.parse(data['expires_at'] as String));
+      });
+
+  @override
+  Future<bool> redeemCode(String code) => _guard(() async {
+        final data = Map<String, dynamic>.from(
+          await _client.rpc<dynamic>('link_code_redeem', params: {'p_code': code}) as Map,
+        );
+        final again = data['sign_in_again'] == true;
+        if (again) {
+          try {
+            await _client.auth.signOut(scope: SignOutScope.local);
+          } catch (_) {}
+        }
+        return again;
       });
 }
 

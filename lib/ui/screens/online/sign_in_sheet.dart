@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../../../l10n/app_strings.dart';
+import '../../../l10n/desktop_strings.dart';
 import '../../../l10n/online_strings.dart';
 import '../../../online/online_services.dart';
 import '../../theme/app_theme.dart';
@@ -225,6 +226,25 @@ class _SignInPanelState extends State<SignInPanel> {
   }
 
   List<Widget> _providers(OnlineStrings t, OnlineAuth auth) => [
+        if (auth.steamAvailable) ...[
+          ElevatedButton.icon(
+            key: const Key('online.signInSteam'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF171A21),
+              foregroundColor: const Color(0xFFC7D5E0),
+              minimumSize: const Size.fromHeight(50),
+              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(14))),
+            ),
+            onPressed: _busy ? null : () => _signIn(auth.signInWithSteam),
+            icon: const Icon(Icons.sports_esports),
+            label: Text(DesktopStrings.of(context).loginSteam),
+          ),
+          if (_busy) ...[
+            const SizedBox(height: 8),
+            Text(DesktopStrings.of(context).steamWaiting, textAlign: TextAlign.center, style: AppText.body),
+          ],
+          if (auth.appleAvailable || auth.googleAvailable) const SizedBox(height: 12),
+        ],
         if (auth.appleAvailable)
           SignInWithAppleButton(
             text: t.loginApple,
@@ -243,7 +263,7 @@ class _SignInPanelState extends State<SignInPanel> {
             label: Text(t.loginGoogle),
           ),
         ],
-        if (!auth.appleAvailable && !auth.googleAvailable)
+        if (!auth.appleAvailable && !auth.googleAvailable && !auth.steamAvailable)
           Text(t.loginNoProvider, textAlign: TextAlign.center, style: AppText.body),
         if (_busy) ...[
           const SizedBox(height: 12),

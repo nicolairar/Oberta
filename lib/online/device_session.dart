@@ -68,8 +68,8 @@ String deviceLabelHere() {
   if (Platform.isIOS) return 'iPhone';
   if (Platform.isAndroid) return 'Android';
   if (Platform.isMacOS) return 'Mac';
-  if (Platform.isWindows) return 'Windows';
-  if (Platform.isLinux) return 'Linux';
+  // Fuori dal Mac, il desktop si scarica da Steam.
+  if (Platform.isWindows || Platform.isLinux) return 'Steam/PC';
   return '?';
 }
 

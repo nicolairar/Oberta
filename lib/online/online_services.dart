@@ -39,6 +39,11 @@ abstract class OnlineAuth extends ChangeNotifier {
 
   Future<void> signInWithGoogle();
 
+  /// «Accedi con Steam», solo sull'app desktop (OpenID nel browser).
+  bool get steamAvailable => false;
+
+  Future<void> signInWithSteam() async => throw const OnlineException(OnlineFailure.unknown, null, 'steam · unavailable');
+
   /// L'account di prova, con email e password, per chi prova l'app da un
   /// secondo telefono: entra, o crea l'account se non c'è ancora. Nascosto
   /// ai giocatori (si apre tenendo premuto «Accedi»); sul server va acceso
@@ -119,6 +124,24 @@ abstract class AccountRepository {
   Future<void> deleteAccount();
 }
 
+/// «Collega account»: un codice monouso fatto su un dispositivo e inserito
+/// sull'altro, entrato con l'altra identità (Apple/Google ↔ Steam).
+abstract class AccountLinkRepository {
+  /// Un codice di sei caratteri, valido dieci minuti.
+  Future<LinkCode> createCode();
+
+  /// Unisce i due account: resta il profilo più vecchio. Vero se chi ha
+  /// inserito il codice deve rientrare (il suo account era il più giovane).
+  Future<bool> redeemCode(String code);
+}
+
+class LinkCode {
+  final String code;
+  final DateTime expiresAt;
+
+  const LinkCode(this.code, this.expiresAt);
+}
+
 /// Tutto quello che serve per giocare online. Null dove l'app è stata
 /// compilata senza la configurazione di Supabase: lì l'online non c'è.
 class OnlineServices {
@@ -143,6 +166,9 @@ class OnlineServices {
   /// Un dispositivo alla volta. Null dove nessuno l'ha collegato.
   final DeviceSessionRepository? sessions;
 
+  /// Collegare gli account fra telefono e desktop. Null dove non c'è.
+  final AccountLinkRepository? links;
+
   const OnlineServices({
     required this.auth,
     required this.profiles,
@@ -154,6 +180,7 @@ class OnlineServices {
     this.ranked,
     this.safety,
     this.sessions,
+    this.links,
   });
 
   static OnlineServices? instance;

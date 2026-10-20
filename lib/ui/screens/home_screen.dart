@@ -22,6 +22,7 @@ import 'avatar/barber_mirror_screen.dart';
 import 'lobby_screen.dart';
 import 'online/online_room_screen.dart';
 import 'online/ranked_queue_screen.dart';
+import '../desktop/desktop_platform.dart';
 import 'online/online_screen.dart';
 import 'online/online_widgets.dart';
 import 'online/profile_sheet.dart';
@@ -491,6 +492,26 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
         child: LayoutBuilder(
           builder: (context, constraints) {
             final layout = HomeAlleyLayout(constraints.biggest, MediaQuery.paddingOf(context));
+            // Su desktop non c'è «Un telefono per tutti»: restano gli amici
+            // e la classificata, alti quanto tutta la zona dei manifesti.
+            final desktop = DesktopPlatform.isDesktop;
+            final friendsPoster = desktop
+                ? Rect.fromLTRB(
+                    layout.leftPoster.left,
+                    layout.mainPoster.top,
+                    layout.leftPoster.right,
+                    layout.leftPoster.bottom,
+                  )
+                : layout.leftPoster;
+            final rankedPoster = desktop
+                ? Rect.fromLTRB(
+                    layout.rightPoster.left,
+                    layout.mainPoster.top,
+                    layout.rightPoster.right,
+                    layout.rightPoster.bottom,
+                  )
+                : layout.rightPoster;
+            final irisPoster = desktop ? friendsPoster : layout.mainPoster;
             // I pittori sbordano di qualche mattone oltre lo schermo: va
             // tagliato, o si vede quando la pagina scorre via su iPhone.
             return ClipRect(
@@ -584,21 +605,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                         mirrorLabel: SettingsStrings.of(context).yourLook,
                       ),
                     ),
-                  _posted(
-                    rect: layout.mainPoster,
-                    tilt: -0.016,
-                    at: 1.75,
-                    child: HomeTonightPoster(
-                      banner: t.tonight,
-                      title: t.sharedTitle,
-                      blurb: t.sharedBlurb,
-                      action: t.createRoom,
-                      onTap: _createRoom,
-                      ambient: _ambient,
+                  if (!desktop)
+                    _posted(
+                      rect: layout.mainPoster,
+                      tilt: -0.016,
+                      at: 1.75,
+                      child: HomeTonightPoster(
+                        banner: t.tonight,
+                        title: t.sharedTitle,
+                        blurb: t.sharedBlurb,
+                        action: t.createRoom,
+                        onTap: _createRoom,
+                        ambient: _ambient,
+                      ),
                     ),
-                  ),
                   _posted(
-                    rect: layout.leftPoster,
+                    rect: friendsPoster,
                     tilt: 0.030,
                     at: 2.05,
                     child: HomeSoonPoster(
@@ -611,7 +633,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                     ),
                   ),
                   _posted(
-                    rect: layout.rightPoster,
+                    rect: rankedPoster,
                     tilt: -0.038,
                     at: 2.25,
                     child: HomeSoonPoster(
@@ -625,9 +647,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                       // Ranked is built but locked in this build: the queue
                       // opens only with --dart-define=RANKED_DEBUG=true.
                       onTap: rankedDebug && signedIn && _online?.ranked != null
-                          ? () => Navigator.of(context).push(MaterialPageRoute<void>(
-                                builder: (_) => RankedQueueScreen(services: _online!),
-                              ))
+                          ? () => Navigator.of(context)
+                                .push(MaterialPageRoute<void>(builder: (_) => RankedQueueScreen(services: _online!)))
                           : () => _notYet(t.rankedTeaser),
                     ),
                   ),
@@ -664,10 +685,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                     child: CustomPaint(
                       painter: HomeIrisPainter(
                         closing: _iris,
-                        focus: Offset(
-                          layout.mainPoster.center.dx,
-                          layout.mainPoster.bottom - layout.mainPoster.height * 0.14,
-                        ),
+                        focus: Offset(irisPoster.center.dx, irisPoster.bottom - irisPoster.height * 0.14),
                       ),
                     ),
                   ),

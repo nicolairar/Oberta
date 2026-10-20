@@ -411,3 +411,11 @@ entrypoint = "./functions/game/index.ts"
 enabled = true
 verify_jwt = true
 entrypoint = "./functions/account/index.ts"
+
+# "Accedi con Steam" on the desktop app (supabase/functions/steam-auth):
+# Steam OpenID 2.0. The browser legs carry no JWT, so verify_jwt is off; the
+# function checks every assertion with Steam itself (see its header).
+[functions.steam-auth]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/steam-auth/index.ts"

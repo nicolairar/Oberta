@@ -276,6 +276,13 @@ enum OnlineFailure {
 
   /// L'account gioca su un altro dispositivo: qui non si scrive.
   otherDevice,
+
+  /// «Collega account»: codice sbagliato o scaduto, il proprio, due account
+  /// che non si possono unire, troppi tentativi.
+  linkCodeInvalid,
+  linkSameAccount,
+  linkConflict,
+  tooManyAttempts,
   network,
   unknown,
 }

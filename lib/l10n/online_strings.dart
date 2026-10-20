@@ -864,6 +864,10 @@ final class ItalianOnlineStrings extends OnlineStrings {
         OnlineFailure.rankedCooldown => 'Troppi abbandoni: aspetta un po\' prima di rientrare.',
         OnlineFailure.alreadyInGame => 'Sei già in una partita.',
         OnlineFailure.otherDevice => 'Sei connesso su un altro dispositivo.',
+        OnlineFailure.linkCodeInvalid => 'Codice sbagliato o scaduto.',
+        OnlineFailure.linkSameAccount => 'Questo codice è del tuo stesso account.',
+        OnlineFailure.linkConflict => 'Questi due account non si possono unire: hanno già lo stesso tipo di accesso.',
+        OnlineFailure.tooManyAttempts => 'Troppi tentativi. Riprova fra qualche minuto.',
         OnlineFailure.network => 'Niente rete. Riprova fra poco.',
         OnlineFailure.unknown => 'Qualcosa è andato storto. Riprova.',
       };
@@ -1311,6 +1315,10 @@ final class EnglishOnlineStrings extends OnlineStrings {
         OnlineFailure.rankedCooldown => 'Too many games left: wait a little before queueing.',
         OnlineFailure.alreadyInGame => 'You are already in a game.',
         OnlineFailure.otherDevice => 'You are connected on another device.',
+        OnlineFailure.linkCodeInvalid => 'Wrong or expired code.',
+        OnlineFailure.linkSameAccount => 'This code belongs to this same account.',
+        OnlineFailure.linkConflict => 'These two accounts cannot be merged: they already use the same kind of sign-in.',
+        OnlineFailure.tooManyAttempts => 'Too many attempts. Try again in a few minutes.',
         OnlineFailure.network => 'No connection. Try again shortly.',
         OnlineFailure.unknown => 'Something went wrong. Try again.',
       };

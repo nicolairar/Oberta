@@ -71,6 +71,7 @@ class FakeOnline {
   /// e la partita non è classificata. Null: spento.
   int? rankedTestHumans;
   late final FakeAccount account = FakeAccount._(this);
+  late final FakeAccountLinks links = FakeAccountLinks._(this);
 
   /// La partita vista da un altro account, come dal suo telefono.
   FakeGame gameAs(String userId) => FakeGame._(this, () => userId);
@@ -134,7 +135,7 @@ class FakeOnline {
         clock = clock ?? const SystemGameClock();
 
   OnlineServices get services =>
-      OnlineServices(auth: auth, profiles: profiles, friends: friends, rooms: rooms, game: game, shop: shop, account: account, ranked: ranked, safety: safety, sessions: sessions);
+      OnlineServices(auth: auth, profiles: profiles, friends: friends, rooms: rooms, game: game, shop: shop, account: account, ranked: ranked, safety: safety, sessions: sessions, links: links);
 
   /// Gli account di prova: email → (password, id dell'account).
   final Map<String, (String, String)> _testAccounts = {};
@@ -317,6 +318,9 @@ class FakeAuth extends OnlineAuth {
   bool googleAvailable = true;
 
   @override
+  bool steamAvailable = false;
+
+  @override
   String? suggestedName;
 
   /// Se vero, la prossima finestra di accesso viene chiusa senza entrare.
@@ -353,6 +357,9 @@ class FakeAuth extends OnlineAuth {
 
   @override
   Future<void> signInWithGoogle() => _provider();
+
+  @override
+  Future<void> signInWithSteam() => _provider();
 
   /// Le stesse regole del server: password di almeno sei caratteri, email
   /// con la chiocciola, e chi c'era già deve azzeccare la password.
@@ -1129,6 +1136,38 @@ class FakeShop implements ShopRepository {
       avatar.remove(slot);
     }
     return _online._profiles[me.id] = me.copyWith(avatar: avatar);
+  }
+}
+
+/// «Collega account» finto: il codice è sempre lo stesso finché non si usa.
+class FakeAccountLinks implements AccountLinkRepository {
+  final FakeOnline _online;
+
+  FakeAccountLinks._(this._online);
+
+  String? _code;
+  String? _owner;
+
+  /// I codici usati, per i test: (chi l'aveva fatto, chi l'ha inserito).
+  final List<(String, String)> redeemed = [];
+
+  @override
+  Future<LinkCode> createCode() async {
+    await _online._network();
+    _owner = _online.auth.userId ?? (throw const OnlineException(OnlineFailure.notSignedIn));
+    _code = 'K7Q2MX';
+    return LinkCode(_code!, DateTime.now().add(const Duration(minutes: 10)));
+  }
+
+  @override
+  Future<bool> redeemCode(String code) async {
+    await _online._network();
+    final me = _online.auth.userId ?? (throw const OnlineException(OnlineFailure.notSignedIn));
+    if (_code == null || code.toUpperCase() != _code) throw const OnlineException(OnlineFailure.linkCodeInvalid);
+    if (_owner == me) throw const OnlineException(OnlineFailure.linkSameAccount);
+    redeemed.add((_owner!, me));
+    _code = null;
+    return false;
   }
 }
 

@@ -9,6 +9,10 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../l10n/app_language.dart';
+import '../../l10n/desktop_strings.dart';
+import '../../settings/display_settings.dart';
+import '../desktop/desktop_platform.dart';
+import 'online/link_account_sheet.dart';
 import '../widgets/content_width.dart';
 import '../../l10n/app_strings.dart';
 import '../../l10n/safety_strings.dart';
@@ -143,6 +147,61 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  /// Solo su desktop: modo della finestra, risoluzione e orientamento,
+  /// salvati su questo dispositivo.
+  Widget _screenSection(AppSettings settings) {
+    final d = DesktopStrings.of(context);
+    Widget chips<T>(List<T> values, T selected, String Function(T) label, void Function(T) pick, String key) => Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final value in values)
+                ChoiceChip(
+                  key: Key('settings.$key.${label(value)}'),
+                  label: Text(label(value)),
+                  selected: selected == value,
+                  selectedColor: AppColors.gold.withValues(alpha: 0.3),
+                  onSelected: (_) => pick(value),
+                ),
+            ],
+          ),
+        );
+    return _Section(
+      title: d.screen,
+      children: [
+        ListTile(leading: const Icon(Icons.desktop_windows, color: AppColors.gold), title: Text(d.windowMode)),
+        chips(
+          DesktopWindowMode.values,
+          settings.windowMode,
+          (m) => switch (m) {
+            DesktopWindowMode.windowed => d.windowed,
+            DesktopWindowMode.fullscreen => d.fullscreen,
+            DesktopWindowMode.borderless => d.borderless,
+          },
+          (m) => settings.windowMode = m,
+          'window',
+        ),
+        ListTile(
+          leading: const Icon(Icons.aspect_ratio, color: AppColors.gold),
+          title: Text(d.resolution),
+          subtitle: Text(d.resolutionHint),
+        ),
+        chips(DesktopResolutions.all, settings.resolution, DesktopResolutions.label, (r) => settings.resolution = r,
+            'resolution'),
+        ListTile(leading: const Icon(Icons.screen_rotation, color: AppColors.gold), title: Text(d.orientation)),
+        chips(
+          DesktopOrientation.values,
+          settings.orientation,
+          (o) => o == DesktopOrientation.landscape ? d.landscape : d.portrait,
+          (o) => settings.orientation = o,
+          'orientation',
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = widget.settings;
@@ -212,6 +271,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ],
                     ),
+                    if (DesktopPlatform.isDesktop) _screenSection(settings),
                     _Section(
                       title: s.languageSection,
                       children: [
@@ -269,6 +329,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   leading: const Icon(Icons.badge_outlined, color: AppColors.gold),
                                   title: Text(handle != null ? s.signedInAs(handle) : s.signedInNoHandle),
                                 ),
+                                if (widget.online?.links case final links?)
+                                  ListTile(
+                                    key: const Key('settings.link'),
+                                    leading: const Icon(Icons.link, color: AppColors.gold),
+                                    title: Text(DesktopStrings.of(context).linkAccount),
+                                    subtitle: Text(DesktopStrings.of(context).linkHint),
+                                    trailing: const Icon(Icons.chevron_right),
+                                    onTap: () => showLinkAccount(context, links: links),
+                                  ),
                                 ListTile(
                                   leading: const Icon(Icons.logout, color: AppColors.gold),
                                   title: Text(t.online.signOut),

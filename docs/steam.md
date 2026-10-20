@@ -158,3 +158,38 @@ Su desktop ci sono solo due modalità:
 - Su desktop si gioca solo online: ogni partita, acquisto, moneta e XP passa dal server, che verifica la licenza a ogni accesso. Un client craccato non può entrare nelle code né nelle stanze.
 - I ruoli segreti restano sul server (già oggi): il client vede solo quello che deve vedere, quindi modificare il client non scopre niente.
 - iPhone, se l'app diventa a pagamento: App Attest (DeviceCheck) per accettare solo app originali, verificato dal server.
+
+## Fase 1 desktop — fatto (31 ottobre 2026)
+
+- **Target**: `macos/`, `windows/`, `linux/` creati (bundle id `com.obertagame.oberta`, icone dall'icona iOS).
+  Sul Mac: `flutter run -d macos` o `flutter build macos`. Windows/Linux si compilano solo sulle loro macchine
+  (o in CI); il codice non usa API solo-iOS senza controllo (`DesktopPlatform.isDesktop`, `lib/ui/desktop/`).
+  L'app iOS aperta su Mac Apple silicon resta l'app del telefono.
+- **Home desktop**: solo «Gioca con amici» e «Classificata» (ancora dietro `RANKED_DEBUG` come su mobile).
+- **Schermo** (Impostazioni → SCHERMO, solo desktop, salvato per dispositivo): in finestra / schermo intero /
+  senza bordi, risoluzione 1280×720 · 1600×900 · 1920×1080 · 2560×1440, orientamento orizzontale (due colonne
+  + pannello ruoli) o verticale (layout del telefono 9:16 al centro). Ultrawide → letterbox 16:9
+  (`DesktopFrame`, `window_manager`).
+- **Accedi con Steam**: Edge Function `steam-auth` (OpenID 2.0, `verify_jwt = false`). L'app apre il browser,
+  ascolta su `127.0.0.1:<porta casuale>/steam`, riceve un codice monouso (2 minuti, legato a uno `state`
+  casuale), lo scambia con un token magic link e chiama `verifyOTP`: la sessione Supabase resta salvata e i
+  prossimi avvii entrano da soli. Gli utenti Steam hanno un'email sintetica `steam-<id>@steam.oberta.invalid`
+  (mai usata per mandare posta). Nome unico: lo stesso flusso di oggi (regole e parole riservate).
+- **Collega account** (Impostazioni → ACCOUNT, ogni dispositivo): codice di **6 caratteri** (alfabeto di
+  `join_code`), 10 minuti, 5 tentativi sbagliati ogni 10 minuti. RPC `link_code_create` / `link_code_redeem`.
+- **Regole di fusione (decise ora, sostituiscono quelle sopra)**: resta il profilo **più vecchio**, con nome,
+  aspetto, monete, XP, cosmetici, rating e ricevute; il più nuovo **non porta niente** (niente somme: nessun
+  abuso). Le identità del più nuovo (Steam, Apple, Google) passano al più vecchio; quello nuovo viene
+  disconnesso, bloccato e il suo nome liberato. Rifiutato se entrambi hanno Steam o lo stesso provider
+  (`link_conflict`), se uno dei due è in partita o in coda (`already_in_game`). Gli account di prova
+  email/password non si spostano.
+- **Un dispositivo alla volta**: etichetta «Mac» sul Mac, «Steam/PC» su Windows e Linux.
+
+### Cosa deve fare il proprietario [TU]
+1. Fare il push su `main`: l'integrazione GitHub applica la migrazione
+   `20261031090000_steam_login_and_links.sql` e pubblica la funzione `steam-auth` (dichiarata in `config.toml`).
+2. Supabase → Authentication: il provider **Email** deve restare acceso (serve al magic link interno; la
+   conferma via email può restare spenta). Nessun segreto nuovo: la funzione usa il service role già fornito.
+3. Sign in with Apple sul Mac: aggiungere la capability al target macOS in Xcode (Signing & Capabilities) e
+   compilare con `--dart-define=MAC_APPLE_SIGN_IN=true`; finché no, il Mac entra con Steam.
+4. Distribuzione Mac fuori dallo store: firma Developer ID + notarizzazione.

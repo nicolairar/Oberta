@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import '../l10n/app_language.dart';
 import '../sound/sound_stage.dart';
+import 'display_settings.dart';
 import 'settings_store.dart';
 
 /// Le preferenze di chi gioca, ricordate da una sera all'altra: la lingua e
@@ -12,7 +13,19 @@ class AppSettings extends ChangeNotifier {
   static const musicVolumeKey = 'musicVolume';
   static const effectsVolumeKey = 'effectsVolume';
   static const memeKey = 'meme';
-  static const keys = {languageKey, soundKey, musicVolumeKey, effectsVolumeKey, memeKey};
+  static const windowModeKey = 'windowMode';
+  static const resolutionKey = 'resolution';
+  static const orientationKey = 'orientation';
+  static const keys = {
+    languageKey,
+    soundKey,
+    musicVolumeKey,
+    effectsVolumeKey,
+    memeKey,
+    windowModeKey,
+    resolutionKey,
+    orientationKey,
+  };
 
   /// Le preferenze in uso. I test le tengono in memoria; `main` le apre dal
   /// telefono con [open].
@@ -29,7 +42,45 @@ class AppSettings extends ChangeNotifier {
         _soundOn = _store.getBool(soundKey) ?? true,
         _musicVolume = _readVolume(_store, musicVolumeKey, defaultMusicVolume),
         _effectsVolume = _readVolume(_store, effectsVolumeKey, defaultEffectsVolume),
-        _memeMode = _store.getBool(memeKey) ?? false;
+        _memeMode = _store.getBool(memeKey) ?? false,
+        _windowMode = DesktopWindowMode.values.asNameMap()[_store.getString(windowModeKey)] ?? DesktopWindowMode.windowed,
+        _resolution = DesktopResolutions.parse(_store.getString(resolutionKey)) ?? DesktopResolutions.fallback,
+        _orientation =
+            DesktopOrientation.values.asNameMap()[_store.getString(orientationKey)] ?? DesktopOrientation.landscape;
+
+  // Lo schermo del desktop: per dispositivo, mai nel profilo (un PC e un
+  // telefono vogliono cose diverse).
+  DesktopWindowMode _windowMode;
+  Size _resolution;
+  DesktopOrientation _orientation;
+
+  DesktopWindowMode get windowMode => _windowMode;
+
+  set windowMode(DesktopWindowMode mode) {
+    if (mode == _windowMode) return;
+    _windowMode = mode;
+    _store.setString(windowModeKey, mode.name);
+    notifyListeners();
+  }
+
+  /// La risoluzione della finestra, una della lista fissa.
+  Size get resolution => _resolution;
+
+  set resolution(Size size) {
+    if (size == _resolution || !DesktopResolutions.all.contains(size)) return;
+    _resolution = size;
+    _store.setString(resolutionKey, DesktopResolutions.label(size));
+    notifyListeners();
+  }
+
+  DesktopOrientation get orientation => _orientation;
+
+  set orientation(DesktopOrientation orientation) {
+    if (orientation == _orientation) return;
+    _orientation = orientation;
+    _store.setString(orientationKey, orientation.name);
+    notifyListeners();
+  }
 
   bool _memeMode;
 

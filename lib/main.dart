@@ -14,6 +14,8 @@ import 'settings/app_settings.dart';
 import 'sound/device_stage.dart';
 import 'sound/narrator_voice.dart';
 import 'sound/sound_stage.dart';
+import 'ui/desktop/desktop_frame.dart';
+import 'ui/desktop/desktop_platform.dart';
 import 'ui/screens/home_screen.dart';
 import 'ui/widgets/device_session_gate.dart';
 import 'ui/theme/app_theme.dart';
@@ -25,6 +27,7 @@ Future<void> main() async {
   installDeviceRoster();
   NarratorVoice.instance = await NarratorVoice.load();
   AppSettings.instance = await AppSettings.open();
+  if (DesktopPlatform.isDesktop) await DesktopWindow.open(AppSettings.instance);
   // L'online c'è solo se l'app è stata compilata con config/supabase.json.
   final sessionId = newDeviceSessionId();
   OnlineServices.instance = await openSupabaseOnline(OnlineConfig.compiled, deviceSessionId: sessionId);
@@ -64,7 +67,12 @@ class ObertaApp extends StatelessWidget {
         ],
         // Il telefono in italiano gioca in italiano; tutti gli altri in inglese.
         localeListResolutionCallback: (device, _) => AppLanguage.forDevice(device).locale,
-        builder: (context, child) => DeviceSessionGate(session: DeviceSession.instance, child: child!),
+        builder: (context, child) {
+          final gated = DeviceSessionGate(session: DeviceSession.instance, child: child!);
+          // Su desktop il gioco sta nel suo riquadro 16:9 (o 9:16), col letterbox.
+          if (!DesktopPlatform.isDesktop) return gated;
+          return DesktopFrame(orientation: settings.orientation, child: gated);
+        },
         home: Builder(
           builder: (context) => HomeScreen(onSettings: () => SettingsScreen.open(context, settings: settings)),
         ),
