@@ -379,8 +379,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     // Da vivo, uscire è un abbandono: il server lo sa subito, così niente
     // premi nemmeno se la squadra vince dopo. Da morto non si paga niente,
     // ma non si prende niente.
-    unawaited(widget.services.game.leaveGame(widget.room.id).catchError((Object _) {}));
-    Navigator.of(context).pop();
+    // Prima l'uscita dal gioco, poi dalla stanza: altrimenti il server non
+    // sa più a che tavolo eri.
+    try {
+      await widget.services.game.leaveGame(widget.room.id).timeout(const Duration(seconds: 4));
+    } catch (_) {}
+    if (mounted) Navigator.of(context).pop();
   }
 
   @override
