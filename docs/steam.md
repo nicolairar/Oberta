@@ -142,3 +142,11 @@ Sostituisce (o affianca) OpenID: niente browser.
 |---|---|---|
 | **[TU]** | (facoltativo) Web API key personale; firma Mac già coperta | Steamworks, 100 $ Steam Direct, dati fiscali, publisher Web API key, materiale per la pagina |
 | **[NOI]** | build desktop, schermo/letterbox, OpenID + Edge Function, codice di collegamento, missioni/traguardi/figurine nostri, prove con AppID 480 | SteamPipe/depot/CI, ticket Steam + `AuthenticateUserTicket`, specchio dei traguardi, overlay e Rich Presence |
+
+## Modalità su desktop (decisione del 20 ottobre 2026)
+
+Su desktop ci sono solo due modalità:
+- **Classificata**, sempre a 12 giocatori.
+- **Gioca con amici**, con stanze chiuse a cui si entra solo con il codice.
+
+«Un telefono per tutti» non c'è su desktop: nella home desktop il suo manifesto non compare.
