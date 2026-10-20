@@ -833,6 +833,17 @@ class FakeGame implements GameBackend {
   Future<int> sendRaw(String roomId, Map<String, Object?> json) => _submit(roomId, json);
 
   @override
+  Future<void> leaveGame(String roomId) async {
+    await _online._network();
+    final me = _me;
+    final game = _online._games[roomId];
+    final seat = game == null ? null : _seatOf(game, me);
+    if (game == null || seat == null) return;
+    game.lastSeen[seat] = DateTime.fromMillisecondsSinceEpoch(0);
+    _online._wake(roomId);
+  }
+
+  @override
   Future<int> ping(String roomId) async {
     await _online._network();
     final me = _me;

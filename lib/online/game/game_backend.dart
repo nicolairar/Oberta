@@ -89,6 +89,10 @@ abstract class GameBackend {
   /// Torna l'ora del server, in millisecondi.
   Future<int> ping(String roomId);
 
+  /// Esco dalla partita per davvero: il server mi conta subito come
+  /// abbandono, senza aspettare che scada l'attesa del ritorno.
+  Future<void> leaveGame(String roomId);
+
   /// Di ritorno dallo sfondo, o dopo una rete persa: rinnova l'accesso se
   /// è scaduto e riapre il collegamento in tempo reale. Dopo, chi guarda la
   /// partita si riabbona a [watchGame] e [watchChat].

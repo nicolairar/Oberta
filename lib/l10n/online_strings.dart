@@ -124,6 +124,9 @@ abstract class OnlineStrings {
   String get voteRegistered;
   String get sending;
   String get offlineBadge;
+
+  /// Uscire da vivi da una partita in corso.
+  String get leaveAbandonWarning;
   String leftTown(String name, String role);
   String get gameClosed;
   String get fateLeft;
@@ -689,6 +692,9 @@ final class ItalianOnlineStrings extends OnlineStrings {
   @override
   String get offlineBadge => 'assente';
   @override
+  String get leaveAbandonWarning =>
+      'Se esci adesso conta come abbandono: niente punti e niente monete, anche se poi la tua squadra vince.';
+  @override
   String leftTown(String name, String role) => '$name ha lasciato la città. Era $role.';
   @override
   String get gameClosed => 'La partita è stata chiusa: non giocava più nessuno.';
@@ -1098,6 +1104,9 @@ final class EnglishOnlineStrings extends OnlineStrings {
   String get sending => 'Sending…';
   @override
   String get offlineBadge => 'offline';
+  @override
+  String get leaveAbandonWarning =>
+      'Leaving now counts as quitting: no points and no coins, even if your side wins later.';
   @override
   String leftTown(String name, String role) => '$name left town. They were $role.';
   @override

@@ -365,14 +365,18 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface,
         title: Text(_t.leaveQuestion),
-        content: Text(_t.leaveWarning),
+        content: Text(_view.alive ? _t.online.leaveAbandonWarning : _t.leaveWarning),
         actions: [
           TextButton(onPressed: pressed(() => Navigator.of(context).pop(false), Press.back), child: Text(_t.stay)),
           TextButton(onPressed: pressed(() => Navigator.of(context).pop(true), Press.tap), child: Text(_t.leave)),
         ],
       ),
     );
-    if (leave == true && mounted) Navigator.of(context).pop();
+    if (leave != true || !mounted) return;
+    // Da vivo, uscire è un abbandono: il server lo sa subito, così niente
+    // premi nemmeno se la squadra vince dopo.
+    if (_view.alive) unawaited(widget.services.game.leaveGame(widget.room.id).catchError((Object _) {}));
+    Navigator.of(context).pop();
   }
 
   @override

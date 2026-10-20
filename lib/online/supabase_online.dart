@@ -679,6 +679,9 @@ class SupabaseGame implements GameBackend {
       ));
 
   @override
+  Future<void> leaveGame(String roomId) => _guard(() => _client.rpc<void>('game_leave', params: {'room': roomId}));
+
+  @override
   Future<int> ping(String roomId) => _guard(() async {
         final now = await _client.rpc<num>('game_ping', params: {'room': roomId});
         return now.toInt();
