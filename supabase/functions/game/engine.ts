@@ -11,6 +11,8 @@ export interface StepInput {
   now: number;
   intents: { id: number; seat: string; intent: Record<string, unknown> }[];
   seen?: Record<string, number> | null;
+  /** Game chat messages after state.lastChat: who spoke, for the AFK rule. */
+  chat?: { id: number; seat: string | null }[];
   seed?: number;
 }
 

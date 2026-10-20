@@ -179,6 +179,16 @@ class _MatchResultsScreenState extends State<MatchResultsScreen> with SingleTick
                               ),
                               if (winners != null)
                                 Text(winners, style: AppText.overline.copyWith(color: Saloon.paper, fontSize: 12, letterSpacing: 3)),
+                              if (r.afk && !r.abandoned)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 6),
+                                  child: Text(
+                                    t.resultsAfk,
+                                    key: const Key('results.afk'),
+                                    textAlign: TextAlign.center,
+                                    style: AppText.overline.copyWith(color: Saloon.blood, fontSize: 12, letterSpacing: 2),
+                                  ),
+                                ),
                             ],
                           ),
                         ),

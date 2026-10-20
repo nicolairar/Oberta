@@ -680,6 +680,9 @@ class _FakeGameRoom {
   final Map<String, ({String profile, int version, Map<String, Object?> view})> seatViews = {};
   final List<({int id, String seat, String profile, Map<String, Object?> intent})> intents = [];
   final Map<String, DateTime> lastSeen = {};
+
+  /// Chi ha chiesto di uscire (come `game_seats.left_at`).
+  final Set<String> left = {};
   String chatMode = 'closed';
   Map<String, Object?> chatSeats = const {};
   Set<String> offline = {};
@@ -840,6 +843,7 @@ class FakeGame implements GameBackend {
     final seat = game == null ? null : _seatOf(game, me);
     if (game == null || seat == null) return;
     game.lastSeen[seat] = DateTime.fromMillisecondsSinceEpoch(0);
+    game.left.add(seat);
     _online._wake(roomId);
   }
 
@@ -1202,6 +1206,7 @@ extension FakeRankedServer on FakeOnline {
               'sigma': rating.sigma,
               'wonToday': past.any((m) => m.won && sameDay(_playedAt[m]!)),
               'friendsGamesToday': past.where((m) => !m.ranked && sameDay(_playedAt[m]!)).length,
+              'leftDead': game.left.contains(seat) && r['abandoned'] != true,
             };
           }(),
     ];
@@ -1218,6 +1223,7 @@ extension FakeRankedServer on FakeOnline {
         testMatch: room.testMatch,
         won: p['won'] == true,
         abandoned: p['abandoned'] == true,
+        afk: p['afk'] == true,
         role: p['role'] as String,
         xpGained: p['xpGained'] as int,
         levelBefore: p['levelBefore'] as int,

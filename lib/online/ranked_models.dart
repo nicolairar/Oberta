@@ -59,6 +59,9 @@ class MatchResult {
   final bool testMatch;
   final bool won;
   final bool abandoned;
+
+  /// Rimasto al tavolo senza giocare: niente premi (lo vede solo lui).
+  final bool afk;
   final String role;
   final int xpGained;
   final int levelBefore;
@@ -73,6 +76,7 @@ class MatchResult {
     this.testMatch = false,
     required this.won,
     this.abandoned = false,
+    this.afk = false,
     this.role = '',
     required this.xpGained,
     required this.levelBefore,
@@ -91,6 +95,7 @@ class MatchResult {
         testMatch: json['test_match'] == true,
         won: json['won'] == true,
         abandoned: json['abandoned'] == true,
+        afk: json['afk'] == true,
         role: json['role'] as String? ?? '',
         xpGained: (json['xp_gained'] as num).toInt(),
         levelBefore: (json['level_before'] as num).toInt(),

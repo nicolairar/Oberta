@@ -61,6 +61,14 @@ export async function stepRoom(
       `select id::float8 as id, seat, intent from public.game_intents where room_id = $1 order by id limit 200`,
       [room],
     );
+    // Chat counts as taking part (for the AFK rule); only who and when.
+    const lastChat = Number((games[0].state as { lastChat?: number } | null)?.lastChat ?? 0);
+    const chat = await tx.query<{ id: number; seat: string | null }>(
+      `select c.id::float8 as id, c.seat from public.game_chat c
+       join public.game_public g on g.room_id = c.room_id and g.game_id = c.game_id
+       where c.room_id = $1 and c.channel <> 'lobby' and c.id > $2 order by c.id limit 500`,
+      [room, lastChat],
+    );
     const seen: Record<string, number> = {};
     for (const s of seats) {
       if (s.profile_id !== null && s.seen !== null) seen[s.seat] = Number(s.seen);
@@ -72,6 +80,7 @@ export async function stepRoom(
       now: at,
       intents: intents.map((i) => ({ id: Number(i.id), seat: i.seat, intent: i.intent })),
       seen,
+      chat: chat.map((c) => ({ id: Number(c.id), seat: c.seat })),
     };
     const out = engine(input);
     await tx.query(`select internal.game_commit($1::uuid, $2::text::jsonb)`, [room, JSON.stringify(out)]);

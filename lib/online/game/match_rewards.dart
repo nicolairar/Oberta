@@ -169,6 +169,9 @@ enum RankTier {
 
 /// One person at the end of a game, as the server reads them.
 class SettleSeat {
+  /// Whether this seat may gain anything from the game.
+  bool get earns => !abandoned && !afk && !leftDead && !short;
+
   final String profile;
   final String seat;
   final String team;
@@ -176,6 +179,17 @@ class SettleSeat {
   final bool won;
   final bool survived;
   final bool abandoned;
+
+  /// Present but idle for the game (see `Attendance` in game_server.dart):
+  /// nothing gained, rated as a loss, a soft conduct hit in ranked.
+  final bool afk;
+
+  /// Left the table after dying: nothing gained, rating untouched, no
+  /// penalty.
+  final bool leftDead;
+
+  /// The game ended before day 2 because someone left: nobody gains.
+  final bool short;
   final int level;
   final int xp;
   final Rating rating;
@@ -194,6 +208,9 @@ class SettleSeat {
     required this.won,
     required this.survived,
     required this.abandoned,
+    this.afk = false,
+    this.leftDead = false,
+    this.short = false,
     this.level = 1,
     this.xp = 0,
     this.rating = Rating.initial,
@@ -209,6 +226,9 @@ class SettleSeat {
         won: json['won'] == true,
         survived: json['survived'] == true,
         abandoned: json['abandoned'] == true,
+        afk: json['afk'] == true,
+        leftDead: json['leftDead'] == true,
+        short: json['short'] == true,
         level: (json['level'] as num?)?.toInt() ?? 1,
         xp: (json['xp'] as num?)?.toInt() ?? 0,
         rating: Rating(
@@ -252,6 +272,9 @@ class SettleOutcome {
         'won': seat.won,
         'survived': seat.survived,
         'abandoned': seat.abandoned,
+        'afk': seat.afk,
+        'leftDead': seat.leftDead,
+        'short': seat.short,
         'xpGained': xpGained,
         'levelBefore': seat.level,
         'level': level,
@@ -272,16 +295,17 @@ class SettleOutcome {
 /// (and [humans] is how many people sat at it).
 ///
 /// In ranked, players who abandoned are rated as a team of their own that
-/// finished last, whatever their side did: leaving never pays.
+/// finished last, whatever their side did: leaving never pays. Idle (AFK)
+/// players lose the same way; who left after dying is not rated at all.
 List<SettleOutcome> settle({required bool ranked, required List<SettleSeat> seats, int? humans}) {
   final people = humans ?? seats.length;
   final rewarded = ranked || people >= Progression.friendsMinHumans;
   final ratings = <String, Rating>{};
   if (ranked) {
     final groups = <(int, List<SettleSeat>)>[
-      (0, [for (final s in seats) if (s.won && !s.abandoned) s]),
-      (1, [for (final s in seats) if (!s.won && !s.abandoned) s]),
-      for (final s in seats) if (s.abandoned) (2, [s]),
+      (0, [for (final s in seats) if (s.won && !s.abandoned && !s.afk && !s.leftDead) s]),
+      (1, [for (final s in seats) if (!s.won && !s.abandoned && !s.afk && !s.leftDead) s]),
+      for (final s in seats) if (s.abandoned || (s.afk && !s.leftDead)) (2, [s]),
     ].where((g) => g.$2.isNotEmpty).toList();
     if (groups.length >= 2) {
       final rated = WengLin.rate([for (final g in groups) [for (final s in g.$2) s.rating]], [for (final g in groups) g.$1]);
@@ -296,7 +320,7 @@ List<SettleOutcome> settle({required bool ranked, required List<SettleSeat> seat
     for (final s in seats)
       () {
         final gain = rewarded
-            ? Progression.xpFor(won: s.won, abandoned: s.abandoned, firstWinOfDay: s.won && !s.wonToday)
+            ? Progression.xpFor(won: s.won, abandoned: !s.earns, firstWinOfDay: s.won && !s.wonToday)
             : 0;
         final next = Progression.addXp(s.level, s.xp, gain);
         final pays = ranked || s.friendsGamesToday < Progression.friendsCoinGames;
@@ -307,11 +331,15 @@ List<SettleOutcome> settle({required bool ranked, required List<SettleSeat> seat
           xp: next.xp,
           levelsGained: next.levelsGained,
           coins: pays ? next.coins : 0,
-          rating: ranked ? (ratings[s.profile] ?? s.rating) : null,
+          rating: ranked ? _noGain(s, ratings[s.profile] ?? s.rating) : null,
         );
       }(),
   ];
 }
+
+/// Who does not earn never climbs: their rating can only stay or fall.
+Rating _noGain(SettleSeat s, Rating rated) =>
+    s.earns || rated.ordinal <= s.rating.ordinal ? rated : s.rating;
 
 /// The JSON entry point the Edge Function calls: `{ranked, humans, seats:
 /// [...]}` in, `{players: [...]}` out.

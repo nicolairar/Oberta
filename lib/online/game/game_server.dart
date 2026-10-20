@@ -105,6 +105,8 @@ class ServerStep {
 /// - `language`: `it` o `en`;
 /// - `now`: l'ora del database, in millisecondi;
 /// - `intents`: le intenzioni ancora da gestire (`[{id, seat, intent}]`);
+/// - `chat`: i messaggi di chat della partita (`[{id, seat}]`, quelli dopo
+///   `state.lastChat`): contano come partecipazione, il testo non serve;
 /// - `seen`: per ogni posto umano, l'ultima volta che il suo telefono si è
 ///   fatto sentire (millisecondi; null o assente: tutti collegati);
 /// - `seed` (facoltativo, per i test): il seme di carte e bot.
@@ -131,7 +133,11 @@ Map<String, Object?> serverStep(Map<String, Object?> input, {OnlinePacing pacing
   final seen = (input['seen'] as Map?)?.map(
     (key, value) => MapEntry(key as String, DateTime.fromMillisecondsSinceEpoch((value as num).toInt())),
   );
-  return game.step(now: now, intents: intents, seen: seen, pacing: pacing, fresh: stateJson == null).toJson();
+  final chat = [
+    for (final row in (input['chat'] as List<Object?>? ?? const []))
+      (id: ((row as Map)['id'] as num).toInt(), seat: row['seat'] as String?),
+  ];
+  return game.step(now: now, intents: intents, chat: chat, seen: seen, pacing: pacing, fresh: stateJson == null).toJson();
 }
 
 /// Una partita sul server, fra un passo e l'altro: il motore (con tutti i
@@ -176,6 +182,19 @@ class ServerGame {
   final Set<String> offline;
   final List<String> departed;
 
+  /// La presenza di ogni persona, turno per turno (vedi [Attendance]).
+  final Map<String, Attendance> attendance;
+
+  /// Chi ha mandato qualcosa (mossa, voto, conferma, chat) nel turno in
+  /// corso: si azzera a ogni notte e a ogni voto chiusi.
+  final Set<String> spoke;
+
+  /// L'ultimo messaggio di chat già contato.
+  int lastChat;
+
+  /// Quante giornate (discussioni) si sono aperte.
+  int days;
+
   ServerGame._({
     required this.seating,
     required this.language,
@@ -193,8 +212,14 @@ class ServerGame {
     Map<String, DateTime>? botDue,
     Set<String>? offline,
     List<String>? departed,
+    Map<String, Attendance>? attendance,
+    Set<String>? spoke,
+    this.lastChat = 0,
+    this.days = 0,
     this.settleUntil,
   })  : _random = random,
+        attendance = attendance ?? {},
+        spoke = spoke ?? {},
         offline = offline ?? {},
         departed = departed ?? [],
         _brain = BotBrain(random),
@@ -255,6 +280,13 @@ class ServerGame {
       },
       offline: {for (final seat in (json['offline'] as List<Object?>? ?? const [])) seat as String},
       departed: [for (final seat in (json['departed'] as List<Object?>? ?? const [])) seat as String],
+      attendance: {
+        for (final MapEntry(:key, :value) in map('attendance').entries)
+          key: Attendance.fromJson((value as Map).cast<String, Object?>()),
+      },
+      spoke: {for (final seat in (json['spoke'] as List<Object?>? ?? const [])) seat as String},
+      lastChat: (json['lastChat'] as num?)?.toInt() ?? 0,
+      days: (json['days'] as num?)?.toInt() ?? 0,
       settleUntil: json['settleUntil'] == null
           ? null
           : DateTime.fromMillisecondsSinceEpoch((json['settleUntil'] as num).toInt()),
@@ -277,6 +309,10 @@ class ServerGame {
         'botDue': {for (final MapEntry(:key, :value) in botDue.entries) key: value.millisecondsSinceEpoch},
         'offline': [...offline]..sort(),
         'departed': departed,
+        'attendance': {for (final MapEntry(:key, :value) in attendance.entries) key: value.toJson()},
+        'spoke': [...spoke]..sort(),
+        'lastChat': lastChat,
+        'days': days,
         if (settleUntil != null) 'settleUntil': settleUntil!.millisecondsSinceEpoch,
       };
 
@@ -297,6 +333,7 @@ class ServerGame {
   ServerStep step({
     required DateTime now,
     List<IntentEnvelope> intents = const [],
+    List<({int id, String? seat})> chat = const [],
     Map<String, DateTime>? seen,
     OnlinePacing pacing = const OnlinePacing(),
     bool fresh = false,
@@ -308,6 +345,9 @@ class ServerGame {
       changed = true;
       if (!_isHuman(envelope.seat)) continue;
       _heard = true;
+      // Partecipa chi manda qualcosa davvero: anche «passo» e l'astensione,
+      // mai lo scadere del tempo.
+      if (!finished) spoke.add(envelope.seat);
       if (envelope.intent['type'] == 'ack') {
         if (envelope.intent['stage'] == window.key) acks.add(envelope.seat);
         continue;
@@ -315,6 +355,11 @@ class ServerGame {
       final result = _apply(envelope);
       if (result.accepted) _settle(now);
       receipts[envelope.seat] = {'id': envelope.id, 'result': result.toJson()};
+    }
+    for (final message in chat) {
+      if (message.id <= lastChat) continue;
+      lastChat = message.id;
+      if (message.seat case final seat? when _isHuman(seat) && !finished) spoke.add(seat);
     }
     final gone = _presence(now, seen, pacing);
     if (gone.changed) changed = true;
@@ -379,7 +424,11 @@ class ServerGame {
   Map<String, Object?>? _result() {
     final winner = engine.winner;
     if (!finished || winner == null) return null;
+    // Finita prima della seconda giornata perché qualcuno se n'è andato:
+    // non paga nessuno (niente partite brevi fatte apposta).
+    final short = days < 2 && departed.isNotEmpty;
     return {
+      'short': short,
       'winner': winner.name,
       'seats': {
         for (final occupant in seating.occupants)
@@ -394,6 +443,8 @@ class ServerGame {
                 'won': engine.hasWon(view.seat),
                 'survived': _alive(occupant.seat),
                 'abandoned': departed.contains(occupant.seat),
+                'afk': !departed.contains(occupant.seat) && (attendance[occupant.seat]?.afk ?? false),
+                'short': short,
               };
             }(),
       },
@@ -557,6 +608,10 @@ class ServerGame {
       case Stage.reveal:
         _open(Stage.night, now, engine.settings.night, pacing);
       case Stage.night:
+        _judgeTurn({
+          for (final player in engine.pendingNightPlayers) player.id,
+          for (final seat in spoke) if (_alive(seat)) seat,
+        });
         for (final player in engine.pendingNightPlayers) {
           engine.apply(Pass(player.id));
         }
@@ -572,11 +627,16 @@ class ServerGame {
         if (engine.phase == GamePhase.ended) {
           _open(Stage.ended, now, Duration.zero, pacing);
         } else {
+          days++;
           _open(Stage.discussion, now, engine.settings.discussion, pacing);
         }
       case Stage.discussion:
         _open(Stage.vote, now, engine.settings.vote, pacing);
       case Stage.vote:
+        _judgeTurn({
+          for (final occupant in seating.occupants)
+            if (_alive(occupant.seat)) occupant.seat,
+        });
         final lynch = engine.closeDayVote();
         _open(Stage.verdictFilm, now, OnlinePacing.verdictFilm(condemns: lynch.condemned != null), pacing);
       case Stage.verdictFilm:
@@ -590,6 +650,17 @@ class ServerGame {
       case Stage.ended:
         break;
     }
+  }
+
+  /// Chiude un turno (una notte, una giornata) per i posti umani vivi che
+  /// avevano qualcosa da fare ([due]): chi non ha mandato niente è stato
+  /// assente. I morti e chi ha lasciato la città non si giudicano più.
+  void _judgeTurn(Set<String> due) {
+    for (final seat in due) {
+      if (!_isHuman(seat) || !_alive(seat) || departed.contains(seat)) continue;
+      (attendance[seat] ??= Attendance()).record(present: spoke.contains(seat));
+    }
+    spoke.clear();
   }
 
   Duration _between(Duration low, Duration high) =>
@@ -641,4 +712,44 @@ class ServerGame {
     final intent = _brain.decide(engine.viewFor(seat)) ?? Pass(seat);
     if (!engine.apply(intent).accepted) engine.apply(Pass(seat));
   }
+}
+
+/// La presenza di una persona: i turni (notti con un compito, giornate col
+/// voto) in cui era viva e doveva fare qualcosa, quelli in cui non ha mandato
+/// niente, e la fila più lunga di turni muti. È assente per la partita chi è
+/// stato muto in almeno il 70% dei turni E in almeno 3 di fila: chi vota
+/// ogni giorno non lo è mai, anche se tace e di notte non fa niente.
+class Attendance {
+  int turns;
+  int silent;
+  int streak;
+  int longest;
+
+  Attendance({this.turns = 0, this.silent = 0, this.streak = 0, this.longest = 0});
+
+  static const minTurns = 3;
+  static const silentShare = 0.7;
+  static const silentRun = 3;
+
+  void record({required bool present}) {
+    turns++;
+    if (present) {
+      streak = 0;
+    } else {
+      silent++;
+      streak++;
+      if (streak > longest) longest = streak;
+    }
+  }
+
+  bool get afk => turns >= minTurns && silent >= silentShare * turns && longest >= silentRun;
+
+  factory Attendance.fromJson(Map<String, Object?> json) => Attendance(
+        turns: (json['turns'] as num?)?.toInt() ?? 0,
+        silent: (json['silent'] as num?)?.toInt() ?? 0,
+        streak: (json['streak'] as num?)?.toInt() ?? 0,
+        longest: (json['longest'] as num?)?.toInt() ?? 0,
+      );
+
+  Map<String, Object?> toJson() => {'turns': turns, 'silent': silent, 'streak': streak, 'longest': longest};
 }
