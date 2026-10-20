@@ -28,6 +28,8 @@ import '../../theme/app_theme.dart';
 import '../../widgets/death_scene.dart';
 import '../../widgets/night_notes.dart';
 import '../../widgets/scene_scaffold.dart';
+import '../../widgets/content_width.dart';
+import '../../widgets/wide_scale.dart';
 import '../../widgets/lynch_mark.dart';
 import 'game/chat_dock.dart';
 import 'game/chronicle_headlines.dart';
@@ -381,10 +383,22 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   @override
   Widget build(BuildContext context) {
-    final screen = _screen();
+    final screen = WideScale(
+      child: Builder(
+        builder: (inner) {
+          _scaled = inner;
+          return _screen();
+        },
+      ),
+    );
     if (identical(AppStrings.of(context), _t)) return screen;
     return Localizations.override(context: context, locale: _t.language.locale, child: screen);
   }
+
+  /// Il contesto dentro [WideScale]: le misure dello schermo ingrandito.
+  BuildContext? _scaled;
+
+  MediaQueryData get _media => MediaQuery.of(_scaled ?? context);
 
   /// Prima dell'inizio comune della fase (l'orologio non corre ancora).
   bool get _beforeStart => _client.ready && _client.elapsed < Duration.zero;
@@ -441,18 +455,21 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                 Expanded(
                   child: _inlineChat
                       ? _gamePage()
-                      : Padding(
-                          padding: const EdgeInsets.fromLTRB(10, 4, 10, 8),
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 350),
-                            child: KeyedSubtree(
-                              key: ValueKey(ready ? '${_window?.key}-${_board.abandoned}' : 'connecting'),
-                              child: _stageView(),
+                      : ContentWidth(
+                          maxWidth: 780,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(10, 4, 10, 8),
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 350),
+                              child: KeyedSubtree(
+                                key: ValueKey(ready ? '${_window?.key}-${_board.abandoned}' : 'connecting'),
+                                child: _stageView(),
+                              ),
                             ),
                           ),
                         ),
                 ),
-                if (ready && !_board.abandoned && !_inlineChat) _chatDock(),
+                if (ready && !_board.abandoned && !_inlineChat) ContentWidth(maxWidth: 780, child: _chatDock()),
               ],
             ),
           ),
@@ -633,13 +650,13 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   /// Il messaggio di un altro, tenuto premuto: segnalarlo o bloccarlo.
   void _holdMessage(ChatMessage message) => showPlayerActions(
-        context,
-        services: widget.services,
-        profileId: message.profileId,
-        name: message.name,
-        myId: widget.me.id,
-        message: message,
-      );
+    context,
+    services: widget.services,
+    profileId: message.profileId,
+    name: message.name,
+    myId: widget.me.id,
+    message: message,
+  );
 
   /// Le fasi del gioco hanno tutte la stessa pagina, con le stesse misure:
   /// il tavolo, la striscia dei comandi, la chat.
@@ -666,9 +683,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   /// La striscia dei comandi tra il tavolo e la chat: sempre alta così.
   static const _stripHeight = 70.0;
 
+  /// Su schermo largo la chat è una colonna a destra, larga così.
+  static const _wideChatWidth = 300.0;
+
   /// Il tavolo: la stessa altezza in ogni fase, poco più di un terzo dello
   /// schermo, così la chat resta grande.
-  double get _tableHeight => (MediaQuery.sizeOf(context).height * 0.38).clamp(200.0, 330.0);
+  double get _tableHeight => (_media.size.height * 0.38).clamp(200.0, 330.0);
 
   _Phase _phase() => switch (_stage) {
     Stage.night => _view.action != null ? _taskPhase() : _waitingPhase(),
@@ -682,10 +702,62 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   /// comandi della fase, poi la chat (sempre la stessa, anche di notte). Con
   /// la tastiera aperta resta solo la chat.
   Widget _gamePage() {
-    final typing = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final typing = _media.viewInsets.bottom > 0;
     final phase = _phase();
     final now = _chatNow();
     final family = now.view.channel == ChatChannel.family;
+    final chatBox = Container(
+      key: Key(family ? 'online.familyChat' : 'online.townChat'),
+      decoration: BoxDecoration(
+        color: Saloon.ink.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: now.view.accent.withValues(alpha: 0.8), width: 1.3),
+      ),
+      padding: const EdgeInsets.fromLTRB(12, 6, 8, 8),
+      child: ChatLog(
+        view: now.view,
+        messages: now.messages,
+        myId: widget.me.id,
+        labels: ChatLabels(hint: _t.online.chatHint, empty: _t.online.chatEmpty, send: _t.online.chatSend),
+        onSend: (body) => _client.sendChat(_chatView().channel, body),
+        seats: _chatSeats,
+        onHold: _holdMessage,
+        trailing: _stage.chat == 'day' && _view.familyChat ? _chatSwitch() : null,
+      ),
+    );
+    final bottom = typing ? 6.0 : max(_media.viewPadding.bottom - 6, 8.0);
+    if (WideScale.isWide(_media.size)) {
+      return Padding(
+        padding: EdgeInsets.fromLTRB(10, 0, 10, bottom),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: KeyedSubtree(
+                key: phase.key,
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: SizedBox(key: const Key('game.tableSlot'), width: double.infinity, child: phase.table),
+                    ),
+                    SizedBox(
+                      key: const Key('game.stripSlot'),
+                      height: _stripHeight,
+                      width: double.infinity,
+                      child: Center(
+                        child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 560), child: phase.strip),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            SizedBox(key: const Key('game.chatSlot'), width: _wideChatWidth, child: chatBox),
+          ],
+        ),
+      );
+    }
     return Padding(
       padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
       child: Column(
@@ -705,37 +777,17 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                     key: const Key('game.stripSlot'),
                     height: _stripHeight,
                     width: double.infinity,
-                    child: Center(child: phase.strip),
+                    child: Center(
+                      child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 560), child: phase.strip),
+                    ),
                   ),
                 ],
               ),
             ),
           Expanded(
-            child: SizedBox(
-              key: const Key('game.chatSlot'),
-              width: double.infinity,
-              child: Container(
-                key: Key(family ? 'online.familyChat' : 'online.townChat'),
-                decoration: BoxDecoration(
-                  color: Saloon.ink.withValues(alpha: 0.92),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: now.view.accent.withValues(alpha: 0.8), width: 1.3),
-                ),
-                padding: const EdgeInsets.fromLTRB(12, 6, 8, 8),
-                child: ChatLog(
-                  view: now.view,
-                  messages: now.messages,
-                  myId: widget.me.id,
-                  labels: ChatLabels(hint: _t.online.chatHint, empty: _t.online.chatEmpty, send: _t.online.chatSend),
-                  onSend: (body) => _client.sendChat(_chatView().channel, body),
-                  seats: _chatSeats,
-                  onHold: _holdMessage,
-                  trailing: _stage.chat == 'day' && _view.familyChat ? _chatSwitch() : null,
-                ),
-              ),
-            ),
+            child: SizedBox(key: const Key('game.chatSlot'), width: double.infinity, child: chatBox),
           ),
-          SizedBox(height: typing ? 6 : max(MediaQuery.viewPaddingOf(context).bottom - 6, 8)),
+          SizedBox(height: typing ? 6 : max(_media.viewPadding.bottom - 6, 8)),
         ],
       ),
     );

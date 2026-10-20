@@ -10,6 +10,8 @@ import '../../../rules/role.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/role_reveal_card.dart';
 import 'game/noir_ui.dart';
+import '../../widgets/wide_scale.dart';
+import '../../widgets/content_width.dart';
 
 /// I risultati dell'ultima partita, a tutto schermo: chi ha vinto, la tua
 /// carta, l'esperienza che riempie la barra (con lo scoppio se si sale di
@@ -96,7 +98,9 @@ class _MatchResultsScreenState extends State<MatchResultsScreen> with SingleTick
   double _stage(double from, double to) => Curves.easeOutCubic.transform(((_show.value - from) / (to - from)).clamp(0.0, 1.0));
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => WideScale(child: Builder(builder: _build));
+
+  Widget _build(BuildContext context) {
     final strings = AppStrings.of(context);
     final t = strings.online;
     final en = strings.language == AppLanguage.en;
@@ -145,7 +149,7 @@ class _MatchResultsScreenState extends State<MatchResultsScreen> with SingleTick
                 colors: [Color.lerp(const Color(0xFF1A100A), won ? const Color(0xFF4A3014) : const Color(0xFF3A0E10), title)!, const Color(0xFF080504)],
               ),
             ),
-            child: SafeArea(
+            child: ContentWidth(maxWidth: 680, child: SafeArea(
               child: LayoutBuilder(
                 builder: (context, box) => SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -244,7 +248,7 @@ class _MatchResultsScreenState extends State<MatchResultsScreen> with SingleTick
                   ),
                 ),
               ),
-            ),
+            )),
           );
         },
       ),

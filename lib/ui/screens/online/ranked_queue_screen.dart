@@ -15,6 +15,8 @@ import 'online_widgets.dart';
 import 'match_results_screen.dart';
 import 'ranked_entry.dart';
 import 'ranked_lobby.dart';
+import '../../widgets/wide_scale.dart';
+import '../../widgets/content_width.dart';
 
 /// La classificata: lingua, poi subito la sala d'attesa. Il server fa
 /// sedere chi entra al tavolo di una sala (stessa lingua, livello vicino):
@@ -200,7 +202,9 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
   String _clock(Duration d) => '${d.inMinutes}:${(d.inSeconds % 60).toString().padLeft(2, '0')}';
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => WideScale(child: Builder(builder: _build));
+
+  Widget _build(BuildContext context) {
     final t = AppStrings.of(context).online;
     final lobby = _lobby;
     if (lobby != null) return _lobbyView(context, lobby);
@@ -240,7 +244,7 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
             stops: [0, 0.55, 1],
           ),
         ),
-        child: SafeArea(
+        child: ContentWidth(maxWidth: 760, child: SafeArea(
           bottom: false,
           child: Column(
             children: [
@@ -360,7 +364,7 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
               SizedBox(height: 12 + MediaQuery.paddingOf(context).bottom),
             ],
           ),
-        ),
+        )),
       ),
     );
   }

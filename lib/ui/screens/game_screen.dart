@@ -34,6 +34,7 @@ import '../widgets/script_page_view.dart';
 import '../widgets/spoken_script_card.dart';
 import '../press.dart';
 import '../seating.dart';
+import '../widgets/wide_scale.dart';
 
 /// La partita su un solo telefono: il copione si legge ad alta voce, di notte
 /// il telefono fa il giro del tavolo, di giorno resta in mezzo.
@@ -408,7 +409,7 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final screen = _screen();
+    final screen = WideScale(child: _screen());
     // Se intanto l'app ha cambiato lingua, la partita resta in quella in cui
     // è cominciata: anche i pezzi che i testi li cercano da sé.
     if (identical(AppStrings.of(context), _t)) return screen;

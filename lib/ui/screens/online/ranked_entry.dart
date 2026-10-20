@@ -7,6 +7,7 @@ import '../../../l10n/app_language.dart';
 import '../../../l10n/app_strings.dart';
 import '../../theme/app_theme.dart';
 import 'game/noir_ui.dart';
+import '../../widgets/content_width.dart';
 
 /// La porta della stanza sul retro: lo spioncino, le targhe d'ottone, la
 /// lingua del tavolo su due biglietti e il grande "CERCA PARTITA".
@@ -49,7 +50,7 @@ class RankedEntryView extends StatelessWidget {
             stops: [0, 0.55, 1],
           ),
         ),
-        child: SafeArea(
+        child: ContentWidth(maxWidth: 680, child: SafeArea(
           child: Column(
             children: [
               Padding(
@@ -163,7 +164,7 @@ class RankedEntryView extends StatelessWidget {
               ),
             ],
           ),
-        ),
+        )),
       ),
     );
   }

@@ -72,7 +72,7 @@ Future<void> _shot(WidgetTester tester, String name, {bool settle = true}) async
   if (settle) await tester.pump(const Duration(milliseconds: 400));
   await tester.runAsync(() async {
     final boundary = _key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
-    final image = await boundary.toImage(pixelRatio: 1.5);
+    final image = await boundary.toImage(pixelRatio: tester.view.devicePixelRatio > 2 ? 1.5 : 1);
     final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
     File('$out/$name.png')
       ..createSync(recursive: true)
@@ -90,8 +90,10 @@ Future<void> _flush(WidgetTester tester) async {
 void main() {
   testWidgets('sala d\'attesa della classificata', (tester) async {
     await tester.runAsync(_loadFonts);
-    tester.view.physicalSize = const Size(390, 1400) * 3;
-    tester.view.devicePixelRatio = 3;
+    final dims = (Platform.environment['SIZE'] ?? '390x1400').split('x').map(double.parse).toList();
+    final ratio = dims[0] > 600 ? 2.0 : 3.0;
+    tester.view.physicalSize = Size(dims[0], dims[1]) * ratio;
+    tester.view.devicePixelRatio = ratio;
     final clock = ManualClock();
     final online = FakeOnline(accountId: 'bruno', clock: clock)..signInReady(handle: 'bruno');
     const names = ['rosa', 'tano', 'lilo', 'mimi', 'ciro', 'nina', 'toto', 'enzo', 'pina', 'sasa', 'lucia'];
@@ -138,8 +140,10 @@ void main() {
 
   testWidgets('risultati a tutto schermo', (tester) async {
     await tester.runAsync(_loadFonts);
-    tester.view.physicalSize = const Size(390, 844) * 3;
-    tester.view.devicePixelRatio = 3;
+    final dims = (Platform.environment['SIZE'] ?? '390x844').split('x').map(double.parse).toList();
+    final ratio = dims[0] > 600 ? 2.0 : 3.0;
+    tester.view.physicalSize = Size(dims[0], dims[1]) * ratio;
+    tester.view.devicePixelRatio = ratio;
     for (final (name, result) in [
       ('10_results_won', const MatchResult(gameId: 'g', ranked: true, won: true, role: 'mafioso', xpGained: 120, levelBefore: 4, levelAfter: 5, coinsGained: 400, ratingDelta: 1.2, ordinalAfter: 16)),
       ('11_results_lost', const MatchResult(gameId: 'g', won: false, role: 'detective', xpGained: 40, levelBefore: 3, levelAfter: 3)),
