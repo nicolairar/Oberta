@@ -585,7 +585,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                     child: HomeSoonPoster(
                       title: t.rankedTitle,
                       blurb: t.rankedBlurb,
-                      strip: t.soon,
+                      strip: rankedDebug ? (t.language == AppLanguage.en ? 'IN TESTING' : 'IN PROVA') : t.soon,
                       emblem: HomeSoonEmblem.laurel,
                       paper: const Color(0xFF581019),
                       seed: 21,
