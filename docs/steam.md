@@ -150,3 +150,11 @@ Su desktop ci sono solo due modalità:
 - **Gioca con amici**, con stanze chiuse a cui si entra solo con il codice.
 
 «Un telefono per tutti» non c'è su desktop: nella home desktop il suo manifesto non compare.
+
+## Login automatico e anti-pirateria (20 ottobre 2026)
+
+- Fase 2: aprendo il gioco da Steam il login è automatico. Il client chiede a Steam un biglietto (GetAuthTicketForWebApi), l'Edge Function lo verifica con ISteamUserAuth/AuthenticateUserTicket e la chiave da editore, e controlla che quell'account **possieda il gioco** (ownerSteamID / ISteamUser/CheckAppOwnership). Senza licenza vera il server rifiuta l'accesso.
+- Fase 1: accesso Steam via web la prima volta, poi la sessione resta salvata.
+- Su desktop si gioca solo online: ogni partita, acquisto, moneta e XP passa dal server, che verifica la licenza a ogni accesso. Un client craccato non può entrare nelle code né nelle stanze.
+- I ruoli segreti restano sul server (già oggi): il client vede solo quello che deve vedere, quindi modificare il client non scopre niente.
+- iPhone, se l'app diventa a pagamento: App Attest (DeviceCheck) per accettare solo app originali, verificato dal server.
