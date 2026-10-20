@@ -15,6 +15,7 @@ import 'sound/device_stage.dart';
 import 'sound/narrator_voice.dart';
 import 'sound/sound_stage.dart';
 import 'ui/screens/home_screen.dart';
+import 'ui/widgets/device_session_gate.dart';
 import 'ui/theme/app_theme.dart';
 import 'ui/screens/settings_screen.dart';
 
@@ -25,7 +26,12 @@ Future<void> main() async {
   NarratorVoice.instance = await NarratorVoice.load();
   AppSettings.instance = await AppSettings.open();
   // L'online c'è solo se l'app è stata compilata con config/supabase.json.
-  OnlineServices.instance = await openSupabaseOnline(OnlineConfig.compiled);
+  final sessionId = newDeviceSessionId();
+  OnlineServices.instance = await openSupabaseOnline(OnlineConfig.compiled, deviceSessionId: sessionId);
+  if (OnlineServices.instance case OnlineServices(:final auth, sessions: final sessions?)) {
+    DeviceSession.instance = DeviceSession(sessions, sessionId: sessionId, deviceLabel: deviceLabelHere())
+      ..follow(auth, () => auth.signedIn);
+  }
   // Il QR di una stanza inquadrato con la fotocamera apre l'app su quella stanza.
   listenToDeviceLinks(IncomingLinks.instance);
   runApp(const ObertaApp());
@@ -58,6 +64,7 @@ class ObertaApp extends StatelessWidget {
         ],
         // Il telefono in italiano gioca in italiano; tutti gli altri in inglese.
         localeListResolutionCallback: (device, _) => AppLanguage.forDevice(device).locale,
+        builder: (context, child) => DeviceSessionGate(session: DeviceSession.instance, child: child!),
         home: Builder(
           builder: (context) => HomeScreen(onSettings: () => SettingsScreen.open(context, settings: settings)),
         ),

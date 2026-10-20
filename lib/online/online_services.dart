@@ -1,12 +1,14 @@
 import 'package:flutter/foundation.dart';
 
 import '../l10n/app_language.dart';
+import 'device_session.dart';
 import 'game/game_backend.dart';
 import 'online_models.dart';
 import 'ranked_models.dart';
 import 'safety.dart';
 import 'shop_models.dart';
 
+export 'device_session.dart';
 export 'game/game_backend.dart';
 export 'online_models.dart';
 export 'ranked_models.dart';
@@ -138,6 +140,9 @@ class OnlineServices {
   /// Segnalare e bloccare giocatori. Null dove nessuno l'ha collegato.
   final SafetyRepository? safety;
 
+  /// Un dispositivo alla volta. Null dove nessuno l'ha collegato.
+  final DeviceSessionRepository? sessions;
+
   const OnlineServices({
     required this.auth,
     required this.profiles,
@@ -148,6 +153,7 @@ class OnlineServices {
     this.account,
     this.ranked,
     this.safety,
+    this.sessions,
   });
 
   static OnlineServices? instance;

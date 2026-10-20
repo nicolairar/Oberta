@@ -227,6 +227,13 @@ abstract class OnlineStrings {
 
   String failure(OnlineFailure failure);
 
+  // Un dispositivo alla volta.
+  String get deviceOneAtATime;
+  String deviceContested(String other);
+  String get deviceDisplacedTitle;
+  String deviceDisplaced(String other);
+  String get devicePlayHere;
+
   Map<String, String> get catalog => {
     'posterTitle': posterTitle,
     'posterBlurb': posterBlurb,
@@ -242,6 +249,11 @@ abstract class OnlineStrings {
     'signIn': signIn,
     'coachSignIn': coachSignIn,
     'roomLinkSignIn': roomLinkSignIn('ABC234'),
+    'deviceOneAtATime': deviceOneAtATime,
+    'deviceContested': deviceContested('Mac'),
+    'deviceDisplacedTitle': deviceDisplacedTitle,
+    'deviceDisplaced': deviceDisplaced('iPhone'),
+    'devicePlayHere': devicePlayHere,
     'roomLinkInvalid': roomLinkInvalid,
     'technicalReason': technicalReason,
     'pickHandle': pickHandle,
@@ -809,6 +821,17 @@ final class ItalianOnlineStrings extends OnlineStrings {
   String get withdraw => 'Ritira';
 
   @override
+  String get deviceOneAtATime => 'Puoi giocare su un solo dispositivo alla volta';
+  @override
+  String deviceContested(String other) => 'Il tuo account è aperto anche su: $other. Dove vuoi giocare?';
+  @override
+  String get deviceDisplacedTitle => 'Sei connesso su un altro dispositivo';
+  @override
+  String deviceDisplaced(String other) => 'Adesso giochi su: $other. Se vuoi, riprendi da qui.';
+  @override
+  String get devicePlayHere => 'GIOCO QUA';
+
+  @override
   String failure(OnlineFailure failure) => switch (failure) {
         OnlineFailure.notSignedIn => 'Prima bisogna entrare con un account.',
         OnlineFailure.appleDisabled => 'Accesso con Apple non attivo sul server.',
@@ -840,6 +863,7 @@ final class ItalianOnlineStrings extends OnlineStrings {
         OnlineFailure.cancelled => 'Accesso annullato.',
         OnlineFailure.rankedCooldown => 'Troppi abbandoni: aspetta un po\' prima di rientrare.',
         OnlineFailure.alreadyInGame => 'Sei già in una partita.',
+        OnlineFailure.otherDevice => 'Sei connesso su un altro dispositivo.',
         OnlineFailure.network => 'Niente rete. Riprova fra poco.',
         OnlineFailure.unknown => 'Qualcosa è andato storto. Riprova.',
       };
@@ -1244,6 +1268,17 @@ final class EnglishOnlineStrings extends OnlineStrings {
   String get withdraw => 'Withdraw';
 
   @override
+  String get deviceOneAtATime => 'You can play on one device at a time';
+  @override
+  String deviceContested(String other) => 'Your account is also open on: $other. Where do you want to play?';
+  @override
+  String get deviceDisplacedTitle => 'You are connected on another device';
+  @override
+  String deviceDisplaced(String other) => 'You are now playing on: $other. Take it back from here if you like.';
+  @override
+  String get devicePlayHere => 'PLAY HERE';
+
+  @override
   String failure(OnlineFailure failure) => switch (failure) {
         OnlineFailure.notSignedIn => 'Sign in with an account first.',
         OnlineFailure.appleDisabled => 'Sign in with Apple is not enabled on the server.',
@@ -1275,6 +1310,7 @@ final class EnglishOnlineStrings extends OnlineStrings {
         OnlineFailure.cancelled => 'Sign-in cancelled.',
         OnlineFailure.rankedCooldown => 'Too many games left: wait a little before queueing.',
         OnlineFailure.alreadyInGame => 'You are already in a game.',
+        OnlineFailure.otherDevice => 'You are connected on another device.',
         OnlineFailure.network => 'No connection. Try again shortly.',
         OnlineFailure.unknown => 'Something went wrong. Try again.',
       };

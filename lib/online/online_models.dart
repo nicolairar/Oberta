@@ -273,6 +273,9 @@ enum OnlineFailure {
   /// La classificata: in pausa dopo troppi abbandoni, o già in partita.
   rankedCooldown,
   alreadyInGame,
+
+  /// L'account gioca su un altro dispositivo: qui non si scrive.
+  otherDevice,
   network,
   unknown,
 }

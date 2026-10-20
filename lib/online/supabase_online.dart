@@ -16,10 +16,16 @@ import 'online_services.dart';
 
 /// L'online vero, su Supabase. Lo apre `main` quando l'app è stata compilata
 /// con la configurazione; i test usano invece `FakeOnline`.
-Future<OnlineServices?> openSupabaseOnline(OnlineConfig config) async {
+Future<OnlineServices?> openSupabaseOnline(OnlineConfig config, {String? deviceSessionId}) async {
   if (!config.isComplete) return null;
   try {
-    await Supabase.initialize(url: config.supabaseUrl, publishableKey: config.supabaseAnonKey);
+    // Ogni chiamata porta la sessione di questo dispositivo: il server lascia
+    // scrivere solo quella attiva (un dispositivo alla volta).
+    await Supabase.initialize(
+      url: config.supabaseUrl,
+      publishableKey: config.supabaseAnonKey,
+      headers: {'x-device-session': ?deviceSessionId},
+    );
   } catch (error) {
     debugPrint('Supabase non disponibile: $error');
     return null;
@@ -35,6 +41,7 @@ Future<OnlineServices?> openSupabaseOnline(OnlineConfig config) async {
     ranked: SupabaseRanked(client),
     account: SupabaseAccount(client),
     safety: SupabaseSafety(client),
+    sessions: SupabaseDeviceSessions(client),
   );
 }
 
@@ -92,6 +99,7 @@ OnlineException translateOnlineError(Object error, [SignInDoor? door]) => _trans
 OnlineException _translate(Object error, [SignInDoor? door]) {
   if (error is OnlineException) return error;
   final translated = _classify(error, door);
+  if (translated.failure == OnlineFailure.otherDevice) DeviceSession.instance?.otherDeviceRejected();
   debugPrint('Online: ${translated.failure.name} ← ${translated.reason}');
   return translated;
 }
@@ -127,6 +135,7 @@ OnlineException _classify(Object error, SignInDoor? door) {
       'silenced' || 'chat_closed' || 'invalid_message' => OnlineFailure.chatClosed,
       'ranked_cooldown' => OnlineFailure.rankedCooldown,
       'already_in_game' => OnlineFailure.alreadyInGame,
+      'other_device' => OnlineFailure.otherDevice,
       _ => OnlineFailure.unknown,
     };
     return OnlineException(failure, error, detail);
@@ -861,4 +870,49 @@ class SupabaseRanked implements RankedRepository {
         final rows = await _client.from('match_history').select().order('played_at', ascending: false).limit(limit);
         return [for (final row in rows) MatchResult.fromJson(row.cast<String, Object?>())];
       });
+}
+
+class SupabaseDeviceSessions implements DeviceSessionRepository {
+  final SupabaseClient _client;
+
+  SupabaseDeviceSessions(this._client);
+
+  SessionAnswer _answer(Object? json) => SessionAnswer.fromJson((json as Map).cast<String, Object?>());
+
+  @override
+  Future<SessionAnswer> claim(String sessionId, String deviceLabel, {bool force = false}) => _guard(() async =>
+      _answer(await _client.rpc<dynamic>('claim_session',
+          params: {'session_id': sessionId, 'device_label': deviceLabel, 'force': force})));
+
+  @override
+  Future<SessionAnswer> status(String sessionId) =>
+      _guard(() async => _answer(await _client.rpc<dynamic>('session_status', params: {'session_id': sessionId})));
+
+  @override
+  Stream<void> changes() {
+    final me = _client.auth.currentUser?.id;
+    if (me == null) return const Stream.empty();
+    late final StreamController<void> controller;
+    RealtimeChannel? channel;
+    controller = StreamController<void>(
+      onListen: () {
+        channel = _client
+            .channel('session:$me')
+            .onPostgresChanges(
+              event: PostgresChangeEvent.all,
+              schema: 'public',
+              table: 'session_signals',
+              filter: PostgresChangeFilter(type: PostgresChangeFilterType.eq, column: 'profile_id', value: me),
+              callback: (_) {
+                if (!controller.isClosed) controller.add(null);
+              },
+            )
+            .subscribe();
+      },
+      onCancel: () async {
+        if (channel case final channel?) await _client.removeChannel(channel);
+      },
+    );
+    return controller.stream;
+  }
 }

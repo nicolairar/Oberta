@@ -35,6 +35,7 @@ class FakeOnline {
   late final FakeShop shop = FakeShop._(this);
   late final FakeRanked ranked = FakeRanked._(this);
   late final FakeSafety safety = FakeSafety._(this);
+  late final FakeDeviceSessions sessions = FakeDeviceSessions(() => auth.userId);
 
   /// I blocchi, come `player_blocks`: (chi blocca, chi è bloccato).
   final Set<(String, String)> blocks = {};
@@ -133,7 +134,7 @@ class FakeOnline {
         clock = clock ?? const SystemGameClock();
 
   OnlineServices get services =>
-      OnlineServices(auth: auth, profiles: profiles, friends: friends, rooms: rooms, game: game, shop: shop, account: account, ranked: ranked, safety: safety);
+      OnlineServices(auth: auth, profiles: profiles, friends: friends, rooms: rooms, game: game, shop: shop, account: account, ranked: ranked, safety: safety, sessions: sessions);
 
   /// Gli account di prova: email → (password, id dell'account).
   final Map<String, (String, String)> _testAccounts = {};
@@ -1398,4 +1399,75 @@ class FakeRanked implements RankedRepository {
   @override
   Future<List<MatchResult>> history({int limit = 5}) async =>
       (_online.history[_me] ?? const []).reversed.take(limit).toList();
+}
+
+/// Come `internal.active_sessions`: un dispositivo attivo per account, e
+/// l'ultimo che ha chiesto di giocare. Più telefoni finti possono usare lo
+/// stesso server con [FakeDeviceSessions.withAccount].
+class FakeDeviceSessions implements DeviceSessionRepository {
+  final String? Function() _account;
+  final _FakeSessionTable _table;
+
+  FakeDeviceSessions(String? Function() account) : this._(account, _FakeSessionTable());
+
+  FakeDeviceSessions._(this._account, this._table);
+
+  /// Un altro dispositivo sullo stesso server.
+  FakeDeviceSessions withAccount(String? Function() account) => FakeDeviceSessions._(account, _table);
+
+  /// La sessione attiva dell'account, come la guarda il server.
+  String? activeSession(String profileId) => _table.rows[profileId]?.session;
+
+  String get _me => _account() ?? (throw const OnlineException(OnlineFailure.notSignedIn));
+
+  @override
+  Future<SessionAnswer> claim(String sessionId, String deviceLabel, {bool force = false}) async {
+    final me = _me;
+    final row = _table.rows[me];
+    if (row == null || row.session == sessionId || force) {
+      _table.rows[me] = _FakeSession(sessionId, deviceLabel);
+    } else {
+      row.contender = (sessionId, deviceLabel);
+    }
+    _table.changes.add(me);
+    return status(sessionId);
+  }
+
+  @override
+  Future<SessionAnswer> status(String sessionId) async {
+    final row = _table.rows[_me];
+    if (row == null) return const SessionAnswer(active: false);
+    final active = row.session == sessionId;
+    return SessionAnswer(
+      active: active,
+      activeLabel: row.label,
+      waiting: !active && row.contender?.$1 == sessionId,
+      contenderLabel: active ? row.contender?.$2 : null,
+    );
+  }
+
+  /// Come il controllo prima di ogni scrittura: `other_device` se non tocca a lei.
+  void checkWrite(String sessionId) {
+    final row = _table.rows[_me];
+    if (row != null && row.session != sessionId) throw const OnlineException(OnlineFailure.otherDevice);
+  }
+
+  @override
+  Stream<void> changes() {
+    final me = _account();
+    return _table.changes.stream.where((id) => id == me);
+  }
+}
+
+class _FakeSessionTable {
+  final Map<String, _FakeSession> rows = {};
+  final changes = StreamController<String>.broadcast();
+}
+
+class _FakeSession {
+  final String session;
+  final String label;
+  (String, String)? contender;
+
+  _FakeSession(this.session, this.label);
 }
