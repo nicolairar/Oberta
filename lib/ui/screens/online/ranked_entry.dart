@@ -5,13 +5,14 @@ import 'package:flutter/services.dart';
 
 import '../../../l10n/app_language.dart';
 import '../../../l10n/app_strings.dart';
+import '../../../l10n/online_strings.dart';
+import '../../../online/ranked_models.dart';
 import '../../theme/app_theme.dart';
 import 'game/noir_ui.dart';
-import '../../widgets/content_width.dart';
 
-/// La porta della stanza sul retro: lo spioncino, le targhe d'ottone, la
-/// lingua del tavolo su due biglietti e il grande "CERCA PARTITA".
-/// Mentre si cerca, dallo spioncino passa una luce che va e viene.
+/// La stanza sul retro: una lampada sopra il tavolo verde, il fumo, il
+/// proprio grado timbrato, due carte da gioco per la lingua del tavolo e il
+/// grande "Siediti al tavolo". Mentre si cerca, la lampada respira.
 class RankedEntryView extends StatelessWidget {
   final AppLanguage language;
   final ValueChanged<AppLanguage> onLanguage;
@@ -21,6 +22,13 @@ class RankedEntryView extends StatelessWidget {
   final bool warning;
   final VoidCallback onStart;
   final VoidCallback onCancel;
+
+  /// Il proprio grado nella lingua scelta e quanto manca al prossimo (0..1).
+  final RankTier? tier;
+  final double? progress;
+
+  /// Quanti sono in coda per lingua: si mostrano solo da [OnlineCounts.encouraging].
+  final Map<AppLanguage, int> queuedCounts;
 
   const RankedEntryView({
     super.key,
@@ -32,346 +40,541 @@ class RankedEntryView extends StatelessWidget {
     required this.warning,
     required this.onStart,
     required this.onCancel,
+    this.tier,
+    this.progress,
+    this.queuedCounts = const {},
   });
 
   @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
     final t = strings.online;
-    final en = strings.language == AppLanguage.en;
     return Scaffold(
-      backgroundColor: const Color(0xFF0C0806),
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: RadialGradient(
-            center: Alignment(0, -0.45),
-            radius: 1.15,
-            colors: [Color(0xFF3A2414), Color(0xFF1A100A), Color(0xFF080504)],
-            stops: [0, 0.55, 1],
-          ),
-        ),
-        child: ContentWidth(maxWidth: 680, child: SafeArea(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(4, 2, 16, 0),
-                child: Row(
-                  children: [
-                    Semantics(
-                      button: true,
-                      label: MaterialLocalizations.of(context).backButtonTooltip,
-                      child: GestureDetector(
-                        onTap: () => Navigator.of(context).maybePop(),
-                        behavior: HitTestBehavior.opaque,
-                        child: const SizedBox(width: 48, height: 48, child: CustomPaint(painter: _ChevronPainter())),
-                      ),
-                    ),
-                    Expanded(
-                      child: Text(
-                        t.rankedQueueTitle.toUpperCase(),
-                        textAlign: TextAlign.center,
-                        style: AppText.overline.copyWith(color: Saloon.brass, fontSize: 13, letterSpacing: 4),
-                      ),
-                    ),
-                    const SizedBox(width: 48),
-                  ],
+      backgroundColor: const Color(0xFF0A0706),
+      body: Stack(
+        children: [
+          const Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment(0, -0.45),
+                  radius: 1.1,
+                  colors: [Color(0xFF2E1C10), Color(0xFF140C07), Color(0xFF070504)],
+                  stops: [0, 0.5, 1],
                 ),
               ),
-              Expanded(
-                child: LayoutBuilder(
-                  builder: (context, box) => SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(minHeight: box.maxHeight),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            height: min(300, box.maxHeight * 0.42),
-                            child: AnimatedBuilder(
-                              animation: sweep,
-                              builder: (context, _) => CustomPaint(
-                                size: Size.infinite,
-                                painter: _DoorPainter(queued ? sweep.value : null),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-                          _Plate(
-                            child: Text(
-                              en ? 'Twelve at the table · timed rounds · a rank to earn' : 'Dodici al tavolo · turni a tempo · un grado da guadagnare',
-                              textAlign: TextAlign.center,
-                              style: AppText.body.copyWith(color: Saloon.paper, fontSize: 13, height: 1.35),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'PICCIOTTO  ›  CAPODECINA  ›  CAPOREGIME  ›  CONSIGLIERE  ›  DON',
-                            textAlign: TextAlign.center,
-                            style: AppText.overline.copyWith(color: Saloon.brass.withValues(alpha: 0.8), fontSize: 9.5, letterSpacing: 1.4),
-                          ),
-                          const SizedBox(height: 22),
-                          if (queued) ...[
-                            Text(t.rankedSearching, key: const Key('ranked.searching'), textAlign: TextAlign.center, style: AppText.display(20, color: Saloon.paper)),
-                            const SizedBox(height: 18),
-                            SizedBox(
-                              width: double.infinity,
-                              child: NoirButton(key: const Key('ranked.cancel'), kind: NoirButtonKind.brass, label: t.rankedCancel, onPressed: onCancel),
-                            ),
-                          ] else ...[
-                            Text(
-                              en ? 'LANGUAGE AT THE TABLE' : 'LINGUA DEL TAVOLO',
-                              style: AppText.overline.copyWith(color: Saloon.brass, fontSize: 10, letterSpacing: 3),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                for (final (lang, label) in const [(AppLanguage.it, 'Italiano'), (AppLanguage.en, 'English')]) ...[
-                                  if (lang == AppLanguage.en) const SizedBox(width: 12),
-                                  Expanded(
-                                    child: _Ticket(
-                                      key: Key('ranked.lang.${lang.name}'),
-                                      label: label,
-                                      selected: language == lang,
-                                      onTap: () {
-                                        HapticFeedback.selectionClick();
-                                        onLanguage(lang);
-                                      },
+            ),
+          ),
+          SafeArea(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 2, 16, 0),
+                  child: Row(
+                    children: [
+                      Semantics(
+                        button: true,
+                        label: MaterialLocalizations.of(context).backButtonTooltip,
+                        child: GestureDetector(
+                          onTap: () => Navigator.of(context).maybePop(),
+                          behavior: HitTestBehavior.opaque,
+                          child: const SizedBox(width: 48, height: 48, child: CustomPaint(painter: _ChevronPainter())),
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          t.rankedQueueTitle.toUpperCase(),
+                          textAlign: TextAlign.center,
+                          style: AppText.overline.copyWith(color: Saloon.brass, fontSize: 13, letterSpacing: 4),
+                        ),
+                      ),
+                      const SizedBox(width: 48),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, box) {
+                      final short = box.maxHeight < 600;
+                      return SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(minHeight: box.maxHeight),
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 480),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  SizedBox(
+                                    height: (box.maxHeight * (short ? 0.27 : 0.34)).clamp(120.0, 300.0),
+                                    width: double.infinity,
+                                    child: AnimatedBuilder(
+                                      animation: sweep,
+                                      builder: (context, _) => CustomPaint(painter: _RoomPainter(queued ? sweep.value : null)),
                                     ),
                                   ),
+                                  SizedBox(height: short ? 6 : 10),
+                                  _RankBadge(tier: tier, progress: progress),
+                                  SizedBox(height: short ? 14 : 22),
+                                  if (queued) ..._searching(t) else ..._choose(t),
+                                  if (warning) ...[
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      t.rankedWarning,
+                                      textAlign: TextAlign.center,
+                                      style: AppText.body.copyWith(fontSize: 12, color: AppColors.textSecondary),
+                                    ),
+                                  ],
+                                  SizedBox(height: short ? 12 : 20),
                                 ],
-                              ],
-                            ),
-                            const SizedBox(height: 22),
-                            if (cooldown != null)
-                              _Plate(child: Text(cooldown!, textAlign: TextAlign.center, style: AppText.body.copyWith(color: AppColors.gold)))
-                            else
-                              SizedBox(
-                                width: double.infinity,
-                                child: NoirButton(key: const Key('ranked.start'), label: t.rankedStart.toUpperCase(), onPressed: onStart),
                               ),
-                          ],
-                          if (warning) ...[
-                            const SizedBox(height: 14),
-                            Text(t.rankedWarning, textAlign: TextAlign.center, style: AppText.body.copyWith(fontSize: 12, color: AppColors.textSecondary)),
-                          ],
-                          const SizedBox(height: 16),
-                        ],
-                      ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _searching(OnlineStrings t) => [
+        Text(
+          t.rankedSearching,
+          key: const Key('ranked.searching'),
+          textAlign: TextAlign.center,
+          style: AppText.display(20, color: Saloon.paper),
+        ),
+        const SizedBox(height: 18),
+        SizedBox(
+          width: double.infinity,
+          child: NoirButton(key: const Key('ranked.cancel'), kind: NoirButtonKind.brass, label: t.rankedCancel, onPressed: onCancel),
+        ),
+      ];
+
+  List<Widget> _choose(OnlineStrings t) => [
+        Text(
+          t.rankedPickTable,
+          style: AppText.overline.copyWith(color: Saloon.brass, fontSize: 11, letterSpacing: 3.2),
+        ),
+        const SizedBox(height: 10),
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (final (lang, label, sub, suit) in [
+                (AppLanguage.it, 'Italiano', t.rankedTableIt, '♠'),
+                (AppLanguage.en, 'English', t.rankedTableEn, '♥'),
+              ]) ...[
+                if (lang == AppLanguage.en) const SizedBox(width: 14),
+                Expanded(
+                  child: _TableCard(
+                    key: Key('ranked.lang.${lang.name}'),
+                    label: label,
+                    corner: lang.name.toUpperCase(),
+                    suit: suit,
+                    sub: sub,
+                    queued: switch (queuedCounts[lang]) {
+                      final n? when n >= OnlineCounts.encouraging => t.rankedTableQueued(n),
+                      _ => null,
+                    },
+                    selected: language == lang,
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      onLanguage(lang);
+                    },
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          t.rankedRules,
+          key: const Key('ranked.rules'),
+          textAlign: TextAlign.center,
+          style: AppText.body.copyWith(color: Saloon.paper.withValues(alpha: 0.78), fontSize: 13),
+        ),
+        const SizedBox(height: 16),
+        if (cooldown != null)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            decoration: Saloon.scrim(),
+            child: Text(cooldown!, textAlign: TextAlign.center, style: AppText.body.copyWith(color: AppColors.gold)),
+          )
+        else
+          SizedBox(
+            width: double.infinity,
+            child: NoirButton(key: const Key('ranked.start'), label: (t.rankedSit).toUpperCase(), onPressed: onStart),
+          ),
+      ];
+}
+
+/// Il grado timbrato in inchiostro rosso, con la barra verso il prossimo.
+class _RankBadge extends StatelessWidget {
+  final RankTier? tier;
+  final double? progress;
+  const _RankBadge({required this.tier, required this.progress});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppStrings.of(context).online;
+    final tier = this.tier ?? RankTier.picciotto;
+    final next = tier.next;
+    final p = progress ?? 0;
+    return Container(
+      key: const Key('ranked.rank'),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      decoration: Saloon.scrim(radius: 12, border: Saloon.brassDeep),
+      child: Row(
+        children: [
+          Transform.rotate(
+            angle: -0.07,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                border: Border.all(color: Saloon.blood, width: 2),
+                borderRadius: BorderRadius.circular(3),
+              ),
+              child: Text(
+                t.tierName(tier).toUpperCase(),
+                style: AppText.display(15, color: Saloon.blood).copyWith(letterSpacing: 2.2),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(t.rankedYourRank, style: AppText.overline.copyWith(color: Saloon.brass, fontSize: 9.5, letterSpacing: 2.2)),
+                const SizedBox(height: 7),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(3),
+                  child: SizedBox(
+                    height: 6,
+                    child: Stack(
+                      children: [
+                        Positioned.fill(child: Container(color: const Color(0xFF2A211B))),
+                        FractionallySizedBox(
+                          widthFactor: next == null ? 1 : max(0.04, p),
+                          heightFactor: 1,
+                          child: const DecoratedBox(
+                            decoration: BoxDecoration(gradient: LinearGradient(colors: [Saloon.brassDeep, Saloon.brass])),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 6),
+                Text(
+                  next == null ? t.rankedTopTier : t.rankedTowards(t.tierName(next)),
+                  style: AppText.body.copyWith(fontSize: 12, height: 1.1, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
           ),
-        )),
+        ],
       ),
     );
   }
 }
 
-/// Una targa d'ottone avvitata: bordo, viti, fondo scuro.
-class _Plate extends StatelessWidget {
-  final Widget child;
-  const _Plate({required this.child});
-
-  @override
-  Widget build(BuildContext context) => CustomPaint(
-        painter: const _PlatePainter(),
-        child: Padding(padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 12), child: child),
-      );
-}
-
-class _PlatePainter extends CustomPainter {
-  const _PlatePainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final r = RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(6));
-    canvas.drawRRect(r, Paint()..color = const Color(0xFF1C130C));
-    canvas.drawRRect(
-      r.deflate(1),
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2
-        ..shader = const LinearGradient(colors: [Color(0xFFE6C27A), Color(0xFF8A6422), Color(0xFFD9B160)])
-            .createShader(Offset.zero & size),
-    );
-    final screw = Paint()..color = const Color(0xFFB8913F);
-    for (final c in [Offset(9, size.height / 2), Offset(size.width - 9, size.height / 2)]) {
-      canvas.drawCircle(c, 3, screw);
-      canvas.drawLine(c - const Offset(2, 2), c + const Offset(2, 2), Paint()..color = const Color(0xFF4A3412)..strokeWidth = 1);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_PlatePainter old) => false;
-}
-
-/// Un biglietto d'ingresso con le tacche ai lati: quello scelto è d'ottone.
-class _Ticket extends StatelessWidget {
+/// Una carta da gioco grande: indici negli angoli, il nome della lingua al
+/// centro. Quella scelta è d'avorio con il filo d'oro, l'altra è girata a metà nell'ombra.
+class _TableCard extends StatelessWidget {
   final String label;
+  final String corner;
+  final String suit;
+  final String sub;
+  final String? queued;
   final bool selected;
   final VoidCallback onTap;
 
-  const _Ticket({super.key, required this.label, required this.selected, required this.onTap});
+  const _TableCard({
+    super.key,
+    required this.label,
+    required this.corner,
+    required this.suit,
+    required this.sub,
+    required this.queued,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
-  Widget build(BuildContext context) => Semantics(
-        button: true,
-        selected: selected,
-        label: label,
-        excludeSemantics: true,
-        child: GestureDetector(
-          onTap: onTap,
-          child: AnimatedScale(
-            scale: selected ? 1.0 : 0.96,
-            duration: const Duration(milliseconds: 180),
-            child: CustomPaint(
-              painter: _TicketPainter(selected),
-              child: SizedBox(
-                height: 62,
-                child: Center(
-                  child: Text(
-                    label,
-                    style: AppText.display(20, color: selected ? const Color(0xFF2A1A0A) : Saloon.paper.withValues(alpha: 0.75)),
+  Widget build(BuildContext context) {
+    final ink = selected ? Saloon.paperInk : Saloon.paper.withValues(alpha: 0.82);
+    final red = selected ? Saloon.enamel : Saloon.blood.withValues(alpha: 0.85);
+    final suitColor = suit == '♥' ? red : ink;
+    Widget index(bool flip) => Transform.rotate(
+          angle: flip ? pi : 0,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(corner, style: AppText.display(13, color: ink).copyWith(letterSpacing: 0.5, height: 1)),
+              const SizedBox(height: 3),
+              CustomPaint(size: const Size(11, 11), painter: _SuitPainter(heart: suit == '♥', color: suitColor)),
+            ],
+          ),
+        );
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '$label · $sub${queued == null ? '' : ' · $queued'}',
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedSlide(
+          offset: Offset(0, selected ? -0.03 : 0),
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            constraints: const BoxConstraints(minHeight: 150),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: selected
+                    ? const [Color(0xFFF6EBD2), Color(0xFFE9D9B4)]
+                    : const [Color(0xFF241A13), Color(0xFF16100C)],
+              ),
+              border: Border.all(
+                color: selected ? Saloon.brass : Saloon.brassDeep.withValues(alpha: 0.7),
+                width: selected ? 2.4 : 1.2,
+              ),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withValues(alpha: 0.6), blurRadius: selected ? 18 : 6, offset: const Offset(0, 6)),
+                if (selected) BoxShadow(color: Saloon.brass.withValues(alpha: 0.28), blurRadius: 22),
+              ],
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Il filo interno delle carte buone.
+                Positioned.fill(
+                  child: Padding(
+                    padding: const EdgeInsets.all(5),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Saloon.brassDeep.withValues(alpha: selected ? 0.55 : 0.35)),
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                Positioned(left: 11, top: 10, child: index(false)),
+                Positioned(right: 11, bottom: 10, child: index(true)),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 34, 14, 34),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(label, style: AppText.display(24, color: ink).copyWith(letterSpacing: 0.6)),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        sub,
+                        textAlign: TextAlign.center,
+                        style: AppText.body.copyWith(fontSize: 12, height: 1.2, fontStyle: FontStyle.italic, color: ink.withValues(alpha: 0.7)),
+                      ),
+                      if (queued != null) ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: selected ? Saloon.paperInk : Saloon.ink,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(width: 6, height: 6, decoration: const BoxDecoration(color: Saloon.online, shape: BoxShape.circle)),
+                              const SizedBox(width: 5),
+                              Text(queued!, style: AppText.overline.copyWith(color: Saloon.paper, fontSize: 10, letterSpacing: 1)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ),
-      );
+      ),
+    );
+  }
 }
 
-class _TicketPainter extends CustomPainter {
-  final bool selected;
-  const _TicketPainter(this.selected);
+/// La stanza: buio, una lampada a campana, il cono di luce e il fumo, e
+/// sotto il bordo del tavolo verde con qualche fiche. [breath] fa respirare
+/// la luce mentre si cerca.
+class _RoomPainter extends CustomPainter {
+  final double? breath;
+  const _RoomPainter(this.breath);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final notch = 9.0;
-    final path = Path()
-      ..moveTo(0, 0)
-      ..lineTo(size.width, 0)
-      ..lineTo(size.width, size.height / 2 - notch)
-      ..arcToPoint(Offset(size.width, size.height / 2 + notch), radius: Radius.circular(notch), clockwise: false)
-      ..lineTo(size.width, size.height)
-      ..lineTo(0, size.height)
-      ..lineTo(0, size.height / 2 + notch)
-      ..arcToPoint(Offset(0, size.height / 2 - notch), radius: Radius.circular(notch), clockwise: false)
+    final w = size.width, h = size.height;
+    final cx = w / 2;
+    final lampY = h * 0.18;
+    final tableY = h * 0.78;
+    final glow = breath == null ? 1.0 : 0.82 + 0.18 * (0.5 + 0.5 * sin(breath! * 2 * pi));
+
+    // Il calore attorno al tavolo.
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(cx, tableY), width: w * 1.2, height: h * 0.9),
+      Paint()
+        ..shader = RadialGradient(colors: [const Color(0xFF4A2E18).withValues(alpha: 0.55 * glow), Colors.transparent])
+            .createShader(Rect.fromCenter(center: Offset(cx, tableY), width: w * 1.2, height: h * 0.9)),
+    );
+
+    // Il cono di luce.
+    final spread = min(w * 0.46, 260.0);
+    final cone = Path()
+      ..moveTo(cx - 26, lampY + 18)
+      ..lineTo(cx + 26, lampY + 18)
+      ..lineTo(cx + spread, tableY)
+      ..lineTo(cx - spread, tableY)
       ..close();
-    canvas.drawShadow(path, Colors.black, selected ? 6 : 2, false);
     canvas.drawPath(
-      path,
+      cone,
       Paint()
         ..shader = LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: selected
-              ? const [Color(0xFFF0D392), Color(0xFFC79A45), Color(0xFFE2BC6C)]
-              : const [Color(0xFF2A1D13), Color(0xFF1A120C)],
-        ).createShader(Offset.zero & size),
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [const Color(0xFFFFD98A).withValues(alpha: 0.22 * glow), const Color(0xFFFFD98A).withValues(alpha: 0.04 * glow)],
+        ).createShader(Rect.fromLTRB(0, lampY, w, tableY))
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14),
     );
-    final edge = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2
-      ..color = selected ? const Color(0xFF6E4C18) : Saloon.brass.withValues(alpha: 0.55);
-    canvas.drawPath(path, edge);
-    // La linea tratteggiata della matrice.
-    final dash = Paint()
-      ..color = edge.color.withValues(alpha: 0.6)
-      ..strokeWidth = 1;
-    for (var y = 6.0; y < size.height - 6; y += 6) {
-      canvas.drawLine(Offset(size.width * 0.84, y), Offset(size.width * 0.84, y + 3), dash);
+
+    // Il fumo: qualche nuvola larga e morbida.
+    final smoke = Paint()..maskFilter = const MaskFilter.blur(BlurStyle.normal, 28);
+    final drift = (breath ?? 0) * 2 * pi;
+    for (final (dx, dy, r, a) in [(-0.2, 0.55, 46.0, 0.07), (0.22, 0.4, 56.0, 0.06), (0.05, 0.7, 40.0, 0.05), (-0.3, 0.2, 34.0, 0.04)]) {
+      smoke.color = const Color(0xFFE8DCC4).withValues(alpha: a);
+      canvas.drawCircle(Offset(cx + w * dx + 8 * sin(drift + dy * 5), lampY + (tableY - lampY) * dy), r, smoke);
     }
+
+    // Il tavolo: un'ellisse verde col bordo di legno, vista di sbieco.
+    final tw = min(w * 1.04, 600.0);
+    final table = Rect.fromCenter(center: Offset(cx, tableY), width: tw, height: min(tw * 0.22, h * 0.3));
+    canvas.drawOval(table.inflate(14).shift(const Offset(0, 10)), Paint()..color = Colors.black.withValues(alpha: 0.6)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12));
+    canvas.drawOval(table.inflate(10), Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF6A3D20), Saloon.woodDark]).createShader(table.inflate(10)));
+    canvas.drawOval(
+      table,
+      Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(0, -0.3),
+          radius: 0.75,
+          colors: [Color.lerp(Saloon.feltDeep, const Color(0xFF2F6B4A), glow)!, Saloon.feltDeep],
+        ).createShader(table),
+    );
+    canvas.drawOval(table.deflate(8), Paint()..style = PaintingStyle.stroke..strokeWidth = 1..color = Saloon.brass.withValues(alpha: 0.25));
+
+    // Due carte coperte e una pila di fiche sul panno.
+    void card(Offset c, double angle) {
+      canvas.save();
+      canvas.translate(c.dx, c.dy);
+      canvas.rotate(angle);
+      canvas.scale(1, 0.42);
+      final r = RRect.fromRectAndRadius(Rect.fromCenter(center: Offset.zero, width: 30, height: 42), const Radius.circular(3));
+      canvas.drawRRect(r, Paint()..color = const Color(0xFF7A1018));
+      canvas.drawRRect(r.deflate(3), Paint()..style = PaintingStyle.stroke..strokeWidth = 1.2..color = Saloon.paper.withValues(alpha: 0.7));
+      canvas.restore();
+    }
+
+    card(table.center + Offset(-tw * 0.1, -2), -0.4);
+    card(table.center + Offset(-tw * 0.06, 2), 0.2);
+    for (var i = 0; i < 4; i++) {
+      final c = table.center + Offset(tw * 0.1, -i * 3.0);
+      final chip = Rect.fromCenter(center: c, width: 22, height: 8);
+      canvas.drawOval(chip, Paint()..color = i.isEven ? Saloon.enamel : Saloon.paper);
+      canvas.drawOval(chip, Paint()..style = PaintingStyle.stroke..strokeWidth = 0.8..color = Colors.black.withValues(alpha: 0.5));
+    }
+
+    // Il filo e la lampada a campana, d'ottone scuro.
+    canvas.drawLine(Offset(cx, 0), Offset(cx, lampY - 6), Paint()..color = const Color(0xFF3A2B1A)..strokeWidth = 1.6);
+    final shade = Path()
+      ..moveTo(cx - 9, lampY - 8)
+      ..lineTo(cx + 9, lampY - 8)
+      ..quadraticBezierTo(cx + 18, lampY + 4, cx + 34, lampY + 18)
+      ..lineTo(cx - 34, lampY + 18)
+      ..quadraticBezierTo(cx - 18, lampY + 4, cx - 9, lampY - 8)
+      ..close();
+    canvas.drawPath(shade, Paint()..shader = const LinearGradient(colors: [Color(0xFF2A3A2C), Color(0xFF51684F), Color(0xFF223024)]).createShader(Rect.fromLTRB(cx - 34, lampY - 8, cx + 34, lampY + 18)));
+    canvas.drawLine(Offset(cx - 34, lampY + 18), Offset(cx + 34, lampY + 18), Paint()..color = Saloon.brass..strokeWidth = 2);
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(cx, lampY + 20), width: 46, height: 8),
+      Paint()
+        ..color = const Color(0xFFFFE6A8).withValues(alpha: 0.9 * glow)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+    );
+
   }
 
   @override
-  bool shouldRepaint(_TicketPainter old) => old.selected != selected;
+  bool shouldRepaint(_RoomPainter old) => old.breath != breath;
 }
 
-/// La porta di legno, con lo spioncino a griglia; da dentro, mentre si
-/// cerca, una luce calda passa e torna dietro le sbarre.
-class _DoorPainter extends CustomPainter {
-  final double? sweep;
-  const _DoorPainter(this.sweep);
+/// Picche o cuori, disegnati: nessun carattere da cercare nei font.
+class _SuitPainter extends CustomPainter {
+  final bool heart;
+  final Color color;
+  const _SuitPainter({required this.heart, required this.color});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final h = size.height;
-    final w = min(size.width * 0.7, h * 0.62);
-    final door = Rect.fromCenter(center: Offset(size.width / 2, h / 2 + 6), width: w, height: h - 12);
-    // Lo stipite di pietra e la luce che filtra sotto la porta.
-    canvas.drawRect(door.inflate(10), Paint()..color = const Color(0xFF231812));
-    canvas.drawRect(
-      Rect.fromLTWH(door.left - 30, door.bottom, door.width + 60, 10),
-      Paint()
-        ..shader = RadialGradient(colors: [AppColors.gold.withValues(alpha: 0.35), Colors.transparent])
-            .createShader(Rect.fromLTWH(door.left - 30, door.bottom - 10, door.width + 60, 30)),
-    );
-    canvas.drawRect(
-      door,
-      Paint()
-        ..shader = const LinearGradient(colors: [Color(0xFF3B2516), Color(0xFF52331D), Color(0xFF3A2414)])
-            .createShader(door),
-    );
-    // Le assi e i pannelli.
-    final groove = Paint()
-      ..color = const Color(0xFF1E130B)
-      ..strokeWidth = 1.4;
-    for (var i = 1; i < 5; i++) {
-      final x = door.left + door.width * i / 5;
-      canvas.drawLine(Offset(x, door.top), Offset(x, door.bottom), groove);
+    final w = size.width, h = size.height;
+    final paint = Paint()..color = color;
+    if (heart) {
+      canvas.drawPath(
+        Path()
+          ..moveTo(w / 2, h)
+          ..cubicTo(-w * 0.2, h * 0.5, w * 0.1, -h * 0.15, w / 2, h * 0.28)
+          ..cubicTo(w * 0.9, -h * 0.15, w * 1.2, h * 0.5, w / 2, h)
+          ..close(),
+        paint,
+      );
+    } else {
+      canvas.drawPath(
+        Path()
+          ..moveTo(w / 2, 0)
+          ..cubicTo(w * 1.25, h * 0.5, w * 0.8, h * 0.95, w / 2, h * 0.68)
+          ..cubicTo(w * 0.2, h * 0.95, -w * 0.25, h * 0.5, w / 2, 0)
+          ..close(),
+        paint,
+      );
+      canvas.drawPath(
+        Path()
+          ..moveTo(w / 2, h * 0.6)
+          ..lineTo(w * 0.72, h)
+          ..lineTo(w * 0.28, h)
+          ..close(),
+        paint,
+      );
     }
-    final panel = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2
-      ..color = const Color(0xFF26180E);
-    canvas.drawRect(Rect.fromLTRB(door.left + 14, door.center.dy + 14, door.right - 14, door.bottom - 16), panel);
-    // Lo spioncino: una finestrella con la griglia d'ottone.
-    final hatch = Rect.fromCenter(center: Offset(door.center.dx, door.top + door.height * 0.28), width: w * 0.42, height: w * 0.24);
-    final s = sweep;
-    final glow = s == null ? 0.12 : 0.35 + 0.45 * (0.5 + 0.5 * sin(s * 2 * pi));
-    canvas.drawRect(hatch, Paint()..color = const Color(0xFF0A0604));
-    canvas.drawRect(
-      hatch,
-      Paint()
-        ..shader = RadialGradient(
-          center: Alignment(s == null ? 0 : sin(s * 2 * pi) * 0.8, 0),
-          radius: 0.9,
-          colors: [AppColors.gold.withValues(alpha: glow), Colors.transparent],
-        ).createShader(hatch),
-    );
-    final brass = Paint()
-      ..color = const Color(0xFFC9A04C)
-      ..strokeWidth = 2.4;
-    for (var i = 1; i < 5; i++) {
-      final x = hatch.left + hatch.width * i / 5;
-      canvas.drawLine(Offset(x, hatch.top), Offset(x, hatch.bottom), brass);
-    }
-    canvas.drawRect(hatch.inflate(3), Paint()..style = PaintingStyle.stroke..strokeWidth = 4..color = const Color(0xFFB8913F));
-    // Le borchie, la maniglia e la targhetta col numero.
-    final stud = Paint()..color = const Color(0xFF8E6B2E);
-    for (final dy in [0.06, 0.94]) {
-      for (var i = 0; i < 5; i++) {
-        canvas.drawCircle(Offset(door.left + door.width * (i + 0.5) / 5, door.top + door.height * dy), 2.4, stud);
-      }
-    }
-    final knob = Offset(door.right - w * 0.13, door.center.dy + 6);
-    canvas.drawCircle(knob, 6.5, Paint()..color = const Color(0xFFD8B464));
-    canvas.drawCircle(knob.translate(-1.5, -1.5), 2, Paint()..color = const Color(0xFFFFF0C4));
-    final plate = Rect.fromCenter(center: Offset(door.center.dx, door.top + door.height * 0.5), width: w * 0.22, height: 14);
-    canvas.drawRRect(RRect.fromRectAndRadius(plate, const Radius.circular(2)), Paint()..color = const Color(0xFFB8913F));
-    final number = TextPainter(
-      text: const TextSpan(text: '13', style: TextStyle(color: Color(0xFF2A1A0A), fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 2)),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    number.paint(canvas, plate.center - Offset(number.width / 2, number.height / 2));
   }
 
   @override
-  bool shouldRepaint(_DoorPainter old) => old.sweep != sweep;
+  bool shouldRepaint(_SuitPainter old) => old.heart != heart || old.color != color;
 }
 
 /// La freccia "indietro" disegnata in ottone, al posto dell'icona.

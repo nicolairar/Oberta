@@ -57,6 +57,10 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
   StreamSubscription<List<RoomMember>>? _lobbyWatch;
   Profile? _me;
 
+  /// Il proprio rating per lingua e quanti sono in coda (per le carte).
+  Map<AppLanguage, Rating> _ratings = const {};
+  OnlineCounts? _counts;
+
   RankedRepository get _ranked => widget.services.ranked!;
 
   @override
@@ -69,6 +73,12 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
     });
     widget.services.profiles.me().then((me) {
       if (mounted) setState(() => _me = me);
+    }).ignore();
+    _ranked.ratings().then((ratings) {
+      if (mounted) setState(() => _ratings = ratings);
+    }).ignore();
+    _ranked.counts().then((counts) {
+      if (mounted) setState(() => _counts = counts);
     }).ignore();
   }
 
@@ -209,6 +219,8 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
     final lobby = _lobby;
     if (lobby != null) return _lobbyView(context, lobby);
     final cooldown = _status.cooldownUntil;
+    final ordinal = (_ratings[_language] ?? Rating.initial).ordinal;
+    final tier = RankTier.of(ordinal);
     return RankedEntryView(
       language: _language,
       onLanguage: (language) => setState(() => _language = language),
@@ -218,6 +230,9 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
       warning: _status.warning,
       onStart: _start,
       onCancel: _cancel,
+      tier: tier,
+      progress: tier.progress(ordinal),
+      queuedCounts: _counts?.queued ?? const {},
     );
   }
 

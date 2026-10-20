@@ -162,6 +162,15 @@ abstract class OnlineStrings {
   String get rankedTipsTitle;
   String get rankedStrangers;
   String homeQueued(int n);
+  String get rankedSit;
+  String get rankedPickTable;
+  String get rankedRules;
+  String get rankedYourRank;
+  String rankedTowards(String tier);
+  String get rankedTopTier;
+  String rankedTableQueued(int n);
+  String get rankedTableIt;
+  String get rankedTableEn;
   String homeOnline(int n);
   List<String> get rankedTips;
   String tierName(RankTier tier);
@@ -360,6 +369,15 @@ abstract class OnlineStrings {
     'rankedTipsTitle': rankedTipsTitle,
     'rankedStrangers': rankedStrangers,
     'homeQueued': homeQueued(24),
+    'rankedSit': rankedSit,
+    'rankedPickTable': rankedPickTable,
+    'rankedRules': rankedRules,
+    'rankedYourRank': rankedYourRank,
+    'rankedTowards': rankedTowards('Don'),
+    'rankedTopTier': rankedTopTier,
+    'rankedTableQueued': rankedTableQueued(24),
+    'rankedTableIt': rankedTableIt,
+    'rankedTableEn': rankedTableEn,
     'homeOnline': homeOnline(31),
     for (final (i, tip) in rankedTips.indexed) 'rankedTip$i': tip,
     for (final tier in RankTier.values) 'tier.${tier.name}': tierName(tier),
@@ -423,6 +441,24 @@ final class ItalianOnlineStrings extends OnlineStrings {
   String get rankedStrangers => 'Chi siede con te lo scopri quando si gioca.';
   @override
   String homeQueued(int n) => '$n in coda per un tavolo';
+  @override
+  String get rankedSit => 'Siediti al tavolo';
+  @override
+  String get rankedPickTable => 'SCEGLI IL TAVOLO';
+  @override
+  String get rankedRules => '12 giocatori · turni a tempo · chi abbandona paga';
+  @override
+  String get rankedYourRank => 'IL TUO GRADO';
+  @override
+  String rankedTowards(String tier) => 'verso $tier';
+  @override
+  String get rankedTopTier => 'in cima alla famiglia';
+  @override
+  String rankedTableQueued(int n) => '$n in coda';
+  @override
+  String get rankedTableIt => 'Si parla italiano';
+  @override
+  String get rankedTableEn => 'Si parla inglese';
   @override
   String homeOnline(int n) => '$n giocatori in giro per la città';
   @override
@@ -838,6 +874,24 @@ final class EnglishOnlineStrings extends OnlineStrings {
   String get rankedStrangers => 'You find out who sits with you when the game starts.';
   @override
   String homeQueued(int n) => '$n waiting for a table';
+  @override
+  String get rankedSit => 'Take a seat';
+  @override
+  String get rankedPickTable => 'PICK YOUR TABLE';
+  @override
+  String get rankedRules => '12 players · timed rounds · quitters pay';
+  @override
+  String get rankedYourRank => 'YOUR RANK';
+  @override
+  String rankedTowards(String tier) => 'towards $tier';
+  @override
+  String get rankedTopTier => 'top of the family';
+  @override
+  String rankedTableQueued(int n) => '$n queued';
+  @override
+  String get rankedTableIt => 'Italian spoken';
+  @override
+  String get rankedTableEn => 'English spoken';
   @override
   String homeOnline(int n) => '$n players around town';
   @override

@@ -138,6 +138,49 @@ void main() {
     await tester.pump(const Duration(seconds: 5));
   });
 
+  testWidgets('ingresso della classificata', (tester) async {
+    await tester.runAsync(_loadFonts);
+    for (final (name, size, lang, crowd) in [
+      ('20_entry_393', const Size(393, 852), AppLanguage.it, true),
+      ('21_entry_375', const Size(375, 667), AppLanguage.it, false),
+      ('22_entry_en_393', const Size(393, 852), AppLanguage.en, false),
+      ('23_entry_wide', const Size(1180, 820), AppLanguage.it, true),
+    ]) {
+      tester.view.physicalSize = size * 3;
+      tester.view.devicePixelRatio = 3;
+      tester.view.padding = const FakeViewPadding(top: 47 * 3, bottom: 34 * 3);
+      final clock = ManualClock();
+      final online = FakeOnline(accountId: 'bruno', clock: clock)..signInReady(handle: 'bruno');
+      online.ratings[('bruno', AppLanguage.it)] = const Rating(33, 5);
+      if (crowd) {
+        for (var i = 0; i < 24; i++) {
+          online.rankedQueue['q$i'] = (AppLanguage.it, clock.now());
+        }
+      }
+      await tester.pumpWidget(RepaintBoundary(
+        key: _key,
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: _theme(),
+          locale: lang.locale,
+          supportedLocales: AppLanguage.locales,
+          localizationsDelegates: const [
+            AppStrings.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+          ],
+          home: RankedQueueScreen(services: online.services),
+        ),
+      ));
+      await _flush(tester);
+      await _shot(tester, name);
+      online.rankedQueue.clear();
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 3));
+    }
+  });
+
   testWidgets('risultati a tutto schermo', (tester) async {
     await tester.runAsync(_loadFonts);
     final dims = (Platform.environment['SIZE'] ?? '390x844').split('x').map(double.parse).toList();
