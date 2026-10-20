@@ -556,8 +556,7 @@ class LobbyCard extends StatelessWidget {
           Text(
             body,
             textAlign: TextAlign.center,
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
+            // Le spiegazioni dei ruoli sono di due o tre frasi: si leggono intere.
             style: AppText.body.copyWith(color: Saloon.paperInk, fontSize: 12.5, height: 1.25),
           ),
         ],
