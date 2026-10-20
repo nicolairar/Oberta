@@ -812,9 +812,23 @@ class SupabaseRanked implements RankedRepository {
       RankedStatus.fromJson((await _client.rpc<Map<String, dynamic>>('ranked_status')).cast<String, Object?>()));
 
   @override
-  Future<RankedStatus> enqueue(AppLanguage language) => _guard(() async => RankedStatus.fromJson(
-      (await _client.rpc<Map<String, dynamic>>('enqueue_ranked', params: {'queue_language': language.name}))
-          .cast<String, Object?>()));
+  Future<RankedStatus> enqueue(AppLanguage language) => _guard(() async {
+    // Se un tavolo si riempie o si blocca proprio mentre ci si siede, il
+    // server annulla l'ingresso: si riprova, e il server sceglie un altro
+    // tavolo (quelli occupati li salta).
+    for (var attempt = 0;; attempt++) {
+      try {
+        return RankedStatus.fromJson(
+          (await _client.rpc<Map<String, dynamic>>('enqueue_ranked', params: {'queue_language': language.name}))
+              .cast<String, Object?>(),
+        );
+      } on PostgrestException catch (error) {
+        final busy = const {'40P01', '40001', '55P03'}.contains(error.code) || error.message.contains('room_full');
+        if (!busy || attempt >= 3) rethrow;
+        await Future<void>.delayed(Duration(milliseconds: 150 + 250 * attempt + Random().nextInt(200)));
+      }
+    }
+  });
 
   @override
   Future<void> leave() => _guard(() => _client.rpc<void>('leave_ranked_queue'));
