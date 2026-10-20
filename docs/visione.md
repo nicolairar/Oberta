@@ -181,3 +181,10 @@ salvato una partita si può rigiocare e verificare.
 - Schema del database Supabase, auth, Realtime.
 - Servizio di validazione per la classificata e sistema di rating.
 - Matchmaking, classifiche, catalogo estetico, negozio.
+
+## Eventi a tempo (idea del 20 ottobre 2026)
+
+Eventi speciali di un paio di giorni con tavoli diversi dalla classificata, per esempio partite da 8 o da 20 giocatori.
+- Coda e premi separati, così non toccano il grado della classificata da 12.
+- Decisi dal server (inizio, fine, numero di giocatori), senza aggiornare l'app.
+- Da 20 serve alzare il limite del motore, oggi fermo a 16, e bilanciare il mazzo.
