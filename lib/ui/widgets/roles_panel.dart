@@ -15,8 +15,8 @@ class RolesPanel extends StatelessWidget {
   final Map<Role, int> deck;
   final List<RevealedRole> revealed;
 
-  /// L'altezza fissa: due file, poi si scorre.
-  static const double height = 132;
+  /// Quanto può crescere al massimo: di solito ci stanno tutti i ruoli.
+  static const double maxHeight = 360;
 
   const RolesPanel({super.key, required this.deck, required this.revealed});
 
@@ -26,7 +26,7 @@ class RolesPanel extends StatelessWidget {
     final s = RolesSheetStrings.of(context);
     return Container(
       key: const Key('rolesPanel'),
-      height: height,
+      constraints: const BoxConstraints(maxHeight: maxHeight),
       decoration: BoxDecoration(
         color: AppColors.background.withValues(alpha: 0.92),
         borderRadius: BorderRadius.circular(16),
@@ -34,14 +34,15 @@ class RolesPanel extends StatelessWidget {
       ),
       padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
             s.title.toUpperCase(),
-            style: const TextStyle(color: AppColors.gold, fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 1.6),
+            style: const TextStyle(color: AppColors.gold, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1.6),
           ),
           const SizedBox(height: 6),
-          Expanded(
+          Flexible(
             child: SingleChildScrollView(
               child: Wrap(
                 spacing: 6,
@@ -83,7 +84,7 @@ class RolesPanel extends StatelessWidget {
         ],
       ),
       child: SizedBox(
-        width: 60,
+        width: 72,
         child: Opacity(
           opacity: allGone ? 0.4 : 1,
           child: Column(
@@ -100,10 +101,10 @@ class RolesPanel extends StatelessWidget {
                         0.33, 0.33, 0.33, 0, 0, //
                         0, 0, 0, 1, 0,
                       ]),
-                      child: RoleIcon(role, size: 30),
+                      child: RoleIcon(role, size: 40),
                     )
                   else
-                    RoleIcon(role, size: 30),
+                    RoleIcon(role, size: 40),
                   if (allGone) const Positioned.fill(child: CustomPaint(painter: _CrossPainter())),
                   if (badge != null)
                     Positioned(
@@ -132,7 +133,7 @@ class RolesPanel extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: role.team == Team.mafia ? const Color(0xFFE5606A) : AppColors.textPrimary,
-                  fontSize: 9,
+                  fontSize: 10.5,
                   fontWeight: FontWeight.w700,
                   decoration: allGone ? TextDecoration.lineThrough : null,
                 ),
