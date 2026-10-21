@@ -1,0 +1,13 @@
+Official store artwork, used unmodified (no recoloring, no reshaping).
+
+app-store-it.svg      Apple "Scarica su App Store" badge, Italian, black.
+                      https://toolbox.marketingtools.apple.com/app-store/
+                      (Apple App Store marketing guidelines: https://developer.apple.com/app-store/marketing/guidelines/)
+google-play-it.svg    Google Play badge, Italian, web, color.
+                      Google Play Badge guidelines package from
+                      https://partnermarketinghub.withgoogle.com/brands/google-play/google-play/lockups-icons-badges/
+steam-logo-white.png  Steam inverse (white) logo for games, rendered from the vector artwork in Valve's
+                      Steam Brand Guidelines (page 7, "Inverse logo"), transparent background.
+                      https://partner.steamgames.com/doc/marketing/branding
+                      Rules: stands alone, never combined with other logos/words, min 50px tall on screen,
+                      clear space of one crank diameter around it, keep the (R) mark.

@@ -8,9 +8,9 @@ const phases = {
   },
   piazza: {
     image: 'img/piazza.png',
-    alt: 'La piazza durante la discussione: giocatori numerati sopra la chat',
+    alt: 'La piazza durante la discussione: il tavolo con i posti numerati sopra la chat',
     title: 'La piazza parla',
-    description: 'Alibi, accuse, mezze verità. Ogni parola può cambiare il voto.'
+    description: 'Alibi, accuse, mezze verità nella chat della piazza. Si parla per numeri di posto, e ogni parola può cambiare il voto.'
   },
   alba: {
     image: 'img/alba.png',
@@ -20,7 +20,7 @@ const phases = {
   },
   voto: {
     image: 'img/voto.png',
-    alt: 'Il voto: ogni giocatore indica chi accusa, la chat resta visibile',
+    alt: 'Il voto: le mani dei giocatori puntano verso chi accusano, la chat resta visibile',
     title: 'Si vota',
     description: 'Ognuno punta il dito. Chi prende più voti viene linciato e il suo ruolo si scopre.'
   }
@@ -122,9 +122,12 @@ if ('IntersectionObserver' in window && !reduceMotion) {
     ['.chronicle', ['h2', '.chronicle__intro > p', ['.phase-tab', 'row'], ['.chronicle__view', 'pic']]],
     ['.vote', ['h2', '.vote__heading > p', '.text-link', ['.vote__image', 'pic']]],
     ['.verdict', [['.verdict__image', 'pic'], 'h2', '.verdict__copy > p']],
-    ['.cast', ['h2', '.cast__copy p', ['.role-card', 'pic'], '.cast figcaption']],
+    ['.cast', ['h2', '.cast__copy p', ['.cast__sheet', 'pic'], ['.role-card', 'pic'], '.cast__image figcaption']],
     ['.look', [['.look__image', 'pic'], 'h2', '.look__copy p', ['.look__image--second', 'pic']]],
-    ['.modes', ['h2', ['.mode', 'row'], '.button--gold']]
+    ['.ranked', ['h2', '.ranked__copy p', ['.ranked__image', 'pic']]],
+    ['.desk', ['h2', '.desk__copy p', ['.monitor', 'pic']]],
+    ['.modes', ['h2', ['.mode', 'row'], '.modes__note', '.button--gold']],
+    ['.platforms', ['h2', '.platforms__heading p', ['.platform', 'up'], '.platforms__legal', '.button--paper']]
   ];
   const targets = [];
   for (const [section, parts] of groups) {

@@ -215,9 +215,10 @@ void main() {
 
   testWidgets('partita desktop', (tester) async {
     await tester.runAsync(_loadFonts);
-    for (final (name, orientation) in [
-      ('07_game_wide_1600x900', DesktopOrientation.landscape),
-      ('08_game_portrait_1600x900', DesktopOrientation.portrait),
+    for (final (name, window, orientation) in [
+      ('07_game_wide_1600x900', const Size(1600, 900), DesktopOrientation.landscape),
+      ('08_game_portrait_1600x900', const Size(1600, 900), DesktopOrientation.portrait),
+      ('09_game_1920x1080', const Size(1920, 1080), DesktopOrientation.landscape),
     ]) {
       final clock = ManualClock();
       final online = FakeOnline(accountId: 'bruno', clock: clock)
@@ -228,7 +229,7 @@ void main() {
       await _settled(tester, online.gameAs('anna').setBots(room.id, 10));
       await _settled(tester, online.gameAs('anna').startGame(room.id));
       final me = await _settled(tester, online.services.profiles.me());
-      await _app(tester, const Size(1600, 900),
+      await _app(tester, window,
           OnlineGameScreen(services: online.services, room: room, me: me, clock: clock),
           orientation: orientation);
       await tester.pump(const Duration(seconds: 4));
@@ -237,6 +238,14 @@ void main() {
         await _flush(tester);
       }
       clock.elapse(const Duration(seconds: 2));
+      await _flush(tester);
+      for (final (game, text) in [
+        (online.gameAs('anna'), 'Stanotte ho sentito dei passi vicino al porto.'),
+        (online.services.game, "Chi era fuori a quell'ora?"),
+        (online.gameAs('anna'), 'Il 5 non ha detto una parola. Strano, no?'),
+      ]) {
+        await _settled(tester, game.sendChat(room.id, ChatChannel.day, text).then((_) => true, onError: (_) => false));
+      }
       await _flush(tester);
       await _shot(tester, name);
       await _clear(tester);

@@ -1,7 +1,8 @@
 // Le foto per l'App Store, con la didascalia in alto:
 // `flutter test tool/render/store_screenshots_render_test.dart` scrive i PNG
 // in fastlane/screenshots/{it,en-US}/, alle misure che Apple chiede
-// (iPhone 6,9" e 6,5", iPad 13"). DEVICE=iphone69 e LANG=it per farne meno.
+// (iPhone 6,9" e 6,5", iPad 13"). DEVICE=iphone69 e LANG_ONLY=it per farne meno,
+// RAW=1 per le sole schermate senza didascalia.
 import 'dart:io';
 import 'dart:math' show Random;
 import 'dart:ui' as ui;
@@ -170,7 +171,10 @@ Future<void> _shot(WidgetTester tester, String device, AppLanguage language, Str
   await tester.runAsync(() async {
     final boundary = _key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
     final screen = await boundary.toImage(pixelRatio: ratio);
-    final card = await _postcard(screen, _captions[scene]![language]!, ipad: device == 'ipad13');
+    // RAW=1: solo la schermata, senza didascalia (per la landing).
+    final card = Platform.environment['RAW'] != null
+        ? screen
+        : await _postcard(screen, _captions[scene]![language]!, ipad: device == 'ipad13');
     final bytes = await card.toByteData(format: ui.ImageByteFormat.png);
     final index = _order.indexOf(scene) + 1;
     File('$out/${_folders[language]}/${index.toString().padLeft(2, '0')}_${device}_$scene.png')

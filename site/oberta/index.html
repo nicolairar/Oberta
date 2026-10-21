@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#a51d25">
-    <meta name="description" content="Obertà è un gioco di ruoli segreti: la notte decide, all'alba si contano i morti, la piazza parla e vota.">
+    <meta name="description" content="Obertà è un gioco di ruoli segreti: la notte decide, all'alba si contano i morti, la piazza parla e vota. Presto su iPhone, Android e Steam.">
     <title>Obertà — Chi sa, tace</title>
     <link rel="icon" href="favicon.png" type="image/png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -20,6 +20,7 @@
         <a href="#partita">La partita</a>
         <a href="#ruoli">I ruoli</a>
         <a href="#modalita">Come si gioca</a>
+        <a href="#piattaforme">Dove si gioca</a>
       </nav>
       <a class="header-cta" href="#partita">Entra nel quartiere <span aria-hidden="true">↘</span></a>
     </header>
@@ -36,10 +37,10 @@
           <h1 id="hero-title" class="hero__title"><span class="line">CHI SA,</span><br><span class="line line--paper">TACE.</span></h1>
           <p>Un gioco di ruoli segreti. La notte decide, all’alba si contano i morti, poi la piazza parla e vota.</p>
           <a class="button button--paper" href="#partita">Fai un giro in città <span aria-hidden="true">↓</span></a>
-          <p class="hero__soon">Presto su App Store, per iPhone.</p>
+          <p class="hero__soon">Presto su iPhone, Android e Steam. <a href="#piattaforme">Dove si gioca</a></p>
         </div>
         <figure class="hero__screen" data-ui>
-          <img src="img/home.png" alt="Il menu di Obertà: un vicolo al neon e i manifesti per scegliere come giocare" width="645" height="1398" fetchpriority="high">
+          <img src="img/home.png" alt="Il menu di Obertà: un vicolo al neon e i manifesti per scegliere come giocare" width="600" height="1298" fetchpriority="high">
           <figcaption>La città è aperta.</figcaption>
         </figure>
         <p class="hero__aside">Chi parla<br>non vede l’alba.</p>
@@ -57,33 +58,34 @@
           </div>
         </div>
         <div class="chronicle__view" data-ui aria-live="polite">
-          <img id="phase-image" src="img/notte.png" alt="La notte: un giocatore legge il proprio compito segreto e sceglie cosa fare" width="585" height="1266" loading="lazy">
+          <img id="phase-image" src="img/notte.png" alt="La notte al tavolo: la famiglia sceglie chi colpire nella sua chat segreta" width="600" height="1298" loading="lazy">
           <div class="chronicle__caption">
             <p id="phase-title">Cala la notte</p>
-            <p id="phase-description">Ognuno riceve il suo compito segreto: la famiglia sceglie chi colpire, gli altri indagano o proteggono.</p>
+            <p id="phase-description">Ognuno ha il suo compito segreto: la famiglia sceglie chi colpire nella sua chat, gli altri indagano o proteggono.</p>
           </div>
         </div>
         <div class="chronicle__fallback" aria-hidden="true">
-          <img src="img/piazza.png" alt="" width="585" height="1266" loading="lazy">
-          <img src="img/alba.png" alt="" width="585" height="1266" loading="lazy">
+          <img src="img/piazza.png" alt="" width="600" height="1298" loading="lazy">
+          <img src="img/alba.png" alt="" width="600" height="1298" loading="lazy">
         </div>
       </section>
 
       <section class="vote" aria-labelledby="vote-title">
         <div class="vote__heading">
           <h2 id="vote-title">La chat<br>è il tavolo.</h2>
-          <p>Leggi i messaggi, guarda i voti cambiare, decidi chi condannare. Chi prende più voti viene linciato e il suo ruolo si scopre. Gli avatar e i numeri restano visibili mentre la partita si scalda.</p>
+          <p>Al tavolo ognuno ha il suo posto numerato, e nella chat della piazza si parla per numeri: «il 5 non ha detto una parola». Al voto ognuno punta il dito e si vede chi accusa chi. Chi prende più voti viene linciato e il suo ruolo si scopre.</p>
+          <p class="vote__note">E se scappa una parolaccia, in chat diventa «obertà».</p>
           <a class="text-link" href="#modalita">Scegli il tuo posto <span aria-hidden="true">↘</span></a>
         </div>
         <figure class="vote__image" data-ui>
-          <img src="img/voto.png" alt="Il voto in Obertà: i giocatori scelgono chi condannare mentre la chat resta visibile" width="585" height="1266" loading="lazy">
+          <img src="img/voto.png" alt="Il voto in Obertà: le mani dei giocatori puntano verso l'accusato, la chat resta visibile" width="600" height="1298" loading="lazy">
           <figcaption>Il voto della piazza.</figcaption>
         </figure>
       </section>
 
       <section class="verdict" aria-labelledby="verdict-title">
         <figure class="verdict__image" data-ui>
-          <img src="img/verdetto.png" alt="Il giornale dell'alba racconta i morti della notte" width="585" height="1266" loading="lazy">
+          <img src="img/verdetto.png" alt="Il giornale dell'alba racconta i morti della notte" width="600" height="1298" loading="lazy">
           <figcaption>Edizione del mattino.</figcaption>
         </figure>
         <div class="verdict__copy">
@@ -95,8 +97,12 @@
       <section class="cast" id="ruoli" aria-labelledby="cast-title">
         <div class="cast__copy">
           <h2 id="cast-title">Ventuno facce.<br>Nessuna innocente.</h2>
-          <p>La <strong>famiglia</strong> si conosce e uccide di notte: Picciotto, Padrino, Sarto, Compare. La <strong>città</strong> indaga e protegge: Commissario, Dottore, Cecchino, Cronista, Becchino, Guardaspalle, Reduce, Pregiudicato, Messia, Sindaco, Portinaio e gli Onesti. E poi chi gioca <strong>per sé</strong>: il Fesso, il Piromane, il Cacciatore di taglie, lo Strozzino, il Sicario.</p>
+          <p>Ventuno ruoli, ognuno con la sua icona. La <strong>famiglia</strong> si conosce e uccide di notte: Picciotto, Padrino, Sarto, Compare. La <strong>città</strong> indaga e protegge: Commissario, Dottore, Cecchino, Cronista, Becchino, Guardaspalle, Reduce, Pregiudicato, Messia, Sindaco, Portinaio e gli Onesti. E poi chi gioca <strong>per sé</strong>: il Fesso, il Piromane, il Cacciatore di taglie, lo Strozzino, il Sicario.</p>
         </div>
+        <figure class="cast__sheet" data-ui>
+          <img src="img/ruoli.png" alt="Il foglio dei ruoli in gioco: ogni ruolo con la sua icona, il motto e cosa fa" width="600" height="1299" loading="lazy">
+          <figcaption>I ruoli in gioco, carta per carta.</figcaption>
+        </figure>
         <figure class="cast__image">
           <button type="button" class="role-card" data-faction="famiglia" aria-pressed="false" aria-label="Tieni premuto per scoprire un ruolo">
             <span class="role-card__inner">
@@ -115,16 +121,49 @@
 
       <section class="look" aria-labelledby="look-title">
         <figure class="look__image" data-ui>
-          <img src="img/specchio.png" alt="Lo specchio del barbiere: si sceglie il proprio personaggio" width="585" height="1266" loading="lazy">
+          <img src="img/specchio.png" alt="Lo specchio del barbiere: si sceglie il proprio personaggio" width="600" height="1298" loading="lazy">
           <figcaption>Dal barbiere.</figcaption>
         </figure>
         <div class="look__copy">
           <h2 id="look-title">Fatti un nome.<br>E una faccia.</h2>
-          <p>Dal barbiere scegli viso, capelli e baffi. In bottega cappelli, completi, pacchetti interi e la collezione Calcio: le monete si guadagnano solo giocando e salendo di livello. Il tuo fascicolo tiene il conto.</p>
+          <p>Dal barbiere scegli viso, capelli e baffi. In bottega cappelli, completi, pacchetti interi che costano meno che pezzo per pezzo e la collezione Calcio. Le monete non si comprano: si guadagnano solo giocando e salendo di livello. Il tuo fascicolo tiene il conto.</p>
         </div>
         <figure class="look__image look__image--second" data-ui>
-          <img src="img/bottega.png" alt="La bottega di Obertà con i pacchetti di vestiti" width="585" height="1266" loading="lazy">
+          <img src="img/bottega.png" alt="La bottega di Obertà: i pacchetti di vestiti, dal Ragioniere alla squadra di calcio" width="600" height="1298" loading="lazy">
           <figcaption>La bottega.</figcaption>
+        </figure>
+      </section>
+
+      <section class="ranked" id="classificata" aria-labelledby="ranked-title">
+        <div class="ranked__copy">
+          <span class="mode__label mode__label--soon">Prossimamente</span>
+          <h2 id="ranked-title">Dodici sconosciuti.<br>Un tavolo.</h2>
+          <p>Nella classificata si gioca sempre in dodici. Si entra nel retrobottega, si sceglie il tavolo per lingua e si aspetta in una sala dove nessuno ha ancora un nome: chi siede con te lo scopri solo quando si gioca.</p>
+          <p>Ogni partita sposta il tuo grado. Chi abbandona, o resta fermo senza giocare, non prende niente: né punti né monete, anche se la sua squadra vince.</p>
+        </div>
+        <figure class="ranked__image" data-ui>
+          <img src="img/classificata.png" alt="L'ingresso della classificata: un retrobottega fumoso, il tuo grado e la scelta del tavolo per lingua" width="600" height="1300" loading="lazy">
+          <figcaption>Il retrobottega.</figcaption>
+        </figure>
+        <figure class="ranked__image ranked__image--second" data-ui>
+          <img src="img/sala.png" alt="La sala d'attesa: dodici posti attorno al tavolo, i giocatori sono sagome senza nome" width="600" height="1298" loading="lazy">
+          <figcaption>La sala d’attesa. Nessun nome.</figcaption>
+        </figure>
+      </section>
+
+      <section class="desk" id="desktop" aria-labelledby="desk-title">
+        <div class="desk__copy">
+          <h2 id="desk-title">Anche su<br>PC e Mac.</h2>
+          <p>Su PC e Mac il tavolo si allarga: i giocatori attorno al panno verde, a destra i ruoli in gioco e la chat della piazza, sempre aperti. Al computer si gioca online: classificata e stanze con gli amici.</p>
+          <p class="desk__note">Il telefono passato di mano resta una cosa da tavolo vero: su desktop non c’è.</p>
+        </div>
+        <figure class="monitor" data-ui>
+          <div class="monitor__screen">
+            <img src="img/desktop.jpg" alt="Obertà su desktop: il tavolo con dodici posti numerati, il pannello dei ruoli in gioco e la chat della piazza" width="1920" height="1080" loading="lazy">
+          </div>
+          <div class="monitor__neck" aria-hidden="true"></div>
+          <div class="monitor__foot" aria-hidden="true"></div>
+          <figcaption>Il tavolo, a schermo intero.</figcaption>
         </figure>
       </section>
 
@@ -135,25 +174,65 @@
         <div class="mode mode--pass">
           <div>
             <h3>Un telefono per tutti.</h3>
-            <p>Da 4 a 16 giocatori attorno al tavolo, anche senza rete. Ci si passa il telefono per i ruoli e le scelte segrete, il narratore guida la notte a voce. Poi si torna a guardarsi in faccia.</p>
+            <p>Da 4 a 16 giocatori attorno al tavolo, anche senza rete. Ci si passa il telefono per i ruoli e le scelte segrete, il narratore guida la notte a voce. Poi si torna a guardarsi in faccia. Solo su telefono.</p>
           </div>
           <span class="mode__label">Dal vivo</span>
         </div>
         <div class="mode mode--online">
           <div>
             <h3>Gioca con amici.</h3>
-            <p>Crea una stanza e condividi il codice o il QR: ciascuno gioca dal suo schermo. Di giorno si discute nella chat della piazza, con i posti numerati e le menzioni; di notte la famiglia ha una chat tutta sua.</p>
+            <p>Crea una stanza e condividi il codice o il QR: ciascuno gioca dal suo schermo, telefono o computer. Di giorno si discute nella chat della piazza, con i posti numerati; di notte la famiglia ha una chat tutta sua.</p>
           </div>
           <span class="mode__label">Online</span>
         </div>
         <div class="mode mode--ranked">
           <div>
             <h3>La classificata.</h3>
-            <p>Dodici sconosciuti, un tavolo. Si entra in coda, si aspetta il tavolo pieno e si gioca per il grado: ogni partita sposta il tuo nome in classifica. Chi abbandona paga.</p>
+            <p>Sempre in dodici, tutti sconosciuti. Si aspetta il tavolo pieno in una sala senza nomi e si gioca per il grado. Chi abbandona o resta fermo non prende premi.</p>
           </div>
           <span class="mode__label mode__label--stamp">Prossimamente</span>
         </div>
-        <a class="button button--gold" href="#inizio">Torna all’insegna <span aria-hidden="true">↑</span></a>
+        <p class="modes__note">Un account, un dispositivo alla volta: se entri da un altro, il primo si ferma.</p>
+        <a class="button button--gold" href="#piattaforme">Dove si gioca <span aria-hidden="true">↓</span></a>
+      </section>
+      <section class="platforms" id="piattaforme" aria-labelledby="platforms-title">
+        <div class="platforms__heading">
+          <h2 id="platforms-title">Dove<br>si gioca.</h2>
+          <p>Telefono o computer, il quartiere è lo stesso. Obertà non è ancora uscita: ecco dove arriva.</p>
+        </div>
+        <!-- Badge e loghi ufficiali, non modificati (colori e proporzioni originali). Fonti in img/badges/SOURCES.txt:
+             Apple: toolbox.marketingtools.apple.com/app-store (App Store Marketing Guidelines, developer.apple.com)
+             Google Play: partnermarketinghub.withgoogle.com, Google Play Badge guidelines
+             Steam: partner.steamgames.com/doc/marketing/branding, Steam Brand Guidelines (logo inverso)
+             Finché l'app non è pubblicata i badge non sono link. -->
+        <ul class="platforms__list">
+          <li class="platform">
+            <h3>iPhone</h3>
+            <p>Un telefono per tutti, stanze con gli amici e classificata.</p>
+            <div class="platform__badge platform__badge--apple">
+              <img src="img/badges/app-store-it.svg" alt="Scarica su App Store" width="120" height="40" loading="lazy">
+            </div>
+            <span class="platform__state">Presto su App Store</span>
+          </li>
+          <li class="platform">
+            <h3>Android</h3>
+            <p>Gli stessi tavoli, dal tuo telefono Android.</p>
+            <div class="platform__badge platform__badge--google">
+              <img src="img/badges/google-play-it.svg" alt="Disponibile su Google Play" width="239" height="71" loading="lazy">
+            </div>
+            <span class="platform__state">In arrivo</span>
+          </li>
+          <li class="platform">
+            <h3>PC e Mac</h3>
+            <p>Classificata e stanze con gli amici, con l’accesso di Steam.</p>
+            <div class="platform__badge platform__badge--steam">
+              <img src="img/badges/steam-logo-white.png" alt="Steam" width="900" height="272" loading="lazy">
+            </div>
+            <span class="platform__state">In arrivo su Steam</span>
+          </li>
+        </ul>
+        <p class="platforms__legal">Apple e il logo Apple sono marchi di Apple Inc., registrati negli Stati Uniti e in altri Paesi. App Store è un marchio di servizio di Apple Inc. Google Play e il logo di Google Play sono marchi di Google LLC. ©2026 Valve Corporation. Steam e il logo di Steam sono marchi e/o marchi registrati di Valve Corporation negli Stati Uniti e/o in altri Paesi.</p>
+        <a class="button button--paper" href="#inizio">Torna all’insegna <span aria-hidden="true">↑</span></a>
       </section>
     </main>
 
