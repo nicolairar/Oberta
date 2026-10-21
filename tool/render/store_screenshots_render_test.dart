@@ -92,8 +92,8 @@ const _captions = <String, Map<AppLanguage, (String, String)>>{
     AppLanguage.en: ('One alley. One city.\nNo innocents.', 'One phone with a narrator, or online with friends.'),
   },
   'role': {
-    AppLanguage.it: ('Guarda la tua carta.\nNon farti vedere.', 'Ventotto ruoli, dal Padrino al Becchino.'),
-    AppLanguage.en: ('Check your card.\nDon\'t get caught.', 'Twenty-eight roles, from the Godfather to the Undertaker.'),
+    AppLanguage.it: ('Guarda la tua carta.\nNon farti vedere.', 'Ventuno ruoli, dal Padrino al Becchino.'),
+    AppLanguage.en: ('Check your card.\nDon\'t get caught.', 'Twenty-one roles, from the Godfather to the Gravedigger.'),
   },
   'night': {
     AppLanguage.it: ('Di notte,\ndecide la famiglia.', 'Il tavolo, i sussurri, una chat che nessun altro legge.'),
