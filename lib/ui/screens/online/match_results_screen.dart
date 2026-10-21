@@ -10,6 +10,7 @@ import '../../../rules/role.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/role_reveal_card.dart';
 import 'game/noir_ui.dart';
+import 'progress_widgets.dart';
 import '../../widgets/wide_scale.dart';
 import '../../widgets/content_width.dart';
 
@@ -31,12 +32,23 @@ Future<bool> showMatchResults(BuildContext context, OnlineServices services, {bo
   try {
     xpNow = (await services.profiles.me()).xp;
   } catch (_) {}
+  // The missions and achievements this game completed: banners on top.
+  GameUnlocks unlocks = const GameUnlocks();
+  try {
+    unlocks = await services.progress?.unlocksFor(result.gameId) ?? unlocks;
+  } catch (_) {}
   if (!context.mounted) return false;
   final again = await Navigator.of(context).push<bool>(
     PageRouteBuilder<bool>(
       opaque: true,
       transitionDuration: const Duration(milliseconds: 450),
-      pageBuilder: (_, _, _) => MatchResultsScreen(result: result!, xpNow: xpNow, offerReplay: offerReplay),
+      pageBuilder: (_, _, _) => Stack(
+        children: [
+          MatchResultsScreen(result: result!, xpNow: xpNow, offerReplay: offerReplay),
+          if (!unlocks.isEmpty)
+            Material(type: MaterialType.transparency, child: ProgressToasts(unlocks: unlocks)),
+        ],
+      ),
       transitionsBuilder: (_, animation, _, child) => FadeTransition(opacity: animation, child: child),
     ),
   );

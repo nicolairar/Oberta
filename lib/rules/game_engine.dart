@@ -781,6 +781,10 @@ class GameEngine {
     );
   }
 
+  /// Le mosse notturne arrivate finora (chi, cosa, su chi). Solo per chi
+  /// tiene i conti a fine notte (il server, per missioni e traguardi).
+  Map<Player, NightChoice> get nightChoices => Map.unmodifiable(_choices);
+
   /// I voti della piazza finora, in ordine di voto. `null` è un'astensione.
   Map<Player, Player?> get dayVotes => Map.unmodifiable(_dayVotes);
 

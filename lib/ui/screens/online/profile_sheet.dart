@@ -15,6 +15,7 @@ import '../../widgets/home_account.dart';
 import '../../widgets/player_avatar.dart';
 import '../avatar/barber_mirror_screen.dart';
 import 'online_widgets.dart';
+import 'progress_hooks.dart';
 
 /// La cartellina di cartone kraft e il foglio dattiloscritto dentro.
 const _kraft = Color(0xFFC79E5C);
@@ -276,6 +277,7 @@ class _DossierState extends State<_Dossier> {
                       children: [
                         _Field(t.dossierName),
                         _TypedLine(text: profile.name.isEmpty ? t.pickHandle : profile.name),
+                        DossierTitle(progress: widget.account.services.progress, style: _typed),
                         const SizedBox(height: 14),
                         _Field(t.dossierRank),
                         const SizedBox(height: 4),
@@ -358,6 +360,8 @@ class _DossierState extends State<_Dossier> {
             ),
           },
           const SizedBox(height: 18),
+          for (final link in progressLinks(context, widget.account.services.progress, profile.language))
+            _Plate(key: link.key, label: link.label, icon: Icon(link.icon, color: _brass, size: 22), onTap: link.open),
           _Plate(
             key: const Key('profile.mirror'),
             label: SettingsStrings.of(context).changeLook,

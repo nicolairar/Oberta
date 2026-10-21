@@ -2,7 +2,7 @@
 -- (supabase/functions/tests/game_test.ts): roles, auth.uid(), the realtime
 -- publication, and stubs for pg_net (calls are recorded in net.calls) and
 -- pg_cron.
-create role anon nologin; create role authenticated nologin; create role service_role nologin;
+create role anon nologin; create role authenticated nologin; create role service_role nologin; create role authenticator nologin;
 create schema auth;
 create table auth.users (id uuid primary key, raw_user_meta_data jsonb default '{}', email text);
 create function auth.uid() returns uuid language sql stable as $$

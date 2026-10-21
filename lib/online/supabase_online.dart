@@ -44,6 +44,7 @@ Future<OnlineServices?> openSupabaseOnline(OnlineConfig config, {String? deviceS
     safety: SupabaseSafety(client),
     sessions: SupabaseDeviceSessions(client),
     links: SupabaseAccountLinks(client),
+    progress: SupabaseProgress(client),
   );
 }
 
@@ -978,4 +979,25 @@ class SupabaseDeviceSessions implements DeviceSessionRepository {
     );
     return controller.stream;
   }
+}
+
+/// Missions, achievements and the leaderboard: all read through server
+/// functions, never written by the phone.
+class SupabaseProgress implements ProgressRepository {
+  final SupabaseClient _client;
+
+  SupabaseProgress(this._client);
+
+  @override
+  Future<PlayerProgress> mine() => _guard(() async =>
+      PlayerProgress.fromJson((await _client.rpc<Map<String, dynamic>>('my_progress')).cast<String, Object?>()));
+
+  @override
+  Future<GameUnlocks> unlocksFor(String gameId) => _guard(() async => GameUnlocks.fromJson(
+      (await _client.rpc<Map<String, dynamic>>('game_unlocks', params: {'game': gameId})).cast<String, Object?>()));
+
+  @override
+  Future<Leaderboard> leaderboard(AppLanguage language) => _guard(() async => Leaderboard.fromJson(
+      (await _client.rpc<Map<String, dynamic>>('leaderboard', params: {'board_language': language.name}))
+          .cast<String, Object?>()));
 }

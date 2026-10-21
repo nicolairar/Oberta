@@ -10,6 +10,7 @@ import 'game/game_clock.dart';
 import 'game/game_schedule.dart';
 import 'game/game_server.dart';
 import 'game/match_rewards.dart' show settleJson;
+import 'game/progress.dart' show mergeStats;
 import 'handle_rules.dart';
 import 'join_code.dart';
 import 'online_services.dart';
@@ -35,6 +36,7 @@ class FakeOnline {
   late final FakeShop shop = FakeShop._(this);
   late final FakeRanked ranked = FakeRanked._(this);
   late final FakeSafety safety = FakeSafety._(this);
+  late final FakeProgress progress = FakeProgress._(this);
   late final FakeDeviceSessions sessions = FakeDeviceSessions(() => auth.userId);
 
   /// I blocchi, come `player_blocks`: (chi blocca, chi è bloccato).
@@ -135,7 +137,7 @@ class FakeOnline {
         clock = clock ?? const SystemGameClock();
 
   OnlineServices get services =>
-      OnlineServices(auth: auth, profiles: profiles, friends: friends, rooms: rooms, game: game, shop: shop, account: account, ranked: ranked, safety: safety, sessions: sessions, links: links);
+      OnlineServices(auth: auth, profiles: profiles, friends: friends, rooms: rooms, game: game, shop: shop, account: account, ranked: ranked, safety: safety, sessions: sessions, links: links, progress: progress);
 
   /// Gli account di prova: email → (password, id dell'account).
   final Map<String, (String, String)> _testAccounts = {};
@@ -1247,6 +1249,16 @@ extension FakeRankedServer on FakeOnline {
               'wonToday': past.any((m) => m.won && sameDay(_playedAt[m]!)),
               'friendsGamesToday': past.where((m) => !m.ranked && sameDay(_playedAt[m]!)).length,
               'leftDead': game.left.contains(seat) && r['abandoned'] != true,
+              'missions': [
+                for (final m in progress._missionsOf(id))
+                  if (!m.completed)
+                    {
+                      'id': m.id, 'cadence': m.cadence, 'period': 'now', 'metric': m.metric,
+                      'target': m.target, 'progress': m.progress, 'xp': m.xp, 'coins': m.coins,
+                    },
+              ],
+              'stats': progress.stats[id] ?? const <String, int>{},
+              'achieved': [...?progress.unlocked[id]?.keys],
             };
           }(),
     ];
@@ -1255,6 +1267,7 @@ extension FakeRankedServer on FakeOnline {
       final id = p['profile'] as String;
       final profile = _profiles[id]!;
       _profiles[id] = profile.copyWith(level: p['level'] as int, xp: p['xp'] as int, coins: profile.coins + (p['coins'] as int));
+      progress._record(id, game.gameId, p);
       _pushWallet(id);
       if (room.ranked) ratings[(id, room.language)] = Rating(p['mu'] as double, p['sigma'] as double);
       final match = MatchResult(
@@ -1509,4 +1522,86 @@ class _FakeSession {
   (String, String)? contender;
 
   _FakeSession(this.session, this.label);
+}
+
+/// Missions, achievements and the leaderboard, like the server's functions
+/// (a small fixed pool: the first three daily and weekly missions).
+class FakeProgress implements ProgressRepository {
+  final FakeOnline _online;
+
+  FakeProgress._(this._online);
+
+  static const pool = [
+    MissionProgress(id: 'daily_play_3', cadence: 'daily', metric: 'games', target: 3, xp: 60, coins: 30),
+    MissionProgress(id: 'daily_win_1', cadence: 'daily', metric: 'wins', target: 1, xp: 80, coins: 40),
+    MissionProgress(id: 'daily_lynch_hits_3', cadence: 'daily', metric: 'lynch_hits', target: 3, xp: 100, coins: 50),
+    MissionProgress(id: 'weekly_neutral_win_1', cadence: 'weekly', metric: 'neutral_wins', target: 1, xp: 300, coins: 250),
+    MissionProgress(id: 'weekly_wins_7', cadence: 'weekly', metric: 'wins', target: 7, xp: 300, coins: 200),
+    MissionProgress(id: 'weekly_play_15', cadence: 'weekly', metric: 'games', target: 15, xp: 250, coins: 150),
+  ];
+
+  final Map<String, List<MissionProgress>> missions = {};
+  final Map<String, Map<String, int>> stats = {};
+  final Map<String, Map<String, DateTime>> unlocked = {};
+  final Map<(String, String), GameUnlocks> _unlocks = {};
+
+  String get _me => _online.auth.userId ?? (throw const OnlineException(OnlineFailure.notSignedIn));
+
+  List<MissionProgress> _missionsOf(String id) => missions[id] ??= [...pool];
+
+  void _record(String id, String gameId, Map<String, Object?> p) {
+    final tally = (p['tally'] as Map? ?? const {}).cast<String, int>();
+    stats[id] = mergeStats(stats[id] ?? const {}, tally);
+    final moved = {for (final m in (p['missions'] as List? ?? const [])) (m as Map)['id']: m};
+    missions[id] = [
+      for (final m in _missionsOf(id))
+        if (moved[m.id] case final Map row?)
+          MissionProgress(
+            id: m.id, cadence: m.cadence, metric: m.metric, target: m.target, xp: m.xp, coins: m.coins,
+            progress: row['progress'] as int, completed: row['completed'] == true,
+          )
+        else
+          m,
+    ];
+    final now = _online.clock.now();
+    final ids = [for (final a in (p['unlocked'] as List? ?? const [])) (a as Map)['id'] as String];
+    for (final a in ids) {
+      (unlocked[id] ??= {})[a] = now;
+    }
+    _unlocks[(id, gameId)] = GameUnlocks(
+      missions: [
+        for (final m in moved.values)
+          if (m['completed'] == true) (id: m['id'] as String, coins: m['coins'] as int, xp: m['xp'] as int),
+      ],
+      achievements: ids,
+    );
+  }
+
+  @override
+  Future<PlayerProgress> mine() async {
+    await _online._network();
+    final me = _me;
+    return PlayerProgress(missions: _missionsOf(me), stats: {...?stats[me]}, unlocked: {...?unlocked[me]});
+  }
+
+  @override
+  Future<GameUnlocks> unlocksFor(String gameId) async {
+    await _online._network();
+    return _unlocks[(_me, gameId)] ?? const GameUnlocks();
+  }
+
+  @override
+  Future<Leaderboard> leaderboard(AppLanguage language) async {
+    await _online._network();
+    final rows = [
+      for (final MapEntry(:key, :value) in _online.ratings.entries)
+        if (key.$2 == language)
+          if (_online._profiles[key.$1]?.handle case final handle?) (key.$1, handle, value.ordinal),
+    ]..sort((a, b) => b.$3.compareTo(a.$3));
+    final top = [
+      for (var i = 0; i < rows.length && i < 100; i++) LeaderboardEntry(i + 1, rows[i].$2, RankTier.of(rows[i].$3)),
+    ];
+    final mine = rows.indexWhere((r) => r.$1 == _me);
+    return Leaderboard(top: top, me: mine < 0 ? null : (rank: mine + 1, tier: RankTier.of(rows[mine].$3)));
+  }
 }

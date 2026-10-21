@@ -5,12 +5,14 @@ import '../../rules/game_settings.dart';
 import '../../rules/game_setup.dart';
 import '../../rules/game_snapshot.dart';
 import '../../rules/intent.dart';
+import '../../rules/player.dart';
 import '../../rules/role.dart';
 import '../../table/seating.dart';
 import 'bot_brain.dart';
 import 'game_backend.dart';
 import 'game_protocol.dart';
 import 'game_schedule.dart';
+import 'progress.dart' show Feats;
 
 // La partita online gira sul server. Questo file è puro Dart (niente
 // Flutter): si compila in JavaScript con `tool/edge/build.sh` e lo chiama la
@@ -195,6 +197,10 @@ class ServerGame {
   /// Quante giornate (discussioni) si sono aperte.
   int days;
 
+  /// What each person did that missions and achievements count (see
+  /// [Feats]): seat → feat → how many times. Server side only.
+  final Map<String, Map<String, int>> feats;
+
   ServerGame._({
     required this.seating,
     required this.language,
@@ -214,12 +220,14 @@ class ServerGame {
     List<String>? departed,
     Map<String, Attendance>? attendance,
     Set<String>? spoke,
+    Map<String, Map<String, int>>? feats,
     this.lastChat = 0,
     this.days = 0,
     this.settleUntil,
   })  : _random = random,
         attendance = attendance ?? {},
         spoke = spoke ?? {},
+        feats = feats ?? {},
         offline = offline ?? {},
         departed = departed ?? [],
         _brain = BotBrain(random),
@@ -285,6 +293,13 @@ class ServerGame {
           key: Attendance.fromJson((value as Map).cast<String, Object?>()),
       },
       spoke: {for (final seat in (json['spoke'] as List<Object?>? ?? const [])) seat as String},
+      feats: {
+        for (final MapEntry(:key, :value) in map('feats').entries)
+          key: {
+            for (final MapEntry(key: feat, value: n) in (value as Map).cast<String, Object?>().entries)
+              feat: (n as num).toInt(),
+          },
+      },
       lastChat: (json['lastChat'] as num?)?.toInt() ?? 0,
       days: (json['days'] as num?)?.toInt() ?? 0,
       settleUntil: json['settleUntil'] == null
@@ -311,6 +326,7 @@ class ServerGame {
         'departed': departed,
         'attendance': {for (final MapEntry(:key, :value) in attendance.entries) key: value.toJson()},
         'spoke': [...spoke]..sort(),
+        if (feats.isNotEmpty) 'feats': feats,
         'lastChat': lastChat,
         'days': days,
         if (settleUntil != null) 'settleUntil': settleUntil!.millisecondsSinceEpoch,
@@ -445,6 +461,7 @@ class ServerGame {
                 'abandoned': departed.contains(occupant.seat),
                 'afk': !departed.contains(occupant.seat) && (attendance[occupant.seat]?.afk ?? false),
                 'short': short,
+                'feats': feats[occupant.seat] ?? const <String, int>{},
               };
             }(),
       },
@@ -615,7 +632,9 @@ class ServerGame {
         for (final player in engine.pendingNightPlayers) {
           engine.apply(Pass(player.id));
         }
+        final choices = engine.nightChoices;
         final dawn = engine.resolveNight();
+        _countNight(choices, dawn);
         if (dawn.attacks.isEmpty) {
           _open(Stage.dawn, now, pacing.dawn, pacing);
         } else {
@@ -637,7 +656,9 @@ class ServerGame {
           for (final occupant in seating.occupants)
             if (_alive(occupant.seat)) occupant.seat,
         });
+        final votes = engine.dayVotes;
         final lynch = engine.closeDayVote();
+        _countVote(votes, lynch);
         _open(Stage.verdictFilm, now, OnlinePacing.verdictFilm(condemns: lynch.condemned != null), pacing);
       case Stage.verdictFilm:
         _open(Stage.verdict, now, pacing.verdict, pacing);
@@ -649,6 +670,60 @@ class ServerGame {
         }
       case Stage.ended:
         break;
+    }
+  }
+
+  void _feat(String seat, String feat) {
+    if (!_isHuman(seat) || departed.contains(seat)) return;
+    final mine = feats[seat] ??= {};
+    mine[feat] = (mine[feat] ?? 0) + 1;
+  }
+
+  /// What a night was worth to missions and achievements: who saw the dawn,
+  /// the Doctor's saves, the Detective's finds, the Sniper's hits and the
+  /// family's kills.
+  void _countNight(Map<Player, NightChoice> choices, DawnReport dawn) {
+    for (final occupant in seating.occupants) {
+      if (_alive(occupant.seat)) _feat(occupant.seat, Feats.nights);
+    }
+    final familyKilled = dawn.attacks.any((a) => a.source == AttackSource.family && a.isFatal);
+    for (final MapEntry(key: actor, value: choice) in choices.entries) {
+      final target = choice.target;
+      if (target == null) continue;
+      final role = engine.setup.roleOf(target);
+      switch (choice.kind) {
+        case NightTaskKind.protect:
+          if (dawn.attacks.any((a) => a.target == target && a.outcome == AttackOutcome.healed)) {
+            _feat(actor.id, Feats.saves);
+          }
+        case NightTaskKind.investigate:
+          if (role.team == Team.mafia && role.apparentTeam == Team.mafia) _feat(actor.id, Feats.finds);
+        case NightTaskKind.snipe:
+          if (role.team == Team.mafia &&
+              dawn.attacks.any((a) => a.target == target && a.source == AttackSource.sniper && a.isFatal)) {
+            _feat(actor.id, Feats.snipes);
+          }
+        case NightTaskKind.kill:
+          if (familyKilled) _feat(actor.id, Feats.kills);
+        default:
+          break;
+      }
+    }
+  }
+
+  /// What a vote was worth: a vote on a condemned mafioso is a good vote; on
+  /// the Godfather, from the Detective, a famous one; a mafioso who sends an
+  /// honest citizen to the gallows framed them.
+  void _countVote(Map<Player, Player?> votes, LynchReport lynch) {
+    final condemned = lynch.condemned;
+    final role = lynch.role;
+    if (condemned == null || role == null) return;
+    for (final MapEntry(key: voter, value: target) in votes.entries) {
+      if (target != condemned) continue;
+      final mine = engine.setup.roleOf(voter);
+      if (role.team == Team.mafia) _feat(voter.id, Feats.lynchHits);
+      if (role == Role.padrino && mine == Role.detective) _feat(voter.id, Feats.godfather);
+      if (mine.team == Team.mafia && role.team == Team.citizens) _feat(voter.id, Feats.framed);
     }
   }
 

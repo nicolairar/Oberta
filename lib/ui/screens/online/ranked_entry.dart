@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../../../l10n/app_language.dart';
 import '../../../l10n/app_strings.dart';
 import '../../../l10n/online_strings.dart';
+import '../../../l10n/progress_strings.dart';
 import '../../../online/ranked_models.dart';
 import '../../theme/app_theme.dart';
 import 'game/noir_ui.dart';
@@ -22,6 +23,9 @@ class RankedEntryView extends StatelessWidget {
   final bool warning;
   final VoidCallback onStart;
   final VoidCallback onCancel;
+
+  /// Opens the leaderboard (null: no link).
+  final VoidCallback? onLeaderboard;
 
   /// Il proprio grado nella lingua scelta e quanto manca al prossimo (0..1).
   final RankTier? tier;
@@ -43,6 +47,7 @@ class RankedEntryView extends StatelessWidget {
     this.tier,
     this.progress,
     this.queuedCounts = const {},
+    this.onLeaderboard,
   });
 
   @override
@@ -116,6 +121,16 @@ class RankedEntryView extends StatelessWidget {
                                   ),
                                   SizedBox(height: short ? 6 : 10),
                                   _RankBadge(tier: tier, progress: progress),
+                                  if (onLeaderboard case final open?)
+                                    TextButton.icon(
+                                      key: const Key('ranked.leaderboard'),
+                                      onPressed: open,
+                                      icon: const Icon(Icons.leaderboard, color: Saloon.brass, size: 18),
+                                      label: Text(
+                                        ProgressStrings.of(context).leaderboard.toUpperCase(),
+                                        style: AppText.overline.copyWith(color: Saloon.brass, letterSpacing: 2.4),
+                                      ),
+                                    ),
                                   SizedBox(height: short ? 14 : 22),
                                   if (queued) ..._searching(t) else ..._choose(t),
                                   if (warning) ...[

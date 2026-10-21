@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'progress.dart';
+
 // What a finished online game is worth: experience, levels, coins and, in
 // ranked, the rating. Pure Dart: the server runs it (compiled into
 // engine.js, `globalThis.obertaSettle`, called by the Edge Function in the
@@ -200,6 +202,15 @@ class SettleSeat {
   /// Friends games this person finished today (UTC), before this one.
   final int friendsGamesToday;
 
+  /// What the game server counted for this seat (see [Feats]).
+  final Map<String, int> feats;
+
+  /// The person's open missions, their lifetime counters and the
+  /// achievements already unlocked, as the server reads them.
+  final List<MissionSlot> missions;
+  final Map<String, int> stats;
+  final Set<String> achieved;
+
   const SettleSeat({
     required this.profile,
     required this.seat,
@@ -216,7 +227,16 @@ class SettleSeat {
     this.rating = Rating.initial,
     this.wonToday = false,
     this.friendsGamesToday = 0,
+    this.feats = const {},
+    this.missions = const [],
+    this.stats = const {},
+    this.achieved = const {},
   });
+
+  static Map<String, int> _counts(Object? json) => {
+        for (final MapEntry(:key, :value) in ((json as Map?) ?? const {}).entries)
+          if (value is num) key as String: value.toInt(),
+      };
 
   factory SettleSeat.fromJson(Map<String, Object?> json) => SettleSeat(
         profile: json['profile'] as String,
@@ -237,6 +257,13 @@ class SettleSeat {
         ),
         wonToday: json['wonToday'] == true,
         friendsGamesToday: (json['friendsGamesToday'] as num?)?.toInt() ?? 0,
+        feats: _counts(json['feats']),
+        missions: [
+          for (final row in (json['missions'] as List<Object?>? ?? const []))
+            MissionSlot.fromJson((row as Map).cast<String, Object?>()),
+        ],
+        stats: _counts(json['stats']),
+        achieved: {for (final id in (json['achieved'] as List<Object?>? ?? const [])) id as String},
       );
 }
 
@@ -247,7 +274,16 @@ class SettleOutcome {
   final int level;
   final int xp;
   final int levelsGained;
+
+  /// Every coin the game paid: levels, missions and achievements.
   final int coins;
+
+  /// The coins from the levels reached (the rest is in [progress]).
+  final int levelCoins;
+
+  /// The counters this game added, and what they moved.
+  final Map<String, int> tally;
+  final ProgressUpdate progress;
 
   /// Null outside ranked.
   final Rating? rating;
@@ -259,8 +295,11 @@ class SettleOutcome {
     required this.xp,
     required this.levelsGained,
     required this.coins,
+    int? levelCoins,
+    this.tally = const {},
+    this.progress = const ProgressUpdate(),
     this.rating,
-  });
+  }) : levelCoins = levelCoins ?? coins;
 
   double? get ordinalDelta => rating == null ? null : rating!.ordinal - seat.rating.ordinal;
 
@@ -281,6 +320,24 @@ class SettleOutcome {
         'xp': xp,
         'levelsGained': levelsGained,
         'coins': coins,
+        'levelCoins': levelCoins,
+        'tally': tally,
+        'missions': [
+          for (final m in progress.missions)
+            {
+              'id': m.mission.id,
+              'cadence': m.mission.cadence,
+              'period': m.mission.period,
+              'progress': m.progress,
+              'completed': m.completed,
+              'coins': m.completed ? m.mission.coins : 0,
+              'xp': m.completed ? m.mission.xp : 0,
+            },
+        ],
+        'unlocked': [
+          for (final a in progress.unlocked)
+            {'id': a.id, 'xp': a.xp, 'coins': a.coins, 'title': ?a.title, 'item': ?a.item},
+        ],
         if (rating case final r?) ...{
           'muBefore': seat.rating.mu,
           'sigmaBefore': seat.rating.sigma,
@@ -319,18 +376,35 @@ List<SettleOutcome> settle({required bool ranked, required List<SettleSeat> seat
   return [
     for (final s in seats)
       () {
-        final gain = rewarded
-            ? Progression.xpFor(won: s.won, abandoned: !s.earns, firstWinOfDay: s.won && !s.wonToday)
-            : 0;
+        // Missions and achievements move only with a game that really
+        // counts: never for who abandoned, idled, left or a bots-only room.
+        final tally = progressTally(
+          counts: rewarded && s.earns,
+          ranked: ranked,
+          team: s.team,
+          role: s.role,
+          won: s.won,
+          survived: s.survived,
+          feats: s.feats,
+        );
+        final progress = applyProgress(tally: tally, missions: s.missions, stats: s.stats, achieved: s.achieved);
+        final gain = (rewarded
+                ? Progression.xpFor(won: s.won, abandoned: !s.earns, firstWinOfDay: s.won && !s.wonToday)
+                : 0) +
+            progress.xp;
         final next = Progression.addXp(s.level, s.xp, gain);
         final pays = ranked || s.friendsGamesToday < Progression.friendsCoinGames;
+        final levelCoins = pays ? next.coins : 0;
         return SettleOutcome(
           seat: s,
           xpGained: gain,
           level: next.level,
           xp: next.xp,
           levelsGained: next.levelsGained,
-          coins: pays ? next.coins : 0,
+          coins: levelCoins + progress.missionCoins + progress.achievementCoins,
+          levelCoins: levelCoins,
+          tally: tally,
+          progress: progress,
           rating: ranked ? _noGain(s, ratings[s.profile] ?? s.rating) : null,
         );
       }(),

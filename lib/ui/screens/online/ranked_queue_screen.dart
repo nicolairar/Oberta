@@ -14,6 +14,7 @@ import 'online_game_screen.dart';
 import 'online_widgets.dart';
 import 'match_results_screen.dart';
 import 'ranked_entry.dart';
+import 'leaderboard_screen.dart';
 import 'ranked_lobby.dart';
 import '../../widgets/wide_scale.dart';
 import '../../widgets/content_width.dart';
@@ -233,6 +234,10 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
       tier: tier,
       progress: tier.progress(ordinal),
       queuedCounts: _counts?.queued ?? const {},
+      onLeaderboard: switch (widget.services.progress) {
+        final progress? => () => LeaderboardScreen.open(context, progress, _language),
+        null => null,
+      },
     );
   }
 

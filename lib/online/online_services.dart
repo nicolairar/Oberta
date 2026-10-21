@@ -4,6 +4,7 @@ import '../l10n/app_language.dart';
 import 'device_session.dart';
 import 'game/game_backend.dart';
 import 'online_models.dart';
+import 'progress_models.dart';
 import 'ranked_models.dart';
 import 'safety.dart';
 import 'shop_models.dart';
@@ -11,6 +12,7 @@ import 'shop_models.dart';
 export 'device_session.dart';
 export 'game/game_backend.dart';
 export 'online_models.dart';
+export 'progress_models.dart';
 export 'ranked_models.dart';
 export 'safety.dart';
 export 'shop_models.dart';
@@ -169,6 +171,9 @@ class OnlineServices {
   /// Collegare gli account fra telefono e desktop. Null dove non c'è.
   final AccountLinkRepository? links;
 
+  /// Missions, achievements and the leaderboard. Null where there is none.
+  final ProgressRepository? progress;
+
   const OnlineServices({
     required this.auth,
     required this.profiles,
@@ -181,6 +186,7 @@ class OnlineServices {
     this.safety,
     this.sessions,
     this.links,
+    this.progress,
   });
 
   static OnlineServices? instance;
