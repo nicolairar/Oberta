@@ -9,6 +9,7 @@ import '../../../online/online_account.dart';
 import '../../../online/online_services.dart';
 import '../../avatar/avatar_look.dart';
 import '../../avatar/look_painter.dart';
+import '../../desktop/desktop_canvas.dart';
 import '../../press.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/cosmetics/seat_preview.dart';
@@ -20,6 +21,7 @@ import '../../widgets/content_width.dart';
 import 'shop_controller.dart';
 
 part 'shop_bundles.dart';
+part 'shop_desktop.dart';
 
 /// Apre la bottega di chi è entrato.
 Future<void> openShop(
@@ -100,6 +102,9 @@ class _ShopScreenState extends State<ShopScreen> {
   /// La squadra aperta nel calcio.
   CalcioTeam? _team;
 
+  /// Sul PC: il pacchetto messo nello specchio del bancone.
+  ShopBundle? _bundle;
+
   @override
   void dispose() {
     _shop.dispose();
@@ -108,6 +113,9 @@ class _ShopScreenState extends State<ShopScreen> {
   }
 
   ShopStrings get _t => AppStrings.of(context).shop;
+
+  /// [setState] per le estensioni (i pacchetti, il layout PC).
+  void _update(VoidCallback change) => setState(change);
 
   Future<void> _run(Future<void> Function() action) async {
     try {
@@ -132,7 +140,8 @@ class _ShopScreenState extends State<ShopScreen> {
     }
     final yes = await showDialog<bool>(
       context: context,
-      builder: (context) => _ReceiptDialog(item: item, coins: _shop.coins, strings: t, language: language),
+      builder: (context) =>
+          _deskDialog(context, _ReceiptDialog(item: item, coins: _shop.coins, strings: t, language: language)),
     );
     if (yes != true || !mounted) return;
     await _run(() async {
@@ -172,6 +181,7 @@ class _ShopScreenState extends State<ShopScreen> {
   @override
   Widget build(BuildContext context) {
     final t = _t;
+    if (DesktopCanvas.of(context)) return _desktop(t);
     return Scaffold(
       backgroundColor: const Color(0xFF120E0B),
       body: ListenableBuilder(

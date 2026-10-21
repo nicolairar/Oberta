@@ -1,5 +1,7 @@
 import 'package:flutter/widgets.dart';
 
+import '../desktop/desktop_canvas.dart';
+
 /// Su Mac e iPad lo schermo è grande, ma il gioco è disegnato per il
 /// telefono: invece di allargare tutto (testi piccoli, chat enorme) lo si
 /// ingrandisce. Il figlio si dispone in uno schermo più piccolo di [zoomFor]
@@ -24,6 +26,8 @@ class WideScale extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Sulla tela desktop lo schermo ha già il suo layout a 1080p.
+    if (DesktopCanvas.of(context)) return child;
     final media = MediaQuery.of(context);
     final zoom = zoomFor(media.size);
     if (zoom <= 1.0) return child;

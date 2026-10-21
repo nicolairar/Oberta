@@ -5,6 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../l10n/app_strings.dart';
+import '../../../l10n/desktop_game_strings.dart';
+import '../../desktop/desktop_canvas.dart';
+import '../settings_screen.dart';
+import 'game/desk_game.dart';
 import '../../../narration/death_story.dart';
 import '../../../narration/narrator_script.dart';
 import '../../../online/game/game_client.dart';
@@ -95,6 +99,17 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   late final Random _shuffle = widget.seating ?? Random();
   Timer? _ticker;
 
+  /// Su PC: il menu di Esc è aperto (la partita intanto va avanti).
+  bool _paused = false;
+  late final DesktopGameStrings _dt = DesktopGameStrings(widget.room.language);
+  final FocusNode _chatFocus = FocusNode(debugLabel: 'online.chat');
+
+  /// Questo build è sulla tela desktop coricata.
+  bool _deskMode = false;
+
+  /// Quanto crescono le parole sul panno e nella striscia sul desktop.
+  double get _k => _deskMode ? 1.55 : 1.0;
+
   Player? _selected;
 
   /// La mossa appena fatta, mostrata subito (mano, pizzino) mentre viaggia:
@@ -145,6 +160,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   @override
   void dispose() {
     _ticker?.cancel();
+    _chatFocus.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _client.removeListener(_changed);
     _client.dispose();
@@ -363,6 +379,18 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       Navigator.of(context).pop();
       return;
     }
+    if (_deskMode) {
+      final leave = await confirmDeskLeave(
+        context,
+        title: _t.leaveQuestion,
+        body: _view.alive ? _t.online.leaveAbandonWarning : _t.online.leaveDeadWarning,
+      );
+      if (!leave || !mounted) return;
+      setState(() => _paused = false);
+      unawaited(widget.services.game.leaveGame(widget.room.id).catchError((Object _) {}));
+      Navigator.of(context).pop();
+      return;
+    }
     final leave = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -389,6 +417,13 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   @override
   Widget build(BuildContext context) {
+    _deskMode = DesktopCanvas.of(context);
+    if (_deskMode) {
+      _scaled = null;
+      final desk = _deskShell();
+      if (identical(AppStrings.of(context), _t)) return desk;
+      return Localizations.override(context: context, locale: _t.language.locale, child: desk);
+    }
     final screen = WideScale(
       child: Builder(
         builder: (inner) {
@@ -484,6 +519,398 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     );
   }
 
+  // ---------------------------------------------------------------------
+  // Su PC: la partita a schermo intero. In alto la barra (menu, fase,
+  // orologio); a sinistra il tavolo con la striscia dei comandi sotto; a
+  // destra, fissi, il mazzo e la chat. Esc apre il menu, INVIO porta alla
+  // chat.
+
+  /// Sul desktop la colonna di destra (mazzo e chat) è larga così.
+  static const _deskSideWidth = 540.0;
+
+  /// La striscia dei comandi sotto il tavolo, sul desktop.
+  static const _deskStripHeight = 112.0;
+
+  void _openPause() {
+    if (_paused) return;
+    _chatFocus.unfocus();
+    setState(() => _paused = true);
+  }
+
+  void _closePause() {
+    if (!_paused) return;
+    setState(() => _paused = false);
+  }
+
+  /// La chat accetta messaggi adesso.
+  bool get _chatWritable => _client.ready && !_board.abandoned && _chatView().note == null;
+
+  KeyEventResult _deskKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.escape) {
+      // Prima si esce dalla chat, poi il menu (e da lì di nuovo al tavolo).
+      if (_chatFocus.hasFocus) {
+        _chatFocus.unfocus();
+      } else if (_paused) {
+        _closePause();
+      } else {
+        _openPause();
+      }
+      return KeyEventResult.handled;
+    }
+    final enter = key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.numpadEnter;
+    // Nel campo INVIO manda il messaggio: qui non si tocca.
+    if (enter && !_chatFocus.hasFocus && !_paused && _chatWritable) {
+      _chatFocus.requestFocus();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  Widget _deskShell() {
+    final ready = _client.ready;
+    final Widget page;
+    if (ready && !_board.abandoned && _stage == Stage.dawnFilms) {
+      page = Scaffold(backgroundColor: Colors.black, body: _dawnFilm());
+    } else {
+      final night =
+          !ready ||
+          _stage == Stage.reveal ||
+          _stage == Stage.night ||
+          (_stage == Stage.ended && _public.winner == Team.mafia);
+      final left = _client.timeLeft;
+      final showClock = ready && _stage != Stage.ended && !_board.abandoned;
+      final side = ready && !_board.abandoned;
+      page = Scaffold(
+        backgroundColor: Saloon.ink,
+        body: SaloonBackdrop(
+          night: night,
+          child: Column(
+            children: [
+              DeskGameHud(
+                title: ready ? _title() : widget.room.code,
+                ribbon: ready && !_board.abandoned ? _ribbon() : null,
+                countdown: showClock ? (_beforeStart ? '…' : _clock(left)) : null,
+                urgent: showClock && !_beforeStart && left < const Duration(seconds: 10) && _stage.acceptsActions,
+                onMenu: _openPause,
+                strings: _dt,
+              ),
+              ?_connectionBanner(),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(DeskSize.gutter, 4, DeskSize.gutter, 36),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 350),
+                          child: KeyedSubtree(
+                            key: ValueKey(ready ? '${_window?.key}-${_board.abandoned}' : 'connecting'),
+                            child: _deskStage(),
+                          ),
+                        ),
+                      ),
+                      if (side) ...[
+                        const SizedBox(width: 36),
+                        SizedBox(width: _deskSideWidth, child: _deskSide()),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _confirmExit();
+      },
+      child: Focus(
+        autofocus: true,
+        onKeyEvent: _deskKey,
+        child: DeskTheme(
+          child: NoirDesk(
+            child: Stack(
+              children: [
+                Positioned.fill(child: page),
+                if (_paused)
+                  Positioned.fill(
+                    child: DeskPauseMenu(
+                      strings: _dt,
+                      onResume: _closePause,
+                      onRoles: () => RolesSheet.show(context, deck: _public.deck, revealed: publicReveals(_public)),
+                      onSettings: () => SettingsScreen.open(context),
+                      onLeave: _confirmExit,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// La parte sinistra: il tavolo (o la carta, il giornale, la fine).
+  Widget _deskStage() {
+    if (!_client.ready) return _connectingView();
+    if (_board.abandoned) {
+      return Center(child: SizedBox(width: 640, height: 520, child: _closedView()));
+    }
+    switch (_stage) {
+      case Stage.reveal:
+        return _cardView();
+      case Stage.ended:
+        return _deskEndView();
+      default:
+        final phase = _phase();
+        return KeyedSubtree(
+          key: phase.key,
+          child: Column(
+            children: [
+              Expanded(
+                child: SizedBox(key: const Key('game.tableSlot'), width: double.infinity, child: phase.table),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                key: const Key('game.stripSlot'),
+                height: _deskStripHeight,
+                width: double.infinity,
+                child: Center(
+                  child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 860), child: phase.strip),
+                ),
+              ),
+            ],
+          ),
+        );
+    }
+  }
+
+  /// La colonna di destra: il mazzo in alto, la chat sotto (tutta l'altezza
+  /// che resta), e come si usa con la tastiera.
+  Widget _deskSide() {
+    final now = _chatNow();
+    final family = now.view.channel == ChatChannel.family;
+    final writable = now.view.note == null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        DeskRolesPanel(
+          deck: _public.deck,
+          revealed: publicReveals(_public),
+          onOpen: () => RolesSheet.show(context, deck: _public.deck, revealed: publicReveals(_public)),
+        ),
+        const SizedBox(height: 24),
+        Expanded(
+          child: AnimatedContainer(
+            key: Key(family ? 'online.familyChat' : 'online.townChat'),
+            duration: const Duration(milliseconds: 220),
+            decoration: BoxDecoration(
+              color: const Color(0xF00F0B09),
+              borderRadius: BorderRadius.circular(DeskSize.radius),
+              border: Border.all(color: now.view.accent.withValues(alpha: 0.7), width: 1.4),
+              boxShadow: const [BoxShadow(color: Color(0x99000000), blurRadius: 32, offset: Offset(0, 12))],
+            ),
+            padding: const EdgeInsets.fromLTRB(24, 20, 20, 18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    key: const Key('game.chatSlot'),
+                    child: ChatLog(
+                      view: now.view,
+                      messages: now.messages,
+                      myId: widget.me.id,
+                      focusNode: _chatFocus,
+                      labels: ChatLabels(hint: _t.online.chatHint, empty: _t.online.chatEmpty, send: _t.online.chatSend),
+                      onSend: (body) => _client.sendChat(_chatView().channel, body),
+                      seats: _chatSeats,
+                      onHold: _holdMessage,
+                      trailing: _stage.chat == 'day' && _view.familyChat ? _chatSwitch() : null,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    if (writable) ...[
+                      DeskKeycap(_dt.keyEnter),
+                      const SizedBox(width: 8),
+                      Text(_dt.chatKeys.split(' ').skip(1).join(' '),
+                          style: DeskText.text(size: DeskText.caption, color: AppColors.textSecondary)),
+                      const SizedBox(width: 16),
+                    ],
+                    Expanded(
+                      child: Text(
+                        _dt.rightClick,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: writable ? TextAlign.right : TextAlign.left,
+                        style: DeskText.text(size: 13, color: AppColors.textSecondary.withValues(alpha: 0.75)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// La carta, sul desktop: il racconto in alto, la carta grande al centro
+  /// (si tiene premuto il tasto del mouse per girarla), sotto «pronto».
+  Widget _deskCardView() {
+    final view = _view;
+    final opening = _script('night-1').opening(online: true);
+    return Column(
+      key: const Key('online.card'),
+      children: [
+        if (opening.isNotEmpty)
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 980),
+            child: ScrimText(
+              opening.map((l) => l.text).join('\n'),
+              style: DeskText.text(size: DeskText.lead).copyWith(fontStyle: FontStyle.italic),
+            ),
+          ),
+        const SizedBox(height: 24),
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, box) {
+              final height = min(box.maxHeight, 620.0);
+              return Center(
+                child: SizedBox(
+                  height: height,
+                  width: height * 5 / 7.4,
+                  child: NoirRoleCard(
+                    role: view.role,
+                    teammates: view.teammates,
+                    bounty: view.bounty,
+                    onRevealed: () => setState(() => _cardTurned = true),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 24),
+        ScrimText(_t.online.yourCardHint),
+        const SizedBox(height: 18),
+        SizedBox(width: 560, child: _readyButton(enabled: _cardTurned)),
+      ],
+    );
+  }
+
+  /// La fine, sul desktop: chi ha vinto in una targa larga, poi tutti i
+  /// giocatori con la loro carta e com'è finita.
+  Widget _deskEndView() {
+    final winner = _public.winner;
+    final mafiaWon = winner == Team.mafia;
+    final arsonistWon = winner == Team.neutral;
+    final roles = _public.finalRoles;
+    final accent = mafiaWon ? Saloon.mafia : Saloon.brass;
+    final players = [
+      for (final p in publicSeating(_public.seats))
+        if (roles[p] != null) p,
+    ];
+    return Column(
+      key: const Key('online.end'),
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 26, horizontal: 40),
+          decoration: Saloon.scrim(radius: DeskSize.radius, border: accent),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(mafiaWon ? Icons.theater_comedy : Icons.balance, color: accent, size: 64),
+              const SizedBox(width: 28),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    arsonistWon
+                        ? _t.arsonistWins
+                        : mafiaWon
+                        ? _t.familyWins
+                        : _t.townWins,
+                    style: Saloon.plate(DeskText.heading + 8, color: accent),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(_t.whoWasWho.toUpperCase(), style: DeskText.overline(color: AppColors.textPrimary)),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 32),
+        Expanded(
+          child: SingleChildScrollView(
+            child: Center(
+              child: Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 36,
+                runSpacing: 44,
+                children: [
+                  for (final player in players)
+                    SizedBox(
+                      width: 168,
+                      child: Column(
+                        children: [
+                          SeatCard(
+                            name: player.name,
+                            number: _numberOf(player),
+                            width: 132,
+                            fallen: !_isAlive(player),
+                            me: player == _view.seat,
+                            selected: _public.won(player),
+                            note: _t.role(roles[player]!).label,
+                            noteColor: roles[player]!.team == Team.mafia ? Saloon.mafia : Saloon.brass,
+                            onLongPress: player == _view.seat
+                                ? null
+                                : () => showSeatActions(context,
+                                    services: widget.services, name: player.name, myId: widget.me.id),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            _public.personalWins.contains(player)
+                                ? '${_t.wonAlone}\n${_fateOf(player)}'
+                                : _fateOf(player),
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            style: DeskText.text(size: DeskText.label, color: const Color(0xFFD8CCBE)).copyWith(height: 1.25),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        SizedBox(
+          width: 560,
+          child: NoirButton(
+            key: const Key('online.backToRoom'),
+            label: _t.online.backToRoom,
+            feel: Press.confirm,
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+      ],
+    );
+  }
+
   /// Il collegamento che non va: il server tace, la rete ha dato errore, o
   /// il server non sente più questo telefono. Si rientra al tavolo con un
   /// tocco. Chi ha lasciato la città lo sa, e guarda soltanto.
@@ -513,8 +940,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       return null;
     }
     return Container(
-      margin: const EdgeInsets.fromLTRB(14, 0, 14, 6),
-      padding: const EdgeInsets.fromLTRB(12, 6, 6, 6),
+      margin: _deskMode
+          ? const EdgeInsets.fromLTRB(DeskSize.gutter, 0, DeskSize.gutter + _deskSideWidth + 36, 10)
+          : const EdgeInsets.fromLTRB(14, 0, 14, 6),
+      padding: _deskMode ? const EdgeInsets.fromLTRB(22, 10, 10, 10) : const EdgeInsets.fromLTRB(12, 6, 6, 6),
       decoration: Saloon.scrim(radius: 10, border: Saloon.blood),
       child: Row(
         children: [
@@ -522,7 +951,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
             child: Text(
               text,
               key: key,
-              style: AppText.body.copyWith(color: AppColors.textPrimary, fontSize: 13),
+              style: AppText.body.copyWith(color: AppColors.textPrimary, fontSize: 13 * _k),
             ),
           ),
           if (rejoin) ...[
@@ -812,13 +1241,13 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   /// Di giorno, con un Compare vivo: la piazza o la famiglia.
   Widget _chatSwitch() => SizedBox(
-    height: 28,
+    height: _deskMode ? 40 : 28,
     child: SegmentedButton<bool>(
       key: const Key('online.chatSwitch'),
-      style: const ButtonStyle(
-        visualDensity: VisualDensity(horizontal: -4, vertical: -4),
+      style: ButtonStyle(
+        visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        textStyle: WidgetStatePropertyAll(TextStyle(fontSize: 12)),
+        textStyle: WidgetStatePropertyAll(TextStyle(fontSize: _deskMode ? 15 : 12)),
       ),
       segments: [
         ButtonSegment(value: false, label: Text(_t.online.chatTown)),
@@ -835,9 +1264,13 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     key: key,
     fit: BoxFit.scaleDown,
     child: Container(
-      width: 230,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(color: const Color(0xB0080605), borderRadius: BorderRadius.circular(12)),
+      width: _deskMode ? 430 : 230,
+      padding: _deskMode ? const EdgeInsets.symmetric(horizontal: 24, vertical: 16) : const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: const Color(0xB0080605),
+        borderRadius: BorderRadius.circular(12 * _k),
+        border: _deskMode ? Border.all(color: Saloon.brassDeep.withValues(alpha: 0.5)) : null,
+      ),
       child: Column(mainAxisSize: MainAxisSize.min, children: lines),
     ),
   );
@@ -857,9 +1290,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     overflow: TextOverflow.ellipsis,
     style: AppText.body.copyWith(
       color: color,
-      fontSize: size,
+      fontSize: size * _k,
       fontWeight: weight,
-      height: 1.25,
+      height: _deskMode ? 1.35 : 1.25,
       shadows: const [Shadow(color: Colors.black, blurRadius: 6)],
     ),
   );
@@ -931,6 +1364,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     final index = {for (var i = 0; i < seats.length; i++) seats[i]: i};
     return SaloonTable(
       count: seats.length,
+      maxCard: _deskMode ? 152 : 118,
       center: center,
       leading: leading == null ? null : index[leading],
       hands: [
@@ -1025,7 +1459,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         onDone: () => setState(() => _introPlayed = true),
       );
     }
-    return _roleCardView();
+    return _deskMode ? _deskCardView() : _roleCardView();
   }
 
   Widget _roleCardView() {
@@ -1090,14 +1524,14 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
           children: [
             if (option.alternative != null)
               Padding(
-                padding: const EdgeInsets.only(bottom: 4),
+                padding: EdgeInsets.only(bottom: 4 * _k),
                 child: SizedBox(
-                  height: 32,
+                  height: 32 * _k,
                   child: SegmentedButton<bool>(
                     key: const Key('online.alternative'),
-                    style: const ButtonStyle(
-                      visualDensity: VisualDensity(horizontal: -3, vertical: -3),
-                      textStyle: WidgetStatePropertyAll(TextStyle(fontSize: 12)),
+                    style: ButtonStyle(
+                      visualDensity: const VisualDensity(horizontal: -3, vertical: -3),
+                      textStyle: WidgetStatePropertyAll(TextStyle(fontSize: 12 * _k)),
                     ),
                     segments: [
                       ButtonSegment(value: false, label: Text(labels.$1)),
@@ -1127,9 +1561,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                 Text(
                   script.taskPrompt(shown, _public.round),
                   textAlign: TextAlign.center,
-                  style: AppText.display(17, color: family ? const Color(0xFFFFB3B3) : AppColors.textPrimary),
+                  style: AppText.display(17 * _k, color: family ? const Color(0xFFFFB3B3) : AppColors.textPrimary),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4 * _k),
                 _feltLine(script.taskHint(shown), size: 12, color: const Color(0xFFD8CCBE)),
               ]),
             ),
@@ -1148,7 +1582,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
               onPressed: busy ? null : () => _send(Pass(_view.seat.id)),
             ),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: 10 * _k),
           Expanded(
             flex: 3,
             child: NoirButton(
@@ -1197,10 +1631,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       center = _felt(key: const Key('online.waiting'), [
         Text(
           found == null ? _t.yourInvestigation : _t.inTheGrave,
-          style: AppText.overline.copyWith(color: Saloon.brass),
+          style: AppText.overline.copyWith(color: Saloon.brass, fontSize: AppText.overline.fontSize! * _k),
         ),
         const SizedBox(height: 4),
-        Text(_tag(finding.subject).toUpperCase(), style: AppText.display(24, color: AppColors.textPrimary)),
+        Text(_tag(finding.subject).toUpperCase(), style: AppText.display(24 * _k, color: AppColors.textPrimary)),
         const SizedBox(height: 4),
         Text(
           found != null
@@ -1209,7 +1643,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
               ? _t.isFamily
               : _t.isInnocent,
           textAlign: TextAlign.center,
-          style: AppText.display(18, color: isMafia ? Saloon.mafia : Saloon.clean),
+          style: AppText.display(18 * _k, color: isMafia ? Saloon.mafia : Saloon.clean),
         ),
       ]);
     }
@@ -1275,9 +1709,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     return (
       key: const Key('online.dawn'),
       strip: _readyButton(compact: true),
-      table: FrontPage(
+      table: _deskPaper(FrontPage(
         key: ValueKey('front-dawn-${dawn.round}'),
-        compact: true,
+        compact: !_deskMode,
+        scale: _deskMode ? 1.5 : 1,
         masthead: _masthead,
         dateLine: _dateLine(_italian ? "Edizione dell'alba" : 'Dawn edition'),
         headline: headline,
@@ -1285,9 +1720,20 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         portraits: dead,
         fallen: dawn.victims.isNotEmpty,
         lines: _printed(lines),
-      ),
+      )),
     );
   }
+
+  /// Sul desktop il giornale non si stira su tutto il tavolo: una pagina
+  /// vera, al centro, larga quanto basta per leggerla da lontano.
+  Widget _deskPaper(Widget paper) => !_deskMode
+      ? paper
+      : Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1180),
+            child: Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: paper),
+          ),
+        );
 
   /// Il verdetto, sul tavolo: tutti hanno appena visto il voto, quindi
   /// niente film. Il posto del condannato fa il linciaggio sul posto e poi
@@ -1329,13 +1775,13 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         children: [
           if (tally.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(bottom: 4),
+              padding: EdgeInsets.only(bottom: 4 * _k),
               child: Text(
                 tally,
                 key: const Key('online.verdictVotes'),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: AppText.body.copyWith(color: Saloon.brass, fontSize: 11.5),
+                style: AppText.body.copyWith(color: Saloon.brass, fontSize: 11.5 * _k),
               ),
             ),
           if (!film) _readyButton(compact: true),
@@ -1404,8 +1850,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         ]),
       ),
       strip: Container(
-        padding: const EdgeInsets.fromLTRB(12, 6, 6, 6),
-        decoration: Saloon.scrim(radius: 12),
+        padding: _deskMode ? const EdgeInsets.fromLTRB(24, 10, 10, 10) : const EdgeInsets.fromLTRB(12, 6, 6, 6),
+        decoration: Saloon.scrim(radius: 12 * _k),
         child: Row(
           children: [
             Expanded(
@@ -1415,14 +1861,14 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.how_to_vote, size: 14, color: cast > 0 ? Saloon.blood : const Color(0xFF4A423C)),
-                      const SizedBox(width: 6),
+                      Icon(Icons.how_to_vote, size: 14 * _k, color: cast > 0 ? Saloon.blood : const Color(0xFF4A423C)),
+                      SizedBox(width: 6 * _k),
                       Flexible(
                         child: Text(
                           _t.online.votesCast(cast, alive),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: AppText.overline.copyWith(color: AppColors.textPrimary, fontSize: 11),
+                          style: AppText.overline.copyWith(color: AppColors.textPrimary, fontSize: 11 * _k),
                         ),
                       ),
                     ],
@@ -1433,13 +1879,13 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                       key: const Key('online.myVote'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppText.body.copyWith(color: Saloon.brass, fontSize: 13, fontWeight: FontWeight.w700),
+                      style: AppText.body.copyWith(color: Saloon.brass, fontSize: 13 * _k, fontWeight: FontWeight.w700),
                     ),
                 ],
               ),
             ),
             if (option != null && option.canReveal) ...[
-              const SizedBox(width: 6),
+              SizedBox(width: 6 * _k),
               NoirButton(
                 key: const Key('online.revealMayor'),
                 compact: true,
@@ -1448,7 +1894,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
               ),
             ],
             if (option != null) ...[
-              const SizedBox(width: 6),
+              SizedBox(width: 6 * _k),
               NoirButton(
                 key: const Key('online.abstain'),
                 compact: true,

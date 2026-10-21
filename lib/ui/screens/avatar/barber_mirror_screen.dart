@@ -8,11 +8,15 @@ import '../../../l10n/app_strings.dart';
 import '../../../online/online_services.dart';
 import '../../avatar/avatar_look.dart';
 import '../../avatar/face_presets.dart';
+import '../../desktop/desktop_canvas.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/noir_avatar.dart' show AvatarHead;
 import '../../widgets/player_avatar.dart';
+import '../../widgets/city_backdrop.dart';
 import '../../widgets/scene_scaffold.dart';
 import '../online/online_widgets.dart';
+
+part 'barber_mirror_desktop.dart';
 
 /// Lo specchio del barbiere: la faccia, gratis. Si sceglie la pelle, la forma
 /// della testa, gli occhi, i capelli; i pezzi della bottega restano quelli
@@ -209,6 +213,12 @@ class _BarberMirrorScreenState extends State<BarberMirrorScreen> {
   bool _busy = false;
   final _random = Random();
 
+  /// Sul PC: la scheda aperta nella colonna di destra.
+  int _deskTab = 0;
+
+  /// [setState] per l'estensione del layout PC.
+  void _update(VoidCallback change) => setState(change);
+
   bool get _en => AppStrings.of(context).language == AppLanguage.en;
 
   /// Lo specchio mostra la testa nuda, per vedere i capelli; il cappello si
@@ -266,6 +276,7 @@ class _BarberMirrorScreenState extends State<BarberMirrorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (DesktopCanvas.of(context)) return _desktop();
     final en = _en;
     if (_asking) {
       return SceneScaffold(

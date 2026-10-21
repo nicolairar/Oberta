@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
@@ -6,6 +7,8 @@ import '../../../l10n/app_strings.dart';
 import '../../../l10n/desktop_strings.dart';
 import '../../../l10n/online_strings.dart';
 import '../../../online/online_services.dart';
+import '../../desktop/desktop_canvas.dart';
+import '../../desktop/home_modal.dart';
 import '../../theme/app_theme.dart';
 import 'online_widgets.dart';
 
@@ -20,6 +23,25 @@ Future<bool> showSignInSheet(
   String? note,
   bool test = false,
 }) async {
+  // Sul PC non c'è fondo da cui salire: una finestra al centro del vicolo.
+  if (DesktopCanvas.peek(context)) {
+    final t = AppStrings.of(context).online;
+    final signedIn = await showDeskModal<bool>(
+      context,
+      builder: (context) => _DeskSignIn(
+        title: t.loginTitle,
+        builder: (onEnter) => SignInPanel(
+          auth: services.auth,
+          note: note,
+          test: test,
+          sheet: false,
+          enterKey: onEnter,
+          onSignedIn: () => Navigator.of(context).pop(true),
+        ),
+      ),
+    );
+    return signedIn ?? false;
+  }
   final signedIn = await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
@@ -42,6 +64,38 @@ Future<bool> showSignInSheet(
     ),
   );
   return signedIn ?? false;
+}
+
+/// La finestra dell'accesso sul PC: il titolo nella carta, INVIO entra
+/// col primo modo d'accesso.
+class _DeskSignIn extends StatefulWidget {
+  final String title;
+  final Widget Function(ValueNotifier<int> onEnter) builder;
+
+  const _DeskSignIn({required this.title, required this.builder});
+
+  @override
+  State<_DeskSignIn> createState() => _DeskSignInState();
+}
+
+class _DeskSignInState extends State<_DeskSignIn> {
+  final _enter = ValueNotifier(0);
+
+  @override
+  void dispose() {
+    _enter.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => DeskModal(
+    overline: AppStrings.of(context).homeTitle,
+    title: widget.title,
+    width: 680,
+    hint: DesktopStrings.of(context).enterHint,
+    onEnter: () => _enter.value++,
+    child: widget.builder(_enter),
+  );
 }
 
 /// Che cosa è andato storto, in due righe: quella gentile per chi gioca, e
@@ -107,6 +161,9 @@ class SignInPanel extends StatefulWidget {
   /// online il titolo sta già nella barra in alto.
   final bool sheet;
 
+  /// Sul PC: ogni scatto è un INVIO, che entra col primo modo d'accesso.
+  final ValueListenable<int>? enterKey;
+
   const SignInPanel({
     super.key,
     required this.auth,
@@ -114,6 +171,7 @@ class SignInPanel extends StatefulWidget {
     this.test = false,
     this.onSignedIn,
     this.sheet = true,
+    this.enterKey,
   });
 
   @override
@@ -128,7 +186,36 @@ class _SignInPanelState extends State<SignInPanel> {
   Object? _error;
 
   @override
+  void initState() {
+    super.initState();
+    widget.enterKey?.addListener(_entered);
+  }
+
+  /// INVIO: il modulo di prova si manda, se no si entra col primo pulsante.
+  void _entered() {
+    if (_busy) return;
+    if (_test) {
+      _submitTest();
+      return;
+    }
+    final auth = widget.auth;
+    if (auth.steamAvailable) {
+      _signIn(auth.signInWithSteam);
+      return;
+    }
+    if (auth.appleAvailable) {
+      _signIn(auth.signInWithApple);
+      return;
+    }
+    if (auth.googleAvailable) {
+      _signIn(auth.signInWithGoogle);
+      return;
+    }
+  }
+
+  @override
   void dispose() {
+    widget.enterKey?.removeListener(_entered);
     _email.dispose();
     _password.dispose();
     super.dispose();
@@ -169,6 +256,8 @@ class _SignInPanelState extends State<SignInPanel> {
   Widget build(BuildContext context) {
     final t = AppStrings.of(context).online;
     final auth = widget.auth;
+    final desk = DesktopCanvas.of(context);
+    final body = desk ? DeskText.text(size: DeskText.lead, color: AppColors.textSecondary) : AppText.body;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -206,100 +295,119 @@ class _SignInPanelState extends State<SignInPanel> {
                 const SizedBox(height: 8),
               ],
               if (widget.note case final note?) ...[
-                Text(note, textAlign: TextAlign.center, style: AppText.body.copyWith(color: AppColors.textPrimary)),
+                Text(
+                  note,
+                  textAlign: TextAlign.center,
+                  style: body.copyWith(color: AppColors.textPrimary),
+                ),
                 const SizedBox(height: 8),
               ],
-              Text(_test ? t.testAccountBody : t.loginBody, textAlign: TextAlign.center, style: AppText.body),
+              Text(_test ? t.testAccountBody : t.loginBody, textAlign: TextAlign.center, style: body),
             ],
           ),
         ),
-        const SizedBox(height: 18),
-        if (_test) ..._testForm(t) else ..._providers(t, auth),
-        if (_error case final error?) ...[
-          const SizedBox(height: 14),
-          FailureNote(error: error),
-        ],
-        const SizedBox(height: 14),
-        Text(t.loginPrivacy, textAlign: TextAlign.center, style: AppText.body.copyWith(fontSize: 12)),
+        SizedBox(height: desk ? 36 : 18),
+        if (_test) ..._testForm(t) else ..._providers(t, auth, desk),
+        if (_error case final error?) ...[const SizedBox(height: 14), FailureNote(error: error)],
+        SizedBox(height: desk ? 28 : 14),
+        Text(
+          t.loginPrivacy,
+          textAlign: TextAlign.center,
+          style: AppText.body.copyWith(fontSize: desk ? 15 : 12),
+        ),
       ],
     );
   }
 
-  List<Widget> _providers(OnlineStrings t, OnlineAuth auth) => [
-        if (auth.steamAvailable) ...[
-          ElevatedButton.icon(
-            key: const Key('online.signInSteam'),
-            style: ElevatedButton.styleFrom(
+  List<Widget> _providers(OnlineStrings t, OnlineAuth auth, bool desk) => [
+    if (auth.steamAvailable) ...[
+      ElevatedButton.icon(
+        key: const Key('online.signInSteam'),
+        style:
+            ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF171A21),
               foregroundColor: const Color(0xFFC7D5E0),
-              minimumSize: const Size.fromHeight(50),
+              minimumSize: Size.fromHeight(desk ? 72 : 50),
               shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(14))),
+              textStyle: desk ? const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, letterSpacing: 1.2) : null,
+              iconSize: desk ? 32 : null,
+            ).copyWith(
+              overlayColor: desk ? WidgetStatePropertyAll(Colors.white.withValues(alpha: 0.08)) : null,
+              side: desk
+                  ? WidgetStateProperty.resolveWith(
+                      (states) => BorderSide(
+                        color: const Color(0xFF66C0F4)
+                            .withValues(alpha: states.contains(WidgetState.hovered) ? 0.9 : 0.3),
+                        width: 1.4,
+                      ),
+                    )
+                  : null,
             ),
-            onPressed: _busy ? null : () => _signIn(auth.signInWithSteam),
-            icon: const Icon(Icons.sports_esports),
-            label: Text(DesktopStrings.of(context).loginSteam),
-          ),
-          if (_busy) ...[
-            const SizedBox(height: 8),
-            Text(DesktopStrings.of(context).steamWaiting, textAlign: TextAlign.center, style: AppText.body),
-          ],
-          if (auth.appleAvailable || auth.googleAvailable) const SizedBox(height: 12),
-        ],
-        if (auth.appleAvailable)
-          SignInWithAppleButton(
-            text: t.loginApple,
-            height: 50,
-            style: SignInWithAppleButtonStyle.white,
-            borderRadius: const BorderRadius.all(Radius.circular(14)),
-            onPressed: _busy ? () {} : () => _signIn(auth.signInWithApple),
-          ),
-        // TODO(google): il pulsante segue le regole di Google; oggi è
-        // un pulsante del gioco con la «G», da rivedere col logo ufficiale.
-        if (auth.googleAvailable) ...[
-          if (auth.appleAvailable) const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: _busy ? null : () => _signIn(auth.signInWithGoogle),
-            icon: const Text('G', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
-            label: Text(t.loginGoogle),
-          ),
-        ],
-        if (!auth.appleAvailable && !auth.googleAvailable && !auth.steamAvailable)
-          Text(t.loginNoProvider, textAlign: TextAlign.center, style: AppText.body),
-        if (_busy) ...[
-          const SizedBox(height: 12),
-          const Center(child: SizedBox.square(dimension: 22, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.gold))),
-        ],
-      ];
+        onPressed: _busy ? null : () => _signIn(auth.signInWithSteam),
+        icon: const Icon(Icons.sports_esports),
+        label: Text(DesktopStrings.of(context).loginSteam),
+      ),
+      if (_busy) ...[
+        const SizedBox(height: 8),
+        Text(DesktopStrings.of(context).steamWaiting, textAlign: TextAlign.center, style: AppText.body),
+      ],
+      if (auth.appleAvailable || auth.googleAvailable) SizedBox(height: desk ? 16 : 12),
+    ],
+    if (auth.appleAvailable)
+      SignInWithAppleButton(
+        text: t.loginApple,
+        height: desk ? 64 : 50,
+        style: SignInWithAppleButtonStyle.white,
+        borderRadius: const BorderRadius.all(Radius.circular(14)),
+        onPressed: _busy ? () {} : () => _signIn(auth.signInWithApple),
+      ),
+    // TODO(google): il pulsante segue le regole di Google; oggi è
+    // un pulsante del gioco con la «G», da rivedere col logo ufficiale.
+    if (auth.googleAvailable) ...[
+      if (auth.appleAvailable) SizedBox(height: desk ? 16 : 12),
+      OutlinedButton.icon(
+        onPressed: _busy ? null : () => _signIn(auth.signInWithGoogle),
+        icon: const Text('G', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+        label: Text(t.loginGoogle),
+      ),
+    ],
+    if (!auth.appleAvailable && !auth.googleAvailable && !auth.steamAvailable)
+      Text(t.loginNoProvider, textAlign: TextAlign.center, style: AppText.body),
+    if (_busy) ...[
+      const SizedBox(height: 12),
+      const Center(
+        child: SizedBox.square(dimension: 22, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.gold)),
+      ),
+    ],
+  ];
 
   List<Widget> _testForm(OnlineStrings t) => [
-        TextField(
-          key: const Key('online.testEmail'),
-          controller: _email,
-          keyboardType: TextInputType.emailAddress,
-          autocorrect: false,
-          enableSuggestions: false,
-          autofillHints: const [AutofillHints.email],
-          decoration: InputDecoration(labelText: t.emailLabel),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          key: const Key('online.testPassword'),
-          controller: _password,
-          obscureText: true,
-          autocorrect: false,
-          enableSuggestions: false,
-          decoration: InputDecoration(labelText: t.passwordLabel),
-          onSubmitted: (_) => _submitTest(),
-        ),
-        const SizedBox(height: 16),
-        ElevatedButton(
-          key: const Key('online.testSubmit'),
-          onPressed: _busy ? null : _submitTest,
-          child: Text(t.testAccountSubmit),
-        ),
-      ];
+    TextField(
+      key: const Key('online.testEmail'),
+      controller: _email,
+      keyboardType: TextInputType.emailAddress,
+      autocorrect: false,
+      enableSuggestions: false,
+      autofillHints: const [AutofillHints.email],
+      decoration: InputDecoration(labelText: t.emailLabel),
+    ),
+    const SizedBox(height: 8),
+    TextField(
+      key: const Key('online.testPassword'),
+      controller: _password,
+      obscureText: true,
+      autocorrect: false,
+      enableSuggestions: false,
+      decoration: InputDecoration(labelText: t.passwordLabel),
+      onSubmitted: (_) => _submitTest(),
+    ),
+    const SizedBox(height: 16),
+    ElevatedButton(
+      key: const Key('online.testSubmit'),
+      onPressed: _busy ? null : _submitTest,
+      child: Text(t.testAccountSubmit),
+    ),
+  ];
 
-  void _submitTest() => _signIn(
-        () => widget.auth.signInWithTestAccount(email: _email.text, password: _password.text),
-      );
+  void _submitTest() => _signIn(() => widget.auth.signInWithTestAccount(email: _email.text, password: _password.text));
 }

@@ -151,6 +151,9 @@ class SaloonTable extends StatelessWidget {
   final int? leading;
   final Widget? center;
 
+  /// Le carte non vanno oltre questa larghezza (più grandi sul desktop).
+  final double maxCard;
+
   /// Il rapporto altezza/larghezza delle carte dei posti.
   static const cardAspect = 1.32;
 
@@ -164,12 +167,13 @@ class SaloonTable extends StatelessWidget {
     this.hands = const [],
     this.leading,
     this.center,
+    this.maxCard = 118,
   });
 
   /// La larghezza delle carte per [count] posti in [box]: la più grande per
   /// cui nessuna carta tocca la vicina.
-  static double cardWidth(int count, Size box) {
-    final top = min(min(box.width * 0.3, box.height * 0.36 / cardAspect), 118.0);
+  static double cardWidth(int count, Size box, {double maxCard = 118}) {
+    final top = min(min(box.width * 0.3, box.height * 0.36 / cardAspect), maxCard);
     for (var width = top; width > minCard; width -= 1.5) {
       if (_fits(seats(count, box, width), width)) return width;
     }
@@ -218,7 +222,7 @@ class SaloonTable extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, box) {
       final size = box.biggest;
-      final width = cardWidth(count, size);
+      final width = cardWidth(count, size, maxCard: maxCard);
       final height = width * cardAspect;
       final centers = seats(count, size, width);
       final felt = Rect.fromCenter(

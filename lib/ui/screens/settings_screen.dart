@@ -11,6 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../l10n/app_language.dart';
 import '../../l10n/desktop_strings.dart';
 import '../../settings/display_settings.dart';
+import '../desktop/desktop_canvas.dart';
 import '../desktop/desktop_platform.dart';
 import 'online/link_account_sheet.dart';
 import '../widgets/content_width.dart';
@@ -22,6 +23,8 @@ import '../../settings/app_settings.dart';
 import '../theme/app_theme.dart';
 import 'online/safety_sheets.dart';
 import 'screening_room_screen.dart';
+
+part 'settings_desktop.dart';
 
 /// Dove vivranno informativa e termini sul web.
 /// TODO(owner): pubblicare docs/legal/*.md a questi indirizzi (o cambiarli).
@@ -212,6 +215,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         final t = AppStrings.of(context);
         final s = SettingsStrings.of(context);
         final signedIn = auth != null && auth.signedIn;
+        if (DesktopCanvas.of(context)) return _DesktopSettings(host: this);
         return Scaffold(
           backgroundColor: AppColors.background,
           appBar: AppBar(

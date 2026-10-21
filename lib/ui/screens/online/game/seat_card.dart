@@ -81,17 +81,25 @@ class SeatCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => _SeatHover(
+        enabled: onTap != null || onLongPress != null,
+        builder: (hover) => _card(context, hover && onTap != null),
+      );
+
+  /// [hover]: il mouse è sopra un posto che si può scegliere.
+  Widget _card(BuildContext context, bool hover) {
     final tips = RolesSheetStrings.of(context);
     final height = width * 1.32;
     final arch = BorderRadius.vertical(top: Radius.circular(width / 2), bottom: Radius.circular(width * 0.12));
     final border = accused
         ? Saloon.blood
+        : hover
+        ? const Color(0xFFF2D58A)
         : selected || selectable
         ? Saloon.brass
         : Saloon.brassDeep;
-    final glow = selected
-        ? [BoxShadow(color: Saloon.brass.withValues(alpha: 0.75), blurRadius: 18, spreadRadius: 2)]
+    final glow = selected || hover
+        ? [BoxShadow(color: Saloon.brass.withValues(alpha: hover && !selected ? 0.6 : 0.75), blurRadius: 18, spreadRadius: 2)]
         : accused
         ? [BoxShadow(color: Saloon.blood.withValues(alpha: 0.6), blurRadius: 16, spreadRadius: 1)]
         : selectable
@@ -117,7 +125,7 @@ class SeatCard extends StatelessWidget {
                 borderRadius: arch,
                 border: Border.all(
                   color: border,
-                  width: selected || accused
+                  width: selected || accused || hover
                       ? 2.8
                       : selectable
                       ? 2
@@ -299,7 +307,7 @@ class SeatCard extends StatelessWidget {
     );
     return AnimatedScale(
       duration: const Duration(milliseconds: 200),
-      scale: selected ? 1.06 : 1,
+      scale: selected ? 1.06 : (hover ? 1.04 : 1),
       child: Opacity(
         opacity: dimmed
             ? 0.45
@@ -311,6 +319,9 @@ class SeatCard extends StatelessWidget {
           child: InkWell(
             onTap: onTap,
             onLongPress: onLongPress,
+            // Col mouse: il tasto destro apre il foglio del giocatore.
+            onSecondaryTap: onLongPress,
+            hoverColor: Colors.transparent,
             customBorder: RoundedRectangleBorder(borderRadius: arch),
             splashColor: Saloon.brass.withValues(alpha: 0.2),
             child: SizedBox(width: width, height: height, child: card),
@@ -319,6 +330,28 @@ class SeatCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Sa se il mouse sta sopra il posto (sul telefono non succede mai).
+class _SeatHover extends StatefulWidget {
+  final bool enabled;
+  final Widget Function(bool hover) builder;
+
+  const _SeatHover({required this.enabled, required this.builder});
+
+  @override
+  State<_SeatHover> createState() => _SeatHoverState();
+}
+
+class _SeatHoverState extends State<_SeatHover> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) => MouseRegion(
+        onEnter: (_) => setState(() => _hover = true),
+        onExit: (_) => setState(() => _hover = false),
+        child: widget.builder(_hover && widget.enabled),
+      );
 }
 
 /// Il nome sulla targhetta: grande; se non ci sta si stringe fino a due

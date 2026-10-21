@@ -5,8 +5,11 @@ import 'package:flutter/services.dart';
 
 import '../../../l10n/app_strings.dart';
 import '../../../online/online_services.dart';
+import '../../../l10n/desktop_online_strings.dart';
+import '../../desktop/desktop_canvas.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/scene_scaffold.dart';
+import 'online_desktop.dart';
 import 'online_widgets.dart';
 
 /// Gli amici: cercare qualcuno per nome unico, rispondere alle richieste,
@@ -101,6 +104,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
     final outgoing = [for (final l in _links) if (l.status == FriendStatus.pending && !l.incoming) l];
     final friends = [for (final l in _links) if (l.status == FriendStatus.accepted) l];
     final linked = {for (final l in _links) l.other.id};
+    if (DesktopCanvas.of(context)) {
+      return _desk(context, incoming: incoming, outgoing: outgoing, friends: friends, linked: linked);
+    }
 
     return SceneScaffold(
       resizeForKeyboard: false,
@@ -219,6 +225,187 @@ class _FriendsScreenState extends State<FriendsScreen> {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  /// Sul PC: a sinistra la ricerca, al centro gli amici, a destra chi
+  /// aspetta una risposta (le richieste in arrivo e quelle mandate).
+  Widget _desk(
+    BuildContext context, {
+    required List<Friendship> incoming,
+    required List<Friendship> outgoing,
+    required List<Friendship> friends,
+    required Set<String> linked,
+  }) {
+    final t = AppStrings.of(context).online;
+    final d = DesktopOnlineStrings.of(context);
+    Widget list(List<Widget> rows, {required String empty, IconData? icon}) => rows.isEmpty
+        ? DeskEmpty(empty, icon: icon)
+        : ListView.separated(
+            padding: EdgeInsets.zero,
+            itemCount: rows.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 4),
+            itemBuilder: (_, i) => rows[i],
+          );
+    Widget count(int n) => n == 0 ? const SizedBox.shrink() : DeskBadge('$n');
+
+    final results = _results;
+    return DeskOnlineScene(
+      title: t.friends,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            flex: 5,
+            child: DeskPanel(
+              title: d.search,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    key: const Key('online.search'),
+                    controller: _search,
+                    autofocus: true,
+                    autocorrect: false,
+                    enableSuggestions: false,
+                    onChanged: _typed,
+                    style: DeskText.text(size: DeskText.lead),
+                    decoration: InputDecoration(
+                      prefixIcon: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        child: Icon(Icons.search, color: AppColors.gold, size: 28),
+                      ),
+                      hintText: t.searchHint,
+                      hintStyle: DeskText.text(size: DeskText.lead, color: AppColors.textSecondary),
+                      filled: true,
+                      fillColor: const Color(0x66000000),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 22),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(DeskSize.radius)),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  if (results != null && results.isNotEmpty) ...[
+                    Text(d.results.toUpperCase(), style: DeskText.overline()),
+                    const SizedBox(height: 12),
+                  ],
+                  Expanded(
+                    child: results == null
+                        ? DeskEmpty(d.searchEmpty, icon: Icons.person_search)
+                        : list(
+                            [
+                              for (final profile in results)
+                                DeskProfileRow(
+                                  profile: profile,
+                                  actions: [
+                                    if (!linked.contains(profile.id))
+                                      OutlinedButton.icon(
+                                        onPressed: () => _request(profile),
+                                        icon: const Icon(Icons.person_add_alt_1, size: 22),
+                                        label: Text(t.add),
+                                      ),
+                                  ],
+                                ),
+                            ],
+                            empty: t.noResults,
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: DeskSize.gap),
+          Expanded(
+            flex: 6,
+            child: DeskPanel(
+              title: t.yourFriends,
+              trailing: count(friends.length),
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator(color: AppColors.gold))
+                  : list(
+                      [
+                        for (final link in friends)
+                          DeskProfileRow(
+                            profile: link.other,
+                            subtitle: t.levelShort(link.other.level),
+                            actions: [
+                              DeskIconAction(
+                                icon: Icons.person_remove_outlined,
+                                tooltip: t.remove,
+                                color: AppColors.textSecondary,
+                                onTap: () => _act(() => _friends.remove(link.other.id)),
+                              ),
+                            ],
+                          ),
+                      ],
+                      empty: t.friendsEmpty,
+                      icon: Icons.people_outline,
+                    ),
+            ),
+          ),
+          const SizedBox(width: DeskSize.gap),
+          Expanded(
+            flex: 5,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: DeskPanel(
+                    title: t.requests,
+                    trailing: count(incoming.length),
+                    child: list(
+                      [
+                        for (final link in incoming)
+                          DeskProfileRow(
+                            profile: link.other,
+                            actions: [
+                              DeskIconAction(
+                                icon: Icons.close,
+                                tooltip: t.decline,
+                                color: AppColors.textSecondary,
+                                onTap: () => _act(() => _friends.respond(link.other.id, accept: false)),
+                              ),
+                              DeskIconAction(
+                                icon: Icons.check,
+                                tooltip: t.accept,
+                                onTap: () => _act(
+                                  () => _friends.respond(link.other.id, accept: true),
+                                  note: t.nowFriends(link.other.name),
+                                ),
+                              ),
+                            ],
+                          ),
+                      ],
+                      empty: '—',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: DeskSize.gap),
+                Expanded(
+                  child: DeskPanel(
+                    title: t.waiting,
+                    trailing: count(outgoing.length),
+                    child: list(
+                      [
+                        for (final link in outgoing)
+                          DeskProfileRow(
+                            profile: link.other,
+                            actions: [
+                              TextButton(
+                                onPressed: () => _act(() => _friends.remove(link.other.id)),
+                                child: Text(t.withdraw),
+                              ),
+                            ],
+                          ),
+                      ],
+                      empty: '—',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

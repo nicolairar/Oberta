@@ -22,7 +22,10 @@ import 'avatar/barber_mirror_screen.dart';
 import 'lobby_screen.dart';
 import 'online/online_room_screen.dart';
 import 'online/ranked_queue_screen.dart';
+import '../desktop/desktop_canvas.dart';
 import '../desktop/desktop_platform.dart';
+import '../desktop/home_handle_picker.dart';
+import '../desktop/home_top_bar.dart';
 import 'online/online_screen.dart';
 import 'online/online_widgets.dart';
 import 'online/profile_sheet.dart';
@@ -199,11 +202,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
   Future<void> _openSetup(Profile profile) async {
     if (_settingUp) return;
     _settingUp = true;
-    final saved = await Navigator.of(context).push<Profile>(
-      MaterialPageRoute(
-        builder: (_) => ProfileSetupScreen(services: _online!, profile: profile),
-      ),
-    );
+    // Sul PC il nome si sceglie in una finestra sopra il vicolo.
+    final saved = DesktopCanvas.peek(context)
+        ? await showDeskHandlePicker(context, services: _online!, profile: profile)
+        : await Navigator.of(context).push<Profile>(
+            MaterialPageRoute(
+              builder: (_) => ProfileSetupScreen(services: _online!, profile: profile),
+            ),
+          );
     _settingUp = false;
     if (!mounted) return;
     if (saved == null) {
@@ -433,6 +439,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
     SoundStage.instance.press(Press.tap);
     final account = _account;
     if (account != null && !account.signedIn) {
+      // Sul PC c'è la barra in alto: si apre direttamente l'accesso.
+      if (DesktopCanvas.peek(context)) {
+        _signIn();
+        return;
+      }
       setState(() => _coach = true);
       return;
     }
@@ -483,8 +494,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
     final t = AppStrings.of(context);
     final account = _account;
     final signedIn = account?.signedIn ?? false;
-    final signInPlate = account != null && !signedIn;
-    return Scaffold(
+    // Sul PC le targhette del muro lasciano il posto alla barra in alto.
+    final canvas = DesktopCanvas.of(context);
+    final signInPlate = account != null && !signedIn && !canvas;
+    Widget poster(Color glow, Widget child) => canvas ? HomeDeskPoster(glow: glow, child: child) : child;
+    final scaffold = Scaffold(
       backgroundColor: const Color(0xFF07070B),
       // I manifesti sono oggetti del vicolo, non testo dell'interfaccia: si
       // ingrandiscono con lo schermo, non con le preferenze di lettura.
@@ -520,7 +534,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                 children: [
                   RepaintBoundary(
                     child: CustomPaint(
-                      painter: HomeWallPainter(layout, plaque: signedIn ? null : t.alleyPlaque, signIn: signInPlate),
+                      painter: HomeWallPainter(
+                        layout,
+                        plaque: signedIn || canvas ? null : t.alleyPlaque,
+                        signIn: signInPlate,
+                      ),
                     ),
                   ),
                   RepaintBoundary(
@@ -545,7 +563,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                       ),
                     ),
                   ),
-                  if (widget.onSettings case final onSettings?)
+                  if (widget.onSettings case final onSettings? when !canvas)
                     Positioned.fromRect(
                       rect: layout.slot,
                       child: HomeSettingsPlate(
@@ -569,7 +587,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                   // Dopo l'accesso, al posto della targa ACCEDI c'è l'insegna
                   // appesa della bottega: il negozio si vede, non si cerca.
                   // Prima, un'insegna stretta: toccata indica «Accedi».
-                  if (_online?.shop != null && (signedIn || layout.shopCompact != null))
+                  if (!canvas && _online?.shop != null && (signedIn || layout.shopCompact != null))
                     Positioned.fromRect(
                       rect: signedIn ? layout.shop : layout.shopCompact!,
                       child: HomeShopSign(
@@ -580,7 +598,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                       ),
                     ),
                   // Sotto la bottega, il barbiere: lo specchio si vede, non si cerca.
-                  if (signedIn)
+                  if (signedIn && !canvas)
                     Positioned.fromRect(
                       rect: layout.barber,
                       child: HomeShopSign(
@@ -590,7 +608,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                         onTap: _openMirror,
                       ),
                     ),
-                  if (signedIn)
+                  if (signedIn && !canvas)
                     Positioned.fromRect(
                       rect: layout.badge,
                       child: HomeProfileBadge(
@@ -623,33 +641,39 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                     rect: friendsPoster,
                     tilt: 0.030,
                     at: 2.05,
-                    child: HomeSoonPoster(
-                      title: t.online.posterTitle,
-                      blurb: t.online.posterBlurb,
-                      emblem: HomeSoonEmblem.phones,
-                      paper: const Color(0xFF1C3148),
-                      seed: 8,
-                      onTap: _playWithFriends,
+                    child: poster(
+                      const Color(0xFF6FA2D8),
+                      HomeSoonPoster(
+                        title: t.online.posterTitle,
+                        blurb: t.online.posterBlurb,
+                        emblem: HomeSoonEmblem.phones,
+                        paper: const Color(0xFF1C3148),
+                        seed: 8,
+                        onTap: _playWithFriends,
+                      ),
                     ),
                   ),
                   _posted(
                     rect: rankedPoster,
                     tilt: -0.038,
                     at: 2.25,
-                    child: HomeSoonPoster(
-                      title: t.rankedTitle,
-                      blurb: t.rankedBlurb,
-                      stamp: _countsLine(t),
-                      strip: rankedDebug ? 'EARLY ACCESS' : t.soon,
-                      emblem: HomeSoonEmblem.laurel,
-                      paper: const Color(0xFF581019),
-                      seed: 21,
-                      // Ranked is built but locked in this build: the queue
-                      // opens only with --dart-define=RANKED_DEBUG=true.
-                      onTap: rankedDebug && signedIn && _online?.ranked != null
-                          ? () => Navigator.of(context)
-                                .push(MaterialPageRoute<void>(builder: (_) => RankedQueueScreen(services: _online!)))
-                          : () => _notYet(t.rankedTeaser),
+                    child: poster(
+                      const Color(0xFFE0384A),
+                      HomeSoonPoster(
+                        title: t.rankedTitle,
+                        blurb: t.rankedBlurb,
+                        stamp: _countsLine(t),
+                        strip: rankedDebug ? 'EARLY ACCESS' : t.soon,
+                        emblem: HomeSoonEmblem.laurel,
+                        paper: const Color(0xFF581019),
+                        seed: 21,
+                        // Ranked is built but locked in this build: the queue
+                        // opens only with --dart-define=RANKED_DEBUG=true.
+                        onTap: rankedDebug && signedIn && _online?.ranked != null
+                            ? () => Navigator.of(context)
+                                  .push(MaterialPageRoute<void>(builder: (_) => RankedQueueScreen(services: _online!)))
+                            : () => _notYet(t.rankedTeaser),
+                      ),
                     ),
                   ),
                   IgnorePointer(
@@ -670,6 +694,33 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                       ),
                     ),
                   ),
+                  if (canvas)
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      top: 0,
+                      child: DeskTheme(
+                        child: HomeDeskTopBar(
+                          signedIn: account == null ? null : signedIn,
+                          profile: account?.profile,
+                          signInLabel: t.online.signIn,
+                          onSignIn: _signIn,
+                          onSignInTest: () => _signIn(test: true),
+                          onProfile: _openProfile,
+                          pickHandle: t.online.pickHandle,
+                          levelLabel: t.online.levelShort,
+                          coinsLabel: t.online.coins,
+                          shopLabel: t.shop.homeSign,
+                          shopFresh: _shopFresh ? t.shop.fresh : null,
+                          onShop: _online?.shop == null ? null : _openShop,
+                          mirrorLabel: SettingsStrings.of(context).barberSign,
+                          onMirror: _openMirror,
+                          settingsLabel: t.settings,
+                          onSettings: widget.onSettings,
+                          onQuit: () => confirmDeskQuit(context),
+                        ),
+                      ),
+                    ),
                   if (_coach && signInPlate)
                     Positioned.fill(
                       child: HomeCoachMark(
@@ -696,6 +747,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
         ),
       ),
     );
+    // Esc nel vicolo: «Lasci il vicolo?».
+    return canvas ? DeskEscape(onEscape: () => confirmDeskQuit(context), child: scaffold) : scaffold;
   }
 }
 

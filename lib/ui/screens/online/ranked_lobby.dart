@@ -534,9 +534,11 @@ class LobbyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Sul PC la carta si legge da lontano: testi grandi, margini larghi.
+    final desk = NoirDesk.of(context);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+      padding: desk ? const EdgeInsets.fromLTRB(32, 24, 32, 28) : const EdgeInsets.fromLTRB(16, 10, 16, 12),
       decoration: BoxDecoration(
         color: Saloon.paper,
         borderRadius: BorderRadius.circular(10),
@@ -546,18 +548,24 @@ class LobbyCard extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (kicker != null) Text(kicker!.toUpperCase(), style: AppText.overline.copyWith(color: Saloon.enamel, fontSize: 10)),
+          if (kicker != null)
+            Text(
+              kicker!.toUpperCase(),
+              textAlign: TextAlign.center,
+              style: AppText.overline.copyWith(color: Saloon.enamel, fontSize: desk ? 14 : 10),
+            ),
+          if (desk) const SizedBox(height: 8),
           Text(
             title,
             textAlign: TextAlign.center,
-            style: AppText.display(17, color: Saloon.paperInk),
+            style: AppText.display(desk ? 30 : 17, color: Saloon.paperInk),
           ),
-          const SizedBox(height: 3),
+          SizedBox(height: desk ? 12 : 3),
           Text(
             body,
             textAlign: TextAlign.center,
             // Le spiegazioni dei ruoli sono di due o tre frasi: si leggono intere.
-            style: AppText.body.copyWith(color: Saloon.paperInk, fontSize: 12.5, height: 1.25),
+            style: AppText.body.copyWith(color: Saloon.paperInk, fontSize: desk ? 19 : 12.5, height: desk ? 1.4 : 1.25),
           ),
         ],
       ),

@@ -192,15 +192,17 @@ class _Line extends StatelessWidget {
   final Color accent;
   final int? maxLines;
   final ChatSeats seats;
+  final double fontSize;
 
-  const _Line(this.message, {required this.mine, required this.accent, required this.seats, this.maxLines});
+  const _Line(this.message,
+      {required this.mine, required this.accent, required this.seats, this.maxLines, this.fontSize = 14.5});
 
   @override
   Widget build(BuildContext context) {
     final called = seats.calls(message, mine: mine);
     return Container(
       key: called ? ValueKey('chat.mention-${message.id}') : null,
-      margin: const EdgeInsets.symmetric(vertical: 1),
+      margin: EdgeInsets.symmetric(vertical: fontSize > 16 ? 3 : 1),
       padding: EdgeInsets.symmetric(horizontal: called ? 6 : 0, vertical: called ? 2 : 1),
       decoration: called
           ? BoxDecoration(
@@ -220,7 +222,7 @@ class _Line extends StatelessWidget {
         ]),
         maxLines: maxLines,
         overflow: maxLines == null ? null : TextOverflow.ellipsis,
-        style: const TextStyle(color: AppColors.textPrimary, fontSize: 14.5, height: 1.3),
+        style: TextStyle(color: AppColors.textPrimary, fontSize: fontSize, height: 1.3),
       ),
     );
   }
@@ -247,6 +249,9 @@ class ChatLog extends StatefulWidget {
   /// Tenendo premuto il messaggio di un altro (segnalarlo, bloccarlo).
   final void Function(ChatMessage message)? onHold;
 
+  /// Il fuoco del campo (sul desktop INVIO ci porta da fuori).
+  final FocusNode? focusNode;
+
   const ChatLog({
     super.key,
     required this.view,
@@ -259,6 +264,7 @@ class ChatLog extends StatefulWidget {
     this.header = true,
     this.trailing,
     this.onHold,
+    this.focusNode,
   });
 
   @override
@@ -303,17 +309,22 @@ class _ChatLogState extends State<ChatLog> {
 
   Widget _log(BuildContext context, List<ChatMessage> messages) {
     final view = widget.view;
+    // Sul desktop: testi da 1080p, una riga sola (INVIO manda), il tasto
+    // destro su un messaggio per segnalarlo.
+    final desk = NoirDesk.of(context);
+    final small = desk ? 16.0 : 13.0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (widget.header)
           Padding(
-            padding: const EdgeInsets.only(bottom: 4),
+            padding: EdgeInsets.only(bottom: desk ? 14 : 4),
             child: Row(
               children: [
-                Icon(view.note == null ? Icons.chat_bubble : Icons.lock, size: 13, color: view.accent),
-                const SizedBox(width: 6),
-                Text(view.title.toUpperCase(), style: AppText.overline.copyWith(color: view.accent, fontSize: 12)),
+                Icon(view.note == null ? Icons.chat_bubble : Icons.lock, size: desk ? 20 : 13, color: view.accent),
+                SizedBox(width: desk ? 10 : 6),
+                Text(view.title.toUpperCase(),
+                    style: AppText.overline.copyWith(color: view.accent, fontSize: desk ? 16 : 12, letterSpacing: desk ? 3.2 : null)),
                 const Spacer(),
                 ?widget.trailing,
               ],
@@ -321,7 +332,7 @@ class _ChatLogState extends State<ChatLog> {
           ),
         Expanded(
           child: messages.isEmpty
-              ? Center(child: Text(widget.labels.empty, style: AppText.body.copyWith(fontSize: 13, fontStyle: FontStyle.italic)))
+              ? Center(child: Text(widget.labels.empty, style: AppText.body.copyWith(fontSize: desk ? 18 : 13, fontStyle: FontStyle.italic)))
               : ListView.builder(
                   key: const Key('chat.messages'),
                   reverse: true,
@@ -330,31 +341,33 @@ class _ChatLogState extends State<ChatLog> {
                   itemBuilder: (context, index) {
                     final message = messages[messages.length - 1 - index];
                     final mine = message.profileId == widget.myId;
-                    final line = _Line(message, mine: mine, accent: view.accent, seats: widget.seats);
+                    final line = _Line(message,
+                        mine: mine, accent: view.accent, seats: widget.seats, fontSize: desk ? 19 : 14.5);
                     final hold = widget.onHold;
                     if (mine || hold == null) return line;
                     return GestureDetector(
                       key: ValueKey('chat.hold-${message.id}'),
                       behavior: HitTestBehavior.opaque,
                       onLongPress: () => hold(message),
+                      onSecondaryTap: () => hold(message),
                       child: line,
                     );
                   },
                 ),
         ),
-        const SizedBox(height: 6),
+        SizedBox(height: desk ? 14 : 6),
         if (_failure case final failure? when view.note == null)
           Padding(
             padding: const EdgeInsets.only(bottom: 6),
             child: Text(failure, key: const Key('chat.failure'), textAlign: TextAlign.center,
-                style: AppText.body.copyWith(color: const Color(0xFFFF8A80), fontSize: 13)),
+                style: AppText.body.copyWith(color: const Color(0xFFFF8A80), fontSize: small)),
           ),
         if (view.note case final note?)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: EdgeInsets.symmetric(horizontal: desk ? 20 : 12, vertical: desk ? 16 : 8),
             decoration: Saloon.scrim(radius: 10),
             child: Text(note, key: const Key('chat.note'), textAlign: TextAlign.center,
-                style: AppText.body.copyWith(color: AppColors.textPrimary, fontSize: 13.5)),
+                style: AppText.body.copyWith(color: AppColors.textPrimary, fontSize: desk ? 17 : 13.5, height: 1.35)),
           )
         else
           Container(
@@ -363,26 +376,31 @@ class _ChatLogState extends State<ChatLog> {
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: Saloon.brassDeep),
             ),
-            padding: const EdgeInsets.only(left: 12),
+            padding: EdgeInsets.only(left: desk ? 20 : 12, right: desk ? 6 : 0),
             child: Row(
               children: [
                 Expanded(
                   child: TextField(
                     key: const Key('chat.field'),
                     controller: _text,
+                    focusNode: widget.focusNode,
                     autofocus: widget.autofocus,
                     maxLength: 300,
                     minLines: 1,
-                    maxLines: 3,
+                    maxLines: desk ? 1 : 3,
                     textInputAction: TextInputAction.send,
                     onSubmitted: (_) => _send(),
-                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 15),
+                    // Sul desktop il campo resta acceso dopo INVIO: si
+                    // continua a scrivere.
+                    onEditingComplete: desk ? () {} : null,
+                    style: TextStyle(color: AppColors.textPrimary, fontSize: desk ? 19 : 15),
                     cursorColor: Saloon.brass,
                     decoration: InputDecoration(
                       hintText: widget.labels.hint,
                       hintStyle: const TextStyle(color: AppColors.textSecondary),
                       counterText: '',
                       isDense: true,
+                      contentPadding: desk ? const EdgeInsets.symmetric(vertical: 18) : null,
                       border: InputBorder.none,
                     ),
                   ),
@@ -390,7 +408,8 @@ class _ChatLogState extends State<ChatLog> {
                 IconButton(
                   key: const Key('chat.send'),
                   tooltip: widget.labels.send,
-                  visualDensity: VisualDensity.compact,
+                  visualDensity: desk ? VisualDensity.standard : VisualDensity.compact,
+                  iconSize: desk ? 26 : 24,
                   onPressed: _sending ? null : _send,
                   icon: Icon(Icons.send, color: view.accent),
                 ),

@@ -55,4 +55,13 @@ class DesktopStrings {
   String get linkSignInAgain =>
       _t('Account collegati. Entra di nuovo per continuare.', 'Accounts linked. Sign in again to continue.');
   String get close => _t('Chiudi', 'Close');
+
+  // Il vicolo su PC: la barra in alto e l'uscita.
+  String get quit => _t('Esci', 'Quit');
+  String get quitTitle => _t('Lasci il vicolo?', 'Leaving the alley?');
+  String get quitBody => _t('Il gioco si chiude. Nessuno ha visto niente.', 'The game will close. Nobody saw a thing.');
+  String get quitConfirm => _t('Esci dal gioco', 'Quit game');
+  String get stay => _t('Resta', 'Stay');
+  String get enterHint => _t('INVIO per confermare', 'ENTER to confirm');
+  String get posterEnter => _t('Entra', 'Enter');
 }

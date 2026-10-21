@@ -16,14 +16,14 @@ extension _Bundles on _ShopScreenState {
     }
     final yes = await showDialog<bool>(
       context: context,
-      builder: (context) => _BundleReceipt(
+      builder: (context) => _deskDialog(context, _BundleReceipt(
         bundle: bundle,
         price: price,
         saved: _shop.bundleSingles(bundle) - price,
         coins: _shop.coins,
         strings: t,
         language: language,
-      ),
+      )),
     );
     if (yes != true || !mounted) return;
     await _run(() async {

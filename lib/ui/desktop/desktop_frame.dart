@@ -3,6 +3,7 @@ import 'package:window_manager/window_manager.dart';
 
 import '../../settings/app_settings.dart';
 import '../../settings/display_settings.dart';
+import 'desktop_canvas.dart';
 
 /// Il riquadro del gioco su desktop: il rettangolo 16:9 (o 9:16 in
 /// verticale) più grande che sta nella finestra, al centro. Il resto è
@@ -39,7 +40,7 @@ class DesktopFrame extends StatelessWidget {
                 padding: EdgeInsets.zero,
                 viewPadding: EdgeInsets.zero,
               ),
-              child: child,
+              child: orientation == DesktopOrientation.landscape ? DesktopCanvas(child: child) : child,
             ),
           ),
         ),

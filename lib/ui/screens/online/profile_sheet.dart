@@ -10,12 +10,15 @@ import '../../../online/online_account.dart';
 import '../../../online/online_services.dart';
 import '../../../rules/role.dart';
 import '../../avatar/avatar_look.dart';
+import '../../desktop/desktop_canvas.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/home_account.dart';
 import '../../widgets/player_avatar.dart';
 import '../avatar/barber_mirror_screen.dart';
 import 'online_widgets.dart';
 import 'progress_hooks.dart';
+
+part 'profile_dossier_desktop.dart';
 
 /// La cartellina di cartone kraft e il foglio dattiloscritto dentro.
 const _kraft = Color(0xFFC79E5C);
@@ -40,6 +43,9 @@ Future<void> showProfileSheet(
   VoidCallback? onSettings,
 }) {
   account.refresh();
+  if (DesktopCanvas.peek(context)) {
+    return _showDeskDossier(context, account: account, onMirror: onMirror, onShop: onShop, onSettings: onSettings);
+  }
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -121,11 +127,14 @@ class _Folder extends StatelessWidget {
 class _FolderPainter extends CustomPainter {
   final double tabHeight;
 
-  const _FolderPainter({required this.tabHeight});
+  /// Larghezza della linguetta; di base si adatta alla cartellina.
+  final double? tabWidth;
+
+  const _FolderPainter({required this.tabHeight, this.tabWidth});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final tabWidth = min(220.0, size.width * 0.55);
+    final tabWidth = this.tabWidth ?? min(220.0, size.width * 0.55);
     final path = Path()
       ..moveTo(0, tabHeight + 6)
       ..quadraticBezierTo(0, tabHeight, 6, tabHeight)
@@ -170,7 +179,7 @@ class _FolderPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_FolderPainter old) => old.tabHeight != tabHeight;
+  bool shouldRepaint(_FolderPainter old) => old.tabHeight != tabHeight || old.tabWidth != tabWidth;
 }
 
 class _Dossier extends StatefulWidget {
@@ -237,6 +246,7 @@ class _DossierState extends State<_Dossier> {
     final profile = widget.profile;
     final next = Profile.xpToNext(profile.level);
     final number = profile.id.length >= 6 ? profile.id.substring(0, 6).toUpperCase() : profile.id.toUpperCase();
+    if (DesktopCanvas.of(context)) return _DeskDossier(host: this, number: number);
     return _Folder(
       tab: 'N. $number',
       child: ListView(
@@ -406,17 +416,18 @@ class _DossierState extends State<_Dossier> {
 /// La voce di un modulo prestampato, sopra il dattiloscritto.
 class _Field extends StatelessWidget {
   final String text;
+  final double size;
 
-  const _Field(this.text);
+  const _Field(this.text, {this.size = 10.5});
 
   @override
   Widget build(BuildContext context) => Text(
     '$text:',
     style: TextStyle(
       color: _ink.withValues(alpha: 0.6),
-      fontSize: 10.5,
+      fontSize: size,
       fontWeight: FontWeight.w800,
-      letterSpacing: 1.8,
+      letterSpacing: size == 10.5 ? 1.8 : size * 0.17,
     ),
   );
 }
@@ -430,21 +441,24 @@ class _Mugshot extends StatelessWidget {
   const _Mugshot({required this.profile, required this.width});
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-    width: width + 6,
-    height: width * 1.26 + 10,
+  Widget build(BuildContext context) {
+    // Sul telefono la foto resta com'è; più grande (desktop) cresce tutto.
+    final k = max(1.0, width / 124);
+    return SizedBox(
+    width: width + 6 * k,
+    height: width * 1.26 + 10 * k,
     child: Stack(
       clipBehavior: Clip.none,
       children: [
         Positioned(
           left: 0,
-          top: 8,
+          top: 8 * k,
           child: Transform.rotate(
             angle: -0.035,
             child: Container(
               width: width,
               height: width * 1.26,
-              padding: const EdgeInsets.fromLTRB(6, 6, 6, 18),
+              padding: EdgeInsets.fromLTRB(6 * k, 6 * k, 6 * k, 18 * k),
               decoration: const BoxDecoration(
                 color: Color(0xFFFBF7EC),
                 boxShadow: [BoxShadow(color: Color(0x66000000), blurRadius: 5, offset: Offset(2, 3))],
@@ -461,10 +475,17 @@ class _Mugshot extends StatelessWidget {
             ),
           ),
         ),
-        const Positioned(left: 14, top: -2, width: 16, height: 42, child: CustomPaint(painter: _PaperclipPainter())),
+        Positioned(
+          left: 14 * k,
+          top: -2 * k,
+          width: 16 * k,
+          height: 42 * k,
+          child: const CustomPaint(painter: _PaperclipPainter()),
+        ),
       ],
     ),
   );
+  }
 }
 
 class _HeightLinesPainter extends CustomPainter {
@@ -539,8 +560,9 @@ class _PaperclipPainter extends CustomPainter {
 /// Il nome battuto a macchina sulla riga del modulo.
 class _TypedLine extends StatelessWidget {
   final String text;
+  final double size;
 
-  const _TypedLine({required this.text});
+  const _TypedLine({required this.text, this.size = 20});
 
   @override
   Widget build(BuildContext context) => Container(
@@ -554,7 +576,7 @@ class _TypedLine extends StatelessWidget {
       key: const Key('profile.handle'),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: _typed.copyWith(fontSize: 20, fontWeight: FontWeight.bold),
+      style: _typed.copyWith(fontSize: size, fontWeight: FontWeight.bold),
     ),
   );
 }
@@ -563,23 +585,27 @@ class _TypedLine extends StatelessWidget {
 class _LevelSeal extends StatelessWidget {
   final int level;
   final String label;
+  final double size;
 
-  const _LevelSeal({super.key, required this.level, required this.label});
+  const _LevelSeal({super.key, required this.level, required this.label, this.size = 56});
 
   @override
   Widget build(BuildContext context) => Semantics(
     label: label,
     excludeSemantics: true,
     child: _WaxSeal(
-      size: 56,
+      size: size,
       seed: level,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label.split(' ').first, style: _sealSmall),
+          Text(
+            label.split(' ').first,
+            style: size == 56 ? _sealSmall : _sealSmall.copyWith(fontSize: 8 * size / 56, letterSpacing: size / 56),
+          ),
           Text(
             '$level',
-            style: AppText.display(level >= 100 ? 15 : 19, color: const Color(0xFFFFE9DA)).copyWith(
+            style: AppText.display((level >= 100 ? 15 : 19) * size / 56, color: const Color(0xFFFFE9DA)).copyWith(
               letterSpacing: 0,
               height: 1.05,
               shadows: const [Shadow(color: Color(0x88000000), offset: Offset(0, -1))],
@@ -704,12 +730,14 @@ class _Stamp extends StatelessWidget {
   const _Stamp({required this.text, required this.angle, this.color = _stamp, this.size = 13});
 
   @override
-  Widget build(BuildContext context) => Transform.rotate(
+  Widget build(BuildContext context) {
+    final k = max(1.0, size / 13);
+    return Transform.rotate(
     angle: angle,
     child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: EdgeInsets.symmetric(horizontal: 8 * k, vertical: 3 * k),
       decoration: BoxDecoration(
-        border: Border.all(color: color.withValues(alpha: 0.8), width: 2),
+        border: Border.all(color: color.withValues(alpha: 0.8), width: 2 * k),
         borderRadius: BorderRadius.circular(3),
       ),
       child: Text(
@@ -726,30 +754,32 @@ class _Stamp extends StatelessWidget {
       ),
     ),
   );
+  }
 }
 
 /// L'esperienza: una canna incassata nella carta che si riempie d'ottone.
 /// Il riempimento scorre quando il saldo cambia.
 class _XpBar extends StatelessWidget {
   final double progress;
+  final double height;
 
-  const _XpBar({super.key, required this.progress});
+  const _XpBar({super.key, required this.progress, this.height = 20});
 
   @override
   Widget build(BuildContext context) {
     final target = progress.clamp(0.0, 1.0);
     final still = MediaQuery.disableAnimationsOf(context);
     return Container(
-      height: 20,
+      height: height,
       padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
         color: const Color(0xFFCBB98F),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(height / 2),
         border: Border.all(color: _ink.withValues(alpha: 0.75), width: 1.2),
         boxShadow: const [BoxShadow(color: Color(0x33FFFFFF), offset: Offset(0, 1))],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(height / 2 - 2),
         child: TweenAnimationBuilder<double>(
           tween: Tween(end: target),
           duration: still ? Duration.zero : const Duration(milliseconds: 900),
@@ -820,13 +850,14 @@ class _XpFillPainter extends CustomPainter {
 
 class _Heading extends StatelessWidget {
   final String text;
+  final double size;
 
-  const _Heading(this.text);
+  const _Heading(this.text, {this.size = 13});
 
   @override
   Widget build(BuildContext context) => Row(
     children: [
-      Text(text, style: _typed.copyWith(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 13)),
+      Text(text, style: _typed.copyWith(fontWeight: FontWeight.w900, letterSpacing: size * 2 / 13, fontSize: size)),
       const SizedBox(width: 8),
       Expanded(child: Container(height: 1, color: _ink.withValues(alpha: 0.45))),
     ],
@@ -838,7 +869,10 @@ class _CaseRow extends StatelessWidget {
   final MatchResult match;
   final AppStrings strings;
 
-  const _CaseRow({required this.match, required this.strings});
+  /// Più grande, per il fascicolo sul desktop.
+  final double scale;
+
+  const _CaseRow({required this.match, required this.strings, this.scale = 1});
 
   @override
   Widget build(BuildContext context) {
@@ -851,7 +885,7 @@ class _CaseRow extends StatelessWidget {
         ? (t.resultsWon, const Color(0xFF2E5E2A))
         : (t.resultsLost, _stamp);
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 7),
+      padding: EdgeInsets.symmetric(vertical: 7 * scale * scale),
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: _ink.withValues(alpha: 0.15))),
       ),
@@ -862,20 +896,20 @@ class _CaseRow extends StatelessWidget {
               roleName,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: _typed.copyWith(fontSize: 14, fontWeight: FontWeight.bold),
+              style: _typed.copyWith(fontSize: 14 * scale, fontWeight: FontWeight.bold),
             ),
           ),
           Text(
             outcome.toUpperCase(),
-            style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1),
+            style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 11 * scale, letterSpacing: scale),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12 * scale),
           SizedBox(
-            width: 64,
+            width: 64 * scale,
             child: Text(
               '+${match.xpGained} XP',
               textAlign: TextAlign.right,
-              style: _typed.copyWith(fontSize: 12, fontWeight: FontWeight.w700),
+              style: _typed.copyWith(fontSize: 12 * scale, fontWeight: FontWeight.w700),
             ),
           ),
         ],

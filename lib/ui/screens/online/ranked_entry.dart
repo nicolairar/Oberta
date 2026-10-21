@@ -8,6 +8,9 @@ import '../../../l10n/app_strings.dart';
 import '../../../l10n/online_strings.dart';
 import '../../../l10n/progress_strings.dart';
 import '../../../online/ranked_models.dart';
+import '../../../l10n/desktop_online_strings.dart';
+import '../../../l10n/desktop_strings.dart';
+import '../../desktop/desktop_canvas.dart';
 import '../../theme/app_theme.dart';
 import 'game/noir_ui.dart';
 
@@ -54,6 +57,7 @@ class RankedEntryView extends StatelessWidget {
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
     final t = strings.online;
+    if (DesktopCanvas.of(context)) return _desk(context, t);
     return Scaffold(
       backgroundColor: const Color(0xFF0A0706),
       body: Stack(
@@ -159,6 +163,183 @@ class RankedEntryView extends StatelessWidget {
     );
   }
 
+  /// Sul PC: a sinistra la stanza con la lampada, grande come una scena; a
+  /// destra il banco con il grado, le due carte e il pulsante. Frecce per
+  /// la lingua, INVIO per sedersi, Esc per tornare.
+  Widget _desk(BuildContext context, OnlineStrings t) {
+    final d = DesktopOnlineStrings.of(context);
+    void pick(AppLanguage lang) {
+      if (queued || lang == language) return;
+      HapticFeedback.selectionClick();
+      onLanguage(lang);
+    }
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF0A0706),
+      body: NoirDesk(
+        child: DeskTheme(
+          child: CallbackShortcuts(
+            bindings: {
+              const SingleActivator(LogicalKeyboardKey.enter): () {
+                if (!queued && cooldown == null) onStart();
+              },
+              const SingleActivator(LogicalKeyboardKey.numpadEnter): () {
+                if (!queued && cooldown == null) onStart();
+              },
+              const SingleActivator(LogicalKeyboardKey.arrowLeft): () => pick(AppLanguage.it),
+              const SingleActivator(LogicalKeyboardKey.arrowRight): () => pick(AppLanguage.en),
+            },
+            child: DeskEscape(
+              onEscape: () => queued ? onCancel() : Navigator.of(context).maybePop(),
+              child: Stack(
+                children: [
+                  const Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: RadialGradient(
+                          center: Alignment(-0.35, -0.3),
+                          radius: 1.2,
+                          colors: [Color(0xFF2E1C10), Color(0xFF140C07), Color(0xFF070504)],
+                          stops: [0, 0.5, 1],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      DeskTopBar(title: t.rankedQueueTitle),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(DeskSize.gutter, 0, DeskSize.gutter, DeskSize.gutter),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(
+                                child: AnimatedBuilder(
+                                  animation: sweep,
+                                  builder: (context, _) => CustomPaint(
+                                    size: Size.infinite,
+                                    painter: _RoomPainter(queued ? sweep.value : null),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 56),
+                              Container(
+                                width: 700,
+                                padding: const EdgeInsets.fromLTRB(48, 44, 48, 44),
+                                decoration: Saloon.scrim(radius: DeskSize.radius),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    _RankBadge(tier: tier, progress: progress),
+                                    const SizedBox(height: 44),
+                                    Text(
+                                      t.rankedPickTable.toUpperCase(),
+                                      style: DeskText.overline(color: Saloon.brass),
+                                    ),
+                                    const SizedBox(height: 24),
+                                    IntrinsicHeight(
+                                      child: Row(
+                                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                                        children: [
+                                          for (final (lang, label, sub, suit) in [
+                                            (AppLanguage.it, 'Italiano', t.rankedTableIt, '♠'),
+                                            (AppLanguage.en, 'English', t.rankedTableEn, '♥'),
+                                          ]) ...[
+                                            if (lang == AppLanguage.en) const SizedBox(width: 24),
+                                            Expanded(
+                                              child: _TableCard(
+                                                key: Key('ranked.lang.${lang.name}'),
+                                                label: label,
+                                                corner: lang.name.toUpperCase(),
+                                                suit: suit,
+                                                sub: sub,
+                                                queued: switch (queuedCounts[lang]) {
+                                                  final n? when n >= OnlineCounts.encouraging => t.rankedTableQueued(n),
+                                                  _ => null,
+                                                },
+                                                selected: language == lang,
+                                                onTap: () => pick(lang),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 40),
+                                    Text(d.rankedHow.toUpperCase(), style: DeskText.overline(color: Saloon.brass)),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      t.rankedRules,
+                                      key: const Key('ranked.rules'),
+                                      style: DeskText.text(color: Saloon.paper.withValues(alpha: 0.82)).copyWith(height: 1.45),
+                                    ),
+                                    const Spacer(),
+                                    if (queued) ...[
+                                      Text(
+                                        t.rankedSearching,
+                                        key: const Key('ranked.searching'),
+                                        textAlign: TextAlign.center,
+                                        style: DeskText.display(DeskText.title, color: Saloon.paper),
+                                      ),
+                                      const SizedBox(height: 24),
+                                      NoirButton(
+                                        key: const Key('ranked.cancel'),
+                                        kind: NoirButtonKind.brass,
+                                        label: t.rankedCancel,
+                                        onPressed: onCancel,
+                                      ),
+                                    ] else if (cooldown != null)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                                        decoration: Saloon.scrim(),
+                                        child: Text(
+                                          cooldown!,
+                                          textAlign: TextAlign.center,
+                                          style: DeskText.text(size: DeskText.lead, color: AppColors.gold),
+                                        ),
+                                      )
+                                    else ...[
+                                      NoirButton(
+                                        key: const Key('ranked.start'),
+                                        label: t.rankedSit.toUpperCase(),
+                                        onPressed: onStart,
+                                      ),
+                                      const SizedBox(height: 14),
+                                      Text(
+                                        DesktopStrings.of(context).enterHint,
+                                        textAlign: TextAlign.center,
+                                        style: DeskText.overline(color: AppColors.textSecondary),
+                                      ),
+                                    ],
+                                    if (warning) ...[
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        t.rankedWarning,
+                                        textAlign: TextAlign.center,
+                                        style: DeskText.text(size: DeskText.label, color: AppColors.textSecondary),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+
   List<Widget> _searching(OnlineStrings t) => [
         Text(
           t.rankedSearching,
@@ -245,9 +426,10 @@ class _RankBadge extends StatelessWidget {
     final tier = this.tier ?? RankTier.picciotto;
     final next = tier.next;
     final p = progress ?? 0;
+    final desk = DesktopCanvas.of(context);
     return Container(
       key: const Key('ranked.rank'),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      padding: desk ? const EdgeInsets.fromLTRB(28, 22, 28, 22) : const EdgeInsets.fromLTRB(16, 12, 16, 12),
       decoration: Saloon.scrim(radius: 12, border: Saloon.brassDeep),
       child: Row(
         children: [
@@ -261,22 +443,22 @@ class _RankBadge extends StatelessWidget {
               ),
               child: Text(
                 t.tierName(tier).toUpperCase(),
-                style: AppText.display(15, color: Saloon.blood).copyWith(letterSpacing: 2.2),
+                style: AppText.display(desk ? 26 : 15, color: Saloon.blood).copyWith(letterSpacing: 2.2),
               ),
             ),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: desk ? 28 : 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(t.rankedYourRank, style: AppText.overline.copyWith(color: Saloon.brass, fontSize: 9.5, letterSpacing: 2.2)),
-                const SizedBox(height: 7),
+                Text(t.rankedYourRank, style: AppText.overline.copyWith(color: Saloon.brass, fontSize: desk ? 14 : 9.5, letterSpacing: 2.2)),
+                SizedBox(height: desk ? 12 : 7),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(3),
                   child: SizedBox(
-                    height: 6,
+                    height: desk ? 10 : 6,
                     child: Stack(
                       children: [
                         Positioned.fill(child: Container(color: const Color(0xFF2A211B))),
@@ -294,7 +476,7 @@ class _RankBadge extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   next == null ? t.rankedTopTier : t.rankedTowards(t.tierName(next)),
-                  style: AppText.body.copyWith(fontSize: 12, height: 1.1, color: AppColors.textSecondary),
+                  style: AppText.body.copyWith(fontSize: desk ? 17 : 12, height: 1.1, color: AppColors.textSecondary),
                 ),
               ],
             ),
@@ -329,6 +511,8 @@ class _TableCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final desk = DesktopCanvas.of(context);
+    final k = desk ? 1.6 : 1.0;
     final ink = selected ? Saloon.paperInk : Saloon.paper.withValues(alpha: 0.82);
     final red = selected ? Saloon.enamel : Saloon.blood.withValues(alpha: 0.85);
     final suitColor = suit == '♥' ? red : ink;
@@ -337,9 +521,9 @@ class _TableCard extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(corner, style: AppText.display(13, color: ink).copyWith(letterSpacing: 0.5, height: 1)),
+              Text(corner, style: AppText.display(13 * k, color: ink).copyWith(letterSpacing: 0.5, height: 1)),
               const SizedBox(height: 3),
-              CustomPaint(size: const Size(11, 11), painter: _SuitPainter(heart: suit == '♥', color: suitColor)),
+              CustomPaint(size: Size(11 * k, 11 * k), painter: _SuitPainter(heart: suit == '♥', color: suitColor)),
             ],
           ),
         );
@@ -348,16 +532,15 @@ class _TableCard extends StatelessWidget {
       selected: selected,
       label: '$label · $sub${queued == null ? '' : ' · $queued'}',
       excludeSemantics: true,
-      child: GestureDetector(
+      child: DeskHover(
         onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedSlide(
-          offset: Offset(0, selected ? -0.03 : 0),
+        builder: (context, hovered) => AnimatedSlide(
+          offset: Offset(0, selected ? -0.03 : (hovered && desk ? -0.015 : 0)),
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeOutCubic,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            constraints: const BoxConstraints(minHeight: 150),
+            constraints: BoxConstraints(minHeight: 150 * k),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
               gradient: LinearGradient(
@@ -368,7 +551,7 @@ class _TableCard extends StatelessWidget {
                     : const [Color(0xFF241A13), Color(0xFF16100C)],
               ),
               border: Border.all(
-                color: selected ? Saloon.brass : Saloon.brassDeep.withValues(alpha: 0.7),
+                color: selected || (hovered && desk) ? Saloon.brass : Saloon.brassDeep.withValues(alpha: 0.7),
                 width: selected ? 2.4 : 1.2,
               ),
               boxShadow: [
@@ -394,19 +577,19 @@ class _TableCard extends StatelessWidget {
                 Positioned(left: 11, top: 10, child: index(false)),
                 Positioned(right: 11, bottom: 10, child: index(true)),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 34, 14, 34),
+                  padding: EdgeInsets.fromLTRB(14 * k, 34 * k, 14 * k, 34 * k),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       FittedBox(
                         fit: BoxFit.scaleDown,
-                        child: Text(label, style: AppText.display(24, color: ink).copyWith(letterSpacing: 0.6)),
+                        child: Text(label, style: AppText.display(24 * k, color: ink).copyWith(letterSpacing: 0.6)),
                       ),
                       const SizedBox(height: 6),
                       Text(
                         sub,
                         textAlign: TextAlign.center,
-                        style: AppText.body.copyWith(fontSize: 12, height: 1.2, fontStyle: FontStyle.italic, color: ink.withValues(alpha: 0.7)),
+                        style: AppText.body.copyWith(fontSize: desk ? 17 : 12, height: 1.2, fontStyle: FontStyle.italic, color: ink.withValues(alpha: 0.7)),
                       ),
                       if (queued != null) ...[
                         const SizedBox(height: 8),
@@ -421,7 +604,7 @@ class _TableCard extends StatelessWidget {
                             children: [
                               Container(width: 6, height: 6, decoration: const BoxDecoration(color: Saloon.online, shape: BoxShape.circle)),
                               const SizedBox(width: 5),
-                              Text(queued!, style: AppText.overline.copyWith(color: Saloon.paper, fontSize: 10, letterSpacing: 1)),
+                              Text(queued!, style: AppText.overline.copyWith(color: Saloon.paper, fontSize: desk ? 14 : 10, letterSpacing: 1)),
                             ],
                           ),
                         ),

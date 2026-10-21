@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../desktop/desktop_canvas.dart';
 import '../theme/app_theme.dart';
 
 /// La didascalia in fondo al vicolo, battuta a macchina una lettera alla
@@ -28,8 +29,8 @@ class HomeCaptionState extends State<HomeCaption> with SingleTickerProviderState
   static const _typing = 32.0;
   static const _erasing = 80.0;
 
-  late final AnimationController _clock =
-      AnimationController(vsync: this, duration: const Duration(seconds: 10))..addListener(_type);
+  late final AnimationController _clock = AnimationController(vsync: this, duration: const Duration(seconds: 10))
+    ..addListener(_type);
 
   /// Quante lettere della battuta si vedono adesso.
   final _typed = ValueNotifier<int>(0);
@@ -98,13 +99,17 @@ class HomeCaptionState extends State<HomeCaption> with SingleTickerProviderState
 
   @override
   Widget build(BuildContext context) {
-    const style = TextStyle(
+    // Sul PC la riga si legge da più lontano: più grande.
+    final style = TextStyle(
       fontFamily: 'Courier',
-      fontFamilyFallback: ['monospace'],
+      fontFamilyFallback: const ['monospace'],
       color: AppColors.textPrimary,
-      fontSize: 13.5,
+      fontSize: DesktopCanvas.of(context) ? 21 : 13.5,
       height: 1.3,
-      shadows: [Shadow(color: Colors.black, blurRadius: 6), Shadow(color: Colors.black, blurRadius: 2)],
+      shadows: const [
+        Shadow(color: Colors.black, blurRadius: 6),
+        Shadow(color: Colors.black, blurRadius: 2),
+      ],
     );
     final line = _line;
     return Align(

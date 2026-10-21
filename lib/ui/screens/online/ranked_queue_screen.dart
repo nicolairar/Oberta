@@ -8,6 +8,7 @@ import '../../../l10n/app_language.dart';
 import '../../../l10n/app_strings.dart';
 import '../../../online/online_services.dart';
 import '../../../rules/role.dart';
+import '../../desktop/desktop_canvas.dart';
 import '../../theme/app_theme.dart';
 import 'game/noir_ui.dart';
 import 'online_game_screen.dart';
@@ -210,6 +211,139 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
     }
   }
 
+  /// Sul PC: il tavolo grande a sinistra; a destra i posti, il conto, i
+  /// consigli che girano e l'uscita (anche con Esc).
+  Widget _deskLobby(
+    BuildContext context,
+    Room lobby, {
+    required int seated,
+    required double? left,
+    required String status,
+    required Widget card,
+    required int slot,
+    required bool still,
+  }) {
+    final t = AppStrings.of(context).online;
+    final size = lobby.maxPlayers;
+    return Scaffold(
+      backgroundColor: const Color(0xFF120C08),
+      body: NoirDesk(
+        child: DeskTheme(
+          child: DeskEscape(
+            onEscape: _cancel,
+            child: DecoratedBox(
+              decoration: const BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment(-0.3, -0.2),
+                  radius: 1.2,
+                  colors: [Color(0xFF3A2414), Color(0xFF1A100A), Color(0xFF0A0605)],
+                  stops: [0, 0.55, 1],
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  DeskTopBar(title: t.rankedLobbyTitle, onBack: _cancel),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(DeskSize.gutter, 0, DeskSize.gutter, DeskSize.gutter),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: LobbyTable(
+                              key: const Key('ranked.table'),
+                              seated: seated,
+                              size: size,
+                              me: _me,
+                              countdown: left,
+                            ),
+                          ),
+                          const SizedBox(width: 48),
+                          Container(
+                            width: 620,
+                            padding: const EdgeInsets.fromLTRB(44, 40, 44, 40),
+                            decoration: Saloon.scrim(radius: DeskSize.radius),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                if (lobby.testMatch) ...[
+                                  Text(t.rankedTestMatch.toUpperCase(), style: DeskText.overline(color: AppColors.gold)),
+                                  const SizedBox(height: 16),
+                                ],
+                                Semantics(
+                                  liveRegion: true,
+                                  child: Text(
+                                    t.rankedSeats(seated, size),
+                                    key: const Key('ranked.seats'),
+                                    style: DeskText.display(DeskText.heading, color: Saloon.paper),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 250),
+                                  layoutBuilder: (current, previous) => Stack(
+                                    alignment: Alignment.centerLeft,
+                                    children: [...previous, ?current],
+                                  ),
+                                  child: Text(
+                                    status,
+                                    key: ValueKey(left == null ? 'wait' : 'go${left.ceil()}'),
+                                    style: DeskText.text(
+                                      size: DeskText.lead,
+                                      color: left == null ? AppColors.textSecondary : Saloon.brass,
+                                      weight: left == null ? FontWeight.w400 : FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 40),
+                                Expanded(
+                                  child: Center(
+                                    child: AnimatedSwitcher(
+                                      duration: Duration(milliseconds: still ? 0 : 500),
+                                      transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: child),
+                                      child: KeyedSubtree(key: ValueKey('tip$slot'), child: card),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 32),
+                                NoirButton(
+                                  key: const Key('ranked.leaveLobby'),
+                                  kind: NoirButtonKind.brass,
+                                  icon: Icons.door_back_door_outlined,
+                                  label: t.rankedLeaveLobby,
+                                  onPressed: _cancel,
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  t.rankedNoPenalty,
+                                  textAlign: TextAlign.center,
+                                  style: DeskText.text(size: DeskText.label, color: AppColors.textSecondary),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  t.rankedStrangers,
+                                  key: const Key('ranked.strangers'),
+                                  textAlign: TextAlign.center,
+                                  style: DeskText.text(size: DeskText.label, color: AppColors.textSecondary)
+                                      .copyWith(fontStyle: FontStyle.italic),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   String _clock(Duration d) => '${d.inMinutes}:${(d.inSeconds % 60).toString().padLeft(2, '0')}';
 
   @override
@@ -253,6 +387,18 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
     final still = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
     // Il server conta chi siede (sé compresi): mai meno di sé stessi.
     final seated = max(1, max(lobby.seated, _status.roomId == lobby.id ? _status.seated : 0));
+    final status = left == null ? t.rankedMissing(max(0, size - seated)) : t.rankedStartsIn(left.ceil());
+    final Widget card = slot < tips.length
+        ? LobbyCard(kicker: t.rankedTipsTitle, title: '❦', body: tips[slot])
+        : Builder(
+            builder: (context) {
+              final role = strings.role(roles[slot - tips.length]);
+              return LobbyCard(kicker: role.motto, title: role.label.toUpperCase(), body: role.description);
+            },
+          );
+    if (DesktopCanvas.of(context)) {
+      return _deskLobby(context, lobby, seated: seated, left: left?.toDouble(), status: status, card: card, slot: slot, still: still);
+    }
     return Scaffold(
       backgroundColor: const Color(0xFF120C08),
       body: DecoratedBox(
@@ -312,7 +458,7 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 250),
                 child: Text(
-                  left == null ? t.rankedMissing(max(0, size - seated)) : t.rankedStartsIn(left.ceil()),
+                  status,
                   key: ValueKey(left == null ? 'wait' : 'go${left.ceil()}'),
                   textAlign: TextAlign.center,
                   style: AppText.body.copyWith(
@@ -341,14 +487,7 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
                     child: Align(
                       key: ValueKey('tip$slot'),
                       alignment: Alignment.center,
-                      child: slot < tips.length
-                          ? LobbyCard(kicker: t.rankedTipsTitle, title: '❦', body: tips[slot])
-                          : Builder(
-                              builder: (context) {
-                                final role = strings.role(roles[slot - tips.length]);
-                                return LobbyCard(kicker: role.motto, title: role.label.toUpperCase(), body: role.description);
-                              },
-                            ),
+                      child: card,
                     ),
                   ),
                 ),

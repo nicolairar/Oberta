@@ -7,6 +7,7 @@ import '../../../l10n/app_language.dart';
 import '../../../l10n/app_strings.dart';
 import '../../../online/online_services.dart';
 import '../../../rules/role.dart';
+import '../../desktop/desktop_canvas.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/role_reveal_card.dart';
 import 'game/noir_ui.dart';
@@ -110,7 +111,268 @@ class _MatchResultsScreenState extends State<MatchResultsScreen> with SingleTick
   double _stage(double from, double to) => Curves.easeOutCubic.transform(((_show.value - from) / (to - from)).clamp(0.0, 1.0));
 
   @override
-  Widget build(BuildContext context) => WideScale(child: Builder(builder: _build));
+  Widget build(BuildContext context) =>
+      DesktopCanvas.of(context) ? _desk(context) : WideScale(child: Builder(builder: _build));
+
+  /// Chi ha vinto, a parole (null se non si dice): il risultato dice solo
+  /// se hai vinto tu.
+  String? _winners(AppStrings strings) {
+    final en = strings.language == AppLanguage.en;
+    final r = widget.result;
+    final role = _role;
+    String faction(Team team) => switch (team) {
+          Team.mafia => en ? 'THE FAMILY WINS' : 'VINCE LA FAMIGLIA',
+          Team.citizens => en ? 'THE TOWN WINS' : 'VINCE LA CITTÀ',
+          Team.neutral => en ? 'A LONE WOLF WINS' : 'VINCE UN CANE SCIOLTO',
+        };
+    if (r.abandoned || role == null) return null;
+    if (!r.won) return en ? 'YOU LOST' : 'HAI PERSO';
+    if (role.team != Team.neutral) return faction(role.team);
+    return switch (role) {
+      Role.cacciatore => en ? 'THE BOUNTY IS PAID' : 'LA TAGLIA È PAGATA',
+      Role.strozzino => en ? 'THE LOAN SHARK CASHES IN' : 'LO STROZZINO INCASSA',
+      Role.fesso => en ? 'THE FOOL HAD THE LAST LAUGH' : 'IL FESSO RIDE PER ULTIMO',
+      Role.sicario => en ? 'THE HITMAN STANDS ALONE' : 'IL SICARIO RESTA SOLO',
+      Role.piromane => en ? 'THE CITY BURNS' : 'LA CITTÀ BRUCIA',
+      _ => faction(Team.neutral),
+    };
+  }
+
+  /// Da tastiera: prima della fine dello spettacolo il primo tasto lo fa
+  /// vedere tutto, poi si esce.
+  void _key(bool again) {
+    if (_show.value < 0.88) {
+      _show.value = 1;
+      return;
+    }
+    Navigator.of(context).pop(again);
+  }
+
+  /// Su PC: a sinistra il verdetto e la carta grande, a destra quello che
+  /// la partita ha fruttato e i pulsanti. INVIO gioca ancora (o torna),
+  /// Esc torna indietro.
+  Widget _desk(BuildContext context) {
+    final strings = AppStrings.of(context);
+    final t = strings.online;
+    final en = strings.language == AppLanguage.en;
+    final r = widget.result;
+    final role = _role;
+    final won = r.won && !r.abandoned;
+    final accent = won ? Saloon.brass : Saloon.blood;
+    final winners = _winners(strings);
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.escape): () => _key(false),
+        const SingleActivator(LogicalKeyboardKey.enter): () => _key(widget.offerReplay),
+        const SingleActivator(LogicalKeyboardKey.numpadEnter): () => _key(widget.offerReplay),
+      },
+      child: Focus(
+        autofocus: true,
+        child: DeskTheme(
+          child: NoirDesk(
+            child: Scaffold(
+              key: const Key('results.screen'),
+              backgroundColor: const Color(0xFF080504),
+              body: AnimatedBuilder(
+                animation: _show,
+                builder: (context, _) {
+                  final title = _stage(0, 0.18);
+                  final card = _stage(0.12, 0.32);
+                  final xp = _stage(0.3, 0.6);
+                  final coins = _stage(0.58, 0.85);
+                  final rank = _stage(0.8, 0.95);
+                  final buttons = _stage(0.88, 1);
+                  return DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: RadialGradient(
+                        center: const Alignment(-0.4, -0.25),
+                        radius: 1.1,
+                        colors: [
+                          Color.lerp(
+                              const Color(0xFF1A100A), won ? const Color(0xFF4A3014) : const Color(0xFF3A0E10), title)!,
+                          const Color(0xFF080504),
+                        ],
+                      ),
+                    ),
+                    child: Center(
+                      child: SizedBox(
+                        width: 1500,
+                        height: 860,
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 620,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Opacity(
+                                    opacity: title,
+                                    child: Column(
+                                      children: [
+                                        Text(t.resultsTitle.toUpperCase(), style: DeskText.overline(color: Saloon.brass)),
+                                        if (r.testMatch)
+                                          Padding(
+                                            padding: const EdgeInsets.only(top: 6),
+                                            child: Text(t.rankedTestMatch, style: DeskText.overline(color: AppColors.gold)),
+                                          ),
+                                        const SizedBox(height: 10),
+                                        Transform.scale(
+                                          scale: 1.4 - 0.4 * title,
+                                          child: Text(
+                                            (r.abandoned ? t.resultsLeft : (won ? t.resultsWon : t.resultsLost))
+                                                .toUpperCase(),
+                                            key: const Key('results.title'),
+                                            textAlign: TextAlign.center,
+                                            style: AppText.display(r.abandoned ? 52 : 84, color: accent).copyWith(
+                                              letterSpacing: 6,
+                                              height: 1.05,
+                                              shadows: [Shadow(color: accent.withValues(alpha: 0.6), blurRadius: 36)],
+                                            ),
+                                          ),
+                                        ),
+                                        if (winners != null) ...[
+                                          const SizedBox(height: 10),
+                                          Text(winners,
+                                              style: DeskText.overline(color: Saloon.paper)
+                                                  .copyWith(fontSize: 18, letterSpacing: 4)),
+                                        ],
+                                        if (r.afk && !r.abandoned)
+                                          Padding(
+                                            padding: const EdgeInsets.only(top: 12),
+                                            child: Text(
+                                              t.resultsAfk,
+                                              key: const Key('results.afk'),
+                                              textAlign: TextAlign.center,
+                                              style: DeskText.overline(color: Saloon.blood),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (role != null) ...[
+                                    const SizedBox(height: 48),
+                                    Transform.translate(
+                                      offset: Offset(0, 60 * (1 - card)),
+                                      child: Opacity(
+                                        opacity: card,
+                                        child: RoleRevealCard(role: role, faceUp: card > 0.4, height: 400),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            Container(
+                              width: 1.2,
+                              margin: const EdgeInsets.symmetric(horizontal: 72, vertical: 70),
+                              color: Saloon.brassDeep.withValues(alpha: 0.6 * title),
+                            ),
+                            Expanded(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Opacity(opacity: xp > 0 ? 1 : 0, child: _xpBlock(context, xp, k: 1.6)),
+                                  if (r.coinsGained > 0)
+                                    Opacity(opacity: coins > 0 ? 1 : 0, child: _purse(context, coins, k: 1.6)),
+                                  if (r.ratingDelta case final delta? when r.tier != null)
+                                    Opacity(
+                                      opacity: rank,
+                                      child: Container(
+                                        margin: const EdgeInsets.only(top: 36),
+                                        padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 28),
+                                        decoration: Saloon.scrim(radius: DeskSize.radius),
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              delta >= 0 ? Icons.trending_up : Icons.trending_down,
+                                              size: 40,
+                                              color: delta >= 0 ? const Color(0xFF8FD18F) : Saloon.blood,
+                                            ),
+                                            const SizedBox(width: 22),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    t.tierName(r.tier!).toUpperCase(),
+                                                    key: const Key('results.rank'),
+                                                    style: AppText.display(DeskText.title + 4, color: Saloon.brass)
+                                                        .copyWith(letterSpacing: 4),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Text(
+                                                    delta >= 0 ? t.resultsRatingUp : t.resultsRatingDown,
+                                                    style: DeskText.text(
+                                                      size: DeskText.lead,
+                                                      color: delta >= 0 ? const Color(0xFF8FD18F) : Saloon.blood,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  const SizedBox(height: 56),
+                                  Opacity(
+                                    opacity: buttons,
+                                    child: IgnorePointer(
+                                      ignoring: buttons < 0.5,
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: NoirButton(
+                                              key: const Key('results.continue'),
+                                              kind: widget.offerReplay ? NoirButtonKind.brass : NoirButtonKind.enamel,
+                                              label: widget.offerReplay
+                                                  ? (en ? 'BACK' : 'INDIETRO')
+                                                  : (en ? 'BACK TO THE ROOM' : 'TORNA ALLA STANZA'),
+                                              onPressed: () => Navigator.of(context).pop(false),
+                                            ),
+                                          ),
+                                          if (widget.offerReplay) ...[
+                                            const SizedBox(width: 20),
+                                            Expanded(
+                                              child: NoirButton(
+                                                key: const Key('results.again'),
+                                                label: en ? 'PLAY AGAIN' : 'GIOCA ANCORA',
+                                                onPressed: () => Navigator.of(context).pop(true),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 18),
+                                  Opacity(
+                                    opacity: buttons,
+                                    child: Text(
+                                      widget.offerReplay
+                                          ? (en ? 'ENTER  play again   ·   ESC  back' : 'INVIO  gioca ancora   ·   ESC  indietro')
+                                          : (en ? 'ENTER or ESC  back to the room' : 'INVIO o ESC  torna alla stanza'),
+                                      textAlign: TextAlign.center,
+                                      style: DeskText.text(size: DeskText.label, color: AppColors.textSecondary),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _build(BuildContext context) {
     final strings = AppStrings.of(context);
@@ -279,7 +541,7 @@ class _MatchResultsScreenState extends State<MatchResultsScreen> with SingleTick
 
   /// La barra dell'esperienza: si riempie col contatore; se si sale di
   /// livello arriva in fondo, scoppia e riparte dal livello nuovo.
-  Widget _xpBlock(BuildContext context, double p) {
+  Widget _xpBlock(BuildContext context, double p, {double k = 1}) {
     final t = AppStrings.of(context).online;
     final r = widget.result;
     final gained = (r.xpGained * p).round();
@@ -310,26 +572,30 @@ class _MatchResultsScreenState extends State<MatchResultsScreen> with SingleTick
           children: [
             Text(
               '${AppStrings.of(context).language == AppLanguage.en ? 'LEVEL' : 'LIVELLO'} $level',
-              style: AppText.overline.copyWith(color: Saloon.paper, letterSpacing: 2),
+              style: AppText.overline.copyWith(
+                color: Saloon.paper,
+                letterSpacing: 2 * k,
+                fontSize: (AppText.overline.fontSize ?? 11) * k,
+              ),
             ),
             const Spacer(),
-            Text(t.resultsXp(gained), key: const Key('results.xp'), style: AppText.display(18, color: Saloon.brass)),
+            Text(t.resultsXp(gained), key: const Key('results.xp'), style: AppText.display(18 * k, color: Saloon.brass)),
           ],
         ),
-        const SizedBox(height: 6),
+        SizedBox(height: 6 * k),
         SizedBox(
-          height: 18,
+          height: 18 * k,
           child: CustomPaint(size: Size.infinite, painter: _BarPainter(fill.clamp(0.0, 1.0), burst)),
         ),
         if (r.leveledUp && burst > 0)
           Transform.scale(
             scale: 0.6 + 0.4 * Curves.elasticOut.transform(burst),
             child: Padding(
-              padding: const EdgeInsets.only(top: 8),
+              padding: EdgeInsets.only(top: 8 * k),
               child: Text(
                 t.resultsLevelUp(r.levelAfter).toUpperCase(),
                 key: const Key('results.levelUp'),
-                style: AppText.display(26, color: AppColors.gold).copyWith(
+                style: AppText.display(26 * k, color: AppColors.gold).copyWith(
                   shadows: [Shadow(color: AppColors.gold.withValues(alpha: 0.8), blurRadius: 18 * (1 - burst) + 6)],
                 ),
               ),
@@ -340,17 +606,18 @@ class _MatchResultsScreenState extends State<MatchResultsScreen> with SingleTick
   }
 
   /// Le monete cadono nella borsa e il contatore sale.
-  Widget _purse(BuildContext context, double p) {
+  Widget _purse(BuildContext context, double p, {double k = 1}) {
     final t = AppStrings.of(context).online;
     final coins = (widget.result.coinsGained * p).round();
     return Padding(
-      padding: const EdgeInsets.only(top: 16),
+      padding: EdgeInsets.only(top: 16 * k),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          SizedBox(width: 74, height: 84, child: CustomPaint(painter: _PursePainter(p))),
-          const SizedBox(width: 14),
-          Text(t.resultsCoins(coins), key: const Key('results.coins'), style: AppText.display(24, color: AppColors.gold)),
+          SizedBox(width: 74 * k, height: 84 * k, child: CustomPaint(painter: _PursePainter(p))),
+          SizedBox(width: 14 * k),
+          Text(t.resultsCoins(coins),
+              key: const Key('results.coins'), style: AppText.display(24 * k, color: AppColors.gold)),
         ],
       ),
     );

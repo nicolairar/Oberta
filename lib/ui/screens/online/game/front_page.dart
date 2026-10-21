@@ -31,8 +31,12 @@ class FrontPage extends StatefulWidget {
   /// ritratto accanto al racconto.
   final bool compact;
 
+  /// Quanto ingrandire caratteri e ritratti (sul desktop la pagina è grande).
+  final double scale;
+
   const FrontPage({
     this.compact = false,
+    this.scale = 1,
     super.key,
     required this.masthead,
     required this.dateLine,
@@ -76,7 +80,9 @@ class _FrontPageState extends State<FrontPage> with SingleTickerProviderStateMix
   }
 
   static const _ink = Saloon.paperInk;
-  static const _body = TextStyle(fontFamily: 'Georgia', color: _ink, fontSize: 13.5, height: 1.32);
+  double get _k => widget.scale;
+
+  TextStyle get _body => TextStyle(fontFamily: 'Georgia', color: _ink, fontSize: 13.5 * _k, height: 1.32);
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
@@ -110,7 +116,7 @@ class _FrontPageState extends State<FrontPage> with SingleTickerProviderStateMix
         child: CustomPaint(
           foregroundPainter: const _PaperPainter(),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+            padding: EdgeInsets.fromLTRB(22 * _k - 8, 12 * _k, 22 * _k - 8, 14 * _k),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -121,7 +127,7 @@ class _FrontPageState extends State<FrontPage> with SingleTickerProviderStateMix
                     style: TextStyle(
                       fontFamily: 'Georgia',
                       color: _ink,
-                      fontSize: widget.compact ? 22 : 30,
+                      fontSize: (widget.compact ? 22 : 30) * _k,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1.2,
                       height: 1.05,
@@ -137,7 +143,7 @@ class _FrontPageState extends State<FrontPage> with SingleTickerProviderStateMix
                     textAlign: TextAlign.center,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontFamily: 'Georgia', color: _ink, fontSize: 9.5, letterSpacing: 1.6),
+                    style: TextStyle(fontFamily: 'Georgia', color: _ink, fontSize: 9.5 * _k, letterSpacing: 1.6),
                   ),
                 ),
                 const _Rule(),
@@ -148,7 +154,7 @@ class _FrontPageState extends State<FrontPage> with SingleTickerProviderStateMix
                   style: TextStyle(
                     fontFamily: 'Georgia',
                     color: _ink,
-                    fontSize: widget.compact ? 19 : 25,
+                    fontSize: (widget.compact ? 19 : 25) * _k,
                     height: 1.02,
                     fontWeight: FontWeight.w700,
                   ),
@@ -159,12 +165,12 @@ class _FrontPageState extends State<FrontPage> with SingleTickerProviderStateMix
                     child: Text(
                       widget.kicker!,
                       textAlign: TextAlign.center,
-                      style: _body.copyWith(fontStyle: FontStyle.italic, fontSize: 12.5),
+                      style: _body.copyWith(fontStyle: FontStyle.italic, fontSize: 12.5 * _k),
                     ),
                   ),
                 const SizedBox(height: 6),
                 const _Rule(),
-                const SizedBox(height: 8),
+                SizedBox(height: 8 * _k),
                 Expanded(child: SingleChildScrollView(child: _story())),
               ],
             ),
@@ -180,7 +186,7 @@ class _FrontPageState extends State<FrontPage> with SingleTickerProviderStateMix
           children: [
             for (final line in part)
               Padding(
-                padding: const EdgeInsets.only(bottom: 7),
+                padding: EdgeInsets.only(bottom: 7 * _k),
                 child: Text(
                   line.text,
                   textAlign: TextAlign.left,
@@ -230,13 +236,13 @@ class _FrontPageState extends State<FrontPage> with SingleTickerProviderStateMix
                     runSpacing: 6,
                     children: [
                       for (final name in widget.portraits)
-                        _Halftone(name: name, fallen: widget.fallen, width: widget.portraits.length > 1 ? 74 : 112),
+                        _Halftone(name: name, fallen: widget.fallen, width: (widget.portraits.length > 1 ? 74 : 112) * _k),
                     ],
                   ),
                 ),
                 if (widget.stamp != null || widget.tally.isNotEmpty)
                   SizedBox(
-                    width: 138,
+                    width: 138 * _k,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -259,7 +265,7 @@ class _FrontPageState extends State<FrontPage> with SingleTickerProviderStateMix
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(child: column(lines.take(half))),
-              Container(width: 0.8, margin: const EdgeInsets.symmetric(horizontal: 8), color: _ink.withValues(alpha: 0.5)),
+              Container(width: 0.8, margin: EdgeInsets.symmetric(horizontal: 8 * _k), color: _ink.withValues(alpha: 0.5)),
               Expanded(child: column(lines.skip(half))),
             ],
           ),

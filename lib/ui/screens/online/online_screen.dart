@@ -7,6 +7,9 @@ import '../../../l10n/app_strings.dart';
 import '../../../l10n/online_strings.dart';
 import '../../../online/handle_rules.dart';
 import '../../../online/online_services.dart';
+import '../../../l10n/desktop_online_strings.dart';
+import '../../../l10n/desktop_strings.dart';
+import '../../desktop/desktop_canvas.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/noir_avatar.dart';
 import '../../widgets/scene_scaffold.dart';
@@ -14,6 +17,7 @@ import 'friends_screen.dart';
 import 'join_room_screen.dart';
 import 'online_room_screen.dart';
 import '../avatar/barber_mirror_screen.dart';
+import 'online_desktop.dart';
 import 'online_widgets.dart';
 import 'sign_in_sheet.dart';
 
@@ -100,6 +104,7 @@ class _OnlineScreenState extends State<OnlineScreen> {
         ),
       _ => (t.hubTitle, _Hub(services: online, profile: _profile!)),
     };
+    if (DesktopCanvas.of(context)) return DeskOnlineScene(title: title, child: body);
     return SceneScaffold(
       resizeForKeyboard: false,
       appBar: AppBar(title: Text(title)),
@@ -114,7 +119,15 @@ class _Unavailable extends StatelessWidget {
   const _Unavailable({required this.text});
 
   @override
-  Widget build(BuildContext context) => OnlineBody(
+  Widget build(BuildContext context) => DesktopCanvas.of(context)
+      ? DeskNotice(
+          children: [
+            const Icon(Icons.wifi_off, color: AppColors.gold, size: 64),
+            const SizedBox(height: 24),
+            Text(text, textAlign: TextAlign.center, style: DeskText.text(size: DeskText.lead)),
+          ],
+        )
+      : OnlineBody(
         children: [
           const SizedBox(height: 40),
           OnlinePanel(
@@ -137,7 +150,22 @@ class _Retry extends StatelessWidget {
   const _Retry({required this.error, required this.onRetry});
 
   @override
-  Widget build(BuildContext context) => OnlineBody(
+  Widget build(BuildContext context) => DesktopCanvas.of(context)
+      ? DeskNotice(
+          children: [
+            Text(failureText(context, error), textAlign: TextAlign.center, style: DeskText.text(size: DeskText.lead)),
+            const SizedBox(height: 32),
+            Center(
+              child: OutlinedButton.icon(
+                autofocus: true,
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh),
+                label: Text(MaterialLocalizations.of(context).refreshIndicatorSemanticLabel.toUpperCase()),
+              ),
+            ),
+          ],
+        )
+      : OnlineBody(
         children: [
           const SizedBox(height: 40),
           OnlinePanel(
@@ -154,13 +182,68 @@ class _Retry extends StatelessWidget {
 }
 
 /// L'ingresso: Apple, Google, e nient'altro (più l'account di prova, nascosto).
-class _Login extends StatelessWidget {
+class _Login extends StatefulWidget {
   final OnlineAuth auth;
 
   const _Login({required this.auth});
 
   @override
-  Widget build(BuildContext context) => OnlineBody(
+  State<_Login> createState() => _LoginState();
+}
+
+class _LoginState extends State<_Login> {
+  /// Sul PC: INVIO entra col primo modo d'accesso.
+  final _enter = ValueNotifier(0);
+
+  OnlineAuth get auth => widget.auth;
+
+  @override
+  void dispose() {
+    _enter.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!DesktopCanvas.of(context)) return _phone(context);
+    final t = AppStrings.of(context).online;
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.enter): () => _enter.value++,
+        const SingleActivator(LogicalKeyboardKey.numpadEnter): () => _enter.value++,
+      },
+      child: Center(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 620,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const NoirAvatar.drawn(seed: '?', size: 160),
+                  const SizedBox(height: 40),
+                  Text(t.posterTitle, style: DeskText.display(DeskText.hero).copyWith(height: 1.05)),
+                  const SizedBox(height: 24),
+                  Text(t.posterBlurb, style: DeskText.text(size: DeskText.lead, color: AppColors.textSecondary).copyWith(height: 1.4)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 120),
+            Container(
+              width: 640,
+              padding: const EdgeInsets.fromLTRB(48, 44, 48, 40),
+              decoration: DeskPanel.decoration(lit: true),
+              child: SignInPanel(auth: auth, sheet: false, enterKey: _enter),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _phone(BuildContext context) => OnlineBody(
         children: [
           const SizedBox(height: 24),
           const Center(child: NoirAvatar.drawn(seed: '?', size: 96)),
@@ -313,6 +396,7 @@ class _ProfileSetupState extends State<ProfileSetup> {
   @override
   Widget build(BuildContext context) {
     final t = AppStrings.of(context).online;
+    if (DesktopCanvas.of(context)) return _desk(context, t);
     return OnlineBody(
       children: [
         const SizedBox(height: 12),
@@ -329,8 +413,76 @@ class _ProfileSetupState extends State<ProfileSetup> {
             children: [
               Text(t.setupBody, textAlign: TextAlign.center, style: AppText.body),
               const SizedBox(height: 16),
-              TextField(
+              _field(t),
+              const SizedBox(height: 16),
+              ElevatedButton(onPressed: _busy ? null : _save, child: Text(t.save)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Sul PC: la faccia grande a sinistra, il nome da scegliere a destra.
+  Widget _desk(BuildContext context, OnlineStrings t) => Center(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListenableBuilder(
+              listenable: _handle,
+              builder: (context, _) => Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  NoirAvatar.drawn(seed: _handle.text.isEmpty ? widget.profile.id : _handle.text, size: 260),
+                  const SizedBox(height: 28),
+                  SizedBox(
+                    width: 360,
+                    child: Text(
+                      _handle.text.isEmpty ? '@…' : '@${Profile.normalizeHandle(_handle.text)}',
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: DeskText.display(DeskText.title),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 100),
+            Container(
+              width: 720,
+              padding: const EdgeInsets.fromLTRB(56, 48, 56, 44),
+              decoration: DeskPanel.decoration(lit: true),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(t.setupBody, style: DeskText.text(size: DeskText.lead).copyWith(height: 1.4)),
+                  const SizedBox(height: 36),
+                  _field(t, desk: true),
+                  const SizedBox(height: 32),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          DesktopStrings.of(context).enterHint,
+                          style: DeskText.overline(color: AppColors.textSecondary),
+                        ),
+                      ),
+                      ElevatedButton(onPressed: _busy ? null : _save, child: Text(t.save)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+
+  Widget _field(OnlineStrings t, {bool desk = false}) => TextField(
                 key: const Key('online.handle'),
+                autofocus: desk,
+                style: desk ? DeskText.text(size: DeskText.title) : null,
                 controller: _handle,
                 autocorrect: false,
                 enableSuggestions: false,
@@ -351,7 +503,10 @@ class _ProfileSetupState extends State<ProfileSetup> {
                   errorText: _handleError,
                   helperText: _handleHelper(t).$1,
                   helperMaxLines: 2,
-                  helperStyle: TextStyle(color: _handleHelper(t).$2, fontSize: 12),
+                  helperStyle: TextStyle(color: _handleHelper(t).$2, fontSize: desk ? 16 : 12),
+                  labelStyle: desk ? const TextStyle(fontSize: 20) : null,
+                  errorStyle: desk ? const TextStyle(fontSize: 16) : null,
+                  contentPadding: desk ? const EdgeInsets.symmetric(horizontal: 20, vertical: 22) : null,
                   suffixIcon: switch (_check) {
                     _HandleCheck.checking => const Padding(
                         padding: EdgeInsets.all(14),
@@ -366,15 +521,7 @@ class _ProfileSetupState extends State<ProfileSetup> {
                   },
                 ),
                 onSubmitted: (_) => _save(),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(onPressed: _busy ? null : _save, child: Text(t.save)),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
+              );
 }
 
 /// La sala: chi sei, e le tre porte.
@@ -442,6 +589,7 @@ class _HubState extends State<_Hub> {
   Widget build(BuildContext context) {
     final t = AppStrings.of(context).online;
     final profile = widget.profile;
+    if (DesktopCanvas.of(context)) return _desk(context, t, profile);
     return OnlineBody(
       children: [
         const SizedBox(height: 12),
@@ -477,5 +625,109 @@ class _HubState extends State<_Hub> {
         ),
       ],
     );
+  }
+
+  /// Sul PC: chi sei a sinistra, le tre porte grandi a destra.
+  Widget _desk(BuildContext context, OnlineStrings t, Profile profile) {
+    final d = DesktopOnlineStrings.of(context);
+    final current = _current;
+    final hub = Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          width: 460,
+          child: DeskPanel(
+            title: d.profile,
+            padding: const EdgeInsets.all(40),
+            child: Column(
+              children: [
+                const Spacer(),
+                NoirAvatar.drawn(seed: profile.avatarSeed, size: 200),
+                const SizedBox(height: 32),
+                Text(
+                  profile.name,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: DeskText.display(DeskText.heading, color: AppColors.textPrimary),
+                ),
+                const SizedBox(height: 16),
+                DeskBadge(t.levelShort(profile.level)),
+                const SizedBox(height: 20),
+                Text(
+                  t.signedInAs(profile.name),
+                  textAlign: TextAlign.center,
+                  style: DeskText.text(color: AppColors.textSecondary),
+                ),
+                const Spacer(flex: 2),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 40),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(left: 4, bottom: 20),
+                child: Text(d.hubDoors.toUpperCase(), style: DeskText.overline(color: AppColors.gold)),
+              ),
+              if (current != null) ...[
+                SizedBox(
+                  height: DeskSize.button + 12,
+                  child: ElevatedButton.icon(
+                    key: const Key('online.rejoin'),
+                    onPressed: () => _rejoin(current),
+                    icon: const Icon(Icons.login),
+                    label: Text('${t.rejoin} · ${current.code}'),
+                  ),
+                ),
+                const SizedBox(height: 28),
+              ],
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: DeskDoor(
+                        key: const Key('online.desk.create'),
+                        primary: true,
+                        icon: Icons.meeting_room,
+                        title: t.hubCreate,
+                        body: d.hubCreateBody,
+                        onTap: _busy ? null : _create,
+                      ),
+                    ),
+                    const SizedBox(width: 32),
+                    Expanded(
+                      child: DeskDoor(
+                        key: const Key('online.desk.join'),
+                        icon: Icons.dialpad,
+                        title: t.hubJoin,
+                        body: d.hubJoinBody,
+                        onTap: () => _open(JoinRoomScreen(services: widget.services, me: profile)),
+                      ),
+                    ),
+                    const SizedBox(width: 32),
+                    Expanded(
+                      child: DeskDoor(
+                        key: const Key('online.desk.friends'),
+                        icon: Icons.people_alt,
+                        title: t.friends,
+                        body: d.hubFriendsBody,
+                        onTap: () => _open(FriendsScreen(services: widget.services)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+    // Le porte non si stirano fino in fondo: un blocco al centro della scena.
+    return Center(child: SizedBox(height: current == null ? 700 : 800, child: hub));
   }
 }
