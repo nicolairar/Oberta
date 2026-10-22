@@ -680,3 +680,11 @@ html, body { overflow-x: clip; }
 @media (max-width: 360px) {
   .site-header nav a[href="#modalita"] { display: none; }
 }
+
+/* I badge degli store subito sotto il titolo: interi, solo ridimensionati. */
+.hero__stores { list-style: none; display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: flex-end; padding: 0; margin: 18px 0 22px; }
+.hero__stores li { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.hero__stores img { height: 44px; width: auto; max-width: none; display: block; }
+.hero__stores-steam { padding: 7px 0; }
+.hero__stores-steam img { height: 30px; }
+.hero__stores span { font-family: var(--serif); font-style: italic; font-size: 14px; color: var(--paper); opacity: .85; }
