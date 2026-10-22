@@ -68,3 +68,12 @@ incoming/
 /tool/voice/models/
 .wrangler/
 .taste-skill/
+
+# Steamworks SDK: its license does not allow publishing it in a public repo.
+# Download it from partner.steamgames.com (docs/steam.md, tool/steam/install_sdk.sh).
+/third_party/steamworks/
+steam_api64.dll
+steam_api64.lib
+libsteam_api.so
+libsteam_api.dylib
+steam_appid.txt

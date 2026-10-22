@@ -51,6 +51,7 @@ dependencies:
   url_launcher: 6.3.3
   package_info_plus: 10.2.2
   window_manager: 0.5.2
+  ffi: 2.2.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

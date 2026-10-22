@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
+import '../steam/steam.dart';
 
 /// Che cosa risponde il server su questo dispositivo (vedi la migrazione
 /// 20261029090000_one_active_device.sql).
@@ -67,6 +68,8 @@ String deviceLabelHere() {
   if (kIsWeb) return 'Web';
   if (Platform.isIOS) return 'iPhone';
   if (Platform.isAndroid) return 'Android';
+  // Agganciato al client Steam (build STEAM=true): si gioca da Steam.
+  if (SteamClient.instance.running) return 'Steam';
   if (Platform.isMacOS) return 'Mac';
   // Fuori dal Mac, il desktop si scarica da Steam.
   if (Platform.isWindows || Platform.isLinux) return 'Steam/PC';

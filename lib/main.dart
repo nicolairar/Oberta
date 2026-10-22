@@ -14,6 +14,7 @@ import 'settings/app_settings.dart';
 import 'sound/device_stage.dart';
 import 'sound/narrator_voice.dart';
 import 'sound/sound_stage.dart';
+import 'steam/steam.dart';
 import 'ui/desktop/desktop_frame.dart';
 import 'ui/desktop/desktop_platform.dart';
 import 'ui/screens/home_screen.dart';
@@ -28,6 +29,8 @@ Future<void> main() async {
   NarratorVoice.instance = await NarratorVoice.load();
   AppSettings.instance = await AppSettings.open();
   if (DesktopPlatform.isDesktop) await DesktopWindow.open(AppSettings.instance);
+  // Steamworks solo nelle build --dart-define=STEAM=true (docs/steam.md).
+  await SteamClient.start();
   // L'online c'è solo se l'app è stata compilata con config/supabase.json.
   final sessionId = newDeviceSessionId();
   OnlineServices.instance = await openSupabaseOnline(OnlineConfig.compiled, deviceSessionId: sessionId);

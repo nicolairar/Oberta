@@ -14,6 +14,7 @@ import '../rules/intent.dart';
 import 'online_config.dart';
 import 'online_services.dart';
 import 'steam_login.dart';
+import '../steam/steam.dart';
 
 /// L'online vero, su Supabase. Lo apre `main` quando l'app è stata compilata
 /// con la configurazione; i test usano invece `FakeOnline`.
@@ -215,6 +216,10 @@ class SupabaseAuth extends OnlineAuth {
   /// i prossimi avvii entrano da soli).
   @override
   Future<void> signInWithSteam() => _guard(() async {
+        // Fase 2: dentro Steam basta il biglietto, niente browser. Finché il
+        // server non ha la chiave da editore risponde 501 not_configured e
+        // si passa a OpenID come sempre.
+        if (await _steamTicketSignIn()) return;
         final state = SteamLoopback.newState();
         final functionUrl = Uri.parse('${_config.supabaseUrl.replaceAll(RegExp(r'/$'), '')}/functions/v1/steam-auth');
         final code = await SteamLoopback.waitForCode(functionUrl: functionUrl, state: state);
@@ -229,6 +234,31 @@ class SupabaseAuth extends OnlineAuth {
         }
         await _client.auth.verifyOTP(type: OtpType.magiclink, tokenHash: tokenHash);
       });
+
+  /// Il login col biglietto Steam (`GetAuthTicketForWebApi`), verificato
+  /// da `steam-auth` con `AuthenticateUserTicket` e il possesso del gioco.
+  /// Falso (si prova OpenID) se Steam non c'è o il server non è pronto.
+  Future<bool> _steamTicketSignIn() async {
+    final steam = SteamClient.instance;
+    if (!steam.running) return false;
+    final ticket = await steam.webApiTicket(SteamClient.webApiIdentity);
+    if (ticket == null) return false;
+    final FunctionResponse response;
+    try {
+      response = await _client.functions.invoke('steam-auth', body: {'action': 'ticket', 'ticket': ticketHex(ticket)});
+    } on FunctionException catch (error) {
+      if (error.status == 501) return false; // not_configured: fallback a OpenID.
+      if (error.status == 403) {
+        throw OnlineException(OnlineFailure.unknown, null, 'steam-auth · ticket · ${error.details}');
+      }
+      debugPrint('steam-auth ticket · ${error.status} · ${error.details}');
+      return false;
+    }
+    final tokenHash = (response.data as Map?)?['token_hash'] as String?;
+    if (tokenHash == null) return false;
+    await _client.auth.verifyOTP(type: OtpType.magiclink, tokenHash: tokenHash);
+    return true;
+  }
 
   @override
   Future<void> signInWithApple() => _guard(() async {

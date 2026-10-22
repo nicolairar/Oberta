@@ -121,6 +121,9 @@ class _DesktopSettingsState extends State<_DesktopSettings> {
           bindings: {
             const SingleActivator(LogicalKeyboardKey.arrowUp): () => _step(-1),
             const SingleActivator(LogicalKeyboardKey.arrowDown): () => _step(1),
+            // Il menu nascosto di prova Steam (solo build STEAM=true).
+            if (SteamClient.enabled)
+              for (final shortcut in SteamDebugSheet.shortcuts) shortcut: () => SteamDebugSheet.open(context),
           },
           child: DeskEscape(
             onEscape: () => Navigator.of(context).maybePop(),

@@ -18,6 +18,7 @@
 // service role key is the one Supabase gives every function; it never
 // leaves the server.
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
+import { handleTicket } from './ticket.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -150,39 +151,61 @@ async function finish(params: URLSearchParams) {
   return Response.redirect(back.toString(), 302);
 }
 
-async function exchange(request: Request) {
-  let body: { code?: unknown; state?: unknown };
-  try {
-    body = await request.json();
-  } catch {
-    return json({ error: 'bad_request' }, 400);
-  }
+async function exchange(body: { code?: unknown; state?: unknown }) {
   const code = typeof body.code === 'string' ? body.code : '';
   const state = validState(typeof body.state === 'string' ? body.state : null);
   if (!/^[a-f0-9]{64}$/.test(code) || !state) return json({ error: 'bad_request' }, 400);
   const { data: profileId, error } = await admin.rpc('steam_login_code_consume', { p_code: code, p_state: state });
   if (error || !profileId) return json({ error: 'steam_code_invalid' }, 400);
 
-  const { data: found, error: userError } = await admin.auth.admin.getUserById(profileId as string);
-  if (userError || !found.user) return json({ error: 'user_not_found' }, 400);
+  try {
+    return json(await sessionForProfile(profileId as string));
+  } catch (error) {
+    return json({ error: (error as Error).message }, 500);
+  }
+}
+
+/// A magic-link token_hash for the profile's auth user (the app turns it
+/// into a session with verifyOtp).
+async function sessionForProfile(profileId: string): Promise<{ token_hash: string }> {
+  const { data: found, error: userError } = await admin.auth.admin.getUserById(profileId);
+  if (userError || !found.user) throw new Error('user_not_found');
   let email = found.user.email;
   if (!email) {
     // A linked profile without an address (rare): give it the Steam one.
     const { data: identity } = await admin.rpc('steam_identity_of_profile', { p_profile_id: profileId });
     email = `steam-${identity ?? profileId}@steam.oberta.invalid`;
     const updated = await admin.auth.admin.updateUserById(found.user.id, { email, email_confirm: true });
-    if (updated.error) return json({ error: 'user_update_failed' }, 500);
+    if (updated.error) throw new Error('user_update_failed');
   }
   const link = await admin.auth.admin.generateLink({ type: 'magiclink', email });
   const tokenHash = link.data?.properties?.hashed_token;
-  if (link.error || !tokenHash) return json({ error: 'link_failed' }, 500);
-  return json({ token_hash: tokenHash });
+  if (link.error || !tokenHash) throw new Error('link_failed');
+  return { token_hash: tokenHash };
+}
+
+async function post(request: Request) {
+  // deno-lint-ignore no-explicit-any
+  let body: any;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: 'bad_request' }, 400);
+  }
+  if (body?.action === 'ticket') {
+    return await handleTicket(body, {
+      env: (name) => Deno.env.get(name),
+      fetch,
+      sessionFor: async (steamId) => sessionForProfile(await profileFor(steamId)),
+    });
+  }
+  return await exchange(body ?? {});
 }
 
 Deno.serve(async (request) => {
   try {
     const url = new URL(request.url);
-    if (request.method === 'POST') return await exchange(request);
+    if (request.method === 'POST') return await post(request);
     if (request.method !== 'GET') return json({ error: 'method_not_allowed' }, 405);
     const action = url.searchParams.get('action');
     if (action === 'start') return start(url.searchParams);

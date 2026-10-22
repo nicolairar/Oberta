@@ -1,0 +1,102 @@
+# Desktop builds (docs/steam.md): Windows, Linux and macOS release builds,
+# uploaded as zipped artifacts. No Steamworks SDK here: STEAM is off, so the
+# builds behave like the normal desktop app.
+#
+# Online config: add the repository secret SUPABASE_CONFIG_JSON with the full
+# contents of config/supabase.json (Settings -> Secrets and variables ->
+# Actions). Without it the builds still succeed, offline only.
+name: Desktop builds
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lib/**'
+      - 'windows/**'
+      - 'linux/**'
+      - 'macos/**'
+      - 'pubspec.*'
+      - '.github/workflows/desktop.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Same as local development (flutter --version).
+  FLUTTER_VERSION: '3.47.7'
+
+jobs:
+  build:
+    name: ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows
+            os: windows-latest
+            output: build/windows/x64/runner/Release
+          - platform: linux
+            os: ubuntu-latest
+            output: build/linux/x64/release/bundle
+          - platform: macos
+            os: macos-latest
+            output: build/macos/Build/Products/Release
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Linux build dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev \
+            libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libsecret-1-dev
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Online config from secret
+        shell: bash
+        env:
+          SUPABASE_CONFIG_JSON: ${{ secrets.SUPABASE_CONFIG_JSON }}
+        run: |
+          if [ -n "$SUPABASE_CONFIG_JSON" ]; then
+            printf '%s' "$SUPABASE_CONFIG_JSON" > config/supabase.json
+            echo "DEFINES=--dart-define-from-file=config/supabase.json" >> "$GITHUB_ENV"
+          else
+            echo "::warning::SUPABASE_CONFIG_JSON is not set: building without online config"
+          fi
+
+      - run: flutter pub get
+
+      - name: Build
+        shell: bash
+        run: flutter build ${{ matrix.platform }} --release $DEFINES
+
+      - name: Zip
+        shell: bash
+        run: |
+          name="oberta-${{ matrix.platform }}-${GITHUB_SHA::7}.zip"
+          echo "ZIP=$name" >> "$GITHUB_ENV"
+          case "${{ matrix.platform }}" in
+            windows) (cd "${{ matrix.output }}" && 7z a -tzip "$GITHUB_WORKSPACE/$name" . > /dev/null) ;;
+            macos) ditto -c -k --keepParent "${{ matrix.output }}/oberta.app" "$name" ;;
+            linux) (cd "${{ matrix.output }}" && zip -qr "$GITHUB_WORKSPACE/$name" .) ;;
+          esac
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oberta-${{ matrix.platform }}
+          path: ${{ env.ZIP }}
+          retention-days: 14
+
+      - name: Remove online config
+        if: always()
+        shell: bash
+        run: rm -f config/supabase.json

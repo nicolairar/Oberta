@@ -1,6 +1,6 @@
 # Obertà su Steam — piano
 
-Solo piano: niente codice Steam ancora. Si parte gratis (Fase 1) e si paga
+Piano e stato dei lavori (in fondo le parti già fatte). Si parte gratis (Fase 1) e si paga
 solo quando il gioco è pronto per il negozio (Fase 2).
 
 Legenda: **[TU]** = lo fa / paga il proprietario. **[NOI]** = lo codifichiamo noi.
@@ -193,3 +193,86 @@ Su desktop ci sono solo due modalità:
 3. Sign in with Apple sul Mac: aggiungere la capability al target macOS in Xcode (Signing & Capabilities) e
    compilare con `--dart-define=MAC_APPLE_SIGN_IN=true`; finché no, il Mac entra con Steam.
 4. Distribuzione Mac fuori dallo store: firma Developer ID + notarizzazione.
+
+## Build in CI, Steamworks di prova (480), ticket lato server (22 ottobre 2026)
+
+Sempre gratis: niente account partner Steamworks ancora.
+
+### Build desktop in CI
+- `.github/workflows/desktop.yml`: a ogni push su `main` che tocca `lib/**`, `windows/**`, `linux/**`,
+  `macos/**`, `pubspec.*` (e a mano da Actions → *Desktop builds* → *Run workflow*) compila
+  `flutter build windows|linux|macos --release` con **Flutter 3.47.7** (la versione usata in locale) e
+  carica gli zip come artifact (`oberta-windows`, `oberta-linux`, `oberta-macos`, 14 giorni).
+- La configurazione online arriva dal secret **`SUPABASE_CONFIG_JSON`** = tutto il contenuto di
+  `config/supabase.json`; nel repository non c'è nessun valore. Senza il secret le build riescono lo
+  stesso, ma senza online.
+- Le build CI non hanno Steam (flag spento) e il Mac è firmato solo ad hoc: per distribuirlo servono
+  ancora Developer ID + notarizzazione.
+
+### Strato Steamworks facoltativo (`lib/steam/`)
+- Acceso **solo** con `--dart-define=STEAM=true`. Senza il flag `SteamClient.instance` è `NoSteam` e
+  l'app non apre nessuna libreria: si comporta esattamente come prima.
+- Con il flag, all'avvio carica `steam_api64.dll` / `libsteam_api.so` / `libsteam_api.dylib` accanto
+  all'eseguibile (sul Mac anche `Contents/Frameworks/`), via FFI sull'API C "flat" dell'SDK (1.58 o più
+  nuovo; provato sui simboli dell'SDK 1.64). Il pacchetto `steamworks` di pub.dev non va bene: oggi
+  supporta solo Windows. Legge **SteamID64** e **nome persona**, chiede
+  **`GetAuthTicketForWebApi("oberta")`** e sblocca/azzera i traguardi di Spacewar
+  (`ACH_WIN_ONE_GAME`, `ACH_WIN_100_GAMES`, `ACH_TRAVEL_FAR_ACCUM`, `ACH_TRAVEL_FAR_SINGLE`).
+- App ID di sviluppo: 480 (cambiabile con `--dart-define=STEAM_APP_ID=...`); se la variabile
+  `SteamAppId` manca, l'app la imposta prima di `SteamAPI_InitFlat`. In più c'è `steam_appid.txt`.
+- **Menu nascosto di prova**: Impostazioni (desktop) → **Ctrl+Shift+S** (⌘⇧S sul Mac). Mostra se è
+  agganciato (o perché no), SteamID, persona, il biglietto (lunghezza e inizio) e i quattro traguardi
+  con UNLOCK / CLEAR. Lo sblocco si vede nell'overlay e nel profilo Steam sotto Spacewar.
+- Agganciato a Steam, il dispositivo si presenta come «Steam» nella regola del dispositivo unico.
+- **SDK fuori da git**: lo Steamworks SDK Access Agreement permette di distribuire le librerie solo
+  dentro il gioco, non in un repository pubblico. Sono in `.gitignore` (anche `steam_appid.txt`); si
+  scaricano a mano da partner.steamgames.com/downloads (basta un account Steam gratis).
+
+### Come provare con Steam aperto (App ID 480)
+1. Installa e apri Steam, entra col tuo account (Spacewar non va installato: 480 funziona per tutti).
+2. Scarica `steamworks_sdk_XXX.zip` da https://partner.steamgames.com/downloads/list e scompattalo.
+3. Compila con il flag, poi copia libreria e `steam_appid.txt`:
+   ```
+   flutter build macos --debug --dart-define=STEAM=true --dart-define-from-file=config/supabase.json
+   tool/steam/install_sdk.sh ~/Downloads/steamworks_sdk macos debug
+   (cd build/macos/Build/Products/Debug && ./oberta.app/Contents/MacOS/oberta)
+   ```
+   Su Windows/Linux lo stesso script (`windows` / `linux`) mette la libreria e `steam_appid.txt` qui:
+
+   | Piattaforma | Libreria | `steam_appid.txt` |
+   |---|---|---|
+   | macOS | `oberta.app/Contents/Frameworks/libsteam_api.dylib` (da `redistributable_bin/osx`) | nella cartella da cui lanci il processo (`build/macos/Build/Products/Debug`) |
+   | Windows | `build\windows\x64\runner\Release\steam_api64.dll` (da `redistributable_bin/win64`) | accanto a `oberta.exe`, lanciato da quella cartella |
+   | Linux | `build/linux/x64/release/bundle/lib/libsteam_api.so` (da `redistributable_bin/linux64`) | accanto a `oberta` nel bundle, lanciato da lì |
+
+   Steam cerca `steam_appid.txt` nella **cartella di lavoro** del processo: lanciare il `.app` dal Finder
+   non basta (lì vale solo la variabile `SteamAppId` che l'app imposta da sola).
+4. Sul Mac lo script rifirma la build ad hoc **senza App Sandbox**: un'app sandboxed non parla col
+   client Steam (le build Steam vere escono senza sandbox).
+5. Impostazioni → Ctrl+Shift+S: deve dire `running: true`, il tuo SteamID e la persona; prova il
+   biglietto e UNLOCK/CLEAR di un traguardo.
+
+### Login col biglietto, lato server (pronto per la Fase 2)
+- `steam-auth` ha la nuova azione `POST {action: "ticket", ticket: "<hex>"}` (`supabase/functions/steam-auth/ticket.ts`):
+  verifica con `ISteamUserAuth/AuthenticateUserTicket` (identity `oberta`), rifiuta i `publisherbanned`,
+  poi controlla il possesso con `ISteamUser/CheckAppOwnership` (`ownsapp`; vale anche il family sharing,
+  che è una licenza vera). Se va, stessa strada di OpenID: SteamID → profilo → `token_hash` → `verifyOTP`.
+- Segreti **`STEAM_WEB_API_KEY`** (chiave Web API **da editore**) e **`STEAM_APP_ID`**: non ci sono ancora,
+  quindi risponde **501 `not_configured`** e l'app passa da sola a OpenID nel browser. Biglietto rifiutato
+  (401) → OpenID; gioco non posseduto o bannato (403) → errore, niente accesso.
+- Test: `deno test -A supabase/functions/tests/steam_ticket_test.ts` (risposte di Steam finte).
+
+### Cosa deve fare il proprietario [TU], adesso
+1. GitHub → repository → Settings → Secrets and variables → Actions → **New repository secret**:
+   nome **`SUPABASE_CONFIG_JSON`**, valore = l'intero contenuto del tuo `config/supabase.json`.
+   Poi Actions → *Desktop builds* → *Run workflow* per la prima build.
+2. Per provare l'idraulica Steam: Steam installato e aperto, SDK scaricato, i passi qui sopra.
+   Facoltativo, nessun costo.
+
+### Più avanti, quando si paga (Fase 2)
+1. Iscrizione a Steamworks e Steam Direct fee (100 $): si ottiene il nostro **App ID**.
+2. Steamworks → Users & Permissions → Manage Groups → crea la **Web API key da editore**.
+3. Supabase → Edge Functions → Secrets: aggiungi **`STEAM_WEB_API_KEY`** (la chiave da editore) e
+   **`STEAM_APP_ID`** (il nostro App ID). Da quel momento il login dentro Steam è automatico.
+4. Compilare le build Steam con `--dart-define=STEAM=true --dart-define=STEAM_APP_ID=<nostro id>` e
+   caricare su Steamworks i traguardi con gli id del nostro sistema (2.4).

@@ -20,6 +20,8 @@ import '../../l10n/safety_strings.dart';
 import '../../l10n/settings_strings.dart';
 import '../../online/online_services.dart';
 import '../../settings/app_settings.dart';
+import '../../steam/steam.dart';
+import '../../steam/steam_debug_sheet.dart';
 import '../theme/app_theme.dart';
 import 'online/safety_sheets.dart';
 import 'screening_room_screen.dart';
