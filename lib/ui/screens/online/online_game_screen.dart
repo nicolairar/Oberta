@@ -134,6 +134,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   /// (il tavolo pubblico li cancella appena il voto si chiude).
   List<SeatVote> _lastVotes = const [];
 
+  /// Le scelte della famiglia di questa notte: restano sul tavolo fino al
+  /// film, anche quando il server ha già chiuso la notte.
+  List<SeatVote> _lastFamilyVotes = const [];
+
   /// La fase già vista da qui: al cambio, musica e suoni.
   String? _stageShown;
 
@@ -198,6 +202,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     }
     if (_client.ready) {
       if (_stage == Stage.vote) _lastVotes = _public.dayVotes;
+      if (_stage == Stage.night && _view.familyVotes.isNotEmpty) _lastFamilyVotes = _view.familyVotes;
+      if (_stage == Stage.discussion) _lastFamilyVotes = const [];
       _enterStage();
       _announceDepartures();
       _feelMentions();
@@ -1517,7 +1523,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         selectable: (alternative ? alternativeTargets : option.targets).toSet(),
         selected: selected,
         onTap: busy ? null : (player) => setState(() => _selected = player),
-        votes: family ? _withHope(_view.familyVotes) : const [],
+        votes: family ? _withHope(_view.familyVotes.isNotEmpty ? _view.familyVotes : _lastFamilyVotes) : const [],
         voteColor: Saloon.mafia,
         center: Column(
           mainAxisSize: MainAxisSize.min,
