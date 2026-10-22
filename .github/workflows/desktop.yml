@@ -26,6 +26,11 @@ on:
       - 'pubspec.*'
       - '.github/workflows/desktop.yml'
   workflow_dispatch:
+    inputs:
+      steam_test:
+        description: "Build per provare Steam (STEAM=true, AppID 480, classificata di prova)"
+        type: boolean
+        default: false
 
 concurrency:
   group: desktop-${{ github.ref }}
@@ -85,7 +90,19 @@ jobs:
 
       - name: Build
         shell: bash
-        run: flutter build ${{ matrix.platform }} --release $DEFINES
+        run: |
+          if [ "${{ inputs.steam_test }}" = "true" ]; then
+            DEFINES="$DEFINES --dart-define=STEAM=true --dart-define=RANKED_DEBUG=true"
+          fi
+          flutter build ${{ matrix.platform }} --release $DEFINES
+          # Le librerie dell'SDK di Steam non si possono distribuire qui: si
+          # copiano dopo con tool/steam/install_sdk.sh. L'AppID di prova sì.
+          if [ "${{ inputs.steam_test }}" = "true" ]; then
+            case "${{ matrix.platform }}" in
+              macos) echo 480 > "${{ matrix.output }}/oberta.app/Contents/MacOS/steam_appid.txt" ;;
+              *) echo 480 > "${{ matrix.output }}/steam_appid.txt" ;;
+            esac
+          fi
 
       - name: Zip
         shell: bash
