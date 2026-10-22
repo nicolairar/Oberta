@@ -234,6 +234,12 @@ abstract class OnlineStrings {
   String deviceDisplaced(String other);
   String get devicePlayHere;
 
+  // Aggiornamento obbligatorio.
+  String get updateTitle;
+  String updateNewRelease(String latest, String current);
+  String get updateServer;
+  String get updateButton;
+
   Map<String, String> get catalog => {
     'posterTitle': posterTitle,
     'posterBlurb': posterBlurb,
@@ -254,6 +260,10 @@ abstract class OnlineStrings {
     'deviceDisplacedTitle': deviceDisplacedTitle,
     'deviceDisplaced': deviceDisplaced('iPhone'),
     'devicePlayHere': devicePlayHere,
+    'updateTitle': updateTitle,
+    'updateNewRelease': updateNewRelease('1.2.0', '1.1.0'),
+    'updateServer': updateServer,
+    'updateButton': updateButton,
     'roomLinkInvalid': roomLinkInvalid,
     'technicalReason': technicalReason,
     'pickHandle': pickHandle,
@@ -832,6 +842,16 @@ final class ItalianOnlineStrings extends OnlineStrings {
   String get devicePlayHere => 'GIOCO QUA';
 
   @override
+  String get updateTitle => 'Aggiornamento obbligatorio';
+  @override
+  String updateNewRelease(String latest, String current) =>
+      'È uscita la versione $latest e questa è la $current. Aggiorna per continuare a giocare.';
+  @override
+  String get updateServer => 'Questa versione non è più ammessa al tavolo. Aggiorna per continuare a giocare.';
+  @override
+  String get updateButton => 'AGGIORNA';
+
+  @override
   String failure(OnlineFailure failure) => switch (failure) {
         OnlineFailure.notSignedIn => 'Prima bisogna entrare con un account.',
         OnlineFailure.appleDisabled => 'Accesso con Apple non attivo sul server.',
@@ -864,6 +884,7 @@ final class ItalianOnlineStrings extends OnlineStrings {
         OnlineFailure.rankedCooldown => 'Troppi abbandoni: aspetta un po\' prima di rientrare.',
         OnlineFailure.alreadyInGame => 'Sei già in una partita.',
         OnlineFailure.otherDevice => 'Sei connesso su un altro dispositivo.',
+        OnlineFailure.updateRequired => 'Aggiornamento obbligatorio: scarica la nuova versione.',
         OnlineFailure.linkCodeInvalid => 'Codice sbagliato o scaduto.',
         OnlineFailure.linkSameAccount => 'Questo codice è del tuo stesso account.',
         OnlineFailure.linkConflict => 'Questi due account non si possono unire: hanno già lo stesso tipo di accesso.',
@@ -1283,6 +1304,16 @@ final class EnglishOnlineStrings extends OnlineStrings {
   String get devicePlayHere => 'PLAY HERE';
 
   @override
+  String get updateTitle => 'Update required';
+  @override
+  String updateNewRelease(String latest, String current) =>
+      'Version $latest is out and this one is $current. Update to keep playing.';
+  @override
+  String get updateServer => 'This version is no longer allowed at the table. Update to keep playing.';
+  @override
+  String get updateButton => 'UPDATE';
+
+  @override
   String failure(OnlineFailure failure) => switch (failure) {
         OnlineFailure.notSignedIn => 'Sign in with an account first.',
         OnlineFailure.appleDisabled => 'Sign in with Apple is not enabled on the server.',
@@ -1315,6 +1346,7 @@ final class EnglishOnlineStrings extends OnlineStrings {
         OnlineFailure.rankedCooldown => 'Too many games left: wait a little before queueing.',
         OnlineFailure.alreadyInGame => 'You are already in a game.',
         OnlineFailure.otherDevice => 'You are connected on another device.',
+        OnlineFailure.updateRequired => 'Update required: download the new version.',
         OnlineFailure.linkCodeInvalid => 'Wrong or expired code.',
         OnlineFailure.linkSameAccount => 'This code belongs to this same account.',
         OnlineFailure.linkConflict => 'These two accounts cannot be merged: they already use the same kind of sign-in.',

@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'online/online_account.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'online/device_links.dart';
@@ -18,6 +22,7 @@ import 'steam/steam.dart';
 import 'ui/desktop/desktop_frame.dart';
 import 'ui/desktop/desktop_platform.dart';
 import 'ui/screens/home_screen.dart';
+import 'ui/widgets/app_update_gate.dart';
 import 'ui/widgets/device_session_gate.dart';
 import 'ui/theme/app_theme.dart';
 import 'ui/screens/settings_screen.dart';
@@ -33,15 +38,55 @@ Future<void> main() async {
   await SteamClient.start();
   // L'online c'è solo se l'app è stata compilata con config/supabase.json.
   final sessionId = newDeviceSessionId();
-  OnlineServices.instance = await openSupabaseOnline(OnlineConfig.compiled, deviceSessionId: sessionId);
+  final package = await _packageInfo();
+  final build = int.tryParse(package?.buildNumber ?? '');
+  final platform = appPlatformHere();
+  OnlineServices.instance = await openSupabaseOnline(
+    OnlineConfig.compiled,
+    deviceSessionId: sessionId,
+    appBuild: build,
+    appPlatform: platform,
+  );
   if (OnlineServices.instance case OnlineServices(:final auth, sessions: final sessions?)) {
     DeviceSession.instance = DeviceSession(sessions, sessionId: sessionId, deviceLabel: deviceLabelHere())
       ..follow(auth, () => auth.signedIn);
   }
+  // Aggiornamento obbligatorio: negozio (App Store / GitHub) e build minima
+  // del server. Senza rete non blocca nulla.
+  UpdateGate.instance = UpdateGate(
+    version: package?.version ?? '0.0.0',
+    build: build,
+    platform: platform,
+    store: _storeHere(platform),
+    server: OnlineServices.instance?.requirements,
+    cache: PrefsUpdateCache(),
+  );
+  unawaited(UpdateGate.instance!.check());
   // Il QR di una stanza inquadrato con la fotocamera apre l'app su quella stanza.
   listenToDeviceLinks(IncomingLinks.instance);
   runApp(const ObertaApp());
   SoundStage.instance.music(MusicMood.menu);
+}
+
+Future<PackageInfo?> _packageInfo() async {
+  try {
+    return await PackageInfo.fromPlatform();
+  } catch (error) {
+    debugPrint('Versione sconosciuta: $error');
+    return null;
+  }
+}
+
+/// Dove guardare se c'è una versione nuova. Nelle build di debug nessun
+/// negozio (si lavora su versioni non ancora uscite); nelle build Steam
+/// aggiorna Steam, resta solo la build minima del server.
+StoreReleaseSource? _storeHere(String? platform) {
+  if (kDebugMode) return null;
+  return switch (platform) {
+    'ios' => const AppStoreLookup(),
+    'macos' || 'windows' || 'linux' when !SteamClient.instance.running => GithubReleaseLookup(platform: platform!),
+    _ => null,
+  };
 }
 
 class ObertaApp extends StatelessWidget {
@@ -71,7 +116,10 @@ class ObertaApp extends StatelessWidget {
         // Il telefono in italiano gioca in italiano; tutti gli altri in inglese.
         localeListResolutionCallback: (device, _) => AppLanguage.forDevice(device).locale,
         builder: (context, child) {
-          final gated = DeviceSessionGate(session: DeviceSession.instance, child: child!);
+          final gated = UpdateGateView(
+            gate: UpdateGate.instance,
+            child: DeviceSessionGate(session: DeviceSession.instance, child: child!),
+          );
           // Su desktop il gioco sta nel suo riquadro 16:9 (o 9:16), col letterbox.
           if (!DesktopPlatform.isDesktop) return gated;
           return DesktopFrame(orientation: settings.orientation, child: gated);

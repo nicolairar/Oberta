@@ -5,11 +5,17 @@
 # Online config: add the repository secret SUPABASE_CONFIG_JSON with the full
 # contents of config/supabase.json (Settings -> Secrets and variables ->
 # Actions). Without it the builds still succeed, offline only.
+#
+# Releases (docs/release.md): pushing a tag v<x.y.z> equal to the pubspec
+# version builds the three platforms and publishes a GitHub Release with the
+# zips. The desktop app compares its version with that latest release and
+# shows the mandatory update screen when it is older.
 name: Desktop builds
 
 on:
   push:
     branches: [main]
+    tags: ['v*']
     paths:
       - 'lib/**'
       - 'windows/**'
@@ -82,7 +88,9 @@ jobs:
       - name: Zip
         shell: bash
         run: |
-          name="oberta-${{ matrix.platform }}-${GITHUB_SHA::7}.zip"
+          suffix="${GITHUB_SHA::7}"
+          [ "$GITHUB_REF_TYPE" = tag ] && suffix="$GITHUB_REF_NAME"
+          name="oberta-${{ matrix.platform }}-$suffix.zip"
           echo "ZIP=$name" >> "$GITHUB_ENV"
           case "${{ matrix.platform }}" in
             windows) (cd "${{ matrix.output }}" && 7z a -tzip "$GITHUB_WORKSPACE/$name" . > /dev/null) ;;
@@ -100,3 +108,31 @@ jobs:
         if: always()
         shell: bash
         run: rm -f config/supabase.json
+
+  release:
+    name: GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tag matches pubspec version
+        run: |
+          version="$(sed -n 's/^version: *\([0-9.]*\)+.*/\1/p' pubspec.yaml)"
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::tag $GITHUB_REF_NAME but pubspec says $version"
+            exit 1
+          fi
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/*.zip --title "Obertà $GITHUB_REF_NAME" --generate-notes --verify-tag

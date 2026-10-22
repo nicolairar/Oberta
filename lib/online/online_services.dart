@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../l10n/app_language.dart';
+import 'app_update.dart';
 import 'device_session.dart';
 import 'game/game_backend.dart';
 import 'online_models.dart';
@@ -9,6 +10,7 @@ import 'ranked_models.dart';
 import 'safety.dart';
 import 'shop_models.dart';
 
+export 'app_update.dart';
 export 'device_session.dart';
 export 'game/game_backend.dart';
 export 'online_models.dart';
@@ -174,6 +176,9 @@ class OnlineServices {
   /// Missions, achievements and the leaderboard. Null where there is none.
   final ProgressRepository? progress;
 
+  /// La build minima chiesta dal server. Null dove non c'è.
+  final AppRequirementsRepository? requirements;
+
   const OnlineServices({
     required this.auth,
     required this.profiles,
@@ -187,6 +192,7 @@ class OnlineServices {
     this.sessions,
     this.links,
     this.progress,
+    this.requirements,
   });
 
   static OnlineServices? instance;

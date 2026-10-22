@@ -18,7 +18,12 @@ import '../steam/steam.dart';
 
 /// L'online vero, su Supabase. Lo apre `main` quando l'app è stata compilata
 /// con la configurazione; i test usano invece `FakeOnline`.
-Future<OnlineServices?> openSupabaseOnline(OnlineConfig config, {String? deviceSessionId}) async {
+Future<OnlineServices?> openSupabaseOnline(
+  OnlineConfig config, {
+  String? deviceSessionId,
+  int? appBuild,
+  String? appPlatform,
+}) async {
   if (!config.isComplete) return null;
   try {
     // Ogni chiamata porta la sessione di questo dispositivo: il server lascia
@@ -26,7 +31,13 @@ Future<OnlineServices?> openSupabaseOnline(OnlineConfig config, {String? deviceS
     await Supabase.initialize(
       url: config.supabaseUrl,
       publishableKey: config.supabaseAnonKey,
-      headers: {'x-device-session': ?deviceSessionId},
+      // Build e piattaforma: il server rifiuta le build troppo vecchie con
+      // `update_required` (20261103090000_mandatory_update.sql).
+      headers: {
+        'x-device-session': ?deviceSessionId,
+        'x-app-build': ?appBuild?.toString(),
+        'x-app-platform': ?appPlatform,
+      },
     );
   } catch (error) {
     debugPrint('Supabase non disponibile: $error');
@@ -46,6 +57,7 @@ Future<OnlineServices?> openSupabaseOnline(OnlineConfig config, {String? deviceS
     sessions: SupabaseDeviceSessions(client),
     links: SupabaseAccountLinks(client),
     progress: SupabaseProgress(client),
+    requirements: SupabaseAppRequirements(client),
   );
 }
 
@@ -104,6 +116,7 @@ OnlineException _translate(Object error, [SignInDoor? door]) {
   if (error is OnlineException) return error;
   final translated = _classify(error, door);
   if (translated.failure == OnlineFailure.otherDevice) DeviceSession.instance?.otherDeviceRejected();
+  if (translated.failure == OnlineFailure.updateRequired) UpdateGate.instance?.serverRejected();
   debugPrint('Online: ${translated.failure.name} ← ${translated.reason}');
   return translated;
 }
@@ -140,6 +153,7 @@ OnlineException _classify(Object error, SignInDoor? door) {
       'ranked_cooldown' => OnlineFailure.rankedCooldown,
       'already_in_game' => OnlineFailure.alreadyInGame,
       'other_device' => OnlineFailure.otherDevice,
+      'update_required' => OnlineFailure.updateRequired,
       'link_code_invalid' => OnlineFailure.linkCodeInvalid,
       'link_same_account' => OnlineFailure.linkSameAccount,
       'link_conflict' => OnlineFailure.linkConflict,
@@ -1030,4 +1044,17 @@ class SupabaseProgress implements ProgressRepository {
   Future<Leaderboard> leaderboard(AppLanguage language) => _guard(() async => Leaderboard.fromJson(
       (await _client.rpc<Map<String, dynamic>>('leaderboard', params: {'board_language': language.name}))
           .cast<String, Object?>()));
+}
+
+/// La build minima e il negozio di questa piattaforma.
+class SupabaseAppRequirements implements AppRequirementsRepository {
+  final SupabaseClient _client;
+
+  SupabaseAppRequirements(this._client);
+
+  @override
+  Future<AppRequirements> requirements(String platform) => _guard(() async {
+        final json = await _client.rpc<dynamic>('app_requirements', params: {'platform': platform});
+        return AppRequirements.fromJson((json as Map).cast<String, Object?>());
+      });
 }

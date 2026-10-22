@@ -71,6 +71,9 @@ platform :ios do
     )
 
     UI.success "Build #{build} caricata su TestFlight"
+    # La build minima NON sale da sola: si alza a mano quando la build è
+    # davvero in vendita (docs/release.md):
+    #   bundle exec fastlane min_build platform:ios build:#{build}
   end
 
   # La chiave API di App Store Connect, la stessa della lane beta.
@@ -128,4 +131,13 @@ platform :ios do
       submit_beta_review: true,
     )
   end
+end
+
+desc "Build minima ammessa dal server (aggiornamento obbligatorio): fastlane min_build platform:ios build:60"
+lane :min_build do |options|
+  platform = options[:platform].to_s
+  build = options[:build].to_s
+  UI.user_error!("platform: ios, android, macos, windows o linux") unless %w[ios android macos windows linux].include?(platform)
+  UI.user_error!("build: un numero (il +N di pubspec)") unless build.match?(/\A\d+\z/)
+  sh("cd .. && tool/release/set_min_build.sh #{platform} #{build}")
 end
