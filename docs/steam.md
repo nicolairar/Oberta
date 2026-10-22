@@ -276,3 +276,27 @@ Sempre gratis: niente account partner Steamworks ancora.
    **`STEAM_APP_ID`** (il nostro App ID). Da quel momento il login dentro Steam è automatico.
 4. Compilare le build Steam con `--dart-define=STEAM=true --dart-define=STEAM_APP_ID=<nostro id>` e
    caricare su Steamworks i traguardi con gli id del nostro sistema (2.4).
+
+## Distribuzione desktop solo su Steam (decisione del 22 ottobre 2026)
+
+- Il desktop (Windows, macOS, Linux) esce **solo su Steam**: niente download pubblici, niente release
+  GitHub pubbliche, niente file di versione sulla landing. Il repository del codice resta privato.
+- Gli aggiornamenti li fa Steam. Nell'app, sul desktop, il controllo «versione più nuova» non c'è
+  (`lib/online/app_update.dart`: solo l'App Store su iOS); resta la rete di sicurezza del server,
+  `min_build_macos|windows|linux` (`tool/release/set_min_build.sh`). Il pulsante «Aggiorna» del
+  desktop apre la landing finché non c'è la pagina Steam (`store_url_*`, migrazione
+  `20261104090000_desktop_store_urls.sql`). Quando la pagina Steam c'è:
+  `update internal.config set value = 'https://store.steampowered.com/app/<APPID>/' where key in ('store_url_macos', 'store_url_windows', 'store_url_linux');`
+- Il CI (`.github/workflows/desktop.yml`) su un tag `v*` compila e tiene gli zip come artifact
+  **privati** del run (90 giorni): sono quelli da caricare con SteamPipe (2.2).
+
+### Le build di release partono solo da Steam (Fase 2: da fare, oggi non attivo)
+- Con il nostro App ID, all'avvio delle build di release con `STEAM=true` si chiama
+  **`SteamAPI_RestartAppIfNecessary(<APPID>)`** prima di `SteamAPI_InitFlat`: se il gioco non è stato
+  lanciato da Steam, Steam lo rilancia da sé e il processo attuale esce subito.
+- Se poi `SteamAPI_InitFlat` fallisce (Steam assente o account senza licenza), la build di release
+  mostra «Apri Obertà da Steam» e non va oltre: sul desktop non si gioca fuori da Steam.
+- `steam_appid.txt` **non** va nei depot: serve solo in sviluppo (con quel file
+  `RestartAppIfNecessary` torna sempre falso).
+- Le build di debug e quelle del CI senza `STEAM` restano libere (sviluppo, prove).
+- Il controllo vero resta sul server: biglietto + `CheckAppOwnership` a ogni accesso (sopra).

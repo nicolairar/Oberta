@@ -77,14 +77,13 @@ Future<PackageInfo?> _packageInfo() async {
   }
 }
 
-/// Dove guardare se c'è una versione nuova. Nelle build di debug nessun
-/// negozio (si lavora su versioni non ancora uscite); nelle build Steam
-/// aggiorna Steam, resta solo la build minima del server.
+/// Dove guardare se c'è una versione nuova: solo l'App Store. Nelle build di
+/// debug nessun negozio (si lavora su versioni non ancora uscite); il desktop
+/// esce solo su Steam, che aggiorna da sé: resta la build minima del server.
 StoreReleaseSource? _storeHere(String? platform) {
   if (kDebugMode) return null;
   return switch (platform) {
     'ios' => const AppStoreLookup(),
-    'macos' || 'windows' || 'linux' when !SteamClient.instance.running => GithubReleaseLookup(platform: platform!),
     _ => null,
   };
 }

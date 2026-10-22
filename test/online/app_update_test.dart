@@ -50,6 +50,12 @@ void main() {
     });
   });
 
+  test('desktop never points at the private code repository', () {
+    for (final platform in ['macos', 'windows', 'linux']) {
+      expect(fallbackStoreUrl(platform), isNot(contains('github.com')));
+    }
+  });
+
   group('store lookups', () {
     test('App Store: version and trackViewUrl', () async {
       Uri? asked;
@@ -72,23 +78,6 @@ void main() {
     test('App Store without the app: nothing', () async {
       final lookup = AppStoreLookup(fetch: (_) async => '{"resultCount":0,"results":[]}');
       expect(await lookup.latest(), isNull);
-    });
-
-    test('GitHub: the tag and the zip of this platform', () async {
-      final lookup = GithubReleaseLookup(
-        platform: 'windows',
-        fetch: (_) async => jsonEncode({
-          'tag_name': 'v1.2.0',
-          'html_url': 'https://github.com/nicolairar/Oberta/releases/tag/v1.2.0',
-          'assets': [
-            {'name': 'oberta-linux-v1.2.0.zip', 'browser_download_url': 'https://x/linux.zip'},
-            {'name': 'oberta-windows-v1.2.0.zip', 'browser_download_url': 'https://x/windows.zip'},
-          ],
-        }),
-      );
-      final release = await lookup.latest();
-      expect(release!.version, 'v1.2.0');
-      expect(release.url, 'https://x/windows.zip');
     });
   });
 

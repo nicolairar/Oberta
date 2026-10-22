@@ -6,10 +6,12 @@
 # contents of config/supabase.json (Settings -> Secrets and variables ->
 # Actions). Without it the builds still succeed, offline only.
 #
-# Releases (docs/release.md): pushing a tag v<x.y.z> equal to the pubspec
-# version builds the three platforms and publishes a GitHub Release with the
-# zips. The desktop app compares its version with that latest release and
-# shows the mandatory update screen when it is older.
+# Releases (docs/release.md): desktop ships ONLY through Steam. Pushing a tag
+# v<x.y.z> equal to the pubspec version builds the three platforms and keeps
+# the zips as private workflow artifacts (90 days), ready to be uploaded to
+# Steam with SteamPipe. Nothing is published: no GitHub Release, no public
+# download. Steam updates the players; the server min_build is the only
+# mandatory-update check on desktop.
 name: Desktop builds
 
 on:
@@ -102,7 +104,7 @@ jobs:
         with:
           name: oberta-${{ matrix.platform }}
           path: ${{ env.ZIP }}
-          retention-days: 14
+          retention-days: ${{ github.ref_type == 'tag' && 90 || 14 }}
 
       - name: Remove online config
         if: always()
@@ -110,29 +112,27 @@ jobs:
         run: rm -f config/supabase.json
 
   release:
-    name: GitHub Release
+    name: Release check
     if: startsWith(github.ref, 'refs/tags/v')
     needs: build
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
       - name: Tag matches pubspec version
         run: |
           version="$(sed -n 's/^version: *\([0-9.]*\)+.*/\1/p' pubspec.yaml)"
+          build="$(sed -n 's/^version: *[0-9.]*+\([0-9]*\).*/\1/p' pubspec.yaml)"
           if [ "v$version" != "$GITHUB_REF_NAME" ]; then
             echo "::error::tag $GITHUB_REF_NAME but pubspec says $version"
             exit 1
           fi
-
-      - uses: actions/download-artifact@v4
-        with:
-          path: dist
-          merge-multiple: true
-
-      - name: Publish
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/*.zip --title "Obertà $GITHUB_REF_NAME" --generate-notes --verify-tag
+          {
+            echo "### Obertà $GITHUB_REF_NAME (build $build)"
+            echo
+            echo "Zips are the artifacts of this run (private, 90 days):"
+            echo "oberta-windows, oberta-linux, oberta-macos."
+            echo "Next: upload them with SteamPipe (docs/release.md)."
+          } >> "$GITHUB_STEP_SUMMARY"

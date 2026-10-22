@@ -13,7 +13,7 @@
 # are never blocked by this.
 #
 # Raise it only once the new build is actually downloadable on that store
-# (App Store release live, GitHub release published), never right after a
+# (App Store release live, Steam build set live on the default branch), never right after a
 # TestFlight upload: testers and everybody else would be locked out.
 #
 # Reads SUPABASE_ACCESS_TOKEN from fastlane/.env and the project ref from

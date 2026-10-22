@@ -7,18 +7,21 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// Aggiornamento obbligatorio. Due controlli:
 ///
-/// * i negozi: su iOS la ricerca dell'App Store, sul desktop l'ultima
-///   release di GitHub. Se lì c'è una versione più alta di questa, si
-///   aggiorna. Il risultato resta in cache per un'ora;
+/// * il negozio, solo su iOS: la ricerca dell'App Store. Se lì c'è una
+///   versione più alta di questa, si aggiorna. Il risultato resta in cache
+///   per un'ora. Il desktop esce solo su Steam, che aggiorna da sé: lì vale
+///   solo il controllo del server;
 /// * il server: `app_requirements(platform)` dà la build minima
 ///   (`min_build_<platform>`, vedi 20261103090000_mandatory_update.sql) e
 ///   ogni chiamata di una build più vecchia torna `update_required`.
 ///
-/// Se un controllo non risponde (niente rete, limite di GitHub) non blocca
+/// Se un controllo non risponde (niente rete) non blocca
 /// nulla: il gioco su un telefono solo resta giocabile offline.
 
 const appStoreFallbackUrl = 'https://apps.apple.com/app/id6822433258';
-const desktopFallbackUrl = 'https://github.com/nicolairar/Oberta/releases/latest';
+/// Il desktop esce solo su Steam: finché la pagina del negozio non c'è, la
+/// landing.
+const desktopFallbackUrl = 'https://charliemobile.dev/oberta/';
 const playStoreFallbackUrl = 'https://play.google.com/store/apps/details?id=com.obertagame.oberta';
 
 /// La piattaforma come la chiama il server (`x-app-platform`).
@@ -121,45 +124,6 @@ class AppStoreLookup implements StoreReleaseSource {
     if (version is! String) return null;
     final url = app['trackViewUrl'];
     return StoreRelease(version, url is String && url.isNotEmpty ? url : appStoreFallbackUrl);
-  }
-}
-
-/// Desktop: l'ultima release di GitHub (tag "v1.2.0"). Porta dritti allo
-/// zip di questa piattaforma, se c'è, altrimenti alla pagina della release.
-class GithubReleaseLookup implements StoreReleaseSource {
-  final String repository;
-  final String platform;
-  final FetchText fetch;
-
-  const GithubReleaseLookup({
-    this.repository = 'nicolairar/Oberta',
-    required this.platform,
-    this.fetch = fetchTextWithHttp,
-  });
-
-  @override
-  String get cacheKey => 'github.$platform';
-
-  @override
-  Future<StoreRelease?> latest() async {
-    final json = jsonDecode(await fetch(Uri.https('api.github.com', '/repos/$repository/releases/latest')));
-    if (json is! Map) return null;
-    final tag = json['tag_name'];
-    if (tag is! String || tag.isEmpty) return null;
-    var url = json['html_url'] is String ? json['html_url'] as String : desktopFallbackUrl;
-    final assets = json['assets'];
-    if (assets is List) {
-      for (final asset in assets) {
-        if (asset is Map &&
-            asset['name'] is String &&
-            (asset['name'] as String).startsWith('oberta-$platform') &&
-            asset['browser_download_url'] is String) {
-          url = asset['browser_download_url'] as String;
-          break;
-        }
-      }
-    }
-    return StoreRelease(tag, url);
   }
 }
 
@@ -343,7 +307,7 @@ class UpdateGate extends ChangeNotifier {
       );
       return release;
     } catch (error) {
-      // Offline o limite raggiunto: non si blocca nessuno.
+      // Offline: non si blocca nessuno.
       debugPrint('Aggiornamento: negozio muto ($error)');
       return null;
     }
