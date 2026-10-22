@@ -1753,6 +1753,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       key: const Key('online.verdict'),
       table: _table(
         players: publicSeating(_public.seats),
+        // Le mani del voto restano puntate finché il linciaggio non finisce.
+        votes: _lastVotes,
         lynched: condemned,
         lynchedAt: into < Duration.zero ? Duration.zero : into,
         center: _felt([
