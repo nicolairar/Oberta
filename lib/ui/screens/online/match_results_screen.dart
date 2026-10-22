@@ -19,12 +19,12 @@ import '../../widgets/content_width.dart';
 /// carta, l'esperienza che riempie la barra (con lo scoppio se si sale di
 /// livello), le monete che cadono nella borsa e, in classificata, il grado.
 /// Restituisce true se si vuole giocare ancora (solo con [offerReplay]).
-Future<bool> showMatchResults(BuildContext context, OnlineServices services, {bool offerReplay = false}) async {
+Future<bool> showMatchResults(BuildContext context, OnlineServices services, {bool offerReplay = false, DateTime? since}) async {
   final ranked = services.ranked;
   if (ranked == null) return false;
   MatchResult? result;
   try {
-    result = await ranked.lastResult();
+    result = await ranked.lastResult(since: since);
   } catch (_) {
     return false;
   }

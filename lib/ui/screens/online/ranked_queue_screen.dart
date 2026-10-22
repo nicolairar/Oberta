@@ -194,6 +194,7 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
       _status = const RankedStatus();
       _lobby = null;
       HapticFeedback.heavyImpact();
+      final started = DateTime.now().subtract(const Duration(seconds: 5));
       await navigator.push(
         MaterialPageRoute<void>(
           builder: (_) => OnlineGameScreen(services: widget.services, room: room, me: me),
@@ -201,7 +202,7 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
       );
       if (!mounted) return;
       await widget.services.rooms.leave(room.id, autoHeir: true).catchError((_) {});
-      if (mounted && await showMatchResults(context, widget.services, offerReplay: true) && mounted) _start();
+      if (mounted && await showMatchResults(context, widget.services, offerReplay: true, since: started) && mounted) _start();
     } finally {
       _entering = false;
       if (mounted) {

@@ -143,7 +143,9 @@ abstract class RankedRepository {
   Future<Map<AppLanguage, Rating>> ratings();
 
   /// L'ultima partita giocata, se c'è.
-  Future<MatchResult?> lastResult();
+  /// L'ultima partita registrata; con [since], solo se registrata da allora
+  /// (così chi esce prima della fine non vede la partita precedente).
+  Future<MatchResult?> lastResult({DateTime? since});
 
   /// Le ultime [limit] partite giocate, dalla più recente.
   Future<List<MatchResult>> history({int limit = 5});

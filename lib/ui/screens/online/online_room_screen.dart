@@ -161,11 +161,12 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> {
   }
 
   Future<void> _showGame() async {
+    final started = DateTime.now().subtract(const Duration(seconds: 5));
     await Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (_) => OnlineGameScreen(services: widget.services, room: _room, me: widget.me),
     ));
     _inGame = false;
-    if (mounted) await showMatchResults(context, widget.services);
+    if (mounted) await showMatchResults(context, widget.services, since: started);
     try {
       final room = await widget.services.rooms.fetch(_room.id);
       if (room != null && mounted) {

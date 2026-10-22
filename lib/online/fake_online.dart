@@ -1446,7 +1446,7 @@ class FakeRanked implements RankedRepository {
       };
 
   @override
-  Future<MatchResult?> lastResult() async => _online.history[_me]?.lastOrNull;
+  Future<MatchResult?> lastResult({DateTime? since}) async => _online.history[_me]?.lastOrNull;
 
   @override
   Future<List<MatchResult>> history({int limit = 5}) async =>

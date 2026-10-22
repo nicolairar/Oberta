@@ -968,8 +968,10 @@ class SupabaseRanked implements RankedRepository {
       });
 
   @override
-  Future<MatchResult?> lastResult() => _guard(() async {
-        final row = await _client.from('match_history').select().order('played_at', ascending: false).limit(1).maybeSingle();
+  Future<MatchResult?> lastResult({DateTime? since}) => _guard(() async {
+        var query = _client.from('match_history').select();
+        if (since != null) query = query.gte('played_at', since.toUtc().toIso8601String());
+        final row = await query.order('played_at', ascending: false).limit(1).maybeSingle();
         return row == null ? null : MatchResult.fromJson(row.cast<String, Object?>());
       });
 
