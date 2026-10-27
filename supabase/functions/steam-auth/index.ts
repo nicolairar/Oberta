@@ -13,12 +13,19 @@
 //   POST {action: "exchange", code, state}
 //        -> the code once, for {token_hash}: a magic-link token the app turns
 //           into a normal Supabase session with auth.verifyOtp().
+//   POST {action: "refresh"}  (Authorization: the player's JWT)
+//        -> reads the Steam persona name and avatar again (profile.ts), at
+//           most every six hours; {refreshed: true|false}.
+//
+// Every Steam sign-in (OpenID and ticket) also stores the persona name and
+// the avatar URL on the profile (migration 20261107090000_steam_profile.sql).
 //
 // verify_jwt = false (config.toml): the browser legs carry no JWT. The
 // service role key is the one Supabase gives every function; it never
 // leaves the server.
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 import { handleTicket } from './ticket.ts';
+import { fetchSteamProfile } from './profile.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -119,6 +126,44 @@ async function profileFor(steamId: string): Promise<string> {
   return owner as string;
 }
 
+/// Reads the public Steam profile and stores persona and avatar. Never fails
+/// the sign-in: Steam being slow or private only means the old values stay.
+async function refreshSteamProfile(steamId: string): Promise<boolean> {
+  try {
+    const found = await fetchSteamProfile(steamId, { env: (name) => Deno.env.get(name), fetch });
+    if (!found) return false;
+    const { error } = await admin.rpc('steam_profile_store', {
+      p_steam_id: steamId,
+      p_persona: found.persona,
+      p_avatar: found.avatar,
+    });
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('steam-auth profile', error);
+    return false;
+  }
+}
+
+/// The SteamID's profile, with its persona and avatar freshly read.
+async function signInProfile(steamId: string): Promise<string> {
+  const profileId = await profileFor(steamId);
+  await refreshSteamProfile(steamId);
+  return profileId;
+}
+
+/// "refresh": the signed-in player's persona and avatar, when due.
+async function refresh(request: Request) {
+  const jwt = (request.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '');
+  if (!jwt) return json({ error: 'not_signed_in' }, 401);
+  const { data, error } = await admin.auth.getUser(jwt);
+  if (error || !data.user) return json({ error: 'not_signed_in' }, 401);
+  const { data: steamId, error: dueError } = await admin.rpc('steam_refresh_target', { p_profile_id: data.user.id });
+  if (dueError) throw dueError;
+  if (!steamId) return json({ refreshed: false });
+  return json({ refreshed: await refreshSteamProfile(steamId as string) });
+}
+
 async function finish(params: URLSearchParams) {
   const port = validPort(params.get('port'));
   const state = validState(params.get('state'));
@@ -138,7 +183,7 @@ async function finish(params: URLSearchParams) {
   }
   if (!(await steamConfirms(params))) return page('Steam non conferma l\'accesso. / Steam did not confirm.');
 
-  const profileId = await profileFor(match[1]);
+  const profileId = await signInProfile(match[1]);
   const { data: code, error } = await admin.rpc('steam_login_code_issue', {
     p_profile_id: profileId,
     p_state: state,
@@ -196,9 +241,10 @@ async function post(request: Request) {
     return await handleTicket(body, {
       env: (name) => Deno.env.get(name),
       fetch,
-      sessionFor: async (steamId) => sessionForProfile(await profileFor(steamId)),
+      sessionFor: async (steamId) => sessionForProfile(await signInProfile(steamId)),
     });
   }
+  if (body?.action === 'refresh') return await refresh(request);
   return await exchange(body ?? {});
 }
 

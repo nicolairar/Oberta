@@ -4,6 +4,7 @@ import '../../../l10n/app_strings.dart';
 import '../../../online/online_services.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/noir_avatar.dart';
+import '../../widgets/platform_marks.dart';
 
 /// Che cosa dire quando una chiamata al server non va.
 String failureText(BuildContext context, Object error) {
@@ -94,17 +95,29 @@ class ProfileRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          NoirAvatar.drawn(seed: profile.avatarSeed, size: 46),
+          MarkedPortrait(
+            name: profile.name,
+            picture: profile.pictureUrl,
+            size: 46,
+            fallback: NoirAvatar.drawn(seed: profile.avatarSeed, size: 46),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  profile.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        profile.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    PlatformBadges.of(steam: profile.onSteam, apple: profile.onApple, size: 14),
+                  ],
                 ),
                 if (badges.isNotEmpty) ...[
                   const SizedBox(height: 4),

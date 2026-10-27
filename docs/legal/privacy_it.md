@@ -1,6 +1,6 @@
 # Informativa sulla privacy di Obertà
 
-Ultimo aggiornamento: 18 ottobre 2026
+Ultimo aggiornamento: 22 ottobre 2026
 
 Obertà è un gioco di società. Questa informativa spiega quali dati trattiamo, perché, per quanto tempo e quali diritti hai (Regolamento UE 2016/679, «GDPR»).
 
@@ -16,6 +16,8 @@ Puoi giocare sullo stesso telefono senza account. In quel caso nessun dato perso
 
 - Identificativo dell'account Apple (o Google) e indirizzo email forniti al momento dell'accesso; con Apple può essere un indirizzo di inoltro privato («Nascondi la mia email»).
 - Nome unico (handle) che scegli e la lingua preferita.
+- Se accedi con Steam (app desktop): il tuo SteamID, il nome del profilo Steam e l'indirizzo dell'immagine del profilo Steam, letti dal profilo pubblico di Steam a ogni accesso. Il nome Steam lo vedi solo tu (serve a proporti il nome unico); l'immagine di Steam la vedono gli altri giocatori solo se la scegli come immagine del profilo. Non riceviamo mai la password di Steam.
+- Le piattaforme collegate all'account (Steam, Apple), mostrate agli altri giocatori come un piccolo logo accanto al nome: solo sì o no, mai l'identificativo.
 - Il tuo aspetto (volto e capi dell'avatar).
 - Livello, esperienza e monete virtuali.
 - Amicizie e richieste di amicizia.
@@ -53,6 +55,7 @@ Non trattiamo posizione, contatti, foto, microfono o dati di salute.
 - Supabase Inc. — hosting e database, con server nell'Unione Europea (Irlanda, regione eu-west-1). Eventuali trasferimenti fuori dall'UE sono coperti dalle Clausole Contrattuali Standard.
 - Apple Inc. — accesso con Apple e pagamenti in-app. Per i pagamenti Apple agisce come titolare autonomo secondo la propria informativa.
 - Google LLC — solo se scegli di accedere con Google.
+- Valve Corporation (Steam) — solo se accedi con Steam: conferma l'accesso e fornisce il profilo pubblico Steam. Valve agisce come titolare autonomo secondo la propria informativa.
 
 ## Età minima
 
@@ -61,7 +64,7 @@ L'online include una chat con altri giocatori: per usarlo devi avere almeno 14 a
 ## I tuoi diritti
 
 - Accesso e portabilità: scarica tutti i tuoi dati in formato JSON da Impostazioni → Privacy e dati → «Scarica i miei dati».
-- Rettifica: cambia nome e aspetto dall'app.
+- Rettifica: cambia nome, aspetto e immagine del profilo dall'app. Il nome e l'immagine di Steam si aggiornano da Steam.
 - Cancellazione: elimina l'account da Impostazioni → Account → «Elimina account».
 - Opposizione e limitazione: scrivi a niko.tana@outlook.com.
 - Reclamo all'autorità di controllo: Garante per la protezione dei dati personali (www.garanteprivacy.it).

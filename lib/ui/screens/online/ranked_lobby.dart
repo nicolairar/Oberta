@@ -238,7 +238,7 @@ class _SeatState extends State<_Seat> with SingleTickerProviderStateMixin {
                             shape: BoxShape.circle,
                             boxShadow: [BoxShadow(color: Saloon.brass.withValues(alpha: 0.55), blurRadius: 12)],
                           ),
-                          child: PlayerAvatar(seed: me.avatarSeed, look: me.look, size: size),
+                          child: PlayerAvatar(seed: me.avatarSeed, look: me.look, picture: me.pictureUrl, size: size),
                         )
                       : CustomPaint(
                           key: const Key('ranked.stranger'),

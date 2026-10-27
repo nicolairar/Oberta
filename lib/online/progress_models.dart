@@ -1,6 +1,7 @@
 import '../l10n/app_language.dart';
 import 'game/match_rewards.dart' show RankTier;
 import 'game/progress.dart';
+import 'online_models.dart' show PlayerMarks;
 
 export 'game/progress.dart' show Achievement, achievements, Metric;
 
@@ -110,13 +111,16 @@ class GameUnlocks {
       );
 }
 
-/// One row of the ranked leaderboard: a place, a handle, a tier. Nothing else.
+/// One row of the ranked leaderboard: a place, a handle, a tier, and the
+/// platform marks (a Steam / Apple logo next to the name). Nothing else.
 class LeaderboardEntry {
   final int rank;
   final String handle;
   final RankTier tier;
+  final bool steam;
+  final bool apple;
 
-  const LeaderboardEntry(this.rank, this.handle, this.tier);
+  const LeaderboardEntry(this.rank, this.handle, this.tier, {this.steam = false, this.apple = false});
 }
 
 class Leaderboard {
@@ -132,6 +136,11 @@ class Leaderboard {
 
   factory Leaderboard.fromJson(Map<String, Object?> json) {
     final me = (json['me'] as Map?)?.cast<String, Object?>();
+    for (final row in (json['top'] as List<Object?>? ?? const [])) {
+      if (row case {'handle': final String handle}) {
+        PlayerMarks.rememberPlatforms(handle, steam: row['steam'] == true, apple: row['apple'] == true);
+      }
+    }
     return Leaderboard(
       top: [
         for (final row in (json['top'] as List<Object?>? ?? const []))
@@ -139,6 +148,8 @@ class Leaderboard {
             ((row as Map)['rank'] as num).toInt(),
             row['handle'] as String? ?? '?',
             _tier(row['tier']),
+            steam: row['steam'] == true,
+            apple: row['apple'] == true,
           ),
       ],
       me: me == null ? null : (rank: (me['rank'] as num).toInt(), tier: _tier(me['tier'])),

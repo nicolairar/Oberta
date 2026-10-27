@@ -2,7 +2,9 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../../online/online_models.dart';
 import '../../avatar/avatar_look.dart';
+import '../platform_marks.dart';
 
 /// Un nome scritto con l'inchiostro della bottega: sulla targhetta del posto,
 /// in chat, ovunque compaia chi l'ha comprato. Senza [style] usa quello di
@@ -21,6 +23,9 @@ class StyledName extends StatefulWidget {
   final TextAlign? textAlign;
   final bool softWrap;
 
+  /// I loghi delle piattaforme (Steam, Apple) dopo il nome, se ci sono.
+  final bool marks;
+
   const StyledName(
     this.name, {
     super.key,
@@ -31,6 +36,7 @@ class StyledName extends StatefulWidget {
     this.overflow = TextOverflow.ellipsis,
     this.textAlign,
     this.softWrap = false,
+    this.marks = true,
   });
 
   /// Lo stile di chi si chiama [name].
@@ -41,7 +47,8 @@ class StyledName extends StatefulWidget {
   /// nome con il suo stile, sulla stessa riga di base.
   static InlineSpan span(String name, {required String text, required TextStyle style, NameStyle? nameStyle}) {
     final ink = nameStyle ?? styleOf(name);
-    if (ink == NameStyle.plain) return TextSpan(text: text, style: style);
+    final mark = PlayerMarks.of(name);
+    if (ink == NameStyle.plain && !mark.steam && !mark.apple) return TextSpan(text: text, style: style);
     return WidgetSpan(
       alignment: PlaceholderAlignment.baseline,
       baseline: TextBaseline.alphabetic,
@@ -117,6 +124,29 @@ class _StyledNameState extends State<StyledName> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
+    final name = _name(context);
+    if (!widget.marks) return name;
+    return ValueListenableBuilder<int>(
+      valueListenable: PlayerMarks.changes,
+      builder: (context, _, child) {
+        final mark = PlayerMarks.of(widget.name);
+        if (!mark.steam && !mark.apple) return child!;
+        final base = DefaultTextStyle.of(context).style.merge(widget.base);
+        final size = (base.fontSize ?? 14) * 0.85;
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Flexible(child: child!),
+            PlatformBadges(widget.name, size: size, gap: size * 0.4, color: (base.color ?? Colors.white).withValues(alpha: 0.85)),
+          ],
+        );
+      },
+      child: name,
+    );
+  }
+
+  Widget _name(BuildContext context) {
     final base = DefaultTextStyle.of(context).style.merge(widget.base);
     final style = _style;
     final size = base.fontSize ?? 14;

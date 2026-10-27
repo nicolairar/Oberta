@@ -3,11 +3,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/l10n/app_language.dart';
 import 'package:oberta/online/fake_online.dart';
 import 'package:oberta/online/online_account.dart';
+import 'package:oberta/online/online_models.dart';
 import 'package:oberta/online/ranked_models.dart';
 import 'package:oberta/settings/app_settings.dart';
 import 'package:oberta/settings/settings_store.dart';
 import 'package:oberta/ui/screens/online/profile_sheet.dart';
 import 'package:oberta/ui/screens/settings_screen.dart';
+import 'package:oberta/ui/widgets/platform_marks.dart';
 
 import '../../support/desktop_shots.dart';
 
@@ -80,4 +82,38 @@ void main() {
       await saveDesktopShot(tester, 'settings_account_$label');
     });
   }
+
+  testWidgets('il fascicolo di chi gioca con Steam: nome Steam, logo, immagine del profilo', (tester) async {
+    await useDesktop(tester, desktopSizes['1080p']!);
+    final online = _online()..linkSteam('me', persona: 'Don Vito ☕', avatar: 'https://avatars.steamstatic.com/abc_full.jpg');
+    final account = OnlineAccount(online.services);
+    await tester.pumpWidget(
+      desktopApp(
+        Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () => showProfileSheet(context, account: account, onShop: () {}, onSettings: () {}),
+              child: const Text('go'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('go'));
+    await desktopFrames(tester);
+    expect(find.byKey(const Key('profile.steamPersona')), findsOneWidget);
+    expect(find.text('Su Steam: Don Vito ☕'), findsOneWidget);
+    expect(find.byKey(const Key('mark.steam')), findsWidgets);
+    await saveDesktopShot(tester, 'profile_steam');
+    expect(account.profile!.pictureUrl, isNull);
+    await tester.tap(find.byKey(const Key('profile.picture.steam')));
+    await desktopFrames(tester, 4);
+    expect(account.profile!.picture, ProfilePicture.steam);
+    expect(account.profile!.pictureUrl, 'https://avatars.steamstatic.com/abc_full.jpg');
+    // L'immagine non arriva (niente rete nei test): resta il ritratto.
+    expect(find.byType(SteamPicture), findsWidgets);
+    await tester.tap(find.byKey(const Key('profile.picture.game')));
+    await desktopFrames(tester, 4);
+    expect(account.profile!.pictureUrl, isNull);
+  });
 }

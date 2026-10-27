@@ -366,7 +366,7 @@ class _HomeProfileBadgeState extends State<HomeProfileBadge> {
                       ),
                       child: Padding(
                         padding: const EdgeInsets.all(2),
-                        child: PlayerAvatar(seed: profile?.name ?? '?', look: profile?.look, size: bust - 8),
+                        child: PlayerAvatar(seed: profile?.name ?? '?', look: profile?.look, picture: profile?.pictureUrl, size: bust - 8),
                       ),
                     ),
                   ),

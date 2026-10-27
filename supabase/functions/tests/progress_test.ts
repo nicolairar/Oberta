@@ -86,7 +86,7 @@ Deno.test('a settled game writes progress, pays coins and items once, and shows 
   assertEquals(theirs.missions, [], 'only your own');
 });
 
-Deno.test('the leaderboard: handles and tiers only, and your place', async () => {
+Deno.test('the leaderboard: handles, tiers and platform marks only, and your place', async () => {
   const { pg, as } = await world();
   await pg.query(`insert into public.ratings (profile_id, language, mu, sigma, games) values
     ($1, 'it', 40, 2, 30), ($2, 'it', 25, 8, 1)`, [anna, bruno]);
@@ -95,8 +95,8 @@ Deno.test('the leaderboard: handles and tiers only, and your place', async () =>
     `select public.leaderboard('it') as b`,
   );
   assertEquals(b.top, [
-    { rank: 1, handle: 'anna', tier: 'don' },
-    { rank: 2, handle: 'bruno', tier: 'picciotto' },
+    { rank: 1, handle: 'anna', tier: 'don', steam: false, apple: false },
+    { rank: 2, handle: 'bruno', tier: 'picciotto', steam: false, apple: false },
   ]);
   assertEquals(b.me, { rank: 2, tier: 'picciotto' });
   const [{ e }] = await as<{ e: { top: unknown[]; me: unknown } }>(anna, `select public.leaderboard('en') as e`);

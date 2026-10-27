@@ -325,7 +325,7 @@ class _ProfileChip extends StatelessWidget {
                   color: const Color(0xFF08080B),
                   border: Border.all(color: AppColors.gold.withValues(alpha: 0.9), width: 2),
                 ),
-                child: PlayerAvatar(seed: profile?.name ?? '?', look: profile?.look, size: 58),
+                child: PlayerAvatar(seed: profile?.name ?? '?', look: profile?.look, picture: profile?.pictureUrl, size: 58),
               ),
               const SizedBox(width: 18),
               Column(

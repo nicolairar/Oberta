@@ -201,6 +201,14 @@ abstract class OnlineStrings {
   String get dossierRank;
   String get dossierExperience;
 
+  // Steam: il nome Steam, l'immagine del profilo, i nomi proposti.
+  String steamPersona(String persona);
+  String get pictureLabel;
+  String get pictureGame;
+  String get pictureSteam;
+  String handleFromSteam(String persona);
+  String get handleSuggestions;
+
   // La chat.
   String get chatHint;
   String get chatLobby;
@@ -427,6 +435,12 @@ abstract class OnlineStrings {
     'dossierName': dossierName,
     'dossierRank': dossierRank,
     'dossierExperience': dossierExperience,
+    'steamPersona': steamPersona('Don Vito'),
+    'pictureLabel': pictureLabel,
+    'pictureGame': pictureGame,
+    'pictureSteam': pictureSteam,
+    'handleFromSteam': handleFromSteam('Don Vito'),
+    'handleSuggestions': handleSuggestions,
   };
 }
 
@@ -516,6 +530,18 @@ final class ItalianOnlineStrings extends OnlineStrings {
   String get dossierConfidential => 'RISERVATO';
   @override
   String get dossierName => 'NOMINATIVO';
+  @override
+  String steamPersona(String persona) => 'Su Steam: $persona';
+  @override
+  String get pictureLabel => 'Immagine del profilo';
+  @override
+  String get pictureGame => 'Avatar del gioco';
+  @override
+  String get pictureSteam => 'Immagine di Steam';
+  @override
+  String handleFromSteam(String persona) => 'Preso dal tuo nome Steam, «$persona». Va bene? Salva, o cambialo.';
+  @override
+  String get handleSuggestions => 'Liberi qui vicino:';
   @override
   String get dossierRank => 'GRADO';
   @override
@@ -980,6 +1006,18 @@ final class EnglishOnlineStrings extends OnlineStrings {
   String get dossierConfidential => 'CONFIDENTIAL';
   @override
   String get dossierName => 'NAME';
+  @override
+  String steamPersona(String persona) => 'On Steam: $persona';
+  @override
+  String get pictureLabel => 'Profile picture';
+  @override
+  String get pictureGame => 'Game avatar';
+  @override
+  String get pictureSteam => 'Steam picture';
+  @override
+  String handleFromSteam(String persona) => 'Taken from your Steam name, “$persona”. Happy with it? Save, or change it.';
+  @override
+  String get handleSuggestions => 'Free nearby:';
   @override
   String get dossierRank => 'RANK';
   @override

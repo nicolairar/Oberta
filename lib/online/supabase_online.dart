@@ -178,7 +178,7 @@ Future<T> _guard<T>(Future<T> Function() call, [SignInDoor? door]) async {
 
 /// Le colonne pubbliche di un profilo: livello, esperienza e monete no,
 /// quelle le legge solo il padrone con `my_profile()`.
-const _profileColumns = 'id, handle, language, avatar';
+const _profileColumns = 'id, handle, language, avatar, on_steam, on_apple, picture_url';
 
 /// Un valore casuale da usare una volta sola: Supabase controlla che il
 /// token di Apple o Google porti la sua impronta, così un token rubato non
@@ -421,6 +421,24 @@ class SupabaseProfiles implements ProfileRepository {
         if (rows.isEmpty) throw const OnlineException(OnlineFailure.notSignedIn);
         return Profile.fromJson(rows.first as Map<String, dynamic>);
       });
+
+  @override
+  Future<Profile> setPicture(ProfilePicture picture) => _guard(() async {
+        await _client.from('profiles').update({'picture': picture.name}).eq('id', _me);
+        return me();
+      });
+
+  @override
+  Future<bool> refreshSteam() async {
+    if (_client.auth.currentUser == null) return false;
+    try {
+      final response = await _client.functions.invoke('steam-auth', body: {'action': 'refresh'});
+      return (response.data as Map?)?['refreshed'] == true;
+    } catch (error) {
+      debugPrint('steam-auth refresh · $error');
+      return false;
+    }
+  }
 
   @override
   Future<bool> handleAvailable(String handle) => _guard(() async {

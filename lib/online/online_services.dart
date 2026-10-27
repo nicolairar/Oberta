@@ -73,6 +73,13 @@ abstract class ProfileRepository {
   /// salvato uno (vale solo se è di base).
   Future<Profile> saveFace(Map<String, String> face, {required String tone, String? mark});
 
+  /// L'immagine del profilo: il ritratto del gioco o quella di Steam.
+  Future<Profile> setPicture(ProfilePicture picture);
+
+  /// Chiede al server di rileggere nome e immagine di Steam. Vero se li ha
+  /// riletti (allora conviene ricaricare il profilo).
+  Future<bool> refreshSteam();
+
   /// Vero se nessun altro ha già questo nome unico (in qualunque maiuscola).
   Future<bool> handleAvailable(String handle);
 

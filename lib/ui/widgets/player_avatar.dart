@@ -2,11 +2,13 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../online/online_models.dart';
 import '../../roster/portrait_registry.dart';
 import '../avatar/avatar_look.dart';
 import '../avatar/look_painter.dart';
 import '../theme/app_theme.dart';
 import 'noir_avatar.dart';
+import 'platform_marks.dart';
 
 /// Quello che un giocatore indossa sopra il ritratto: oggi niente, domani
 /// cappelli, abiti e cornici guadagnati in partita. Il ritratto resta quello
@@ -52,6 +54,12 @@ class PlayerAvatar extends StatelessWidget {
 
   final AvatarDress dress;
 
+  /// L'immagine di Steam da mostrare al posto del ritratto disegnato (il
+  /// proprio profilo). Senza [look] né [picture] vale quella che il
+  /// giocatore [seed] ha scelto ([PlayerMarks]); con un [look] (le prove
+  /// dallo specchio) si disegna sempre il look.
+  final String? picture;
+
   const PlayerAvatar({
     super.key,
     required this.seed,
@@ -59,6 +67,7 @@ class PlayerAvatar extends StatelessWidget {
     this.fallen = false,
     this.dress = AvatarDress.none,
     this.look,
+    this.picture,
   });
 
   // Il pugnale tipografico, non la croce: iOS disegna "✝" come emoji.
@@ -75,13 +84,16 @@ class PlayerAvatar extends StatelessWidget {
           for (final layer in dress.layers)
             if (!layer.inFront) Positioned.fill(child: layer.build(context, size)),
           ListenableBuilder(
-            listenable: PortraitRegistry.instance,
-            builder: (context, _) => PortraitRegistry.instance.photoOf(seed) != null
-                ? NoirAvatar(seed: seed, size: size, faded: fallen)
-                : CustomPaint(
-                    size: Size.square(size),
-                    painter: AvatarBustPainter(look ?? AvatarLook.of(seed), faded: fallen),
-                  ),
+            listenable: Listenable.merge([PortraitRegistry.instance, PlayerMarks.changes]),
+            builder: (context, _) {
+              if (PortraitRegistry.instance.photoOf(seed) != null) return NoirAvatar(seed: seed, size: size, faded: fallen);
+              final drawn = CustomPaint(
+                size: Size.square(size),
+                painter: AvatarBustPainter(look ?? AvatarLook.of(seed), faded: fallen),
+              );
+              final url = picture ?? (look == null ? PlayerMarks.of(seed).picture : null);
+              return url == null ? drawn : SteamPicture(url: url, size: size, fallback: drawn, faded: fallen);
+            },
           ),
           for (final layer in dress.layers)
             if (layer.inFront) Positioned.fill(child: layer.build(context, size)),

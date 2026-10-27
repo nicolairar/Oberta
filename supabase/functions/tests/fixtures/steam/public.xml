@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?><profile>
+	<steamID64>76561197960287930</steamID64>
+	<steamID><![CDATA[Don Vito Corleone ☕]]></steamID>
+	<onlineState>offline</onlineState>
+	<stateMessage><![CDATA[Offline]]></stateMessage>
+	<privacyState>public</privacyState>
+	<visibilityState>3</visibilityState>
+	<avatarIcon><![CDATA[https://avatars.fastly.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb.jpg]]></avatarIcon>
+	<avatarMedium><![CDATA[https://avatars.fastly.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_medium.jpg]]></avatarMedium>
+	<avatarFull><![CDATA[https://avatars.fastly.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg]]></avatarFull>
+	<vacBanned>0</vacBanned>
+	<tradeBanState>None</tradeBanState>
+	<isLimitedAccount>0</isLimitedAccount>
+	<customURL><![CDATA[donvito]]></customURL>
+	<memberSince>September 12, 2003</memberSince>
+	<location><![CDATA[Palermo, Sicily, Italy]]></location>
+	<realname><![CDATA[Not stored]]></realname>
+	<summary><![CDATA[I'm gonna make him an offer he can't refuse.]]></summary>
+	<mostPlayedGames>
+		<mostPlayedGame>
+			<gameName><![CDATA[Obertà]]></gameName>
+			<gameIcon><![CDATA[https://evil.example.com/icon.jpg]]></gameIcon>
+		</mostPlayedGame>
+	</mostPlayedGames>
+	<groups>
+		<group isPrimary="1">
+			<groupID64>103582791429521408</groupID64>
+		</group>
+	</groups>
+</profile>

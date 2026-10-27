@@ -1,6 +1,6 @@
 # Obertà Privacy Policy
 
-Last updated: 18 October 2026
+Last updated: 22 October 2026
 
 Obertà is a party game. This policy explains what data we process, why, for how long, and what your rights are (EU Regulation 2016/679, "GDPR").
 
@@ -16,6 +16,8 @@ You can play on a single phone without an account. In that case no personal data
 
 - Your Apple (or Google) account identifier and the email address provided at sign-in; with Apple this may be a private relay address ("Hide My Email").
 - The unique username (handle) you choose and your preferred language.
+- If you sign in with Steam (desktop app): your SteamID, your Steam profile name and the address of your Steam profile picture, read from your public Steam profile at each sign-in. Only you see your Steam name (we use it to suggest your handle); other players see your Steam picture only if you choose it as your profile picture. We never receive your Steam password.
+- The platforms linked to your account (Steam, Apple), shown to other players as a small logo next to your name: only yes or no, never the identifier.
 - Your look (avatar face and clothes).
 - Level, experience and virtual coins.
 - Friends and friend requests.
@@ -53,6 +55,7 @@ We do not process location, contacts, photos, microphone or health data.
 - Supabase Inc. — hosting and database, with servers in the European Union (Ireland, region eu-west-1). Any transfers outside the EU are covered by Standard Contractual Clauses.
 - Apple Inc. — Sign in with Apple and in-app payments. For payments Apple acts as an independent controller under its own policy.
 - Google LLC — only if you choose to sign in with Google.
+- Valve Corporation (Steam) — only if you sign in with Steam: it confirms the sign-in and provides your public Steam profile. Valve acts as an independent controller under its own privacy policy.
 
 ## Minimum age
 
@@ -61,7 +64,7 @@ Online play includes chat with other players: you must be at least 14 to use it 
 ## Your rights
 
 - Access and portability: download all your data as JSON from Settings → Privacy & data → "Download my data".
-- Rectification: change your name and look in the app.
+- Rectification: change your name, look and profile picture in the app. Your Steam name and picture update from Steam.
 - Erasure: delete your account from Settings → Account → "Delete account".
 - Objection and restriction: write to niko.tana@outlook.com.
 - Complaint to the supervisory authority: Garante per la protezione dei dati personali (www.garanteprivacy.it), or the authority of your EU country.

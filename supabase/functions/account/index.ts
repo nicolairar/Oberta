@@ -6,7 +6,8 @@
 //   1. revokes the Sign in with Apple token, when the Apple secrets are set;
 //   2. calls public.forget_account(), which leaves open rooms, keeps the
 //      anonymous purchase records and deletes the profile (everything
-//      personal cascades from it: see 20261019150000_account_privacy.sql);
+//      personal cascades from it: see 20261019150000_account_privacy.sql;
+//      the Steam identity, persona name and avatar too: 20261107090000);
 //   3. deletes the auth user.
 //
 // Apple revocation (https://developer.apple.com/documentation/

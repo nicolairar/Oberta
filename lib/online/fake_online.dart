@@ -154,6 +154,27 @@ class FakeOnline {
     auth._signIn(accountId);
   }
 
+  /// Come `steam-auth`: [id] ha un account Steam collegato, con il suo nome
+  /// Steam e (se c'è) l'immagine.
+  void linkSteam(String id, {required String persona, String? avatar}) {
+    final p = _profiles[id]!;
+    _profiles[id] = Profile(
+      id: id,
+      handle: p.handle,
+      language: p.language,
+      avatar: p.avatar,
+      level: p.level,
+      xp: p.xp,
+      coins: p.coins,
+      onSteam: true,
+      onApple: p.onApple,
+      steamPersona: persona,
+      steamAvatar: avatar,
+      picture: p.picture,
+      pictureUrl: p.picture == ProfilePicture.steam ? avatar : null,
+    );
+  }
+
   /// Quello che solo il server scrive: livello, esperienza, monete.
   void award(String id, {int? level, int? xp, int? coins}) {
     _profiles[id] = _profiles[id]!.copyWith(level: level, xp: xp, coins: coins);
@@ -415,6 +436,15 @@ class FakeProfiles implements ProfileRepository {
 
   @override
   Future<bool> handleAvailable(String handle) async => !_taken(handle, _online._me);
+
+  @override
+  Future<Profile> setPicture(ProfilePicture picture) async {
+    final me = _online._me;
+    return _online._profiles[me] = _online._profiles[me]!.copyWith(picture: picture);
+  }
+
+  @override
+  Future<bool> refreshSteam() async => false;
 
   @override
   Future<Profile> update({required String handle, AppLanguage? language}) async {

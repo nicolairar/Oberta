@@ -7,10 +7,12 @@ import '../../l10n/app_strings.dart';
 import '../../l10n/desktop_strings.dart';
 import '../../l10n/online_strings.dart';
 import '../../online/handle_rules.dart';
+import '../../online/handle_suggestions.dart';
 import '../../online/online_services.dart';
 import '../screens/online/online_widgets.dart';
 import '../theme/app_theme.dart';
 import '../widgets/noir_avatar.dart';
+import '../widgets/platform_marks.dart';
 import 'desktop_canvas.dart';
 import 'home_modal.dart';
 
@@ -41,7 +43,15 @@ class DeskHandlePicker extends StatefulWidget {
 }
 
 class _DeskHandlePickerState extends State<DeskHandlePicker> {
-  late final _handle = TextEditingController(text: widget.profile.handle ?? '');
+  /// Chi entra con Steam trova già scritto il suo nome Steam, adattato alle
+  /// regole: se è libero basta salvare.
+  late final String? _persona = widget.profile.handle == null ? widget.profile.steamPersona : null;
+  late final _handle = TextEditingController(
+    text: widget.profile.handle ?? (_persona == null ? null : HandleSuggestions.fromPersona(_persona)) ?? '',
+  );
+
+  /// Nomi liberi vicini a quello preso.
+  List<String> _suggestions = const [];
   String? _error;
   bool _busy = false;
   _Check _check = _Check.idle;
@@ -74,6 +84,7 @@ class _DeskHandlePickerState extends State<DeskHandlePicker> {
     final problem = handle.isEmpty ? null : HandleRules.check(handle);
     setState(() {
       _error = null;
+      _suggestions = const [];
       _problem = problem == HandleProblem.tooShort ? null : problem;
       _check = handle.isEmpty || problem == HandleProblem.tooShort
           ? _Check.idle
@@ -97,7 +108,25 @@ class _DeskHandlePickerState extends State<DeskHandlePicker> {
           null => _Check.idle,
         },
       );
+      if (free == false) _suggest(handle, ask);
     });
+  }
+
+  /// Il nome è preso: si cercano due o tre nomi liberi lì vicino.
+  Future<void> _suggest(String handle, int ask) async {
+    List<String> free;
+    try {
+      free = await HandleSuggestions.freeVariants(handle, widget.services.profiles.handleAvailable);
+    } catch (error) {
+      debugPrint('Nomi vicini non trovati: $error');
+      return;
+    }
+    if (!mounted || ask != _asked) return;
+    setState(() => _suggestions = free);
+  }
+
+  void _take(String handle) {
+    _handle.value = TextEditingValue(text: handle, selection: TextSelection.collapsed(offset: handle.length));
   }
 
   Future<void> _save() async {
@@ -180,6 +209,22 @@ class _DeskHandlePickerState extends State<DeskHandlePicker> {
                   t.setupBody,
                   style: DeskText.text(size: DeskText.lead, color: AppColors.textSecondary),
                 ),
+                if (_persona case final persona?) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const SteamLogo(size: 18, color: AppColors.gold),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          t.handleFromSteam(persona),
+                          key: const Key('desk.handleFromSteam'),
+                          style: DeskText.text(color: AppColors.gold),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 28),
                 Text(t.handleLabel.toUpperCase(), style: DeskText.overline(color: AppColors.gold)),
                 const SizedBox(height: 10),
@@ -237,6 +282,25 @@ class _DeskHandlePickerState extends State<DeskHandlePicker> {
                   key: const Key('desk.handleStatus'),
                   style: DeskText.text(color: color),
                 ),
+                if (_suggestions.isNotEmpty && _check == _Check.taken) ...[
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(t.handleSuggestions, style: DeskText.text(color: AppColors.textSecondary)),
+                      for (final name in _suggestions)
+                        ActionChip(
+                          key: Key('desk.handleSuggestion.$name'),
+                          label: Text('@$name', style: DeskText.text(color: AppColors.textPrimary)),
+                          backgroundColor: Colors.black.withValues(alpha: 0.35),
+                          side: BorderSide(color: AppColors.gold.withValues(alpha: 0.6)),
+                          onPressed: () => _take(name),
+                        ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 28),
                 ElevatedButton(
                   key: const Key('desk.handleSave'),

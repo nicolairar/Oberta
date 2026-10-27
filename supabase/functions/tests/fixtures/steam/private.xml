@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?><profile>
+	<steamID64>76561197960287930</steamID64>
+	<steamID>Tom &amp; Sonny &lt;3</steamID>
+	<onlineState>offline</onlineState>
+	<stateMessage><![CDATA[Offline]]></stateMessage>
+	<privacyState>private</privacyState>
+	<visibilityState>1</visibilityState>
+	<avatarIcon><![CDATA[https://avatars.steamstatic.com/b5bd56c1aa4644a474a2e4972be27ef9e82e517e.jpg]]></avatarIcon>
+	<avatarMedium><![CDATA[https://avatars.steamstatic.com/b5bd56c1aa4644a474a2e4972be27ef9e82e517e_medium.jpg]]></avatarMedium>
+	<avatarFull><![CDATA[javascript:alert(1)]]></avatarFull>
+	<vacBanned>0</vacBanned>
+	<tradeBanState>None</tradeBanState>
+	<isLimitedAccount>1</isLimitedAccount>
+</profile>

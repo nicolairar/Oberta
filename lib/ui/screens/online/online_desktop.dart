@@ -5,6 +5,7 @@ import '../../desktop/desktop_canvas.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/city_backdrop.dart';
 import '../../widgets/noir_avatar.dart';
+import '../../widgets/platform_marks.dart';
 
 /// I pezzi delle schermate online sul PC: la scena a tutto schermo con la
 /// barra in alto, le righe dei giocatori col passaggio del mouse, le porte
@@ -143,7 +144,12 @@ class DeskProfileRow extends StatelessWidget {
   Widget build(BuildContext context) => _HoverRow(
           child: Row(
             children: [
-              NoirAvatar.drawn(seed: profile.avatarSeed, size: avatar),
+              MarkedPortrait(
+                name: profile.name,
+                picture: profile.pictureUrl,
+                size: avatar,
+                fallback: NoirAvatar.drawn(seed: profile.avatarSeed, size: avatar),
+              ),
               const SizedBox(width: 20),
               Expanded(
                 child: Column(
@@ -160,6 +166,7 @@ class DeskProfileRow extends StatelessWidget {
                             style: DeskText.text(size: DeskText.lead, weight: FontWeight.w600),
                           ),
                         ),
+                        PlatformBadges.of(steam: profile.onSteam, apple: profile.onApple, size: 18, gap: 10),
                         for (final badge in badges) ...[const SizedBox(width: 12), badge],
                       ],
                     ),

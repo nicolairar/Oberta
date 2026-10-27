@@ -5,6 +5,7 @@
 create role anon nologin; create role authenticated nologin; create role service_role nologin; create role authenticator nologin;
 create schema auth;
 create table auth.users (id uuid primary key, raw_user_meta_data jsonb default '{}', email text);
+create table auth.identities (id uuid primary key default gen_random_uuid(), user_id uuid not null references auth.users (id) on delete cascade, provider text not null, provider_id text, identity_data jsonb default '{}', updated_at timestamptz);
 create function auth.uid() returns uuid language sql stable as $$
   select nullif(coalesce(current_setting('request.jwt.claim.sub', true),
     (nullif(current_setting('request.jwt.claims', true), '')::jsonb) ->> 'sub'), '')::uuid $$;

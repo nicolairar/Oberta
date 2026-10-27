@@ -15,6 +15,7 @@ import '../../desktop/desktop_canvas.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/role_style.dart';
 import '../../widgets/home_account.dart';
+import '../../widgets/platform_marks.dart';
 import '../../widgets/player_avatar.dart';
 import '../avatar/barber_mirror_screen.dart';
 import 'online_widgets.dart';
@@ -322,7 +323,12 @@ class _DossierState extends State<_Dossier> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _Field(t.dossierName),
-                        _TypedLine(text: profile.name.isEmpty ? t.pickHandle : profile.name),
+                        _TypedLine(
+                          text: profile.name.isEmpty ? t.pickHandle : profile.name,
+                          steam: profile.onSteam,
+                          apple: profile.onApple,
+                        ),
+                        _SteamLines(account: widget.account, profile: profile),
                         DossierTitle(progress: widget.account.services.progress, style: _typed),
                         const SizedBox(height: 14),
                         _Field(t.dossierRank),
@@ -504,7 +510,7 @@ class _Mugshot extends StatelessWidget {
                   painter: const _HeightLinesPainter(),
                   child: Align(
                     alignment: Alignment.bottomCenter,
-                    child: PlayerAvatar(seed: profile.avatarSeed, look: profile.look, size: width * 0.8),
+                    child: PlayerAvatar(seed: profile.avatarSeed, look: profile.look, picture: profile.pictureUrl, size: width * 0.8),
                   ),
                 ),
               ),
@@ -598,7 +604,11 @@ class _TypedLine extends StatelessWidget {
   final String text;
   final double size;
 
-  const _TypedLine({required this.text, this.size = 20});
+  /// I loghi delle piattaforme collegate, dopo il nome.
+  final bool steam;
+  final bool apple;
+
+  const _TypedLine({required this.text, this.size = 20, this.steam = false, this.apple = false});
 
   @override
   Widget build(BuildContext context) => Container(
@@ -607,14 +617,110 @@ class _TypedLine extends StatelessWidget {
     decoration: BoxDecoration(
       border: Border(bottom: BorderSide(color: _ink.withValues(alpha: 0.55))),
     ),
-    child: Text(
-      text,
-      key: const Key('profile.handle'),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: _typed.copyWith(fontSize: size, fontWeight: FontWeight.bold),
+    child: Row(
+      children: [
+        Flexible(
+          child: Text(
+            text,
+            key: const Key('profile.handle'),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: _typed.copyWith(fontSize: size, fontWeight: FontWeight.bold),
+          ),
+        ),
+        PlatformBadges.of(steam: steam, apple: apple, size: size * 0.8, gap: size * 0.4, color: _ink.withValues(alpha: 0.75)),
+      ],
     ),
   );
+}
+
+/// Sotto il nome, per chi gioca con Steam: il nome Steam com'è su Steam e
+/// la scelta dell'immagine del profilo (il ritratto del gioco o quella di
+/// Steam). Niente per gli altri.
+class _SteamLines extends StatefulWidget {
+  final OnlineAccount account;
+  final Profile profile;
+  final double size;
+
+  const _SteamLines({required this.account, required this.profile, this.size = 12});
+
+  @override
+  State<_SteamLines> createState() => _SteamLinesState();
+}
+
+class _SteamLinesState extends State<_SteamLines> {
+  bool _busy = false;
+
+  Future<void> _choose(ProfilePicture picture) async {
+    if (_busy || picture == widget.profile.picture) return;
+    setState(() => _busy = true);
+    try {
+      widget.account.saved(await widget.account.services.profiles.setPicture(picture));
+    } catch (error) {
+      if (mounted) showFailure(context, error);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final profile = widget.profile;
+    if (!profile.onSteam) return const SizedBox.shrink();
+    final t = AppStrings.of(context).online;
+    final size = widget.size;
+    Widget option(ProfilePicture picture, String label) {
+      final on = profile.picture == picture;
+      return InkWell(
+        key: Key('profile.picture.${picture.name}'),
+        onTap: _busy ? null : () => _choose(picture),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: size * 0.6, vertical: size * 0.25),
+          decoration: BoxDecoration(
+            color: on ? _ink : Colors.transparent,
+            border: Border.all(color: _ink.withValues(alpha: 0.7)),
+          ),
+          child: Text(
+            label.toUpperCase(),
+            style: _typed.copyWith(
+              fontSize: size * 0.85,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.8,
+              color: on ? _paper : _ink,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: EdgeInsets.only(top: size * 0.4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (profile.steamPersona case final persona?)
+            Text(
+              t.steamPersona(persona),
+              key: const Key('profile.steamPersona'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: _typed.copyWith(fontSize: size, color: _ink.withValues(alpha: 0.75)),
+            ),
+          SizedBox(height: size * 0.5),
+          Text(
+            '${t.pictureLabel}:',
+            style: _typed.copyWith(fontSize: size * 0.85, fontWeight: FontWeight.w800, color: _ink.withValues(alpha: 0.6)),
+          ),
+          SizedBox(height: size * 0.3),
+          Wrap(
+            spacing: size * 0.4,
+            runSpacing: size * 0.3,
+            children: [option(ProfilePicture.game, t.pictureGame), option(ProfilePicture.steam, t.pictureSteam)],
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// Il livello come un sigillo di ceralacca.

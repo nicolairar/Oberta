@@ -5,6 +5,7 @@ import '../../../l10n/app_strings.dart';
 import '../../../l10n/progress_strings.dart';
 import '../../../online/online_services.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/platform_marks.dart';
 import 'game/noir_ui.dart';
 import 'progress_widgets.dart';
 
@@ -102,11 +103,23 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                               ),
                             ),
                             Expanded(
-                              child: Text(
-                                '@${row.handle}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: AppText.body.copyWith(color: Saloon.paper, fontWeight: FontWeight.w700),
+                              child: Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      '@${row.handle}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: AppText.body.copyWith(color: Saloon.paper, fontWeight: FontWeight.w700),
+                                    ),
+                                  ),
+                                  PlatformBadges.of(
+                                    steam: row.steam,
+                                    apple: row.apple,
+                                    size: 13,
+                                    color: Saloon.paper.withValues(alpha: 0.7),
+                                  ),
+                                ],
                               ),
                             ),
                             Text(

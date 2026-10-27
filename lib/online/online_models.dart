@@ -1,4 +1,6 @@
 
+import 'package:flutter/foundation.dart';
+
 import '../l10n/app_language.dart';
 import 'game/match_rewards.dart';
 import 'handle_rules.dart';
@@ -26,6 +28,72 @@ abstract final class WornLooks {
   /// Per i test.
   static void clear() => _byName.clear();
 }
+
+/// Che cosa sa l'app dei giocatori, per nome, oltre al look: le piattaforme
+/// collegate (il logo di Steam o di Apple accanto al nome) e l'immagine di
+/// Steam, solo se il giocatore l'ha scelta come immagine del profilo. Come
+/// [WornLooks], ogni profilo che arriva dal server lascia qui il suo.
+@immutable
+class PlayerMark {
+  final bool steam;
+  final bool apple;
+
+  /// L'immagine di Steam (https, *.steamstatic.com), o null: il ritratto
+  /// disegnato del gioco.
+  final String? picture;
+
+  const PlayerMark({this.steam = false, this.apple = false, this.picture});
+
+  bool get isEmpty => !steam && !apple && picture == null;
+
+  @override
+  bool operator ==(Object other) =>
+      other is PlayerMark && other.steam == steam && other.apple == apple && other.picture == picture;
+
+  @override
+  int get hashCode => Object.hash(steam, apple, picture);
+}
+
+abstract final class PlayerMarks {
+  static final Map<String, PlayerMark> _byName = {};
+
+  /// Cambia quando cambia un segno: i ritratti e i nomi si ridisegnano.
+  static final ValueNotifier<int> changes = ValueNotifier(0);
+
+  static void remember(Profile profile) {
+    final name = profile.handle;
+    if (name == null) return;
+    set(name, PlayerMark(steam: profile.onSteam, apple: profile.onApple, picture: profile.pictureUrl));
+  }
+
+  /// Solo le piattaforme (la classifica non porta l'immagine): quella che
+  /// si conosceva già resta.
+  static void rememberPlatforms(String name, {required bool steam, required bool apple}) =>
+      set(name, PlayerMark(steam: steam, apple: apple, picture: _byName[name]?.picture));
+
+  static void set(String name, PlayerMark mark) {
+    final old = _byName[name];
+    if (old == mark || (old == null && mark.isEmpty)) return;
+    if (mark.isEmpty) {
+      _byName.remove(name);
+    } else {
+      _byName[name] = mark;
+    }
+    changes.value++;
+  }
+
+  static PlayerMark of(String name) => _byName[name] ?? const PlayerMark();
+
+  /// Per i test.
+  static void clear() {
+    _byName.clear();
+    changes.value++;
+  }
+}
+
+/// L'immagine del profilo: il ritratto disegnato del gioco o, per chi entra
+/// con Steam e lo sceglie, l'immagine di Steam.
+enum ProfilePicture { game, steam }
 
 /// Un profilo online: chi è una persona per gli altri giocatori, su ogni
 /// telefono dove entra con lo stesso account.
@@ -64,6 +132,20 @@ class Profile {
   final int xp;
   final int coins;
 
+  /// Le piattaforme collegate all'account: solo sì o no, li vedono tutti.
+  final bool onSteam;
+  final bool onApple;
+
+  /// L'immagine che vedono gli altri: quella di Steam se il giocatore l'ha
+  /// scelta, altrimenti null (il ritratto disegnato).
+  final String? pictureUrl;
+
+  /// Solo nel proprio profilo (`my_profile()`): il nome Steam com'è su
+  /// Steam, l'immagine di Steam anche se non scelta, e la scelta.
+  final String? steamPersona;
+  final String? steamAvatar;
+  final ProfilePicture picture;
+
   const Profile({
     required this.id,
     this.handle,
@@ -72,6 +154,12 @@ class Profile {
     this.level = 1,
     this.xp = 0,
     this.coins = 0,
+    this.onSteam = false,
+    this.onApple = false,
+    this.pictureUrl,
+    this.steamPersona,
+    this.steamAvatar,
+    this.picture = ProfilePicture.game,
   });
 
   /// Senza nome unico non si entra nelle stanze.
@@ -90,20 +178,48 @@ class Profile {
   /// Quanto manca al prossimo livello, da 0 a 1: la barra del profilo.
   double get levelProgress => (xp / xpToNext(level)).clamp(0.0, 1.0);
 
-  Profile copyWith({String? handle, AppLanguage? language, Map<String, String>? avatar, int? level, int? xp, int? coins}) => Profile(
-        id: id,
-        handle: handle ?? this.handle,
-        language: language ?? this.language,
-        avatar: avatar ?? this.avatar,
-        level: level ?? this.level,
-        xp: xp ?? this.xp,
-        coins: coins ?? this.coins,
-      );
+  Profile copyWith({
+    String? handle,
+    AppLanguage? language,
+    Map<String, String>? avatar,
+    int? level,
+    int? xp,
+    int? coins,
+    ProfilePicture? picture,
+  }) {
+    final choice = picture ?? this.picture;
+    return Profile(
+      id: id,
+      handle: handle ?? this.handle,
+      language: language ?? this.language,
+      avatar: avatar ?? this.avatar,
+      level: level ?? this.level,
+      xp: xp ?? this.xp,
+      coins: coins ?? this.coins,
+      onSteam: onSteam,
+      onApple: onApple,
+      pictureUrl: picture == null ? pictureUrl : (choice == ProfilePicture.steam ? steamAvatar : null),
+      steamPersona: steamPersona,
+      steamAvatar: steamAvatar,
+      picture: choice,
+    );
+  }
 
   factory Profile.fromJson(Map<String, dynamic> json) {
     final profile = Profile._fromJson(json);
     WornLooks.remember(profile);
+    PlayerMarks.remember(profile);
     return profile;
+  }
+
+  /// Solo le immagini di Steam, in https: quello che il database lascia
+  /// passare, controllato di nuovo prima di caricarlo.
+  static String? safePicture(Object? url) {
+    if (url is! String) return null;
+    final uri = Uri.tryParse(url);
+    if (uri == null || uri.scheme != 'https' || uri.hasPort || uri.userInfo.isNotEmpty) return null;
+    final host = uri.host.toLowerCase();
+    return host == 'steamstatic.com' || host.endsWith('.steamstatic.com') ? url : null;
   }
 
   factory Profile._fromJson(Map<String, dynamic> json) => Profile(
@@ -117,6 +233,12 @@ class Profile {
         level: (json['level'] as num?)?.toInt() ?? 1,
         xp: (json['xp'] as num?)?.toInt() ?? 0,
         coins: (json['coins'] as num?)?.toInt() ?? 0,
+        onSteam: json['on_steam'] == true,
+        onApple: json['on_apple'] == true,
+        pictureUrl: safePicture(json['picture_url']),
+        steamPersona: json['steam_persona'] as String?,
+        steamAvatar: safePicture(json['steam_avatar']),
+        picture: json['picture'] == 'steam' ? ProfilePicture.steam : ProfilePicture.game,
       );
 
   static const minHandle = HandleRules.minLength;

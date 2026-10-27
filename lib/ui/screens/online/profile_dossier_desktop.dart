@@ -231,8 +231,14 @@ class _DeskDossier extends StatelessWidget {
                     const SizedBox(height: 10),
                     _Field(t.dossierName, size: 15),
                     const SizedBox(height: 4),
-                    _TypedLine(text: profile.name.isEmpty ? t.pickHandle : profile.name, size: 32),
-                    const SizedBox(height: 30),
+                    _TypedLine(
+                      text: profile.name.isEmpty ? t.pickHandle : profile.name,
+                      size: 32,
+                      steam: profile.onSteam,
+                      apple: profile.onApple,
+                    ),
+                    _SteamLines(account: host.widget.account, profile: profile, size: 16),
+                    SizedBox(height: profile.onSteam ? 16 : 30),
                     _Field(t.dossierRank, size: 15),
                     const SizedBox(height: 10),
                     _LevelSeal(

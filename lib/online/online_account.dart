@@ -85,6 +85,8 @@ class OnlineAccount extends ChangeNotifier {
       if (services.auth.userId != userId) return;
       _profile = profile;
       WornLooks.remember(profile);
+      PlayerMarks.remember(profile);
+      _refreshSteam(userId, profile);
     } catch (error) {
       if (services.auth.userId != userId) return;
       _error = error;
@@ -92,10 +94,23 @@ class OnlineAccount extends ChangeNotifier {
     notifyListeners();
   }
 
+  String? _steamAskedFor;
+
+  /// Una volta per sessione, chi gioca con Steam chiede al server di rileggere
+  /// nome e immagine di Steam (il server lo fa al massimo ogni sei ore).
+  void _refreshSteam(String userId, Profile profile) {
+    if (!profile.onSteam || _steamAskedFor == userId) return;
+    _steamAskedFor = userId;
+    services.profiles.refreshSteam().then((changed) {
+      if (changed && services.auth.userId == userId) refresh();
+    }, onError: (_) {});
+  }
+
   /// Il profilo appena salvato, senza tornare a chiederlo al server.
   void saved(Profile profile) {
     _profile = profile;
     WornLooks.remember(profile);
+    PlayerMarks.remember(profile);
     _error = null;
     notifyListeners();
   }

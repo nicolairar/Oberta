@@ -113,4 +113,57 @@ void main() {
       expect(saved?.handle, 'don_vito');
     });
   }
+
+  testWidgets('chi entra con Steam trova il nome Steam già scritto; se è preso, nomi liberi a un tocco', (tester) async {
+    await useDesktop(tester, desktopSizes['1080p']!);
+    final online = FakeOnline()..signInReady();
+    online.addPlayer('other', handle: 'donvitocorle');
+    Profile? saved;
+    await tester.pumpWidget(
+      desktopApp(
+        _opener((context) async {
+          saved = await showDeskHandlePicker(
+            context,
+            services: online.services,
+            profile: const Profile(id: 'me', onSteam: true, steamPersona: 'Don Vito Corleone'),
+          );
+        }),
+      ),
+    );
+    await tester.tap(find.text('go'));
+    await desktopFrames(tester, 6);
+    expect(find.byKey(const Key('desk.handleFromSteam')), findsOneWidget);
+    final field = tester.widget<TextField>(find.byKey(const Key('online.handle')));
+    expect(field.controller!.text, 'donvitocorle');
+    await desktopFrames(tester, 6);
+    expect(find.byKey(const Key('desk.handleSuggestion.donvitocorl1')), findsOneWidget);
+    await saveDesktopShot(tester, 'handle_picker_steam_taken');
+    await tester.tap(find.byKey(const Key('desk.handleSuggestion.donvitocorl1')));
+    await desktopFrames(tester, 6);
+    await tester.tap(find.byKey(const Key('desk.handleSave')));
+    await desktopFrames(tester, 6);
+    expect(saved?.handle, 'donvitocorl1');
+  });
+
+  testWidgets('il nome Steam libero: basta salvare', (tester) async {
+    await useDesktop(tester, desktopSizes['1080p']!);
+    final online = FakeOnline()..signInReady();
+    Profile? saved;
+    await tester.pumpWidget(
+      desktopApp(
+        _opener((context) async {
+          saved = await showDeskHandlePicker(
+            context,
+            services: online.services,
+            profile: const Profile(id: 'me', onSteam: true, steamPersona: 'Fredo ☕'),
+          );
+        }),
+      ),
+    );
+    await tester.tap(find.text('go'));
+    await desktopFrames(tester, 6);
+    await tester.tap(find.byKey(const Key('desk.handleSave')));
+    await desktopFrames(tester, 6);
+    expect(saved?.handle, 'fredo');
+  });
 }
