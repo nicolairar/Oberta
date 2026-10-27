@@ -27,23 +27,49 @@ class NoirRoleCard extends StatefulWidget {
   /// Chiamata la prima volta che la carta arriva scoperta.
   final VoidCallback? onRevealed;
 
-  const NoirRoleCard({super.key, required this.role, this.teammates = const [], this.bounty, this.onRevealed});
+  const NoirRoleCard({
+    super.key,
+    required this.role,
+    this.teammates = const [],
+    this.bounty,
+    this.onRevealed,
+  });
 
   @override
   State<NoirRoleCard> createState() => _NoirRoleCardState();
 }
 
-class _NoirRoleCardState extends State<NoirRoleCard> with TickerProviderStateMixin {
-  late final AnimationController _flip = AnimationController(vsync: this, duration: const Duration(milliseconds: 520))
-    ..addStatusListener((status) {
-      if (status == AnimationStatus.completed && !_notified) {
-        _notified = true;
-        widget.onRevealed?.call();
-      }
-    });
-  late final AnimationController _deal = AnimationController(vsync: this, duration: const Duration(milliseconds: 700))
-    ..forward();
+class _NoirRoleCardState extends State<NoirRoleCard>
+    with TickerProviderStateMixin {
+  late final AnimationController _flip =
+      AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 520),
+      )..addStatusListener((status) {
+        if (status == AnimationStatus.completed && !_notified) {
+          _notified = true;
+          widget.onRevealed?.call();
+        }
+      });
+  late final AnimationController _deal = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 700),
+  );
   bool _notified = false;
+
+  /// Movimento ridotto: la carta è già sul panno e si scopre senza giro.
+  bool _still = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _still = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    if (_still) {
+      _deal.value = 1;
+    } else if (_deal.isDismissed) {
+      _deal.forward();
+    }
+  }
 
   @override
   void dispose() {
@@ -55,15 +81,21 @@ class _NoirRoleCardState extends State<NoirRoleCard> with TickerProviderStateMix
   void _press() {
     HapticFeedback.mediumImpact();
     SoundStage.instance.cue(Cue.flip);
-    _flip.forward();
+    if (_still) {
+      _flip.value = 1;
+    } else {
+      _flip.forward();
+    }
   }
+
+  void _release() => _still ? _flip.value = 0 : _flip.reverse();
 
   @override
   Widget build(BuildContext context) {
     return Listener(
       onPointerDown: (_) => _press(),
-      onPointerUp: (_) => _flip.reverse(),
-      onPointerCancel: (_) => _flip.reverse(),
+      onPointerUp: (_) => _release(),
+      onPointerCancel: (_) => _release(),
       child: AspectRatio(
         aspectRatio: 5 / 7.4,
         child: AnimatedBuilder(
@@ -75,35 +107,51 @@ class _NoirRoleCardState extends State<NoirRoleCard> with TickerProviderStateMix
             final faceUp = angle > pi / 2;
             // Sollevata a metà giro: più grande, l'ombra più lontana.
             final lift = sin(t * pi);
-            return Transform.translate(
-              offset: Offset(0, (1 - deal) * -260),
-              child: Transform.rotate(
-                angle: (1 - deal) * -0.5,
-                child: Transform(
-                  alignment: Alignment.center,
-                  transform: Matrix4.identity()
-                    ..setEntry(3, 2, 0.0012)
-                    ..scaleByDouble(1 + lift * 0.06, 1 + lift * 0.06, 1, 1)
-                    ..rotateY(angle),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.8),
-                          blurRadius: 24 + lift * 20,
-                          offset: Offset(0, 12 + lift * 18),
-                        ),
-                        if (faceUp) BoxShadow(color: widget.role.color.withValues(alpha: 0.5 * t), blurRadius: 40),
-                      ],
+            // Il volo comincia in dissolvenza: la carta non spunta dal nulla.
+            return Opacity(
+              opacity: Curves.easeOut.transform(
+                (_deal.value / 0.3).clamp(0.0, 1.0),
+              ),
+              child: Transform.translate(
+                offset: Offset(0, (1 - deal) * -260),
+                child: Transform.rotate(
+                  angle: (1 - deal) * -0.5,
+                  child: Transform(
+                    alignment: Alignment.center,
+                    transform: Matrix4.identity()
+                      ..setEntry(3, 2, 0.0012)
+                      ..scaleByDouble(1 + lift * 0.06, 1 + lift * 0.06, 1, 1)
+                      ..rotateY(angle),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.8),
+                            blurRadius: 24 + lift * 20,
+                            offset: Offset(0, 12 + lift * 18),
+                          ),
+                          if (faceUp)
+                            BoxShadow(
+                              color: widget.role.color.withValues(
+                                alpha: 0.5 * (t * 2 - 1).clamp(0.0, 1.0),
+                              ),
+                              blurRadius: 40,
+                            ),
+                        ],
+                      ),
+                      child: faceUp
+                          ? Transform(
+                              alignment: Alignment.center,
+                              transform: Matrix4.rotationY(pi),
+                              child: _Face(
+                                role: widget.role,
+                                teammates: widget.teammates,
+                                bounty: widget.bounty,
+                              ),
+                            )
+                          : const _Back(),
                     ),
-                    child: faceUp
-                        ? Transform(
-                            alignment: Alignment.center,
-                            transform: Matrix4.rotationY(pi),
-                            child: _Face(role: widget.role, teammates: widget.teammates, bounty: widget.bounty),
-                          )
-                        : const _Back(),
                   ),
                 ),
               ),
@@ -152,7 +200,9 @@ class _Back extends StatelessWidget {
                       fit: BoxFit.scaleDown,
                       child: Text(
                         AppStrings.of(context).pressAndHold,
-                        style: AppText.overline.copyWith(color: AppColors.textPrimary),
+                        style: AppText.overline.copyWith(
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                     ),
                   ),
@@ -192,8 +242,14 @@ class _BackPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.4
       ..color = Saloon.brass;
-    canvas.drawRRect(RRect.fromRectAndRadius(all.deflate(1.2), const Radius.circular(20)), frame);
-    canvas.drawRRect(RRect.fromRectAndRadius(all.deflate(10), const Radius.circular(13)), frame..strokeWidth = 1);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(all.deflate(1.2), const Radius.circular(20)),
+      frame,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(all.deflate(10), const Radius.circular(13)),
+      frame..strokeWidth = 1,
+    );
   }
 
   @override
@@ -247,16 +303,26 @@ class _Face extends StatelessWidget {
                     height: 104,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: RadialGradient(colors: [Color.lerp(role.color, Colors.white, 0.2)!, Saloon.ink]),
+                      gradient: RadialGradient(
+                        colors: [
+                          Color.lerp(role.color, Colors.white, 0.2)!,
+                          Saloon.ink,
+                        ],
+                      ),
                       border: Border.all(color: Saloon.brass, width: 2),
-                      boxShadow: const [BoxShadow(color: Colors.black, blurRadius: 12)],
+                      boxShadow: const [
+                        BoxShadow(color: Colors.black, blurRadius: 12),
+                      ],
                     ),
                     child: RoleIcon(role, size: 84),
                   ),
                   const SizedBox(height: 16),
                   FittedBox(
                     fit: BoxFit.scaleDown,
-                    child: Text(text.label.toUpperCase(), style: Saloon.plate(30, color: const Color(0xFFFFF1D6))),
+                    child: Text(
+                      text.label.toUpperCase(),
+                      style: Saloon.plate(30, color: const Color(0xFFFFF1D6)),
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(
@@ -271,7 +337,10 @@ class _Face extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: isMafia ? Saloon.enamel : const Color(0xFF16351F),
                       borderRadius: BorderRadius.circular(4),
@@ -283,7 +352,10 @@ class _Face extends StatelessWidget {
                           : role.team == Team.neutral
                           ? t.youAreNeutral
                           : t.youAreTown,
-                      style: AppText.overline.copyWith(color: AppColors.textPrimary, fontSize: 11),
+                      style: AppText.overline.copyWith(
+                        color: AppColors.textPrimary,
+                        fontSize: 11,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -293,7 +365,12 @@ class _Face extends StatelessWidget {
                       color: Colors.black.withValues(alpha: 0.55),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: RoleRules(role, color: AppColors.textPrimary, labelColor: Saloon.brass, fontSize: 14),
+                    child: RoleRules(
+                      role,
+                      color: AppColors.textPrimary,
+                      labelColor: Saloon.brass,
+                      fontSize: 14,
+                    ),
                   ),
                   if (bounty case final mark?) ...[
                     const SizedBox(height: 12),
@@ -301,7 +378,11 @@ class _Face extends StatelessWidget {
                       t.bountyLine.replaceAll('{name}', mark.name),
                       key: const Key('role.bounty'),
                       textAlign: TextAlign.center,
-                      style: AppText.body.copyWith(color: Saloon.brass, fontSize: 15, fontWeight: FontWeight.w800),
+                      style: AppText.body.copyWith(
+                        color: Saloon.brass,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ],
                   if (isMafia) ...[
@@ -315,7 +396,11 @@ class _Face extends StatelessWidget {
                       Text(
                         teammates.map((p) => p.name).join(' · '),
                         textAlign: TextAlign.center,
-                        style: const TextStyle(color: AppColors.textPrimary, fontSize: 17, fontWeight: FontWeight.w700),
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ],
                   ],

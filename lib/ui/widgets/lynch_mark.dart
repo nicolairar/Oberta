@@ -56,12 +56,16 @@ class _LynchMarkState extends State<LynchMark> with SingleTickerProviderStateMix
           final drop = Curves.easeOutBack.transform(_span(t, 0, 0.3));
           final rope = 1 - _span(t, 0.7, 0.95);
           // Il tremito: forte allo strappo, poi si spegne.
-          final shake = t < 0.25 || t > 0.75 ? 0.0 : sin(t * 90) * 5 * (1 - _span(t, 0.25, 0.75));
+          // Parte da zero (niente scatto al primo colpo) e si smorza.
+          final shake = t < 0.25 || t > 0.75
+              ? 0.0
+              : sin((t - 0.25) * 90) * 5 * _span(t, 0.25, 0.3) * (1 - _span(t, 0.25, 0.75));
           // Il timbro: arriva grande e si schiaccia sul petto.
           final slam = _span(t, 0.3, 0.45);
           final stampScale = 2.4 - 1.4 * Curves.easeIn.transform(slam);
-          final settle = _span(t, 0.75, 1);
-          final flash = t < 0.42 ? 0.0 : (1 - _span(t, 0.42, 0.7)) * 0.45;
+          final settle = Curves.easeInOutCubic.transform(_span(t, 0.75, 1));
+          // Il lampo rosso nasce quando il timbro tocca, e si spegne piano.
+          final flash = t < 0.4 ? 0.0 : _span(t, 0.4, 0.45) * (1 - Curves.easeOut.transform(_span(t, 0.45, 0.75))) * 0.45;
           return LayoutBuilder(builder: (context, box) {
             final w = box.maxWidth.isFinite ? box.maxWidth : 80.0;
             final h = box.maxHeight.isFinite ? box.maxHeight : 100.0;

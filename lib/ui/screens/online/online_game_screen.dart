@@ -452,7 +452,20 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   /// Prima dell'inizio comune della fase (l'orologio non corre ancora).
   bool get _beforeStart => _client.ready && _client.elapsed < Duration.zero;
 
-  Widget _screen() {
+  /// I film dell'alba prendono tutto lo schermo: si entra e si esce con
+  /// una dissolvenza sul nero, non con un taglio.
+  Widget _filmSwitch(Widget page) => AnimatedSwitcher(
+    duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : phaseFade,
+    switchInCurve: Curves.easeOutCubic,
+    switchOutCurve: Curves.easeInCubic,
+    child: KeyedSubtree(key: ValueKey(_inFilm), child: page),
+  );
+
+  bool get _inFilm => _client.ready && !_board.abandoned && _stage == Stage.dawnFilms;
+
+  Widget _screen() => _filmSwitch(_screenPage());
+
+  Widget _screenPage() {
     final ready = _client.ready;
     if (ready && !_board.abandoned && _stage == Stage.dawnFilms) {
       return PopScope(
@@ -645,7 +658,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
           child: NoirDesk(
             child: Stack(
               children: [
-                Positioned.fill(child: page),
+                Positioned.fill(child: _filmSwitch(page)),
                 if (_paused)
                   Positioned.fill(
                     child: DeskPauseMenu(
@@ -1141,6 +1154,22 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     _ => _verdictPhase(),
   };
 
+  /// Il passaggio da una fase all'altra (notte, alba, discussione, voto,
+  /// verdetto): la pagina nuova entra in dissolvenza sopra la vecchia. Le
+  /// misure sono le stesse, quindi niente salta; col movimento ridotto è un
+  /// taglio netto.
+  Widget _phaseSwitch(Widget child) => AnimatedSwitcher(
+    duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : phaseFade,
+    switchInCurve: Curves.easeOutCubic,
+    switchOutCurve: Curves.easeInCubic,
+    layoutBuilder: (current, previous) =>
+        Stack(alignment: Alignment.topCenter, children: [...previous, ?current]),
+    child: child,
+  );
+
+  /// Quanto dura la dissolvenza tra una fase e l'altra (e verso i film).
+  static const phaseFade = Duration(milliseconds: 300);
+
   /// La pagina di ogni fase: il tavolo in alto, sotto la striscia dei
   /// comandi della fase, poi la chat (sempre la stessa, anche di notte). Con
   /// la tastiera aperta resta solo la chat.
@@ -1176,7 +1205,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
-              child: KeyedSubtree(
+              child: _phaseSwitch(KeyedSubtree(
                 key: phase.key,
                 child: Column(
                   children: [
@@ -1193,7 +1222,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                     ),
                   ],
                 ),
-              ),
+              )),
             ),
             const SizedBox(width: 12),
             SizedBox(
@@ -1217,7 +1246,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       child: Column(
         children: [
           if (!typing)
-            KeyedSubtree(
+            _phaseSwitch(KeyedSubtree(
               key: phase.key,
               child: Column(
                 children: [
@@ -1237,7 +1266,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                   ),
                 ],
               ),
-            ),
+            )),
           Expanded(
             child: SizedBox(key: const Key('game.chatSlot'), width: double.infinity, child: chatBox),
           ),

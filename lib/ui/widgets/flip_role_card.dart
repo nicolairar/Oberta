@@ -42,7 +42,8 @@ class _FlipRoleCardState extends State<FlipRoleCard> with SingleTickerProviderSt
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 420),
+      // Lo stesso giro della carta online.
+      duration: const Duration(milliseconds: 520),
     )..addStatusListener((status) {
         if (status == AnimationStatus.completed && !_notified) {
           _notified = true;
@@ -62,8 +63,16 @@ class _FlipRoleCardState extends State<FlipRoleCard> with SingleTickerProviderSt
     SoundStage.instance.cue(Cue.flip);
     // A caso, mai legato al ruolo: lo sentono tutti, non deve svelare niente.
     beat(MemeMoment.roleReveal, after: const Duration(milliseconds: 250));
-    _controller.forward();
+    // Movimento ridotto: si scopre e si copre senza giro.
+    if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) {
+      _controller.value = 1;
+    } else {
+      _controller.forward();
+    }
   }
+
+  void _release() =>
+      (MediaQuery.maybeDisableAnimationsOf(context) ?? false) ? _controller.value = 0 : _controller.reverse();
 
   @override
   Widget build(BuildContext context) {
@@ -71,19 +80,23 @@ class _FlipRoleCardState extends State<FlipRoleCard> with SingleTickerProviderSt
     // senza aspettare che il sistema decida se è un tap o un long press.
     return Listener(
       onPointerDown: (_) => _press(),
-      onPointerUp: (_) => _controller.reverse(),
-      onPointerCancel: (_) => _controller.reverse(),
+      onPointerUp: (_) => _release(),
+      onPointerCancel: (_) => _release(),
       child: AspectRatio(
         aspectRatio: 5 / 7,
         child: AnimatedBuilder(
           animation: _controller,
           builder: (context, _) {
-            final angle = Curves.easeInOutCubic.transform(_controller.value) * pi;
+            final t = Curves.easeInOutCubic.transform(_controller.value);
+            final angle = t * pi;
             final faceUp = angle > pi / 2;
+            // Sollevata appena a metà giro, come quella online.
+            final lift = 1 + sin(t * pi) * 0.05;
             return Transform(
               alignment: Alignment.center,
               transform: Matrix4.identity()
-                ..setEntry(3, 2, 0.0014)
+                ..setEntry(3, 2, 0.0012)
+                ..scaleByDouble(lift, lift, 1, 1)
                 ..rotateY(angle),
               child: faceUp
                   ? Transform(
