@@ -7,7 +7,17 @@ import 'memes.dart';
 import 'scene_cues.dart';
 
 /// Il sottofondo di ogni momento della partita.
-enum MusicMood { menu, table, night, day, winTown, winFamily }
+enum MusicMood {
+  menu,
+  table,
+  night,
+  day,
+  winTown,
+  winFamily;
+
+  /// I temi della vittoria suonano una volta sola, non girano in loop.
+  bool get oneShot => this == winTown || this == winFamily;
+}
 
 /// I suoni dei tasti: ogni gesto ha il suo.
 enum Press { tap, confirm, back, toggle, chips, card, shuffle }
@@ -63,6 +73,16 @@ class SoundStage {
   /// Cambia la musica di sottofondo: dissolvenza dalla traccia di prima a
   /// quella nuova (una a caso tra quelle di [mood]). Se suona già, resta.
   void music(MusicMood? mood) {}
+
+  /// Il loop della schermata in vista: quando un brano che suona una volta
+  /// sola (la vittoria) finisce, riparte questo. Lo mettono le schermate.
+  MusicMood screenLoop = MusicMood.menu;
+
+  /// Il palco avvisa qui quando [mood] è finito da solo: un brano che non
+  /// gira in loop lascia il posto al loop della schermata.
+  void musicEnded(MusicMood mood) {
+    if (mood.oneShot && enabled) music(screenLoop);
+  }
 
   /// Un sottofondo che gira in loop finché non lo si cambia (pioggia, grilli,
   /// vento), in dissolvenza; `null` lo spegne.

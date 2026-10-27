@@ -32,6 +32,7 @@ import 'online/profile_sheet.dart';
 import 'online/sign_in_sheet.dart';
 import 'shop/shop_screen.dart';
 import '../../sound/fx_groups.dart';
+import '../../sound/screen_music.dart';
 import '../../sound/sound_stage.dart';
 
 double _span(double t, double from, double to) => ((t - from) / (to - from)).clamp(0.0, 1.0);
@@ -66,7 +67,10 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, WidgetsBindingObserver {
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, WidgetsBindingObserver, ScreenMusic {
+  @override
+  MusicMood get screenMood => MusicMood.menu;
+
   /// Quante volte si è passati di qui: decide da che didascalia cominciare.
   static int _visits = Random().nextInt(AppLanguage.it.strings.homeCaptions.length);
 

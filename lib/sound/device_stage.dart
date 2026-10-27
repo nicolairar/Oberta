@@ -42,6 +42,7 @@ class DeviceStage extends SoundStage implements VerdictStage {
   FxGroup? _ambienceGroup;
   final _random = Random();
   MusicMood? _mood;
+  StreamSubscription<void>? _oneShotEnd;
   double _duck = 1;
   final Map<FxGroup, int> _lastTake = {};
   late final Future<void> _ready = _setUp();
@@ -171,6 +172,8 @@ class DeviceStage extends SoundStage implements VerdictStage {
     if (!enabled) return;
     if (mood == _mood) return;
     _mood = mood;
+    _oneShotEnd?.cancel();
+    _oneShotEnd = null;
     // Dissolvenza incrociata: la traccia nuova sale mentre la vecchia scende,
     // senza un secondo di silenzio in mezzo.
     final old = _musicDeck;
@@ -183,7 +186,15 @@ class DeviceStage extends SoundStage implements VerdictStage {
         final tracks = musicTracks[mood]!;
         final track = tracks[_random.nextInt(tracks.length)];
         await deck.player.stop();
-        await deck.player.setReleaseMode(mood == MusicMood.winTown || mood == MusicMood.winFamily ? ReleaseMode.release : ReleaseMode.loop);
+        await deck.player.setReleaseMode(mood.oneShot ? ReleaseMode.release : ReleaseMode.loop);
+        // Finita la vittoria non resta il silenzio: riparte il loop della
+        // schermata in vista.
+        if (mood.oneShot && _mood == mood) {
+          _oneShotEnd?.cancel();
+          _oneShotEnd = deck.player.onPlayerComplete.listen((_) {
+            if (_musicDeck == deck && _mood == mood) musicEnded(mood);
+          });
+        }
         await deck.player.play(AssetSource('music/$track.m4a'), volume: 0);
         deck.volume = 0;
         if (_musicDeck == deck) deck.fadeTo(_musicTarget, const Duration(milliseconds: 2500));

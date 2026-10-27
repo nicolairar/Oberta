@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../sound/screen_music.dart';
+import '../../../sound/sound_stage.dart';
 import '../../../l10n/app_strings.dart';
 import '../../../l10n/online_strings.dart';
 import '../../../online/handle_rules.dart';
@@ -39,7 +41,10 @@ class OnlineScreen extends StatefulWidget {
   State<OnlineScreen> createState() => _OnlineScreenState();
 }
 
-class _OnlineScreenState extends State<OnlineScreen> {
+class _OnlineScreenState extends State<OnlineScreen> with ScreenMusic {
+  @override
+  MusicMood get screenMood => MusicMood.menu;
+
   late final OnlineServices? _online = widget.services ?? OnlineServices.instance;
 
   String? _loadedFor;

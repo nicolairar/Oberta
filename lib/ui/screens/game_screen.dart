@@ -356,6 +356,8 @@ class _GameScreenState extends State<GameScreen> {
   void _enterEnd(Team winner) {
     // Il Piromane che vince suona come la famiglia: non ha vinto la città.
     final dark = winner != Team.citizens;
+    // La partita è finita: quando la vittoria smette di suonare, il menu.
+    SoundStage.instance.screenLoop = MusicMood.menu;
     SoundStage.instance.music(dark ? MusicMood.winFamily : MusicMood.winTown);
     SoundStage.instance.ambience(null);
     SoundStage.instance.cue(dark ? Cue.familyWins : Cue.townWins);

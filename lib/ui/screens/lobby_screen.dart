@@ -15,6 +15,8 @@ import '../widgets/scene_scaffold.dart';
 import 'narrator_selection_screen.dart';
 import 'person_screen.dart';
 import '../press.dart';
+import '../../sound/fx_groups.dart';
+import '../../sound/screen_music.dart';
 import '../../sound/sound_stage.dart';
 import '../../sound/memes.dart';
 
@@ -35,7 +37,14 @@ class LobbyScreen extends StatefulWidget {
   State<LobbyScreen> createState() => _LobbyScreenState();
 }
 
-class _LobbyScreenState extends State<LobbyScreen> {
+class _LobbyScreenState extends State<LobbyScreen> with ScreenMusic {
+  @override
+  MusicMood get screenMood => MusicMood.table;
+
+  /// Sotto la musica del tavolo, il brusio della sala.
+  @override
+  FxGroup? get screenAmbience => FxGroup.bar;
+
   AppStrings get _t => AppStrings.of(context);
 
   static const _testNames = [

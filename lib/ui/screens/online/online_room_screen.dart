@@ -8,6 +8,8 @@ import '../../../l10n/app_strings.dart';
 import '../../../online/game/bot_brain.dart';
 import '../../../online/join_code.dart';
 import '../../../online/online_services.dart';
+import '../../../sound/screen_music.dart';
+import '../../../sound/sound_stage.dart';
 import '../../../l10n/desktop_online_strings.dart';
 import '../../desktop/desktop_canvas.dart';
 import '../../desktop/home_modal.dart';
@@ -41,7 +43,16 @@ class OnlineRoomScreen extends StatefulWidget {
   State<OnlineRoomScreen> createState() => _OnlineRoomScreenState();
 }
 
-class _OnlineRoomScreenState extends State<OnlineRoomScreen> {
+class _OnlineRoomScreenState extends State<OnlineRoomScreen> with ScreenMusic {
+  @override
+  MusicMood get screenMood => MusicMood.menu;
+
+  /// Dalla partita ai risultati la musica della vittoria resta: la stanza
+  /// rimette la sua solo quando i risultati se ne vanno.
+  @override
+  bool get musicHeld => _afterGame;
+  bool _afterGame = false;
+
   late Room _room = widget.room;
   List<RoomMember> _members = const [];
   StreamSubscription<List<RoomMember>>? _watch;
@@ -162,11 +173,18 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> {
 
   Future<void> _showGame() async {
     final started = DateTime.now().subtract(const Duration(seconds: 5));
-    await Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => OnlineGameScreen(services: widget.services, room: _room, me: widget.me),
-    ));
-    _inGame = false;
-    if (mounted) await showMatchResults(context, widget.services, since: started);
+    _afterGame = true;
+    try {
+      await Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => OnlineGameScreen(services: widget.services, room: _room, me: widget.me),
+      ));
+      _inGame = false;
+      if (mounted) await showMatchResults(context, widget.services, since: started);
+    } finally {
+      _afterGame = false;
+      // Fuori dai risultati la vittoria si spegne: torna la musica della stanza.
+      if (mounted) playScreenMusic();
+    }
     try {
       final room = await widget.services.rooms.fetch(_room.id);
       if (room != null && mounted) {

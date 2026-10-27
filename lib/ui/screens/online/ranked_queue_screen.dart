@@ -4,6 +4,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../sound/screen_music.dart';
+import '../../../sound/sound_stage.dart';
 import '../../../l10n/app_language.dart';
 import '../../../l10n/app_strings.dart';
 import '../../../online/online_services.dart';
@@ -39,7 +41,14 @@ class RankedQueueScreen extends StatefulWidget {
   State<RankedQueueScreen> createState() => _RankedQueueScreenState();
 }
 
-class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTickerProviderStateMixin {
+class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTickerProviderStateMixin, ScreenMusic {
+  @override
+  MusicMood get screenMood => MusicMood.menu;
+
+  /// Dalla partita ai risultati la musica della vittoria resta.
+  @override
+  bool get musicHeld => _entering;
+
   late final AnimationController _sweep = AnimationController(vsync: this, duration: const Duration(seconds: 3))..repeat();
   AppLanguage _language = AppLanguage.it;
   RankedStatus _status = const RankedStatus();
@@ -206,6 +215,8 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
     } finally {
       _entering = false;
       if (mounted) {
+        // Fuori dai risultati la vittoria si spegne: torna la musica della coda.
+        playScreenMusic();
         _timer = Timer.periodic(widget.poll, (_) => _refresh());
         setState(() {});
       }

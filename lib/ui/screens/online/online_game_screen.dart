@@ -238,6 +238,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       case Stage.ended:
         final winner = _public.winner;
         if (winner != null) {
+          // La partita è finita: quando la vittoria smette di suonare, il menu.
+          stage.screenLoop = MusicMood.menu;
           stage.music(winner != Team.citizens ? MusicMood.winFamily : MusicMood.winTown);
           stage.cue(winner != Team.citizens ? Cue.familyWins : Cue.townWins);
         }

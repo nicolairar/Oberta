@@ -17,6 +17,7 @@ import 'l10n/app_strings.dart';
 import 'settings/app_settings.dart';
 import 'sound/device_stage.dart';
 import 'sound/narrator_voice.dart';
+import 'sound/screen_music.dart';
 import 'sound/sound_stage.dart';
 import 'steam/steam.dart';
 import 'ui/desktop/desktop_frame.dart';
@@ -103,7 +104,7 @@ class ObertaApp extends StatelessWidget {
       builder: (context, _) => MaterialApp(
         title: 'Obertà',
         theme: buildAppTheme(),
-        navigatorObservers: [AccountRefreshObserver.instance],
+        navigatorObservers: [AccountRefreshObserver.instance, screenMusicRoutes],
         locale: settings.language?.locale,
         supportedLocales: AppLanguage.locales,
         localizationsDelegates: const [

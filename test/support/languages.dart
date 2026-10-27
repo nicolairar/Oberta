@@ -6,8 +6,9 @@ import 'package:oberta/ui/theme/app_theme.dart';
 
 /// Un `MaterialApp` che parla [language], come quello vero dopo che la
 /// lingua è stata scelta: per provare un pezzo di interfaccia in inglese.
-Widget appIn(AppLanguage language, Widget home) => MaterialApp(
+Widget appIn(AppLanguage language, Widget home, {List<NavigatorObserver> observers = const []}) => MaterialApp(
       theme: buildAppTheme(),
+      navigatorObservers: observers,
       locale: language.locale,
       supportedLocales: AppLanguage.locales,
       localizationsDelegates: const [
