@@ -135,22 +135,27 @@ abstract class AccountRepository {
   Future<void> deleteAccount();
 }
 
-/// «Collega account»: un codice monouso fatto su un dispositivo e inserito
-/// sull'altro, entrato con l'altra identità (Apple/Google ↔ Steam).
-abstract class AccountLinkRepository {
-  /// Un codice di sei caratteri, valido dieci minuti.
-  Future<LinkCode> createCode();
+/// Le identità che si collegano a un account già entrato.
+enum LinkProvider {
+  steam('Steam'),
+  apple('Apple'),
+  google('Google');
 
-  /// Unisce i due account: resta il profilo più vecchio. Vero se chi ha
-  /// inserito il codice deve rientrare (il suo account era il più giovane).
-  Future<bool> redeemCode(String code);
+  final String label;
+
+  const LinkProvider(this.label);
 }
 
-class LinkCode {
-  final String code;
-  final DateTime expiresAt;
+/// «Collega account», senza codici: si entra con l'altra identità (Apple o
+/// Google dal desktop, Steam dal telefono) nel browser di sistema, e il
+/// server unisce i due profili (resta il più vecchio).
+abstract class AccountLinkRepository {
+  /// Che cosa si può collegare da questo dispositivo.
+  List<LinkProvider> get providers;
 
-  const LinkCode(this.code, this.expiresAt);
+  /// Collega [provider]. Vero se adesso si è dentro un altro profilo (quello
+  /// più vecchio, che è rimasto): l'app è già entrata lì da sola.
+  Future<bool> link(LinkProvider provider);
 }
 
 /// Tutto quello che serve per giocare online. Null dove l'app è stata

@@ -65,7 +65,7 @@ L'online include una chat con altri giocatori: per usarlo devi avere almeno 14 a
 
 - Accesso e portabilità: scarica tutti i tuoi dati in formato JSON da Impostazioni → Privacy e dati → «Scarica i miei dati».
 - Rettifica: cambia nome, aspetto e immagine del profilo dall'app. Il nome e l'immagine di Steam si aggiornano da Steam.
-- Cancellazione: elimina l'account da Impostazioni → Account → «Elimina account».
+- Cancellazione: sul telefono elimina l'account da Impostazioni → Account → «Elimina account»; dal PC (Steam) scrivi a niko.tana@outlook.com e lo eliminiamo entro 30 giorni.
 - Opposizione e limitazione: scrivi a niko.tana@outlook.com.
 - Reclamo all'autorità di controllo: Garante per la protezione dei dati personali (www.garanteprivacy.it).
 

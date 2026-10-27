@@ -80,6 +80,10 @@ void main() {
       await tester.tap(find.byKey(const Key('settings.category.account')));
       await desktopFrames(tester, 5);
       await saveDesktopShot(tester, 'settings_account_$label');
+      // Su Steam e sul desktop l'account non si elimina da qui; si collega
+      // Apple o Google, senza codici.
+      expect(find.byKey(const Key('settings.delete')), findsNothing);
+      expect(find.byKey(const Key('settings.link')), findsOneWidget);
     });
   }
 

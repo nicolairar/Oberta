@@ -17,6 +17,22 @@
 //        -> reads the Steam persona name and avatar again (profile.ts), at
 //           most every six hours; {refreshed: true|false}.
 //
+// Account linking (migration 20261107100000_link_identities.sql), no codes
+// to type:
+//   GET  ?action=start&mode=link&state=..   ("Collega Steam" on the phone)
+//        -> the same OpenID round trip; on the way back the SteamID is not
+//           signed in but bound to a one-time code, and the browser goes to
+//           oberta://steam-link?ticket=..&state=.. (the app's own scheme).
+//   POST {action: "link_steam", code, state}     (Authorization: JWT)
+//        -> ties that SteamID to the caller, merging with the profile it
+//           already signs into (older profile wins).
+//   POST {action: "link_identity", other_token}  (Authorization: JWT)
+//        -> desktop "Collega Apple / Google": other_token is the access
+//           token of an Apple or Google sign-in the app just made in the
+//           browser; both accounts are checked and merged.
+//   Both answer {kept, switched, token_hash?}: when the profile that stays
+//   is not the caller's, token_hash signs the app into it (verifyOtp).
+//
 // Every Steam sign-in (OpenID and ticket) also stores the persona name and
 // the avatar URL on the profile (migration 20261107090000_steam_profile.sql).
 //
@@ -57,16 +73,27 @@ function validState(value: string | null): string | null {
   return value && /^[A-Za-z0-9_-]{16,128}$/.test(value) ? value : null;
 }
 
-function returnTo(port: number, state: string) {
+/// Where Steam sends the browser back: with the loopback port (desktop
+/// sign-in), or in link mode (the phone's "Collega Steam").
+function returnTo(port: number | 'link', state: string) {
   const url = new URL(selfUrl);
   url.searchParams.set('action', 'return');
-  url.searchParams.set('port', String(port));
+  if (port === 'link') {
+    url.searchParams.set('mode', 'link');
+  } else {
+    url.searchParams.set('port', String(port));
+  }
   url.searchParams.set('state', state);
   return url.toString();
 }
 
+/// The loopback port, or 'link' in link mode, or null.
+function target(params: URLSearchParams): number | 'link' | null {
+  return params.get('mode') === 'link' ? 'link' : validPort(params.get('port'));
+}
+
 function start(params: URLSearchParams) {
-  const port = validPort(params.get('port'));
+  const port = target(params);
   const state = validState(params.get('state'));
   if (!port || !state) return page('Richiesta non valida. / Invalid request.');
   const login = new URL(steamLogin);
@@ -152,20 +179,70 @@ async function signInProfile(steamId: string): Promise<string> {
   return profileId;
 }
 
+/// The auth user behind an access token, or null.
+async function userOf(token: string) {
+  if (!token) return null;
+  const { data, error } = await admin.auth.getUser(token);
+  return error || !data.user ? null : data.user;
+}
+
+function bearer(request: Request) {
+  return (request.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '');
+}
+
+/// The database's link errors, as the app knows them.
+const linkErrors = ['link_same_account', 'link_conflict', 'already_in_game', 'steam_code_invalid', 'not_signed_in'];
+
+async function linked(callerId: string, result: { data: unknown; error: { message?: string } | null }) {
+  if (result.error) {
+    const known = linkErrors.find((code) => result.error?.message?.includes(code));
+    return json({ error: known ?? 'server_error' }, known ? 409 : 500);
+  }
+  const kept = (result.data as { kept?: string } | null)?.kept;
+  if (!kept) return json({ error: 'server_error' }, 500);
+  if (kept === callerId) return json({ kept, switched: false });
+  return json({ kept, switched: true, ...(await sessionForProfile(kept)) });
+}
+
+/// "Collega Steam" on the phone: the code from oberta://steam-link.
+async function linkSteam(request: Request, body: { code?: unknown; state?: unknown }) {
+  const caller = await userOf(bearer(request));
+  if (!caller) return json({ error: 'not_signed_in' }, 401);
+  const code = typeof body.code === 'string' ? body.code : '';
+  const state = validState(typeof body.state === 'string' ? body.state : null);
+  if (!/^[a-f0-9]{64}$/.test(code) || !state) return json({ error: 'bad_request' }, 400);
+  const { data: steamId, error } = await admin.rpc('steam_link_code_consume', { p_code: code, p_state: state });
+  if (error || !steamId) return json({ error: 'steam_code_invalid' }, 400);
+  const response = await linked(caller.id, await admin.rpc('steam_link', { p_profile_id: caller.id, p_steam_id: steamId }));
+  if (response.ok) await refreshSteamProfile(steamId as string);
+  return response;
+}
+
+/// "Collega Apple / Google" on the desktop: the other sign-in's token.
+async function linkIdentity(request: Request, body: { other_token?: unknown }) {
+  const caller = await userOf(bearer(request));
+  if (!caller) return json({ error: 'not_signed_in' }, 401);
+  const other = await userOf(typeof body.other_token === 'string' ? body.other_token : '');
+  if (!other) return json({ error: 'bad_request' }, 400);
+  const providers = (other.identities ?? []).map((identity) => identity.provider);
+  if (!providers.some((provider) => provider === 'apple' || provider === 'google')) {
+    return json({ error: 'bad_request' }, 400);
+  }
+  return await linked(caller.id, await admin.rpc('link_profiles', { p_caller: caller.id, p_other: other.id }));
+}
+
 /// "refresh": the signed-in player's persona and avatar, when due.
 async function refresh(request: Request) {
-  const jwt = (request.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '');
-  if (!jwt) return json({ error: 'not_signed_in' }, 401);
-  const { data, error } = await admin.auth.getUser(jwt);
-  if (error || !data.user) return json({ error: 'not_signed_in' }, 401);
-  const { data: steamId, error: dueError } = await admin.rpc('steam_refresh_target', { p_profile_id: data.user.id });
+  const user = await userOf(bearer(request));
+  if (!user) return json({ error: 'not_signed_in' }, 401);
+  const { data: steamId, error: dueError } = await admin.rpc('steam_refresh_target', { p_profile_id: user.id });
   if (dueError) throw dueError;
   if (!steamId) return json({ refreshed: false });
   return json({ refreshed: await refreshSteamProfile(steamId as string) });
 }
 
 async function finish(params: URLSearchParams) {
-  const port = validPort(params.get('port'));
+  const port = target(params);
   const state = validState(params.get('state'));
   if (!port || !state) return page('Richiesta non valida. / Invalid request.');
   if (params.get('openid.mode') !== 'id_res') return page('Accesso annullato. / Sign-in cancelled.');
@@ -182,6 +259,20 @@ async function finish(params: URLSearchParams) {
     if (!signed.includes(field)) return page('Firma incompleta. / Incomplete signature.');
   }
   if (!(await steamConfirms(params))) return page('Steam non conferma l\'accesso. / Steam did not confirm.');
+
+  if (port === 'link') {
+    const { data: linkCode, error: linkError } = await admin.rpc('steam_link_code_issue', {
+      p_steam_id: match[1],
+      p_state: state,
+      p_nonce: nonce,
+    });
+    if (linkError) return page('Accesso già usato. / Sign-in already used.');
+    const app = new URL('oberta://steam-link');
+    // Not "code": supabase_flutter would take that for an auth callback.
+    app.searchParams.set('ticket', linkCode as string);
+    app.searchParams.set('state', state);
+    return new Response(null, { status: 302, headers: { location: app.toString() } });
+  }
 
   const profileId = await signInProfile(match[1]);
   const { data: code, error } = await admin.rpc('steam_login_code_issue', {
@@ -245,6 +336,8 @@ async function post(request: Request) {
     });
   }
   if (body?.action === 'refresh') return await refresh(request);
+  if (body?.action === 'link_steam') return await linkSteam(request, body);
+  if (body?.action === 'link_identity') return await linkIdentity(request, body);
   return await exchange(body ?? {});
 }
 

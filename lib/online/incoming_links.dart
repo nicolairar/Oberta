@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 /// La cassetta dei link che aprono l'app da fuori: il QR di una stanza
@@ -8,7 +10,19 @@ import 'package:flutter/foundation.dart';
 class IncomingLinks extends ChangeNotifier {
   Uri? _pending;
 
+  final _steamLinks = StreamController<Uri>.broadcast();
+
+  /// I ritorni di «Collega Steam» (`oberta://steam-link?ticket=..&state=..`):
+  /// non sono link per il vicolo, li aspetta chi ha aperto il browser.
+  Stream<Uri> get steamLinks => _steamLinks.stream;
+
+  static bool isSteamLink(Uri uri) => uri.scheme == 'oberta' && uri.host == 'steam-link';
+
   void deliver(Uri uri) {
+    if (isSteamLink(uri)) {
+      _steamLinks.add(uri);
+      return;
+    }
     _pending = uri;
     notifyListeners();
   }

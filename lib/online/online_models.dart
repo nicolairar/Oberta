@@ -402,12 +402,10 @@ enum OnlineFailure {
   /// Questa build è sotto la minima del server: si deve aggiornare.
   updateRequired,
 
-  /// «Collega account»: codice sbagliato o scaduto, il proprio, due account
-  /// che non si possono unire, troppi tentativi.
-  linkCodeInvalid,
+  /// «Collega account»: è già lo stesso account, o due account che non si
+  /// possono unire (tutti e due con Steam, o con lo stesso provider).
   linkSameAccount,
   linkConflict,
-  tooManyAttempts,
   network,
   unknown,
 }

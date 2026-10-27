@@ -175,8 +175,8 @@ Su desktop ci sono solo due modalità:
   casuale), lo scambia con un token magic link e chiama `verifyOTP`: la sessione Supabase resta salvata e i
   prossimi avvii entrano da soli. Gli utenti Steam hanno un'email sintetica `steam-<id>@steam.oberta.invalid`
   (mai usata per mandare posta). Nome unico: lo stesso flusso di oggi (regole e parole riservate).
-- **Collega account** (Impostazioni → ACCOUNT, ogni dispositivo): codice di **6 caratteri** (alfabeto di
-  `join_code`), 10 minuti, 5 tentativi sbagliati ogni 10 minuti. RPC `link_code_create` / `link_code_redeem`.
+- **Collega account** (Impostazioni → ACCOUNT): ~~codice di 6 caratteri~~ sostituito il 27 ottobre 2026 dal
+  collegamento diretto, senza codici (sezione «Nome Steam, loghi, immagine, collegamento» qui sotto).
 - **Regole di fusione (decise ora, sostituiscono quelle sopra)**: resta il profilo **più vecchio**, con nome,
   aspetto, monete, XP, cosmetici, rating e ricevute; il più nuovo **non porta niente** (niente somme: nessun
   abuso). Le identità del più nuovo (Steam, Apple, Google) passano al più vecchio; quello nuovo viene
@@ -300,3 +300,52 @@ Sempre gratis: niente account partner Steamworks ancora.
   `RestartAppIfNecessary` torna sempre falso).
 - Le build di debug e quelle del CI senza `STEAM` restano libere (sviluppo, prove).
 - Il controllo vero resta sul server: biglietto + `CheckAppOwnership` a ogni accesso (sopra).
+
+## Nome Steam, loghi, immagine, collegamento senza codici (27 ottobre 2026)
+
+### Nome e immagine di Steam
+- A ogni accesso con Steam (OpenID e biglietto) `steam-auth` legge il profilo pubblico Steam,
+  `https://steamcommunity.com/profiles/<steamid64>/?xml=1` (nessuna chiave), o `GetPlayerSummaries` quando
+  c'è `STEAM_WEB_API_KEY`; l'app chiede un aggiornamento una volta per sessione (il server lo fa al massimo
+  ogni 6 ore). Si salvano `profiles.steam_persona` (il nome Steam, visibile solo al padrone) e
+  `profiles.steam_avatar` (solo https su `*.steamstatic.com`). Migrazione `20261107090000_steam_profile.sql`,
+  parser in `supabase/functions/steam-auth/profile.ts` (test con fixture in `tests/fixtures/steam/`).
+- **Nome unico**: al primo accesso con Steam il campo è già scritto col nome Steam adattato alle regole
+  (minuscolo, senza accenti e spazi, max 12, moderazione: `HandleSuggestions.fromPersona`). Se è libero basta
+  INVIO; se è preso o non valido il giocatore lo cambia, con i nomi liberi vicini da toccare
+  (`donvitocorl1`...). Nel fascicolo, sotto il nome: «Su Steam: <nome Steam>».
+- **Immagine del profilo** (fascicolo, solo con Steam collegato): «Avatar del gioco» (predefinito) o
+  «Immagine di Steam». Gli altri leggono solo `picture_url`, che è l'immagine di Steam solo se scelta; il
+  ritratto disegnato resta sotto finché l'immagine non arriva o se non arriva.
+- **Loghi**: `profiles.on_steam` / `on_apple` (solo sì/no, letti da tutti) → logo Steam / Apple accanto al nome
+  su targhette, chat, stanze, amici, fascicolo e classifica.
+
+### Collegare gli account, senza codici
+- **Dal PC (entrato con Steam)**: Impostazioni → ACCOUNT → Collega account → «Collega Apple» / «Collega Google».
+  L'app fa il login OAuth nel browser di sistema su un client auth a parte (PKCE, ritorno su
+  `http://127.0.0.1:<porta>/link`, come l'accesso Steam) e manda a `steam-auth` (`link_identity`) il token di
+  quella sessione. Il server controlla tutti e due i token e unisce i profili. Non è `linkIdentity` di Supabase
+  di proposito: quello rifiuta un'identità Apple/Google che ha già il suo profilo (il caso normale: il
+  giocatore aveva già l'app sul telefono).
+- **Dal telefono (entrato con Apple/Google)**: «Collega Steam» → Steam OpenID nel browser → `steam-auth`
+  (`?action=start&mode=link`) torna su `oberta://steam-link?ticket=..&state=..` (codice monouso, 2 minuti,
+  legato allo `state`) → l'app lo manda con il suo JWT (`link_steam`).
+- **Regole di fusione**: le stesse di prima (`public.link_profiles`, `public.steam_link`): resta il profilo più
+  vecchio; le identità del più nuovo passano a lui; il più nuovo viene disconnesso, bloccato e il nome
+  liberato; rifiutato con Steam da tutte e due le parti o lo stesso provider (`link_conflict`), in partita o in
+  coda (`already_in_game`). Se resta il profilo dell'altra identità, il server dà un token magic link e l'app
+  entra lì da sola. RPC `link_code_create` / `link_code_redeem` e tabelle dei codici: eliminate
+  (`20261107100000_link_identities.sql`).
+- **Elimina account**: non c'è sul desktop/Steam (si chiede per email, vedi l'informativa); resta sul telefono,
+  come vuole Apple (5.1.1(v)).
+
+### Cosa deve fare il proprietario [TU]
+1. Push su `main`: applica `20261107090000_steam_profile.sql` e `20261107100000_link_identities.sql` e pubblica
+   `steam-auth`.
+2. Supabase → Authentication → URL Configuration → Redirect URLs: aggiungere `http://127.0.0.1:*/link`
+   (oggi la lista è vuota: senza, Apple/Google non tornano all'app desktop).
+3. «Collega Apple» dal PC usa Sign in with Apple **sul web**: serve un **Services ID** Apple con il dominio e il
+   return URL di Supabase (`https://<ref>.supabase.co/auth/v1/callback`), e nel provider Apple di Supabase il
+   Services ID tra i Client IDs e la **secret key** (oggi manca).
+4. «Collega Google»: accendere il provider Google in Supabase con il client web (id e secret); oggi è spento.
+5. Android: il filtro `oberta://steam-link` è nel manifest; iOS ha già lo schema `oberta`.

@@ -65,7 +65,7 @@ Online play includes chat with other players: you must be at least 14 to use it 
 
 - Access and portability: download all your data as JSON from Settings → Privacy & data → "Download my data".
 - Rectification: change your name, look and profile picture in the app. Your Steam name and picture update from Steam.
-- Erasure: delete your account from Settings → Account → "Delete account".
+- Erasure: on your phone, delete your account from Settings → Account → "Delete account"; from PC (Steam), write to niko.tana@outlook.com and we delete it within 30 days.
 - Objection and restriction: write to niko.tana@outlook.com.
 - Complaint to the supervisory authority: Garante per la protezione dei dati personali (www.garanteprivacy.it), or the authority of your EU country.
 

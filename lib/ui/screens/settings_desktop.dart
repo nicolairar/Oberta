@@ -373,7 +373,7 @@ class _DesktopSettingsState extends State<_DesktopSettings> {
                     icon: Icons.badge_outlined,
                     title: handle != null ? s.signedInAs(handle) : s.signedInNoHandle,
                   ),
-                  if (_host.widget.online?.links case final links?)
+                  if (_host.widget.online?.links case final links? when links.providers.isNotEmpty)
                     _DeskRow(
                       key: const Key('settings.link'),
                       icon: Icons.link,
@@ -383,17 +383,8 @@ class _DesktopSettingsState extends State<_DesktopSettings> {
                       onTap: () => showLinkAccount(context, links: links),
                     ),
                   _DeskRow(icon: Icons.logout, title: t.online.signOut, onTap: auth.signOut),
-                  if (_host.widget.online?.account != null) ...[
-                    const SizedBox(height: 28),
-                    _DeskRow(
-                      key: const Key('settings.delete'),
-                      icon: Icons.delete_forever,
-                      title: s.deleteAccount,
-                      subtitle: s.deleteHint,
-                      danger: true,
-                      onTap: _host._busy ? null : () => _host._delete(handle),
-                    ),
-                  ],
+                  // Niente «Elimina account» su Steam e sul desktop: la
+                  // richiesta si fa per email (informativa sulla privacy).
                 ],
               );
             },
@@ -583,7 +574,6 @@ class _DeskRow extends StatelessWidget {
   final String? subtitle;
   final Widget? trailing;
   final VoidCallback? onTap;
-  final bool danger;
   final bool chevron;
   final bool enabled;
 
@@ -594,14 +584,13 @@ class _DeskRow extends StatelessWidget {
     this.subtitle,
     this.trailing,
     this.onTap,
-    this.danger = false,
     this.chevron = false,
     this.enabled = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    final tint = danger ? AppColors.accent : AppColors.gold;
+    const tint = AppColors.gold;
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: DeskHover(
@@ -612,12 +601,12 @@ class _DeskRow extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             color: hovered
-                ? (danger ? AppColors.accent.withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.045))
-                : (danger ? AppColors.accent.withValues(alpha: 0.04) : Colors.transparent),
+                ? Colors.white.withValues(alpha: 0.045)
+                : Colors.transparent,
             border: Border.all(
               color: hovered
                   ? tint.withValues(alpha: 0.5)
-                  : (danger ? AppColors.accent.withValues(alpha: 0.3) : Colors.transparent),
+                  : Colors.transparent,
             ),
           ),
           child: Opacity(
@@ -635,7 +624,7 @@ class _DeskRow extends StatelessWidget {
                         style: DeskText.text(
                           size: DeskText.lead,
                           weight: FontWeight.w600,
-                          color: danger ? AppColors.accent : AppColors.textPrimary,
+                          color: AppColors.textPrimary,
                         ),
                       ),
                       if (subtitle != null) ...[

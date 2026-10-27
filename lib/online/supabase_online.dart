@@ -8,9 +8,11 @@ import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../l10n/app_language.dart';
 import '../rules/intent.dart';
+import 'incoming_links.dart';
 import 'online_config.dart';
 import 'online_services.dart';
 import 'steam_login.dart';
@@ -55,7 +57,7 @@ Future<OnlineServices?> openSupabaseOnline(
     account: SupabaseAccount(client),
     safety: SupabaseSafety(client),
     sessions: SupabaseDeviceSessions(client),
-    links: SupabaseAccountLinks(client),
+    links: SupabaseAccountLinks(client, config),
     progress: SupabaseProgress(client),
     requirements: SupabaseAppRequirements(client),
   );
@@ -154,10 +156,8 @@ OnlineException _classify(Object error, SignInDoor? door) {
       'already_in_game' => OnlineFailure.alreadyInGame,
       'other_device' => OnlineFailure.otherDevice,
       'update_required' => OnlineFailure.updateRequired,
-      'link_code_invalid' => OnlineFailure.linkCodeInvalid,
       'link_same_account' => OnlineFailure.linkSameAccount,
       'link_conflict' => OnlineFailure.linkConflict,
-      'too_many_attempts' => OnlineFailure.tooManyAttempts,
       _ => OnlineFailure.unknown,
     };
     return OnlineException(failure, error, detail);
@@ -910,32 +910,121 @@ class SupabaseAccount implements AccountRepository {
       });
 }
 
-/// «Collega account» con le funzioni del database `link_code_create` e
-/// `link_code_redeem` (migrazione 20261031090000_steam_login_and_links.sql).
+/// «Collega account» senza codici (migrazione
+/// 20261107100000_link_identities.sql, Edge Function `steam-auth`):
+///   * sul desktop, Apple o Google: il login OAuth nel browser di sistema
+///     (PKCE, ritorno su 127.0.0.1) su un client auth usa e getta; il token
+///     di quella sessione va al server, che unisce i due profili;
+///   * sul telefono, Steam: OpenID nel browser, ritorno su
+///     `oberta://steam-link` con un codice monouso legato allo `state`.
+/// Se resta l'altro profilo (il più vecchio), il server dà un token
+/// magic link e l'app entra lì.
 class SupabaseAccountLinks implements AccountLinkRepository {
   final SupabaseClient _client;
+  final OnlineConfig _config;
 
-  SupabaseAccountLinks(this._client);
+  SupabaseAccountLinks(this._client, this._config);
 
-  @override
-  Future<LinkCode> createCode() => _guard(() async {
-        final data = Map<String, dynamic>.from(await _client.rpc<dynamic>('link_code_create') as Map);
-        return LinkCode(data['code'] as String, DateTime.parse(data['expires_at'] as String));
-      });
+  String get _base => _config.supabaseUrl.replaceAll(RegExp(r'/$'), '');
 
   @override
-  Future<bool> redeemCode(String code) => _guard(() async {
-        final data = Map<String, dynamic>.from(
-          await _client.rpc<dynamic>('link_code_redeem', params: {'p_code': code}) as Map,
-        );
-        final again = data['sign_in_again'] == true;
-        if (again) {
-          try {
-            await _client.auth.signOut(scope: SignOutScope.local);
-          } catch (_) {}
+  List<LinkProvider> get providers {
+    if (kIsWeb) return const [];
+    if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) return const [LinkProvider.apple, LinkProvider.google];
+    return const [LinkProvider.steam];
+  }
+
+  @override
+  Future<bool> link(LinkProvider provider) => _guard(() async {
+        final body = switch (provider) {
+          LinkProvider.steam => await _steamProof(),
+          LinkProvider.apple => await _oauthProof(OAuthProvider.apple),
+          LinkProvider.google => await _oauthProof(OAuthProvider.google),
+        };
+        final FunctionResponse response;
+        try {
+          response = await _client.functions.invoke('steam-auth', body: body);
+        } on FunctionException catch (error) {
+          final code = (error.details as Map?)?['error'];
+          throw OnlineException(
+            switch (code) {
+              'link_same_account' => OnlineFailure.linkSameAccount,
+              'link_conflict' => OnlineFailure.linkConflict,
+              'already_in_game' => OnlineFailure.alreadyInGame,
+              'not_signed_in' => OnlineFailure.notSignedIn,
+              _ => OnlineFailure.unknown,
+            },
+            error,
+            'steam-auth · link · ${error.status} · ${error.details}',
+          );
         }
-        return again;
+        final data = (response.data as Map?) ?? const {};
+        if (data['switched'] != true) return false;
+        final tokenHash = data['token_hash'] as String?;
+        if (tokenHash == null) throw OnlineException(OnlineFailure.unknown, null, 'steam-auth · link · $data');
+        await _client.auth.verifyOTP(type: OtpType.magiclink, tokenHash: tokenHash);
+        return true;
       });
+
+  /// «Collega Steam» sul telefono: Steam nel browser, ritorno sull'app.
+  Future<Map<String, String>> _steamProof() async {
+    final state = BrowserLoopback.newState();
+    final back = IncomingLinks.instance.steamLinks
+        .firstWhere((uri) => uri.queryParameters['state'] == state)
+        .timeout(BrowserLoopback.timeout, onTimeout: () => throw const OnlineException(OnlineFailure.cancelled));
+    final start = Uri.parse('$_base/functions/v1/steam-auth')
+        .replace(queryParameters: {'action': 'start', 'mode': 'link', 'state': state});
+    if (!await launchUrl(start, mode: LaunchMode.externalApplication)) {
+      throw const OnlineException(OnlineFailure.unknown, null, 'browser did not open');
+    }
+    final uri = await back;
+    final code = uri.queryParameters['ticket'];
+    if (code == null) throw const OnlineException(OnlineFailure.cancelled);
+    return {'action': 'link_steam', 'code': code, 'state': state};
+  }
+
+  /// «Collega Apple / Google» sul desktop: il login nel browser, su un
+  /// client auth a parte (la sessione Steam resta dov'è).
+  Future<Map<String, String>> _oauthProof(OAuthProvider provider) async {
+    final other = GoTrueClient(
+      url: '$_base/auth/v1',
+      headers: {'apikey': _config.supabaseAnonKey, 'Authorization': 'Bearer ${_config.supabaseAnonKey}'},
+      autoRefreshToken: false,
+      asyncStorage: _MemoryStorage(),
+      flowType: AuthFlowType.pkce,
+    );
+    try {
+      final query = await BrowserLoopback.wait(
+        start: (port) async => Uri.parse(
+          (await other.getOAuthSignInUrl(provider: provider, redirectTo: 'http://127.0.0.1:$port/link')).url,
+        ),
+        path: '/link',
+        accept: (query) => query['code'] != null || query['error'] != null,
+      );
+      final code = query['code'];
+      if (code == null) {
+        throw OnlineException(OnlineFailure.cancelled, null, '${provider.name} · ${query['error_description'] ?? query['error']}');
+      }
+      final session = (await other.exchangeCodeForSession(code)).session;
+      return {'action': 'link_identity', 'other_token': session.accessToken};
+    } finally {
+      other.dispose();
+    }
+  }
+}
+
+/// Dove il client usa e getta tiene il verificatore PKCE: solo in memoria.
+class _MemoryStorage extends GotrueAsyncStorage {
+  final Map<String, String> _items = {};
+
+  @override
+  Future<String?> getItem({required String key}) async => _items[key];
+
+  @override
+  Future<void> setItem({required String key, required String value}) async => _items[key] = value;
+
+  @override
+  Future<void> removeItem({required String key}) async => _items.remove(key);
 }
 
 /// La classificata su Supabase: la coda (funzioni del database), il rating

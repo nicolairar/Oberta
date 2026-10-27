@@ -335,7 +335,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   leading: const Icon(Icons.badge_outlined, color: AppColors.gold),
                                   title: Text(handle != null ? s.signedInAs(handle) : s.signedInNoHandle),
                                 ),
-                                if (widget.online?.links case final links?)
+                                if (widget.online?.links case final links? when links.providers.isNotEmpty)
                                   ListTile(
                                     key: const Key('settings.link'),
                                     leading: const Icon(Icons.link, color: AppColors.gold),
@@ -349,7 +349,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   title: Text(t.online.signOut),
                                   onTap: auth.signOut,
                                 ),
-                                if (widget.online?.account != null)
+                                // Su Steam e sul desktop non si elimina l'account da qui:
+                                // la richiesta va scritta (vedi l'informativa). Sul
+                                // telefono resta, come vuole Apple (5.1.1(v)).
+                                if (widget.online?.account != null && !DesktopPlatform.isDesktop)
                                   ListTile(
                                     key: const Key('settings.delete'),
                                     leading: const Icon(Icons.delete_forever, color: AppColors.accent),

@@ -36,24 +36,23 @@ class DesktopStrings {
         'Gioca con lo stesso profilo su telefono e su PC.',
         'Play with the same profile on your phone and on PC.',
       );
-  String get linkMake => _t('Crea un codice', 'Make a code');
-  String get linkEnter => _t('Inserisci un codice', 'Enter a code');
-  String linkCodeBody(int minutes) => _t(
-        'Sull\'altro dispositivo, entrato con l\'altro account, apri Impostazioni → Collega account e scrivi '
-            'questo codice. Vale $minutes minuti.',
-        'On the other device, signed in with the other account, open Settings → Link account and type this '
-            'code. It is valid for $minutes minutes.',
+  String get linkBody => _t(
+        'Entra con l\'altro account nel browser: i due profili diventano uno.',
+        'Sign in with the other account in your browser: the two profiles become one.',
       );
+  String linkWith(String provider) => _t('Collega $provider', 'Link $provider');
   String get linkRule => _t(
         'Resta il profilo più vecchio, con nome, monete, esperienza, armadio e classifica. Quello più nuovo '
             'non si potrà più usare.',
         'The older profile stays, with its name, coins, experience, wardrobe and rating. The newer one can no '
             'longer be used.',
       );
-  String get linkSubmit => _t('Collega', 'Link');
+  String get linkWaiting =>
+      _t('Completa l\'accesso nel browser, poi torna qui.', 'Finish signing in in your browser, then come back here.');
   String get linkDone => _t('Account collegati.', 'Accounts linked.');
-  String get linkSignInAgain =>
-      _t('Account collegati. Entra di nuovo per continuare.', 'Accounts linked. Sign in again to continue.');
+  String get linkSwitched =>
+      _t('Account collegati: ora sei nel profilo più vecchio.', 'Accounts linked: you are now in the older profile.');
+  String get linkAlready => _t('Questo account è già collegato.', 'This account is already linked.');
   String get close => _t('Chiudi', 'Close');
 
   // Il vicolo su PC: la barra in alto e l'uscita.

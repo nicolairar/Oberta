@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/l10n/app_language.dart';
 import 'package:oberta/online/fake_online.dart';
-import 'package:oberta/online/online_models.dart';
+import 'package:oberta/online/online_services.dart';
 import 'package:oberta/settings/app_settings.dart';
 import 'package:oberta/settings/settings_store.dart';
 import 'package:oberta/ui/screens/settings_screen.dart';
@@ -121,5 +121,35 @@ void main() {
       final widgets = LegalScreen.render(text);
       expect(widgets.length, greaterThan(20));
     }
+  });
+
+  testWidgets('Collega Steam dal telefono: niente codici, un tocco e il browser', (tester) async {
+    online.signInReady(handle: 'anna');
+    await open(tester);
+    await scrollTo(tester, find.byKey(const Key('settings.link')));
+    await tester.tap(find.byKey(const Key('settings.link')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('link.code')), findsNothing);
+    expect(find.text('Collega Steam'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('link.steam')));
+    await tester.pumpAndSettle();
+    expect(online.links.linked, [('me', LinkProvider.steam)]);
+    expect(find.text('Account collegati.'), findsOneWidget);
+  });
+
+  testWidgets('Collega: un conflitto resta nel foglio, lo stesso account dice «già collegato»', (tester) async {
+    online.signInReady(handle: 'anna');
+    await open(tester);
+    await scrollTo(tester, find.byKey(const Key('settings.link')));
+    await tester.tap(find.byKey(const Key('settings.link')));
+    await tester.pumpAndSettle();
+    online.links.failNext = const OnlineException(OnlineFailure.linkConflict);
+    await tester.tap(find.byKey(const Key('link.steam')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('non si possono unire'), findsOneWidget);
+    online.links.failNext = const OnlineException(OnlineFailure.linkSameAccount);
+    await tester.tap(find.byKey(const Key('link.steam')));
+    await tester.pumpAndSettle();
+    expect(find.text('Questo account è già collegato.'), findsOneWidget);
   });
 }

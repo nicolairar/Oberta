@@ -1175,34 +1175,30 @@ class FakeShop implements ShopRepository {
   }
 }
 
-/// «Collega account» finto: il codice è sempre lo stesso finché non si usa.
+/// «Collega account» finto: il browser non c'è, si collega e basta.
 class FakeAccountLinks implements AccountLinkRepository {
   final FakeOnline _online;
 
   FakeAccountLinks._(this._online);
 
-  String? _code;
-  String? _owner;
+  @override
+  List<LinkProvider> providers = const [LinkProvider.steam];
 
-  /// I codici usati, per i test: (chi l'aveva fatto, chi l'ha inserito).
-  final List<(String, String)> redeemed = [];
+  /// Quello che si è collegato, per i test: (chi, che cosa).
+  final List<(String, LinkProvider)> linked = [];
+
+  /// Se c'è, il prossimo collegamento fallisce così.
+  OnlineException? failNext;
 
   @override
-  Future<LinkCode> createCode() async {
-    await _online._network();
-    _owner = _online.auth.userId ?? (throw const OnlineException(OnlineFailure.notSignedIn));
-    _code = 'K7Q2MX';
-    return LinkCode(_code!, DateTime.now().add(const Duration(minutes: 10)));
-  }
-
-  @override
-  Future<bool> redeemCode(String code) async {
+  Future<bool> link(LinkProvider provider) async {
     await _online._network();
     final me = _online.auth.userId ?? (throw const OnlineException(OnlineFailure.notSignedIn));
-    if (_code == null || code.toUpperCase() != _code) throw const OnlineException(OnlineFailure.linkCodeInvalid);
-    if (_owner == me) throw const OnlineException(OnlineFailure.linkSameAccount);
-    redeemed.add((_owner!, me));
-    _code = null;
+    if (failNext case final failure?) {
+      failNext = null;
+      throw failure;
+    }
+    linked.add((me, provider));
     return false;
   }
 }
