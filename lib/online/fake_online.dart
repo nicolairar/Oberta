@@ -700,6 +700,9 @@ class _FakeGameRoom {
   GameTimer? timer;
   bool finished = false;
 
+  /// Quando sono state date le carte (come `game_public.started_at`).
+  DateTime? startedAt;
+
   _FakeGameRoom(this.gameId, this.seats, this.language);
 
   Map<String, Object?> rightsOf(String seat) => (chatSeats[seat] as Map?)?.cast<String, Object?>() ?? const {};
@@ -769,7 +772,8 @@ class FakeGame implements GameBackend {
     _online._games.remove(roomId)?.timer?.cancel();
     _online._chat.removeWhere((m) => m.room == roomId && m.message.channel != ChatChannel.lobby);
     final game = _online._games[roomId] =
-        _FakeGameRoom('game-${++_online._gameIds}', seats, room.room.language.name);
+        _FakeGameRoom('game-${++_online._gameIds}', seats, room.room.language.name)
+          ..startedAt = _online.clock.now();
     for (final plan in seats.values) {
       if (plan.profileId != null) game.lastSeen[plan.seat] = _online.clock.now();
     }
@@ -1284,6 +1288,12 @@ extension FakeRankedServer on FakeOnline {
         coinsGained: p['coins'] as int,
         ratingDelta: (p['ratingDelta'] as num?)?.toDouble(),
         ordinalAfter: room.ranked ? (p['mu'] as double) - 3 * (p['sigma'] as double) : null,
+        team: p['team'] as String? ?? '',
+        survived: p['survived'] == true,
+        durationSeconds: switch (game.startedAt) {
+          final start? => max(0, clock.now().difference(start).inSeconds),
+          null => null,
+        },
       );
       _playedAt[match] = clock.now().toUtc();
       (history[id] ??= []).add(match);
@@ -1451,6 +1461,22 @@ class FakeRanked implements RankedRepository {
   @override
   Future<List<MatchResult>> history({int limit = 5}) async =>
       (_online.history[_me] ?? const []).reversed.take(limit).toList();
+
+  @override
+  Future<PlayerStats> stats() async {
+    await _online._network();
+    final me = _me;
+    final past = _online.history[me] ?? const <MatchResult>[];
+    return PlayerStats(
+      all: StatsSlice.of(past),
+      real: StatsSlice.of(past.where((m) => !m.testMatch)),
+      tests: past.where((m) => m.testMatch).length,
+      counters: {
+        for (final MapEntry(:key, :value) in (_online.progress.stats[me] ?? const <String, int>{}).entries)
+          if (!key.startsWith('role_win:')) key: value,
+      },
+    );
+  }
 }
 
 /// Come `internal.active_sessions`: un dispositivo attivo per account, e

@@ -980,6 +980,10 @@ class SupabaseRanked implements RankedRepository {
         final rows = await _client.from('match_history').select().order('played_at', ascending: false).limit(limit);
         return [for (final row in rows) MatchResult.fromJson(row.cast<String, Object?>())];
       });
+
+  @override
+  Future<PlayerStats> stats() => _guard(() async =>
+      PlayerStats.fromJson((await _client.rpc<Map<String, dynamic>>('my_stats')).cast<String, Object?>()));
 }
 
 class SupabaseDeviceSessions implements DeviceSessionRepository {

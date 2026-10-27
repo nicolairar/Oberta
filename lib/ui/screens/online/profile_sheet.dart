@@ -6,12 +6,14 @@ import 'package:flutter/services.dart';
 
 import '../../../l10n/app_strings.dart';
 import '../../../l10n/settings_strings.dart';
+import '../../../l10n/stats_strings.dart';
 import '../../../online/online_account.dart';
 import '../../../online/online_services.dart';
 import '../../../rules/role.dart';
 import '../../avatar/avatar_look.dart';
 import '../../desktop/desktop_canvas.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/role_style.dart';
 import '../../widgets/home_account.dart';
 import '../../widgets/player_avatar.dart';
 import '../avatar/barber_mirror_screen.dart';
@@ -19,6 +21,7 @@ import 'online_widgets.dart';
 import 'progress_hooks.dart';
 
 part 'profile_dossier_desktop.dart';
+part 'profile_stats.dart';
 
 /// La cartellina di cartone kraft e il foglio dattiloscritto dentro.
 const _kraft = Color(0xFFC79E5C);
@@ -78,7 +81,10 @@ class _Folder extends StatelessWidget {
   final Widget child;
   final String? tab;
 
-  const _Folder({required this.child, this.tab});
+  /// Le linguette delle pagine, in alto a destra.
+  final Widget? index;
+
+  const _Folder({required this.child, this.tab, this.index});
 
   static const tabHeight = 30.0;
 
@@ -87,7 +93,7 @@ class _Folder extends StatelessWidget {
     key: const Key('profile.dossier'),
     children: [
       Positioned.fill(
-        child: CustomPaint(painter: _FolderPainter(tabHeight: tabHeight)),
+        child: CustomPaint(painter: _FolderPainter(tabHeight: tabHeight, tabWidth: index == null ? null : 150)),
       ),
       if (tab case final tab?)
         Positioned(
@@ -120,6 +126,7 @@ class _Folder extends StatelessWidget {
           child: ClipRect(child: child),
         ),
       ),
+      if (index case final index?) Positioned(right: 14, top: 4, child: index),
     ],
   );
 }
@@ -199,6 +206,34 @@ class _DossierState extends State<_Dossier> {
   List<MatchResult>? _history;
   RankTier? _tier;
 
+  /// 0 la scheda, 1 le statistiche (caricate la prima volta che si apre).
+  int _page = 0;
+  PlayerStats? _stats;
+  bool _statsFailed = false;
+  bool _withTests = false;
+
+  void _openPage(int page) {
+    setState(() => _page = page);
+    if (page == 1 && _stats == null && !_statsFailed) _loadStats();
+  }
+
+  void _toggleTests() => setState(() => _withTests = !_withTests);
+
+  Future<void> _loadStats() async {
+    final ranked = widget.account.services.ranked;
+    if (_statsFailed) setState(() => _statsFailed = false);
+    if (ranked == null) {
+      setState(() => _stats = const PlayerStats());
+      return;
+    }
+    try {
+      final stats = await ranked.stats();
+      if (mounted) setState(() => _stats = stats);
+    } catch (_) {
+      if (mounted) setState(() => _statsFailed = true);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -249,7 +284,8 @@ class _DossierState extends State<_Dossier> {
     if (DesktopCanvas.of(context)) return _DeskDossier(host: this, number: number);
     return _Folder(
       tab: 'N. $number',
-      child: ListView(
+      index: _IndexTabs(page: _page, onPage: _openPage),
+      child: _PageTurn(page: _page, child: _page == 1 ? _StatsPage(host: this) : ListView(
         padding: const EdgeInsets.fromLTRB(18, 16, 18, 24),
         children: [
           Stack(
@@ -408,7 +444,7 @@ class _DossierState extends State<_Dossier> {
             },
           ),
         ],
-      ),
+      )),
     );
   }
 }

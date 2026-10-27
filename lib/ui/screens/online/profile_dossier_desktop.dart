@@ -68,7 +68,10 @@ class _DeskFolder extends StatelessWidget {
   final Widget right;
   final String? tab;
 
-  const _DeskFolder({required this.left, required this.right, this.tab});
+  /// Le linguette delle pagine, accanto alla crocetta.
+  final Widget? index;
+
+  const _DeskFolder({required this.left, required this.right, this.tab, this.index});
 
   static const tabHeight = 52.0;
   static const leftWidth = 640.0;
@@ -100,6 +103,7 @@ class _DeskFolder extends StatelessWidget {
             ),
           ),
         ),
+      if (index case final index?) Positioned(right: 96, top: tabHeight + 18 - 46, child: index),
       Positioned(right: 16, top: 0, child: _DeskClose(onTap: () => Navigator.of(context).maybePop())),
       Positioned.fill(
         top: tabHeight + 18,
@@ -391,7 +395,13 @@ class _DeskDossier extends StatelessWidget {
       ),
     );
 
-    return _DeskFolder(tab: 'N. $number', left: left, right: right);
+    final (statsLeft, statsRight) = host._page == 1 ? _deskStatsSheets(host, context) : (null, null);
+    return _DeskFolder(
+      tab: 'N. $number',
+      index: _IndexTabs(page: host._page, onPage: host._openPage, scale: 1.4),
+      left: _PageTurn(page: host._page, child: statsLeft ?? left),
+      right: _PageTurn(page: host._page, child: statsRight ?? right),
+    );
   }
 }
 
