@@ -6,6 +6,7 @@
 set -e
 cd "$(dirname "$0")/../.."
 
+rm -rf build/steam
 flutter test tool/render/steam_achievements_render_test.dart
 flutter test tool/render/steam_art_render_test.dart
 flutter test tool/render/steam_screenshots_render_test.dart
