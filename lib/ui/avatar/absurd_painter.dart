@@ -667,13 +667,14 @@ abstract final class _Absurd {
     switch (accessory) {
       case AvatarAccessory.snailShell:
         // Il guscio di lumaca sulla schiena, la spirale che sporge di lato.
-        const shell = Rect.fromLTRB(0.06, -1.04, 0.62, -0.44);
+        // Dentro la moneta: la spirale si vede tutta accanto alla testa.
+        const shell = Rect.fromLTRB(0.04, -1.02, 0.46, -0.56);
         canvas.drawOval(shell, _fill(const Color(0xFFC08A4A)));
         canvas.drawOval(shell, _line(const Color(0xFF7A4E22), 0.02));
-        final spiral = Path()..moveTo(0.34, -0.74);
+        final spiral = Path()..moveTo(0.3, -0.79);
         for (var t = 0.0; t < pi * 5; t += 0.2) {
-          final r = 0.012 * t;
-          spiral.lineTo(0.34 + cos(t) * r, -0.74 + sin(t) * r);
+          final r = 0.0095 * t;
+          spiral.lineTo(0.3 + cos(t) * r, -0.79 + sin(t) * r);
         }
         canvas.drawPath(spiral, _line(const Color(0xFF7A4E22), 0.018));
         canvas.drawArc(shell.deflate(0.04), pi * 1.1, pi * 0.4, false, _line(Colors.white.withValues(alpha: 0.35), 0.02));
@@ -735,11 +736,12 @@ abstract final class _Absurd {
       case AvatarAccessory.balloons:
         // Il mazzo di palloncini legato alla spalla.
         const balloons = [
-          (Offset(0.36, -1.2), Color(0xFFD23A2E)),
-          (Offset(0.5, -1.06), Color(0xFF2E5BC8)),
-          (Offset(0.24, -1.04), Color(0xFFE9C23A)),
-          (Offset(0.46, -0.86), Color(0xFF2E9E4A)),
-          (Offset(0.56, -1.24), Color(0xFFE85A9A)),
+          // Stretti sopra la spalla, che il bordo del ritratto non li tagli.
+          (Offset(0.28, -1.17), Color(0xFFD23A2E)),
+          (Offset(0.42, -1.03), Color(0xFF2E5BC8)),
+          (Offset(0.24, -0.99), Color(0xFFE9C23A)),
+          (Offset(0.43, -0.86), Color(0xFF2E9E4A)),
+          (Offset(0.13, -1.25), Color(0xFFE85A9A)),
         ];
         final string = _line(const Color(0xFFDCD6CA), 0.006);
         for (final (c, _) in balloons) {

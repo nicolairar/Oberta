@@ -48,7 +48,7 @@ abstract final class _Oddities {
           ..fillType = PathFillType.evenOdd
           ..addRect(const Rect.fromLTRB(-0.6, -0.7, 0.6, -0.3))
           ..addPath(tank, Offset.zero);
-        canvas.drawPath(bare, _fill(_dark(skin, 0.25)));
+        canvas.drawPath(bare, _fill(LookPainter._skinShade(skin, 0.2)));
         // I muscoli delle spalle, un filo d'ombra.
         for (final side in [-1.0, 1.0]) {
           canvas.drawArc(
@@ -56,7 +56,7 @@ abstract final class _Oddities {
             side < 0 ? pi * 0.1 : pi * 0.4,
             pi * 0.5,
             false,
-            _line(_dark(skin, 0.55), 0.012),
+            _line(LookPainter._skinShade(skin, 0.5), 0.012),
           );
         }
       case CoatPattern.breton:

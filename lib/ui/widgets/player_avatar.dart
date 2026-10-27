@@ -121,6 +121,10 @@ class AvatarBustPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final s = size.shortestSide;
+    // In un riquadro non quadrato (la scheda della bottega) la moneta sta nel
+    // mezzo, non schiacciata in un angolo.
+    canvas.save();
+    canvas.translate((size.width - s) / 2, (size.height - s) / 2);
     final bounds = Offset.zero & Size.square(s);
     final background = look.outfit.accent;
     if (faded) canvas.saveLayer(bounds, Paint()..colorFilter = _grey);
@@ -165,6 +169,7 @@ class AvatarBustPainter extends CustomPainter {
         ..color = AppColors.gold.withValues(alpha: 0.9),
     );
     if (faded) canvas.restore();
+    canvas.restore();
   }
 
   @override

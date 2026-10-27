@@ -34,6 +34,20 @@ abstract final class _Extras {
   // ---- Le pettinature ----
 
   static void hairdoBack(Canvas canvas, AvatarLook look, Paint? halo) {
+    canvas.save();
+    _Face.fit(canvas, look.features.shape);
+    _hairdoBack(canvas, look, halo);
+    canvas.restore();
+  }
+
+  static void hairdoFront(Canvas canvas, AvatarLook look) {
+    canvas.save();
+    _Face.fit(canvas, look.features.shape);
+    _hairdoFront(canvas, look);
+    canvas.restore();
+  }
+
+  static void _hairdoBack(Canvas canvas, AvatarLook look, Paint? halo) {
     final c = _color(look);
     final back = halo ?? _fill(LookPainter._dark(c, 0.3));
     switch (look.hairdo) {
@@ -152,7 +166,7 @@ abstract final class _Extras {
     ..quadraticBezierTo(-0.12, fringe - 0.02, -0.17, -0.86)
     ..close();
 
-  static void hairdoFront(Canvas canvas, AvatarLook look) {
+  static void _hairdoFront(Canvas canvas, AvatarLook look) {
     final c = _color(look);
     const box = Rect.fromLTRB(-0.3, -1.5, 0.3, -0.8);
     final hair = _shade(c, box);

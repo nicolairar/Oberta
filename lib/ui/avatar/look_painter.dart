@@ -125,13 +125,94 @@ abstract final class LookPainter {
 
   /// Un ritratto a mezzo busto in un quadrato di lato [side], senza fondo:
   /// la testa nel mezzo, le spalle che escono dal basso.
+  ///
+  /// Gli occhi stanno sempre all'altezza [bustEyes]; la persona si rimpicciolisce
+  /// quel tanto che basta perché un cappello alto (o una pettinatura della
+  /// bottega) resti dentro la moneta, e le spalle mostrino l'abito.
   static void bust(Canvas canvas, AvatarLook look, double side, {CharacterPose pose = const CharacterPose(light: Offset(-0.6, -0.8))}) {
-    final s = side * 0.98;
+    final s = side * bustScale(look);
     canvas.save();
-    canvas.translate(side * 0.5, side * 0.47 + 0.86 * s);
+    canvas.translate(side * 0.5, side * bustEyes + 0.868 * s);
     canvas.scale(s);
     _figure(canvas, look, pose, lit: false, hands: false);
     canvas.restore();
+  }
+
+  /// Dove stanno gli occhi nel ritratto, in frazioni del lato.
+  static const bustEyes = 0.44;
+
+  /// Quanto è grande la persona nel ritratto, in frazioni del lato: la misura
+  /// piena, o meno se quello che porta in testa salirebbe oltre il bordo.
+  static double bustScale(AvatarLook look) => ((bustEyes - 0.035) / (-crown(look) - 0.868)).clamp(0.8, 0.94);
+
+  /// Fin dove sale la persona sopra la testa, nelle misure del busto (la
+  /// sommità della testa è a -1.06): il cappello, la pettinatura, le ali.
+  static double crown(AvatarLook look) {
+    final hairdo = switch (look.hairdo) {
+      Hairdo.beehive => -1.53,
+      Hairdo.toweringPompadour => -1.47,
+      Hairdo.punkSpikes => -1.42,
+      Hairdo.flameBouffant => -1.39,
+      _ => -1.22,
+    };
+    final hat = look.hairdo != Hairdo.none
+        ? -1.22
+        : switch (look.hat) {
+            AvatarHead.magicianHat => -1.5,
+            AvatarHead.unicornHorn => -1.41,
+            AvatarHead.flamingHair => -1.39,
+            AvatarHead.topHat || AvatarHead.spaghettiHat || AvatarHead.catOnHead => -1.35,
+            AvatarHead.chefToque ||
+            AvatarHead.fishHead ||
+            AvatarHead.octopusHat ||
+            AvatarHead.ufoHat ||
+            AvatarHead.birthdayCake ||
+            AvatarHead.rainbowAfro => -1.33,
+            AvatarHead.astronautHelmet => -1.32,
+            AvatarHead.sombrero || AvatarHead.operaHelmet => -1.31,
+            AvatarHead.roosterHead ||
+            AvatarHead.blaugranaCap ||
+            AvatarHead.merenguesCap ||
+            AvatarHead.celestiCap ||
+            AvatarHead.diavoliCap ||
+            AvatarHead.redsCap ||
+            AvatarHead.rossoneriCap ||
+            AvatarHead.nerazzurriCap ||
+            AvatarHead.bianconeriCap ||
+            AvatarHead.giallorossiCap ||
+            AvatarHead.azzurriCap => -1.29,
+            AvatarHead.dinoHood => -1.28,
+            AvatarHead.devilHorns => -1.27,
+            _ => -1.22,
+          };
+    final prop = switch (look.accessory) {
+      AvatarAccessory.balloons || AvatarAccessory.dragonWings => -1.34,
+      _ => -1.22,
+    };
+    return min(hairdo, min(hat, prop));
+  }
+
+  /// La pelle più chiara di [t]: verso una versione chiara della stessa pelle,
+  /// non verso il crema, così le pelli scure non diventano cenere.
+  static Color _skinLight(Color c, double t) {
+    final h = HSLColor.fromColor(c);
+    final target = h
+        .withLightness(h.lightness + (1 - h.lightness) * 0.75)
+        .withSaturation(h.saturation * 0.75)
+        .toColor();
+    return Color.lerp(c, target, t)!;
+  }
+
+  /// La pelle in ombra di [t]: verso un bruno caldo e spento della stessa
+  /// pelle, invece del blu-nero che la sporca (e senza arancio sulle chiare).
+  static Color _skinShade(Color c, double t) {
+    final h = HSLColor.fromColor(c);
+    final target = h
+        .withLightness(h.lightness * 0.2)
+        .withSaturation(h.saturation * 0.55)
+        .withHue((h.hue - 8) % 360)
+        .toColor();
+    return Color.lerp(c, target, t)!;
   }
 
   static Color _dark(Color c, double t) => Color.lerp(c, ink, t)!;
@@ -201,7 +282,8 @@ abstract final class LookPainter {
     // Il filo di luce: la sagoma intera in chiaro, spostata verso la lampada,
     // poi tutto il resto sopra.
     canvas.save();
-    canvas.translate(light.dx * 0.03, light.dy * 0.03);
+    // Appena accanto: più in là sembra una seconda testa fuori registro.
+    canvas.translate(light.dx * 0.013, light.dy * 0.013);
     final halo = Paint()..color = glow.withValues(alpha: lit ? 0.95 : 0.75);
     canvas.drawPath(torso, halo);
     styled ? _Extras.hairdoBack(canvas, look, halo) : _hairBack(canvas, look, halo);
@@ -586,7 +668,13 @@ abstract final class LookPainter {
           ..lineTo(0.14, -0.62)
           ..lineTo(0, -0.36)
           ..close(),
-        Paint()..color = _dark(look.base.skin, 0.35),
+        // La stessa pelle del collo, che scende nell'ombra dell'abito.
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [_skinShade(look.base.skin, 0.32), _skinShade(look.base.skin, 0.55)],
+          ).createShader(const Rect.fromLTRB(-0.14, -0.62, 0.14, -0.36)),
       );
       if (pattern == CoatPattern.cape) _capeCollar(canvas, outfit);
       _patch(canvas, outfit, -0.2);
@@ -1713,42 +1801,62 @@ abstract final class LookPainter {
     }
     final mark = look.base.mark;
     if (mark == FaceMark.stubble || mark == FaceMark.goatee) {
+      // L'ombra della barba: sfuma verso gli zigomi invece di finire con un
+      // bordo netto, e prende il colore dei capelli.
+      final shadow = _dark(_hairColor(look), 0.35).withValues(alpha: mark == FaceMark.stubble ? 0.3 : 0.18);
       canvas.drawPath(
         Path()
-          ..moveTo(-0.15, -0.82)
-          ..quadraticBezierTo(-0.1, -0.76, 0, -0.77)
-          ..quadraticBezierTo(0.1, -0.76, 0.15, -0.82)
-          ..lineTo(0.15, -0.6)
-          ..lineTo(-0.15, -0.6)
+          ..moveTo(-0.17, -0.84)
+          ..quadraticBezierTo(-0.1, -0.76, 0, -0.775)
+          ..quadraticBezierTo(0.1, -0.76, 0.17, -0.84)
+          ..lineTo(0.17, -0.6)
+          ..lineTo(-0.17, -0.6)
           ..close(),
-        Paint()..color = const Color(0xFF14100E).withValues(alpha: mark == FaceMark.stubble ? 0.4 : 0.22),
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [shadow.withValues(alpha: 0), shadow, shadow],
+            stops: const [0, 0.35, 1],
+          ).createShader(const Rect.fromLTRB(-0.17, -0.84, 0.17, -0.7)),
       );
     }
     if (mark == FaceMark.fullBeard || mark == FaceMark.muttonChops) {
       // La barba piena copre la mascella; i basettoni lasciano il mento nudo.
       final beard = Paint()..color = _dark(_hairColor(look), 0.05);
       final full = mark == FaceMark.fullBeard;
-      final path = Path()
-        ..moveTo(-0.17, -0.9)
-        ..lineTo(-0.13, -0.9)
-        ..quadraticBezierTo(-0.12, -0.8, -0.07, -0.79)
-        ..lineTo(full ? 0.07 : -0.05, -0.79)
-        ..quadraticBezierTo(0.12, -0.8, 0.13, -0.9)
-        ..lineTo(0.17, -0.9)
-        ..lineTo(0.17, -0.6)
-        ..lineTo(-0.17, -0.6)
-        ..close();
-      if (!full) {
-        // Il mento resta scoperto, sotto la bocca.
-        path.addOval(Rect.fromCenter(center: const Offset(0, -0.71), width: 0.13, height: 0.13));
-        path.fillType = PathFillType.evenOdd;
+      final Path path;
+      if (full) {
+        path = Path()
+          ..moveTo(-0.17, -0.9)
+          ..lineTo(-0.13, -0.9)
+          ..quadraticBezierTo(-0.12, -0.8, -0.07, -0.79)
+          ..lineTo(0.07, -0.79)
+          ..quadraticBezierTo(0.12, -0.8, 0.13, -0.9)
+          ..lineTo(0.17, -0.9)
+          ..lineTo(0.17, -0.6)
+          ..lineTo(-0.17, -0.6)
+          ..close();
+      } else {
+        // I basettoni: dalle tempie lungo la mascella fino agli angoli della
+        // bocca, dove si attaccano ai baffi. Il mento resta scoperto.
+        path = Path();
+        for (final side in [-1.0, 1.0]) {
+          path
+            ..moveTo(side * 0.18, -0.9)
+            ..lineTo(side * 0.13, -0.9)
+            ..quadraticBezierTo(side * 0.125, -0.82, side * 0.078, -0.772)
+            ..quadraticBezierTo(side * 0.07, -0.73, side * 0.085, -0.705)
+            ..quadraticBezierTo(side * 0.14, -0.7, side * 0.18, -0.74)
+            ..close();
+        }
       }
       canvas.drawPath(path, beard);
       if (full) {
         // La bocca si apre nella barba.
         canvas.drawOval(
           Rect.fromCenter(center: const Offset(0, -0.758), width: 0.07, height: 0.022),
-          Paint()..color = _dark(skin, 0.45),
+          Paint()..color = _skinShade(skin, 0.45),
         );
       }
       final grain = Paint()
@@ -1759,11 +1867,24 @@ abstract final class LookPainter {
       }
     }
     canvas.restore();
+    if (mark == FaceMark.fullBeard) {
+      // La barba piena scende oltre il mento e copre il colletto.
+      final g = _Face.geometry(look.features.shape);
+      canvas.drawPath(
+        Path()
+          ..moveTo(-g.jw, g.jy)
+          ..cubicTo(-g.jw + 0.004, g.chin + 0.01, -0.07, g.chin + 0.045, 0, g.chin + 0.05)
+          ..cubicTo(0.07, g.chin + 0.045, g.jw - 0.004, g.chin + 0.01, g.jw, g.jy)
+          ..cubicTo(g.jw - 0.01, g.chin - 0.01, 0.05, g.chin - 0.004, 0, g.chin - 0.004)
+          ..cubicTo(-0.05, g.chin - 0.004, -(g.jw - 0.01), g.chin - 0.01, -g.jw, g.jy)
+          ..close(),
+        Paint()..color = _dark(_hairColor(look), 0.12),
+      );
+    }
 
     _Face.eyes(canvas, look, pose, skin);
     _Face.brows(canvas, look);
     if (look.features.detail == FaceDetail.scar) _Face.detail(canvas, look, skin);
-    _Face.nose(canvas, look, skin, light);
     _Face.mouth(canvas, look, skin);
 
     final dark = Paint()..color = _dark(_hairColor(look), 0.1);
@@ -1792,7 +1913,7 @@ abstract final class LookPainter {
         );
       case FaceMark.scar:
         final scar = Paint()
-          ..color = _bright(skin, 0.55).withValues(alpha: 0.85)
+          ..color = _skinLight(skin, 0.55).withValues(alpha: 0.85)
           ..strokeWidth = 0.011
           ..strokeCap = StrokeCap.round;
         canvas.drawLine(const Offset(0.085, -0.9), const Offset(0.115, -0.8), scar);
@@ -1828,7 +1949,7 @@ abstract final class LookPainter {
           ..strokeWidth = 0.014
           ..strokeCap = StrokeCap.round;
         final lift = Paint()
-          ..color = _bright(skin, 0.35).withValues(alpha: 0.55)
+          ..color = _skinLight(skin, 0.35).withValues(alpha: 0.55)
           ..strokeWidth = 0.008
           ..strokeCap = StrokeCap.round;
         for (final side in [-1.0, 1.0]) {
@@ -1968,6 +2089,8 @@ abstract final class LookPainter {
           dark,
         );
     }
+    // Il naso sopra i baffi: la punta non resta tagliata dal pelo.
+    _Face.nose(canvas, look, skin, light);
   }
 
   static void _hairFront(Canvas canvas, AvatarLook look) => _Face.hairFront(canvas, look);
@@ -2896,7 +3019,7 @@ abstract final class LookPainter {
           ..shader = LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [_bright(skin, 0.15), _dark(skin, 0.4)],
+            colors: [_skinLight(skin, 0.1), _skinShade(skin, 0.35)],
           ).createShader(Rect.fromCenter(center: hand, width: 0.115, height: 0.075)),
       );
       if (look.dame && i == 1) {

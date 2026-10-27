@@ -10,6 +10,8 @@ part of 'look_painter.dart';
 abstract final class _Face {
   static Color _dark(Color c, double t) => LookPainter._dark(c, t);
   static Color _bright(Color c, double t) => LookPainter._bright(c, t);
+  static Color _shade(Color skin, double t) => LookPainter._skinShade(skin, t);
+  static Color _light(Color skin, double t) => LookPainter._skinLight(skin, t);
   static const _ink = LookPainter.ink;
 
   /// La luce fredda che ritaglia il lato in ombra.
@@ -105,7 +107,7 @@ abstract final class _Face {
         ..shader = LinearGradient(
           begin: Alignment(light.dx.sign, 0),
           end: Alignment(-light.dx.sign, 0),
-          colors: [_dark(skin, 0.22), _dark(skin, 0.4), _dark(skin, 0.66)],
+          colors: [_shade(skin, 0.1), _shade(skin, 0.22), _shade(skin, 0.42)],
         ).createShader(bounds),
     );
     canvas.save();
@@ -117,7 +119,7 @@ abstract final class _Face {
         ..shader = LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [_ink.withValues(alpha: 0.6), _ink.withValues(alpha: 0)],
+          colors: [_shade(skin, 0.7).withValues(alpha: 0.6), _shade(skin, 0.7).withValues(alpha: 0)],
         ).createShader(const Rect.fromLTRB(-0.09, -0.72, 0.09, -0.65)),
     );
     final far = -light.dx.sign;
@@ -137,18 +139,18 @@ abstract final class _Face {
         ..cubicTo(x + side * 0.03, -0.9, x + side * 0.038, -0.875, x + side * 0.032, -0.848)
         ..cubicTo(x + side * 0.028, -0.826, x + side * 0.016, -0.808, x, -0.81)
         ..close();
-      canvas.drawPath(ear, _fill(_dark(skin, lit ? 0.12 : 0.48)));
+      canvas.drawPath(ear, _fill(_shade(skin, lit ? 0.12 : 0.48)));
       // La conca e l'elice.
       canvas.drawPath(
         Path()
           ..moveTo(x + side * 0.006, -0.882)
           ..cubicTo(x + side * 0.026, -0.884, x + side * 0.028, -0.86, x + side * 0.022, -0.842)
           ..quadraticBezierTo(x + side * 0.016, -0.83, x + side * 0.008, -0.832),
-        _line(_dark(skin, lit ? 0.42 : 0.7), 0.0055),
+        _line(_shade(skin, lit ? 0.42 : 0.7), 0.0055),
       );
       canvas.drawOval(
         Rect.fromCenter(center: Offset(x + side * 0.01, -0.85), width: 0.012, height: 0.02),
-        _fill(_dark(skin, lit ? 0.32 : 0.62).withValues(alpha: 0.7)),
+        _fill(_shade(skin, lit ? 0.32 : 0.62).withValues(alpha: 0.7)),
       );
       if (!lit) canvas.drawPath(ear, _line(_rim.withValues(alpha: 0.28), 0.004));
     }
@@ -166,7 +168,7 @@ abstract final class _Face {
         ..shader = RadialGradient(
           center: Alignment(lx * 0.42, -0.32),
           radius: 0.98,
-          colors: [_bright(skin, 0.2), _bright(skin, 0.06), skin, _dark(skin, 0.2), _dark(skin, 0.44)],
+          colors: [_light(skin, 0.18), _light(skin, 0.06), skin, _shade(skin, 0.14), _shade(skin, 0.32)],
           stops: const [0, 0.24, 0.52, 0.82, 1],
         ).createShader(bounds),
     );
@@ -179,38 +181,43 @@ abstract final class _Face {
         ..shader = LinearGradient(
           begin: Alignment(-far, 0),
           end: Alignment(far, 0),
-          colors: [Colors.transparent, Colors.transparent, const Color(0xFF151A28).withValues(alpha: 0.34)],
+          colors: [Colors.transparent, Colors.transparent, _shade(skin, 0.6).withValues(alpha: 0.28)],
           stops: const [0, 0.52, 1],
         ).createShader(bounds),
     );
     // Le orbite, appena incavate.
     for (final side in [-1.0, 1.0]) {
       _soft(canvas, Rect.fromCenter(center: Offset(side * 0.064, _eyeY - 0.006), width: 0.11, height: 0.07),
-          _dark(skin, 0.6).withValues(alpha: f.eyes == EyeShape.deepSet ? 0.34 : 0.2));
+          _shade(skin, 0.55).withValues(alpha: f.eyes == EyeShape.deepSet ? 0.3 : 0.16));
     }
     // Gli zigomi: la luce sopra, l'incavo sotto, il rosa sulle guance.
     for (final side in [-1.0, 1.0]) {
       final lit = side != far;
       _soft(canvas, Rect.fromCenter(center: Offset(side * (g.cw - 0.05), -0.832), width: 0.08, height: 0.04),
-          _bright(skin, 0.5).withValues(alpha: lit ? 0.4 : 0.1));
-      _soft(canvas, Rect.fromCenter(center: Offset(side * (g.jw - 0.006), -0.775), width: 0.07, height: 0.06),
-          _ink.withValues(alpha: lit ? 0.06 : 0.16));
+          _light(skin, 0.5).withValues(alpha: lit ? 0.4 : 0.1));
+      // L'incavo sotto lo zigomo: appena accennato, che non sembri un livido.
+      _soft(canvas, Rect.fromCenter(center: Offset(side * (g.jw - 0.006), -0.778), width: 0.08, height: 0.07),
+          _shade(skin, 0.5).withValues(alpha: lit ? 0.05 : 0.11));
+      // Il rosa delle guance: sulle pelli scure un rosso più profondo e più
+      // leggero, che non diventi una macchia viola.
       final rosy = f.detail == FaceDetail.rosyCheeks;
+      final deep = (1 - skin.computeLuminance() * 2.4).clamp(0.0, 1.0);
+      final flush = Color.lerp(_flush, const Color(0xFFA8433A), deep)!;
       _soft(canvas, Rect.fromCenter(center: Offset(side * 0.09, -0.802), width: rosy ? 0.08 : 0.07, height: rosy ? 0.05 : 0.04),
-          _flush.withValues(alpha: rosy ? 0.42 : (look.dame ? 0.22 : 0.13)));
+          flush.withValues(alpha: (rosy ? 0.42 : (look.dame ? 0.2 : 0.11)) * (1 - deep * 0.8)));
     }
     // La fronte prende la luce; la mascella e il mento affondano.
-    _soft(canvas, Rect.fromCenter(center: Offset(lx * 0.035, -0.985), width: 0.2, height: 0.09), _bright(skin, 0.55).withValues(alpha: 0.28));
+    _soft(canvas, Rect.fromCenter(center: Offset(lx * 0.035, -0.985), width: 0.2, height: 0.09), _light(skin, 0.55).withValues(alpha: 0.28));
     canvas.drawRect(
       bounds,
       Paint()
         ..shader = LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Colors.transparent, _ink.withValues(alpha: 0.2)],
+          colors: [Colors.transparent, _shade(skin, 0.6).withValues(alpha: 0.22)],
         ).createShader(Rect.fromLTRB(-g.cw, g.jy - 0.03, g.cw, g.chin)),
     );
-    _soft(canvas, Rect.fromCenter(center: Offset(-lx * 0.008, g.chin + 0.026), width: 0.06, height: 0.025), _bright(skin, 0.4).withValues(alpha: 0.3));
+    _soft(canvas, Rect.fromCenter(center: Offset(-lx * 0.008, g.chin + 0.026), width: 0.06, height: 0.025), _light(skin, 0.4).withValues(alpha: 0.3));
     // Il filo di luce fredda sul bordo in ombra.
     canvas.save();
     canvas.clipRect(Rect.fromLTRB(far < 0 ? -1 : 0.02, -1.2, far < 0 ? -0.02 : 1, -0.6));
@@ -218,7 +225,7 @@ abstract final class _Face {
     canvas.restore();
     canvas.restore();
     // Il contorno, perché la testa si legga anche nella moneta piccola.
-    canvas.drawPath(face, _line(_dark(skin, 0.82).withValues(alpha: 0.5), 0.005));
+    canvas.drawPath(face, _line(_shade(skin, 0.8).withValues(alpha: 0.55), 0.005));
   }
 
   // --- Rughe e segni ----------------------------------------------------------
@@ -227,8 +234,8 @@ abstract final class _Face {
     final age = look.features.age;
     if (age == FaceAge.none) return;
     final deep = age == FaceAge.deep;
-    final line = _line(_dark(skin, 0.5).withValues(alpha: deep ? 0.5 : 0.34), deep ? 0.0055 : 0.0045);
-    final light = _line(_bright(skin, 0.4).withValues(alpha: 0.3), 0.004);
+    final line = _line(_shade(skin, 0.5).withValues(alpha: deep ? 0.5 : 0.34), deep ? 0.0055 : 0.0045);
+    final light = _line(_light(skin, 0.4).withValues(alpha: 0.3), 0.004);
     for (final side in [-1.0, 1.0]) {
       // Dal naso agli angoli della bocca, con il filo di luce accanto.
       final fold = Path()
@@ -266,7 +273,7 @@ abstract final class _Face {
       case FaceDetail.none || FaceDetail.rosyCheeks:
         break;
       case FaceDetail.freckles:
-        final dot = _fill(Color.lerp(_dark(skin, 0.3), const Color(0xFF8A4A2A), 0.45)!.withValues(alpha: 0.6));
+        final dot = _fill(Color.lerp(_shade(skin, 0.3), const Color(0xFF8A4A2A), 0.45)!.withValues(alpha: 0.6));
         const spots = [
           Offset(-0.104, -0.832), Offset(-0.088, -0.818), Offset(-0.072, -0.83), Offset(-0.11, -0.81), //
           Offset(-0.06, -0.814), Offset(-0.094, -0.8), Offset(0.104, -0.832), Offset(0.088, -0.818),
@@ -279,16 +286,16 @@ abstract final class _Face {
       case FaceDetail.beautyMark:
         canvas.drawCircle(const Offset(-0.058, -0.784), 0.0068, _fill(const Color(0xFF241510)));
       case FaceDetail.mole:
-        canvas.drawCircle(const Offset(0.05, -0.83), 0.0062, _fill(Color.lerp(_dark(skin, 0.6), const Color(0xFF3A2216), 0.5)!));
+        canvas.drawCircle(const Offset(0.05, -0.83), 0.0062, _fill(Color.lerp(_shade(skin, 0.6), const Color(0xFF3A2216), 0.5)!));
       case FaceDetail.scar:
         // Un taglio che attraversa il sopracciglio sinistro.
-        final scar = _line(_bright(skin, 0.45).withValues(alpha: 0.9), 0.008);
+        final scar = _line(_light(skin, 0.45).withValues(alpha: 0.9), 0.008);
         canvas.drawLine(const Offset(-0.096, -0.94), const Offset(-0.078, -0.892), scar);
         canvas.drawLine(const Offset(-0.073, -0.878), const Offset(-0.067, -0.858), scar..strokeWidth = 0.006);
       case FaceDetail.cheekScar:
-        final scar = _line(Color.lerp(_bright(skin, 0.3), const Color(0xFFC07A70), 0.4)!.withValues(alpha: 0.85), 0.006);
+        final scar = _line(Color.lerp(_light(skin, 0.3), const Color(0xFFC07A70), 0.4)!.withValues(alpha: 0.85), 0.006);
         canvas.drawLine(const Offset(-0.122, -0.842), const Offset(-0.078, -0.79), scar);
-        final stitch = _line(_dark(skin, 0.5).withValues(alpha: 0.6), 0.003);
+        final stitch = _line(_shade(skin, 0.5).withValues(alpha: 0.6), 0.003);
         for (var t = 0.2; t < 0.9; t += 0.22) {
           final p = Offset.lerp(const Offset(-0.122, -0.842), const Offset(-0.078, -0.79), t)!;
           canvas.drawLine(p.translate(-0.006, 0.005), p.translate(0.006, -0.005), stitch);
@@ -300,7 +307,7 @@ abstract final class _Face {
             side < 0 ? pi * 0.6 : -pi * 0.4,
             pi * 0.8,
             false,
-            _line(_dark(skin, 0.45).withValues(alpha: 0.55), 0.004),
+            _line(_shade(skin, 0.45).withValues(alpha: 0.55), 0.004),
           );
         }
     }
@@ -388,7 +395,7 @@ abstract final class _Face {
             ..lineTo(outer.dx, top - 0.03)
             ..lineTo(inner.dx, top - 0.03)
             ..close(),
-          _fill(_dark(skin, 0.14)),
+          _fill(_shade(skin, 0.14)),
         );
       }
       canvas.restore();
@@ -399,7 +406,7 @@ abstract final class _Face {
         Path()
           ..moveTo(outer.dx, outer.dy)
           ..cubicTo(outer.dx - side * e.w * 0.22, bottom - e.tilt * 0.3, inner.dx + side * e.w * 0.32, bottom, inner.dx, inner.dy),
-        _line(_dark(skin, 0.5).withValues(alpha: f.shadow == EyeShadow.liner || f.shadow == EyeShadow.smoky ? 0.8 : 0.4), 0.0035),
+        _line(_shade(skin, 0.5).withValues(alpha: f.shadow == EyeShadow.liner || f.shadow == EyeShadow.smoky ? 0.8 : 0.4), 0.0035),
       );
       canvas.drawCircle(inner.translate(side * 0.003, 0), 0.0035, _fill(const Color(0xFFC07A78).withValues(alpha: 0.7)));
       // La coda: la matita, o l'occhio a mandorla da gatta.
@@ -425,7 +432,7 @@ abstract final class _Face {
           Path()
             ..moveTo(inner.dx + side * e.w * 0.12, top + e.h * 0.2)
             ..quadraticBezierTo(c.dx + side * 0.004, top - 0.014, outer.dx - side * e.w * 0.04, outer.dy - e.h * 0.85),
-          _line(_dark(skin, 0.55).withValues(alpha: 0.45), 0.0042),
+          _line(_shade(skin, 0.55).withValues(alpha: 0.45), 0.0042),
         );
       }
     }
@@ -517,9 +524,9 @@ abstract final class _Face {
       ..lineTo(tipX + sx * n.w * 0.5, n.tip + 0.004)
       ..quadraticBezierTo(tipX + sx * n.w * 0.2, n.tip - 0.01, sx * 0.004, -0.88)
       ..close();
-    canvas.drawPath(side, _fill(_dark(skin, 0.5).withValues(alpha: 0.3)));
+    canvas.drawPath(side, _fill(_shade(skin, 0.5).withValues(alpha: 0.3)));
     // Sotto la punta, l'ombra che cade sul labbro.
-    _soft(canvas, Rect.fromCenter(center: Offset(tipX + sx * 0.004, n.tip + 0.012), width: n.w * 1.3, height: 0.024), _dark(skin, 0.6).withValues(alpha: 0.45));
+    _soft(canvas, Rect.fromCenter(center: Offset(tipX + sx * 0.004, n.tip + 0.012), width: n.w * 1.3, height: 0.024), _shade(skin, 0.6).withValues(alpha: 0.45));
     for (final s in [-1.0, 1.0]) {
       // Le ali e le narici.
       canvas.drawArc(
@@ -527,17 +534,17 @@ abstract final class _Face {
         s < 0 ? pi * 0.55 : -pi * 0.55,
         s < 0 ? pi * 0.95 : -pi * 0.95,
         false,
-        _line(_dark(skin, 0.5).withValues(alpha: s == sx ? 0.6 : 0.4), 0.0045),
+        _line(_shade(skin, 0.5).withValues(alpha: s == sx ? 0.6 : 0.4), 0.0045),
       );
       canvas.save();
       canvas.translate(tipX + s * n.w * 0.2, n.tip + 0.005);
       canvas.rotate(s * 0.35);
-      canvas.drawOval(Rect.fromCenter(center: Offset.zero, width: 0.013, height: 0.0065), _fill(_dark(skin, 0.72)));
+      canvas.drawOval(Rect.fromCenter(center: Offset.zero, width: 0.013, height: 0.0065), _fill(_shade(skin, 0.72)));
       canvas.restore();
     }
     // La luce sul dorso e sulla punta.
-    canvas.drawLine(Offset(-sx * 0.005, -0.868), Offset(tipX - sx * 0.006, n.tip - 0.02), _line(_bright(skin, 0.35).withValues(alpha: 0.4), 0.006));
-    _soft(canvas, Rect.fromCircle(center: Offset(tipX - sx * 0.004, n.tip - n.r * 0.6), radius: n.r * 1.4), _bright(skin, 0.55).withValues(alpha: 0.7));
+    canvas.drawLine(Offset(-sx * 0.005, -0.868), Offset(tipX - sx * 0.006, n.tip - 0.02), _line(_light(skin, 0.35).withValues(alpha: 0.4), 0.006));
+    _soft(canvas, Rect.fromCircle(center: Offset(tipX - sx * 0.004, n.tip - n.r * 0.6), radius: n.r * 1.4), _light(skin, 0.55).withValues(alpha: 0.7));
   }
 
   // --- La bocca ---------------------------------------------------------------------
@@ -565,7 +572,10 @@ abstract final class _Face {
     final m = _mouth(f.mouth);
     const y = _mouthY;
     final paint = f.lipstick;
-    final lip = paint ?? Color.lerp(_dark(skin, 0.16), _flush, look.dame ? 0.42 : 0.3)!;
+    // Le labbra nude sono la pelle un poco più rossa: sulle pelli scure il rosa
+    // si spegne, se no sembra rossetto.
+    final deep = (1 - skin.computeLuminance() * 2.4).clamp(0.0, 1.0);
+    final lip = paint ?? Color.lerp(_shade(skin, 0.18 + deep * 0.1), _flush, (look.dame ? 0.42 : 0.3) * (1 - deep * 0.55))!;
     double mid(double t) => y - m.lift * t * t - m.skew * _pw((t + 1) / 2, 2);
     double gap(double t) => m.open / 2 * (1 - t * t);
     const n = 12;
@@ -573,7 +583,7 @@ abstract final class _Face {
     Offset at(double t, double dy) => Offset(t * m.w, dy);
     // L'ombra sotto il labbro inferiore, e il solco sopra quello superiore.
     _soft(canvas, Rect.fromCenter(center: Offset(0, y + m.low + 0.012), width: 0.05, height: 0.016), _ink.withValues(alpha: 0.22));
-    canvas.drawLine(Offset(0, y - m.up - 0.018), Offset(0, y - m.up - 0.004), _line(_dark(skin, 0.4).withValues(alpha: 0.18), 0.008));
+    canvas.drawLine(Offset(0, y - m.up - 0.018), Offset(0, y - m.up - 0.004), _line(_shade(skin, 0.4).withValues(alpha: 0.18), 0.008));
     // Il labbro inferiore.
     final lower = _smooth([for (final t in ts) at(t, mid(t) + gap(t))]);
     _smooth([for (final t in ts.reversed) at(t, mid(t) + m.low * _pw(1 - t * t, 0.7))], path: lower);
@@ -624,7 +634,7 @@ abstract final class _Face {
           s < 0 ? pi * 0.65 : -pi * 0.35,
           pi * 0.7,
           false,
-          _line(_dark(skin, 0.5).withValues(alpha: 0.5), 0.004),
+          _line(_shade(skin, 0.5).withValues(alpha: 0.5), 0.004),
         );
       }
     }
@@ -712,7 +722,34 @@ abstract final class _Face {
     ..cubicTo(-bulge, -0.98, -bulge * 0.8, top, 0, top)
     ..cubicTo(bulge * 0.8, top, bulge, -0.98, side, y);
 
+  /// I capelli sono disegnati sulla testa ovale; [fit] li porta sulla testa
+  /// vera: larghi quanto la fronte e le tempie, con l'attaccatura alla stessa
+  /// distanza dalla sommità. Così una testa tonda non spunta dai lati e una
+  /// lunga non resta scoperta in cima.
+  static void fit(Canvas canvas, FaceShape shape) {
+    final g = geometry(shape);
+    final kx = (g.fw + g.cw) / 0.31;
+    final ky = (-0.8 - g.top) / 0.26;
+    canvas.translate(0, -0.8);
+    canvas.scale(kx, ky);
+    canvas.translate(0, 0.8);
+  }
+
   static void hairBack(Canvas canvas, AvatarLook look, Paint? halo) {
+    canvas.save();
+    fit(canvas, look.features.shape);
+    _hairBack(canvas, look, halo);
+    canvas.restore();
+  }
+
+  static void hairFront(Canvas canvas, AvatarLook look) {
+    canvas.save();
+    fit(canvas, look.features.shape);
+    _hairFront(canvas, look);
+    canvas.restore();
+  }
+
+  static void _hairBack(Canvas canvas, AvatarLook look, Paint? halo) {
     if (_covered.contains(look.hat)) return;
     final c = look.features.hairColor.color;
     final paint = halo ?? _fill(_dark(c, 0.32));
@@ -833,7 +870,7 @@ abstract final class _Face {
     ..quadraticBezierTo(side * 0.158, -0.88, side * 0.11, start + 0.02)
     ..close();
 
-  static void hairFront(Canvas canvas, AvatarLook look) {
+  static void _hairFront(Canvas canvas, AvatarLook look) {
     if (_covered.contains(look.hat)) return;
     final c = look.features.hairColor.color;
     final style = look.features.hair;
@@ -868,10 +905,6 @@ abstract final class _Face {
           ..close();
         _mass(canvas, hair, c);
         _comb(canvas, hair, c, strands: _flow(7, (t) => Offset(-0.12 + t * 0.24, -1.02), (t) => Offset(-0.1 + t * 0.2, -1.07), (t) => Offset(-0.08 + t * 0.16, -1.1)));
-        for (final side in [-1.0, 1.0]) {
-          canvas.drawArc(Rect.fromCenter(center: Offset(side * 0.11, -1.0), width: 0.05, height: 0.04), pi * 1.1, pi * 0.6, false,
-              _line(Colors.white.withValues(alpha: 0.2), 0.008));
-        }
       case HairStyle.slicked:
         final hair = _shell(top: -1.1)
           ..quadraticBezierTo(0.155, -0.975, 0.06, -0.988)
