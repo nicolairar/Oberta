@@ -19,6 +19,10 @@ class TutorialStrings {
 
   String get you => _t('Tu', 'You');
   String get skip => _t('Salta', 'Skip');
+  String get exit => _t('Esci', 'Leave');
+  String get exitTitle => _t('Lasciare la mano di prova?', 'Leave the practice hand?');
+  String get exitBody => _t('Non conta come fatta: la potrai rifare quando vuoi.', 'It will not count as done: you can play it again any time.');
+  String get stay => _t('Resta', 'Stay');
 
   // Il biglietto sul vicolo, e le voci per rifarlo.
   String get hint => _t('Prima volta? Tre mani di prova, una per colore.', 'First time? Three practice hands, one per colour.');

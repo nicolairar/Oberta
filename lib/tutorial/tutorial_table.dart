@@ -26,6 +26,24 @@ class TutorialClock implements GameClock {
   GameTimer schedule(Duration after, void Function() action) => _Timer(Timer(after, action));
 }
 
+/// L'orologio che «Salta» può spingere avanti: lo leggono sia il tavolo
+/// sia lo schermo della partita, così conti alla rovescia e film vedono la
+/// stessa ora del server.
+class SkewClock implements GameClock {
+  final GameClock base;
+
+  /// Quanto si è saltato finora.
+  Duration offset = Duration.zero;
+
+  SkewClock(this.base);
+
+  @override
+  DateTime now() => base.now().add(offset);
+
+  @override
+  GameTimer schedule(Duration after, void Function() action) => base.schedule(after, action);
+}
+
 class _Timer implements GameTimer {
   final Timer _timer;
 
@@ -42,7 +60,7 @@ class _Timer implements GameTimer {
 class TutorialTable implements GameBackend {
   final TutorialScript script;
   final AppLanguage language;
-  final GameClock clock;
+  final SkewClock clock;
 
   static const roomId = 'tutorial';
   static const you = TutorialScript.you;
@@ -87,11 +105,16 @@ class TutorialTable implements GameBackend {
   Scene _scene = const Scene();
   final List<Cue> _queue = [];
   bool _answered = false;
+  bool _acted = false;
   bool _closed = false;
   bool _fresh = true;
   int _days = 0;
 
-  TutorialTable(this.script, {required String youName, required this.language, this.clock = const TutorialClock()}) {
+  TutorialTable(this.script, {
+    required String youName,
+    required this.language,
+    GameClock clock = const TutorialClock(),
+  }) : clock = SkewClock(clock) {
     _game = ServerGame.scripted(
       seats: [
         SeatPlan(seat: you, profileId: youId, name: youName),
@@ -175,6 +198,7 @@ class TutorialTable implements GameBackend {
     final scene = stage == Stage.verdict || stage == Stage.verdictFilm ? '${stage.name}-$_days' : key;
     _scene = script.scenes[scene] ?? const Scene();
     _answered = false;
+    _acted = false;
     final youAlive = _game.engine.isAlive(_game.seating.playerAt(you));
     if (_game.finished || (_game.stage == Stage.verdict && !youAlive)) {
       _endAt ??= clock.now().add(const Duration(milliseconds: 3500));
@@ -192,6 +216,58 @@ class TutorialTable implements GameBackend {
   void tick() {
     final end = _endAt;
     if (!_closed && end != null && !clock.now().isBefore(end)) finished.value = true;
+  }
+
+  /// «Salta»: le righe dei bot ancora da scrivere arrivano subito; se non
+  /// ce ne sono, si va dritti alla prossima scadenza del server (il film,
+  /// il giornale, il verdetto). Quando tocca a te (la carta, la mossa, il
+  /// voto, la risposta in piazza) non si salta niente: si toglie solo la
+  /// riga del narratore.
+  void advance() {
+    if (_closed || finished.value) return;
+    if (_endAt != null) {
+      finished.value = true;
+      return;
+    }
+    if (_queue.isNotEmpty) {
+      _flushCues();
+      return;
+    }
+    if (_mustAct) {
+      coach.value = null;
+      return;
+    }
+    final key = _stageKey;
+    for (var i = 0; i < 8 && !_closed && _stageKey == key && !finished.value; i++) {
+      final next = _game.nextDue(pacing);
+      if (next == null) return;
+      final wait = next.difference(clock.now());
+      if (!wait.isNegative) clock.offset += wait + const Duration(milliseconds: 1);
+      _serve();
+    }
+  }
+
+  /// Tocca a te: senza la tua parte la mano non va avanti.
+  bool get _mustAct {
+    if (!_game.engine.isAlive(_game.seating.playerAt(you))) return false;
+    return switch (_game.stage) {
+      Stage.reveal => true,
+      Stage.night || Stage.vote => !_acted,
+      Stage.discussion => _scene.answer.isNotEmpty && !_answered,
+      _ => false,
+    };
+  }
+
+  /// Le righe in coda, tutte insieme (finché resta la stessa fase).
+  void _flushCues() {
+    _cueTimer?.cancel();
+    final key = _stageKey;
+    final cues = [..._queue];
+    _queue.clear();
+    for (final cue in cues) {
+      if (_closed || _stageKey != key) return;
+      _play(cue);
+    }
   }
 
   /// Le pause fra una riga e l'altra: quanto ci mette una persona a scrivere.
@@ -296,6 +372,7 @@ class TutorialTable implements GameBackend {
     final token = 'tutorial-$id';
     if (_onScript(intent)) {
       _flushMoves();
+      _acted = true;
       _inbox.add(IntentEnvelope(id: id, token: token, seat: you, intent: intent.toJson()));
       if (_scene.acted case final acted?) coach.value = acted;
     } else {
@@ -364,6 +441,9 @@ class TutorialTable implements GameBackend {
 
   /// La fase in corso (`night-1`...).
   String get stage => _game.window.key;
+
+  /// Gira un film a tutto schermo (l'agguato, il verdetto).
+  bool get inFilm => _game.stage == Stage.dawnFilms || _game.stage == Stage.verdictFilm;
 
   /// Il canale in cui rispondere adesso: di notte la famiglia, di giorno la piazza.
   ChatChannel get replyChannel => _game.stage.chat == 'night' ? ChatChannel.family : ChatChannel.day;

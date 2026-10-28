@@ -12,6 +12,7 @@ import '../../tutorial/tutorial_story.dart';
 import '../../tutorial/tutorial_table.dart';
 import '../theme/app_theme.dart';
 import '../theme/role_style.dart';
+import '../widgets/noir_modal.dart';
 import 'online/online_game_screen.dart';
 
 /// La mano di prova: lo schermo della partita online vera, con cinque bot
@@ -55,6 +56,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
   late Profile _me;
   Timer? _measure;
   Rect? _spot;
+  bool _film = false;
 
   AppSettings get _settings => widget.settings ?? AppSettings.instance;
 
@@ -90,6 +92,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
     table.finished.addListener(_finished);
     _measure = Timer.periodic(const Duration(milliseconds: 250), (_) {
       _table.tick();
+      if (mounted && _table.inFilm != _film) setState(() {});
       _locate();
     });
   }
@@ -147,7 +150,26 @@ class _TutorialScreenState extends State<TutorialScreen> {
     if (spot != _spot) setState(() => _spot = spot);
   }
 
-  void _skip() => Navigator.of(context).pop();
+  /// «Salta»: via l'attesa di adesso (il film, il giornale, le righe dei
+  /// bot), non la mano.
+  void _skip() => _table.advance();
+
+  /// «✕»: lasciare la mano, dopo averlo chiesto. Non conta come fatta.
+  Future<void> _exit() async {
+    final leave = await confirmNoir(
+      context,
+      title: _s.exitTitle,
+      body: _s.exitBody,
+      confirm: _s.exit,
+      cancel: _s.stay,
+      danger: true,
+      key: const Key('tutorial.exit.dialog'),
+      confirmKey: const Key('tutorial.exit.confirm'),
+      cancelKey: const Key('tutorial.exit.cancel'),
+    );
+    if (!leave || !mounted) return;
+    Navigator.of(context).pop();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -155,6 +177,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
     final coach = _table.coach.value;
     final replies = _table.replies.value;
     final place = _place(MediaQuery.sizeOf(context), MediaQuery.paddingOf(context).top + 88);
+    final film = _film = _table.inFilm;
     return Stack(
       key: _stack,
       fit: StackFit.expand,
@@ -167,13 +190,19 @@ class _TutorialScreenState extends State<TutorialScreen> {
           clock: _table.clock,
           showClock: false,
           // «Salta» sta nel cartiglio, al posto dell'orologio: non copre il tavolo.
-          corner: TextButton(
-            key: const Key('tutorial.skip'),
-            onPressed: _skip,
-            style: TextButton.styleFrom(minimumSize: const Size(48, 48), foregroundColor: AppColors.textSecondary),
-            child: Text(_s.skip, style: const TextStyle(fontSize: 15)),
-          ),
+          // Accanto, una «✕» piccola per lasciare la mano.
+          corner: film ? null : FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerRight, child: _controls()),
         ),
+        // Il film copre tutto, cartiglio compreso: i comandi gli stanno sopra.
+        if (film)
+          Positioned(
+            top: MediaQuery.paddingOf(context).top + 8,
+            right: 12,
+            child: DecoratedBox(
+              decoration: BoxDecoration(color: const Color(0xB3000000), borderRadius: BorderRadius.circular(24)),
+              child: _controls(),
+            ),
+          ),
         if (_spot case final spot?) IgnorePointer(child: CustomPaint(painter: _CoachScrim(spot.inflate(6)))),
         if (coach != null || replies.isNotEmpty)
           Positioned(
@@ -201,6 +230,33 @@ class _TutorialScreenState extends State<TutorialScreen> {
       ],
     );
   }
+
+  /// «Salta» e la «✕».
+  Widget _controls() => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      TextButton(
+        key: const Key('tutorial.skip'),
+        onPressed: _skip,
+        style: TextButton.styleFrom(
+          minimumSize: const Size(44, 48),
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          foregroundColor: AppColors.textSecondary,
+        ),
+        child: Text(_s.skip, style: const TextStyle(fontSize: 15)),
+      ),
+      IconButton(
+        key: const Key('tutorial.exit'),
+        onPressed: _exit,
+        tooltip: _s.exit,
+        color: AppColors.textSecondary,
+        iconSize: 18,
+        constraints: const BoxConstraints(minWidth: 30, minHeight: 48),
+        padding: EdgeInsets.zero,
+        icon: const Icon(Icons.close),
+      ),
+    ],
+  );
 
   /// Dove mettere la riga: accanto alla luce, sotto se c'è posto, se no
   /// sopra; con una luce troppo grande, in alto.

@@ -22,9 +22,23 @@ bool _enabled(WidgetTester tester, Finder finder) {
 /// Gioca la mano di prova sullo schermo vero, come una persona: legge la
 /// riga del narratore e tocca quello che illumina.
 Future<void> _playThrough(WidgetTester tester) async {
+  await _playUntil(tester, () => find.byKey(const Key('tutorial.done')).evaluate().isNotEmpty);
+  expect(find.byKey(const Key('tutorial.done')), findsOneWidget, reason: 'stuck at ${TutorialScreen.lastTable!.stage} finished=${TutorialScreen.lastTable!.finished.value} ${tester.takeException()}');
+  final table = TutorialScreen.lastTable!;
+  expect(table.youWon, isTrue);
+  expect(table.winner, switch (table.script.story) {
+    TutorialStory.family => Team.mafia,
+    TutorialStory.city => Team.citizens,
+    // Il Fesso vince da solo, e la partita va avanti senza di lui.
+    TutorialStory.solo => isNull,
+  });
+}
+
+/// Gioca come una persona finché [done] non dice basta.
+Future<void> _playUntil(WidgetTester tester, bool Function() done) async {
   for (var i = 0; i < 4000; i++) {
     await tester.pump(const Duration(milliseconds: 200));
-    if (find.byKey(const Key('tutorial.done')).evaluate().isNotEmpty) break;
+    if (done()) break;
     final table = TutorialScreen.lastTable!;
     final stage = table.stage;
     final reply = find.byKey(const Key('tutorial.reply.0'));
@@ -63,15 +77,6 @@ Future<void> _playThrough(WidgetTester tester) async {
       }
     }
   }
-  expect(find.byKey(const Key('tutorial.done')), findsOneWidget, reason: 'stuck at ${TutorialScreen.lastTable!.stage} finished=${TutorialScreen.lastTable!.finished.value} ${tester.takeException()}');
-  final table = TutorialScreen.lastTable!;
-  expect(table.youWon, isTrue);
-  expect(table.winner, switch (table.script.story) {
-    TutorialStory.family => Team.mafia,
-    TutorialStory.city => Team.citizens,
-    // Il Fesso vince da solo, e la partita va avanti senza di lui.
-    TutorialStory.solo => isNull,
-  });
 }
 
 Future<void> _phone(WidgetTester tester) async {
@@ -120,14 +125,14 @@ void main() {
     });
   }
 
-  testWidgets('skipping does not count', (tester) async {
+  Future<AppSettings> open(WidgetTester tester, TutorialStory story) async {
     await _phone(tester);
     final settings = AppSettings(MemorySettingsStore());
     await tester.pumpWidget(appIn(
       AppLanguage.it,
       Builder(
         builder: (context) => Scaffold(
-          body: TextButton(onPressed: () => TutorialScreen.play(context, TutorialStory.family, settings: settings), child: const Text('go')),
+          body: TextButton(onPressed: () => TutorialScreen.play(context, story, settings: settings), child: const Text('go')),
         ),
       ),
     ));
@@ -135,7 +140,57 @@ void main() {
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 200));
     }
-    await tester.tap(find.byKey(const Key('tutorial.skip')));
+    return settings;
+  }
+
+  Future<void> skip(WidgetTester tester) async {
+    await tester.tap(find.byKey(const Key('tutorial.skip')).last);
+    for (var i = 0; i < 5; i++) {
+      await tester.pump(const Duration(milliseconds: 200));
+    }
+  }
+
+  testWidgets('Salta skips the wait, not the hand', (tester) async {
+    final settings = await open(tester, TutorialStory.city);
+    final table = TutorialScreen.lastTable!;
+
+    // La carta va guardata: «Salta» toglie solo la riga del narratore.
+    expect(table.stage, startsWith('reveal'));
+    await skip(tester);
+    expect(table.stage, startsWith('reveal'));
+    expect(table.coach.value, isNull);
+
+    // Il film dell'alba, poi il giornale: si salta dritti alla piazza.
+    await _playUntil(tester, () => table.stage.startsWith('dawnFilms'));
+    expect(table.stage, 'dawnFilms-1');
+    await skip(tester);
+    expect(table.stage, 'dawn-1');
+    await skip(tester);
+    expect(table.stage, startsWith('discussion'));
+
+    // Le righe dei bot arrivano tutte; la risposta resta da dare.
+    await skip(tester);
+    expect(table.stage, startsWith('discussion'));
+    expect(table.replies.value, isNotEmpty);
+
+    expect(find.byKey(const Key('tutorial.skip')), findsOneWidget);
+    expect(find.text('go'), findsNothing);
+    expect(settings.tutorialsDone, isEmpty);
+  });
+
+  testWidgets('leaving asks first and does not count', (tester) async {
+    final settings = await open(tester, TutorialStory.family);
+    await tester.tap(find.byKey(const Key('tutorial.exit')));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byKey(const Key('tutorial.exit.dialog')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('tutorial.exit.cancel')));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byKey(const Key('tutorial.exit.dialog')), findsNothing);
+    expect(find.byKey(const Key('tutorial.skip')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('tutorial.exit')));
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.tap(find.byKey(const Key('tutorial.exit.confirm')));
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 200));
     }
