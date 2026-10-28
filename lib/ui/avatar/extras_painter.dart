@@ -330,13 +330,7 @@ abstract final class _Extras {
 
   // ---- I tatuaggi ----
 
-  static Path _neckPath() => Path()
-    ..moveTo(-0.066, -0.76)
-    ..lineTo(0.066, -0.76)
-    ..quadraticBezierTo(0.068, -0.64, 0.09, -0.58)
-    ..lineTo(-0.09, -0.58)
-    ..quadraticBezierTo(-0.068, -0.64, -0.066, -0.76)
-    ..close();
+  static Path _neckPath() => _Face.neckPath;
 
   static void tattoo(Canvas canvas, AvatarLook look) {
     final t = look.tattoo;

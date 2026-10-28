@@ -54,7 +54,7 @@ class SeatPreview extends StatelessWidget {
                         borderRadius: BorderRadius.circular(radius),
                         child: Align(
                           alignment: const Alignment(0, -0.1),
-                          child: PlayerAvatar(seed: name, look: look, size: width * 0.8),
+                          child: PlayerAvatar(seed: name, look: look, size: width * 0.86, bare: true),
                         ),
                       ),
                     ),

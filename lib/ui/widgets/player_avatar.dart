@@ -61,6 +61,10 @@ class PlayerAvatar extends StatelessWidget {
   /// dallo specchio) si disegna sempre il look.
   final String? picture;
 
+  /// Senza la moneta: solo la persona, per i posti ad arco del tavolo che
+  /// hanno già il loro fondo e la loro cornice.
+  final bool bare;
+
   const PlayerAvatar({
     super.key,
     required this.seed,
@@ -69,6 +73,7 @@ class PlayerAvatar extends StatelessWidget {
     this.dress = AvatarDress.none,
     this.look,
     this.picture,
+    this.bare = false,
   });
 
   // Il pugnale tipografico, non la croce: iOS disegna "✝" come emoji.
@@ -94,7 +99,7 @@ class PlayerAvatar extends StatelessWidget {
                 overflow: EdgeInsets.all(size * 0.02 + 1),
                 child: CustomPaint(
                   size: Size.square(size),
-                  painter: AvatarBustPainter(look ?? AvatarLook.of(seed), faded: fallen),
+                  painter: AvatarBustPainter(look ?? AvatarLook.of(seed), faded: fallen, bare: bare),
                 ),
               );
               final url = picture ?? (look == null ? PlayerMarks.of(seed).picture : null);
@@ -127,7 +132,10 @@ class AvatarBustPainter extends CustomPainter {
   final AvatarLook look;
   final bool faded;
 
-  AvatarBustPainter(this.look, {this.faded = false});
+  /// Solo la persona, senza il fondo né la cornice d'oro.
+  final bool bare;
+
+  AvatarBustPainter(this.look, {this.faded = false, this.bare = false});
 
   static const _grey = ColorFilter.matrix([
     0.30, 0.55, 0.15, 0, 0, //
@@ -145,7 +153,13 @@ class AvatarBustPainter extends CustomPainter {
     canvas.translate((size.width - s) / 2, (size.height - s) / 2);
     final bounds = Offset.zero & Size.square(s);
     final background = look.outfit.accent;
-    if (faded) canvas.saveLayer(bounds, Paint()..colorFilter = _grey);
+    if (faded) canvas.saveLayer(bounds.inflate(s * 0.1), Paint()..colorFilter = _grey);
+    if (bare) {
+      LookPainter.bust(canvas, look, s);
+      if (faded) canvas.restore();
+      canvas.restore();
+      return;
+    }
     canvas.save();
     canvas.clipPath(Path()..addOval(bounds));
     canvas.drawRect(
@@ -191,5 +205,5 @@ class AvatarBustPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(AvatarBustPainter old) => old.look != look || old.faded != faded;
+  bool shouldRepaint(AvatarBustPainter old) => old.look != look || old.faded != faded || old.bare != bare;
 }

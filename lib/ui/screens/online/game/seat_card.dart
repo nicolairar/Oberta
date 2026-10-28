@@ -148,7 +148,7 @@ class SeatCard extends StatelessWidget {
                   alignment: const Alignment(0, -0.1),
                   child: Opacity(
                     opacity: offline ? 0.5 : 1,
-                    child: PlayerAvatar(seed: name, size: width * 0.86, fallen: fallen),
+                    child: PlayerAvatar(seed: name, size: width * 0.86, fallen: fallen, bare: true),
                   ),
                 ),
               ),
