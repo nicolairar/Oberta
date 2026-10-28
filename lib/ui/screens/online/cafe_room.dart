@@ -41,7 +41,11 @@ class CafeScaffold extends StatelessWidget {
   final VoidCallback? onBack;
   final bool resizeForKeyboard;
 
-  const CafeScaffold({super.key, required this.title, required this.child, this.onBack, this.resizeForKeyboard = true});
+  /// Falso: il titolo non si scrive in alto (lo porta già la pagina, come il
+  /// quadro della saletta); resta per VoiceOver.
+  final bool heading;
+
+  const CafeScaffold({super.key, required this.title, required this.child, this.onBack, this.resizeForKeyboard = true, this.heading = true});
 
   @override
   Widget build(BuildContext context) {
@@ -73,13 +77,15 @@ class CafeScaffold extends StatelessWidget {
                     else
                       const SizedBox(width: 48),
                     Expanded(
-                      child: Text(
+                      child: heading
+                          ? Text(
                         title.toUpperCase(),
                         textAlign: TextAlign.center,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: AppText.overline.copyWith(color: Saloon.brass, fontSize: 13, letterSpacing: 4),
-                      ),
+                      )
+                          : Semantics(header: true, label: title, child: const SizedBox(height: 48)),
                     ),
                     const SizedBox(width: 48),
                   ],

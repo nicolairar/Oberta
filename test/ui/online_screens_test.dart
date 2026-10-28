@@ -72,7 +72,8 @@ void main() {
     expect(find.byKey(const Key('mirror.present.woman')), findsOneWidget, reason: 'lo specchio chiede prima uomo o donna');
     await tester.tap(find.byKey(const Key('mirror.skip')));
     await tester.pumpAndSettle();
-    expect(find.text('GIOCA CON AMICI'), findsOneWidget);
+    expect(find.byKey(const Key('online.painting')), findsOneWidget, reason: 'la saletta: il quadro fa da titolo');
+    expect(find.text('GIOCA CON AMICI'), findsNothing, reason: 'il titolo non si ripete in alto');
     expect(find.text('APRI UNA STANZA'), findsOneWidget);
     expect(online.profileOf('me')!.handle, 'anna_r2');
   });

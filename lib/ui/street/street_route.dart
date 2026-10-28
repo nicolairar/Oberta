@@ -126,6 +126,15 @@ abstract final class StreetTiming {
 
   /// Esce dalla porta del posto di prima: da 0 (dentro) a 1 (sul marciapiede).
   static double stepOut(double t) => _span(t, 0.08, 0.18);
+
+  /// Di quanto scorre la pagina che si lascia, posato sui pixel veri dello
+  /// schermo ([ratio]): le due pagine si toccano su un bordo intero, senza
+  /// la riga scura di un bordo a metà pixel.
+  static double leaving(double width, double camera, double ratio) => -(width * camera * ratio).roundToDouble() / ratio;
+
+  /// La pagina che arriva: subito dopo quella che si lascia, sovrapposta di
+  /// un pixel vero, così tra le due non resta mai una fessura.
+  static double arriving(double width, double camera, double ratio) => leaving(width, camera, ratio) + width - (camera > 0 && camera < 1 ? 1 / ratio : 0);
 }
 
 /// La curva del ritorno: il controller va da 1 a 0 a velocità costante; da
@@ -290,7 +299,10 @@ class StreetRoute<T> extends PageRoute<T> {
       builder: (context, box) => AnimatedBuilder(
         animation: secondary,
         builder: (context, child) => Transform.translate(
-          offset: Offset(-box.maxWidth * StreetTiming.camera(secondary.value, fromDoor: fromDoor), 0),
+          offset: Offset(
+            StreetTiming.leaving(box.maxWidth, StreetTiming.camera(secondary.value, fromDoor: fromDoor), MediaQuery.devicePixelRatioOf(context)),
+            0,
+          ),
           child: child,
         ),
         child: child,
@@ -316,12 +328,13 @@ class StreetRoute<T> extends PageRoute<T> {
             final t = animation.value;
             final fromDoor = _fromDoor;
             final gesture = navigator?.userGestureInProgress ?? false;
+            final ratio = MediaQuery.devicePixelRatioOf(context);
             final moving = animation.status.isAnimating && !gesture;
             return Stack(
               fit: StackFit.expand,
               children: [
                 Transform.translate(
-                  offset: Offset(size.width * (1 - StreetTiming.camera(t, fromDoor: fromDoor)), 0),
+                  offset: Offset(StreetTiming.arriving(size.width, StreetTiming.camera(t, fromDoor: fromDoor), ratio), 0),
                   child: child,
                 ),
                 if (t < 1 && t > 0)

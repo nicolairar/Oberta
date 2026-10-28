@@ -121,8 +121,10 @@ class _OnlineScreenState extends State<OnlineScreen> with ScreenMusic {
     return StreetBackdrop(
       section: StreetSection.friends,
       desk: desk,
-      builder: (context, _) =>
-          desk ? CafeDesk(title: title, child: body) : CafeScaffold(resizeForKeyboard: false, title: title, child: body),
+      // Nella saletta il titolo è dipinto sul quadro: in alto non si ripete.
+      builder: (context, _) => desk
+          ? CafeDesk(title: title, child: body)
+          : CafeScaffold(resizeForKeyboard: false, title: title, heading: body is! _Hub, child: body),
     );
   }
 }

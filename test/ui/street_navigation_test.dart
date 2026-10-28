@@ -158,6 +158,21 @@ void main() {
     expect((1 - knee) * back, closeTo(0.36 * 3000 * 0.6, 5));
   });
 
+  test('mentre si cammina le due pagine si toccano su pixel interi, sovrapposte di uno', () {
+    for (final ratio in [1.0, 2.0, 3.0, 2.625]) {
+      const width = 393.0;
+      for (var i = 1; i < 100; i++) {
+        final camera = i / 100 + 0.0037;
+        final out = StreetTiming.leaving(width, camera, ratio) * ratio;
+        final into = StreetTiming.arriving(width, camera, ratio) * ratio;
+        expect(out, closeTo(out.roundToDouble(), 1e-6), reason: 'pagina di prima su un pixel intero ($ratio)');
+        expect(into - out, closeTo(width * ratio - 1, 1e-6), reason: 'la nuova copre un pixel della vecchia ($ratio)');
+      }
+    }
+    expect(StreetTiming.arriving(393, 1, 3), 0, reason: 'arrivati: la pagina è al suo posto');
+    expect(StreetTiming.leaving(393, 0, 3), 0);
+  });
+
   testWidgets('dal manifesto entra nella saletta: il quadro grande e le targhe larghe; e torna svelto', (tester) async {
     _phone(tester, const Size(393, 852), 59, 34);
     await tester.pumpWidget(const ObertaApp());
