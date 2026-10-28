@@ -13,7 +13,16 @@ import 'voice_engine.dart';
 /// LiveKit applica i permessi d'ascolto che questo dispositivo pubblica.
 /// Le brevi perdite di rete le ricuce LiveKit da solo (riconnessione e
 /// ripresa); se si arrende, [onLost].
+///
+/// Premi per parlare: lasciare il tasto mette la traccia in muto (non passa
+/// niente), e il microfono resta pronto per [warm]; così ripremere parla
+/// subito. Passato quel tempo senza parlare la traccia si toglie e il
+/// microfono del telefono si spegne del tutto.
 class LiveKitVoiceEngine extends VoiceEngine {
+  /// Quanto il microfono resta pronto dopo aver lasciato il tasto.
+  static const warm = Duration(seconds: 20);
+
+  Timer? _cool;
   lk.Room? _room;
   lk.EventsListener<lk.RoomEvent>? _events;
   Set<String> _unheard = const {};
@@ -49,11 +58,21 @@ class LiveKitVoiceEngine extends VoiceEngine {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
+          // Il muto ferma l'invio, non la cattura: ripremere è immediato
+          // (la cattura si chiude dopo [warm], vedi [_coolDown]).
+          stopAudioCaptureOnMute: false,
         ),
         defaultAudioPublishOptions: lk.AudioPublishOptions(dtx: true),
       ),
     );
     _room = room;
+    if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.macOS)) {
+      // Muto e voce in silenzio (niente suono di sistema a ogni pressione),
+      // senza riavviare il motore audio.
+      try {
+        await lk.AudioManager.instance.setMicrophoneMuteMode(lk.MicrophoneMuteMode.inputMixer);
+      } catch (_) {}
+    }
     final events = room.createListener();
     _events = events;
     events
@@ -131,14 +150,28 @@ class LiveKitVoiceEngine extends VoiceEngine {
   Future<bool> setMicrophone(bool on) async {
     final local = _room?.localParticipant;
     if (local == null) return false;
+    _cool?.cancel();
     try {
       await local.setMicrophoneEnabled(on);
+      if (!on) _cool = Timer(warm, _coolDown);
       _changed();
       return true;
     } catch (_) {
       _changed();
       return false;
     }
+  }
+
+  /// Nessuno parla da un po': la traccia si toglie, il microfono si spegne.
+  Future<void> _coolDown() async {
+    final local = _room?.localParticipant;
+    if (local == null || local.isMicrophoneEnabled()) return;
+    final publication = local.getTrackPublicationBySource(lk.TrackSource.microphone);
+    if (publication == null) return;
+    try {
+      await local.removePublishedTrack(publication.sid);
+    } catch (_) {}
+    _changed();
   }
 
   @override
@@ -151,6 +184,7 @@ class LiveKitVoiceEngine extends VoiceEngine {
 
   @override
   Future<void> disconnect() async {
+    _cool?.cancel();
     final room = _room;
     if (room == null) return;
     _leaving = true;

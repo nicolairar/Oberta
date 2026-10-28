@@ -43,7 +43,7 @@ class _VoiceDockState extends State<VoiceDock> {
   @override
   void initState() {
     super.initState();
-    if (_desktop) HardwareKeyboard.instance.addHandler(_key);
+    if (_desktop) widget.controller.attachKeyboard();
     // Il microfono scelto in un'altra versione, o su un altro schermo: il
     // permesso si chiede adesso, entrando, mai quando si comincia a parlare.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -51,12 +51,11 @@ class _VoiceDockState extends State<VoiceDock> {
     });
   }
 
-  bool _key(KeyEvent event) => widget.controller.handleKey(event);
-
   @override
   void dispose() {
-    if (_desktop) HardwareKeyboard.instance.removeHandler(_key);
-    widget.controller.hold(false);
+    // Solo l'ascolto del tasto: chi tiene premuto un pulsante (anche su
+    // un'altra schermata, la stanza sotto la partita) continua a parlare.
+    if (_desktop) widget.controller.detachKeyboard();
     super.dispose();
   }
 
@@ -139,7 +138,7 @@ class _VoiceTalkButtonState extends State<VoiceTalkButton> with SingleTickerProv
   @override
   void dispose() {
     _pulse.dispose();
-    if (c.holding) c.hold(false);
+    c.hold(false, by: this);
     super.dispose();
   }
 
@@ -165,13 +164,13 @@ class _VoiceTalkButtonState extends State<VoiceTalkButton> with SingleTickerProv
       return;
     }
     HapticFeedback.mediumImpact();
-    c.hold(true);
+    c.hold(true, by: this);
   }
 
   void _up() {
-    if (!c.holding) return;
+    if (!c.holdingBy(this)) return;
     HapticFeedback.lightImpact();
-    c.hold(false);
+    c.hold(false, by: this);
   }
 
   @override

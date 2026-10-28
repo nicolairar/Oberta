@@ -224,6 +224,33 @@ Deno.test('sync: the end of a stage removes whoever may not stay and fixes the r
   assertEquals(state.session?.rooms, []);
 });
 
+Deno.test('sync: the discussion turns into the vote and nobody loses the floor', async () => {
+  const day = seal(`ob-${roomId}-day-${game}-1`);
+  const { service, calls, rooms } = fakeLiveKit({
+    [day]: [
+      { identity: 's1', canPublish: true, canSubscribe: true },
+      { identity: 's2', canPublish: true, canSubscribe: true },
+      { identity: 's3', canPublish: false, canSubscribe: true },
+    ],
+  });
+  const discussion = { ...nightRoom, schedule: { stage: 'discussion', round: 1, startsAt: t0 } };
+  const { store, state } = memoryStore(discussion, { signature: 'old', rooms: [day] });
+  await syncVoice(store, service, roomId, t0 + 5000, seal);
+  calls.length = 0;
+  // The vote is published (it starts a moment later): the same day goes on.
+  state.room = { ...discussion, schedule: { stage: 'vote', round: 1, startsAt: t0 + 61_500 } };
+  const result = await syncVoice(store, service, roomId, t0 + 60_000, seal);
+  assertEquals(result, { pushed: true, removed: 0, updated: 0 });
+  assertEquals(calls, [`list ${day}`]);
+  assertEquals(rooms[day].map((p) => [p.identity, p.canPublish]), [['s1', true], ['s2', true], ['s3', false]]);
+  // Whoever asks during the vote, at any moment of it, gets the same room and the floor.
+  for (const now of [t0 + 60_000, t0 + 61_500, t0 + 120_000]) {
+    const d = deps(state.room, { now: () => now }).d;
+    const { body } = await answer(await handleVoiceToken(post({ room: roomId }, 'jwt-p2'), d));
+    assertEquals([body.room, body.kind, body.canPublish], [day, 'day', true]);
+  }
+});
+
 Deno.test('sync: a stale identity, or someone who left the room, is removed from the lobby', async () => {
   const lobby = seal(`ob-${roomId}-lobby-${game}`);
   const { service, calls } = fakeLiveKit({

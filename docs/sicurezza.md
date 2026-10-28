@@ -67,7 +67,10 @@ scoprire niente di nascosto: ruoli, mosse notturne, chat della famiglia, segreti
   altri), così un token vecchio non tiene la parola; chi ha lasciato la stanza, un'identità di un
   altro tipo (`m3` durante la partita, `s3` nella stanza) o un posto che non appartiene più a quella
   stanza LiveKit viene tolto. Il microfono parla solo tenendo premuto il tasto (premi-per-parlare,
-  niente microfono aperto). Silenziare qualcuno (dal menu del posto o dalla lista della voce) vale
+  niente microfono aperto): si trasmette finché il pulsante (o V) resta giù, anche mentre il telefono
+  richiede il permesso o la fase passa dalla discussione al voto con la stessa parola; lasciato il
+  tasto la traccia va in muto (non passa niente) e il microfono resta pronto 20 s, poi la traccia si
+  toglie e la cattura si spegne. Discussione e voto sono la stessa stanza del giorno, senza stacco. Silenziare qualcuno (dal menu del posto o dalla lista della voce) vale
   solo su quel telefono: non ci si abbona più alla sua voce. `internal.voice_sessions` tiene solo le stanze
   LiveKit da sorvegliare e la firma dell'ultimo invio. La classificata è spenta (`voice_ranked = 0`). I
   bloccati non si sentono mai e non ci sentono: il telefono di chi blocca non si abbona alla loro voce

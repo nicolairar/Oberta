@@ -268,6 +268,13 @@ void main() {
     await flush(tester);
     expect(find.byType(OnlineGameScreen), findsNothing);
     expect(find.byKey(const Key('online.rejoinTable')), findsOneWidget);
+    // While the game goes on the room is only the way back: no invite, no
+    // closed lobby chat, no talk button; leaving the room is still there.
+    expect(find.byKey(const Key('online.roomCode')), findsNothing);
+    expect(find.byKey(const Key('online.lobbyChat')), findsNothing);
+    expect(find.byKey(const Key('voice.talk')), findsNothing);
+    expect(find.byKey(const Key('online.leave')), findsOneWidget);
+    expect(find.text('La partita è in corso.'), findsOneWidget);
 
     await flush(tester);
     expect(find.byType(OnlineGameScreen), findsNothing, reason: 'non lo si rimette a sedere da solo');

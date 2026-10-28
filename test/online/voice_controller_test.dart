@@ -60,6 +60,21 @@ class _Engine extends VoiceEngine {
 
   @override
   Future<void> dispose() => disconnect();
+
+  /// LiveKit che si riconnette da solo: per un attimo scollegato, il
+  /// microfono rimesso in muto, poi di nuovo dentro.
+  void reconnect() {
+    _connected = true;
+    _mic = false;
+    onChanged?.call();
+  }
+
+  /// La stanza persa del tutto (il server che ci toglie, la rete).
+  void lose() {
+    _connected = false;
+    _mic = false;
+    onLost?.call();
+  }
 }
 
 /// Il server finto: risponde con [next], e conta le domande.
@@ -420,5 +435,99 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     c.dispose();
     debugResetVoiceMicCheck();
+  });
+
+  testWidgets('holding for 10 s keeps transmitting across syncs, phases, remounts and reconnects', (tester) async {
+    debugResetVoiceMicCheck();
+    MicPermission.request = () async => true;
+    settings = AppSettings(MemorySettingsStore())..voiceMode = VoiceMode.mic;
+    final c = VoiceController(
+      source: server,
+      roomId: 'r',
+      engine: engine,
+      settings: settings,
+      duck: ducks.add,
+      keepFresh: const Duration(seconds: 2),
+    );
+    server.next = _room('day-1');
+    c.phase('discussion-1');
+    await tester.pump();
+    var dock = true;
+    late StateSetter rebuild;
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: StatefulBuilder(builder: (context, setState) {
+          rebuild = setState;
+          return Column(children: [
+            VoiceTalkButton(controller: c),
+            // The chat strip comes and goes (a phase, the keyboard, the
+            // room screen under the game): its voice icon with it.
+            if (dock) VoiceDock(controller: c),
+          ]);
+        }),
+      ),
+    ));
+    await tester.pump();
+
+    final finger = await tester.startGesture(tester.getCenter(find.byKey(const Key('voice.talk'))));
+    await tester.pump();
+    expect(engine.microphoneOn, isTrue);
+    final askedBefore = server.asked;
+    for (var tick = 1; tick <= 40; tick++) {
+      await tester.pump(const Duration(milliseconds: 250));
+      switch (tick) {
+        case 8:
+          c.phase('vote-1'); // The discussion becomes the vote: same room, same rights.
+        case 12:
+          rebuild(() => dock = false);
+        case 16:
+          rebuild(() => dock = true);
+        case 20:
+          c.refresh();
+        case 24:
+          engine.reconnect();
+        case 28:
+          engine.lose();
+      }
+      await tester.pump();
+      if (tick == 28) {
+        // Out of the room for a moment: the hold waits, and comes back.
+        expect(c.holding, isTrue);
+        await tester.pump(const Duration(milliseconds: 700));
+        await tester.pump();
+      }
+      expect(engine.microphoneOn, isTrue, reason: 'still held at ${tick * 250} ms');
+      expect(tester.widget<Text>(find.byKey(const Key('voice.talk.caption'))).data, 'Ti sentono');
+    }
+    expect(server.asked, greaterThan(askedBefore + 3), reason: 'the server was asked again and again meanwhile');
+    expect(engine.calls.where((x) => x == 'mic false'), isEmpty, reason: 'nothing ever turned the mic off');
+
+    await finger.up();
+    await tester.pump();
+    expect(engine.microphoneOn, isFalse);
+    expect(c.holding, isFalse);
+    await tester.pumpWidget(const SizedBox());
+    c.dispose();
+    debugResetVoiceMicCheck();
+  });
+
+  test('a quick release while the mic is still starting turns it off; two holders need both to let go', () async {
+    final c = make();
+    server.next = _room('day-1');
+    await c.refresh();
+    c.hold(true);
+    c.hold(false);
+    await pumpEventQueue();
+    expect(engine.microphoneOn, isFalse, reason: 'released before the mic was on: it ends off');
+    // Two holders (the button and V): the mic stays until both let go.
+    c.hold(true);
+    c.hold(true, by: VoiceController.keyboard);
+    c.hold(false);
+    await pumpEventQueue();
+    expect(engine.microphoneOn, isTrue);
+    c.hold(false, by: VoiceController.keyboard);
+    await pumpEventQueue();
+    expect(engine.microphoneOn, isFalse);
+    c.dispose();
   });
 }

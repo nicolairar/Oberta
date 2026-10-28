@@ -291,10 +291,15 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> with ScreenMusic {
         for (var i = 0; i < _room.bots; i++) CafeGuest(profile: Profile(id: 'bot-$i', handle: botName(i)), bot: true),
       ];
 
+  /// Vero mentre si gioca: la stanza è solo la porta per tornare al tavolo
+  /// (niente invito, niente chat della stanza, niente voce della stanza).
+  bool get _playing => _room.status == RoomStatus.playing;
+
   /// Il pulsante grande per parlare, sopra la chat (col microfono scelto).
+  /// Mentre si gioca la voce è quella del tavolo: si parla solo da lì.
   Widget? _talk({required bool desk}) {
     final voice = _voice;
-    if (voice == null) return null;
+    if (voice == null || _playing) return null;
     return ListenableBuilder(
       listenable: voice,
       builder: (context, _) => !VoiceTalkButton.shows(voice)
@@ -431,8 +436,8 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> with ScreenMusic {
     final String line;
     final bool lit;
     if (!lobby) {
-      line = t.rejoin;
-      lit = true;
+      line = t.gameRunning;
+      lit = false;
     } else if (!_isHost) {
       line = t.waitingForHost;
       lit = false;
@@ -583,18 +588,22 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> with ScreenMusic {
                     child: Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: _table()),
                   ),
                   Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: _status(desk: false)),
-                  const SizedBox(height: 14),
-                  Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: _invite(desk: false)),
+                  if (!_playing) ...[
+                    const SizedBox(height: 14),
+                    Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: _invite(desk: false)),
+                  ],
                   if (cta != null) ...[
                     const SizedBox(height: 14),
                     Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: cta),
                   ],
                   ?_talk(desk: false),
-                  const SizedBox(height: 14),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: SizedBox(height: 220, child: _chatBox(desk: false)),
-                  ),
+                  if (!_playing) ...[
+                    const SizedBox(height: 14),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: SizedBox(height: 220, child: _chatBox(desk: false)),
+                    ),
+                  ],
                   const SizedBox(height: 14),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -647,12 +656,14 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> with ScreenMusic {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _invite(desk: true),
-                const SizedBox(height: DeskSize.gap),
+                if (!_playing) ...[
+                  _invite(desk: true),
+                  const SizedBox(height: DeskSize.gap),
+                ],
                 CafePanel(child: _status(desk: true)),
                 const SizedBox(height: DeskSize.gap),
                 ?_talk(desk: true),
-                Expanded(child: _chatBox(desk: true)),
+                Expanded(child: _playing ? const SizedBox.shrink() : _chatBox(desk: true)),
                 if (cta != null) ...[const SizedBox(height: DeskSize.gap), cta],
               ],
             ),

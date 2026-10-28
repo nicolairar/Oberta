@@ -92,7 +92,17 @@ class VoiceController extends ChangeNotifier {
   Future<void>? _running;
   bool _again = false;
   bool _connecting = false;
-  bool _held = false;
+
+  /// Chi tiene premuto adesso: il pulsante (ogni pulsante a schermo è il
+  /// suo), il tasto V ([keyboard]). Si parla finché ne resta uno; un
+  /// pulsante che se ne va lascia solo la sua presa, mai quella degli altri.
+  final Set<Object> _holders = {};
+  bool get _held => _holders.isNotEmpty;
+
+  /// La presa del tasto V, sul PC.
+  static const Object keyboard = #voiceKeyboard;
+  Future<void>? _micRun;
+  int _keyUsers = 0;
   bool _offline = false;
   int _failures = 0;
   Timer? _retry;
@@ -227,7 +237,7 @@ class VoiceController extends ChangeNotifier {
         next.canPublish == _grant.canPublish &&
         next.canSubscribe == _grant.canSubscribe;
     _grant = next;
-    if (!next.canPublish) _held = false;
+    if (!next.canPublish) _holders.clear();
     if (!same) {
       _connecting = true;
       _notify();
@@ -261,18 +271,26 @@ class VoiceController extends ChangeNotifier {
     _retry = Timer(wait, refresh);
   }
 
+  /// La stanza si è chiusa da sola (rete, o il server che ci ha tolto):
+  /// si richiede subito, la prima volta, e chi tiene ancora premuto torna a
+  /// parlare appena si rientra (se il server lo permette ancora).
   void _lost() {
     if (_disposed) return;
     _grant = VoiceGrant.none;
-    _held = false;
     _offline = true;
-    _backoff();
+    if (_failures == 0) {
+      _retry?.cancel();
+      _failures++;
+      _retry = Timer(Duration(milliseconds: 300 + Random().nextInt(300)), refresh);
+    } else {
+      _backoff();
+    }
     _notify();
   }
 
   Future<void> _leave() async {
     _grant = VoiceGrant.none;
-    _held = false;
+    _holders.clear();
     if (engine.connected) await engine.disconnect();
     _privacy = null;
     _applyDuck();
@@ -280,11 +298,30 @@ class VoiceController extends ChangeNotifier {
 
   bool get _wantMic => _mode == VoiceMode.mic && mayTalk && _held;
 
-  Future<void> _applyMic() async {
-    if (_disposed || !engine.connected) return;
-    final want = _wantMic;
-    if (want == engine.microphoneOn) return;
-    await engine.setMicrophone(want);
+  /// Porta il microfono dove deve essere: una sola operazione alla volta,
+  /// e dopo ognuna si guarda di nuovo (si può aver lasciato il tasto mentre
+  /// il microfono si accendeva, o il contrario).
+  Future<void> _applyMic() {
+    if (_micRun case final running?) return running;
+    return _micRun = _syncMic().whenComplete(() => _micRun = null);
+  }
+
+  Future<void> _syncMic() async {
+    for (var tries = 0; tries < 4; tries++) {
+      if (_disposed || !engine.connected) return;
+      final want = _wantMic;
+      if (want == engine.microphoneOn) return;
+      final ok = await engine.setMicrophone(want);
+      if (!ok) {
+        if (want && _held) {
+          // Il microfono non si accende (il sistema lo nega): non si resta
+          // a «parlare» nel vuoto.
+          _holders.clear();
+          _notify();
+        }
+        return;
+      }
+    }
   }
 
   Future<void> _applyPrivacy() async {
@@ -310,6 +347,9 @@ class VoiceController extends ChangeNotifier {
 
   void _engineChanged() {
     if (_disposed) return;
+    // Rientrati (o il motore che ha cambiato da solo il microfono): chi
+    // tiene premuto parla di nuovo, chi non lo tiene resta muto.
+    if (engine.connected && _wantMic != engine.microphoneOn) _applyMic();
     _applyPrivacy();
     _notify();
   }
@@ -320,7 +360,7 @@ class VoiceController extends ChangeNotifier {
     if (mode != _mode) {
       final wasOff = _mode == VoiceMode.off;
       _mode = mode;
-      if (mode != VoiceMode.mic) _held = false;
+      if (mode != VoiceMode.mic) _holders.clear();
       if (mode == VoiceMode.off || wasOff) {
         refresh();
         return;
@@ -336,13 +376,32 @@ class VoiceController extends ChangeNotifier {
   /// Si può tenere premuto adesso: col microfono scelto e la parola data.
   bool get canHold => _mode == VoiceMode.mic && mayTalk;
 
-  /// Premi per parlare: il tasto (o il pulsante) giù e su.
-  void hold(bool down) {
-    if (down && !canHold) return;
-    if (down == _held) return;
-    _held = down;
+  /// Se [by] tiene premuto adesso.
+  bool holdingBy(Object by) => _holders.contains(by);
+
+  /// Premi per parlare: il pulsante (o il tasto) [by] giù e su. Si parla
+  /// finché almeno uno è giù; i rinnovi del permesso e i cambi di fase con
+  /// la stessa parola non lo interrompono.
+  void hold(bool down, {Object by = VoiceController}) {
+    if (down) {
+      if (!canHold || !_holders.add(by)) return;
+    } else if (!_holders.remove(by)) {
+      return;
+    }
     _applyMic();
     _notify();
+  }
+
+  /// Sul PC: chi mostra la voce ascolta anche il tasto V. Un solo ascolto
+  /// per la stanza, finché c'è almeno uno schermo che lo vuole.
+  void attachKeyboard() {
+    if (_keyUsers++ == 0) HardwareKeyboard.instance.addHandler(handleKey);
+  }
+
+  void detachKeyboard() {
+    if (_keyUsers == 0 || --_keyUsers > 0) return;
+    HardwareKeyboard.instance.removeHandler(handleKey);
+    hold(false, by: keyboard);
   }
 
   /// Non sentire più [identity] (o sentirlo di nuovo), solo qui.
@@ -357,7 +416,10 @@ class VoiceController extends ChangeNotifier {
   bool handleKey(KeyEvent event) {
     if (event.logicalKey != LogicalKeyboardKey.keyV) return false;
     if (!canHold) {
-      if (_held && event is KeyUpEvent) hold(false);
+      if (event is KeyUpEvent && holdingBy(keyboard)) {
+        hold(false, by: keyboard);
+        return true;
+      }
       return false;
     }
     final focus = FocusManager.instance.primaryFocus?.context;
@@ -365,15 +427,15 @@ class VoiceController extends ChangeNotifier {
       return false;
     }
     if (event is KeyDownEvent) {
-      hold(true);
+      hold(true, by: keyboard);
       return true;
     }
     if (event is KeyUpEvent) {
-      final was = _held;
-      hold(false);
+      final was = holdingBy(keyboard);
+      hold(false, by: keyboard);
       return was;
     }
-    return _held;
+    return holdingBy(keyboard);
   }
 
   void _notify() {
@@ -388,6 +450,7 @@ class VoiceController extends ChangeNotifier {
     _disposed = true;
     _retry?.cancel();
     _fresh?.cancel();
+    if (_keyUsers > 0) HardwareKeyboard.instance.removeHandler(handleKey);
     settings.removeListener(_settingsChanged);
     BlockedPlayers.ids.removeListener(_applyPrivacy);
     if (_ducked == true) duck(false);
