@@ -26,6 +26,7 @@ import '../online/game/gesture_picker.dart' show GestureShowcase;
 import 'shop_controller.dart';
 
 part 'shop_bundles.dart';
+part 'shop_demo.dart';
 part 'shop_desktop.dart';
 
 /// Apre la bottega di chi è entrato.
@@ -74,6 +75,9 @@ class ShopScreen extends StatefulWidget {
   final VoidCallback? onChangeFace;
 
   const ShopScreen({super.key, required this.account, required this.shop, this.onChangeFace});
+
+  /// Solo per i render delle prove di disposizione: null nell'app.
+  static ShopDemoLayout? debugDemo;
 
   /// Il padrone della bottega: baffi a tricheco, pince-nez e catena d'orologio.
   static final AvatarLook shopkeeper = AvatarLook(
@@ -184,67 +188,56 @@ class _ShopScreenState extends State<ShopScreen> {
   Widget build(BuildContext context) {
     final t = _t;
     if (DesktopCanvas.of(context)) return _desktop(t);
+    if (ShopScreen.debugDemo case final demo?) return _demo(t, demo);
+    // L'insegna al neon dice già «Bottega»: niente titolo ripetuto sotto, e
+    // la targhetta per tornare indietro è quella di ogni locale, in alto a
+    // sinistra accanto all'insegna.
     return StreetScaffold(
       section: StreetSection.shop,
-      showBack: false,
+      title: t.title,
+      backKey: const Key('shop.back'),
       body: ListenableBuilder(
         listenable: _shop,
-        builder: (context, _) => SafeArea(
-          bottom: false,
-          child: ContentWidth(
-            maxWidth: 900,
-            child: Column(
+        builder: (context, _) => ContentWidth(
+          maxWidth: 900,
+          child: Column(
             children: [
-              _header(t),
               _tabs(t),
               Expanded(child: _body(t)),
             ],
-          ),
           ),
         ),
       ),
     );
   }
 
-  Widget _header(ShopStrings t) => Padding(
-    padding: const EdgeInsets.fromLTRB(4, 4, 14, 4),
+  /// Le insegne dei reparti, appese in fila: si scorrono di lato.
+  /// In fondo alla fila, fermo, il borsellino.
+  Widget _tabs(ShopStrings t) => SizedBox(
+    height: 54,
     child: Row(
       children: [
-        IconButton(
-          key: const Key('shop.back'),
-          onPressed: pressed(() => Navigator.of(context).maybePop()),
-          icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.gold, size: 20),
+        Expanded(child: _tabStrip(t)),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(2, 6, 10, 10),
+          child: CoinBalance(coins: _shop.coins, hint: t.coinsHint),
         ),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(t.title, style: AppText.display(22)),
-              Text(
-                t.subtitle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 12,
-                  fontStyle: FontStyle.italic,
-                  letterSpacing: 0.4,
-                ),
-              ),
-            ],
-          ),
-        ),
-        CoinBalance(coins: _shop.coins, hint: t.coinsHint),
       ],
     ),
   );
 
-  /// Le insegne dei reparti, appese in fila: si scorrono di lato.
-  Widget _tabs(ShopStrings t) => SizedBox(
-    height: 50,
+  Widget _tabStrip(ShopStrings t) => ShaderMask(
+    // Le insegne sfumano sotto il borsellino: si capisce che continuano.
+    shaderCallback: (rect) => const LinearGradient(
+      begin: Alignment.centerLeft,
+      end: Alignment.centerRight,
+      stops: [0, 0.9, 1],
+      colors: [Colors.white, Colors.white, Colors.transparent],
+    ).createShader(rect),
+    blendMode: BlendMode.dstIn,
     child: SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
       child: Row(
         children: [
           for (final tab in ShopTab.values)
@@ -1223,14 +1216,18 @@ class _Mirror extends StatelessWidget {
         child: CustomPaint(
           painter: _GlassPainter(),
           foregroundPainter: _GlintPainter(),
-          child: Align(
-            alignment: const Alignment(0, 0.6),
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 220),
-              child: SizedBox.square(
-                key: ValueKey(look),
-                dimension: 128,
-                child: CustomPaint(painter: _BustPainter(look)),
+          // Chi si prova il pezzo riempie lo specchio: il mezzo busto cresce
+          // col vetro, le spalle posano sul bordo di sotto.
+          child: LayoutBuilder(
+            builder: (context, box) => Align(
+              alignment: const Alignment(0, 0.9),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 220),
+                child: SizedBox.square(
+                  key: ValueKey(look),
+                  dimension: min(box.maxWidth * 0.96, box.maxHeight * 0.78),
+                  child: CustomPaint(painter: _BustPainter(look)),
+                ),
               ),
             ),
           ),

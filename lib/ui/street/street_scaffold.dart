@@ -125,6 +125,9 @@ class StreetScaffold extends StatelessWidget {
   final bool showBack;
   final VoidCallback? onBack;
 
+  /// La chiave della targhetta, per chi la cerca nei test.
+  final Key? backKey;
+
   /// I pannelli si accorciano sopra la tastiera.
   final bool resizeForKeyboard;
 
@@ -136,6 +139,7 @@ class StreetScaffold extends StatelessWidget {
     this.actions = const [],
     this.showBack = true,
     this.onBack,
+    this.backKey,
     this.resizeForKeyboard = true,
   });
 
@@ -164,7 +168,7 @@ class StreetScaffold extends StatelessWidget {
               Positioned(
                 left: 8,
                 top: layout.neon.top + (layout.neon.height - 46) / 2,
-                child: showBack ? _BackPlate(onBack: onBack) : const SizedBox.shrink(),
+                child: showBack ? _BackPlate(key: backKey, onBack: onBack) : const SizedBox.shrink(),
               ),
               if (actions.isNotEmpty)
                 Positioned(
@@ -179,11 +183,15 @@ class StreetScaffold extends StatelessWidget {
               Positioned.fromRect(
                 rect: panel,
                 child: StreetWindow(
-                  child: MediaQuery.removePadding(
-                    context: context,
-                    removeTop: true,
-                    removeBottom: true,
-                    child: MediaQuery.removeViewInsets(context: context, removeBottom: true, child: body),
+                  // La vetrina sta già sotto l'insegna e sopra il marciapiede:
+                  // dentro non c'è tacca né barra da scansare. (Un solo
+                  // MediaQuery: due annidati sullo stesso context si
+                  // rimetterebbero i margini a vicenda.)
+                  child: MediaQuery(
+                    data: MediaQuery.of(context)
+                        .removePadding(removeTop: true, removeBottom: true)
+                        .removeViewInsets(removeBottom: true),
+                    child: body,
                   ),
                 ),
               ),
@@ -199,7 +207,7 @@ class StreetScaffold extends StatelessWidget {
 class _BackPlate extends StatelessWidget {
   final VoidCallback? onBack;
 
-  const _BackPlate({this.onBack});
+  const _BackPlate({super.key, this.onBack});
 
   @override
   Widget build(BuildContext context) => Container(

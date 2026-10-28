@@ -224,6 +224,14 @@ class StreetRoute<T> extends PageRoute<T> {
 
   @override
   void dispose() {
+    if (_dragging) {
+      // Chiusa a metà gesto: lo si chiude dopo il fotogramma, a Navigator fermo.
+      _dragging = false;
+      final nav = navigator;
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (nav != null && nav.mounted) nav.didStopUserGesture();
+      });
+    }
     if (_walking) {
       _walking = false;
       StreetStage.walking.value -= 1;
@@ -309,7 +317,10 @@ class StreetRoute<T> extends PageRoute<T> {
                     ),
                   ),
                 // Dal bordo sinistro si torna indietro trascinando (non sul PC).
-                if (!desk && !isFirst && t == 1)
+                // Durante il trascinamento la striscia resta: tolta a metà,
+                // la fine del gesto non arriverebbe mai e il Navigator
+                // ignorerebbe ogni tocco per sempre (la pagina «congelata»).
+                if (!desk && !isFirst && (t == 1 || _dragging))
                   Positioned(
                     left: 0,
                     top: 0,
@@ -357,7 +368,6 @@ class StreetRoute<T> extends PageRoute<T> {
 
   void _dragEnd(double velocity, double width) {
     if (!_dragging) return;
-    _dragging = false;
     final controller = this.controller!;
     final pop = velocity > 600 || (velocity > -600 && controller.value < 0.6);
     if (pop) {
@@ -365,6 +375,13 @@ class StreetRoute<T> extends PageRoute<T> {
     } else {
       controller.forward();
     }
+    _stopDrag();
+  }
+
+  /// Chiude il gesto col Navigator: finché è aperto, la pagina non sente i tocchi.
+  void _stopDrag() {
+    if (!_dragging) return;
+    _dragging = false;
     navigator?.didStopUserGesture();
   }
 }

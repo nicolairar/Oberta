@@ -84,4 +84,45 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });
+
+  testWidgets('un trascinamento dal bordo lasciato a metà non congela la bottega', (tester) async {
+    _phone(tester, const Size(393, 852), 59, 34);
+    await tester.pumpWidget(const ObertaApp());
+    for (var i = 0; i < 40; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    await tester.tap(find.byKey(const Key('home.shopSign')));
+    for (var i = 0; i < 60; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.byKey(const Key('shop.tab.window')), findsOneWidget);
+    final navigator = tester.state<NavigatorState>(find.byType(Navigator).first);
+
+    // Si scorrono le insegne partendo dal bordo sinistro: il gesto del
+    // «indietro» parte, la pagina si sposta appena, e lui lascia andare.
+    final tabs = tester.getRect(find.byKey(const Key('shop.tab.window')));
+    final drag = await tester.startGesture(Offset(6, tabs.center.dy));
+    for (var i = 0; i < 6; i++) {
+      await drag.moveBy(const Offset(8, 0));
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    expect(navigator.userGestureInProgress, isTrue);
+    await drag.up();
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(navigator.userGestureInProgress, isFalse, reason: 'il gesto si è chiuso: la pagina sente di nuovo i tocchi');
+    expect(find.byKey(const Key('shop.tab.window')), findsOneWidget, reason: 'tornata al suo posto');
+
+    // E risponde: un reparto si apre.
+    await tester.tap(find.byKey(const Key('shop.tab.bundles')));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.byKey(const Key('shop.back')));
+    for (var i = 0; i < 40; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.byKey(const Key('shop.tab.window')), findsNothing, reason: 'la targhetta riporta nel vicolo');
+    await tester.pumpWidget(const SizedBox());
+  });
 }
