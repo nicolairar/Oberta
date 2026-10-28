@@ -224,7 +224,7 @@ Deno.test('sync: the end of a stage removes whoever may not stay and fixes the r
   assertEquals(state.session?.rooms, []);
 });
 
-Deno.test('sync: the discussion turns into the vote and nobody loses the floor', async () => {
+Deno.test('sync: the vote takes the floor from everyone, without kicking anyone out', async () => {
   const day = seal(`ob-${roomId}-day-${game}-1`);
   const { service, calls, rooms } = fakeLiveKit({
     [day]: [
@@ -237,17 +237,23 @@ Deno.test('sync: the discussion turns into the vote and nobody loses the floor',
   const { store, state } = memoryStore(discussion, { signature: 'old', rooms: [day] });
   await syncVoice(store, service, roomId, t0 + 5000, seal);
   calls.length = 0;
-  // The vote is published (it starts a moment later): the same day goes on.
+  // The vote is published (it starts a moment later): the microphones go at once.
   state.room = { ...discussion, schedule: { stage: 'vote', round: 1, startsAt: t0 + 61_500 } };
   const result = await syncVoice(store, service, roomId, t0 + 60_000, seal);
-  assertEquals(result, { pushed: true, removed: 0, updated: 0 });
-  assertEquals(calls, [`list ${day}`]);
-  assertEquals(rooms[day].map((p) => [p.identity, p.canPublish]), [['s1', true], ['s2', true], ['s3', false]]);
-  // Whoever asks during the vote, at any moment of it, gets the same room and the floor.
+  assertEquals(result, { pushed: true, removed: 0, updated: 2 });
+  assertEquals(calls, [
+    `list ${day}`,
+    `update ${day} s1 publish=false subscribe=true`,
+    `update ${day} s2 publish=false subscribe=true`,
+  ]);
+  assertEquals(rooms[day].map((p) => [p.identity, p.canPublish]), [['s1', false], ['s2', false], ['s3', false]]);
+  // Whoever asks during the vote, at any moment of it, gets the same room and no microphone.
   for (const now of [t0 + 60_000, t0 + 61_500, t0 + 120_000]) {
     const d = deps(state.room, { now: () => now }).d;
     const { body } = await answer(await handleVoiceToken(post({ room: roomId }, 'jwt-p2'), d));
-    assertEquals([body.room, body.kind, body.canPublish], [day, 'day', true]);
+    assertEquals([body.room, body.kind, body.canPublish], [day, 'day', false]);
+    const { payload } = await jwtVerify(body.token, new TextEncoder().encode(secret), { currentDate: new Date(now + 1000) });
+    assertEquals((payload.video as Record<string, unknown>).canPublishSources, []);
   }
 });
 

@@ -530,4 +530,31 @@ void main() {
     expect(engine.microphoneOn, isFalse);
     c.dispose();
   });
+
+  test('the vote takes the floor: the mic closes at once, no reconnect; the next day reconnects', () async {
+    final c = make();
+    server.next = _room('day-1');
+    c.phase('discussion-1');
+    await pumpEventQueue();
+    c.hold(true);
+    await pumpEventQueue();
+    expect(engine.microphoneOn, isTrue);
+
+    server.next = _room('day-1', publish: false);
+    c.phase('vote-1');
+    await pumpEventQueue();
+    expect([engine.microphoneOn, c.holding, c.canHold, engine.connected], [false, false, false, true]);
+    expect(engine.calls.where((x) => x.startsWith('connect')).length, 1, reason: 'still in the day room, listening');
+    c.hold(true);
+    await pumpEventQueue();
+    expect(engine.microphoneOn, isFalse, reason: 'no hold during the vote');
+
+    // More rights need the new token.
+    server.next = _room('day-2', token: 'd2');
+    c.phase('discussion-2');
+    await pumpEventQueue();
+    expect(engine.calls.last, 'connect d2');
+    expect(c.canHold, isTrue);
+    c.dispose();
+  });
 }

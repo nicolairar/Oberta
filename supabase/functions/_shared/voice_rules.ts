@@ -4,12 +4,21 @@
 //
 // The rules follow the game, never the phone:
 //   * lobby (and after the game): every member speaks and listens;
-//   * day (discussion, vote): the living speak, unless the Tailor sewed
-//     their mouth (silenced) that day; the dead only listen;
-//   * night: only the living family speaks and listens, in its own room;
-//     the dead may talk among themselves (ghosts); everybody else is out;
+//   * day discussion: the living speak, unless the Tailor sewed their
+//     mouth (silenced) that day; the dead only listen;
+//   * day vote: nobody speaks (no noise to drown the vote): everyone stays
+//     in the day room listening, and the push at the vote's start takes the
+//     microphone away from whoever had it;
+//   * night: only the living family (the Compare too: the mafia team)
+//     speaks and listens, in its own room; the dead may talk among
+//     themselves (ghosts); everybody else is out;
 //   * every other stage (the card, the films, the dawn, the verdict):
 //     nobody is connected, nobody speaks.
+//
+// There is no jail in the game today. A role that locks someone up must add
+// a VoiceMember flag here (and in voice_sync.ts) and take the microphone in
+// every stage: until then the matrix test (voice_rules_test.ts) lists every
+// state a seat can be in.
 //
 // A stage opens for voice only once the server says it has started for
 // everyone: the night (and the discussion) at its published start plus
@@ -98,7 +107,7 @@ export function voiceOpensAt(schedule: VoiceSchedule, settleMs: number): number 
     case 'discussion':
       return schedule.startsAt + settleMs;
     case 'vote':
-      // The same day goes on: no break between discussion and vote.
+      // The same day room goes on, listen only: no reconnect at the vote.
       return 0;
     default:
       return null;
@@ -151,7 +160,8 @@ export function voiceGrant(
     if (!me.alive && config.ghosts) return grant('ghosts', `ghosts-${game}`, seat, true);
     return nobody();
   }
-  return grant('day', `day-${game}-${schedule.round}`, seat, me.alive && !me.silenced);
+  const speaks = schedule.stage === 'discussion' && me.alive && !me.silenced;
+  return grant('day', `day-${game}-${schedule.round}`, seat, speaks);
 }
 
 /** The member a LiveKit identity stands for in [room], if any. */

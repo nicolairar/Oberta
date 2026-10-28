@@ -40,6 +40,7 @@ class VoiceStrings {
   String get nightFamily => _t('Di notte parla solo la famiglia', 'At night only the family talks');
   String get deadListen => _t('I morti ascoltano soltanto', 'The dead only listen');
   String get sewn => _t('Il Sarto ti ha cucito la bocca', 'The Tailor sewed your mouth shut');
+  String get voteSilence => _t('Durante il voto si tace', 'No talking during the vote');
   String get nobodyNow => _t('Adesso nessuno parla', 'Nobody talks right now');
   String get opensSoon => _t('La voce si apre fra un attimo', 'Voice opens in a moment');
 

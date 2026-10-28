@@ -230,11 +230,14 @@ class VoiceController extends ChangeNotifier {
       _notify();
       return;
     }
+    // La stessa stanza con meno diritti (il voto che toglie la parola): il
+    // server li ha già tolti a LiveKit, si resta dentro ad ascoltare. Con
+    // più diritti ci vuole il token nuovo.
     final same =
         engine.connected &&
         next.room == _grant.room &&
         next.identity == _grant.identity &&
-        next.canPublish == _grant.canPublish &&
+        (next.canPublish == _grant.canPublish || !next.canPublish) &&
         next.canSubscribe == _grant.canSubscribe;
     _grant = next;
     if (!next.canPublish) _holders.clear();

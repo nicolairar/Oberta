@@ -1481,9 +1481,11 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     return switch (_stage) {
       Stage.night when !alive || _inFamilyChat => null,
       Stage.night => t.nightFamily,
-      Stage.discussion || Stage.vote when !alive => t.deadListen,
-      Stage.discussion || Stage.vote when _view.silenced => t.sewn,
-      Stage.discussion || Stage.vote => null,
+      // Il voto si fa in silenzio: nessuno fa rumore per rovinarlo.
+      Stage.vote || Stage.verdictFilm || Stage.verdict => t.voteSilence,
+      Stage.discussion when !alive => t.deadListen,
+      Stage.discussion when _view.silenced => t.sewn,
+      Stage.discussion => null,
       _ => t.nobodyNow,
     };
   }

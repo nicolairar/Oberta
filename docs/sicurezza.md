@@ -57,9 +57,13 @@ scoprire niente di nascosto: ruoli, mosse notturne, chat della famiglia, segreti
   L'app mostra l'anello di chi parla e la lista di chi si sente solo dall'identità firmata dal
   server, tradotta in posto/nome dal tavolo della partita; il nome dichiarato dal partecipante non
   viene mai letto. Chi decide è il server, dalla fase pubblicata (`schedule` di
-  `game_public`) e dai posti (`game_seats`): stanza e dopo la partita tutti; discussione e voto i vivi
-  (il cucito dal Sarto e i morti solo ascoltano); notte solo la famiglia viva, e i morti fra loro;
-  carta, film, alba e verdetto nessuno. Notte e discussione si aprono solo a `startsAt` +
+  `game_public`) e dai posti (`game_seats`): stanza e dopo la partita tutti; discussione i vivi
+  (il cucito dal Sarto e i morti solo ascoltano); **voto nessuno** (tutti restano nella stanza del
+  giorno ad ascoltare, ma la spinta all'inizio del voto toglie il microfono a chi l'aveva, così nessuno
+  fa rumore per rovinare il voto; l'app scrive «Durante il voto si tace»); notte solo la famiglia viva
+  (il Compare compreso: è della squadra della mafia), e i morti fra loro; carta, film, alba e verdetto
+  nessuno. Non esiste un ruolo che imprigiona: se arriverà dovrà togliere il microfono in ogni fase,
+  e la matrice di `voice_rules_test.ts` elenca ogni stato di un posto per ogni fase. Notte e discussione si aprono solo a `startsAt` +
   `voice_settle_ms` (1 s, `internal.config`), cioè dopo che tutti hanno confermato la fase prima e
   finito la transizione; prima la funzione risponde `{room: null, retryIn}`. Una fase che finisce
   chiude la voce subito: dopo ogni passo che cambia fase o posti la Edge Function `game` spinge i
@@ -68,9 +72,9 @@ scoprire niente di nascosto: ruoli, mosse notturne, chat della famiglia, segreti
   altro tipo (`m3` durante la partita, `s3` nella stanza) o un posto che non appartiene più a quella
   stanza LiveKit viene tolto. Il microfono parla solo tenendo premuto il tasto (premi-per-parlare,
   niente microfono aperto): si trasmette finché il pulsante (o V) resta giù, anche mentre il telefono
-  richiede il permesso o la fase passa dalla discussione al voto con la stessa parola; lasciato il
-  tasto la traccia va in muto (non passa niente) e il microfono resta pronto 20 s, poi la traccia si
-  toglie e la cattura si spegne. Discussione e voto sono la stessa stanza del giorno, senza stacco. Silenziare qualcuno (dal menu del posto o dalla lista della voce) vale
+  richiede il permesso; lasciato il tasto la traccia va in muto (non passa niente) e il microfono
+  resta pronto 20 s, poi la traccia si toglie e la cattura si spegne. Discussione e voto sono la
+  stessa stanza del giorno, senza stacco: al voto si perde solo la parola. Silenziare qualcuno (dal menu del posto o dalla lista della voce) vale
   solo su quel telefono: non ci si abbona più alla sua voce. `internal.voice_sessions` tiene solo le stanze
   LiveKit da sorvegliare e la firma dell'ultimo invio. La classificata è spenta (`voice_ranked = 0`). I
   bloccati non si sentono mai e non ci sentono: il telefono di chi blocca non si abbona alla loro voce

@@ -130,10 +130,74 @@ Deno.test('day: the living speak after the settle, the dead and the silenced onl
   }
 });
 
-Deno.test('the vote goes on from the discussion without a break, in the same room', () => {
+Deno.test('the vote: nobody speaks, everyone stays in the day room listening', () => {
   const vote = room('vote');
-  const g = grant(vote, 'p2', t0 - 1500);
-  assertEquals([g.room, g.canPublish], [`ob-${id}-day-${game}-2`, true]);
+  for (const m of members) {
+    // From the moment it is published: no break, no reconnect, no microphone.
+    for (const now of [t0 - 1500, t0, t0 + 60_000]) {
+      const g = grant(vote, m.profile, now);
+      assertEquals([g.room, g.kind, g.identity, g.canPublish, g.canSubscribe], [`ob-${id}-day-${game}-2`, 'day', `s${m.memberSeat}`, false, true], `${m.profile} ${now}`);
+    }
+  }
+});
+
+/**
+ * Every state a seat can be in, stage by stage: [room kind or null, speaks].
+ * The Compare is on the mafia team, so family (it opens the family chat by
+ * day, never a family voice room). There is no jail role yet (see
+ * voice_rules.ts).
+ */
+Deno.test('the matrix: every role state, every stage', () => {
+  const seats = {
+    town: member(1),
+    family: member(2, { family: true }),
+    compare: member(3, { family: true }),
+    silenced: member(4, { silenced: true }),
+    silencedFamily: member(5, { family: true, silenced: true }),
+    dead: member(6, { alive: false }),
+    deadFamily: member(7, { alive: false, family: true }),
+  };
+  type Seat = keyof typeof seats;
+  type Cell = [string | null, boolean];
+  const off: Cell = [null, false];
+  const day: Cell = ['day', true];
+  const listen: Cell = ['day', false];
+  const fam: Cell = ['family', true];
+  const ghost: Cell = ['ghosts', true];
+  const closed: Record<Seat, Cell> = {
+    town: off, family: off, compare: off, silenced: off, silencedFamily: off, dead: off, deadFamily: off,
+  };
+  const expected: Record<string, Record<Seat, Cell>> = {
+    reveal: closed,
+    night: { town: off, family: fam, compare: fam, silenced: off, silencedFamily: fam, dead: ghost, deadFamily: ghost },
+    dawnFilms: closed,
+    dawn: closed,
+    discussion: {
+      town: day, family: day, compare: day, silenced: listen, silencedFamily: listen, dead: listen, deadFamily: listen,
+    },
+    vote: {
+      town: listen, family: listen, compare: listen, silenced: listen, silencedFamily: listen, dead: listen, deadFamily: listen,
+    },
+    verdictFilm: closed,
+    verdict: closed,
+  };
+  const all = Object.values(seats);
+  for (const [stage, row] of Object.entries(expected)) {
+    const r = room(stage, { members: all });
+    for (const [name, [kind, speaks]] of Object.entries(row) as [Seat, Cell][]) {
+      const g = grant(r, seats[name].profile, t0 + 5000);
+      assertEquals([g.kind, g.canPublish], [kind, speaks], `${stage} / ${name}`);
+      // Whoever is in a room listens there; whoever is out hears nothing.
+      assertEquals(g.canSubscribe, kind !== null, `${stage} / ${name} listens`);
+    }
+  }
+  // The lobby and the end of the game: everyone speaks, as a member seat.
+  for (const stage of [null, 'ended']) {
+    for (const m of all) {
+      const g = grant(room(stage, { members: all, gameId: game }), m.profile);
+      assertEquals([g.kind, g.canPublish, g.identity], ['lobby', true, `m${m.memberSeat}`], `${stage} / ${m.profile}`);
+    }
+  }
 });
 
 Deno.test('the end of the game: everyone, in the lobby room of that game', () => {
