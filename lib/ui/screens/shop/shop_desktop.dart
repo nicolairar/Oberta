@@ -30,6 +30,7 @@ extension _Desktop on _ShopScreenState {
           final top = layout.neon.bottom + 24;
           final bust = min(stageW * 0.98, counterTop + 34 - top - 30);
           final cx = (stageL + stageR) / 2;
+          final cardW = min(stageW * 0.2, 190.0);
           return Stack(
             children: [
               const Positioned.fill(
@@ -53,7 +54,11 @@ extension _Desktop on _ShopScreenState {
                 height: counterTop - layout.neon.bottom + 20,
                 child: const IgnorePointer(child: RepaintBoundary(child: CustomPaint(painter: _LampConePainter()))),
               ),
-              Positioned(left: cx - bust / 2, top: counterTop + 34 - bust, child: _Hero(entry: picked, look: _lookOf(picked), who: _shop.who, size: bust, frame: const Rect.fromLTWH(-0.15, -0.27, 1.3, 1.3))),
+              Positioned(
+                left: cx - bust / 2,
+                top: counterTop + 34 - bust,
+                child: _Hero(entry: picked, look: _lookOf(picked), who: _shop.who, size: bust, frame: const Rect.fromLTWH(-0.15, -0.27, 1.3, 1.3), card: false),
+              ),
               Positioned(
                 left: stageL - 10,
                 width: stageW + 20,
@@ -67,6 +72,16 @@ extension _Desktop on _ShopScreenState {
                   ),
                 ),
               ),
+              // The seat card beside the bust, standing on the counter: the
+              // frame and the name ink as the table sees them.
+              if (picked?.item?.isGesture != true)
+                Positioned(
+                  left: stageR - cardW,
+                  top: counterTop + 18 - cardW * SeatPreview.aspect,
+                  width: cardW,
+                  height: cardW * SeatPreview.aspect,
+                  child: SeatPreview(key: const Key('shop.desk.seat'), look: _lookOf(picked), name: _shop.who),
+                ),
               Positioned(left: pad, top: top, width: railW, bottom: pad, child: _rail(now)),
               Positioned(right: pad, top: top, width: caseW, bottom: pad, child: _case(entries, index, picked, now)),
               Positioned(left: 28, top: layout.neon.center.dy - 28, child: const TargaBackButton(key: Key('shop.back'), size: 56)),

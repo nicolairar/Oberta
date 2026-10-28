@@ -154,4 +154,20 @@ void main() {
     expect(find.text('COMPLETO'), findsOneWidget);
     expect(online.shop.ownedBy('me'), containsAll(['outfit.trench_coat', 'accessory.pipe']));
   });
+
+  testWidgets('cornici e nomi si provano sulla carta del tavolo; il resto sul personaggio, a scelta', (tester) async {
+    await open(tester);
+    await dept(tester, 'frames');
+    expect(find.byKey(const Key('shop.hero.seat')), findsOneWidget, reason: 'la cornice si vede sulla carta');
+    expect(find.descendant(of: find.byKey(const Key('shop.hero.seat')), matching: find.byKey(const Key('seatPreview.plate'))), findsOneWidget);
+    await tester.tap(find.byKey(const Key('shop.view.bust')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('shop.hero.seat')), findsNothing);
+
+    await dept(tester, 'hats');
+    expect(find.byKey(const Key('shop.hero.seat')), findsNothing);
+    await tester.tap(find.byKey(const Key('shop.view.card')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('shop.hero.seat')), findsOneWidget, reason: 'anche un cappello si prova sulla carta');
+  });
 }

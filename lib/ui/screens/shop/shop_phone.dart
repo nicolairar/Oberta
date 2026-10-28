@@ -51,8 +51,19 @@ extension _Phone on _ShopScreenState {
               Positioned(
                 left: (w - hero) / 2,
                 top: dialTop + 46 - hero,
-                child: _Hero(entry: picked, look: _lookOf(picked), who: _shop.who, size: hero, frame: _heroFrame(picked)),
+                child: _Hero(
+                  entry: picked,
+                  look: _lookOf(picked),
+                  who: _shop.who,
+                  size: hero,
+                  frame: _heroFrame(picked),
+                  card: _card,
+                  // The price tag covers the bottom of the hero.
+                  cardRoom: hero - 46 - 84,
+                ),
               ),
+              if (picked?.item?.isGesture != true)
+                Positioned(right: 10, top: medalsTop + medalsHeight + 8, child: _viewToggle(picked)),
               Positioned(left: 0, right: 0, top: medalsTop, height: medalsHeight, child: _medals(now)),
               Positioned(
                 left: 0,
@@ -81,6 +92,43 @@ extension _Phone on _ShopScreenState {
     final slot = entry?.item?.slot;
     final wide = entry?.bundle != null || slot == 'outfit' || slot == 'accessory';
     return wide ? const Rect.fromLTWH(-0.3, -0.12, 1.6, 1.6) : const Rect.fromLTWH(-0.15, -0.08, 1.3, 1.3);
+  }
+
+  /// Bust or seat card: what the others see at the table, frame, name ink
+  /// and all.
+  Widget _viewToggle(_Entry? picked) {
+    final t = _t;
+    final card = _card ?? _Hero.cardFirst(picked);
+    Widget side(bool on, IconData icon, String key, String tip, bool value) => Tooltip(
+      message: tip,
+      child: GestureDetector(
+        key: Key(key),
+        onTap: pressed(() => _update(() => _card = value), Press.toggle),
+        child: Container(
+          width: 38,
+          height: 32,
+          decoration: BoxDecoration(
+            color: on ? const Color(0x40D9B45A) : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Icon(icon, size: 19, color: on ? const Color(0xFFFFD27A) : Targa.brassDim),
+        ),
+      ),
+    );
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: const ShapeDecoration(
+        shape: StadiumBorder(side: BorderSide(color: Color(0xFF6A5232))),
+        color: Color(0xCC0C0907),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          side(!card, Icons.person_outline, 'shop.view.bust', t.viewBust, false),
+          side(card, Icons.style_outlined, 'shop.view.card', t.viewCard, true),
+        ],
+      ),
+    );
   }
 
   /// One medallion per department: what is worn there, or its sign.

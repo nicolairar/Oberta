@@ -718,9 +718,14 @@ abstract final class _Noir {
     canvas.restore();
   }
 
-  static bool _winged(AvatarAccessory a) => const {
+  /// Quello che sta dietro le spalle: le ali, i palloncini, il guscio, il
+  /// razzo, e i fumogeni e le bandiere delle curve (le sciarpe no).
+  static bool _winged(AvatarAccessory a) =>
+      const {
         AvatarAccessory.angelWings, AvatarAccessory.batWings, AvatarAccessory.butterflyWings, AvatarAccessory.dragonWings, AvatarAccessory.balloons, //
-      }.contains(a);
+        AvatarAccessory.snailShell, AvatarAccessory.jetpack,
+      }.contains(a) ||
+      (CalcioTeam.of(a.name) != null && !a.name.endsWith('Scarf'));
 
   static bool _gilded(AvatarLook look) => look.base.mark == FaceMark.goldStatue || const {'gold_brocade', 'versalli_baroque'}.contains(look.outfit.id);
 
@@ -788,8 +793,18 @@ abstract final class _Noir {
     void hairdoFront() => pic('hairdoFront', hatAt, (c) => _Extras.hairdoFront(c, look));
     void coat() => pic('coat', bodyMap(b, look), (c) => LookPainter._coat(c, look, LookPainter._torso(broad), const Offset(-0.6, -0.8)));
     void oddGlasses() => pic('glasses', eyeMap(b), (c) => LookPainter._glasses(c, look, const CharacterPose()));
-    void oddProp() => pic('prop', mouthMap(b), (c) => LookPainter._mouthProp(c, look));
-    void chest() => pic('chest', bodyMap(b, look), (c) => LookPainter._chest(c, look, broad));
+    // Quello che sta in bocca segue la bocca; quello che sta sul petto o in
+    // mano (il pappagallo, la fisarmonica) segue le spalle.
+    // La paperella e la fisarmonica salgono un poco, che il bordo non le tagli.
+    final chestAt = bodyMap(b, look);
+    final low = look.accessory == AvatarAccessory.rubberDuck || look.accessory == AvatarAccessory.accordion;
+    final propAt = !_onChest(look.accessory) ? mouthMap(b) : (low ? _M(chestAt.x0, chestAt.y0 - 0.1, chestAt.k, chestAt.fx, chestAt.fy) : chestAt);
+    void oddProp() => pic('prop', propAt, (c) => LookPainter._mouthProp(c, look));
+    // Gli orologi da taschino e il fazzoletto stavano sul petto lungo di
+    // una volta: qui salgono dove il busto si vede ancora.
+    final pocket = const {AvatarAccessory.pocketWatch, AvatarAccessory.ricciWatch, AvatarAccessory.ricciChain, AvatarAccessory.pocketSquare}.contains(look.accessory);
+    final chestMap = pocket ? _M(chestAt.x0, chestAt.y0 - 0.09, chestAt.k, chestAt.fx, chestAt.fy) : chestAt;
+    void chest() => pic('chest', chestMap, (c) => LookPainter._chest(c, look, broad));
     void neckwear() => pic('neck', bodyMap(b, look), (c) {
           LookPainter._neck(c, neckLook, const Offset(-0.6, -0.8));
           if (!faceTattoo) _Extras.tattoo(c, neckLook);
@@ -805,7 +820,7 @@ abstract final class _Noir {
             ..imageFilter = ui.ImageFilter.dilate(radiusX: ow, radiusY: ow)
             ..colorFilter = const ColorFilter.mode(_nInk, BlendMode.srcIn),
         );
-        wings();
+        if (_winged(look.accessory)) wings();
         if (legacyHat) oddHat();
         if (styled) {
           hairdoBack();
@@ -1658,7 +1673,20 @@ abstract final class _Noir {
     canvas.drawCircle(Offset(b.cx, y), 0.018, _nFill(Color.lerp(silk, const Color(0xFFFFF4E0), 0.2)!));
   }
 
-  static bool _nativeProp(AvatarAccessory a) => !{AvatarAccessory.pipe, AvatarAccessory.cigaretteHolder, AvatarAccessory.baguetteCigar}.contains(a);
+  /// Il vezzo davanti che il noir non disegna da sé: la pipa, il bocchino, le
+  /// stramberie davanti al petto e le sciarpe e i trofei delle curve. Questi
+  /// vengono dai pittori di sempre ([LookPainter._mouthProp]).
+  static bool _nativeProp(AvatarAccessory a) =>
+      !const {
+        AvatarAccessory.pipe, AvatarAccessory.cigaretteHolder, AvatarAccessory.baguetteCigar, //
+        AvatarAccessory.clownNose, AvatarAccessory.parrot, AvatarAccessory.rubberDuck, AvatarAccessory.accordion,
+        AvatarAccessory.giantBowTie, AvatarAccessory.pigeon, AvatarAccessory.plungerSword,
+      }.contains(a) &&
+      CalcioTeam.of(a.name) == null;
+
+  static bool _onChest(AvatarAccessory a) => const {
+        AvatarAccessory.parrot, AvatarAccessory.rubberDuck, AvatarAccessory.accordion, AvatarAccessory.pigeon, AvatarAccessory.plungerSword, //
+      }.contains(a);
 
   static void _prop(Canvas canvas, AvatarLook look, _NB b, double thin) {
     final a = look.accessory;

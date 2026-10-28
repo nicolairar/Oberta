@@ -95,7 +95,26 @@ class _Hero extends StatelessWidget {
 
   /// How the bust sits in the square: zoomed out, so the shoulders show.
   final Rect frame;
-  const _Hero({required this.entry, required this.look, required this.who, required this.size, this.frame = const Rect.fromLTWH(-0.15, -0.08, 1.3, 1.3)});
+
+  /// The seat card as the table sees it instead of the bust: true or false,
+  /// or null for the card only with a frame or a name ink.
+  final bool? card;
+
+  /// How much of the square shows above what covers its bottom (the price
+  /// tag on the phone): the card fits in there.
+  final double? cardRoom;
+  const _Hero({
+    required this.entry,
+    required this.look,
+    required this.who,
+    required this.size,
+    this.frame = const Rect.fromLTWH(-0.15, -0.08, 1.3, 1.3),
+    this.card,
+    this.cardRoom,
+  });
+
+  /// Whether [entry] shows as the seat card when nobody chose.
+  static bool cardFirst(_Entry? entry) => entry?.item?.around ?? false;
 
   @override
   Widget build(BuildContext context) {
@@ -106,12 +125,18 @@ class _Hero extends StatelessWidget {
         padding: EdgeInsets.fromLTRB(size * 0.12, size * 0.1, size * 0.12, size * 0.2),
         child: GestureShowcase(key: const Key('shop.hero.gesture'), gestures: [ShopController.gestureOf(item)!]),
       );
-    } else if (item != null && item.around) {
-      art = Center(
-        child: SizedBox(
-          width: size * 0.5,
-          height: size * 0.5 * SeatPreview.aspect,
-          child: SeatPreview(key: const Key('shop.hero.seat'), look: look, name: who),
+    } else if (card ?? cardFirst(entry)) {
+      final room = (cardRoom ?? size) - size * 0.06;
+      final width = min(size * 0.62, room / SeatPreview.aspect);
+      art = Align(
+        alignment: Alignment.topCenter,
+        child: Padding(
+          padding: EdgeInsets.only(top: size * 0.04),
+          child: SizedBox(
+            width: width,
+            height: width * SeatPreview.aspect,
+            child: SeatPreview(key: const Key('shop.hero.seat'), look: look, name: who),
+          ),
         ),
       );
     } else {

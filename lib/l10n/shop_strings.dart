@@ -80,6 +80,10 @@ abstract class ShopStrings {
   String pieces(int count);
   String get emptyShelf;
   String get changeFace;
+
+  /// The hero toggle: the character, or the seat card as the table sees it.
+  String get viewBust;
+  String get viewCard;
   String get changeFaceHint;
   String get back;
 
@@ -149,6 +153,8 @@ abstract class ShopStrings {
     'pieces': pieces(3),
     'emptyShelf': emptyShelf,
     'changeFace': changeFace,
+    'viewBust': viewBust,
+    'viewCard': viewCard,
     'changeFaceHint': changeFaceHint,
     'back': back,
     'save': save(35),
@@ -311,6 +317,10 @@ class ItalianShopStrings extends ShopStrings {
   String get emptyShelf => 'Niente su questo scaffale.';
   @override
   String get changeFace => 'Cambia faccia';
+  @override
+  String get viewBust => 'Personaggio';
+  @override
+  String get viewCard => 'Carta al tavolo';
   @override
   String get changeFaceHint => 'Il viso, la pelle, i baffi: dal barbiere.';
   @override
@@ -489,6 +499,10 @@ class EnglishShopStrings extends ShopStrings {
   String get emptyShelf => 'Nothing on this shelf.';
   @override
   String get changeFace => 'Change face';
+  @override
+  String get viewBust => 'Character';
+  @override
+  String get viewCard => 'Seat card';
   @override
   String get changeFaceHint => 'Face, skin, moustache: see the barber.';
   @override

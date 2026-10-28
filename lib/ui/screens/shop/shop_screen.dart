@@ -99,6 +99,10 @@ class _ShopScreenState extends State<ShopScreen> {
   /// Dove sta la ruota: l'indice, con le frazioni mentre gira.
   double _turn = 0;
 
+  /// The phone hero: the seat card (true), the bust (false), or whichever
+  /// suits the picked piece (null: the card for frames and name inks).
+  bool? _card;
+
   /// The desk's search field.
   final _search = TextEditingController();
 
@@ -179,6 +183,7 @@ class _ShopScreenState extends State<ShopScreen> {
   void _openDept(ShopDept dept) => setState(() {
     _search.clear();
     _dept = dept;
+    _card = null;
     _filter = const ShopFilter();
     _pick = null;
     _turn = -1;
