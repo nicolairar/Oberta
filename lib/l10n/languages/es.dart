@@ -9,9 +9,7 @@ import '../../online/shop_models.dart';
 import '../../roster/roster.dart';
 import '../../rules/game_engine.dart';
 import '../../rules/role.dart';
-import '../../sound/cue_sounds.dart';
 import '../../ui/avatar/deep_slots.dart' show Hand;
-import '../../ui/widgets/death_scene.dart';
 import '../../ui/widgets/verdict_scene.dart';
 import '../app_language.dart';
 import '../online_strings.dart';
@@ -88,10 +86,6 @@ final class SpanishStrings extends EnglishStrings {
   String get languageSetting => 'Idioma';
   @override
   String get languageAutomatic => 'Automático (teléfono)';
-  @override
-  String get rehearsal => 'Sala de proyección';
-  @override
-  String get rehearsalHint => 'Vuelve a ver las escenas de la noche, una a una.';
 
   @override
   String get narratorTitle => 'NARRADOR';
@@ -358,79 +352,6 @@ final class SpanishStrings extends EnglishStrings {
   };
 
   @override
-  String get screeningTitle => 'SALA DE PROYECCIÓN';
-  @override
-  String get screeningIntro => 'Todas las escenas de la noche. Toca una para volver a verla.';
-  @override
-  String get screeningCaption => 'Exterior, noche. Ensayo general.';
-  @override
-  String get screeningSpliced => 'Sobre una emboscada al azar';
-  @override
-  String sceneName(DeathAct act) => switch (act) {
-    DeathAct.knife => 'El puñal',
-    DeathAct.gun => 'El silenciador',
-    DeathAct.burst => 'El estuche de violín',
-    DeathAct.car => 'El sedán negro',
-    DeathAct.piano => 'El piano de cola',
-    DeathAct.safe => 'La caja fuerte',
-    DeathAct.chandelier => 'La lámpara de araña',
-    DeathAct.blast => 'La caja de regalo',
-    DeathAct.poison => 'El café envenenado',
-    DeathAct.noose => 'La soga',
-    DeathAct.grab => 'Los zapatos de cemento',
-    DeathAct.bat => 'El bate de béisbol',
-    DeathAct.lupara => 'La escopeta recortada',
-    DeathAct.driveBy => 'El tiroteo desde el coche',
-    DeathAct.garrote => 'El garrote',
-    DeathAct.pot => 'La maceta del tercer piso',
-    DeathAct.manhole => 'La alcantarilla',
-    DeathAct.blackout => 'El apagón',
-    DeathAct.kiss => 'El beso',
-    DeathAct.bowling => 'La bola de bolos',
-    DeathAct.swordfish => 'El pez espada',
-    DeathAct.harpoon => 'El arpón',
-    DeathAct.pie => 'La tarta de nata',
-    DeathAct.trombone => 'El trombón',
-    DeathAct.tango => 'El último tango',
-    DeathAct.bouquet => 'El ramo de rosas',
-    DeathAct.laundry => 'La furgoneta de la lavandería',
-    DeathAct.sniper => 'El Francotirador',
-    DeathAct.rescue => 'El Doctor llega a tiempo',
-    DeathAct.lucky => 'La petaca',
-    DeathAct.belfry => 'El Francotirador en el campanario',
-    DeathAct.phoneBooth => 'El Francotirador y la cabina',
-    DeathAct.carDoor => 'El Francotirador y la puerta del coche',
-    DeathAct.defibrillator => 'El Doctor y el desfibrilador',
-    DeathAct.pliers => 'El Doctor y las pinzas',
-    DeathAct.ambulance => 'La ambulancia',
-    DeathAct.stitches => 'Los puntos del Doctor',
-    DeathAct.bible => 'La Biblia de bolsillo',
-    DeathAct.jam => 'La pistola encasquillada',
-    DeathAct.banana => 'La cáscara de plátano',
-    DeathAct.blackCat => 'El gato negro',
-  };
-
-  @override
-  String get screeningEffects => 'EFECTOS DE SONIDO';
-
-  @override
-  String cueName(Cue cue) => switch (cue) {
-    Cue.click => 'El tambor que gira',
-    Cue.bang => 'El disparo del sorteo',
-    Cue.deal => 'Una carta repartida',
-    Cue.flip => 'Una carta que se gira',
-    Cue.nightfall => 'Cae la noche',
-    Cue.dawn => 'El amanecer',
-    Cue.tick => 'Los últimos segundos',
-    Cue.timeUp => 'Se acabó el tiempo',
-    Cue.drumroll => 'El redoble',
-    Cue.caught => 'Uno de la Familia',
-    Cue.innocent => 'Un inocente',
-    Cue.townWins => 'Gana el pueblo',
-    Cue.familyWins => 'Gana la Familia',
-  };
-
-  @override
   String get lobbyTitle => 'LA MESA';
 
   @override
@@ -580,9 +501,6 @@ final class SpanishStrings extends EnglishStrings {
 
   @override
   String personRemoveTitle(String name) => '¿Quitar a $name?';
-
-  @override
-  String get screeningVerdicts => 'VEREDICTOS';
 
   @override
   String verdictName(VerdictTake take) => switch (take) {
@@ -1507,6 +1425,13 @@ const spanishMessages = <String, String>{
   'progress.achievement.winWithDifferent.2': 'Gana con 12 roles distintos',
   'progress.achievement.roles_won_all': 'Camaleón',
   'progress.achievement.winWithEvery': 'Gana con todos los roles',
+  'progress.achievement.roles_town_all': 'Todo el pueblo',
+  'progress.achievement.roles_town_all.goal': 'Gana con todos los roles del pueblo',
+  'progress.achievement.roles_mafia_all': 'Toda la Familia',
+  'progress.achievement.roles_mafia_all.goal': 'Gana con todos los roles de la Familia',
+  'progress.achievement.roles_lone_all': 'Todos los solitarios',
+  'progress.achievement.roles_lone_all.goal': 'Gana con todos los roles solitarios',
+  'progress.achievement.roleWin': 'Gana una partida con este rol',
   'progress.achievement.wins_alive_25': 'Piel dura',
   'progress.achievement.winTimesStill': 'Gana 25 veces sin morir',
   'progress.achievement.lynch_hits_10': 'Buen olfato',
@@ -2025,6 +1950,65 @@ const spanishMessages = <String, String>{
   'gesture.pickTarget': '¿A quién le va un gesto?',
   'gesture.pickHint': 'O mantén pulsado un asiento.',
   'gesture.firstHint': 'Lánzale un gesto a alguien: toca «Gestos».',
+  // ---- collection
+  'collection.title': 'Los roles',
+  'collection.settingsHint': 'La colección: cada carta se descubre ganando con ella.',
+  'collection.count': '{n} de {of} cartas',
+  'collection.hint': 'Cada carta queda boca abajo hasta que ganes una partida con ese rol.',
+  'collection.signedOut': 'Inicia sesión para descubrir las cartas y llevar la cuenta de tus partidas.',
+  'collection.signIn': 'Iniciar sesión',
+  'collection.team.citizens': 'Pueblo',
+  'collection.team.mafia': 'Familia',
+  'collection.team.neutral': 'Solitarios',
+  'collection.locked': 'Boca abajo',
+  'collection.lockedBody': 'Carta boca abajo. Gana una partida con este rol para saber qué hace y ver tus números.',
+  'collection.playedNoWin': 'Jugada una vez, nunca ganada.',
+  'collection.playedNoWin.playedTimesNever': 'Jugada {n} veces, nunca ganada.',
+  'collection.neverPlayed': 'Nunca jugada.',
+  'collection.played': 'Partidas',
+  'collection.wins': 'Ganadas',
+  'collection.losses': 'Perdidas',
+  'collection.winRate': '% victorias',
+  'collection.bestStreak': 'Mejor racha',
+  'collection.lastPlayed': 'Última partida',
+  'collection.short': '{wins} G · {played} P',
+  'collection.close': 'Cerrar',
+  'collection.publicCount': 'Roles descubiertos',
+  // ---- localRole
+  'localRole.wasBusy': 'Anoche alguien te tuvo ocupado: tu jugada se perdió.',
+  'localRole.wasJailed': 'Anoche estabas en una celda: tu jugada se perdió.',
+  'localRole.jailerAsked': 'El Carcelero preguntaba: «{question}»',
+  'localRole.prisonerAnswered': 'Desde la celda, {name} respondió: «{answer}»',
+  'localRole.foundFamily': 'Al amanecer: {name} resulta ser de la Familia.',
+  'localRole.foundClean': 'Al amanecer: {name} resulta inocente.',
+  'localRole.foundRole': 'Al amanecer: {name} era {role}.',
+  'localRole.jailedTitle': 'Estás en una celda',
+  'localRole.jailedBody': 'Esta noche no sales, y nadie te toca.',
+  'localRole.jailerAsks': 'El Carcelero te pregunta:',
+  'localRole.answerHint': 'Tu respuesta (solo la lee el Carcelero)',
+  'localRole.questionHint': 'Una pregunta para el preso (opcional)',
+  'localRole.jailed': '{name} está en tu celda.',
+  'localRole.truce': 'Tregua del Pacifista',
+  'localRole.whoAreYou': 'Que el Pacifista toque su propia cara.',
+  'localRole.notYou': 'Solo el Pacifista puede pedir la tregua.',
+  'localRole.whoToReveal': '¿A quién revelas ante todos?',
+  'localRole.cancel': 'Cancelar',
+  'localRole.confirm': 'Confirmar',
+  // ---- localTable
+  'localTable.curtainHint': 'Los demás miran a otro lado. Toca solo cuando tengas el teléfono en la mano.',
+  'localTable.roleCurtainHint': 'Vas a ver tu carta: nadie más puede mirar.',
+  'localTable.backToTable': 'Teléfono al centro de la mesa',
+  'localTable.pickedConfirm': 'Elegiste a {name}. Confirma, o toca otro asiento.',
+  'localTable.familyNote': 'familia',
+  'localTable.cleanNote': 'inocente',
+  'localTable.putItDown': 'Listo. Deja el teléfono y pásalo.',
+  'localTable.discuss': 'Hablen en voz alta. Luego se vota.',
+  'localTable.openVote': 'El teléfono se queda en el centro: se vota de uno en uno, a cara descubierta.',
+  'localTable.voterTurn': 'Vota {name}: toca a quién condenas.',
+  'localTable.votedLine': '{voter} vota a {target}.',
+  'localTable.abstainedLine': '{voter} se abstiene.',
+  'localTable.undo': 'Atrás',
+  'localTable.notTheMayor': 'Solo el Alcalde puede revelarse.',
 };
 
 // The narrator's script, read on screen (no recorded voice yet). The same

@@ -9,9 +9,7 @@ import '../../online/shop_models.dart';
 import '../../roster/roster.dart';
 import '../../rules/game_engine.dart';
 import '../../rules/role.dart';
-import '../../sound/cue_sounds.dart';
 import '../../ui/avatar/deep_slots.dart' show Hand;
-import '../../ui/widgets/death_scene.dart';
 import '../../ui/widgets/verdict_scene.dart';
 import '../app_language.dart';
 import '../online_strings.dart';
@@ -90,10 +88,6 @@ final class PortugueseStrings extends EnglishStrings {
   String get languageSetting => 'Idioma';
   @override
   String get languageAutomatic => 'Automático (celular)';
-  @override
-  String get rehearsal => 'Sala de projeção';
-  @override
-  String get rehearsalHint => 'Reveja as cenas da noite, uma de cada vez.';
 
   @override
   String get narratorTitle => 'NARRADOR';
@@ -360,79 +354,6 @@ final class PortugueseStrings extends EnglishStrings {
   };
 
   @override
-  String get screeningTitle => 'SALA DE PROJEÇÃO';
-  @override
-  String get screeningIntro => 'Todas as cenas da noite. Toque em uma para rever.';
-  @override
-  String get screeningCaption => 'Externa, noite. Ensaio geral.';
-  @override
-  String get screeningSpliced => 'Sobre uma emboscada qualquer';
-  @override
-  String sceneName(DeathAct act) => switch (act) {
-    DeathAct.knife => 'O punhal',
-    DeathAct.gun => 'O silenciador',
-    DeathAct.burst => 'O estojo de violino',
-    DeathAct.car => 'O sedã preto',
-    DeathAct.piano => 'O piano de cauda',
-    DeathAct.safe => 'O cofre',
-    DeathAct.chandelier => 'O lustre',
-    DeathAct.blast => 'A caixa de presente',
-    DeathAct.poison => 'O café batizado',
-    DeathAct.noose => 'A forca',
-    DeathAct.grab => 'Os sapatos de cimento',
-    DeathAct.bat => 'O taco de beisebol',
-    DeathAct.lupara => 'A espingarda de cano serrado',
-    DeathAct.driveBy => 'O tiroteio do carro',
-    DeathAct.garrote => 'O garrote',
-    DeathAct.pot => 'O vaso do terceiro andar',
-    DeathAct.manhole => 'O bueiro',
-    DeathAct.blackout => 'O apagão',
-    DeathAct.kiss => 'O beijo',
-    DeathAct.bowling => 'A bola de boliche',
-    DeathAct.swordfish => 'O peixe-espada',
-    DeathAct.harpoon => 'O arpão',
-    DeathAct.pie => 'A torta de creme',
-    DeathAct.trombone => 'O trombone',
-    DeathAct.tango => 'O último tango',
-    DeathAct.bouquet => 'O buquê de rosas',
-    DeathAct.laundry => 'A van da lavanderia',
-    DeathAct.sniper => 'O Atirador',
-    DeathAct.rescue => 'O Doutor chega a tempo',
-    DeathAct.lucky => 'O cantil',
-    DeathAct.belfry => 'O Atirador no campanário',
-    DeathAct.phoneBooth => 'O Atirador e a cabine telefônica',
-    DeathAct.carDoor => 'O Atirador e a porta do carro',
-    DeathAct.defibrillator => 'O Doutor e as pás',
-    DeathAct.pliers => 'O Doutor e o alicate',
-    DeathAct.ambulance => 'A ambulância',
-    DeathAct.stitches => 'Os pontos do Doutor',
-    DeathAct.bible => 'A Bíblia de bolso',
-    DeathAct.jam => 'A arma engasgada',
-    DeathAct.banana => 'A casca de banana',
-    DeathAct.blackCat => 'O gato preto',
-  };
-
-  @override
-  String get screeningEffects => 'EFEITOS SONOROS';
-
-  @override
-  String cueName(Cue cue) => switch (cue) {
-    Cue.click => 'O tambor girando',
-    Cue.bang => 'O tiro do sorteio',
-    Cue.deal => 'Uma carta dada',
-    Cue.flip => 'Uma carta virada',
-    Cue.nightfall => 'Cai a noite',
-    Cue.dawn => 'O amanhecer',
-    Cue.tick => 'Os últimos segundos',
-    Cue.timeUp => 'Acabou o tempo',
-    Cue.drumroll => 'O rufar dos tambores',
-    Cue.caught => 'Um da Família',
-    Cue.innocent => 'Um inocente',
-    Cue.townWins => 'A cidade vence',
-    Cue.familyWins => 'A Família vence',
-  };
-
-  @override
   String get lobbyTitle => 'A MESA';
 
   @override
@@ -582,9 +503,6 @@ final class PortugueseStrings extends EnglishStrings {
 
   @override
   String personRemoveTitle(String name) => 'Remover $name?';
-
-  @override
-  String get screeningVerdicts => 'VEREDITOS';
 
   @override
   String verdictName(VerdictTake take) => switch (take) {
@@ -1511,6 +1429,13 @@ const portugueseMessages = <String, String>{
   'progress.achievement.winWithDifferent.2': 'Vença com 12 papéis diferentes',
   'progress.achievement.roles_won_all': 'Camaleão',
   'progress.achievement.winWithEvery': 'Vença com todos os papéis',
+  'progress.achievement.roles_town_all': 'A cidade inteira',
+  'progress.achievement.roles_town_all.goal': 'Vença com todos os papéis da cidade',
+  'progress.achievement.roles_mafia_all': 'A Família inteira',
+  'progress.achievement.roles_mafia_all.goal': 'Vença com todos os papéis da Família',
+  'progress.achievement.roles_lone_all': 'Todos os solitários',
+  'progress.achievement.roles_lone_all.goal': 'Vença com todos os papéis solitários',
+  'progress.achievement.roleWin': 'Vença uma partida com este papel',
   'progress.achievement.wins_alive_25': 'Couro grosso',
   'progress.achievement.winTimesStill': 'Vença 25 vezes ainda de pé',
   'progress.achievement.lynch_hits_10': 'Bom faro',
@@ -2029,6 +1954,65 @@ const portugueseMessages = <String, String>{
   'gesture.pickTarget': 'Quem leva um gesto?',
   'gesture.pickHint': 'Ou segure num lugar.',
   'gesture.firstHint': 'Jogue um gesto em alguém: toque em «Gestos».',
+  // ---- collection
+  'collection.title': 'Os papéis',
+  'collection.settingsHint': 'A coleção: cada carta se revela quando você vence com ela.',
+  'collection.count': '{n} de {of} cartas',
+  'collection.hint': 'Cada carta fica virada para baixo até você vencer uma partida com esse papel.',
+  'collection.signedOut': 'Entre na conta para virar as cartas e acompanhar suas partidas.',
+  'collection.signIn': 'Entrar',
+  'collection.team.citizens': 'Cidade',
+  'collection.team.mafia': 'Família',
+  'collection.team.neutral': 'Solitários',
+  'collection.locked': 'Virada',
+  'collection.lockedBody': 'Carta virada para baixo. Vença uma partida com este papel para saber o que ele faz e ver seus números.',
+  'collection.playedNoWin': 'Jogada uma vez, nunca vencida.',
+  'collection.playedNoWin.playedTimesNever': 'Jogada {n} vezes, nunca vencida.',
+  'collection.neverPlayed': 'Nunca jogada.',
+  'collection.played': 'Partidas',
+  'collection.wins': 'Vitórias',
+  'collection.losses': 'Derrotas',
+  'collection.winRate': '% de vitórias',
+  'collection.bestStreak': 'Melhor sequência',
+  'collection.lastPlayed': 'Última partida',
+  'collection.short': '{wins} V · {played} P',
+  'collection.close': 'Fechar',
+  'collection.publicCount': 'Papéis revelados',
+  // ---- localRole
+  'localRole.wasBusy': 'Ontem à noite alguém te manteve ocupado: sua jogada se perdeu.',
+  'localRole.wasJailed': 'Ontem à noite você estava na cela: sua jogada se perdeu.',
+  'localRole.jailerAsked': 'O Carcereiro perguntou: “{question}”',
+  'localRole.prisonerAnswered': 'Da cela, {name} respondeu: “{answer}”',
+  'localRole.foundFamily': 'Ao amanhecer: {name} é da Família.',
+  'localRole.foundClean': 'Ao amanhecer: {name} tem ficha limpa.',
+  'localRole.foundRole': 'Ao amanhecer: {name} era {role}.',
+  'localRole.jailedTitle': 'Você está na cela',
+  'localRole.jailedBody': 'Hoje à noite você não sai, e ninguém encosta em você.',
+  'localRole.jailerAsks': 'O Carcereiro te pergunta:',
+  'localRole.answerHint': 'Sua resposta (só o Carcereiro lê)',
+  'localRole.questionHint': 'Uma pergunta para o prisioneiro (opcional)',
+  'localRole.jailed': '{name} está na sua cela.',
+  'localRole.truce': 'Trégua do Pacifista',
+  'localRole.whoAreYou': 'O Pacifista toca o próprio rosto.',
+  'localRole.notYou': 'Só o Pacifista pode pedir trégua.',
+  'localRole.whoToReveal': 'Quem você revela para todos?',
+  'localRole.cancel': 'Cancelar',
+  'localRole.confirm': 'Confirmar',
+  // ---- localTable
+  'localTable.curtainHint': 'Os outros olham para o lado. Toque só quando o celular estiver na sua mão.',
+  'localTable.roleCurtainHint': 'Você vai ver sua carta: mais ninguém pode olhar.',
+  'localTable.backToTable': 'Celular no meio da mesa',
+  'localTable.pickedConfirm': 'Você escolheu {name}. Confirme, ou toque em outro lugar.',
+  'localTable.familyNote': 'família',
+  'localTable.cleanNote': 'ficha limpa',
+  'localTable.putItDown': 'Pronto. Largue o celular e passe adiante.',
+  'localTable.discuss': 'Discutam em voz alta. Depois, votação.',
+  'localTable.openVote': 'O celular fica no meio: um voto de cada vez, às claras.',
+  'localTable.voterTurn': '{name} vota: toque em quem você condena.',
+  'localTable.votedLine': '{voter} vota em {target}.',
+  'localTable.abstainedLine': '{voter} se abstém.',
+  'localTable.undo': 'Voltar',
+  'localTable.notTheMayor': 'Só o Prefeito pode se revelar.',
 };
 
 /// The narrator's script, read on screen (no recorded voice yet).

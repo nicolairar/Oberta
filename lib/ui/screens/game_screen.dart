@@ -1422,8 +1422,7 @@ class _GameScreenState extends State<GameScreen> {
   /// La discussione: sul panno chi è morto stanotte, nel cartiglio il
   /// cronometro; sotto, più tempo o al voto.
   Widget _dayView() {
-    final italian = _t.language.locale.languageCode == 'it';
-    final headline = dawnHeadline(_dawn, italian: italian, everyoneAlive: _t.everyoneAlive).headline;
+    final headline = dawnHeadline(_dawn, language: _t.language, everyoneAlive: _t.everyoneAlive).headline;
     final expired = _dayLeft == Duration.zero;
     return _tablePage(
       key: const Key('local.day'),
