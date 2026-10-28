@@ -49,7 +49,7 @@ void main() {
 
     test('le scelte: quante ne promette lo specchio', () {
       expect(FaceFeatures.options.map((k, v) => MapEntry(k, v.length)), {
-        'shape': 8, 'eyes': 12, 'eyeColor': 8, 'brows': 10, 'nose': 10, 'mouth': 12, //
+        'shape': 8, 'eyes': 12, 'eyeSize': 4, 'eyeColor': 12, 'brows': 12, 'nose': 12, 'mouth': 12, //
         'hair': 24, 'hairColor': 12, 'detail': 8, 'age': 3, 'lips': 7, 'shadow': 7, 'presentation': 3,
       });
       expect(FaceFeatures.keys, FaceFeatures.options.keys.toList());
@@ -92,7 +92,7 @@ void main() {
     });
 
     test('gli id sono gli stessi della migrazione', () {
-      final sql = File('supabase/migrations/20261020090000_barber_presentation.sql').readAsStringSync();
+      final sql = File('supabase/migrations/20261118090000_barber_noir_options.sql').readAsStringSync();
       for (final MapEntry(:key, :value) in FaceFeatures.options.entries) {
         expect(sql, contains("'$key', jsonb_build_array(${value.map((v) => "'$v'").join(', ')})"), reason: key);
       }

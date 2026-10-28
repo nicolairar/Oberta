@@ -1,8 +1,10 @@
 // The cartoon-noir avatars on one contact sheet: a wide cast of shop and
-// barber looks as 256 px busts and in the real seat card at table size, plus
-// the worst cases (the biggest hairstyles under every kind of hat).
+// barber looks as 256 px busts and in the real seat card at table size, the
+// worst cases (the biggest hairstyles under every kind of hat), and the
+// approved demo (tool/demo_avatar/style_noir.dart) next to the live painter
+// for the same six looks.
 // `flutter test tool/render/noir_avatar_render_test.dart` writes
-// build/render/noir/{busts_256,table,worst}.png.
+// build/render/noir/{busts_256,table,worst,demo_vs_live}.png.
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -15,6 +17,9 @@ import 'package:oberta/ui/avatar/avatar_look.dart';
 import 'package:oberta/ui/avatar/look_painter.dart';
 import 'package:oberta/ui/screens/online/game/seat_card.dart';
 import 'package:oberta/ui/widgets/noir_avatar.dart' show AvatarHead;
+
+import '../demo_avatar/demo_cast.dart';
+import '../demo_avatar/style_noir.dart';
 
 final out = Platform.environment['OUT'] ?? 'build/render/noir';
 
@@ -91,6 +96,56 @@ final cast = <(String, AvatarLook)>[
   ('Max', _look('Max', tone: SkinTone.tan, hat: AvatarHead.ufoHat, outfit: 'strongman_leotard', mark: FaceMark.chevron, features: const FaceFeatures(hair: HairStyle.afro, presentation: _man))),
 ];
 
+/// The demo's six shop looks, dressed from the live wardrobe.
+final _demoTwins = <String, AvatarLook>{
+  'Nino': _look('Nino', tone: SkinTone.rose, hat: AvatarHead.bowler, glasses: AvatarGlasses.round, mark: FaceMark.mustache, outfit: 'cream_dinner', accessory: AvatarAccessory.bowTie, features: const FaceFeatures(hair: HairStyle.slicked, hairColor: HairColor.darkBrown, presentation: _man, shape: FaceShape.square)),
+  'Mara': _look('Mara', tone: SkinTone.sienna, hat: AvatarHead.cloche, glasses: AvatarGlasses.shades, outfit: 'black_dress', accessory: AvatarAccessory.cigarette, features: const FaceFeatures(hair: HairStyle.wavy, hairColor: HairColor.darkBrown, presentation: _woman, mouth: MouthShape.lipstick, lips: LipColor.crimson, shape: FaceShape.heart)),
+  'Ottavio': _look('Ottavio', tone: SkinTone.sienna, hat: AvatarHead.panama, glasses: AvatarGlasses.monocle, mark: FaceMark.fullBeard, outfit: 'brown_pinstripe', accessory: AvatarAccessory.carnation, features: const FaceFeatures(hair: HairStyle.crewCut, hairColor: HairColor.grey, presentation: _man, shape: FaceShape.square)),
+  'Gigi': _look('Gigi', tone: SkinTone.honey, mark: FaceMark.mustache, outfit: 'azzurri_kit', accessory: AvatarAccessory.none, features: const FaceFeatures(hair: HairStyle.slicked, hairColor: HairColor.black, presentation: _man, shape: FaceShape.square)),
+  'Nora': _look('Nora', tone: SkinTone.ivory, outfit: 'midnight_double', accessory: AvatarAccessory.carnation, features: const FaceFeatures(hair: HairStyle.updo, hairColor: HairColor.platinum, presentation: _woman, eyeColor: EyeColor.blue, mouth: MouthShape.lipstick, lips: LipColor.red, shape: FaceShape.heart)),
+  'Oro': _look('Oro', tone: SkinTone.honey, hat: AvatarHead.topHat, outfit: 'gold_brocade', accessory: AvatarAccessory.cigar, features: const FaceFeatures(hair: HairStyle.curly, hairColor: HairColor.blonde, presentation: _man, shape: FaceShape.square)),
+};
+
+void _live(Canvas canvas, DemoChar c, double side) => LookPainter.bust(canvas, _demoTwins[c.name]!, side);
+
+Future<void> _compare(String path) async {
+  const side = 256.0;
+  const gap = 16.0;
+  const ratio = 3.0;
+  const card = 74.0;
+  final rows = side * 2 + gap * 3;
+  final size = Size(demoSkins.length * (side + gap) + gap, rows + 2 * (card * 1.32 + gap) * ratio + gap);
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  canvas.drawRect(Offset.zero & size, Paint()..color = const Color(0xFF14110F));
+  for (final (row, bust) in [(0, paintNoir), (1, _live)]) {
+    for (var i = 0; i < demoSkins.length; i++) {
+      final at = Offset(gap + i * (side + gap), gap + row * (side + gap));
+      final tile = RRect.fromRectAndRadius(at & const Size.square(side), const Radius.circular(18));
+      canvas.drawRRect(tile, Paint()..shader = const RadialGradient(center: Alignment(0, -0.3), colors: [Color(0xFF3A2A1E), Color(0xFF120C08)]).createShader(tile.outerRect));
+      canvas.save();
+      canvas.clipRRect(tile);
+      canvas.translate(at.dx, at.dy);
+      bust(canvas, demoSkins[i], side);
+      canvas.restore();
+    }
+  }
+  canvas.save();
+  canvas.translate(0, rows);
+  canvas.scale(ratio);
+  final felt = Rect.fromLTWH(0, 0, size.width / ratio, (size.height - rows) / ratio);
+  canvas.drawRect(felt, Paint()..shader = const RadialGradient(colors: [Color(0xFF1F5B40), Color(0xFF0B2A1C)], radius: 1.2).createShader(felt));
+  final step = (size.width / ratio - gap) / demoSkins.length;
+  for (final (row, bust) in [(0, paintNoir), (1, _live)]) {
+    for (var i = 0; i < demoSkins.length; i++) {
+      paintSeatCard(canvas, Offset(gap + i * step, gap / 2 + row * (card * 1.32 + gap)), card, demoSkins[i], bust);
+    }
+  }
+  canvas.restore();
+  final image = await recorder.endRecording().toImage(size.width.round(), size.height.round());
+  await _save(image, path);
+}
+
 const _bigHair = [HairStyle.afro, HairStyle.coils, HairStyle.curly, HairStyle.bun, HairStyle.updo, HairStyle.pompadour, HairStyle.long, HairStyle.victoryRolls, HairStyle.ponytail, HairStyle.braids];
 
 Future<void> _save(ui.Image image, String path) async {
@@ -130,6 +185,21 @@ void main() {
     TestWidgetsFlutterBinding.ensureInitialized();
     await _fonts();
     await _busts([for (final (_, l) in cast) l], 256, 8, '$out/busts_256.png');
+    await _compare('$out/demo_vs_live.png');
+    // Every free face option of the barber, for him and for her.
+    final faces = <AvatarLook>[];
+    for (final p in [_man, _woman]) {
+      final base = FaceFeatures(presentation: p, hair: p == _man ? HairStyle.crewCut : HairStyle.bob, hairColor: HairColor.darkBrown);
+      AvatarLook face(FaceFeatures f) => _look('f', outfit: p == _man ? 'charcoal_pinstripe' : 'rose_dress', accessory: AvatarAccessory.none, features: f);
+      faces.addAll([for (final n in NoseShape.values) face(base.copyWith(nose: n))]);
+      faces.addAll([for (final e in EyeShape.values) face(base.copyWith(eyes: e))]);
+      faces.addAll([for (final z in EyeSize.values) face(base.copyWith(eyeSize: z))]);
+      faces.addAll([for (final c in EyeColor.values) face(base.copyWith(eyeColor: c, eyeSize: EyeSize.large))]);
+      faces.addAll([for (final b in BrowShape.values) face(base.copyWith(brows: b))]);
+      faces.addAll([for (final m in MouthShape.values) face(base.copyWith(mouth: m))]);
+      faces.addAll([for (final s in FaceShape.values) face(base.copyWith(shape: s))]);
+    }
+    await _busts(faces, 128, 18, '$out/faces.png');
     final worst = <AvatarLook>[];
     for (final hat in AvatarHead.values) {
       if (hat == AvatarHead.slicked || hat == AvatarHead.bob || hat == AvatarHead.bun) continue;

@@ -132,6 +132,14 @@ final _tabs = <_Tab>[
     focus: const Alignment(0, -0.1),
   ),
   _Tab(
+    'Misura',
+    'Eye size',
+    EyeSize.values,
+    (l) => l.features.eyeSize,
+    (l, o) => _f(l, (f) => f.copyWith(eyeSize: o as EyeSize)),
+    focus: const Alignment(0, -0.1),
+  ),
+  _Tab(
     'Iride',
     'Iris',
     EyeColor.values,

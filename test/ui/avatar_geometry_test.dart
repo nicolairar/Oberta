@@ -68,6 +68,13 @@ class _Sheet {
     return rgba[((oy + y) * width + ox + x) * 4 + 3];
   }
 
+  (int, int, int, int) pixel(int tile, int x, int y) {
+    final ox = (tile % _cols) * _tile.toInt();
+    final oy = (tile ~/ _cols) * _tile.toInt();
+    final i = ((oy + y) * width + ox + x) * 4;
+    return (rgba[i], rgba[i + 1], rgba[i + 2], rgba[i + 3]);
+  }
+
   /// The topmost painted row in column [x], or null.
   int? top(int tile, int x) {
     for (var y = 0; y < _tile; y++) {
@@ -112,16 +119,8 @@ Future<_Sheet> _paint(List<AvatarLook> looks, Set<LookLayer> layers) async {
   return _Sheet(data!.buffer.asUint8List(), w);
 }
 
-/// Where a point of the head lands in the tile of [look].
-Offset _px(AvatarLook look, Offset head) {
-  final frame = LookPainter.bustFrame(look);
-  final s = _tile * frame.scale;
-  final eye = LookPainter.headPoint(const Offset(0, -0.868)).dy;
-  final p = LookPainter.headPoint(head);
-  return Offset(_tile * 0.5 + p.dx * s, _tile * frame.eyes + (p.dy - eye) * s);
-}
-
-double _unit(AvatarLook look) => _tile * LookPainter.bustFrame(look).scale * LookPainter.headScale;
+/// Where the eyes, nose, mouth and chin of [look] land in its tile.
+({Offset leftEye, Offset rightEye, double nose, double mouth, double chin, double brow, double width}) _at(AvatarLook look) => LookPainter.bustAnchors(look, _tile);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -191,11 +190,11 @@ void main() {
       final box = beards.box(i);
       if (box == null) continue;
       final label = '${look.base.mark.name} (${look.features.shape.name})';
-      final u = _unit(look);
-      final nose = _px(look, const Offset(0, -0.9)).dy;
-      if (box.top < nose - 0.02 * u) failures.add('$label: above the eyes');
-      if ((box.center.dx - _tile / 2).abs() > 0.02 * u) failures.add('$label: off centre');
-      if (box.bottom > _px(look, const Offset(0, -0.655)).dy + 0.22 * u) failures.add('$label: below the chest');
+      final a = _at(look);
+      // A viking beard is braided from the temples and falls to the chest.
+      if (box.top < (look.base.mark == FaceMark.vikingBeard ? a.brow : a.leftEye.dy)) failures.add('$label: above the eyes');
+      if ((box.center.dx - _tile / 2).abs() > 0.04 * a.width) failures.add('$label: off centre');
+      if (box.bottom > a.chin + (look.base.mark == FaceMark.vikingBeard ? 1.2 : 0.6) * a.width) failures.add('$label: below the chest');
     }
     expect(failures, isEmpty, reason: failures.join('\n'));
   });
@@ -210,7 +209,7 @@ void main() {
     final failures = <String>[];
     for (var i = 0; i < looks.length; i++) {
       final box = sheet.box(i);
-      final eye = _px(looks[i], const Offset(0, -0.868)).dy;
+      final eye = _at(looks[i]).leftEye.dy;
       if (box == null || box.top > eye || box.bottom < eye) failures.add('${looks[i].glasses.name} (${looks[i].features.shape.name}) off the eyes');
     }
     const props = [
@@ -224,8 +223,46 @@ void main() {
     final mouths = await _paint(smokers, {LookLayer.mouthProp});
     for (var i = 0; i < smokers.length; i++) {
       final box = mouths.box(i);
-      final mouth = _px(smokers[i], const Offset(0.03, -0.762));
-      if (box == null || !box.inflate(2).contains(mouth)) failures.add('${smokers[i].accessory.name} (${smokers[i].features.shape.name}) away from the mouth');
+      final a = _at(smokers[i]);
+      final mouth = Offset(_tile / 2 + a.width * 0.1, a.mouth);
+      if (box == null || !box.inflate(3).contains(mouth)) failures.add('${smokers[i].accessory.name} (${smokers[i].features.shape.name}) away from the mouth');
+    }
+    expect(failures, isEmpty, reason: failures.join('\n'));
+  });
+
+  test('the eyes are always level and mirrored, for every eye shape, size, face and presentation', () async {
+    final looks = [
+      for (final shape in EyeShape.values)
+        for (final size in EyeSize.values)
+          for (final p in Presentation.values)
+            for (final face in FaceShape.values)
+              AvatarLook(
+                base: AvatarBase.of(SkinTone.olive, FaceMark.clean),
+                hat: AvatarHead.slicked,
+                glasses: AvatarGlasses.none,
+                outfit: AvatarOutfit.catalog.first,
+                accessory: AvatarAccessory.none,
+                features: FaceFeatures(hair: HairStyle.bald, eyes: shape, eyeSize: size, presentation: p, shape: face, eyeColor: EyeColor.values[(shape.index + size.index) % EyeColor.values.length]),
+              ),
+    ];
+    final sheet = await _paint(looks, {LookLayer.face});
+    final failures = <String>[];
+    for (var i = 0; i < looks.length; i++) {
+      final a = _at(looks[i]);
+      final label = '${looks[i].features.eyes.name}/${looks[i].features.eyeSize.name}/${looks[i].features.presentation.name}/${looks[i].features.shape.name}';
+      if ((a.leftEye.dy - a.rightEye.dy).abs() > 0.01 || (a.leftEye.dx + a.rightEye.dx - _tile).abs() > 0.01) failures.add('$label: anchors not level');
+      // The band from the brows to the eye line: the nose starts below it.
+      final top = (a.brow - a.width * 0.12).floor().clamp(0, _tile.toInt() - 1);
+      final bottom = a.leftEye.dy.floor().clamp(0, _tile.toInt() - 1);
+      var bad = 0, all = 0;
+      for (var y = top; y <= bottom; y++) {
+        for (var x = 0; x < _tile ~/ 2; x++) {
+          final l = sheet.pixel(i, x, y), r = sheet.pixel(i, _tile.toInt() - 1 - x, y);
+          all++;
+          if ((l.$1 - r.$1).abs() + (l.$2 - r.$2).abs() + (l.$3 - r.$3).abs() + (l.$4 - r.$4).abs() > 160) bad++;
+        }
+      }
+      if (bad > all * 0.02) failures.add('$label: eyes not mirrored ($bad of $all pixels)');
     }
     expect(failures, isEmpty, reason: failures.join('\n'));
   });

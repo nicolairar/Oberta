@@ -7,6 +7,9 @@ enum FaceShape { oval, round, square, long, heart, diamond, pear, chiselled }
 /// Il taglio degli occhi.
 enum EyeShape { almond, round, hooded, narrow, upturned, downturned, monolid, sleepy, wide, catEye, deepSet, doe }
 
+/// Quanto sono grandi gli occhi: sempre alla stessa altezza e speculari.
+enum EyeSize { medium, small, large, huge }
+
 /// Il colore dell'iride.
 enum EyeColor {
   dark(Color(0xFF2A1A12)),
@@ -16,16 +19,21 @@ enum EyeColor {
   green(Color(0xFF4E7A3A)),
   teal(Color(0xFF3A7470)),
   blue(Color(0xFF4A72A6)),
-  grey(Color(0xFF7E8890));
+  grey(Color(0xFF7E8890)),
+  // La seconda consegna dello specchio.
+  violet(Color(0xFF6E4E9A)),
+  onyx(Color(0xFF141012)),
+  gold(Color(0xFFC9962E)),
+  ice(Color(0xFF9CC4DA));
 
   final Color color;
 
   const EyeColor(this.color);
 }
 
-enum BrowShape { straight, arched, thick, thin, angled, rounded, bushy, pencil, sloped, furrowed }
+enum BrowShape { straight, arched, thick, thin, angled, rounded, bushy, pencil, sloped, furrowed, heavy, highArch }
 
-enum NoseShape { straight, button, roman, broad, pointed, snub, wide, crooked, small, long }
+enum NoseShape { straight, button, roman, broad, pointed, snub, wide, crooked, small, long, hooked, bulb }
 
 /// La bocca. Le ultime due portano il rossetto anche senza averlo scelto.
 enum MouthShape {
@@ -149,6 +157,7 @@ enum Presentation { other, man, woman }
 class FaceFeatures {
   final FaceShape shape;
   final EyeShape eyes;
+  final EyeSize eyeSize;
   final EyeColor eyeColor;
   final BrowShape brows;
   final NoseShape nose;
@@ -164,6 +173,7 @@ class FaceFeatures {
   const FaceFeatures({
     this.shape = FaceShape.oval,
     this.eyes = EyeShape.almond,
+    this.eyeSize = EyeSize.medium,
     this.eyeColor = EyeColor.brown,
     this.brows = BrowShape.straight,
     this.nose = NoseShape.straight,
@@ -182,13 +192,14 @@ class FaceFeatures {
   /// Le chiavi della colonna `avatar`, nell'ordine dello specchio. Le stesse
   /// che la migrazione `face_options` controlla.
   static const keys = [
-    'shape', 'eyes', 'eyeColor', 'brows', 'nose', 'mouth', 'hair', 'hairColor', 'detail', 'age', 'lips', 'shadow', 'presentation', //
+    'shape', 'eyes', 'eyeSize', 'eyeColor', 'brows', 'nose', 'mouth', 'hair', 'hairColor', 'detail', 'age', 'lips', 'shadow', 'presentation', //
   ];
 
   /// Ogni chiave con i suoi id validi.
   static final Map<String, List<String>> options = {
     'shape': _names(FaceShape.values),
     'eyes': _names(EyeShape.values),
+    'eyeSize': _names(EyeSize.values),
     'eyeColor': _names(EyeColor.values),
     'brows': _names(BrowShape.values),
     'nose': _names(NoseShape.values),
@@ -215,6 +226,7 @@ class FaceFeatures {
   Map<String, String> toJson() => {
     'shape': shape.name,
     'eyes': eyes.name,
+    'eyeSize': eyeSize.name,
     'eyeColor': eyeColor.name,
     'brows': brows.name,
     'nose': nose.name,
@@ -243,6 +255,7 @@ class FaceFeatures {
     return FaceFeatures(
       shape: pick('shape', FaceShape.values, fallback.shape),
       eyes: pick('eyes', EyeShape.values, fallback.eyes),
+      eyeSize: pick('eyeSize', EyeSize.values, json.containsKey('eyes') ? EyeSize.medium : fallback.eyeSize),
       eyeColor: pick('eyeColor', EyeColor.values, fallback.eyeColor),
       brows: pick('brows', BrowShape.values, fallback.brows),
       nose: pick('nose', NoseShape.values, fallback.nose),
@@ -260,6 +273,7 @@ class FaceFeatures {
   FaceFeatures copyWith({
     FaceShape? shape,
     EyeShape? eyes,
+    EyeSize? eyeSize,
     EyeColor? eyeColor,
     BrowShape? brows,
     NoseShape? nose,
@@ -274,6 +288,7 @@ class FaceFeatures {
   }) => FaceFeatures(
     shape: shape ?? this.shape,
     eyes: eyes ?? this.eyes,
+    eyeSize: eyeSize ?? this.eyeSize,
     eyeColor: eyeColor ?? this.eyeColor,
     brows: brows ?? this.brows,
     nose: nose ?? this.nose,
@@ -305,6 +320,7 @@ class FaceFeatures {
       other is FaceFeatures &&
       other.shape == shape &&
       other.eyes == eyes &&
+      other.eyeSize == eyeSize &&
       other.eyeColor == eyeColor &&
       other.brows == brows &&
       other.nose == nose &&
@@ -318,5 +334,5 @@ class FaceFeatures {
       other.presentation == presentation;
 
   @override
-  int get hashCode => Object.hash(shape, eyes, eyeColor, brows, nose, mouth, hair, hairColor, detail, age, lips, shadow, presentation);
+  int get hashCode => Object.hash(shape, eyes, eyeSize, eyeColor, brows, nose, mouth, hair, hairColor, detail, age, lips, shadow, presentation);
 }

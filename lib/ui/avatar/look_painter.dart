@@ -12,6 +12,7 @@ part 'absurd_painter.dart';
 part 'calcio_painter.dart';
 part 'face_painter.dart';
 part 'extras_painter.dart';
+part 'noir_painter.dart';
 
 /// Quello che si muove in un personaggio fermo al tavolo.
 @immutable
@@ -60,7 +61,8 @@ abstract final class LookPainter {
   static const ember = Color(0xFFFF7A3B);
 
   /// Una persona seduta col petto contro il bordo in [base]: sotto il bordo
-  /// non si vede niente, sopra il panno si posano gli avambracci.
+  /// non si vede niente, sopra il panno si posano gli avambracci. È la
+  /// stessa del ritratto ([bust]), con il busto che scende fino al bordo.
   static void seated(
     Canvas canvas,
     AvatarLook look, {
@@ -73,15 +75,29 @@ abstract final class LookPainter {
     bool chair = true,
   }) {
     if (s < 2) return;
+    final light = pose.light.distance == 0 ? const Offset(0, -1) : pose.light / pose.light.distance;
+    final p = _Noir.parts(look, base: 1.5);
+    final b = p.b;
+    final q = (look.dame ? 0.86 : 1.0) / b.shoulderW;
+    final lift = -0.42 * pose.rise + pose.breath * 0.012;
     canvas.save();
     canvas.translate(base.dx, base.dy);
     canvas.scale(s);
     canvas.save();
     canvas.clipRect(Rect.fromLTRB(-3, -4, 3, cut));
     if (hands && chair) _chair(canvas, empty: false, lit: lit);
-    _style = _Style(small: s < 110, outline: max(0.022, 1.6 / s));
-    _figure(canvas, look, pose, lit: lit, hands: hands);
-    _style = const _Style();
+    canvas.save();
+    canvas.translate(0, lift - 0.56);
+    canvas.scale(q);
+    canvas.translate(-0.5, -b.shoulderY);
+    if (lit) {
+      // Chi è scelto: un filo d'oro intorno alla sagoma.
+      for (final path in [p.torso, p.face, p.front, p.back, p.hat?.crown]) {
+        if (path != null) canvas.drawPath(path, _nStroke(gold, 0.1));
+      }
+    }
+    _Noir.paint(canvas, look, p, s * q, light: light, glance: pose.glance);
+    canvas.restore();
     if (!hands) {
       // Chi sta in piedi dietro sfuma nel buio sotto il petto.
       canvas.drawRect(
@@ -96,7 +112,11 @@ abstract final class LookPainter {
     }
     canvas.restore();
     if (hands) _forearms(canvas, look, pose, lit: lit);
-    _smoke(canvas, look, pose);
+    if (look.accessory.smokes) {
+      final tip = _Noir.smokeFrom(look, b);
+      final at = Offset((tip.dx - 0.5) * q, (tip.dy - b.shoulderY) * q - 0.56 + lift);
+      paintSmoke(canvas, at, 1, pose.time, seed: look.hashCode % 97);
+    }
     canvas.restore();
   }
 
@@ -127,113 +147,37 @@ abstract final class LookPainter {
   }
 
   /// Un ritratto a mezzo busto in un quadrato di lato [side], senza fondo:
-  /// la testa grande nel mezzo, le spalle che escono dal basso.
-  ///
-  /// Lo stile è il cartoon noir: una sagoma d'inchiostro spessa intorno a
-  /// tutta la persona, colori pieni con un'ombra netta e fredda dalla parte
-  /// lontana dalla lampada, un filo di luce calda sul bordo acceso. Sotto i
-  /// 110 px la faccia si semplifica, perché si legga al tavolo.
-  ///
-  /// Gli occhi stanno a metà del lato; la persona si rimpicciolisce (e gli
-  /// occhi scendono un poco) quel tanto che basta perché un cappello alto o
-  /// una pettinatura della bottega resti dentro il ritratto.
+  /// la testa grande nel mezzo, le spalle che escono dal basso, nel cartoon
+  /// noir ([_Noir]). Se quello che porta in testa salirebbe oltre il bordo,
+  /// la persona si rimpicciolisce verso le spalle.
   static void bust(Canvas canvas, AvatarLook look, double side, {CharacterPose pose = const CharacterPose(light: Offset(-0.6, -0.8))}) {
-    final frame = bustFrame(look);
-    final s = side * frame.scale;
-    final eye = headPoint(const Offset(0, _Face._eyeY)).dy;
-    final area = Offset.zero & Size.square(side);
-    final edge = max(2.2, side * 0.024);
-    final small = side < 110;
-    void place() {
-      canvas.translate(side * 0.5, side * frame.eyes - eye * s);
-      canvas.scale(s);
-    }
-
-    // La sagoma d'inchiostro: la persona intera, allargata e tutta nera,
-    // dietro alla persona vera.
-    canvas.saveLayer(
-      area.inflate(edge * 2),
-      Paint()
-        ..imageFilter = ui.ImageFilter.dilate(radiusX: edge, radiusY: edge)
-        ..colorFilter = const ColorFilter.mode(ink, BlendMode.srcIn),
-    );
-    canvas.save();
-    place();
-    _style = _Style(small: small, silhouette: true);
-    _figure(canvas, look, pose, lit: false, hands: false);
-    canvas.restore();
-    canvas.restore();
-    final gilt = _gilded(look);
-    if (gilt) canvas.saveLayer(area.inflate(edge * 2), Paint());
-    canvas.save();
-    place();
-    _style = _Style(small: small, layered: true);
-    _figure(canvas, look, pose, lit: false, hands: false);
-    _style = const _Style();
-    canvas.restore();
-    if (gilt) {
-      // L'oro della bottega: un riflesso che attraversa la persona.
-      canvas.drawRect(
-        area,
-        Paint()
-          ..blendMode = BlendMode.srcATop
-          ..shader = const LinearGradient(
-            begin: Alignment(-1, -0.6),
-            end: Alignment(1, 0.6),
-            colors: [Color(0x00FFF2C0), Color(0x00FFF2C0), Color(0x88FFF2C0), Color(0x00FFF2C0), Color(0x00FFF2C0), Color(0x55FFF2C0), Color(0x00FFF2C0)],
-            stops: [0, 0.3, 0.38, 0.46, 0.6, 0.66, 0.72],
-          ).createShader(area),
-      );
-      canvas.restore();
-    }
+    final light = pose.light.distance == 0 ? const Offset(-0.6, -0.8) : pose.light / pose.light.distance;
+    _Noir.bust(canvas, look, side, light: light, glance: pose.glance);
   }
 
   /// Solo alcuni strati della persona, nel riquadro del ritratto, senza
   /// inchiostro né ombre: per i test che controllano dove sta ogni pezzo.
   @visibleForTesting
-  static void bustLayers(Canvas canvas, AvatarLook look, double side, Set<LookLayer> layers) {
-    final frame = bustFrame(look);
-    final s = side * frame.scale;
-    final eye = headPoint(const Offset(0, _Face._eyeY)).dy;
-    canvas.save();
-    canvas.translate(side * 0.5, side * frame.eyes - eye * s);
-    canvas.scale(s);
-    _style = _Style(small: side < 110, bare: true);
-    _figure(canvas, look, const CharacterPose(light: Offset(-0.6, -0.8)), lit: false, hands: false, only: layers);
-    _style = const _Style();
-    canvas.restore();
+  static void bustLayers(Canvas canvas, AvatarLook look, double side, Set<LookLayer> layers) => _Noir.bust(canvas, look, side, only: layers);
+
+  /// Dove stanno, nel ritratto di lato [side], gli occhi (il centro di
+  /// ognuno), la punta del naso, la bocca, il mento e la tesa: per i test.
+  @visibleForTesting
+  static ({Offset leftEye, Offset rightEye, double nose, double mouth, double chin, double brow, double width}) bustAnchors(AvatarLook look, double side) {
+    final p = _Noir.parts(look);
+    final b = p.b;
+    final k = _Noir.fit(p);
+    Offset at(double x, double y) => Offset(side * (0.5 + (x - 0.5) * k), side * (1 + (y - 1) * k));
+    return (
+      leftEye: at(b.cx - b.eyeDx, b.eyeY),
+      rightEye: at(b.cx + b.eyeDx, b.eyeY),
+      nose: at(0.5, b.noseY).dy,
+      mouth: at(0.5, b.mouthY).dy,
+      chin: at(0.5, b.bottom).dy,
+      brow: at(0.5, b.browY).dy,
+      width: b.w * side * k,
+    );
   }
-
-  /// Dove stanno gli occhi nel ritratto ([eyes], in frazioni del lato) e
-  /// quanto è grande la persona ([scale], la larghezza delle spalle in lati).
-  static ({double eyes, double scale}) bustFrame(AvatarLook look) {
-    final top = headPoint(Offset(0, crown(look))).dy;
-    final eye = headPoint(const Offset(0, _Face._eyeY)).dy;
-    final reach = eye - top;
-    final scale = (0.56 / reach).clamp(0.66, 1.06);
-    return (eyes: (reach * scale).clamp(0.5, 0.58), scale: scale);
-  }
-
-  /// Quanto la testa è più grande del vero: il cartoon noir ha teste grandi
-  /// su spalle piccole. Si ingrandisce dal mento ([_chinY]).
-  static const headScale = 1.36;
-  static const _chinY = -0.655;
-
-  /// Dove va a finire il punto [p] delle misure della testa (quelle dei
-  /// pittori di faccia, capelli e cappelli) una volta ingrandita.
-  static Offset headPoint(Offset p) => Offset(p.dx * headScale, _chinY + (p.dy - _chinY) * headScale);
-
-  static void _inHead(Canvas canvas, void Function() paint) {
-    canvas.save();
-    canvas.translate(0, _chinY);
-    canvas.scale(headScale);
-    canvas.translate(0, -_chinY);
-    paint();
-    canvas.restore();
-  }
-
-  /// L'oro della bottega, che luccica.
-  static bool _gilded(AvatarLook look) => const {'gold_brocade', 'versalli_baroque'}.contains(look.outfit.id);
 
   /// Fin dove sale la persona sopra la testa, nelle misure del busto (la
   /// sommità della testa è a -1.06): il cappello, la pettinatura, le ali.
@@ -358,151 +302,11 @@ abstract final class LookPainter {
   /// Il blu notte delle ombre nette.
   static const night = Color(0xFF1A1236);
 
-  /// La persona, pezzo per pezzo nell'ordine di [LookLayer]: ognuno copre
-  /// quelli prima. Le misure della testa (faccia, capelli, occhiali,
-  /// cappello, sigaro) si ingrandiscono di [headScale] dal mento.
-  static void _figure(Canvas canvas, AvatarLook look, CharacterPose pose, {required bool lit, required bool hands, Set<LookLayer>? only}) {
-    final lift = -0.42 * pose.rise + pose.breath * 0.012;
-    final light = pose.light.distance == 0 ? const Offset(0, -1) : pose.light / pose.light.distance;
-    final glow = lit ? gold : rim;
-    final style = _style;
-    canvas.save();
-    canvas.translate(0, lift);
-    // Una pettinatura della bottega toglie il cappello.
-    final styled = look.hairdo != Hairdo.none;
-    if (styled) look = look.copyWith(hat: AvatarHead.slicked);
-    final broad = look.dame ? 0.86 : 1.0;
-    final torso = _torso(broad);
-    final head = Rect.fromCenter(center: const Offset(0, -0.86), width: 0.32, height: 0.40);
-    final hatLift = _hatLift(look);
-    final faceTattoo = look.tattoo == Tattoo.teardrop || look.tattoo == Tattoo.cheekStar;
-
-    if (only == null && !style.silhouette && !style.bare) {
-      // Al tavolo la sagoma d'inchiostro è il contorno dei pezzi grandi (nel
-      // ritratto la fa [bust], intera).
-      if (style.outline > 0) {
-        _outline(
-          canvas,
-          look,
-          torso,
-          Paint()
-            ..color = ink
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = style.outline * 2
-            ..strokeJoin = StrokeJoin.round,
-          styled: styled,
-          hatLift: hatLift,
-        );
-      }
-      // Il filo di luce calda: la sagoma spostata verso la lampada, sotto.
-      canvas.save();
-      canvas.translate(light.dx * 0.014, light.dy * 0.014);
-      _outline(canvas, look, torso, Paint()..color = glow.withValues(alpha: lit ? 0.95 : 0.85), styled: styled, hatLift: hatLift);
-      canvas.restore();
-    }
-
-    for (final layer in LookLayer.values) {
-      if (only != null && !only.contains(layer)) continue;
-      switch (layer) {
-        case LookLayer.wings:
-          _Oddities.wings(canvas, look.accessory);
-        case LookLayer.hairBack:
-          _inHead(canvas, () {
-            _toon(canvas, const Rect.fromLTRB(-0.6, -1.7, 0.6, -0.2), Offset(light.dx * 0.13, -0.98 + light.dy * 0.08), 0.25, () {
-              styled ? _Extras.hairdoBack(canvas, look, null) : _hairBack(canvas, look, null);
-            });
-          });
-        case LookLayer.body:
-          _coat(canvas, look, torso, light);
-          _shade(canvas, torso, const Rect.fromLTRB(-0.8, -0.8, 0.8, 0.7), Offset(light.dx * 0.3, -0.6 + light.dy * 0.2), 0.62);
-        case LookLayer.neck:
-          _neck(canvas, look, light);
-          if (!faceTattoo) _Extras.tattoo(canvas, look);
-        case LookLayer.face:
-          _inHead(canvas, () {
-            _face(canvas, look, head, pose, light);
-            if (faceTattoo) _Extras.tattoo(canvas, look);
-          });
-        case LookLayer.beard:
-          _inHead(canvas, () => _beard(canvas, look));
-        case LookLayer.hairFront:
-          _inHead(canvas, () {
-            _toon(canvas, const Rect.fromLTRB(-0.6, -1.7, 0.6, -0.2), Offset(light.dx * 0.13, -0.98 + light.dy * 0.08), 0.25, () {
-              styled ? _Extras.hairdoFront(canvas, look) : _hairFront(canvas, look);
-            });
-          });
-        case LookLayer.glasses:
-          _inHead(canvas, () => _glasses(canvas, look, pose));
-        case LookLayer.hat:
-          _inHead(canvas, () {
-            canvas.save();
-            canvas.translate(0, hatLift);
-            _toon(canvas, const Rect.fromLTRB(-0.8, -2.0, 0.8, -0.4), Offset(light.dx * 0.17, -1.07 + light.dy * 0.14), 0.33, () {
-              _hat(canvas, look, Paint(), silhouette: false);
-            });
-            canvas.restore();
-          });
-        case LookLayer.chest:
-          if (look.accessory == AvatarAccessory.carnation) carnation(canvas, Offset(0.2 * broad, -0.44), 0.05);
-          if (look.accessory == AvatarAccessory.whiteCarnation) {
-            carnation(canvas, Offset(0.2 * broad, -0.44), 0.05, petals: const Color(0xFFF4EEE2));
-          }
-          _chest(canvas, look, broad);
-        case LookLayer.mouthProp:
-          _inHead(canvas, () => _mouthProp(canvas, look));
-      }
-    }
-    canvas.restore();
-  }
-
-  /// I pezzi grandi della sagoma, tutti con [paint]: il busto, il collo, i
-  /// capelli dietro, la faccia, il cappello.
-  static void _outline(Canvas canvas, AvatarLook look, Path torso, Paint paint, {required bool styled, required double hatLift}) {
-    canvas.drawPath(torso, paint);
-    canvas.drawPath(_Face.neckPath, paint);
-    _inHead(canvas, () {
-      styled ? _Extras.hairdoBack(canvas, look, paint) : _hairBack(canvas, look, paint);
-      canvas.drawPath(_Face.path(look.features.shape), paint);
-      canvas.save();
-      canvas.translate(0, hatLift);
-      _hat(canvas, look, paint, silhouette: true);
-      canvas.restore();
-    });
-  }
-
-  /// L'ombra netta su un pezzo di cui si ha la forma ([clip]): tutto in
-  /// ombra tranne il disco [lit] di raggio [r], dalla parte della lampada.
-  static void _shade(Canvas canvas, Path clip, Rect bounds, Offset lit, double r, {double alpha = 0.5}) {
-    if (_style.bare || _style.silhouette) return;
-    canvas.save();
-    canvas.clipPath(clip);
-    canvas.drawPath(_unlit(bounds, lit, r), Paint()..color = night.withValues(alpha: alpha));
-    canvas.restore();
-  }
-
+  /// Tutto [bounds] tranne il disco di luce [lit] di raggio [r].
   static Path _unlit(Rect bounds, Offset lit, double r) => Path()
     ..fillType = PathFillType.evenOdd
     ..addRect(bounds)
     ..addOval(Rect.fromCircle(center: lit, radius: r));
-
-  /// L'ombra netta su un pezzo fatto di tante forme (i capelli, il
-  /// cappello): nel ritratto si dipinge in un suo strato e l'ombra cade solo
-  /// dove c'è il pezzo. Al tavolo, che si ridisegna a ogni fotogramma, no.
-  static void _toon(Canvas canvas, Rect bounds, Offset lit, double r, void Function() paint) {
-    if (!_style.layered) {
-      paint();
-      return;
-    }
-    canvas.saveLayer(bounds, Paint());
-    paint();
-    canvas.drawPath(
-      _unlit(bounds, lit, r),
-      Paint()
-        ..color = night.withValues(alpha: 0.5)
-        ..blendMode = BlendMode.srcATop,
-    );
-    canvas.restore();
-  }
 
   /// Quanto salgono le cose che si posano sopra i capelli (l'aureola, le
   /// corna, il gatto) quando i capelli sono alti: stanno sopra, non dentro.
@@ -1512,7 +1316,6 @@ abstract final class LookPainter {
   }
 
   static void _neck(Canvas canvas, AvatarLook look, Offset light) {
-    _Face.neck(canvas, look.base.skin, light);
     final accent = look.outfit.accent;
     // La tuta ha il suo collo: niente cravatte sotto la cerniera.
     final zipped = (look.outfit.pattern == CoatPattern.track || look.outfit.pattern.costume) && !look.dame;
@@ -1951,83 +1754,6 @@ abstract final class LookPainter {
 
   static Color _hairColor(AvatarLook look) => look.features.hairColor.color;
 
-  static void _hairBack(Canvas canvas, AvatarLook look, Paint? halo) => _Face.hairBack(canvas, look, halo);
-
-  static void _face(Canvas canvas, AvatarLook look, Rect head, CharacterPose pose, Offset light) {
-    // Il mimo si dipinge la faccia di bianco.
-    final skin = look.base.mark == FaceMark.mimeFace ? const Color(0xFFF4F0E8) : look.base.skin;
-    // Le orecchie, poi la faccia: la lampada accende la fronte e uno zigomo,
-    // il resto affonda nel buio.
-    final face = _Face.path(look.features.shape);
-    _Face.ears(canvas, look, skin, light);
-    _Face.skin(canvas, look, face, skin, light);
-    canvas.save();
-    canvas.clipPath(face);
-    _Face.age(canvas, look, skin);
-    _Face.detail(canvas, look, skin);
-    // Sotto la tesa gli occhi restano in ombra.
-    final brim = switch (look.hat) {
-      AvatarHead.fedora ||
-      AvatarHead.wideBrim ||
-      AvatarHead.borsalino ||
-      AvatarHead.homburg ||
-      AvatarHead.pearlFedora ||
-      AvatarHead.morettiFedora ||
-      AvatarHead.morettiHomburg => 0.42,
-      AvatarHead.panama || AvatarHead.trilby || AvatarHead.boater || AvatarHead.morettiPanama || AvatarHead.porkPie => 0.3,
-      AvatarHead.bowler || AvatarHead.coppola || AvatarHead.topHat || AvatarHead.cloche || AvatarHead.fulmineCap || AvatarHead.vaugirardCap || AvatarHead.adelphiCap => 0.32,
-      AvatarHead.beret || AvatarHead.chefToque || AvatarHead.propellerBeanie => 0.12,
-      AvatarHead.sombrero => 0.42,
-      AvatarHead.magicianHat || AvatarHead.tricorn || AvatarHead.beekeeper => 0.32,
-      AvatarHead.operaHelmet || AvatarHead.roosterHead => 0.2,
-      AvatarHead.angelHalo => 0.0,
-      _ => 0.0,
-    };
-    if (brim > 0) {
-      // L'ombra della tesa: una fascia netta, più bassa sotto le tese larghe.
-      final low = -0.93 + brim * 0.1;
-      canvas.drawPath(
-        Path()
-          ..moveTo(-0.2, -1.1)
-          ..lineTo(0.2, -1.1)
-          ..lineTo(0.2, low - 0.012)
-          ..quadraticBezierTo(0.06, low + 0.012, -0.03, low)
-          ..quadraticBezierTo(-0.1, low - 0.008, -0.2, low + 0.012)
-          ..close(),
-        Paint()..color = Color.lerp(skin, night, 0.6)!.withValues(alpha: 0.55 + brim),
-      );
-    }
-    final mark = look.base.mark;
-    if (mark == FaceMark.stubble || mark == FaceMark.goatee) {
-      // L'ombra della barba: sfuma verso gli zigomi invece di finire con un
-      // bordo netto, e prende il colore dei capelli.
-      final shadow = _dark(_hairColor(look), 0.35).withValues(alpha: mark == FaceMark.stubble ? 0.3 : 0.18);
-      canvas.drawPath(
-        Path()
-          ..moveTo(-0.17, -0.84)
-          ..quadraticBezierTo(-0.1, -0.76, 0, -0.775)
-          ..quadraticBezierTo(0.1, -0.76, 0.17, -0.84)
-          ..lineTo(0.17, -0.6)
-          ..lineTo(-0.17, -0.6)
-          ..close(),
-        Paint()
-          ..shader = LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [shadow.withValues(alpha: 0), shadow, shadow],
-            stops: const [0, 0.35, 1],
-          ).createShader(const Rect.fromLTRB(-0.17, -0.84, 0.17, -0.7)),
-      );
-    }
-    canvas.restore();
-    _Face.eyes(canvas, look, pose, skin);
-    _Face.brows(canvas, look);
-    if (look.features.detail == FaceDetail.scar) _Face.detail(canvas, look, skin);
-    _Face.mouth(canvas, look, skin);
-
-    _Face.nose(canvas, look, skin, light);
-  }
-
   /// La barba e i baffi, sopra la bocca: la barba piena dentro la mascella
   /// di ogni forma di faccia (e oltre il mento), i baffi sul labbro.
   static void _beard(Canvas canvas, AvatarLook look) {
@@ -2302,7 +2028,6 @@ abstract final class LookPainter {
   }
 
 
-  static void _hairFront(Canvas canvas, AvatarLook look) => _Face.hairFront(canvas, look);
 
   static void _glasses(Canvas canvas, AvatarLook look, CharacterPose pose) {
     final frame = Paint()
@@ -3237,21 +2962,6 @@ abstract final class LookPainter {
     }
   }
 
-  /// Il fumo che sale dalla brace, piano, e si allarga.
-  static void _smoke(Canvas canvas, AvatarLook look, CharacterPose pose) {
-    if (!look.accessory.smokes) return;
-    final lift = -0.42 * pose.rise + pose.breath * 0.012;
-    final tip = switch (look.accessory) {
-      AvatarAccessory.cigar => const Offset(0.165, -0.75),
-      AvatarAccessory.pipe => const Offset(0.125, -0.78),
-      AvatarAccessory.cigaretteHolder => const Offset(0.245, -0.81),
-      AvatarAccessory.baguetteCigar => const Offset(0.47, -0.69),
-      _ => const Offset(0.145, -0.76),
-    };
-    final from = headPoint(tip).translate(0, lift);
-    paintSmoke(canvas, from, 1, pose.time, seed: look.hashCode % 97);
-  }
-
   /// Una voluta di fumo alta [height] che parte da [from]: la usa anche il
   /// tavolo per la nebbia sotto la lampada.
   static void paintSmoke(Canvas canvas, Offset from, double height, double time, {int seed = 0, double alpha = 0.22}) {
@@ -3315,18 +3025,15 @@ class _Style {
   /// Sotto i 110 px: la faccia semplice, che si legga al tavolo.
   final bool small;
 
-  /// Nel ritratto (fermo, tenuto da parte): capelli e cappello in uno strato
-  /// loro, per l'ombra netta.
-  final bool layered;
-
   /// La passata d'inchiostro del ritratto: niente filo di luce né ombre.
   final bool silhouette;
 
   /// Per i test: solo i pezzi, senza inchiostro, luce né ombre.
   final bool bare;
 
-  /// Al tavolo: lo spessore del contorno d'inchiostro, nelle misure del busto.
-  final double outline;
+  /// Il cartoon noir disegna da sé la pelle del collo e la faccia: i
+  /// pittori di sempre portano solo i vestiti e gli oggetti.
+  final bool noir;
 
-  const _Style({this.small = false, this.layered = false, this.silhouette = false, this.bare = false, this.outline = 0});
+  const _Style({this.small = false, this.silhouette = false, this.bare = false, this.noir = false});
 }
