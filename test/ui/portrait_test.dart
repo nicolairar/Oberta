@@ -7,7 +7,8 @@ import 'package:oberta/roster/roster_storage.dart';
 import 'package:oberta/roster/roster_store.dart';
 import 'package:oberta/ui/widgets/death_scene.dart';
 import 'package:oberta/ui/widgets/face_close_up.dart';
-import 'package:oberta/ui/widgets/handoff_view.dart';
+import 'package:oberta/rules/player.dart';
+import 'package:oberta/ui/screens/local/local_table.dart';
 import 'package:oberta/ui/widgets/mugshot_frame.dart';
 import 'package:oberta/ui/widgets/noir_avatar.dart';
 import 'package:oberta/ui/widgets/noir_photo.dart';
@@ -114,7 +115,9 @@ void main() {
   testWidgets('chi riceve il telefono si riconosce dalla faccia', (tester) async {
     final photo = (await tester.runAsync(fakePhoto))!;
     await store.add('Sara', photo: photo);
-    await tester.pumpWidget(MaterialApp(home: Scaffold(body: HandoffView(name: 'Sara', onReady: () {}))));
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(body: LocalCurtain(player: const Player(id: 'sara', name: 'Sara'), number: 1, hint: '', onReady: () {})),
+    ));
     await tester.pumpAndSettle();
     await loadPhotos(tester, store);
 

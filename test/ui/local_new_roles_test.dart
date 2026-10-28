@@ -4,7 +4,8 @@ import 'package:oberta/rules/player.dart';
 import 'package:oberta/rules/role.dart';
 import 'package:oberta/ui/widgets/death_scene.dart';
 
-import 'game_screen_test.dart' show pumpGame, tap, nightTurn;
+import '../support/local_game.dart';
+import 'game_screen_test.dart' show pumpGame;
 
 // Sul telefono unico: la cella con la domanda e la risposta scritte, il
 // blocco della Prostituta letto al turno dopo, la tregua del Pacifista
@@ -35,78 +36,69 @@ Future<void> _toTheDay(WidgetTester tester) async {
       await tester.pump(const Duration(milliseconds: 600));
       await tester.pump(DeathScene.length + const Duration(milliseconds: 100));
       await tester.pump();
-      await tap(tester, 'AVANTI');
+      await tapLabel(tester, 'AVANTI');
       continue;
     }
     await tester.pumpAndSettle();
   }
-  await tap(tester, 'APRI LA DISCUSSIONE');
+  await tapLabel(tester, 'APRI LA DISCUSSIONE');
 }
 
 void main() {
   testWidgets('la cella, il blocco e la tregua sul telefono unico', (tester) async {
     await pumpGame(tester, deal: deal);
-    await tap(tester, 'COMINCIA LA NOTTE');
+    await tapLabel(tester, 'COMINCIA LA NOTTE');
 
     await nightTurn(tester, ada, pick: dino);
-    await tap(tester, 'FATTO');
 
     // Il Carceriere chiude Carla in cella e le scrive una domanda.
-    await nightTurn(tester, bruno, pick: carla);
-    expect(find.text('Carla è in cella.'), findsOneWidget);
+    await tapKey(tester, 'local.itsMe');
+    await tapSeat(tester, carla);
+    await tapKey(tester, 'local.confirm');
+    expect(find.text('3 Carla è in cella.'), findsOneWidget);
     await tester.enterText(find.byKey(const Key('game.cellQuestion')), 'Chi sei?');
-    await tap(tester, 'FATTO');
+    await tapKey(tester, 'local.done');
 
     // Carla, al suo turno, non ha mosse: la cella e la domanda.
-    expect(find.text('CARLA'), findsOneWidget);
-    await tap(tester, 'SONO IO');
+    expect(curtainName(tester), '3 CARLA');
+    await tapKey(tester, 'local.itsMe');
     expect(find.byKey(const Key('game.jailed')), findsOneWidget);
-    expect(find.text('«Chi sei?»'), findsOneWidget);
+    expect(find.textContaining('«Chi sei?»'), findsOneWidget);
     await tester.enterText(find.byKey(const Key('game.cellAnswer')), 'Una del popolo');
-    await tap(tester, 'FATTO');
+    await tapKey(tester, 'local.done');
 
     await nightTurn(tester, dino);
-    await tap(tester, 'FATTO');
     await nightTurn(tester, elio);
-    await tap(tester, 'FATTO');
     // La Prostituta tiene occupato il Pacifista.
     await nightTurn(tester, fabio, pick: elio);
-    await tap(tester, 'FATTO');
     await nightTurn(tester, gina);
-    await tap(tester, 'FATTO');
 
     await _toTheDay(tester);
 
     // La tregua: il Pacifista si fa riconoscere, poi svela Ada a tutti.
-    await tester.tap(find.byKey(const Key('game.truce')));
-    await tester.pumpAndSettle();
-    await tap(tester, 'Gina');
-    await tester.tap(find.byKey(const Key('game.powerConfirm')));
-    await tester.pumpAndSettle();
+    await tapKey(tester, 'game.truce');
+    await tapSeat(tester, gina);
+    await tapKey(tester, 'game.powerConfirm');
     expect(find.text('Solo il Pacifista può chiedere la tregua.'), findsOneWidget);
-    await tap(tester, 'Elio');
-    await tester.tap(find.byKey(const Key('game.powerConfirm')));
-    await tester.pumpAndSettle();
-    await tap(tester, 'Ada');
-    await tester.tap(find.byKey(const Key('game.powerConfirm')));
-    await tester.pumpAndSettle();
+    await tapSeat(tester, elio);
+    await tapKey(tester, 'game.powerConfirm');
+    await tapSeat(tester, ada);
+    await tapKey(tester, 'game.powerConfirm');
     expect(find.byKey(const Key('game.verdict')), findsOneWidget);
     expect(find.textContaining('Il Pacifista ha chiesto la tregua'), findsWidgets);
-    await tap(tester, 'CONTINUA');
+    await tapKey(tester, 'local.afterVerdict');
 
     // La notte dopo: il Carceriere legge la risposta, il Pacifista il blocco.
-    await tap(tester, 'COMINCIA LA NOTTE');
+    await tapLabel(tester, 'COMINCIA LA NOTTE');
     await nightTurn(tester, ada, pick: gina);
-    await tap(tester, 'FATTO');
-    expect(find.text('BRUNO'), findsOneWidget);
-    await tap(tester, 'SONO IO');
+    expect(curtainName(tester), '2 BRUNO');
+    await tapKey(tester, 'local.itsMe');
     expect(find.text('Dalla cella, Carla ha risposto: «Una del popolo»'), findsOneWidget);
-    await tap(tester, 'PASSO');
-    await tap(tester, 'FATTO');
+    await tapKey(tester, 'local.pass');
+    await tapKey(tester, 'local.done');
     await nightTurn(tester, carla);
-    await tap(tester, 'FATTO');
-    expect(find.text('ELIO'), findsOneWidget);
-    await tap(tester, 'SONO IO');
+    expect(curtainName(tester), '5 ELIO');
+    await tapKey(tester, 'local.itsMe');
     expect(find.text('Ieri notte qualcuno ti ha tenuto occupato: la tua mossa è saltata.'), findsOneWidget);
   });
 }

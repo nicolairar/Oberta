@@ -18,18 +18,31 @@ import '../../sound/meme_beat.dart';
 import '../../sound/narrator_voice.dart';
 import '../../sound/sound_stage.dart';
 import '../theme/app_theme.dart';
-import '../theme/role_style.dart';
-import '../widgets/avatar_spotlight.dart';
-import '../widgets/day_board.dart';
-import '../widgets/night_notes.dart';
+import '../widgets/day_board.dart' show RevealRow;
+import '../widgets/night_notes.dart' show alternativeLabels;
+import '../desktop/desktop_canvas.dart';
+import 'online/game/felt_text.dart';
+import 'online/game/front_page.dart' show stampColorFor;
+import 'online/game/saloon_table.dart' show SaloonBackdrop;
+import '../../l10n/local_table_strings.dart';
+import '../../l10n/player_gender.dart';
 import '../../l10n/recap_strings.dart';
+import '../../l10n/table_strings.dart';
+import '../../rules/intent.dart';
+import '../../rules/player_view.dart';
+import 'local/local_table.dart';
+import 'online/game/action_strip.dart';
+import 'online/game/noir_ui.dart';
+import 'online/game/verdict_line.dart';
+import 'online/game/chronicle_headlines.dart';
+import 'online/online_widgets.dart' show showNote;
 import 'online/recap_screen.dart';
+import '../widgets/content_width.dart';
 import '../widgets/death_scene.dart';
-import '../widgets/handoff_view.dart';
 import '../widgets/narrator_roles_sheet.dart';
 import '../widgets/roles_sheet.dart';
 import '../widgets/player_avatar.dart';
-import '../widgets/player_grid.dart';
+import '../widgets/noir_notice.dart';
 import '../widgets/city_backdrop.dart';
 import '../widgets/sky_events.dart';
 import '../widgets/scene_scaffold.dart';
@@ -68,7 +81,6 @@ enum _Stage { script, handoff, task, taskDone, crimeIntro, crime, toNarrator, da
 
 class _GameScreenState extends State<GameScreen> {
   static const _mafiaRed = Color(0xFFE5606A);
-  static const _cleanGreen = Color(0xFF6FBF9A);
 
   late final GameEngine _engine =
       GameEngine(widget.setup, settings: widget.settings, random: widget.random);
@@ -112,10 +124,30 @@ class _GameScreenState extends State<GameScreen> {
   List<ScriptLine> _endingLines = const [];
 
   /// Il tavolo pubblico, sempre nello stesso ordine; e quello segreto di chi
-  /// ha il telefono adesso, rimescolato a ogni turno (vedi `seating.dart`).
+  /// ha il telefono adesso, rimescolato a ogni mano (vedi `seating.dart`).
   late final List<Player> _table = publicSeating(widget.setup.players);
   late final Random _seating = widget.seating ?? Random();
   List<Player> _seats = const [];
+
+  /// Il numero di posto di ognuno, lo stesso per tutta la partita: l'ordine
+  /// in cui si sono seduti. Sui tavoli segreti cambia il posto, mai il numero.
+  late final Map<Player, int> _numbers = {
+    for (final (i, player) in widget.setup.players.indexed) player: i + 1,
+  };
+
+  late final TableStrings _ts = TableStrings(_t.language);
+  late final LocalTableStrings _ls = LocalTableStrings(_t.language);
+
+  /// Il voto della piazza, con il telefono in mezzo: chi vota, uno alla volta.
+  List<Player> _voters = const [];
+  int _voter = 0;
+
+  /// I voti del verdetto: il motore li dimentica quando condanna.
+  List<SeatVote> _lastVotes = const [];
+
+  /// Il cronometro della discussione, nel cartiglio.
+  Timer? _dayTimer;
+  Duration _dayLeft = Duration.zero;
 
   Player? get _narrator => widget.setup.narrator;
 
@@ -169,9 +201,21 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  /// La mossa della notte, come la manda il telefono online: un'intenzione
+  /// che il motore valida. Che cosa si può fare lo dice il compito del ruolo,
+  /// quindi un ruolo nuovo funziona anche qui senza toccare lo schermo.
   void _submit(Player? target) {
+    final actor = _queue[_turn];
+    final option = _engine.viewFor(actor.id).action;
+    final family = option?.type == ActionType.mafiaVote && !_alternative;
+    final PlayerIntent intent = target == null
+        ? Pass(actor.id)
+        : family
+        ? MafiaVote(actor.id, target.id)
+        : NightAction(actor.id, target.id);
+    final result = _engine.apply(intent);
     _advance(() {
-      _finding = _engine.submitNightChoice(_queue[_turn], target, alternative: _alternative && target != null);
+      _finding = result is IntentAccepted ? result.finding : null;
       _stage = _Stage.taskDone;
     });
   }
@@ -242,6 +286,7 @@ class _GameScreenState extends State<GameScreen> {
           _enterEnd(winner);
         } else {
           _title = _t.dayTitle(_engine.round);
+          _startDay();
           _mood = SceneMood.day;
           SoundStage.instance.music(MusicMood.day);
           // La piazza di giorno: gli uccelli restano sotto, e dove c'è il
@@ -255,13 +300,81 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  /// Il cronometro della discussione: parte all'apertura, si allunga di un
+  /// minuto alla volta, suona allo scadere. Non chiude niente: il voto lo
+  /// chiama il tavolo.
+  void _startDay() {
+    _dayTimer?.cancel();
+    _dayLeft = widget.settings.discussion;
+    _dayTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted || _dayLeft == Duration.zero || _stage != _Stage.day) return;
+      setState(() => _dayLeft -= const Duration(seconds: 1));
+      if (_dayLeft == Duration.zero) {
+        if (beat(MemeMoment.timerEnd) == null) SoundStage.instance.cue(Cue.timeUp);
+      } else if (_dayLeft <= const Duration(seconds: 10)) {
+        if (_dayLeft == const Duration(seconds: 5)) beat(MemeMoment.timerEnd);
+        SoundStage.instance.cue(Cue.tick);
+      }
+    });
+  }
+
+  /// Si vota a viso aperto, uno alla volta, nell'ordine dei posti.
+  void _enterVote() {
+    _dayTimer?.cancel();
+    beat(MemeMoment.voteCall);
+    _voteLines = _script.voteCall();
+    _voters = [
+      for (final player in widget.setup.players)
+        if (_engine.isAlive(player)) player,
+    ];
+    _voter = 0;
+    _stage = _Stage.vote;
+  }
+
+  /// Il voto di chi tocca adesso (`null`: si astiene). Dopo l'ultimo, si conta.
+  void _castVote(Player? target) {
+    final voter = _voters[_voter];
+    final previous = _engine.dayVotes;
+    if (target != null && previous[voter] != target) {
+      beat(previous.values.contains(target) ? MemeMoment.voteChanged : MemeMoment.accused);
+    }
+    _engine.apply(target == null ? Pass(voter.id) : DayVote(voter.id, target.id));
+    _advance(() {
+      if (_voter + 1 < _voters.length) {
+        _voter++;
+        return;
+      }
+      _lastVotes = [for (final e in _engine.dayVotes.entries) (voter: e.key, target: e.value)];
+      _enterVerdict(_engine.closeDayVote());
+    });
+  }
+
+  Future<void> _revealMayor() async {
+    final voter = _voters[_voter];
+    final yes = await confirmNoir(
+      context,
+      key: const Key('local.askMayor'),
+      title: _ts.revealMayorTitle,
+      body: _ts.revealMayorBody,
+      cancel: _ts.cancel,
+      confirm: _ts.revealMayor,
+    );
+    if (!yes || !mounted || _stage != _Stage.vote) return;
+    final result = _engine.apply(RevealMayor(voter.id));
+    if (result is IntentRejected) {
+      showNote(context, _ls.notTheMayor, kind: NoticeKind.error);
+      return;
+    }
+    setState(() {});
+  }
+
   /// La piazza ha votato e l'ha visto tutto il tavolo: niente film. Il posto
   /// del condannato fa il linciaggio sul posto e mostra la carta, se ora è
   /// pubblica; sotto, il copione del verdetto da leggere.
-  void _enterVerdict(Player? condemned) {
-    _verdict = _engine.lynch(condemned);
+  void _enterVerdict(LynchReport report) {
+    _verdict = report;
+    final condemned = report.condemned;
     _condemned = condemned;
-    final report = _verdict;
     if (report.role != null) SoundStage.instance.cue(report.role!.team == Team.mafia ? Cue.caught : Cue.drumroll);
     // Nessuna condanna: il silenzio imbarazzato della battuta che non ride nessuno.
     if (condemned == null) beat(MemeMoment.noConviction, after: const Duration(milliseconds: 600));
@@ -415,6 +528,7 @@ class _GameScreenState extends State<GameScreen> {
     for (final thunder in _thunders) {
       thunder.cancel();
     }
+    _dayTimer?.cancel();
     SoundStage.instance.ambience(null);
     NarratorVoice.instance.hush();
     // La musica del vicolo la rimette il vicolo, quando ci si torna.
@@ -429,6 +543,17 @@ class _GameScreenState extends State<GameScreen> {
     if (identical(AppStrings.of(context), _t)) return screen;
     return Localizations.override(context: context, locale: _t.language.locale, child: screen);
   }
+
+  /// Le fasi del tavolo: lo stesso tavolo dei posti della partita online.
+  bool get _atTheTable => switch (_stage) {
+        _Stage.handoff || _Stage.task || _Stage.taskDone || _Stage.toNarrator => true,
+        _Stage.day || _Stage.power || _Stage.vote || _Stage.verdict => true,
+        _ => false,
+      };
+
+  /// Il telefono è in mano a uno solo: il tavolo è di notte.
+  bool get _private =>
+      _stage == _Stage.handoff || _stage == _Stage.task || _stage == _Stage.taskDone || _stage == _Stage.toNarrator;
 
   Widget _screen() {
     if (_stage == _Stage.crime) {
@@ -452,8 +577,8 @@ class _GameScreenState extends State<GameScreen> {
         ),
       );
     }
-    final phoneIsWithNarrator =
-        _stage == _Stage.script || _stage == _Stage.day || _stage == _Stage.vote;
+    if (_atTheTable) return _tableScreen();
+    final phoneIsWithNarrator = _stage == _Stage.script;
     return PopScope(
       canPop: false,
       child: SceneScaffold(
@@ -466,28 +591,8 @@ class _GameScreenState extends State<GameScreen> {
           ),
           title: Text(_title),
           actions: [
-            RolesButton(
-              onPressed: pressed(
-                () {
-                  final board = _engine.publicView();
-                  RolesSheet.show(context, deck: board.deck, revealed: publicReveals(board));
-                },
-                Press.card,
-              ),
-            ),
-            if (_narrator != null && phoneIsWithNarrator)
-              IconButton(
-                icon: const Icon(Icons.visibility),
-                tooltip: _t.rolesTooltip,
-                onPressed: pressed(
-                  () => NarratorRolesSheet.show(
-                    context,
-                    setup: widget.setup,
-                    isAlive: _engine.isAlive,
-                  ),
-                  Press.card,
-                ),
-              ),
+            RolesButton(onPressed: pressed(_showDeck, Press.card)),
+            if (_narrator != null && phoneIsWithNarrator) _narratorEye(),
           ],
         ),
         body: SafeArea(
@@ -503,49 +608,151 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  void _showDeck() {
+    final board = _engine.publicView();
+    RolesSheet.show(context, deck: board.deck, revealed: publicReveals(board));
+  }
+
+  Widget _narratorEye() => IconButton(
+        icon: const Icon(Icons.visibility),
+        tooltip: _t.rolesTooltip,
+        onPressed: pressed(
+          () => NarratorRolesSheet.show(context, setup: widget.setup, isAlive: _engine.isAlive),
+          Press.card,
+        ),
+      );
+
+  String _clock(Duration left) => '${left.inMinutes}:${(left.inSeconds % 60).toString().padLeft(2, '0')}';
+
+  /// Il tavolo, come online: il cartiglio in alto, i posti intorno al panno,
+  /// la striscia dei comandi sotto. Niente chat: si parla a voce.
+  Widget _tableScreen() {
+    final day = _stage == _Stage.day;
+    final narratorHolds = _narrator != null && (day || _stage == _Stage.vote || _stage == _Stage.verdict);
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        backgroundColor: Saloon.ink,
+        body: SaloonBackdrop(
+          night: _private,
+          child: SafeArea(
+            child: Column(
+              children: [
+                StageHeader(
+                  title: _title,
+                  ribbon: _ribbon(),
+                  countdown: day ? _clock(_dayLeft) : null,
+                  urgent: day && _dayLeft <= const Duration(seconds: 10),
+                  leading: HeaderIconButton(
+                    icon: Icons.close,
+                    tooltip: _t.leaveTooltip,
+                    onPressed: pressed(_confirmExit, Press.back),
+                  ),
+                  action: HeaderIconButton(
+                    key: const Key('rolesSheet.button'),
+                    icon: Icons.style,
+                    tooltip: _t.rolesTooltip,
+                    onPressed: pressed(_showDeck, Press.card),
+                  ),
+                  // Durante il voto, l'angolo torna al votante di prima.
+                  corner: _stage == _Stage.vote && _voter > 0
+                      ? HeaderIconButton(
+                          key: const Key('local.undoVote'),
+                          icon: Icons.undo,
+                          tooltip: _ls.undo,
+                          onPressed: pressed(() => _advance(() => _voter--), Press.back),
+                        )
+                      : narratorHolds
+                      ? _narratorEye()
+                      : null,
+                ),
+                Expanded(
+                  child: ContentWidth(
+                    maxWidth: 780,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                      child: AnimatedSwitcher(
+                        duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : const Duration(milliseconds: 300),
+                        child: KeyedSubtree(key: ValueKey(_step), child: _stageView()),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// La riga sotto il titolo: a che punto è il giro del telefono, o il voto.
+  String? _ribbon() => switch (_stage) {
+        _Stage.handoff || _Stage.task || _Stage.taskDone => '${_turn + 1} / ${_queue.length}',
+        _Stage.vote => '${_voter + 1} / ${_voters.length}',
+        _ => null,
+      };
+
+  String _tag(Player player) => switch (_numbers[player]) {
+        final n? => '$n ${player.name}',
+        null => player.name,
+      };
+
+  /// Una pagina del tavolo: i posti, poi (se c'è) il copione da leggere,
+  /// poi la striscia.
+  Widget _tablePage({Key? key, required Widget table, required ActionStrip strip, Widget? script}) {
+    final desk = DesktopCanvas.of(context);
+    return LayoutBuilder(
+      key: key,
+      builder: (context, box) => Column(
+        children: [
+          Expanded(child: SizedBox(key: const Key('game.tableSlot'), width: double.infinity, child: table)),
+          if (script != null) ...[
+            const SizedBox(height: 6),
+            ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: box.maxHeight * 0.24),
+              child: SingleChildScrollView(child: script),
+            ),
+          ],
+          const SizedBox(height: 6),
+          SizedBox(
+            key: const Key('game.stripSlot'),
+            height: ActionStrip.heightFor(desk: desk),
+            width: double.infinity,
+            child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 560), child: strip)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _stageView() => switch (_stage) {
         _Stage.script => ScriptPageView(page: _page, reader: _narrator?.name, strings: _t),
-        _Stage.handoff => HandoffView(
-            name: _queue[_turn].name,
+        _Stage.handoff => LocalCurtain(
+            key: ValueKey('curtain-$_turn'),
+            player: _queue[_turn],
+            number: _numbers[_queue[_turn]],
+            hint: _ls.curtainHint,
             onReady: () => _advance(() {
               // Chi siede accanto non deve poter leggere il bersaglio dal
-              // posto del dito: a ogni turno le facce cambiano posto.
-              _seats = secretSeating(widget.setup.players, _seating, avoid: [_seats, _table]);
+              // posto del dito: a ogni mano le facce cambiano posto.
+              final holder = _queue[_turn];
+              _seats = handSeating(widget.setup.players, holder, _seating, avoid: [_seats, _table]);
               _stage = _Stage.task;
             }),
           ),
         _Stage.task => _engine.jailedTonight == _queue[_turn] ? _jailedView(_queue[_turn]) : _taskView(_queue[_turn]),
-        _Stage.taskDone => _taskDoneView(),
+        _Stage.taskDone => _taskDoneView(_queue[_turn]),
         _Stage.crimeIntro => _crimeIntroView(),
         _Stage.crime => const SizedBox.shrink(),
         _Stage.verdict => _verdictView(),
-        _Stage.toNarrator => HandoffView(name: _narrator!.name, onReady: () => _advance(_enterDawn)),
-        _Stage.day => DayBoard(
-            strings: _t,
-            duration: widget.settings.discussion,
-            table: _publicGrid(),
-            alive: _engine.alivePlayers.length,
-            total: widget.setup.players.length,
-            onVote: () => _advance(() {
-              beat(MemeMoment.voteCall);
-              _voteLines = _script.voteCall();
-              _stage = _Stage.vote;
-            }),
-            power: _hasTruce
-                ? OutlinedButton(
-                    key: const Key('game.truce'),
-                    onPressed: pressed(
-                      () => _advance(() {
-                        _powerUser = null;
-                        _powerError = null;
-                        _stage = _Stage.power;
-                      }),
-                      Press.tap,
-                    ),
-                    child: Text(_lr.truce),
-                  )
-                : null,
+        _Stage.toNarrator => LocalCurtain(
+            player: _narrator!,
+            number: _numbers[_narrator!],
+            hint: _ls.curtainHint,
+            onReady: () => _advance(_enterDawn),
           ),
+        _Stage.day => _dayView(),
         _Stage.power => _powerView(),
         _Stage.vote => _voteView(),
         _Stage.end => _endView(),
@@ -580,76 +787,102 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  /// Il tavolo segreto di chi ha il telefono: il suo posto in basso, gli
+  /// altri rimescolati a ogni mano.
+  Widget _secretTable(
+    Player actor, {
+    Set<Player> selectable = const {},
+    Player? selected,
+    void Function(Player player)? onTap,
+    List<SeatVote> votes = const [],
+    Widget? center,
+  }) =>
+      LocalTable(
+        key: const Key('local.secretTable'),
+        seats: _seats,
+        numbers: _numbers,
+        holder: actor,
+        isAlive: _engine.isAlive,
+        knowledgeOf: (player) => _engine.knowledgeOf(actor, player),
+        selectable: selectable,
+        selected: selected,
+        onTap: onTap,
+        votes: votes,
+        voteColor: Saloon.mafia,
+        day: false,
+        center: center,
+      );
+
+  /// La mossa della notte, tutta dal compito che il motore dà al ruolo: la
+  /// domanda, chi si può scegliere, l'eventuale seconda mossa. Si tocca un
+  /// posto, poi si conferma: il telefono è in mano, nessuna fretta.
   Widget _taskView(Player actor) {
+    final view = _engine.viewFor(actor.id);
     final offered = _engine.taskFor(actor);
     final alternative = offered.alternative;
     final task =
         _alternative && alternative != null ? NightTask(alternative, offered.alternativeTargets) : offered;
     final selected = _selected;
     final labels = alternativeLabels(_t, alternative);
-    final watches = _engine.watchesOf(actor);
-    final lastWatch = watches.isNotEmpty && watches.last.round == _engine.round - 1 ? watches.last : null;
-    return Column(
-      children: [
-        NightNotes(
-          lastWatch: lastWatch,
-          doused: [
-            if (widget.setup.roleOf(actor) == Role.piromane)
-              for (final player in _seats)
-                if (_engine.doused.contains(player)) player,
-          ],
-          bounty: _engine.bountyOf(actor),
-          notes: _privateNotes(actor),
-        ),
-        if (alternative != null) ...[
-          TargaSegmented<bool>(
-            key: const Key('task.alternative'),
-            segments: [(false, labels.$1), (true, labels.$2)],
-            selected: _alternative,
-            onChanged: (choice) => setState(() {
-              _alternative = choice;
-              // Il fiammifero si accende scegliendo se stessi: già scelto.
-              _selected = _alternative && alternative == NightTaskKind.ignite ? actor : null;
-            }),
+    final family = offered.kind == NightTaskKind.kill && !_alternative;
+    final lastWatch = view.watches.isNotEmpty ? view.watches.last : null;
+    final notes = [
+      if (lastWatch != null && lastWatch.round == _engine.round - 1)
+        (lastWatch.visited ? _t.pack.watchVisited : _t.pack.watchQuiet).replaceAll('{name}', _tag(lastWatch.target)),
+      if (view.doused.isNotEmpty) '${_t.dousedBadge}: ${view.doused.map(_tag).join(', ')}',
+      if (view.bounty case final mark?) _t.bountyLine.replaceAll('{name}', _tag(mark)),
+      ..._privateNotes(actor),
+    ];
+    final desk = DesktopCanvas.of(context);
+    return _tablePage(
+      key: const Key('local.night'),
+      table: _secretTable(
+        actor,
+        selectable: task.targets.toSet(),
+        selected: selected,
+        onTap: (player) => setState(() => _selected = player),
+        // La famiglia vede dove puntano i complici che hanno già scelto.
+        votes: family ? view.familyVotes : const [],
+        center: LocalFelt([
+          (
+            text: _script.taskPrompt(task, _engine.round),
+            key: const Key('local.taskPrompt'),
+            style: LocalFelt.titleStyle(context, color: family ? const Color(0xFFFFB3B3) : AppColors.textPrimary),
           ),
-          const SizedBox(height: 12),
+          for (final note in notes) (text: note, key: null, style: LocalFelt.lineStyle(context, color: Saloon.brass)),
+        ]),
+      ),
+      strip: ActionStrip(
+        status: selected == null ? _script.taskHint(task) : _ls.pickedConfirm(_tag(selected)),
+        tone: selected == null ? StripTone.act : StripTone.done,
+        control: alternative != null
+            ? SizedBox(
+                height: NoirMetrics(desk).button,
+                child: TargaSegmented<bool>(
+                  key: const Key('task.alternative'),
+                  desk: desk,
+                  height: NoirMetrics(desk).button,
+                  segments: [(false, labels.$1), (true, labels.$2)],
+                  selected: _alternative,
+                  onChanged: (choice) => setState(() {
+                    _alternative = choice;
+                    // Il fiammifero si accende scegliendo se stessi: già scelto.
+                    _selected = _alternative && alternative == NightTaskKind.ignite ? actor : null;
+                  }),
+                ),
+              )
+            : null,
+        actions: [
+          NoirAction(key: const Key('local.pass'), label: _t.pass, feel: Press.tap, onPressed: () => _submit(null)),
+          NoirAction(
+            key: const Key('local.confirm'),
+            label: _t.confirm,
+            style: NoirButtonStyle.primary,
+            feel: Press.confirm,
+            onPressed: selected == null ? null : () => _submit(selected),
+          ),
         ],
-        Text(
-          _script.taskPrompt(task, _engine.round),
-          textAlign: TextAlign.center,
-          style: AppText.display(23, color: AppColors.textPrimary),
-        ),
-        const SizedBox(height: 6),
-        Text(_script.taskHint(task), textAlign: TextAlign.center, style: AppText.body.copyWith(fontSize: 14)),
-        const SizedBox(height: 14),
-        Expanded(
-          child: PlayerGrid(
-            players: _seats,
-            isAlive: _engine.isAlive,
-            knowledgeOf: (player) => _engine.knowledgeOf(actor, player),
-            viewer: actor,
-            selectable: task.targets,
-            selected: selected,
-            onSelect: (player) => setState(() => _selected = player),
-            shuffled: true,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(onPressed: pressed(() => _submit(null), Press.tap), child: Text(_t.pass)),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton(
-                onPressed: pressed(selected == null ? null : () => _submit(selected), Press.tap),
-                child: Text(_t.confirm),
-              ),
-            ),
-          ],
-        ),
-      ],
+      ),
     );
   }
 
@@ -663,11 +896,11 @@ class _GameScreenState extends State<GameScreen> {
       for (final finding in _engine.findingsOf(actor))
         if (finding.round == last)
           if (finding.exposure.role case final role?)
-            _lr.foundRole(finding.exposure.subject.name, _t.role(role).label)
+            _lr.foundRole(_tag(finding.exposure.subject), _t.role(role).label)
           else if (finding.exposure.team == Team.mafia)
-            _lr.foundFamily(finding.exposure.subject.name)
+            _lr.foundFamily(_tag(finding.exposure.subject))
           else
-            _lr.foundClean(finding.exposure.subject.name),
+            _lr.foundClean(_tag(finding.exposure.subject)),
       if (_engine.wasBusy(actor)) _lr.wasBusy,
       if (_engine.lastJailed == actor && _answers[last] == null) ...[
         _lr.wasJailed,
@@ -679,45 +912,66 @@ class _GameScreenState extends State<GameScreen> {
     ];
   }
 
+  /// Una riga scritta della cella, sotto il tavolo: la domanda del
+  /// Carceriere o la risposta del prigioniero.
+  Widget _cellField({required Key key, required String label, required String hint, required ValueChanged<String> onChanged}) =>
+      Container(
+        decoration: Saloon.scrim(radius: 12),
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(label, style: LocalFelt.lineStyle(context, color: Saloon.brass, weight: FontWeight.w700)),
+            TextField(
+              key: key,
+              maxLength: 140,
+              decoration: InputDecoration(hintText: hint, isDense: true),
+              onChanged: (text) => onChanged(text.trim()),
+            ),
+          ],
+        ),
+      );
+
   /// Il prigioniero al suo turno: niente mossa, la domanda del Carceriere e
   /// la risposta, scritta, che il Carceriere leggerà al suo turno dopo.
   Widget _jailedView(Player actor) {
     final question = _questions[_engine.round];
-    return Column(
+    return _tablePage(
       key: const Key('game.jailed'),
-      children: [
-        const Spacer(),
-        const Icon(Icons.lock, color: AppColors.gold, size: 56),
-        const SizedBox(height: 20),
-        Text(_lr.jailedTitle, style: AppText.display(34)),
-        const SizedBox(height: 12),
-        Text(_lr.jailedBody, textAlign: TextAlign.center, style: AppText.body),
-        if (question != null) ...[
-          const SizedBox(height: 20),
-          Text(_lr.jailerAsks, style: AppText.overline),
-          const SizedBox(height: 6),
-          Text('«$question»', textAlign: TextAlign.center, style: AppText.display(20, color: AppColors.textPrimary)),
-          const SizedBox(height: 12),
-          TextField(
-            key: const Key('game.cellAnswer'),
-            maxLength: 140,
-            decoration: InputDecoration(hintText: _lr.answerHint),
-            onChanged: (text) => _answers[_engine.round] = text.trim(),
-          ),
-        ],
-        const Spacer(),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: pressed(() {
+      script: question == null
+          ? null
+          : _cellField(
+              key: const Key('game.cellAnswer'),
+              label: '${_lr.jailerAsks} «$question»',
+              hint: _lr.answerHint,
+              onChanged: (answer) => _answers[_engine.round] = answer,
+            ),
+      table: _secretTable(
+        actor,
+        center: LocalFelt([
+          (text: _lr.jailedTitle, key: null, style: LocalFelt.titleStyle(context)),
+          (text: _lr.jailedBody, key: null, style: LocalFelt.lineStyle(context, style: FontStyle.italic)),
+          for (final note in _privateNotes(actor)) (text: note, key: null, style: LocalFelt.lineStyle(context, color: Saloon.brass)),
+        ]),
+      ),
+      strip: ActionStrip(
+        status: _ls.putItDown,
+        tone: StripTone.done,
+        actions: [
+          NoirAction(
+            key: const Key('local.done'),
+            label: _t.done,
+            style: NoirButtonStyle.primary,
+            feel: Press.confirm,
+            onPressed: () {
               // Ha visto la cella: domani niente avviso «eri in cella».
               _answers.putIfAbsent(_engine.round, () => '');
               _afterTask();
-            }, Press.confirm),
-            child: Text(_t.done),
+            },
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -729,43 +983,41 @@ class _GameScreenState extends State<GameScreen> {
   /// svelare. Il ruolo esatto va sul tavolo e il voto salta.
   Widget _powerView() {
     final user = _powerUser;
-    return Column(
+    final selected = _selected;
+    return _tablePage(
       key: const Key('game.power'),
-      children: [
-        Text(user == null ? _lr.whoAreYou : _lr.whoToReveal, textAlign: TextAlign.center, style: AppText.display(23)),
-        if (_powerError case final error?) ...[
-          const SizedBox(height: 6),
-          Text(error, style: AppText.body.copyWith(color: _mafiaRed)),
-        ],
-        const SizedBox(height: 12),
-        Expanded(
-          child: _publicGrid(
-            selectable: [
-              for (final player in _engine.alivePlayers)
-                if (player != user) player,
-            ],
+      table: _publicTable(
+        holder: user,
+        selected: selected,
+        selectable: {
+          for (final player in _engine.alivePlayers)
+            if (player != user) player,
+        },
+        onTap: (player) => setState(() => _selected = player),
+        center: LocalFelt([
+          (text: user == null ? _lr.whoAreYou : _lr.whoToReveal, key: null, style: LocalFelt.titleStyle(context)),
+          if (_powerError case final error?)
+            (text: error, key: const Key('game.powerError'), style: LocalFelt.lineStyle(context, color: Saloon.mafia)),
+        ]),
+      ),
+      strip: ActionStrip(
+        status: selected == null ? (user == null ? _lr.whoAreYou : _lr.whoToReveal) : _tag(selected),
+        tone: selected == null ? StripTone.act : StripTone.done,
+        actions: [
+          NoirAction(
+            label: _lr.cancel,
+            feel: Press.back,
+            onPressed: () => _advance(() => _stage = _Stage.day),
           ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: pressed(() => _advance(() => _stage = _Stage.day), Press.back),
-                child: Text(_lr.cancel),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton(
-                key: const Key('game.powerConfirm'),
-                onPressed: pressed(_selected == null ? null : () => _usePower(_selected!), Press.confirm),
-                child: Text(_lr.confirm),
-              ),
-            ),
-          ],
-        ),
-      ],
+          NoirAction(
+            key: const Key('game.powerConfirm'),
+            label: _lr.confirm,
+            style: NoirButtonStyle.primary,
+            feel: Press.confirm,
+            onPressed: selected == null ? null : () => _usePower(selected),
+          ),
+        ],
+      ),
     );
   }
 
@@ -781,196 +1033,294 @@ class _GameScreenState extends State<GameScreen> {
       return;
     }
     _advance(() {
+      _dayTimer?.cancel();
       _engine.pacify(user, picked);
-      _enterVerdict(null);
+      _lastVotes = const [];
+      _enterVerdict(_engine.lynch(null));
     });
   }
 
-  Widget _taskDoneView() {
+  /// La mossa è fatta: sul panno la risposta (l'indagine, la fossa) o la
+  /// notte che continua. Il posto scoperto resta acceso.
+  Widget _taskDoneView(Player actor) {
     final finding = _finding;
     final found = finding?.role;
     final isMafia = finding?.team == Team.mafia;
-    return Column(
-      children: [
-        const Spacer(),
-        if (finding == null) ...[
-          const Icon(Icons.check_circle_outline, color: AppColors.gold, size: 56),
-          const SizedBox(height: 20),
-          Text(_t.doneTitle, style: AppText.display(36)),
-          const SizedBox(height: 12),
-          Text(_t.nobodyWillKnow, style: AppText.body),
-          // Il Carceriere: chi è in cella, e una domanda scritta per lui.
-          if (_engine.nightChoices[_queue[_turn]] case (kind: NightTaskKind.jail, target: final prisoner?)) ...[
-            const SizedBox(height: 20),
-            Text(_lr.jailed(prisoner.name), style: AppText.display(20, color: AppColors.textPrimary)),
-            const SizedBox(height: 8),
-            TextField(
-              key: const Key('game.cellQuestion'),
-              maxLength: 140,
-              decoration: InputDecoration(hintText: _lr.questionHint),
-              onChanged: (text) {
-                final question = text.trim();
-                question.isEmpty ? _questions.remove(_engine.round) : _questions[_engine.round] = question;
-              },
+    final title = LocalFelt.titleStyle(context);
+    final List<FeltLine> lines = finding == null
+        ? [
+            (text: _t.doneTitle, key: null, style: title),
+            (text: _t.nobodyWillKnow, key: null, style: LocalFelt.lineStyle(context, style: FontStyle.italic)),
+          ]
+        : [
+            (
+              text: found == null ? _t.yourInvestigation : _t.inTheGrave,
+              key: const Key('local.findingKind'),
+              style: LocalFelt.lineStyle(context, color: Saloon.brass, weight: FontWeight.w700),
             ),
-          ],
-        ] else ...[
-          // L'indagine dice da che parte sta; la fossa dice chi era.
-          SizedBox.square(
-            dimension: 150,
-            child: Stack(
-              clipBehavior: Clip.none,
-              alignment: Alignment.center,
-              children: [
-                AvatarSpotlight(seed: finding.subject.name, size: 140, fallen: found != null),
-                Positioned(
-                  right: 0,
-                  bottom: 0,
-                  child: Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: found?.color ?? (isMafia ? AppColors.accent : const Color(0xFF1E6B52)),
-                      border: Border.all(color: AppColors.background, width: 3),
-                    ),
-                    child: found == null
-                        ? const Icon(Icons.search, color: AppColors.textPrimary, size: 26)
-                        : RoleIcon(found, size: 44),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          Text(found == null ? _t.yourInvestigation : _t.inTheGrave, style: AppText.overline),
-          const SizedBox(height: 10),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              finding.subject.name.toUpperCase(),
-              style: AppText.display(36, color: AppColors.textPrimary),
-            ),
-          ),
-          const SizedBox(height: 12),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              found != null
+            (text: _tag(finding.subject).toUpperCase(), key: const Key('local.findingWho'), style: title),
+            (
+              text: found != null
                   ? _t.wasRole(_t.role(found).label)
                   : isMafia
-                      ? _t.isFamily
-                      : _t.isInnocent,
-              style: AppText.display(20, color: isMafia ? _mafiaRed : _cleanGreen),
+                  ? _t.isFamily
+                  : _t.isInnocent,
+              key: const Key('local.findingWhat'),
+              style: LocalFelt.titleStyle(context, color: isMafia ? Saloon.mafia : Saloon.clean),
             ),
-          ),
-          if (found != null) ...[
-            const SizedBox(height: 10),
-            Text(
-              isMafia ? _t.wasWithFamily : _t.wasWithTown,
-              style: AppText.overline,
-            ),
-          ],
-        ],
-        const Spacer(),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(onPressed: pressed(_afterTask, Press.confirm), child: Text(_t.done)),
-        ),
-      ],
-    );
-  }
-
-  /// La griglia del giorno, uguale per tutti: sta in mezzo al tavolo.
-  Widget _publicGrid({List<Player>? selectable, Player? lynched}) {
-    return PlayerGrid(
-      lynched: lynched,
-      lynchedLabel: _t.language.locale.languageCode == 'it' ? 'Linciato' : 'Lynched',
-      players: _table,
-      isAlive: _engine.isAlive,
-      knowledgeOf: (player) => _engine.knowledgeOf(null, player),
-      selectable: selectable,
-      selected: _selected,
-      silenced: _dawn.silenced,
-      stamp: _t.accusedStamp,
-      onSelect: (player) {
-        // Il dito punta qualcuno in piazza: sus.
-        if (player != _selected) beat(_selected == null ? MemeMoment.accused : MemeMoment.voteChanged);
-        setState(() => _selected = player);
-      },
-    );
-  }
-
-  /// Il verdetto sul tavolo: il linciaggio sul posto, il copione sotto.
-  Widget _verdictView() {
-    final winner = _verdict.winner;
-    return LayoutBuilder(
-      key: const Key('game.verdict'),
-      builder: (context, box) => Column(
-        children: [
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              _condemned?.name ?? _t.noConviction,
-              key: const Key('game.verdictTitle'),
-              style: AppText.display(26, color: AppColors.textPrimary),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Expanded(child: _publicGrid(lynched: _condemned)),
-          const SizedBox(height: 12),
-          ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: box.maxHeight * 0.3),
-            child: SingleChildScrollView(child: SpokenScriptCard(reader: _narrator?.name, lines: _verdictLines)),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: pressed(
-                () => _advance(() => winner != null ? _enterEnd(winner) : _enterNight()),
-                Press.confirm,
+            if (found != null)
+              (
+                text: isMafia ? _t.wasWithFamily : _t.wasWithTown,
+                key: null,
+                style: LocalFelt.lineStyle(context, color: AppColors.textSecondary),
               ),
-              child: Text(winner != null ? _t.finale : _t.continueLabel),
+          ];
+    // Il Carceriere: chi è in cella, e una domanda scritta per lui.
+    final prisoner = switch (_engine.nightChoices[actor]) {
+      (kind: NightTaskKind.jail, target: final prisoner?) => prisoner,
+      _ => null,
+    };
+    return _tablePage(
+      key: const Key('local.nightDone'),
+      script: prisoner == null
+          ? null
+          : _cellField(
+              key: const Key('game.cellQuestion'),
+              label: _lr.jailed(_tag(prisoner)),
+              hint: _lr.questionHint,
+              onChanged: (question) =>
+                  question.isEmpty ? _questions.remove(_engine.round) : _questions[_engine.round] = question,
             ),
+      table: _secretTable(actor, selected: finding?.subject ?? prisoner, center: LocalFelt(lines)),
+      strip: ActionStrip(
+        status: _ls.putItDown,
+        tone: StripTone.done,
+        actions: [
+          NoirAction(
+            key: const Key('local.done'),
+            label: _t.done,
+            style: NoirButtonStyle.primary,
+            feel: Press.confirm,
+            onPressed: _afterTask,
           ),
         ],
       ),
     );
   }
 
+  /// Il tavolo di tutti, di giorno: sempre nello stesso ordine.
+  Widget _publicTable({
+    Set<Player> selectable = const {},
+    Player? holder,
+    Player? selected,
+    void Function(Player player)? onTap,
+    List<SeatVote> votes = const [],
+    Player? lynched,
+    bool accusing = true,
+    Widget? center,
+  }) =>
+      LocalTable(
+        key: const Key('local.publicTable'),
+        seats: _table,
+        numbers: _numbers,
+        holder: holder,
+        isAlive: _engine.isAlive,
+        knowledgeOf: (player) => _engine.knowledgeOf(null, player),
+        selectable: selectable,
+        selected: selected,
+        onTap: onTap,
+        votes: votes,
+        mayor: _engine.mayorRevealed ? _engine.mayor : null,
+        silenced: _stage == _Stage.verdict ? null : _dawn.silenced,
+        lynched: lynched,
+        accusing: accusing,
+        center: center,
+      );
+
+  /// La discussione: sul panno chi è morto stanotte, nel cartiglio il
+  /// cronometro; sotto, più tempo o al voto.
+  Widget _dayView() {
+    final italian = _t.language.locale.languageCode == 'it';
+    final headline = dawnHeadline(_dawn, italian: italian, everyoneAlive: _t.everyoneAlive).headline;
+    final expired = _dayLeft == Duration.zero;
+    return _tablePage(
+      key: const Key('local.day'),
+      table: _publicTable(
+        center: LocalFelt([
+          (text: headline, key: const Key('local.dawnHeadline'), style: LocalFelt.titleStyle(context)),
+        ]),
+      ),
+      strip: ActionStrip(
+        status: expired ? _t.timeUp : _ls.discuss,
+        tone: expired ? StripTone.wait : StripTone.act,
+        control: _hasTruce
+            ? SizedBox(
+                height: NoirMetrics(DesktopCanvas.of(context)).button,
+                child: OutlinedButton(
+                  key: const Key('game.truce'),
+                  onPressed: pressed(
+                    () => _advance(() {
+                      _powerUser = null;
+                      _powerError = null;
+                      _stage = _Stage.power;
+                    }),
+                    Press.tap,
+                  ),
+                  child: FittedBox(fit: BoxFit.scaleDown, child: Text(_lr.truce, maxLines: 1)),
+                ),
+              )
+            : null,
+        actions: [
+          NoirAction(
+            key: const Key('local.moreTime'),
+            label: _t.plusMinute,
+            feel: Press.chips,
+            onPressed: () => setState(() => _dayLeft += const Duration(minutes: 1)),
+          ),
+          NoirAction(
+            key: const Key('local.toVote'),
+            label: _t.callTheVote,
+            style: NoirButtonStyle.primary,
+            feel: Press.confirm,
+            onPressed: () => _advance(_enterVote),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Il voto a viso aperto: il telefono resta in mezzo, ognuno a turno tocca
+  /// chi condanna (o si astiene). Le mani e i bolli dicono a che punto è.
   Widget _voteView() {
-    final selected = _selected;
-    return LayoutBuilder(
-      builder: (context, box) => Column(
-      children: [
-        // Il copione del voto resta in alto e non ruba il tavolo: se è lungo
-        // scorre, e la voce lo segue da sola.
-        ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: box.maxHeight * 0.26),
-          child: SingleChildScrollView(child: SpokenScriptCard(reader: _narrator?.name, lines: _voteLines)),
-        ),
-        const SizedBox(height: 14),
-        Expanded(child: _publicGrid(selectable: _engine.alivePlayers)),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: pressed(() => _advance(() => _enterVerdict(null)), Press.tap),
-                child: Text(_t.nobody),
-              ),
+    final voter = _voters[_voter];
+    final votes = [for (final e in _engine.dayVotes.entries) (voter: e.key, target: e.value)];
+    final targets = {
+      for (final player in _engine.alivePlayers)
+        if (player != voter) player,
+    };
+    final mayorInPlay = widget.setup.roles.values.contains(Role.sindaco) && !_engine.mayorRevealed;
+    final mayor = _engine.mayorRevealed ? _engine.mayor : null;
+    return _tablePage(
+      key: const Key('local.vote'),
+      script: _voter == 0 ? SpokenScriptCard(reader: _narrator?.name, lines: _voteLines) : null,
+      table: _publicTable(
+        holder: voter,
+        selectable: targets,
+        onTap: _castVote,
+        votes: votes,
+        center: mayor == null
+            ? null
+            : LocalFelt([
+                (
+                  text: _t.pack.mayorRevealed.replaceAll('{name}', _tag(mayor)),
+                  key: const Key('local.mayor'),
+                  style: LocalFelt.lineStyle(context, color: Saloon.brass, weight: FontWeight.w700),
+                ),
+              ]),
+      ),
+      strip: ActionStrip(
+        status: _ls.voterTurn(_tag(voter)),
+        statusKey: const Key('local.voterTurn'),
+        tone: StripTone.act,
+        count: '${votes.length}/${_voters.length}',
+        countTooltip: _t.online.votesCast(votes.length, _voters.length),
+        actions: [
+          if (mayorInPlay)
+            NoirAction(key: const Key('local.revealMayor'), label: _ts.revealMayor, onPressed: _revealMayor),
+          NoirAction(
+            key: const Key('local.abstain'),
+            label: _t.online.abstain,
+            onPressed: () => _castVote(null),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Lo scrutinio in una riga: quanti voti a chi, e quanti si sono astenuti.
+  String _verdictTally() {
+    final counts = <Player, int>{};
+    var abstained = 0;
+    final mayor = _engine.mayorRevealed ? _engine.mayor : null;
+    for (final vote in _lastVotes) {
+      final target = vote.target;
+      if (target == null) {
+        abstained++;
+      } else {
+        counts[target] = (counts[target] ?? 0) + (vote.voter == mayor ? 2 : 1);
+      }
+    }
+    final order = counts.keys.toList()..sort((a, b) => counts[b]!.compareTo(counts[a]!));
+    final parts = [
+      for (final target in order) '${_tag(target)}: ${_t.online.votesFor(counts[target]!)}',
+      if (abstained > 0) _ts.abstainedVotes(abstained),
+    ];
+    return parts.join('  ·  ');
+  }
+
+  /// Il verdetto sul tavolo: il linciaggio sul posto, i pizzini di chi ha
+  /// votato chi, il copione sotto.
+  Widget _verdictView() {
+    final report = _verdict;
+    final winner = report.winner;
+    final condemned = _condemned;
+    final role = report.role;
+    final verdict = condemned == null
+        ? _t.noConviction
+        : _ts.lynchedLine(_tag(condemned), role == null ? null : _t.role(role).label, gender: PlayerGenders.of(condemned.name));
+    final headlineColor = role == null ? Saloon.brass : Color.lerp(stampColorFor(role), Colors.white, 0.45)!;
+    final tally = _verdictTally();
+    final m = NoirMetrics(DesktopCanvas.of(context));
+    return _tablePage(
+      key: const Key('game.verdict'),
+      script: SpokenScriptCard(reader: _narrator?.name, lines: _verdictLines),
+      table: _publicTable(
+        votes: _lastVotes,
+        accusing: false,
+        lynched: condemned,
+        center: LocalFelt([
+          (text: verdict, key: const Key('game.verdictTitle'), style: LocalFelt.titleStyle(context, color: headlineColor)),
+          if (condemned != null && report.personalWin)
+            (
+              text: _t.pack.foolWinsFact.replaceAll('{name}', _tag(condemned)),
+              key: null,
+              style: LocalFelt.lineStyle(context, color: Saloon.brass),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton(
-                onPressed: pressed(selected == null ? null : () => _advance(() => _enterVerdict(selected)), Press.tap),
-                child: Text(_t.condemn),
-              ),
+          if (report.bountyHunter case final hunter?)
+            (
+              text: _t.pack.bountyWinsFact.replaceAll('{name}', _tag(hunter)),
+              key: null,
+              style: LocalFelt.lineStyle(context, color: Saloon.brass),
             ),
-          ],
-        ),
-      ],
+        ]),
+      ),
+      strip: ActionStrip(
+        status: tally.isEmpty ? verdict : tally,
+        tone: StripTone.done,
+        detail: tally.isEmpty
+            ? null
+            : VerdictLine(
+                tally: tally,
+                tallyKey: const Key('local.verdictVotes'),
+                tallyStyle: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: m.body * 0.9,
+                  height: 1.3,
+                  fontWeight: FontWeight.w500,
+                  shadows: const [Shadow(color: Colors.black, blurRadius: 8)],
+                ),
+                headlineStyle: const TextStyle(),
+                height: ActionStrip.heightFor(desk: m.desk) - m.gap * (m.desk ? 3 : 2) - m.button,
+              ),
+        actions: [
+          NoirAction(
+            key: const Key('local.afterVerdict'),
+            label: winner != null ? _t.finale : _t.continueLabel,
+            style: NoirButtonStyle.primary,
+            feel: Press.confirm,
+            onPressed: () => _advance(() => winner != null ? _enterEnd(winner) : _enterNight()),
+          ),
+        ],
       ),
     );
   }

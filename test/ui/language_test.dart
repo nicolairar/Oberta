@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oberta/ui/screens/online/game/noir_role_card.dart';
 import 'package:oberta/main.dart';
 import 'package:oberta/settings/app_settings.dart';
 import 'package:oberta/settings/settings_store.dart';
 import 'package:oberta/sound/sound_stage.dart';
-import 'package:oberta/ui/widgets/flip_role_card.dart';
 
 void _usePhone(WidgetTester tester, {List<Locale> speaks = const [Locale('it', 'IT')]}) {
   tester.view.physicalSize = const Size(393, 852);
@@ -200,7 +200,7 @@ void main() {
       await tester.tap(find.text('IT\'S ME'));
       await tester.pumpAndSettle();
       expect(find.text('PRESS AND HOLD'), findsOneWidget);
-      final gesture = await tester.startGesture(tester.getCenter(find.byType(FlipRoleCard)));
+      final gesture = await tester.startGesture(tester.getCenter(find.byType(NoirRoleCard)));
       await tester.pumpAndSettle();
       expect(find.textContaining(RegExp(r'^YOU.RE WITH THE (FAMILY|TOWN)$')), findsOneWidget);
       await gesture.up();

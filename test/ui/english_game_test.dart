@@ -10,6 +10,7 @@ import 'package:oberta/ui/screens/game_screen.dart';
 import 'package:oberta/ui/widgets/death_scene.dart';
 
 import '../support/languages.dart';
+import '../support/local_game.dart' show curtainName, tapSeat;
 
 const ada = Player(id: 'ada', name: 'Ada');
 const bruno = Player(id: 'bruno', name: 'Bruno');
@@ -61,12 +62,12 @@ Future<void> tap(WidgetTester tester, String label, {String readOn = 'KEEP READI
 
 Future<void> nightTurn(WidgetTester tester, Player actor, {Player? pick}) async {
   expect(find.text('PASS THE PHONE TO'), findsOneWidget);
-  expect(find.text(actor.name.toUpperCase()), findsOneWidget, reason: 'it is ${actor.name}\'s turn');
+  expect(curtainName(tester), contains(actor.name.toUpperCase()), reason: 'it is ${actor.name}\'s turn');
   await tap(tester, 'IT\'S ME');
   if (pick == null) {
     await tap(tester, 'PASS');
   } else {
-    await tap(tester, pick.name);
+    await tapSeat(tester, pick);
     await tap(tester, 'CONFIRM');
   }
 }
@@ -90,7 +91,7 @@ void main() {
 
     await nightTurn(tester, bruno, pick: ada);
     expect(find.text('YOUR INVESTIGATION'), findsOneWidget);
-    expect(find.text('ADA'), findsOneWidget);
+    expect(find.text('1 ADA'), findsOneWidget);
     expect(find.text('IS WITH THE FAMILY'), findsOneWidget);
     await tap(tester, 'DONE');
 
@@ -122,17 +123,18 @@ void main() {
 
     expect(find.text('DAY 1'), findsOneWidget);
     expect(find.text('1:00'), findsOneWidget);
-    expect(find.text('THE FLOOR IS OPEN'), findsOneWidget);
-    expect(find.text('INNOCENT'), findsNothing, reason: 'l\'indagine non è pubblica');
+    expect(find.text('Talk it over out loud. Then you vote.'), findsOneWidget);
+    expect(find.text('family'), findsNothing, reason: 'l\'indagine non è pubblica');
     await tester.tap(find.text('+1 MIN'));
     await tester.pump();
     expect(find.text('2:00'), findsOneWidget);
     await tap(tester, 'CALL THE VOTE');
 
     expect(find.textContaining('You can also choose to eliminate nobody.'), findsOneWidget);
-    expect(find.text('NOBODY'), findsOneWidget);
-    await tap(tester, 'Ada');
-    await tap(tester, 'CONDEMN');
+    expect(find.text('1 Ada votes: tap who to condemn.'), findsOneWidget);
+    await tap(tester, 'I ABSTAIN');
+    await tapSeat(tester, ada);
+    await tapSeat(tester, ada);
     // No film: everyone saw the vote. The seat plays the lynch in place.
     await tester.pumpAndSettle();
 
@@ -162,20 +164,34 @@ void main() {
     await tap(tester, 'START THE NIGHT');
     await tap(tester, 'IT\'S ME');
     expect(find.text('Who does the Family eliminate tonight?'), findsOneWidget);
-    expect(find.text('YOU'), findsOneWidget, reason: 'il proprio segno sulla griglia');
-    await tap(tester, 'Carla');
+    await tapSeat(tester, carla);
     await tap(tester, 'CONFIRM');
     await tap(tester, 'DONE');
     await nightTurn(tester, bruno, pick: dino);
     expect(find.text('IS INNOCENT'), findsOneWidget);
     await tap(tester, 'DONE');
-    await nightTurn(tester, carla);
-    await tap(tester, 'DONE');
-
-    // Nella notte di Dino, la griglia del Commissario non si vede: ognuno la sua.
     await tap(tester, 'IT\'S ME');
-    expect(find.text('INNOCENT'), findsNothing);
-    expect(find.text('No move tonight: tap any name, nothing happens. It keeps your role hidden.'), findsOneWidget);
+    expect(find.text('clean'), findsNothing, reason: 'Carla non sa cosa ha scoperto il Commissario');
+    await tap(tester, 'PASS');
+    await tap(tester, 'DONE');
+    await tap(tester, 'IT\'S ME');
+    await tap(tester, 'PASS');
+    await tap(tester, 'DONE');
+    await tester.tap(find.text('LIGHTS DOWN'));
+    await tester.pump(const Duration(milliseconds: 500));
+    await tap(tester, 'SKIP');
+    await tap(tester, 'NEXT');
+    await tap(tester, 'OPEN THE FLOOR');
+    await tap(tester, 'CALL THE VOTE');
+    for (var i = 0; i < 3; i++) {
+      await tap(tester, 'I ABSTAIN');
+    }
+    await tap(tester, 'CONTINUE');
+    await tap(tester, 'START THE NIGHT');
+    await nightTurn(tester, ada);
+    await tap(tester, 'DONE');
+    await tap(tester, 'IT\'S ME');
+    expect(find.text('clean'), findsOneWidget, reason: 'il Commissario ritrova la sua indagine sotto il nome');
   });
 
   testWidgets('una partita cominciata in italiano resta in italiano, anche se l\'app cambia lingua',

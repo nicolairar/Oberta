@@ -4,12 +4,17 @@ import '../../sound/memes.dart';
 import '../../sound/sound_stage.dart';
 import '../../l10n/app_strings.dart';
 import '../../rules/game_setup.dart';
-import '../theme/app_theme.dart';
-import '../widgets/flip_role_card.dart';
-import '../widgets/handoff_view.dart';
-import '../widgets/scene_scaffold.dart';
+import '../../l10n/local_table_strings.dart';
+import '../../l10n/table_strings.dart';
+import '../desktop/desktop_canvas.dart';
+import '../widgets/content_width.dart';
+import '../widgets/noir_modal.dart';
+import 'local/local_table.dart';
+import 'online/game/action_strip.dart';
+import 'online/game/noir_role_card.dart';
+import 'online/game/noir_ui.dart';
+import 'online/game/saloon_table.dart' show SaloonBackdrop;
 import 'game_screen.dart';
-import '../press.dart';
 
 /// Finché c'è un solo telefono, la carta si guarda a turno passandoselo.
 /// Con la rete vera ognuno vedrà solo il pezzo "carta" sul proprio schermo.
@@ -55,59 +60,79 @@ class _RoleRevealScreenState extends State<RoleRevealScreen> {
     final players = setup.players;
     final player = players[_index];
     final t = AppStrings.of(context);
-
+    final ts = TableStrings(t.language);
+    final ls = LocalTableStrings(t.language);
+    final desk = DesktopCanvas.of(context);
+    final tag = '${_index + 1} ${player.name}';
     return PopScope(
       canPop: false,
-      child: SceneScaffold(
-        appBar: AppBar(
-          automaticallyImplyLeading: false,
-          title: Text(t.cardOf(_index + 1, players.length)),
-        ),
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 350),
-              child: _holdingPhone
-                  ? Column(
-                      key: ValueKey('card-$_index'),
-                      children: [
-                        Text(
-                          player.name.toUpperCase(),
-                          style: AppText.display(24, color: AppColors.textPrimary),
-                        ),
-                        Expanded(
-                          child: Center(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 20),
-                              child: FlipRoleCard(
-                                role: setup.roleOf(player),
-                                teammates: setup.teammatesOf(player),
-                                onRevealed: () => setState(() => _seen = true),
+      child: Scaffold(
+        backgroundColor: Saloon.ink,
+        body: SaloonBackdrop(
+          night: true,
+          child: SafeArea(
+            child: Column(
+              children: [
+                StageHeader(title: t.cardOf(_index + 1, players.length)),
+                Expanded(
+                  child: ContentWidth(
+                    maxWidth: 780,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                      child: AnimatedSwitcher(
+                        duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : const Duration(milliseconds: 300),
+                        child: _holdingPhone
+                            ? Column(
+                                key: ValueKey('card-$_index'),
+                                children: [
+                                  Text(tag.toUpperCase(), style: Saloon.plate(desk ? 30 : 22)),
+                                  Expanded(
+                                    child: Center(
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                                        child: NoirRoleCard(
+                                          role: setup.roleOf(player),
+                                          teammates: setup.teammatesOf(player),
+                                          onRevealed: () => setState(() => _seen = true),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    height: ActionStrip.heightFor(desk: desk),
+                                    child: Center(
+                                      child: ConstrainedBox(
+                                        constraints: const BoxConstraints(maxWidth: 560),
+                                        child: ActionStrip(
+                                          status: _seen ? ls.putItDown : ts.holdTheCard,
+                                          tone: _seen ? StripTone.done : StripTone.act,
+                                          actions: [
+                                            NoirAction(
+                                              key: const Key('local.gotIt'),
+                                              label: t.gotIt,
+                                              style: NoirButtonStyle.primary,
+                                              feel: Press.confirm,
+                                              onPressed: _seen ? _next : null,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : LocalCurtain(
+                                key: ValueKey('handoff-$_index'),
+                                player: player,
+                                number: _index + 1,
+                                hint: ls.roleCurtainHint,
+                                onReady: () => setState(() => _holdingPhone = true),
                               ),
-                            ),
-                          ),
-                        ),
-                        Text(
-                          t.holdTheCardHint,
-                          textAlign: TextAlign.center,
-                          style: AppText.body,
-                        ),
-                        const SizedBox(height: 20),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: pressed(_seen ? _next : null, Press.confirm),
-                            child: Text(t.gotIt),
-                          ),
-                        ),
-                      ],
-                    )
-                  : HandoffView(
-                      key: ValueKey('handoff-$_index'),
-                      name: player.name,
-                      onReady: () => setState(() => _holdingPhone = true),
+                      ),
                     ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),

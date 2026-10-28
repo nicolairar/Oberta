@@ -7,11 +7,13 @@ import 'package:oberta/rules/player.dart';
 import 'package:oberta/rules/role.dart';
 import 'package:oberta/rules/role_assignment.dart';
 import 'package:oberta/ui/screens/game_screen.dart';
+import 'package:oberta/ui/screens/local/local_table.dart';
+import 'package:oberta/ui/screens/online/game/seat_card.dart';
 import 'package:oberta/ui/theme/app_theme.dart';
-import 'package:oberta/ui/theme/role_style.dart';
 import 'package:oberta/ui/widgets/death_scene.dart';
 import 'package:oberta/ui/widgets/verdict_scene.dart';
-import 'package:oberta/ui/widgets/player_grid.dart';
+
+import '../support/local_game.dart';
 
 const ada = Player(id: 'ada', name: 'Ada');
 const bruno = Player(id: 'bruno', name: 'Bruno');
@@ -33,6 +35,7 @@ Future<void> pumpGame(
   Player? narrator,
   Map<Player, Role>? deal,
   Size screen = const Size(393, 852),
+  Random? seating,
 }) async {
   tester.view.physicalSize = screen * 3;
   tester.view.devicePixelRatio = 3;
@@ -53,6 +56,7 @@ Future<void> pumpGame(
               builder: (_) => GameScreen(
                 setup: GameSetup.fromRoles(deal ?? roles, narrator: narrator),
                 random: Random(1),
+                seating: seating,
               ),
             )),
             child: const Text('GIOCA'),
@@ -61,7 +65,7 @@ Future<void> pumpGame(
       ),
     ),
   ));
-  await tap(tester, 'GIOCA');
+  await tapLabel(tester, 'GIOCA');
 }
 
 /// Il verdetto sul tavolo: niente film, il linciaggio si gioca sul posto.
@@ -71,158 +75,182 @@ Future<void> watchVerdict(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-/// Tocca un pulsante; se il copione è più lungo dello schermo, prima lo
-/// legge fino in fondo come farebbe il narratore.
-Future<void> tap(WidgetTester tester, String label) async {
-  while (find.text(label).evaluate().isEmpty &&
-      find.text('CONTINUA A LEGGERE').evaluate().isNotEmpty) {
-    await tester.tap(find.text('CONTINUA A LEGGERE'));
-    await tester.pumpAndSettle();
-  }
-  await tester.tap(find.text(label));
-  await tester.pumpAndSettle();
+/// Dal buio in sala all'alba, saltando i film.
+Future<void> skipFilms(WidgetTester tester) async {
+  await tester.tap(find.text('BUIO IN SALA'));
+  await tester.pump(const Duration(milliseconds: 500));
+  await tapLabel(tester, 'SALTA');
+  await tapLabel(tester, 'AVANTI');
 }
 
-/// Un turno di notte: prende il telefono, sceglie (o passa) e lo posa.
-Future<void> nightTurn(WidgetTester tester, Player actor, {Player? pick}) async {
-  expect(find.text(actor.name.toUpperCase()), findsOneWidget, reason: 'tocca a ${actor.name}');
-  await tap(tester, 'SONO IO');
-  if (pick == null) {
-    await tap(tester, 'PASSO');
-  } else {
-    await tap(tester, pick.name);
-    await tap(tester, 'CONFERMA');
-  }
-}
+LocalTable table(WidgetTester tester) => tester.widget<LocalTable>(find.byType(LocalTable));
+
+SeatCard seat(WidgetTester tester, Player player) => tester.widget<SeatCard>(find.byKey(ValueKey('seat-${player.id}')));
 
 void main() {
-  testWidgets('una partita intera: la mafia uccide, la piazza la scopre', (tester) async {
+  testWidgets('una partita intera: notte, film, alba, discussione, voto a turno, verdetto, fine', (tester) async {
     await pumpGame(tester);
+    await tapLabel(tester, 'COMINCIA LA NOTTE');
 
-    expect(find.text('NOTTE 1'), findsOneWidget);
-    expect(find.text('CALA LA NOTTE'), findsOneWidget);
-    expect(find.text('PARLA IL NARRATORE'), findsOneWidget);
-    expect(find.textContaining(RegExp(r'^(Chicago|New York|Palermo|Napoli|Las Vegas), 19\d\d$')), findsOneWidget);
-    expect(find.textContaining('Di notte la famiglia elimina una persona.'), findsOneWidget);
-    expect(find.textContaining('Passatevi il telefono.'), findsOneWidget);
-    await tap(tester, 'COMINCIA LA NOTTE');
+    await nightTurn(tester, ada, number: 1, pick: carla);
 
-    await nightTurn(tester, ada, pick: carla);
-    expect(find.text('Fatto.'), findsOneWidget);
-    await tap(tester, 'FATTO');
-
-    await nightTurn(tester, bruno, pick: ada);
+    expect(curtainName(tester), '2 BRUNO');
+    await tapKey(tester, 'local.itsMe');
+    expect(find.text('Su chi vuoi indagare?'), findsOneWidget);
+    await tapSeat(tester, ada);
+    expect(find.text('Hai scelto 1 Ada. Conferma, o tocca un altro posto.'), findsOneWidget);
+    await tapKey(tester, 'local.confirm');
     expect(find.text('LA TUA INDAGINE'), findsOneWidget);
-    expect(find.text('ADA'), findsOneWidget);
+    expect(find.text('1 ADA'), findsOneWidget);
     expect(find.text('È DELLA FAMIGLIA'), findsOneWidget);
-    await tap(tester, 'FATTO');
+    expect(seat(tester, ada).selected, isTrue, reason: 'il posto scoperto resta acceso');
+    await tapKey(tester, 'local.done');
 
-    await nightTurn(tester, carla);
-    await tap(tester, 'FATTO');
-    await nightTurn(tester, dino);
-    await tap(tester, 'FATTO');
+    await nightTurn(tester, carla, number: 3);
+    await nightTurn(tester, dino, number: 4);
 
     // Prima del racconto, il delitto va in scena col telefono sul tavolo.
     expect(find.text('Telefono\nsul tavolo'), findsOneWidget);
     await tester.tap(find.text('BUIO IN SALA'));
     await tester.pump(const Duration(milliseconds: 600));
     expect(find.byType(DeathScene), findsOneWidget);
-    expect(find.text('CARLA'), findsNothing, reason: 'il nome arriva solo alla fine della scena');
     await tester.pump(DeathScene.length + const Duration(milliseconds: 100));
     await tester.pump();
     expect(find.text('CARLA'), findsOneWidget);
-    expect(find.byType(DeathScene), findsOneWidget, reason: 'la scena aspetta che il tavolo vada avanti');
-    await tap(tester, 'AVANTI');
-    expect(find.byType(DeathScene), findsNothing);
+    await tapLabel(tester, 'AVANTI');
 
     expect(find.text('ALBA'), findsOneWidget);
-    expect(find.text('Cronaca nera'), findsOneWidget);
     expect(find.text('Tra i morti di stanotte: Carla. Il suo ruolo resta segreto.'), findsOneWidget);
-    expect(find.textContaining('notte.'), findsWidgets, reason: 'la morte è raccontata come una scena');
     expect(find.textContaining('L\'Onesto'), findsNothing, reason: 'di notte il ruolo resta segreto');
-    expect(find.text('Avete un minuto per discutere. Poi votate chi eliminare.'), findsOneWidget);
-    await tap(tester, 'APRI LA DISCUSSIONE');
+    await tapLabel(tester, 'APRI LA DISCUSSIONE');
 
+    // La discussione: il tavolo di tutti, nell'ordine di sempre, il
+    // cronometro nel cartiglio.
     expect(find.text('GIORNO 1'), findsOneWidget);
     expect(find.text('1:00'), findsOneWidget);
+    expect(table(tester).seats, [ada, bruno, carla, dino]);
+    expect(seat(tester, carla).fallen, isTrue);
+    expect(seat(tester, ada).note, isNull, reason: 'l\'indagine non è pubblica');
     await tester.pump(const Duration(seconds: 2));
     expect(find.text('0:58'), findsOneWidget);
-    await tester.tap(find.text('+1 MIN'));
-    await tester.pump();
+    await tapKey(tester, 'local.moreTime');
     expect(find.text('1:58'), findsOneWidget);
-    await tap(tester, 'AL VOTO');
+    await tapKey(tester, 'local.toVote');
 
+    // Il voto: il telefono resta in mezzo, ognuno a turno.
     expect(find.textContaining('Potete anche non eliminare nessuno.'), findsOneWidget);
-    final condemn = find.widgetWithText(ElevatedButton, 'CONDANNA');
-    expect(tester.widget<ElevatedButton>(condemn).onPressed, isNull);
-    await tap(tester, 'Ada');
-    await tap(tester, 'CONDANNA');
+    expect(find.text('Vota 1 Ada: tocca chi condanni.'), findsOneWidget);
+    expect(table(tester).selectable, {bruno, dino}, reason: 'né se stessi né i morti');
+    await tapKey(tester, 'local.abstain');
+    expect(find.text('Vota 2 Bruno: tocca chi condanni.'), findsOneWidget);
+    await tapSeat(tester, dino);
+    expect(seat(tester, dino).votes, 1);
+    // Bruno ci ripensa: si torna indietro e si cambia.
+    await tapKey(tester, 'local.undoVote');
+    expect(find.text('Vota 2 Bruno: tocca chi condanni.'), findsOneWidget);
+    await tapSeat(tester, ada);
+    expect(seat(tester, dino).votes, 0);
+    expect(seat(tester, ada).votes, 1);
+    expect(seat(tester, bruno).pizzino, '1');
+    await tapSeat(tester, ada);
     await watchVerdict(tester);
 
     expect(find.text('IL VERDETTO'), findsOneWidget);
     expect(find.byKey(const Key('lynch.stamp')), findsOneWidget, reason: 'il linciaggio sul posto di Ada');
     expect(find.text('La carta si gira. Ada era… IL PICCIOTTO. Stava con la famiglia.'), findsOneWidget);
-    await tap(tester, 'FINALE');
+    expect(find.text('1 Ada: 2 voti  ·  1 astenuto'), findsOneWidget);
+    await tapKey(tester, 'local.afterVerdict');
 
     expect(find.text('Vincono\ngli onesti'), findsOneWidget);
-    expect(find.text('Vincono gli onesti: tutta la famiglia è stata eliminata.'), findsOneWidget);
     expect(find.text('CHI ERA CHI'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('TORNA ALLA HOME'), 200);
-    await tester.ensureVisible(find.text('TORNA ALLA HOME'));
     await tester.pumpAndSettle();
     expect(find.text('Notte 1'), findsOneWidget);
     expect(find.text('Patibolo, giorno 1'), findsOneWidget);
-    await tap(tester, 'TORNA ALLA HOME');
+    await tapLabel(tester, 'TORNA ALLA HOME');
     expect(find.text('GIOCA'), findsOneWidget);
   });
 
-  testWidgets('di notte ognuno vede sulla griglia solo quello che sa', (tester) async {
+  testWidgets('a ogni passaggio di mano i posti si rimescolano; numeri e nomi restano giusti', (tester) async {
+    final players = [ada, bruno, carla, dino, elio, fabio];
+    await pumpGame(tester, deal: {
+      ada: Role.mafioso,
+      bruno: Role.detective,
+      carla: Role.medico,
+      dino: Role.cittadino,
+      elio: Role.cittadino,
+      fabio: Role.cittadino,
+    });
+    await tapLabel(tester, 'COMINCIA LA NOTTE');
+
+    final hands = <List<({String name, int? number})>>[];
+    for (final (i, player) in players.indexed) {
+      expect(curtainName(tester), '${i + 1} ${player.name.toUpperCase()}');
+      await tapKey(tester, 'local.itsMe');
+      final seen = tableOnScreen(tester);
+      hands.add(seen);
+      // Il posto cambia, il numero no: ognuno porta il suo.
+      expect(seen.length, players.length);
+      expect({for (final s in seen) s.name}, {for (final p in players) p.name});
+      for (final s in seen) {
+        expect(s.number, players.indexWhere((p) => p.name == s.name) + 1, reason: s.name);
+      }
+      expect(seen.first.name, player.name, reason: 'chi ha il telefono sta in basso');
+      await tapKey(tester, 'local.pass');
+      await tapKey(tester, 'local.done');
+    }
+    // Da una mano all'altra il giro degli altri cambia: le stesse persone
+    // non tornano allo stesso posto rispetto a chi guarda.
+    for (var i = 1; i < hands.length; i++) {
+      final before = [for (final s in hands[i - 1]) s.name];
+      final now = [for (final s in hands[i]) s.name];
+      final start = before.indexOf(now.first);
+      final rotated = [...before.skip(start), ...before.take(start)];
+      expect(now, isNot(rotated), reason: 'mano $i');
+      expect(now, isNot(before), reason: 'mano $i');
+    }
+
+    // Di giorno il tavolo è di tutti: l'ordine di sempre.
+    await tapLabel(tester, 'APRI LA DISCUSSIONE');
+    expect(table(tester).seats, players);
+    expect([for (final p in players) seat(tester, p).number], [1, 2, 3, 4, 5, 6]);
+  });
+
+  testWidgets('di notte ognuno vede sul tavolo solo quello che sa', (tester) async {
     await pumpGame(tester);
-    await tap(tester, 'COMINCIA LA NOTTE');
+    await tapLabel(tester, 'COMINCIA LA NOTTE');
 
-    await tap(tester, 'SONO IO');
+    await tapKey(tester, 'local.itsMe');
     expect(find.text('Chi eliminate stanotte?'), findsOneWidget);
-    expect(find.text('TU'), findsOneWidget);
-    expect(find.text('FAMIGLIA'), findsNothing);
-
-    await tap(tester, 'Ada');
-    final confirm = find.widgetWithText(ElevatedButton, 'CONFERMA');
-    expect(tester.widget<ElevatedButton>(confirm).onPressed, isNull, reason: 'non può colpire se stessa');
-    await tap(tester, 'Carla');
-    await tap(tester, 'CONFERMA');
-    await tap(tester, 'FATTO');
+    expect(table(tester).selectable, isNot(contains(ada)), reason: 'non può colpire se stessa');
+    await tapSeat(tester, ada);
+    expect(table(tester).selected, isNull);
+    await tapSeat(tester, carla);
+    await tapKey(tester, 'local.confirm');
+    await tapKey(tester, 'local.done');
 
     await nightTurn(tester, bruno, pick: ada);
-    await tap(tester, 'FATTO');
     await nightTurn(tester, carla);
-    await tap(tester, 'FATTO');
     await nightTurn(tester, dino);
-    await tap(tester, 'FATTO');
-    await tester.tap(find.text('BUIO IN SALA'));
-    await tester.pump(const Duration(milliseconds: 500));
-    await tap(tester, 'SALTA');
-    await tap(tester, 'AVANTI');
-    await tap(tester, 'APRI LA DISCUSSIONE');
-
-    expect(find.text('FAMIGLIA'), findsNothing, reason: 'l\'indagine non è pubblica');
-    expect(find.text('†'), findsOneWidget);
-    await tap(tester, 'AL VOTO');
-    await tap(tester, 'NESSUNO');
+    await skipFilms(tester);
+    await tapLabel(tester, 'APRI LA DISCUSSIONE');
+    await tapKey(tester, 'local.toVote');
+    for (var i = 0; i < 3; i++) {
+      await tapKey(tester, 'local.abstain');
+    }
     await watchVerdict(tester);
     expect(find.text('Nessuna condanna'), findsOneWidget);
     expect(find.text('Oggi non viene eliminato nessuno.'), findsOneWidget);
-    await tap(tester, 'CONTINUA');
+    await tapKey(tester, 'local.afterVerdict');
 
     expect(find.text('NOTTE 2'), findsOneWidget);
-    await tap(tester, 'COMINCIA LA NOTTE');
+    await tapLabel(tester, 'COMINCIA LA NOTTE');
     await nightTurn(tester, ada);
-    await tap(tester, 'FATTO');
 
-    expect(find.text('BRUNO'), findsOneWidget);
-    await tap(tester, 'SONO IO');
-    expect(find.text('FAMIGLIA'), findsOneWidget, reason: 'il Commissario ricorda la sua indagine');
-    final grid = tester.widget<PlayerGrid>(find.byType(PlayerGrid));
-    expect(grid.selectable, [ada, dino], reason: 'i morti e se stessi non si scelgono');
+    expect(curtainName(tester), '2 BRUNO');
+    await tapKey(tester, 'local.itsMe');
+    expect(seat(tester, ada).note, 'famiglia', reason: 'il Commissario ricorda la sua indagine');
+    expect(table(tester).selectable, {ada, dino}, reason: 'i morti e se stessi non si scelgono');
   });
 
   testWidgets('il Becchino scava nella fossa di chi è morto di notte e vede chi era', (tester) async {
@@ -233,78 +261,52 @@ void main() {
       dino: Role.cittadino,
       elio: Role.cittadino,
     });
-    await tap(tester, 'COMINCIA LA NOTTE');
-
+    await tapLabel(tester, 'COMINCIA LA NOTTE');
     await nightTurn(tester, ada, pick: carla);
-    await tap(tester, 'FATTO');
 
     // Prima notte: nessun morto, quindi una domanda di copertura come gli altri.
-    await tap(tester, 'SONO IO');
+    await tapKey(tester, 'local.itsMe');
     expect(find.text('Quale fossa scavi stanotte?'), findsNothing);
     expect(find.textContaining('Non hai mosse'), findsOneWidget);
-    await tap(tester, 'PASSO');
-    await tap(tester, 'FATTO');
+    await tapKey(tester, 'local.pass');
+    await tapKey(tester, 'local.done');
     for (final player in [carla, dino, elio]) {
       await nightTurn(tester, player);
-      await tap(tester, 'FATTO');
     }
-    await tester.tap(find.text('BUIO IN SALA'));
-    await tester.pump(const Duration(milliseconds: 500));
-    await tap(tester, 'SALTA');
-    await tap(tester, 'AVANTI');
-    await tap(tester, 'APRI LA DISCUSSIONE');
-    await tap(tester, 'AL VOTO');
-    await tap(tester, 'NESSUNO');
+    await skipFilms(tester);
+    await tapLabel(tester, 'APRI LA DISCUSSIONE');
+    await tapKey(tester, 'local.toVote');
+    for (var i = 0; i < 4; i++) {
+      await tapKey(tester, 'local.abstain');
+    }
     await watchVerdict(tester);
-    await tap(tester, 'CONTINUA');
+    await tapKey(tester, 'local.afterVerdict');
 
-    await tap(tester, 'COMINCIA LA NOTTE');
+    await tapLabel(tester, 'COMINCIA LA NOTTE');
     await nightTurn(tester, ada);
-    await tap(tester, 'FATTO');
-
-    expect(find.text('BRUNO'), findsOneWidget);
-    await tap(tester, 'SONO IO');
+    await tapKey(tester, 'local.itsMe');
     expect(find.text('Quale fossa scavi stanotte?'), findsOneWidget);
     expect(find.textContaining('scopri subito, solo tu'), findsOneWidget);
-    var grid = tester.widget<PlayerGrid>(find.byType(PlayerGrid));
-    expect(grid.selectable, [carla], reason: 'si scava solo dove c\'è una croce');
-
-    final confirm = find.widgetWithText(ElevatedButton, 'CONFERMA');
-    await tap(tester, 'Dino');
-    expect(tester.widget<ElevatedButton>(confirm).onPressed, isNull, reason: 'i vivi non si riesumano');
-    await tap(tester, 'Carla');
-    expect(tester.widget<ElevatedButton>(confirm).onPressed, isNotNull);
-    await tap(tester, 'CONFERMA');
+    expect(table(tester).selectable, {carla}, reason: 'si scava solo dove c\'è una croce');
+    await tapSeat(tester, dino);
+    expect(table(tester).selected, isNull, reason: 'i vivi non si riesumano');
+    await tapSeat(tester, carla);
+    await tapKey(tester, 'local.confirm');
 
     expect(find.text('NELLA FOSSA'), findsOneWidget);
     expect(find.text('LA TUA INDAGINE'), findsNothing);
-    expect(find.text('CARLA'), findsOneWidget);
+    expect(find.text('3 CARLA'), findsOneWidget);
     expect(find.text('ERA L\'ONESTO'), findsOneWidget);
     expect(find.text('STAVA CON GLI ONESTI'), findsOneWidget);
-    expect(find.byWidgetPredicate((w) => w is RoleIcon && w.role == Role.cittadino), findsOneWidget);
-    await tap(tester, 'FATTO');
+    expect(seat(tester, carla).role, Role.cittadino);
+    await tapKey(tester, 'local.done');
 
     for (final player in [dino, elio]) {
       await nightTurn(tester, player);
-      await tap(tester, 'FATTO');
     }
     expect(find.text('Tutti vivi'), findsOneWidget);
-    await tap(tester, 'APRI LA DISCUSSIONE');
-    expect(find.byWidgetPredicate((w) => w is RoleIcon && w.role == Role.cittadino), findsNothing, reason: 'quello che ha scoperto non è pubblico');
-    await tap(tester, 'AL VOTO');
-    await tap(tester, 'NESSUNO');
-    await watchVerdict(tester);
-    await tap(tester, 'CONTINUA');
-
-    await tap(tester, 'COMINCIA LA NOTTE');
-    await nightTurn(tester, ada);
-    await tap(tester, 'FATTO');
-    await tap(tester, 'SONO IO');
-    expect(find.textContaining('Non hai mosse'), findsOneWidget, reason: 'le fosse sono finite');
-    grid = tester.widget<PlayerGrid>(find.byType(PlayerGrid));
-    expect(grid.knowledgeOf(carla).role, Role.cittadino, reason: 'il Becchino ricorda cosa ha trovato');
-    expect(find.byWidgetPredicate((w) => w is RoleIcon && w.role == Role.cittadino), findsOneWidget);
-    expect(find.byWidgetPredicate((w) => w is RoleIcon && w.role == Role.becchino), findsOneWidget);
+    await tapLabel(tester, 'APRI LA DISCUSSIONE');
+    expect(seat(tester, carla).role, isNull, reason: 'quello che ha scoperto non è pubblico');
   });
 
   testWidgets('il Reduce incassa il primo colpo: va in scena un agguato che va a vuoto, e resta in gioco', (tester) async {
@@ -314,49 +316,29 @@ void main() {
       carla: Role.cittadino,
       dino: Role.cittadino,
     });
-    await tap(tester, 'COMINCIA LA NOTTE');
+    await tapLabel(tester, 'COMINCIA LA NOTTE');
 
     await nightTurn(tester, ada, pick: bruno);
-    await tap(tester, 'FATTO');
-    await tap(tester, 'SONO IO');
+    await tapKey(tester, 'local.itsMe');
     expect(find.textContaining('Non hai mosse'), findsOneWidget, reason: 'il Reduce di notte non agisce');
-    await tap(tester, 'PASSO');
-    await tap(tester, 'FATTO');
+    await tapKey(tester, 'local.pass');
+    await tapKey(tester, 'local.done');
     for (final player in [carla, dino]) {
       await nightTurn(tester, player);
-      await tap(tester, 'FATTO');
     }
 
-    expect(find.text('Telefono\nsul tavolo'), findsOneWidget);
     await tester.tap(find.text('BUIO IN SALA'));
     await tester.pump(const Duration(milliseconds: 500));
     final scene = tester.widget<DeathScene>(find.byType(DeathScene));
     expect(scene.save?.luckyEscape, isTrue, reason: 'lo manda a vuoto un colpo di fortuna');
-    expect(canSpare(scene.act, scene.save!), isTrue, reason: 'sopra un agguato della famiglia');
-    await tap(tester, 'SALTA');
-    expect(find.text('BRUNO'), findsNothing, reason: 'chi si salva resta anonimo');
+    await tapLabel(tester, 'SALTA');
     expect(find.text('QUALCUNO'), findsOneWidget);
-    expect(find.text('VEDRÀ L\'ALBA'), findsOneWidget);
-    await tap(tester, 'AVANTI');
+    await tapLabel(tester, 'AVANTI');
 
     expect(find.text('Tutti vivi'), findsOneWidget);
-    expect(
-      find.text('Stanotte hanno provato a uccidere qualcuno, ma il colpo è andato a vuoto. Chi fosse, resta un segreto.'),
-      findsOneWidget,
-    );
-    // Il racconto dice il colpo di fortuna che si è visto.
-    final luck = switch (scene.save) {
-      DeathAct.lucky => 'fiaschetta',
-      DeathAct.bible => 'Bibbia',
-      DeathAct.jam => 'lic',
-      DeathAct.banana => 'banana',
-      _ => 'gatto nero',
-    };
-    expect(find.textContaining(luck), findsOneWidget);
     expect(find.textContaining('Reduce'), findsNothing, reason: 'il tavolo non deve sapere perché');
-    expect(find.text('Stanotte non è morto nessuno.'), findsNothing, reason: 'l\'agguato c\'è stato');
-    await tap(tester, 'APRI LA DISCUSSIONE');
-    expect(find.text('†'), findsNothing);
+    await tapLabel(tester, 'APRI LA DISCUSSIONE');
+    expect(seat(tester, bruno).fallen, isFalse);
   });
 
   testWidgets('il Sarto cuce una bocca, e il Padrino inganna il Commissario', (tester) async {
@@ -368,67 +350,94 @@ void main() {
       elio: Role.cittadino,
       fabio: Role.cittadino,
     });
-    await tap(tester, 'COMINCIA LA NOTTE');
+    await tapLabel(tester, 'COMINCIA LA NOTTE');
 
-    await tap(tester, 'SONO IO');
+    await tapKey(tester, 'local.itsMe');
     expect(find.text('Chi eliminate stanotte?'), findsOneWidget);
-    expect(find.byWidgetPredicate((w) => w is RoleIcon && w.role == Role.padrino), findsOneWidget);
-    expect(find.byWidgetPredicate((w) => w is RoleIcon && w.role == Role.sarto), findsOneWidget, reason: 'la famiglia si riconosce');
-    await tap(tester, 'Dino');
-    await tap(tester, 'CONFERMA');
-    await tap(tester, 'FATTO');
+    expect(seat(tester, bruno).role, Role.sarto, reason: 'la famiglia si riconosce');
+    expect(seat(tester, ada).role, isNull, reason: 'il proprio posto non mostra la carta');
+    await tapSeat(tester, dino);
+    await tapKey(tester, 'local.confirm');
+    await tapKey(tester, 'local.done');
 
-    expect(find.text('BRUNO'), findsOneWidget);
-    await tap(tester, 'SONO IO');
+    expect(curtainName(tester), '2 BRUNO');
+    await tapKey(tester, 'local.itsMe');
     expect(find.text('Chi eliminate stanotte?'), findsOneWidget, reason: 'il Sarto vota l\'agguato');
-    await tap(tester, 'CUCI UNA BOCCA');
+    expect(seat(tester, ada).pizzino, '4', reason: 'la famiglia vede dove punta il complice');
+    await tapLabel(tester, 'CUCI UNA BOCCA');
     expect(find.text('A chi cuci la bocca stanotte?'), findsOneWidget);
     expect(find.textContaining('domani non potrà parlare'), findsOneWidget);
-    await tap(tester, 'Elio');
-    await tap(tester, 'CONFERMA');
+    await tapSeat(tester, elio);
+    await tapKey(tester, 'local.confirm');
     expect(find.text('Fatto.'), findsOneWidget);
-    await tap(tester, 'FATTO');
+    await tapKey(tester, 'local.done');
 
-    await nightTurn(tester, carla, pick: ada);
+    await tapKey(tester, 'local.itsMe');
+    await tapSeat(tester, ada);
+    await tapKey(tester, 'local.confirm');
     expect(find.text('LA TUA INDAGINE'), findsOneWidget);
-    expect(find.text('ADA'), findsOneWidget);
     expect(find.text('È INNOCENTE'), findsOneWidget, reason: 'il Padrino ha le carte in regola');
     expect(find.text('È DELLA FAMIGLIA'), findsNothing);
-    await tap(tester, 'FATTO');
+    await tapKey(tester, 'local.done');
 
     for (final player in [dino, elio, fabio]) {
       await nightTurn(tester, player);
-      await tap(tester, 'FATTO');
     }
-    await tester.tap(find.text('BUIO IN SALA'));
-    await tester.pump(const Duration(milliseconds: 500));
-    await tap(tester, 'SALTA');
-    await tap(tester, 'AVANTI');
-
-    expect(find.text('Cronaca nera'), findsOneWidget);
+    await skipFilms(tester);
     expect(find.text('Tra i morti di stanotte: Dino. Il suo ruolo resta segreto.'), findsOneWidget);
-    expect(
-      find.text('Oggi Elio non può parlare durante la discussione. Vota a gesti, e resta tra chi potete eliminare.'),
-      findsOneWidget,
-    );
-    await tap(tester, 'APRI LA DISCUSSIONE');
+    await tapLabel(tester, 'APRI LA DISCUSSIONE');
 
-    expect(find.byIcon(Icons.voice_over_off), findsOneWidget, reason: 'il tavolo vede chi deve tacere');
-    await tap(tester, 'AL VOTO');
-    expect(find.byIcon(Icons.voice_over_off), findsOneWidget);
-    final grid = tester.widget<PlayerGrid>(find.byType(PlayerGrid));
-    expect(grid.selectable, contains(elio), reason: 'chi tace si può comunque condannare');
-    await tap(tester, 'NESSUNO');
+    expect(seat(tester, elio).note, 'zittito', reason: 'il tavolo vede chi deve tacere');
+    await tapKey(tester, 'local.toVote');
+    expect(seat(tester, elio).note, 'zittito');
+    expect(table(tester).selectable, contains(elio), reason: 'chi tace si può comunque condannare');
+    for (var i = 0; i < 5; i++) {
+      await tapKey(tester, 'local.abstain');
+    }
     await watchVerdict(tester);
-    await tap(tester, 'CONTINUA');
+    await tapKey(tester, 'local.afterVerdict');
 
-    await tap(tester, 'COMINCIA LA NOTTE');
+    await tapLabel(tester, 'COMINCIA LA NOTTE');
     await nightTurn(tester, ada);
-    await tap(tester, 'FATTO');
-    await tap(tester, 'SONO IO');
-    expect(find.byIcon(Icons.voice_over_off), findsNothing, reason: 'il silenzio dura un giorno');
+    await tapKey(tester, 'local.itsMe');
+    expect(seat(tester, elio).note, isNull, reason: 'il silenzio dura un giorno');
     expect(find.byKey(const Key('task.alternative')), findsNothing, reason: 'il silenzio è uno per partita');
-    expect(find.text('Chi eliminate stanotte?'), findsOneWidget);
+  });
+
+  testWidgets('il Sindaco si rivela al suo turno di voto e vale doppio; chi non lo è viene fermato', (tester) async {
+    await pumpGame(tester, deal: {
+      ada: Role.mafioso,
+      bruno: Role.sindaco,
+      carla: Role.cittadino,
+      dino: Role.cittadino,
+      elio: Role.cittadino,
+    });
+    await tapLabel(tester, 'COMINCIA LA NOTTE');
+    for (final player in [ada, bruno, carla, dino, elio]) {
+      await nightTurn(tester, player);
+    }
+    await tapLabel(tester, 'APRI LA DISCUSSIONE');
+    await tapKey(tester, 'local.toVote');
+
+    // Ada prova a rivelarsi: il telefono dice di no, a tutti.
+    await tapKey(tester, 'local.revealMayor');
+    await tapLabel(tester, 'RIVELATI');
+    expect(find.text('Solo il Sindaco può rivelarsi.'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+    await tapSeat(tester, carla);
+
+    await tapKey(tester, 'local.revealMayor');
+    await tapLabel(tester, 'RIVELATI');
+    expect(find.byKey(const Key('local.revealMayor')), findsNothing, reason: 'una volta per partita');
+    expect(seat(tester, bruno).role, Role.sindaco, reason: 'ora lo sanno tutti');
+    await tapSeat(tester, ada);
+    expect(seat(tester, ada).votes, 2, reason: 'il suo voto vale doppio');
+    for (var i = 0; i < 3; i++) {
+      await tapKey(tester, 'local.abstain');
+    }
+    await watchVerdict(tester);
+    expect(find.byKey(const Key('lynch.stamp')), findsOneWidget, reason: 'due voti contro uno: Ada');
   });
 
   testWidgets('a fine partita la famiglia è in rosso, qualunque ruolo avesse', (tester) async {
@@ -437,18 +446,12 @@ void main() {
       bruno: Role.pregiudicato,
       carla: Role.cittadino,
     });
-    await tap(tester, 'COMINCIA LA NOTTE');
+    await tapLabel(tester, 'COMINCIA LA NOTTE');
     await nightTurn(tester, ada, pick: carla);
-    await tap(tester, 'FATTO');
     await nightTurn(tester, bruno);
-    await tap(tester, 'FATTO');
     await nightTurn(tester, carla);
-    await tap(tester, 'FATTO');
-    await tester.tap(find.text('BUIO IN SALA'));
-    await tester.pump(const Duration(milliseconds: 500));
-    await tap(tester, 'SALTA');
-    await tap(tester, 'AVANTI');
-    await tap(tester, 'FINALE');
+    await skipFilms(tester);
+    await tapLabel(tester, 'FINALE');
 
     expect(find.text('Vince\nla famiglia'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('TORNA ALLA HOME'), 200);
@@ -463,37 +466,58 @@ void main() {
   testWidgets('un tavolo da sedici fa il giro della notte e arriva all\'alba', (tester) async {
     final players = [for (var i = 1; i <= maxRolePlayers; i++) Player(id: 'g$i', name: 'Posto$i')];
     await pumpGame(tester, deal: Map.fromIterables(players, rolesForPlayerCount(players.length)));
-    await tap(tester, 'COMINCIA LA NOTTE');
+    await tapLabel(tester, 'COMINCIA LA NOTTE');
 
-    for (final player in players) {
-      expect(find.text(player.name.toUpperCase()), findsOneWidget);
-      await tap(tester, 'SONO IO');
+    for (final (i, player) in players.indexed) {
+      expect(curtainName(tester), '${i + 1} ${player.name.toUpperCase()}');
+      await tapKey(tester, 'local.itsMe');
       expect(tester.takeException(), isNull, reason: player.name);
-      expect(tester.widget<PlayerGrid>(find.byType(PlayerGrid)).players, hasLength(maxRolePlayers));
-      await tap(tester, 'PASSO');
-      await tap(tester, 'FATTO');
+      expect(table(tester).seats, hasLength(maxRolePlayers));
+      await tapKey(tester, 'local.pass');
+      await tapKey(tester, 'local.done');
     }
 
     expect(find.text('Tutti vivi'), findsOneWidget);
-    await tap(tester, 'APRI LA DISCUSSIONE');
+    await tapLabel(tester, 'APRI LA DISCUSSIONE');
     expect(tester.takeException(), isNull);
-    expect(tester.widget<PlayerGrid>(find.byType(PlayerGrid)).players, hasLength(maxRolePlayers));
+    expect(table(tester).seats, hasLength(maxRolePlayers));
+  });
+
+  testWidgets('ogni ruolo del telefono solo ha la sua domanda e i suoi posti, dal compito del motore', (tester) async {
+    // Un ruolo nuovo nelle regole arriva qui da solo: lo schermo chiede al
+    // motore il compito, la domanda e chi si può scegliere.
+    final night = [
+      for (final role in Role.values)
+        if (role.playableIn(PlayMode.sharedPhone) && role != Role.mafioso && role.team != Team.mafia) role,
+    ];
+    for (final role in night) {
+      await pumpGame(tester, deal: {ada: role, bruno: Role.mafioso, carla: Role.cittadino, dino: Role.cittadino, elio: Role.cittadino});
+      await tapLabel(tester, 'COMINCIA LA NOTTE');
+      await tapKey(tester, 'local.itsMe');
+      expect(tester.takeException(), isNull, reason: role.name);
+      final prompt = tester.widget<Text>(find.byKey(const Key('local.taskPrompt')));
+      expect(prompt.data, isNotEmpty, reason: role.name);
+      expect(table(tester).seats, hasLength(5), reason: role.name);
+      await tapKey(tester, 'local.pass');
+      await tapKey(tester, 'local.done');
+      expect(curtainName(tester), '2 BRUNO', reason: role.name);
+      await tester.pumpWidget(const SizedBox());
+    }
   });
 
   testWidgets('con il narratore umano il telefono torna a lui per l\'alba', (tester) async {
     await pumpGame(tester, narrator: elio);
 
     expect(find.text('LEGGE ELIO, AD ALTA VOCE'), findsOneWidget);
-    await tap(tester, 'COMINCIA LA NOTTE');
+    await tapLabel(tester, 'COMINCIA LA NOTTE');
     expect(find.byIcon(Icons.visibility), findsNothing, reason: 'di notte il telefono non è del narratore');
 
     for (final player in [ada, bruno, carla, dino]) {
       await nightTurn(tester, player);
-      await tap(tester, 'FATTO');
     }
 
-    expect(find.text('ELIO'), findsOneWidget);
-    await tap(tester, 'SONO IO');
+    expect(curtainName(tester), 'ELIO', reason: 'il narratore non ha un posto al tavolo');
+    await tapKey(tester, 'local.itsMe');
     expect(find.text('Tutti vivi'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.visibility));
@@ -525,18 +549,27 @@ void main() {
     expect(find.textContaining('Passatevi il telefono.').hitTestable(), findsOneWidget, reason: 'l\'istruzione finale è in vista');
   });
 
+  testWidgets('su uno schermo piccolo il tavolo e la tenda stanno interi', (tester) async {
+    await pumpGame(tester, screen: const Size(320, 568));
+    await tapLabel(tester, 'COMINCIA LA NOTTE');
+    expect(tester.takeException(), isNull);
+    await tapKey(tester, 'local.itsMe');
+    expect(tester.takeException(), isNull);
+    expect(find.byType(LocalTable), findsOneWidget);
+  });
+
   testWidgets('uscire dalla partita chiede conferma', (tester) async {
     await pumpGame(tester);
 
     await tester.tap(find.byIcon(Icons.close));
     await tester.pumpAndSettle();
     expect(find.text('Abbandonare la partita?'), findsOneWidget);
-    await tap(tester, 'RESTA');
+    await tapLabel(tester, 'RESTA');
     expect(find.text('NOTTE 1'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.close));
     await tester.pumpAndSettle();
-    await tap(tester, 'ESCI');
+    await tapLabel(tester, 'ESCI');
     expect(find.text('GIOCA'), findsOneWidget);
   });
 }

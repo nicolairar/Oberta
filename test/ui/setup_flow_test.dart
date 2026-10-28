@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oberta/ui/widgets/noir_modal.dart';
+import 'package:oberta/ui/screens/online/game/noir_role_card.dart';
 import 'package:oberta/main.dart';
 import 'package:oberta/roster/roster_storage.dart';
 import 'package:oberta/roster/roster_store.dart';
-import 'package:oberta/ui/widgets/flip_role_card.dart';
 
 void _usePhoneScreen(WidgetTester tester) {
   tester.view.physicalSize = const Size(1179, 2556);
@@ -59,10 +60,10 @@ void main() {
       expect(find.text('CARTA $card DI 3'), findsOneWidget);
       await tester.tap(find.text('SONO IO'));
       await tester.pumpAndSettle();
-      final done = find.widgetWithText(ElevatedButton, 'HO VISTO');
-      expect(tester.widget<ElevatedButton>(done).onPressed, isNull, reason: 'carta non ancora vista');
+      final done = find.byKey(const Key('local.gotIt'));
+      expect(tester.widget<NoirModalButton>(done).action.onPressed, isNull, reason: 'carta non ancora vista');
 
-      final gesture = await tester.startGesture(tester.getCenter(find.byType(FlipRoleCard)));
+      final gesture = await tester.startGesture(tester.getCenter(find.byType(NoirRoleCard)));
       await tester.pumpAndSettle();
       expect(find.text('TIENI PREMUTO'), findsNothing, reason: 'a dito premuto la carta è scoperta');
       await gesture.up();
@@ -96,7 +97,7 @@ void main() {
       expect(find.text('CARTA $card DI 3'), findsOneWidget);
       await tester.tap(find.text('SONO IO'));
       await tester.pumpAndSettle();
-      final gesture = await tester.startGesture(tester.getCenter(find.byType(FlipRoleCard)));
+      final gesture = await tester.startGesture(tester.getCenter(find.byType(NoirRoleCard)));
       await tester.pumpAndSettle();
       await gesture.up();
       await tester.pumpAndSettle();

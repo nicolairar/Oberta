@@ -12,6 +12,9 @@ import 'package:oberta/ui/seating.dart';
 import 'package:oberta/ui/theme/app_theme.dart';
 import 'package:oberta/ui/widgets/player_avatar.dart';
 import 'package:oberta/ui/widgets/player_grid.dart';
+import 'package:oberta/ui/screens/local/local_table.dart';
+
+import '../support/local_game.dart';
 
 List<Player> _players(int count) => [for (var i = 0; i < count; i++) Player(id: 'p$i', name: 'Giocatore${16 - i}')];
 
@@ -56,7 +59,25 @@ void main() {
     });
   });
 
-  testWidgets('di notte il tavolo si rimescola a ogni turno; di giorno resta in ordine', (tester) async {
+  test('il tavolo di una mano: chi ha il telefono in basso, gli altri rimescolati, mai lo stesso giro', () {
+    final players = _players(6);
+    final random = Random(11);
+    var last = <Player>[];
+    for (var hand = 0; hand < 300; hand++) {
+      final holder = players[hand % players.length];
+      final seats = handSeating(players, holder, random, avoid: [last]);
+      expect(seats.first, holder, reason: 'mano $hand');
+      expect(seats.toSet(), players.toSet());
+      expect(seats, hasLength(players.length));
+      if (last.isNotEmpty) {
+        final start = last.indexOf(holder);
+        expect(seats, isNot(orderedEquals([...last.skip(start), ...last.take(start)])), reason: 'mano $hand: il giro cambia');
+      }
+      last = seats;
+    }
+  });
+
+  testWidgets('di notte il tavolo si rimescola a ogni mano; di giorno resta in ordine', (tester) async {
     tester.view.physicalSize = const Size(393, 852) * 3;
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -76,22 +97,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    Future<void> tap(String label) async {
-      while (find.text(label).evaluate().isEmpty && find.text('CONTINUA A LEGGERE').evaluate().isNotEmpty) {
-        await tester.tap(find.text('CONTINUA A LEGGERE'));
-        await tester.pumpAndSettle();
-      }
-      await tester.tap(find.text(label));
-      await tester.pumpAndSettle();
-    }
-
-    List<Player> table() => tester.widget<PlayerGrid>(find.byType(PlayerGrid)).players;
+    List<Player> table() => tester.widget<LocalTable>(find.byType(LocalTable)).seats;
 
     final public = publicSeating(players);
-    await tap('COMINCIA LA NOTTE');
+    await tapLabel(tester, 'COMINCIA LA NOTTE');
     final orders = <List<Player>>[];
     for (var turn = 0; turn < players.length; turn++) {
-      await tap('SONO IO');
+      await tapKey(tester, 'local.itsMe');
       final seats = table();
       expect(seats.toSet(), players.toSet(), reason: 'turno $turn: ci sono tutti');
       expect(seats, isNot(orderedEquals(public)), reason: 'turno $turn: non è il tavolo di giorno');
@@ -100,22 +112,21 @@ void main() {
       }
       orders.add(seats);
 
-      // Toccare una faccia non sposta le altre: il tavolo resta quello finché il turno dura.
-      final grid = tester.widget<PlayerGrid>(find.byType(PlayerGrid));
-      final open = grid.selectable ?? const <Player>[];
+      // Toccare una faccia non sposta le altre: il tavolo resta quello finché la mano dura.
+      final open = tester.widget<LocalTable>(find.byType(LocalTable)).selectable;
       if (open.isNotEmpty) {
-        await tester.tap(find.text(open.first.name));
-        await tester.pumpAndSettle();
+        await tapSeat(tester, open.first);
         expect(table(), orderedEquals(seats), reason: 'turno $turn: scegliere non rimescola');
       }
-      await tap('PASSO');
-      await tap('FATTO');
+      await tapKey(tester, 'local.pass');
+      await tapKey(tester, 'local.done');
     }
-    expect(orders.map((order) => order.first).toSet().length, greaterThan(3), reason: 'il primo posto cambia faccia');
+    // Il posto accanto a chi guarda cambia faccia di mano in mano.
+    expect(orders.map((order) => order[1]).toSet().length, greaterThan(3));
 
-    await tap('APRI LA DISCUSSIONE');
+    await tapLabel(tester, 'APRI LA DISCUSSIONE');
     expect(table(), orderedEquals(public), reason: 'di giorno il tavolo è quello di tutti');
-    await tap('AL VOTO');
+    await tapKey(tester, 'local.toVote');
     expect(table(), orderedEquals(public), reason: 'al voto, lo stesso tavolo del giorno');
   });
 
