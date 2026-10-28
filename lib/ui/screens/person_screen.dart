@@ -12,6 +12,8 @@ import '../theme/app_theme.dart';
 import '../widgets/mugshot_frame.dart';
 import '../widgets/scene_scaffold.dart';
 import '../press.dart';
+import '../widgets/noir_modal.dart';
+import '../widgets/noir_notice.dart';
 
 // I testi della schermata, tutti qui: la traduzione li prenderà da qui.
 
@@ -84,9 +86,7 @@ class _PersonScreenState extends State<PersonScreen> {
   };
 
   void _say(String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+    showNotice(context, message);
   }
 
   Future<void> _take(PhotoSource source) async {
@@ -185,26 +185,14 @@ class _PersonScreenState extends State<PersonScreen> {
 
   Future<void> _remove() async {
     final member = widget.member!;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: Text(_t.personRemoveTitle(member.name), style: AppText.display(22, color: AppColors.textPrimary)),
-        content: Text(_t.personRemoveBody, style: AppText.body),
-        actions: [
-          TextButton(
-            onPressed: pressed(() => Navigator.of(context).pop(false), Press.back),
-            child: Text(_t.personRemoveCancel, style: TextStyle(color: AppColors.textSecondary)),
-          ),
-          TextButton(
-            onPressed: pressed(() => Navigator.of(context).pop(true), Press.confirm),
-            child: Text(
-              _t.personRemoveConfirm,
-              style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
-      ),
+    final confirmed = await confirmNoir(
+      context,
+      title: _t.personRemoveTitle(member.name),
+      body: _t.personRemoveBody,
+      icon: Icons.person_remove_outlined,
+      danger: true,
+      cancel: _t.personRemoveCancel,
+      confirm: _t.personRemoveConfirm,
     );
     if (confirmed != true) return;
     await _store.remove(member.id);

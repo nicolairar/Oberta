@@ -51,6 +51,7 @@ import '../../../l10n/recap_strings.dart';
 import 'safety_sheets.dart';
 import '../../../l10n/roles_sheet_strings.dart';
 import '../../widgets/roles_sheet.dart';
+import '../../widgets/noir_modal.dart';
 
 /// La partita online, vista dal proprio telefono. Tutto segue l'orologio del
 /// server: ogni fase ([Stage]) ha un inizio e una fine pubblicati sul tavolo,
@@ -484,19 +485,19 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       Navigator.of(context).pop();
       return;
     }
-    final leave = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: Text(_t.leaveQuestion),
-        content: Text(_view.alive ? _t.online.leaveAbandonWarning : _t.online.leaveDeadWarning),
-        actions: [
-          TextButton(onPressed: pressed(() => Navigator.of(context).pop(false), Press.back), child: Text(_t.stay)),
-          TextButton(onPressed: pressed(() => Navigator.of(context).pop(true), Press.tap), child: Text(_t.leave)),
-        ],
-      ),
+    final leave = await confirmNoir(
+      context,
+      key: const Key('online.leaveDialog'),
+      title: _t.leaveQuestion,
+      body: _view.alive ? _t.online.leaveAbandonWarning : _t.online.leaveDeadWarning,
+      icon: Icons.door_back_door_outlined,
+      danger: true,
+      cancel: _t.stay,
+      confirm: _t.leave,
+      cancelKey: const Key('online.leave.stay'),
+      confirmKey: const Key('online.leave.confirm'),
     );
-    if (leave != true || !mounted) return;
+    if (!leave || !mounted) return;
     // Da vivo, uscire è un abbandono: il server lo sa subito, così niente
     // premi nemmeno se la squadra vince dopo. Da morto non si paga niente,
     // ma non si prende niente.

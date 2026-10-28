@@ -11,6 +11,7 @@ import '../../../widgets/cosmetics/styled_name.dart';
 import '../online_widgets.dart';
 import 'chat_mentions.dart';
 import 'noir_ui.dart';
+import '../../../widgets/noir_modal.dart';
 
 /// Quale chat si vede adesso, e se si può scrivere. Lo decide la fase (e
 /// il server): qui si mostra soltanto.
@@ -65,11 +66,8 @@ class ChatDock extends StatelessWidget {
   });
 
   void _open(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black54,
+    showNoirSheet<void>(
+      context,
       builder: (context) => ListenableBuilder(
         listenable: source,
         builder: (context, _) {

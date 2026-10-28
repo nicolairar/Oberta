@@ -21,6 +21,7 @@ import '../../widgets/player_avatar.dart';
 import '../avatar/barber_mirror_screen.dart';
 import 'online_widgets.dart';
 import 'progress_hooks.dart';
+import '../../widgets/noir_modal.dart';
 
 part 'profile_dossier_desktop.dart';
 part 'profile_public.dart';
@@ -52,13 +53,10 @@ Future<void> showProfileSheet(
   if (DesktopCanvas.peek(context)) {
     return _showDeskDossier(context, account: account, onMirror: onMirror, onShop: onShop, onSettings: onSettings);
   }
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    backgroundColor: Colors.transparent,
-    builder: (context) => FractionallySizedBox(
-      heightFactor: 0.94,
+  return showNoirSheet<void>(
+    context,
+    heightFactor: 0.94,
+    builder: (context) => SizedBox.expand(
       child: ListenableBuilder(
         listenable: account,
         builder: (context, _) => switch (account.profile) {

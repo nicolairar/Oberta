@@ -10,6 +10,7 @@ import '../../../theme/app_theme.dart';
 import '../../../theme/role_style.dart';
 import '../../../widgets/roles_sheet.dart';
 import 'noir_ui.dart';
+import '../../../widgets/noir_modal.dart';
 
 /// I pezzi della partita online su PC: la barra in alto, i tasti disegnati,
 /// il mazzo accanto alla chat, il menu di Esc e la conferma per uscire.
@@ -458,64 +459,18 @@ class DeskPauseMenu extends StatelessWidget {
 
 /// La conferma per lasciare il tavolo, su PC: un pannello noir al centro,
 /// «resta» a sinistra e «abbandona» (smalto rosso) a destra. Esc resta.
-Future<bool> confirmDeskLeave(BuildContext context, {required String title, required String body}) async {
+Future<bool> confirmDeskLeave(BuildContext context, {required String title, required String body}) {
   final strings = DesktopGameStrings(AppStrings.of(context).language);
-  final leave = await showDialog<bool>(
-    context: context,
-    barrierColor: const Color(0xB3000000),
-    builder: (context) => Dialog(
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      child: NoirDesk(
-        child: Container(
-          key: const Key('online.leaveDialog'),
-          width: 680,
-          padding: const EdgeInsets.fromLTRB(52, 44, 52, 40),
-          decoration: DeskPanel.decoration(lit: true),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Icon(Icons.door_back_door_outlined, color: Saloon.brass, size: 48),
-              const SizedBox(height: 18),
-              Text(
-                title.toUpperCase(),
-                textAlign: TextAlign.center,
-                style: Saloon.plate(DeskText.title, color: Saloon.brass),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                body,
-                textAlign: TextAlign.center,
-                style: DeskText.text(size: DeskText.lead),
-              ),
-              const SizedBox(height: 36),
-              Row(
-                children: [
-                  Expanded(
-                    child: NoirButton(
-                      key: const Key('online.leave.stay'),
-                      kind: NoirButtonKind.brass,
-                      label: strings.stay,
-                      feel: Press.back,
-                      onPressed: () => Navigator.of(context).pop(false),
-                    ),
-                  ),
-                  const SizedBox(width: 18),
-                  Expanded(
-                    child: NoirButton(
-                      key: const Key('online.leave.confirm'),
-                      label: strings.leaveConfirm,
-                      onPressed: () => Navigator.of(context).pop(true),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    ),
+  return confirmNoir(
+    context,
+    key: const Key('online.leaveDialog'),
+    title: title,
+    body: body,
+    icon: Icons.door_back_door_outlined,
+    danger: true,
+    cancel: strings.stay,
+    confirm: strings.leaveConfirm,
+    cancelKey: const Key('online.leave.stay'),
+    confirmKey: const Key('online.leave.confirm'),
   );
-  return leave == true;
 }

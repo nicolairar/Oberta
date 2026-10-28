@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../ui/theme/app_theme.dart';
 import 'steam.dart';
+import '../ui/widgets/noir_modal.dart';
 
 /// Il menu nascosto per provare l'idraulica Steam con l'App ID 480: solo
 /// nelle build `--dart-define=STEAM=true`, si apre dalle Impostazioni del
@@ -18,10 +19,14 @@ class SteamDebugSheet extends StatefulWidget {
     const SingleActivator(LogicalKeyboardKey.keyS, meta: true, shift: true),
   ];
 
-  static Future<void> open(BuildContext context) => showDialog<void>(
-        context: context,
-        builder: (_) => Dialog(
-          backgroundColor: AppColors.surface,
+  static Future<void> open(BuildContext context) => showNoirDialog<void>(
+        context,
+        builder: (_) => DecoratedBox(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: NoirInk.brass.withValues(alpha: 0.5)),
+          ),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 560, maxHeight: 640),
             child: SteamDebugSheet(steam: SteamClient.instance),

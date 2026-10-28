@@ -6,6 +6,7 @@ import '../../rules/player.dart';
 import '../../rules/role.dart';
 import '../theme/app_theme.dart';
 import '../theme/role_style.dart';
+import 'noir_modal.dart';
 
 /// Elenco completo dei ruoli, riservato al narratore umano: resta coperto e
 /// si legge solo a dito premuto, così non rimane mai in vista sul tavolo.
@@ -20,17 +21,12 @@ class NarratorRolesSheet extends StatefulWidget {
     required GameSetup setup,
     required bool Function(Player) isAlive,
   }) {
-    return showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: AppColors.background,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (_) => FractionallySizedBox(
-        heightFactor: 0.7,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-          child: NarratorRolesSheet(setup: setup, isAlive: isAlive),
-        ),
+    return showNoirSheet<void>(
+      context,
+      heightFactor: 0.7,
+      builder: (_) => NoirSheet(
+        scroll: false,
+        children: [Expanded(child: NarratorRolesSheet(setup: setup, isAlive: isAlive))],
       ),
     );
   }

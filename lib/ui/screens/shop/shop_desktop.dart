@@ -3,10 +3,6 @@ part of 'shop_screen.dart';
 /// La larghezza del bancone con lo specchio, a destra, sulla tela a 1080p.
 const double _deskCounterWidth = 620;
 
-/// Sul PC le ricevute del sarto si leggono come i pannelli: un po' più grandi.
-Widget _deskDialog(BuildContext context, Widget dialog) =>
-    DesktopCanvas.of(context) ? Transform.scale(scale: 1.45, child: dialog) : dialog;
-
 /// La bottega sul PC: in alto le insegne dei reparti, a sinistra gli
 /// scaffali coi pezzi (si passa col mouse, si clicca per provare), a destra
 /// il bancone fisso con lo specchio grande, il padrone e il bottone.

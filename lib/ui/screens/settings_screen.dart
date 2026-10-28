@@ -29,6 +29,9 @@ import 'online/game/gesture_picker.dart';
 import 'screening_room_screen.dart';
 import 'tutorial_screen.dart';
 import '../../l10n/tutorial_strings.dart';
+import '../press.dart';
+import '../widgets/noir_modal.dart';
+import '../widgets/noir_notice.dart';
 
 part 'settings_desktop.dart';
 
@@ -94,7 +97,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final account = widget.online?.account;
     if (account == null) return;
     final s = SettingsStrings.of(context);
-    final messenger = ScaffoldMessenger.of(context);
+    final overlay = Overlay.of(context, rootOverlay: true);
     setState(() => _busy = true);
     try {
       final data = await account.exportData();
@@ -102,7 +105,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final day = DateTime.now().toIso8601String().substring(0, 10);
       await (widget.shareExport ?? _defaultShare)('oberta-data-$day.json', json);
     } catch (_) {
-      messenger.showSnackBar(SnackBar(content: Text(s.exportFailed)));
+      showNoticeIn(overlay, s.exportFailed, kind: NoticeKind.error);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -112,36 +115,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final account = widget.online?.account;
     if (account == null) return;
     final s = SettingsStrings.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    final first = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: Text(s.deleteTitle),
-        content: Text(s.deleteBody),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(s.cancel)),
-          TextButton(
-            key: const Key('settings.delete.continue'),
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(s.deleteContinue, style: const TextStyle(color: AppColors.accent)),
-          ),
-        ],
-      ),
+    final overlay = Overlay.of(context, rootOverlay: true);
+    final first = await confirmNoir(
+      context,
+      title: s.deleteTitle,
+      body: s.deleteBody,
+      icon: Icons.delete_forever_outlined,
+      danger: true,
+      cancel: s.cancel,
+      confirm: s.deleteContinue,
+      confirmKey: const Key('settings.delete.continue'),
     );
-    if (first != true || !mounted) return;
+    if (!first || !mounted) return;
     final word = handle ?? s.deleteConfirmWord;
-    final second = await showDialog<bool>(
-      context: context,
+    final second = await showNoirDialog<bool>(
+      context,
       builder: (_) => _TypeToConfirm(word: word, strings: s),
     );
     if (second != true || !mounted) return;
     setState(() => _busy = true);
     try {
       await account.deleteAccount();
-      messenger.showSnackBar(SnackBar(content: Text(s.deleteDone)));
+      showNoticeIn(overlay, s.deleteDone, kind: NoticeKind.done);
     } catch (_) {
-      messenger.showSnackBar(SnackBar(content: Text(s.deleteFailed)));
+      showNoticeIn(overlay, s.deleteFailed, kind: NoticeKind.error);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -551,31 +548,36 @@ class _TypeToConfirmState extends State<_TypeToConfirm> {
   Widget build(BuildContext context) {
     final s = widget.strings;
     final ok = _typed.trim().toLowerCase() == widget.word.toLowerCase();
-    return AlertDialog(
-      backgroundColor: AppColors.surface,
-      title: Text(s.deleteAccount),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(s.deleteTypePrompt(widget.word)),
-          const SizedBox(height: 12),
-          TextField(
-            key: const Key('settings.delete.word'),
-            autofocus: true,
-            autocorrect: false,
-            onChanged: (value) => setState(() => _typed = value),
-          ),
-        ],
-      ),
+    final m = NoirMetrics.of(context);
+    void go() => Navigator.pop(context, true);
+    return NoirDialog(
+      title: s.deleteAccount,
+      body: s.deleteTypePrompt(widget.word),
+      icon: Icons.delete_forever_outlined,
+      danger: true,
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context, false), child: Text(s.cancel)),
-        TextButton(
+        NoirAction(label: s.cancel, feel: Press.back, onPressed: () => Navigator.pop(context, false)),
+        NoirAction(
           key: const Key('settings.delete.confirm'),
-          onPressed: ok ? () => Navigator.pop(context, true) : null,
-          child: Text(s.deleteForever, style: TextStyle(color: ok ? AppColors.accent : AppColors.textSecondary)),
+          label: s.deleteForever,
+          style: NoirButtonStyle.danger,
+          feel: Press.confirm,
+          onPressed: ok ? go : null,
         ),
       ],
+      child: Padding(
+        padding: EdgeInsets.only(top: m.gap),
+        child: NoirField(
+          key: const Key('settings.delete.word'),
+          autofocus: true,
+          autocorrect: false,
+          hint: widget.word,
+          onChanged: (value) => setState(() => _typed = value),
+          onSubmitted: (_) {
+            if (ok) go();
+          },
+        ),
+      ),
     );
   }
 }

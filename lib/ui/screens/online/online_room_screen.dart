@@ -12,7 +12,6 @@ import '../../../sound/screen_music.dart';
 import '../../../sound/sound_stage.dart';
 import '../../../l10n/desktop_online_strings.dart';
 import '../../desktop/desktop_canvas.dart';
-import '../../desktop/home_modal.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/scene_scaffold.dart';
 import 'chat_panel.dart';
@@ -22,6 +21,7 @@ import 'online_desktop.dart';
 import 'online_widgets.dart';
 import 'safety_sheets.dart';
 import '../../../l10n/safety_strings.dart';
+import '../../widgets/noir_modal.dart';
 
 /// La stanza online prima della partita: il codice grande e il QR per chi
 /// deve ancora entrare, e la fila di chi è già seduto, aggiornata dal vivo.
@@ -218,122 +218,33 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> with ScreenMusic {
         if (member.profile.id != widget.me.id) member,
     ];
     String? heir;
-    final desk = DesktopCanvas.of(context);
-    if (_room.hostId == widget.me.id && others.isNotEmpty && desk) {
-      heir = await showDeskModal<String>(
+    if (_room.hostId == widget.me.id && others.isNotEmpty) {
+      heir = await showNoirMenu<String>(
         context,
-        builder: (context) => DeskModal(
-          title: t.chooseHostTitle,
-          width: 760,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(t.chooseHostBody, textAlign: TextAlign.center, style: DeskText.text(color: AppColors.textSecondary)),
-              const SizedBox(height: 28),
-              for (final member in others)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: DeskHover(
-                    key: Key('online.heir.${member.profile.id}'),
-                    onTap: () => Navigator.of(context).pop(member.profile.id),
-                    builder: (context, hovered) => AnimatedContainer(
-                      duration: const Duration(milliseconds: 120),
-                      decoration: BoxDecoration(
-                        color: hovered ? AppColors.gold.withValues(alpha: 0.1) : Colors.transparent,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.gold.withValues(alpha: hovered ? 0.7 : 0.2)),
-                      ),
-                      child: DeskProfileRow(
-                        profile: member.profile,
-                        actions: const [Icon(Icons.vpn_key, color: AppColors.gold)],
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      );
-      if (heir == null || !mounted) return;
-    } else if (_room.hostId == widget.me.id && others.isNotEmpty) {
-      heir = await showModalBottomSheet<String>(
-        context: context,
-        backgroundColor: AppColors.surface,
-        builder: (context) => SafeArea(
-          child: ListView(
-            shrinkWrap: true,
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-            children: [
-              Text(t.chooseHostTitle, style: AppText.display(22, color: AppColors.textPrimary)),
-              const SizedBox(height: 6),
-              Text(t.chooseHostBody, style: AppText.body),
-              const SizedBox(height: 12),
-              for (final member in others)
-                ListTile(
-                  key: Key('online.heir.${member.profile.id}'),
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.vpn_key, color: AppColors.gold),
-                  title: Text(member.profile.name, style: AppText.body),
-                  onTap: () => Navigator.of(context).pop(member.profile.id),
-                ),
-            ],
-          ),
-        ),
+        title: t.chooseHostTitle,
+        subtitle: t.chooseHostBody,
+        items: [
+          for (final member in others)
+            NoirMenuItem(
+              key: Key('online.heir.${member.profile.id}'),
+              value: member.profile.id,
+              icon: Icons.vpn_key_outlined,
+              label: member.profile.name,
+            ),
+        ],
       );
       if (heir == null || !mounted) return;
     } else {
-      final sure = desk
-          ? await showDeskModal<bool>(
-              context,
-              builder: (context) => DeskModal(
-                title: t.leaveConfirmTitle,
-                width: 680,
-                onEnter: () => Navigator.of(context).pop(true),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(t.leaveConfirmBody, textAlign: TextAlign.center, style: DeskText.text(size: DeskText.lead)),
-                    const SizedBox(height: 36),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(onPressed: () => Navigator.of(context).pop(false), child: Text(t.stay)),
-                        ),
-                        const SizedBox(width: 20),
-                        Expanded(
-                          child: ElevatedButton(
-                            key: const Key('online.leaveConfirm'),
-                            autofocus: true,
-                            onPressed: () => Navigator.of(context).pop(true),
-                            child: Text(t.leaveConfirm),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            )
-          : await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: AppColors.surface,
-          title: Text(t.leaveConfirmTitle, style: AppText.display(22, color: AppColors.textPrimary)),
-          content: Text(t.leaveConfirmBody, style: AppText.body),
-          actions: [
-            TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(t.stay)),
-            TextButton(
-              key: const Key('online.leaveConfirm'),
-              onPressed: () => Navigator.of(context).pop(true),
-              child: Text(
-                t.leaveConfirm,
-                style: const TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700),
-              ),
-            ),
-          ],
-        ),
+      final sure = await confirmNoir(
+        context,
+        title: t.leaveConfirmTitle,
+        body: t.leaveConfirmBody,
+        icon: Icons.door_back_door_outlined,
+        cancel: t.stay,
+        confirm: t.leaveConfirm,
+        confirmKey: const Key('online.leaveConfirm'),
       );
-      if (sure != true || !mounted) return;
+      if (!sure || !mounted) return;
     }
     try {
       await widget.services.rooms.leave(_room.id, newHostId: heir);

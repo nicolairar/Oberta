@@ -32,12 +32,10 @@ Future<void> showPublicProfile(BuildContext context, {required OnlineServices se
       ),
     );
   }
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    backgroundColor: Colors.transparent,
-    builder: (context) => FractionallySizedBox(heightFactor: 0.94, child: _PublicDossier(load: load)),
+  return showNoirSheet<void>(
+    context,
+    heightFactor: 0.94,
+    builder: (context) => SizedBox.expand(child: _PublicDossier(load: load)),
   );
 }
 

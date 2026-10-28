@@ -37,6 +37,7 @@ import '../widgets/spoken_script_card.dart';
 import '../press.dart';
 import '../seating.dart';
 import '../widgets/wide_scale.dart';
+import '../widgets/noir_modal.dart';
 
 /// La partita su un solo telefono: il copione si legge ad alta voce, di notte
 /// il telefono fa il giro del tavolo, di giorno resta in mezzo.
@@ -385,19 +386,16 @@ class _GameScreenState extends State<GameScreen> {
       _goHome();
       return;
     }
-    final leave = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: Text(_t.leaveQuestion),
-        content: Text(_t.leaveWarning),
-        actions: [
-          TextButton(onPressed: pressed(() => Navigator.of(context).pop(false), Press.back), child: Text(_t.stay)),
-          TextButton(onPressed: pressed(() => Navigator.of(context).pop(true), Press.tap), child: Text(_t.leave)),
-        ],
-      ),
+    final leave = await confirmNoir(
+      context,
+      title: _t.leaveQuestion,
+      body: _t.leaveWarning,
+      icon: Icons.door_back_door_outlined,
+      danger: true,
+      cancel: _t.stay,
+      confirm: _t.leave,
     );
-    if (leave == true && mounted) _goHome();
+    if (leave && mounted) _goHome();
   }
 
   @override

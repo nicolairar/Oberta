@@ -40,14 +40,14 @@ class SettingsStrings {
   String get deleteHint => _t('Per sempre: profilo, amici, armadio e monete.', 'Forever: profile, friends, wardrobe and coins.');
   String get deleteTitle => _t('Eliminare l\'account?', 'Delete your account?');
   String get deleteBody => _t(
-        'Verranno cancellati profilo, aspetto, amici, armadio, monete, stanze e messaggi. Non si torna indietro. '
-            'Degli acquisti con denaro reale resta solo una ricevuta anonima, per obbligo fiscale.',
-        'Your profile, look, friends, wardrobe, coins, rooms and messages will be erased. This cannot be undone. '
-            'Real-money purchases are kept only as an anonymous receipt, for tax reasons.',
+        'Profilo, aspetto, amici, armadio, monete, stanze e messaggi: spariscono tutti, per sempre. '
+            'Degli acquisti veri resta solo una ricevuta anonima, per il fisco.',
+        'Profile, look, friends, wardrobe, coins, rooms and messages: all gone, for good. '
+            'Real-money purchases leave only an anonymous receipt, for tax reasons.',
       );
   String get deleteContinue => _t('Continua', 'Continue');
   String get cancel => _t('Annulla', 'Cancel');
-  String deleteTypePrompt(String word) => _t('Per confermare scrivi «$word».', 'To confirm, type "$word".');
+  String deleteTypePrompt(String word) => _t('Ultima parola: scrivi «$word» per confermare.', 'Last word: type "$word" to confirm.');
   String get deleteConfirmWord => _t('ELIMINA', 'DELETE');
   String get deleteForever => _t('Elimina per sempre', 'Delete forever');
   String get deleteDone => _t('Account eliminato. Addio, e grazie.', 'Account deleted. Farewell, and thank you.');

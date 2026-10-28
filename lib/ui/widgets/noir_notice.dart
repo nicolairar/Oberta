@@ -16,6 +16,13 @@ void showNotice(BuildContext context, String text, {NoticeKind kind = NoticeKind
   _NoticeBoard.of(overlay).add(text, kind);
 }
 
+/// Like [showNotice], on an overlay taken before an `await` (when the
+/// screen that asked may be gone by the time the answer comes).
+void showNoticeIn(OverlayState overlay, String text, {NoticeKind kind = NoticeKind.info}) {
+  if (!overlay.mounted) return;
+  _NoticeBoard.of(overlay).add(text, kind);
+}
+
 class _NoticeBoard {
   final OverlayState overlay;
   final notices = ValueNotifier<List<_Notice>>(const []);

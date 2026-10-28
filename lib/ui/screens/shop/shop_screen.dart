@@ -18,6 +18,8 @@ import '../../widgets/noir_avatar.dart' show AvatarHead;
 import '../../widgets/player_avatar.dart' show AvatarBustPainter;
 import '../online/online_widgets.dart' show showFailure;
 import '../../widgets/content_width.dart';
+import '../../widgets/noir_modal.dart';
+import '../../widgets/noir_notice.dart';
 import '../online/game/gesture_picker.dart' show GestureShowcase;
 import 'shop_controller.dart';
 
@@ -127,22 +129,19 @@ class _ShopScreenState extends State<ShopScreen> {
   }
 
   void _say(String text) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(text), behavior: SnackBarBehavior.floating));
+    showNotice(context, text, kind: NoticeKind.done);
   }
 
   Future<void> _buy(ShopItem item) async {
     final t = _t;
     final language = AppStrings.of(context).language;
     if (_shop.coins < item.price) {
-      _say(t.missing(item.price - _shop.coins));
+      showNotice(context, t.missing(item.price - _shop.coins), kind: NoticeKind.error);
       return;
     }
-    final yes = await showDialog<bool>(
-      context: context,
-      builder: (context) =>
-          _deskDialog(context, _ReceiptDialog(item: item, coins: _shop.coins, strings: t, language: language)),
+    final yes = await showNoirDialog<bool>(
+      context,
+      builder: (context) => _ReceiptDialog(item: item, coins: _shop.coins, strings: t, language: language),
     );
     if (yes != true || !mounted) return;
     await _run(() async {
@@ -1606,81 +1605,65 @@ class _ReceiptDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = rarityColor(item.rarity);
     final name = item.name(language);
-    return Dialog(
-      backgroundColor: const Color(0xFFF2E6CF),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(4),
-        side: BorderSide(color: color, width: 2),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (item.brand case final brand?) ...[
-              SizedBox.square(dimension: 34, child: CustomPaint(painter: BrandMarkPainter(brand, seal: true))),
-              const SizedBox(height: 4),
-              Text(
-                brand.label.toUpperCase(),
-                style: const TextStyle(
-                  fontFamily: 'Georgia',
-                  fontFamilyFallback: ['serif'],
-                  color: Color(0xFF2A1A10),
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2.4,
-                ),
-              ),
-              Text(
-                strings.brandTagline(brand),
-                style: const TextStyle(color: Color(0xFF6B4A2A), fontSize: 11, fontStyle: FontStyle.italic),
-              ),
-              const SizedBox(height: 6),
-            ],
-            Text(
-              strings.rarity(item.rarity).toUpperCase(),
-              style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 2),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              strings.confirmTitle(name),
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontFamily: 'Georgia',
-                fontFamilyFallback: ['serif'],
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF2A1A10),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              strings.confirmBody(item.price, coins - item.price),
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Color(0xFF4A3420), fontSize: 13.5),
-            ),
-            const SizedBox(height: 14),
-            Wrap(
-              alignment: WrapAlignment.end,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 6,
-              runSpacing: 6,
+    final m = NoirMetrics.of(context);
+    return NoirDialog(
+      tone: NoirTone.paper,
+      rim: color,
+      overline: strings.rarity(item.rarity),
+      title: strings.confirmTitle(name),
+      body: strings.confirmBody(item.price, coins - item.price),
+      onEnter: () => Navigator.of(context).pop(true),
+      lead: item.brand == null
+          ? null
+          : Column(
               children: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: Text(strings.notNow, style: const TextStyle(color: Color(0xFF6B4A2A))),
+                SizedBox.square(
+                  dimension: m.desk ? 56 : 40,
+                  child: CustomPaint(painter: BrandMarkPainter(item.brand!, seal: true)),
                 ),
-                _BrassButton(
-                  key: const Key('shop.confirm'),
-                  label: strings.confirmYes,
-                  price: item.price,
-                  onTap: () => Navigator.of(context).pop(true),
+                SizedBox(height: m.gap),
+                Text(
+                  item.brand!.label.toUpperCase(),
+                  style: NoirType.overline(m, color: NoirInk.paperInk),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  strings.brandTagline(item.brand!),
+                  style: NoirType.small(m, color: NoirInk.paperBody).copyWith(fontStyle: FontStyle.italic),
                 ),
               ],
             ),
-          ],
+      actions: [
+        NoirAction(label: strings.notNow, feel: Press.back, onPressed: () => Navigator.of(context).pop(false)),
+        NoirAction(
+          key: const Key('shop.confirm'),
+          label: strings.confirmYes,
+          style: NoirButtonStyle.primary,
+          feel: Press.chips,
+          trailing: _PriceTag(item.price),
+          onPressed: () => Navigator.of(context).pop(true),
         ),
-      ),
+      ],
+    );
+  }
+}
+
+/// The price on the buy button: a coin and the number.
+class _PriceTag extends StatelessWidget {
+  final int price;
+
+  const _PriceTag(this.price);
+
+  @override
+  Widget build(BuildContext context) {
+    final m = NoirMetrics.of(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox.square(dimension: m.desk ? 20 : 15, child: const CustomPaint(painter: CoinPainter())),
+        SizedBox(width: m.gap / 2),
+        Text('$price', style: TextStyle(fontWeight: FontWeight.w900, fontSize: m.buttonText)),
+      ],
     );
   }
 }

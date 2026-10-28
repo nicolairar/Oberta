@@ -6,6 +6,7 @@ import '../../rules/player_view.dart';
 import '../../rules/role.dart';
 import '../theme/app_theme.dart';
 import '../theme/role_style.dart';
+import 'noir_modal.dart';
 import 'role_rules.dart';
 
 /// Un ruolo scoperto davanti a tutti: chi era e cosa era.
@@ -45,7 +46,10 @@ class RolesButton extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Icons.style, color: color, size: 22),
-              Text(s.button, style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 1)),
+              Text(
+                s.button,
+                style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 1),
+              ),
             ],
           ),
         ),
@@ -64,18 +68,13 @@ class RolesSheet extends StatelessWidget {
   const RolesSheet({super.key, required this.deck, required this.revealed});
 
   static Future<void> show(BuildContext context, {required Map<Role, int> deck, required List<RevealedRole> revealed}) {
-    return showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: AppColors.background,
-      showDragHandle: true,
-      isScrollControlled: true,
+    return showNoirSheet<void>(
+      context,
+      heightFactor: 0.85,
       builder: (sheet) => Localizations.override(
         context: sheet,
         locale: Localizations.localeOf(context),
-        child: FractionallySizedBox(
-          heightFactor: 0.85,
-          child: RolesSheet(deck: deck, revealed: revealed),
-        ),
+        child: RolesSheet(deck: deck, revealed: revealed),
       ),
     );
   }
@@ -86,45 +85,56 @@ class RolesSheet extends StatelessWidget {
     final s = RolesSheetStrings.of(context);
     final cards = <Widget>[];
     for (final MapEntry(key: role, value: count) in deck.entries) {
-      final reveals = [for (final r in revealed) if (r.role == role) r.name];
+      final reveals = [
+        for (final r in revealed)
+          if (r.role == role) r.name,
+      ];
       for (var i = 0; i < reveals.length && i < count; i++) {
         cards.add(_card(t, s, role, 1, reveals[i]));
       }
       if (count > reveals.length) cards.add(_card(t, s, role, count - reveals.length, null));
     }
-    return ListView(
-      key: const Key('rolesSheet'),
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+    return NoirSheet(
+      title: s.title,
+      subtitle: s.subtitle,
+      scroll: false,
+      padding: EdgeInsets.zero,
       children: [
-        Text(s.title, style: AppText.display(22, color: AppColors.gold)),
-        const SizedBox(height: 4),
-        Text(s.subtitle, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-        const SizedBox(height: 12),
-        if (cards.isEmpty) Text(s.deckEmpty, style: const TextStyle(color: AppColors.textSecondary)),
-        ...cards,
-        const SizedBox(height: 18),
-        Text(s.legendTitle, style: AppText.display(16, color: AppColors.gold)),
-        const SizedBox(height: 6),
-        for (final (symbol, text) in [
-          ('🤐', s.silencedLegend),
-          ('⚪', s.offlineLegend),
-          ('🌹', s.deadLegend),
-          ('🎗️', s.accusedLegend),
-          ('🔴', s.votesLegend),
-          ('📝', s.voteNoteLegend),
-          ('🃏', s.revealedRoleLegend),
-          ('⭐', s.meLegend),
-        ])
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 3),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(width: 28, child: Text(symbol, style: const TextStyle(fontSize: 16))),
-                Expanded(child: Text(text, style: const TextStyle(color: AppColors.textPrimary, fontSize: 13))),
-              ],
-            ),
+        Expanded(
+          child: ListView(
+            key: const Key('rolesSheet'),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            children: [
+              if (cards.isEmpty) Text(s.deckEmpty, style: const TextStyle(color: AppColors.textSecondary)),
+              ...cards,
+              const SizedBox(height: 18),
+              Text(s.legendTitle, style: AppText.display(16, color: AppColors.gold)),
+              const SizedBox(height: 6),
+              for (final (symbol, text) in [
+                ('🤐', s.silencedLegend),
+                ('⚪', s.offlineLegend),
+                ('🌹', s.deadLegend),
+                ('🎗️', s.accusedLegend),
+                ('🔴', s.votesLegend),
+                ('📝', s.voteNoteLegend),
+                ('🃏', s.revealedRoleLegend),
+                ('⭐', s.meLegend),
+              ])
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(width: 28, child: Text(symbol, style: const TextStyle(fontSize: 16))),
+                      Expanded(
+                        child: Text(text, style: const TextStyle(color: AppColors.textPrimary, fontSize: 13)),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
           ),
+        ),
       ],
     );
   }
@@ -161,8 +171,14 @@ class RolesSheet extends StatelessWidget {
                     ),
                   ),
                   if (done)
-                    Text(s.revealedBy(revealedName), style: const TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.w700)),
-                  Text(text.motto, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12, fontStyle: FontStyle.italic)),
+                    Text(
+                      s.revealedBy(revealedName),
+                      style: const TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.w700),
+                    ),
+                  Text(
+                    text.motto,
+                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12, fontStyle: FontStyle.italic),
+                  ),
                   const SizedBox(height: 2),
                   RoleRules(role, color: AppColors.textPrimary, labelColor: AppColors.gold),
                 ],

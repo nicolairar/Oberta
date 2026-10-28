@@ -8,6 +8,7 @@ import '../../settings/app_settings.dart';
 import '../../tutorial/tutorial_game.dart';
 import '../theme/app_theme.dart';
 import '../widgets/flip_role_card.dart';
+import '../widgets/noir_modal.dart';
 import '../widgets/player_grid.dart';
 
 const _mafiaRed = Color(0xFFE5606A);
@@ -30,27 +31,17 @@ class TutorialScreen extends StatefulWidget {
     if (store.tutorialSeen) return;
     store.tutorialSeen = true;
     final s = TutorialStrings.of(context);
-    final play = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: Text(s.offerTitle, style: AppText.display(20)),
-        content: Text(s.offerBody, style: AppText.body),
-        actions: [
-          TextButton(
-            key: const Key('tutorial.later'),
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(s.offerLater),
-          ),
-          ElevatedButton(
-            key: const Key('tutorial.start'),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(s.offerStart),
-          ),
-        ],
-      ),
+    final play = await confirmNoir(
+      context,
+      title: s.offerTitle,
+      body: s.offerBody,
+      icon: Icons.style_outlined,
+      cancel: s.offerLater,
+      confirm: s.offerStart,
+      cancelKey: const Key('tutorial.later'),
+      confirmKey: const Key('tutorial.start'),
     );
-    if (play == true && context.mounted) await open(context, settings: store);
+    if (play && context.mounted) await open(context, settings: store);
   }
 
   @override

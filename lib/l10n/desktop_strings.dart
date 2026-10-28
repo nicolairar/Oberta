@@ -17,7 +17,7 @@ class DesktopStrings {
 
   String get loginSteam => _t('Accedi con Steam', 'Sign in with Steam');
   String get steamWaiting =>
-      _t('Completa l\'accesso nel browser, poi torna qui.', 'Finish signing in in your browser, then come back here.');
+      _t('Finisci l\'accesso nel browser, poi torna qui.', 'Finish signing in in your browser, then come back.');
 
   String get screen => _t('SCHERMO', 'DISPLAY');
   String get windowMode => _t('Finestra', 'Window');
@@ -37,18 +37,18 @@ class DesktopStrings {
         'Play with the same profile on your phone and on PC.',
       );
   String get linkBody => _t(
-        'Entra con l\'altro account nel browser: i due profili diventano uno.',
-        'Sign in with the other account in your browser: the two profiles become one.',
+        'Entra con l\'altro account: i due profili diventano uno solo.',
+        'Sign in with your other account: the two profiles become one.',
       );
   String linkWith(String provider) => _t('Collega $provider', 'Link $provider');
   String get linkRule => _t(
-        'Resta il profilo più vecchio, con nome, monete, esperienza, armadio e classifica. Quello più nuovo '
-            'non si potrà più usare.',
-        'The older profile stays, with its name, coins, experience, wardrobe and rating. The newer one can no '
-            'longer be used.',
+        'Vince il profilo più vecchio: tiene nome, monete, esperienza, armadio e classifica. '
+            'L\'altro si chiude per sempre.',
+        'The older profile wins: it keeps its name, coins, experience, wardrobe and rating. '
+            'The other one closes for good.',
       );
   String get linkWaiting =>
-      _t('Completa l\'accesso nel browser, poi torna qui.', 'Finish signing in in your browser, then come back here.');
+      _t('Finisci l\'accesso nel browser, poi torna qui.', 'Finish signing in in your browser, then come back.');
   String get linkDone => _t('Account collegati.', 'Accounts linked.');
   String get linkSwitched =>
       _t('Account collegati: ora sei nel profilo più vecchio.', 'Accounts linked: you are now in the older profile.');

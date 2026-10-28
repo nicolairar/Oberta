@@ -10,7 +10,7 @@ import '../theme/app_theme.dart';
 import '../widgets/home_account.dart';
 import '../widgets/player_avatar.dart';
 import 'desktop_canvas.dart';
-import 'home_modal.dart';
+import '../widgets/noir_modal.dart';
 
 const _cream = Color(0xFFE9DEC4);
 
@@ -475,44 +475,16 @@ class _HomeDeskPosterState extends State<HomeDeskPoster> {
 /// «Lasci il vicolo?»: Esc o il pulsante Esci. Vero se si esce.
 Future<void> confirmDeskQuit(BuildContext context) async {
   final d = DesktopStrings.of(context);
-  final quit = await showDeskModal<bool>(
+  final quit = await confirmNoir(
     context,
-    builder: (context) => DeskModal(
-      title: d.quitTitle,
-      width: 640,
-      onEnter: () => Navigator.of(context).pop(true),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            d.quitBody,
-            textAlign: TextAlign.center,
-            style: DeskText.text(size: DeskText.lead, color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: 36),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  key: const Key('desk.quitStay'),
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: Text(d.stay.toUpperCase()),
-                ),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: ElevatedButton(
-                  key: const Key('desk.quitConfirm'),
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent, foregroundColor: Colors.white),
-                  onPressed: () => Navigator.of(context).pop(true),
-                  child: Text(d.quitConfirm.toUpperCase()),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    ),
+    title: d.quitTitle,
+    body: d.quitBody,
+    icon: Icons.logout,
+    danger: true,
+    cancel: d.stay,
+    confirm: d.quitConfirm,
+    cancelKey: const Key('desk.quitStay'),
+    confirmKey: const Key('desk.quitConfirm'),
   );
-  if (quit == true) await ServicesBinding.instance.exitApplication(AppExitType.required);
+  if (quit) await ServicesBinding.instance.exitApplication(AppExitType.required);
 }

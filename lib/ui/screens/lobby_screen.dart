@@ -19,6 +19,8 @@ import '../../sound/fx_groups.dart';
 import '../../sound/screen_music.dart';
 import '../../sound/sound_stage.dart';
 import '../../sound/memes.dart';
+import '../widgets/noir_modal.dart';
+import '../widgets/noir_notice.dart';
 
 // I testi della schermata, tutti qui: la traduzione li prenderà da qui.
 
@@ -89,9 +91,7 @@ class _LobbyScreenState extends State<LobbyScreen> with ScreenMusic {
   }
 
   void _say(String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+    showNotice(context, message);
   }
 
   /// La scorciatoia di chi sviluppa: un nome di prova, senza foto.
@@ -107,7 +107,6 @@ class _LobbyScreenState extends State<LobbyScreen> with ScreenMusic {
 
   void _openPerson([RosterMember? member]) {
     if (member == null && _store.roster.isFull) return _say(_t.lobbyRosterFull);
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => PersonScreen(roster: _store, camera: widget.camera, member: member),
@@ -127,26 +126,14 @@ class _LobbyScreenState extends State<LobbyScreen> with ScreenMusic {
   }
 
   Future<void> _clear() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: Text(_t.lobbyClearTitle, style: AppText.display(22, color: AppColors.textPrimary)),
-        content: Text(_t.lobbyClearBody, style: AppText.body),
-        actions: [
-          TextButton(
-            onPressed: pressed(() => Navigator.of(context).pop(false), Press.back),
-            child: Text(_t.lobbyClearCancel, style: TextStyle(color: AppColors.textSecondary)),
-          ),
-          TextButton(
-            onPressed: pressed(() => Navigator.of(context).pop(true), Press.confirm),
-            child: Text(
-              _t.lobbyClearConfirm,
-              style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
-      ),
+    final confirmed = await confirmNoir(
+      context,
+      title: _t.lobbyClearTitle,
+      body: _t.lobbyClearBody,
+      icon: Icons.delete_sweep_outlined,
+      danger: true,
+      cancel: _t.lobbyClearCancel,
+      confirm: _t.lobbyClearConfirm,
     );
     if (confirmed == true) await _store.clear();
   }

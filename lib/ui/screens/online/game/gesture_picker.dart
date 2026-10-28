@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../../l10n/app_language.dart';
 import '../../../../l10n/app_strings.dart';
 import '../../../../online/reactions.dart';
+import '../../../widgets/noir_modal.dart';
 import 'noir_ui.dart';
 import 'table_gestures.dart';
 
@@ -39,61 +40,44 @@ Future<TableGesture?> showGesturePicker(
   VoidCallback? onReport,
 }) {
   final s = GestureStrings(italian);
-  return showModalBottomSheet<TableGesture>(
-    context: context,
-    backgroundColor: Saloon.woodDark,
-    showDragHandle: true,
-    isScrollControlled: true,
-    builder: (context) => SafeArea(
-      child: SingleChildScrollView(
-        key: const Key('gestures.picker'),
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+  return showNoirSheet<TableGesture>(
+    context,
+    builder: (context) => NoirSheet(
+      key: const Key('gestures.picker'),
+      title: s.title(name),
+      subtitle: wait > Duration.zero ? s.wait((wait.inMilliseconds / 1000).ceil()) : s.hint,
+      children: [
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 8,
+          runSpacing: 8,
           children: [
-            Text(
-              s.title(name),
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Saloon.brass, fontSize: 18, fontWeight: FontWeight.w700, fontFamily: 'Georgia'),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              wait > Duration.zero ? s.wait((wait.inMilliseconds / 1000).ceil()) : s.hint,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Saloon.paper, fontSize: 13),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final gesture in TableGesture.values)
-                  GestureTile(
-                    gesture: gesture,
-                    label: gesture.label(italian ? AppLanguage.it : AppLanguage.en),
-                    open: gesture.free || owned.contains(gesture),
-                    lockedLabel: s.locked,
-                    onTap: wait > Duration.zero ? null : () => Navigator.of(context).pop(gesture),
-                  ),
-              ],
-            ),
-            if (onReport != null) ...[
-              const SizedBox(height: 8),
-              TextButton.icon(
-                key: const Key('gestures.report'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  onReport();
-                },
-                icon: const Icon(Icons.flag_outlined, color: Saloon.mafia, size: 18),
-                label: Text(s.report, style: const TextStyle(color: Saloon.mafia)),
+            for (final gesture in TableGesture.values)
+              GestureTile(
+                gesture: gesture,
+                label: gesture.label(italian ? AppLanguage.it : AppLanguage.en),
+                open: gesture.free || owned.contains(gesture),
+                lockedLabel: s.locked,
+                onTap: wait > Duration.zero ? null : () => Navigator.of(context).pop(gesture),
               ),
-            ],
           ],
         ),
-      ),
+        if (onReport != null) ...[
+          const SizedBox(height: 16),
+          NoirModalButton(
+            key: const Key('gestures.report'),
+            action: NoirAction(
+              label: s.report,
+              icon: Icons.flag_outlined,
+              style: NoirButtonStyle.quiet,
+              onPressed: () {
+                Navigator.of(context).pop();
+                onReport();
+              },
+            ),
+          ),
+        ],
+      ],
     ),
   );
 }

@@ -11,6 +11,7 @@ import '../../desktop/desktop_canvas.dart';
 import '../../desktop/home_modal.dart';
 import '../../theme/app_theme.dart';
 import 'online_widgets.dart';
+import '../../widgets/noir_modal.dart';
 
 /// Il foglio dell'accesso, che sale dal fondo del vicolo: Apple, Google se
 /// l'app lo conosce, e nient'altro. Torna vero se qualcuno è entrato.
@@ -42,25 +43,18 @@ Future<bool> showSignInSheet(
     );
     return signedIn ?? false;
   }
-  final signedIn = await showModalBottomSheet<bool>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: AppColors.surface,
-    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
-    builder: (context) => Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      child: SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(22, 10, 22, 18),
-          child: SignInPanel(
-            auth: services.auth,
-            note: note,
-            test: test,
-            onSignedIn: () => Navigator.of(context).pop(true),
-          ),
+  final signedIn = await showNoirSheet<bool>(
+    context,
+    builder: (context) => NoirSheet(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+      children: [
+        SignInPanel(
+          auth: services.auth,
+          note: note,
+          test: test,
+          onSignedIn: () => Navigator.of(context).pop(true),
         ),
-      ),
+      ],
     ),
   );
   return signedIn ?? false;

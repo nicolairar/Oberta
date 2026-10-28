@@ -9,6 +9,7 @@ import '../widgets/scene_scaffold.dart';
 import 'narrator_draw_screen.dart';
 import 'role_deal_screen.dart';
 import '../press.dart';
+import '../widgets/noir_modal.dart';
 
 class NarratorSelectionScreen extends StatelessWidget {
   final List<Player> players;
@@ -26,28 +27,13 @@ class NarratorSelectionScreen extends StatelessWidget {
   }
 
   Future<void> _chooseFromGroup(BuildContext context) async {
-    final narrator = await showModalBottomSheet<Player>(
-      context: context,
-      backgroundColor: AppColors.surface,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ListView(
-          shrinkWrap: true,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
-              child: Text(AppStrings.of(context).whoNarrates, style: AppText.overline),
-            ),
-            for (final player in players)
-              ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 24),
-                leading: const Icon(Icons.record_voice_over, color: AppColors.gold),
-                title: Text(player.name, style: const TextStyle(color: AppColors.textPrimary)),
-                onTap: () => Navigator.of(context).pop(player),
-              ),
-          ],
-        ),
-      ),
+    final narrator = await showNoirMenu<Player>(
+      context,
+      title: AppStrings.of(context).whoNarrates,
+      items: [
+        for (final player in players)
+          NoirMenuItem(value: player, icon: Icons.record_voice_over_outlined, label: player.name),
+      ],
     );
     if (narrator != null && context.mounted) _deal(context, narrator);
   }

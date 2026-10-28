@@ -60,7 +60,7 @@ void main() {
     await tester.enterText(find.byKey(const Key('safety.note')), 'insulti');
     await tester.tap(find.byKey(const Key('safety.report.send')));
     await tester.pumpAndSettle();
-    expect(find.text('Segnalazione inviata. Grazie.'), findsOneWidget);
+    expect(find.text('Segnalazione ricevuta. Ce ne occupiamo noi.'), findsOneWidget);
     final report = online.reports.single;
     expect(report.target, 'bruno');
     expect(report.reason, ReportReason.language);

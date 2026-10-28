@@ -23,7 +23,7 @@ class SafetyStrings {
   String get block => _t('Blocca', 'Block');
   String get unblock => _t('Sblocca', 'Unblock');
   String get cancel => _t('Annulla', 'Cancel');
-  String get send => _t('Invia segnalazione', 'Send report');
+  String get send => _t('Invia', 'Send');
 
   String reportTitle(String name) => _t('Segnala $name', 'Report $name');
   String get reportWhy => _t('Che cosa è successo?', 'What happened?');
@@ -36,21 +36,21 @@ class SafetyStrings {
       };
   String get noteHint => _t('Dettagli (facoltativo)', 'Details (optional)');
   String get reportPrivate => _t(
-        'La segnalazione è anonima: il giocatore non saprà chi l\'ha fatta.',
-        'Reports are anonymous: the player will not know who sent it.',
+        'Resta tra noi: non saprà mai chi è stato.',
+        'It stays between us: they will never know who it was.',
       );
-  String get reportSent => _t('Segnalazione inviata. Grazie.', 'Report sent. Thank you.');
+  String get reportSent => _t('Segnalazione ricevuta. Ce ne occupiamo noi.', 'Report received. We will take it from here.');
   String get reportedMessage => _t('Messaggio segnalato', 'Reported message');
 
   String blockTitle(String name) => _t('Bloccare $name?', 'Block $name?');
   String get blockBody => _t(
-        'Non vedrai più i suoi messaggi, non sarete più amici, e non potrà chiederti l\'amicizia né entrare nelle tue '
-            'stanze. In classificata si cercherà di non mettervi allo stesso tavolo. Puoi sbloccarlo dalle impostazioni.',
-        'You will no longer see their messages, you will stop being friends, and they cannot send you friend requests '
-            'or join your rooms. Ranked will try to keep you at different tables. You can unblock them in Settings.',
+        'Sparisce dalla tua vista: niente messaggi, niente amicizia, niente posto nelle tue stanze. '
+            'In classificata vi teniamo a tavoli diversi. Si torna indietro dalle impostazioni.',
+        'Gone from your sight: no messages, no friendship, no seat in your rooms. '
+            'Ranked keeps you at different tables. You can undo it in Settings.',
       );
-  String blocked(String name) => _t('$name è bloccato.', '$name is blocked.');
-  String unblocked(String name) => _t('$name è sbloccato.', '$name is unblocked.');
+  String blocked(String name) => _t('Hai bloccato $name.', 'You blocked $name.');
+  String unblocked(String name) => _t('Hai sbloccato $name.', 'You unblocked $name.');
 
   String get blockedPlayers => _t('Giocatori bloccati', 'Blocked players');
   String get blockedHint => _t('Chi hai bloccato, e come sbloccarlo.', 'Who you blocked, and how to unblock them.');

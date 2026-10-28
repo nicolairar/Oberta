@@ -84,7 +84,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('settings.delete.continue')));
     await tester.pumpAndSettle();
-    expect(find.text('Per confermare scrivi «anna».'), findsOneWidget);
+    expect(find.text('Ultima parola: scrivi «anna» per confermare.'), findsOneWidget);
 
     // Con la parola sbagliata il pulsante resta spento.
     await tester.enterText(find.byKey(const Key('settings.delete.word')), 'bruno');
@@ -108,7 +108,7 @@ void main() {
     await scrollTo(tester, find.byKey(const Key('settings.delete')));
     await tester.tap(find.byKey(const Key('settings.delete')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Annulla'));
+    await tester.tap(find.text('ANNULLA'));
     await tester.pumpAndSettle();
     expect(online.account.deleted, isEmpty);
     expect(online.auth.signedIn, isTrue);

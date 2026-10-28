@@ -5,7 +5,10 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../l10n/safety_strings.dart';
 import '../../../l10n/stats_strings.dart';
 import '../../../online/online_services.dart';
+import '../../press.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/noir_modal.dart';
+import '../../widgets/noir_notice.dart';
 import 'game/noir_ui.dart';
 import 'online_widgets.dart';
 import 'profile_sheet.dart';
@@ -26,56 +29,38 @@ Future<void> showPlayerActions(
   if (safety == null || profileId == myId) return;
   HapticFeedback.selectionClick();
   final s = SafetyStrings.of(context);
-  final action = await showModalBottomSheet<String>(
-    context: context,
-    backgroundColor: Colors.transparent,
-    builder: (context) => _NoirSheet(
-      key: const Key('safety.actions'),
-      children: [
-        Text(name, textAlign: TextAlign.center, style: AppText.display(20, color: Saloon.brass)),
-        if (message != null) ...[
-          const SizedBox(height: 10),
-          _Quote(message.body),
-        ],
-        const SizedBox(height: 16),
-        _SheetButton(
-          key: const Key('safety.profile'),
-          icon: Icons.badge_outlined,
-          label: StatsStrings.of(context).profile,
-          onTap: () => Navigator.pop(context, 'profile'),
-        ),
-        _SheetButton(
-          key: const Key('safety.report'),
-          icon: Icons.flag_outlined,
-          label: s.report,
-          color: Saloon.blood,
-          onTap: () => Navigator.pop(context, 'report'),
-        ),
-        ValueListenableBuilder(
-          valueListenable: BlockedPlayers.ids,
-          builder: (context, ids, _) => ids.contains(profileId)
-              ? _SheetButton(
-                  key: const Key('safety.unblock'),
-                  icon: Icons.lock_open,
-                  label: s.unblock,
-                  onTap: () => Navigator.pop(context, 'unblock'),
-                )
-              : _SheetButton(
-                  key: const Key('safety.block'),
-                  icon: Icons.block,
-                  label: s.block,
-                  onTap: () => Navigator.pop(context, 'block'),
-                ),
-        ),
-        _SheetButton(
-          key: const Key('safety.rules'),
-          icon: Icons.menu_book_outlined,
-          label: s.rulesTitle,
-          dim: true,
-          onTap: () => Navigator.pop(context, 'rules'),
-        ),
-      ],
-    ),
+  final blocked = BlockedPlayers.ids.value.contains(profileId);
+  final action = await showNoirMenu<String>(
+    context,
+    key: const Key('safety.actions'),
+    title: name,
+    header: message == null ? null : NoirQuote(message.body),
+    items: [
+      NoirMenuItem(
+        key: const Key('safety.profile'),
+        value: 'profile',
+        icon: Icons.badge_outlined,
+        label: StatsStrings.of(context).profile,
+      ),
+      if (blocked)
+        NoirMenuItem(key: const Key('safety.unblock'), value: 'unblock', icon: Icons.lock_open, label: s.unblock)
+      else
+        NoirMenuItem(key: const Key('safety.block'), value: 'block', icon: Icons.block, label: s.block),
+      NoirMenuItem(
+        key: const Key('safety.rules'),
+        value: 'rules',
+        icon: Icons.menu_book_outlined,
+        label: s.rulesTitle,
+        tone: NoirMenuTone.dim,
+      ),
+      NoirMenuItem(
+        key: const Key('safety.report'),
+        value: 'report',
+        icon: Icons.flag_outlined,
+        label: s.report,
+        tone: NoirMenuTone.danger,
+      ),
+    ],
   );
   if (!context.mounted) return;
   switch (action) {
@@ -114,12 +99,10 @@ Future<void> showSeatActions(
 }
 
 Future<void> _run(BuildContext context, Future<void> Function() call, String done) async {
-  final messenger = ScaffoldMessenger.of(context);
+  final overlay = Overlay.of(context, rootOverlay: true);
   try {
     await call();
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(done)));
+    showNoticeIn(overlay, done, kind: NoticeKind.done);
   } catch (error) {
     if (context.mounted) showFailure(context, error);
   }
@@ -133,23 +116,17 @@ Future<bool> confirmBlock(
   required String name,
 }) async {
   final s = SafetyStrings.of(context);
-  final sure = await showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      backgroundColor: AppColors.surface,
-      title: Text(s.blockTitle(name)),
-      content: Text(s.blockBody),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context, false), child: Text(s.cancel)),
-        TextButton(
-          key: const Key('safety.block.confirm'),
-          onPressed: () => Navigator.pop(context, true),
-          child: Text(s.block, style: const TextStyle(color: Saloon.blood)),
-        ),
-      ],
-    ),
+  final sure = await confirmNoir(
+    context,
+    title: s.blockTitle(name),
+    body: s.blockBody,
+    icon: Icons.block,
+    danger: true,
+    cancel: s.cancel,
+    confirm: s.block,
+    confirmKey: const Key('safety.block.confirm'),
   );
-  if (sure != true || !context.mounted) return false;
+  if (!sure || !context.mounted) return false;
   await _run(context, () => safety.block(profileId), s.blocked(name));
   return true;
 }
@@ -164,14 +141,12 @@ Future<bool> showReportDialog(
   String? gameId,
   ChatMessage? message,
 }) async {
-  final sent = await showDialog<bool>(
-    context: context,
+  final sent = await showNoirDialog<bool>(
+    context,
     builder: (_) => _ReportDialog(safety: safety, profileId: profileId, name: name, gameId: gameId, message: message),
   );
   if (sent == true && context.mounted) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(SafetyStrings.of(context).reportSent)));
+    showNotice(context, SafetyStrings.of(context).reportSent, kind: NoticeKind.done);
   }
   return sent == true;
 }
@@ -236,80 +211,114 @@ class _ReportDialogState extends State<_ReportDialog> {
   @override
   Widget build(BuildContext context) {
     final s = SafetyStrings.of(context);
-    return AlertDialog(
+    final m = NoirMetrics.of(context);
+    return NoirDialog(
       key: const Key('safety.reportDialog'),
-      backgroundColor: AppColors.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: const BorderSide(color: Saloon.brassDeep),
-      ),
-      title: Text(s.reportTitle(widget.name), style: AppText.display(18, color: Saloon.brass)),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (widget.message case final message?) ...[
-              Text(s.reportedMessage.toUpperCase(), style: AppText.overline.copyWith(fontSize: 11)),
-              const SizedBox(height: 4),
-              _Quote(message.body),
-              const SizedBox(height: 12),
-            ],
-            Text(s.reportWhy, style: AppText.body),
-            RadioGroup<ReportReason>(
-              groupValue: _reason,
-              onChanged: (reason) => setState(() => _reason = reason),
-              child: Column(
-                children: [
-                  for (final reason in ReportReason.values)
-                    RadioListTile<ReportReason>(
-                      key: Key('safety.reason.${reason.name}'),
-                      value: reason,
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      activeColor: Saloon.brass,
-                      title: Text(s.reason(reason), style: const TextStyle(color: AppColors.textPrimary)),
-                    ),
-                ],
-              ),
-            ),
-            TextField(
-              key: const Key('safety.note'),
-              controller: _note,
-              maxLength: 500,
-              minLines: 1,
-              maxLines: 4,
-              style: const TextStyle(color: AppColors.textPrimary),
-              cursorColor: Saloon.brass,
-              decoration: InputDecoration(
-                hintText: s.noteHint,
-                hintStyle: const TextStyle(color: AppColors.textSecondary),
-              ),
-            ),
-            Text(s.reportPrivate, style: AppText.body.copyWith(fontSize: 12, color: AppColors.textSecondary)),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                key: const Key('safety.report.rules'),
-                style: TextButton.styleFrom(padding: EdgeInsets.zero, foregroundColor: Saloon.brass),
-                onPressed: () => showCommunityRules(context),
-                icon: const Icon(Icons.menu_book_outlined, size: 16),
-                label: Text(s.rulesTitle),
-              ),
-            ),
-            if (_failure case final failure?)
-              Text(failure, key: const Key('safety.report.failure'), style: const TextStyle(color: Color(0xFFFF8A80))),
-          ],
-        ),
-      ),
+      icon: Icons.flag_outlined,
+      danger: true,
+      title: s.reportTitle(widget.name),
+      body: s.reportWhy,
       actions: [
-        TextButton(onPressed: _busy ? null : () => Navigator.pop(context, false), child: Text(s.cancel)),
-        TextButton(
+        NoirAction(label: s.cancel, feel: Press.back, onPressed: _busy ? null : () => Navigator.pop(context, false)),
+        NoirAction(
           key: const Key('safety.report.send'),
+          label: s.send,
+          style: NoirButtonStyle.danger,
+          feel: Press.confirm,
           onPressed: _reason == null || _busy ? null : _send,
-          child: Text(s.send, style: TextStyle(color: _reason == null ? AppColors.textSecondary : Saloon.blood)),
         ),
       ],
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (widget.message case final message?) ...[
+            Text(s.reportedMessage.toUpperCase(), style: NoirType.overline(m)),
+            SizedBox(height: m.gap),
+            NoirQuote(message.body),
+            SizedBox(height: m.gap * 2),
+          ],
+          NoirMenuGroup(
+            indent: false,
+            children: [
+              for (final reason in ReportReason.values)
+                _ReasonRow(
+                  key: Key('safety.reason.${reason.name}'),
+                  label: s.reason(reason),
+                  on: _reason == reason,
+                  onTap: () => setState(() => _reason = reason),
+                ),
+            ],
+          ),
+          SizedBox(height: m.gap * 2),
+          NoirField(key: const Key('safety.note'), controller: _note, maxLength: 500, maxLines: 4, hint: s.noteHint),
+          SizedBox(height: m.gap),
+          Row(
+            children: [
+              Icon(Icons.visibility_off_outlined, size: m.desk ? 20 : 15, color: NoirInk.muted),
+              SizedBox(width: m.gap),
+              Expanded(child: Text(s.reportPrivate, style: NoirType.small(m))),
+            ],
+          ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              key: const Key('safety.report.rules'),
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: Size(0, m.desk ? 48 : 44),
+                foregroundColor: NoirInk.brass,
+              ),
+              onPressed: () => showCommunityRules(context),
+              icon: Icon(Icons.menu_book_outlined, size: m.desk ? 20 : 16),
+              label: Text(s.rulesTitle, style: NoirType.small(m, color: NoirInk.brass).copyWith(fontWeight: FontWeight.w600)),
+            ),
+          ),
+          if (_failure case final failure?) NoirErrorLine(failure, key: const Key('safety.report.failure')),
+        ],
+      ),
+    );
+  }
+}
+
+/// A reason in the report card: the label and a brass check when picked.
+class _ReasonRow extends StatelessWidget {
+  final String label;
+  final bool on;
+  final VoidCallback onTap;
+
+  const _ReasonRow({super.key, required this.label, required this.on, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final m = NoirMetrics.of(context);
+    return Semantics(
+      selected: on,
+      inMutuallyExclusiveGroup: true,
+      child: InkWell(
+        onTap: pressed(onTap, Press.toggle),
+        child: Container(
+          constraints: BoxConstraints(minHeight: m.desk ? 56 : 44),
+          color: on ? NoirInk.brass.withValues(alpha: 0.1) : null,
+          padding: EdgeInsets.symmetric(horizontal: m.desk ? 20 : 14),
+          child: Row(
+            children: [
+              Expanded(child: Text(label, style: NoirType.label(m, color: on ? NoirInk.text : NoirInk.body).copyWith(fontSize: m.desk ? 18 : 15))),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 140),
+                width: m.desk ? 26 : 20,
+                height: m.desk ? 26 : 20,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: on ? NoirInk.brass : Colors.transparent,
+                  border: Border.all(color: on ? NoirInk.brass : NoirInk.muted, width: 1.5),
+                ),
+                child: on ? Icon(Icons.check, size: m.desk ? 18 : 14, color: const Color(0xFF1C140E)) : null,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -447,97 +456,6 @@ class _BlockedPlayersScreenState extends State<BlockedPlayersScreen> {
       ),
     );
   }
-}
-
-class _NoirSheet extends StatelessWidget {
-  final List<Widget> children;
-
-  const _NoirSheet({super.key, required this.children});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF110C09),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-        border: Border(top: BorderSide(color: Saloon.brass, width: 1.6)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 42,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(color: Saloon.brassDeep, borderRadius: BorderRadius.circular(2)),
-              ),
-            ),
-            ...children,
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Quote extends StatelessWidget {
-  final String text;
-
-  const _Quote(this.text);
-
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E1712),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Saloon.brassDeep),
-        ),
-        child: Text(
-          '«$text»',
-          maxLines: 4,
-          overflow: TextOverflow.ellipsis,
-          style: AppText.body.copyWith(fontStyle: FontStyle.italic, color: AppColors.textPrimary),
-        ),
-      );
-}
-
-class _SheetButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final bool dim;
-  final VoidCallback onTap;
-
-  const _SheetButton({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.color = Saloon.brass,
-    this.dim = false,
-  });
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: OutlinedButton.icon(
-          onPressed: onTap,
-          style: OutlinedButton.styleFrom(
-            foregroundColor: dim ? AppColors.textSecondary : color,
-            side: BorderSide(color: (dim ? Saloon.brassDeep : color).withValues(alpha: 0.8)),
-            padding: const EdgeInsets.symmetric(vertical: 13),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-          icon: Icon(icon),
-          label: Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-        ),
-      );
 }
 
 /// «Profilo pubblico: sì/no» nelle impostazioni: legge il proprio profilo e

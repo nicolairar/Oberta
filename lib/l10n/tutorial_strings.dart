@@ -24,11 +24,11 @@ class TutorialStrings {
   // L'offerta al primo avvio, e le voci per rifarlo.
   String get offerTitle => _t('Prima volta in città?', 'First time in town?');
   String get offerBody => _t(
-    'Una mano di prova contro cinque bot, due minuti. Impari tutto giocando.',
-    'A practice hand against five bots, two minutes. Learn by playing.',
+    'Una mano di prova contro cinque bot. Due minuti, e impari giocando.',
+    'A practice hand against five bots. Two minutes, and you learn by playing.',
   );
   String get offerLater => _t('Più tardi', 'Later');
-  String get offerStart => _t('Gioca il tutorial', 'Play the tutorial');
+  String get offerStart => _t('Dammi le carte', 'Deal me in');
   String get replay => _t('Rifai il tutorial', 'Replay the tutorial');
   String get replayHint => _t('La mano di prova contro i bot.', 'The practice hand against the bots.');
   String get deskButton => _t('Tutorial', 'Tutorial');

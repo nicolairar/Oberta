@@ -11,12 +11,12 @@ extension _Bundles on _ShopScreenState {
     final language = AppStrings.of(context).language;
     final price = _shop.bundlePrice(bundle);
     if (_shop.coins < price) {
-      _say(t.missing(price - _shop.coins));
+      showNotice(context, t.missing(price - _shop.coins), kind: NoticeKind.error);
       return;
     }
-    final yes = await showDialog<bool>(
-      context: context,
-      builder: (context) => _deskDialog(context, _BundleReceipt(
+    final yes = await showNoirDialog<bool>(
+      context,
+      builder: (context) => (_BundleReceipt(
         bundle: bundle,
         price: price,
         saved: _shop.bundleSingles(bundle) - price,
@@ -734,57 +734,23 @@ class _BundleReceipt extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => Dialog(
-    backgroundColor: _cream,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(4),
-      side: BorderSide(color: bundle.premium ? const Color(0xFFB8860B) : const Color(0xFF8C6A14), width: 2),
-    ),
-    child: Padding(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _SaveTag(strings.save(bundle.discountPct)),
-          const SizedBox(height: 8),
-          Text(
-            strings.bundleConfirmTitle(bundle.name(language)),
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontFamily: 'Georgia',
-              fontFamilyFallback: ['serif'],
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF2A1A10),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            strings.bundleConfirmBody(price, saved, coins - price),
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Color(0xFF4A3420), fontSize: 13.5),
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            alignment: WrapAlignment.end,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: Text(strings.notNow, style: const TextStyle(color: Color(0xFF6B4A2A))),
-              ),
-              _BrassButton(
-                key: const Key('shop.confirm'),
-                label: strings.confirmYes,
-                price: price,
-                onTap: () => Navigator.of(context).pop(true),
-              ),
-            ],
-          ),
-        ],
+  Widget build(BuildContext context) => NoirDialog(
+    tone: NoirTone.paper,
+    rim: bundle.premium ? const Color(0xFFB8860B) : const Color(0xFF8C6A14),
+    lead: _SaveTag(strings.save(bundle.discountPct)),
+    title: strings.bundleConfirmTitle(bundle.name(language)),
+    body: strings.bundleConfirmBody(price, saved, coins - price),
+    onEnter: () => Navigator.of(context).pop(true),
+    actions: [
+      NoirAction(label: strings.notNow, feel: Press.back, onPressed: () => Navigator.of(context).pop(false)),
+      NoirAction(
+        key: const Key('shop.confirm'),
+        label: strings.confirmYes,
+        style: NoirButtonStyle.primary,
+        feel: Press.chips,
+        trailing: _PriceTag(price),
+        onPressed: () => Navigator.of(context).pop(true),
       ),
-    ),
+    ],
   );
 }
