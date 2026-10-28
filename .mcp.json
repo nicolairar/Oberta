@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "game-asset-generator": {
+      "command": "node",
+      "args": ["/Users/nicolai/code/tools/game-asset-mcp/src/index.js", "/Users/nicolai/code/Lupus/assets/generated"]
+    }
+  }
+}

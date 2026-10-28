@@ -26,3 +26,25 @@
 ## 19 ottobre 2026
 - Fazione neutrale (Fesso, Piromane) e nuovi ruoli Messia, Sindaco, Portinaio uniti in main.
 - Foglio ruoli in partita, schermata risultati a tutto schermo. Build 48 (classificata visibile solo in debug).
+
+## Da fare (aggiornato il 28 ottobre 2026)
+
+**Strumenti**
+- Game Asset Generator (MCP, modelli gratuiti Hugging Face): grafica 2D/3D per avatar, skin, texture, sfondi. Installato in `~/code/tools/game-asset-mcp`, configurato in `.mcp.json`; serve `HF_TOKEN` (e una Space 3D duplicata per il 3D) nel suo `.env`. Le immagini finiscono in `assets/generated/`.
+- Iris (MCP): test visivi in un browser vero. Funziona solo con pagine web: va valutato con la build web di Flutter, che oggi non c'è.
+- Più avanti: Ludo AI per sprite e animazioni, Spine solo se servono animazioni a scheletro.
+
+**Gioco**
+- Direzione artistica: caratteri d'epoca, pulsanti nuovi, superfici, numero del posto e ritratti (in corso).
+- Gesti anche nelle stanze d'attesa (ora solo al tavolo).
+- Film della notte: separare lo sfondo città in parti fisse e animate (prestazioni).
+- Ripresa del tester con report dei bug (`docs/playtest-report.md`), senza correggere durante i test.
+- Classifica, missioni e obiettivi con la transizione della strada.
+- Collega Google e Collega Apple dal PC: configurare i provider su Supabase.
+
+**Pubblicazione**
+- iPhone: fascia d'età, privacy e prezzo su App Store Connect; poi build finale senza debug, bot spenti (`ranked_test_humans`, `friends_test_bots`), build con `OBERTA_BOTS=false`.
+- Steam: verifica fiscale in corso → App ID → chiave Web API e depot in `fastlane/.env` → login automatico, SteamPipe, obiettivi, pagina dello store (kit pronto in `steam/store/`).
+- LiveKit: verificare nel pannello che registrazioni, egress, agenti e trascrizioni siano spenti.
+- Landing: aggiornare schermate e testi dopo la direzione artistica.
+- Ruotare le chiavi (Supabase, LiveKit) a fine sviluppo.
