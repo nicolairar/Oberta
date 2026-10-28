@@ -12,6 +12,7 @@ import '../../online/incoming_links.dart';
 import '../../online/join_code.dart';
 import '../../online/online_account.dart';
 import '../../online/online_services.dart';
+import '../widgets/baked.dart';
 import '../widgets/home_account.dart';
 import '../widgets/home_alley.dart';
 import '../widgets/home_caption.dart';
@@ -552,7 +553,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  RepaintBoundary(
+                  // Migliaia di mattoni: si dipingono una volta, poi è un'immagine.
+                  Baked(
                     child: CustomPaint(
                       painter: HomeWallPainter(
                         layout,
@@ -563,10 +565,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                   ),
                   // L'insegna, appesa più avanti del muro, se ne va un po' più
                   // in fretta di lui (senza sfumare: è grande quanto lo schermo).
+                  // Cambia solo quando una lettera sfarfalla: in mezzo è
+                  // un'immagine (gli aloni sfocati costano).
                   StreetDrift(
                     depth: 0.25,
                     fade: 0,
-                    child: RepaintBoundary(
+                    child: Baked(
                       child: CustomPaint(
                         painter: HomeNeonPainter(sign: layout.sign, cap: layout.cap, state: _neon),
                       ),

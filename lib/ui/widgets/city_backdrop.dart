@@ -634,6 +634,9 @@ class _BackdropPainter extends CustomPainter {
     final paint = Paint();
     final columns = max(1, ((building.width - 8) / 9).floor());
     final rows = max(1, ((building.height - 10) / 12).floor());
+    // Le finestre accese e ferme hanno tutte lo stesso colore: un tracciato
+    // solo, un colpo solo. Quelle che tremano si disegnano una per una.
+    final steady = Path();
     for (var row = 0; row < rows; row++) {
       for (var column = 0; column < columns; column++) {
         final lit = rng.nextDouble() < (far ? 0.30 : 0.38);
@@ -641,14 +644,18 @@ class _BackdropPainter extends CustomPainter {
         final turns = 2.0 + rng.nextInt(6);
         final offset = rng.nextDouble();
         if (!lit) continue;
-        final flicker = restless ? 0.5 + 0.5 * _wave(turns, offset) : 1.0;
+        final window = Rect.fromLTWH(building.left + 5 + column * 9, building.top + 7 + row * 12, 3.2, 4.6);
+        if (!restless) {
+          steady.addRect(window);
+          continue;
+        }
+        final flicker = 0.5 + 0.5 * _wave(turns, offset);
         paint.color = _windowColor.withValues(alpha: sky.lights * flicker * (far ? 0.55 : 0.9));
-        canvas.drawRect(
-          Rect.fromLTWH(building.left + 5 + column * 9, building.top + 7 + row * 12, 3.2, 4.6),
-          paint,
-        );
+        canvas.drawRect(window, paint);
       }
     }
+    paint.color = _windowColor.withValues(alpha: sky.lights * (far ? 0.55 : 0.9));
+    canvas.drawPath(steady, paint);
   }
 
   void _farDetails(Canvas canvas, Size size) {

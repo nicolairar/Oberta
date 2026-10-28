@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../desktop/desktop_canvas.dart';
 import '../theme/app_theme.dart';
+import '../widgets/baked.dart';
 import 'street_facade.dart';
 import 'street_neon.dart';
 import 'street_route.dart';
@@ -55,8 +56,12 @@ class StreetBackdrop extends StatelessWidget {
         return Stack(
           fit: StackFit.expand,
           children: [
+            // I mattoni sono un'immagine; la porta che si apre si disegna sopra.
+            Baked(child: CustomPaint(painter: StreetFacadePainter.wall(layout: layout, section: section))),
             RepaintBoundary(
-              child: CustomPaint(painter: StreetFacadePainter(layout: layout, section: section, open: door)),
+              child: CustomPaint(
+                painter: StreetFacadePainter(layout: layout, section: section, open: door, part: StreetFacadePart.front),
+              ),
             ),
             Positioned.fromRect(
               rect: layout.neon,
@@ -80,7 +85,8 @@ class StreetBackdrop extends StatelessWidget {
               ignoring: shown < 0.6,
               child: Opacity(
                 opacity: shown,
-                child: Transform.translate(offset: Offset(0, 22 * (1 - shown)), child: child),
+                // I pannelli scivolano su: si spostano, non si ridisegnano.
+                child: Transform.translate(offset: Offset(0, 22 * (1 - shown)), child: RepaintBoundary(child: child)),
               ),
             ),
           ],

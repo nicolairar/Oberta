@@ -1,8 +1,9 @@
 import 'dart:math';
-import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../../widgets/baked.dart';
 import 'noir_ui.dart';
 import 'table_gestures.dart';
 
@@ -16,9 +17,13 @@ class SaloonBackdrop extends StatelessWidget {
   const SaloonBackdrop({super.key, this.night = false, required this.child});
 
   @override
-  Widget build(BuildContext context) => CustomPaint(
-        painter: _RoomPainter(night: night),
-        child: child,
+  Widget build(BuildContext context) => Stack(
+        fit: StackFit.passthrough,
+        children: [
+          // La sala non si muove: si dipinge una volta, poi è un'immagine.
+          Positioned.fill(child: Baked(child: CustomPaint(painter: _RoomPainter(night: night)))),
+          child,
+        ],
       );
 }
 
@@ -85,6 +90,22 @@ class _RoomPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_RoomPainter old) => old.night != night;
+}
+
+/// Un ricordo corto: le ultime misure chieste, le più vecchie si scordano.
+class _Memo<K, V> {
+  final _entries = <K, V>{};
+
+  V? operator [](K key) {
+    final value = _entries.remove(key);
+    if (value != null) _entries[key] = value;
+    return value;
+  }
+
+  void operator []=(K key, V value) {
+    _entries[key] = value;
+    if (_entries.length > 24) _entries.remove(_entries.keys.first);
+  }
 }
 
 /// Il tavolo ovale: bordo di legno, panno verde con il filetto d'oro.
@@ -177,10 +198,18 @@ class SaloonTable extends StatelessWidget {
 
   /// La larghezza delle carte per [count] posti in [box]: la più grande per
   /// cui nessuna carta tocca la vicina.
-  static double cardWidth(int count, Size box, {double maxCard = 118}) {
+  static double cardWidth(int count, Size box, {double maxCard = 118}) =>
+      _widths[(count, box, maxCard)] ??= _cardWidth(count, box, maxCard);
+
+  /// Le misure già trovate: il tavolo si ricostruisce più volte al secondo,
+  /// e ogni prova misura il giro del tavolo centinaia di volte.
+  static final _widths = _Memo<(int, Size, double), double>();
+  static final _rings = _Memo<(int, Size, double), List<Offset>>();
+
+  static double _cardWidth(int count, Size box, double maxCard) {
     final top = min(min(box.width * 0.3, box.height * 0.36 / cardAspect), maxCard);
     for (var width = top; width > minCard; width -= 1.5) {
-      if (_fits(seats(count, box, width), width)) return width;
+      if (_fits(_ring(count, box, width), width)) return width;
     }
     return minCard;
   }
@@ -199,7 +228,9 @@ class SaloonTable extends StatelessWidget {
 
   /// I centri dei posti su un rettangolo dagli angoli tondi, a passi uguali:
   /// il primo in basso al centro, poi in senso orario (verso sinistra).
-  static List<Offset> seats(int count, Size box, double width) {
+  static List<Offset> seats(int count, Size box, double width) => _rings[(count, box, width)] ??= _ring(count, box, width);
+
+  static List<Offset> _ring(int count, Size box, double width) {
     if (count == 0) return const [];
     final height = width * cardAspect;
     final ring = Rect.fromLTRB(width / 2, height / 2, box.width - width / 2, box.height - height / 2);
@@ -238,7 +269,9 @@ class SaloonTable extends StatelessWidget {
       return Stack(
         clipBehavior: Clip.none,
         children: [
-          Positioned.fill(child: CustomPaint(painter: _TablePainter(felt))),
+          Positioned.fill(
+            child: Baked(overflow: const EdgeInsets.all(64), child: CustomPaint(painter: _TablePainter(felt))),
+          ),
           if (center != null)
             Positioned.fromRect(
               rect: Rect.fromCenter(center: felt.center, width: felt.width * 0.62, height: felt.height * 0.5),
@@ -250,16 +283,22 @@ class SaloonTable extends StatelessWidget {
               top: centers[i].dy - height / 2,
               width: width,
               height: height,
-              child: seatBuilder(context, i, width),
+              child: RepaintBoundary(child: seatBuilder(context, i, width)),
             ),
+          // Le mani e i gesti in volo si muovono da soli: ognuno sul suo
+          // strato, così a ogni fotogramma non si ridisegnano i posti.
           Positioned.fill(
             child: IgnorePointer(
-              child: PointingHands(hands: hands, centers: centers, card: Size(width, height), leading: leading),
+              child: RepaintBoundary(
+                child: PointingHands(hands: hands, centers: centers, card: Size(width, height), leading: leading),
+              ),
             ),
           ),
           Positioned.fill(
             child: IgnorePointer(
-              child: GestureLayer(flights: gestures, centers: centers, card: Size(width, height)),
+              child: RepaintBoundary(
+                child: GestureLayer(flights: gestures, centers: centers, card: Size(width, height)),
+              ),
             ),
           ),
         ],
@@ -638,5 +677,6 @@ class _HandPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_HandPainter old) => true;
+  bool shouldRepaint(_HandPainter old) =>
+      !listEquals(old.hands, hands) || !listEquals(old.centers, centers) || old.card != card || old.leading != leading;
 }

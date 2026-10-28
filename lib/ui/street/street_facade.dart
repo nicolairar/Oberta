@@ -59,6 +59,19 @@ class StreetFacadeLayout {
   int get hashCode => Object.hash(size, safe, desk);
 }
 
+/// Le parti della facciata che [StreetFacadePainter] sa disegnare da sole.
+enum StreetFacadePart {
+  /// I mattoni, con la malta.
+  wall,
+
+  /// Tutto quello che sta sopra i mattoni: la vetrina, la porta, la tenda,
+  /// il marciapiede.
+  front,
+
+  /// La facciata intera.
+  all,
+}
+
 /// La facciata di un locale: i mattoni, la vetrina con quello che c'è
 /// dentro, la porta (che si apre quando l'uomo entra o esce), la tenda, il
 /// palo del barbiere, il marciapiede bagnato.
@@ -69,7 +82,16 @@ class StreetFacadePainter extends CustomPainter {
   /// Quanto è aperta la porta, da 0 a 1.
   final double open;
 
-  StreetFacadePainter({required this.layout, required this.section, required this.open});
+  /// Che parte disegnare: solo il muro di mattoni (fermo, si può tenere da
+  /// parte in un'immagine), tutto il resto sopra il muro, o tutto insieme.
+  final StreetFacadePart part;
+
+  StreetFacadePainter({required this.layout, required this.section, required this.open, this.part = StreetFacadePart.all});
+
+  /// Solo il muro: la porta non conta.
+  StreetFacadePainter.wall({required this.layout, required this.section})
+      : open = 0,
+        part = StreetFacadePart.wall;
 
   static const _mortar = Color(0xFF07070B);
   static const _ink = Color(0xFF050506);
@@ -82,8 +104,11 @@ class StreetFacadePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
-    canvas.drawRect(Offset.zero & size, Paint()..color = _mortar);
-    _bricks(canvas, w);
+    if (part != StreetFacadePart.front) {
+      canvas.drawRect(Offset.zero & size, Paint()..color = _mortar);
+      _bricks(canvas, w);
+    }
+    if (part == StreetFacadePart.wall) return;
     _front_(canvas);
     _window(canvas);
     _door(canvas, open.clamp(0.0, 1.0));
@@ -447,5 +472,6 @@ class StreetFacadePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(StreetFacadePainter old) => old.layout != layout || old.section != section || old.open != open;
+  bool shouldRepaint(StreetFacadePainter old) =>
+      old.layout != layout || old.section != section || old.part != part || (part != StreetFacadePart.wall && old.open != open);
 }

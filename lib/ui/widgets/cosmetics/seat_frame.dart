@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import '../../avatar/avatar_look.dart';
+import '../baked.dart';
 
 /// La cornice della bottega intorno a una carta del tavolo (o a un ritratto):
 /// [child] sta dentro, la cornice si disegna sopra il suo bordo. Con
@@ -78,15 +79,40 @@ class _SeatFrameState extends State<SeatFrame> with SingleTickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     if (widget.border == SeatBorder.none) return widget.child;
-    return CustomPaint(
-      foregroundPainter: SeatFramePainter(
-        widget.border,
-        radius: widget.radius,
-        thickness: widget.thickness,
-        inset: widget.inset,
-        clock: _clock,
-      ),
-      child: widget.child,
+    final painter = SeatFramePainter(
+      widget.border,
+      radius: widget.radius,
+      thickness: widget.thickness,
+      inset: widget.inset,
+      clock: _clock,
+    );
+    if (_clock == null) {
+      // La cornice ferma (con le sue sfumature) è un'immagine sopra il ritratto.
+      final glow = (widget.thickness ?? 14) * 5 + 4;
+      return Stack(
+        fit: StackFit.passthrough,
+        clipBehavior: Clip.none,
+        children: [
+          widget.child,
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Baked(overflow: EdgeInsets.all(glow), child: CustomPaint(painter: painter)),
+            ),
+          ),
+        ],
+      );
+    }
+    // La cornice che si muove sta su uno strato suo: a ogni fotogramma si
+    // ridisegna lei, non il ritratto (e il tavolo) che ha sotto.
+    return Stack(
+      fit: StackFit.passthrough,
+      clipBehavior: Clip.none,
+      children: [
+        widget.child,
+        Positioned.fill(
+          child: IgnorePointer(child: RepaintBoundary(child: CustomPaint(painter: painter))),
+        ),
+      ],
     );
   }
 }

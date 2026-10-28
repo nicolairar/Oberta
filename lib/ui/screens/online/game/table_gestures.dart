@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
@@ -647,7 +648,8 @@ class _FlightPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_FlightPainter old) => true;
+  bool shouldRepaint(_FlightPainter old) =>
+      flights.isNotEmpty || old.flights.isNotEmpty || !listEquals(old.centers, centers) || old.card != card;
 }
 
 /// Un gesto all'età [age] (in secondi) del suo viaggio da [from] a [to].

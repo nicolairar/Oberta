@@ -7,6 +7,7 @@ import '../../roster/portrait_registry.dart';
 import '../avatar/avatar_look.dart';
 import '../avatar/look_painter.dart';
 import '../theme/app_theme.dart';
+import 'baked.dart';
 import 'noir_avatar.dart';
 import 'platform_marks.dart';
 
@@ -87,9 +88,14 @@ class PlayerAvatar extends StatelessWidget {
             listenable: Listenable.merge([PortraitRegistry.instance, PlayerMarks.changes]),
             builder: (context, _) {
               if (PortraitRegistry.instance.photoOf(seed) != null) return NoirAvatar(seed: seed, size: size, faded: fallen);
-              final drawn = CustomPaint(
-                size: Size.square(size),
-                painter: AvatarBustPainter(look ?? AvatarLook.of(seed), faded: fallen),
+              // Il ritratto disegnato è fermo e pieno di sfumature: si tiene
+              // da parte in un'immagine (la cornice d'oro sborda un poco).
+              final drawn = Baked(
+                overflow: EdgeInsets.all(size * 0.02 + 1),
+                child: CustomPaint(
+                  size: Size.square(size),
+                  painter: AvatarBustPainter(look ?? AvatarLook.of(seed), faded: fallen),
+                ),
               );
               final url = picture ?? (look == null ? PlayerMarks.of(seed).picture : null);
               return url == null ? drawn : SteamPicture(url: url, size: size, fallback: drawn, faded: fallen);

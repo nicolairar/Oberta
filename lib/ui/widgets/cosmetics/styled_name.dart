@@ -183,7 +183,8 @@ class _StyledNameState extends State<StyledName> with SingleTickerProviderStateM
         );
     final clock = _clock;
     if (clock == null) return masked(0.3);
-    return AnimatedBuilder(animation: clock, builder: (context, _) => masked(clock.value));
+    // La luce che scorre ridisegna solo il nome, non quello che ha intorno.
+    return RepaintBoundary(child: AnimatedBuilder(animation: clock, builder: (context, _) => masked(clock.value)));
   }
 
   static Shader _shader(NameStyle style, List<Color> colors, Rect rect, double t) {
