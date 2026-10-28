@@ -10,6 +10,7 @@ import 'street_route.dart';
 import 'street_section.dart';
 import 'street_stage.dart';
 import 'street_wall.dart';
+import '../widgets/targa.dart';
 
 export 'street_section.dart';
 
@@ -24,15 +25,18 @@ class StreetBackdrop extends StatelessWidget {
   final String? title;
   final bool desk;
 
+  /// Lo spazio da lasciare a destra dell'insegna ([StreetFacadeLayout.trailing]).
+  final double trailing;
+
   /// I pannelli, posati nel riquadro giusto da [builder].
   final Widget Function(BuildContext context, StreetFacadeLayout layout) builder;
 
-  const StreetBackdrop({super.key, required this.section, required this.builder, this.title, this.desk = false});
+  const StreetBackdrop({super.key, required this.section, required this.builder, this.title, this.desk = false, this.trailing = 0});
 
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
-    final layout = StreetFacadeLayout(media.size, media.padding, desk: desk);
+    final layout = StreetFacadeLayout(media.size, media.padding, desk: desk, trailing: trailing);
     StreetStage.report(context, layout.spot);
     final route = ModalRoute.of(context);
     final walks = route is StreetRoute && !route.still;
@@ -210,17 +214,7 @@ class _BackPlate extends StatelessWidget {
   const _BackPlate({super.key, this.onBack});
 
   @override
-  Widget build(BuildContext context) => Container(
-    width: 46,
-    height: 46,
-    decoration: BoxDecoration(
-      color: const Color(0xFF14202A),
-      borderRadius: BorderRadius.circular(6),
-      border: Border.all(color: const Color(0xFFC9A227).withValues(alpha: 0.7), width: 1.5),
-      boxShadow: const [BoxShadow(color: Color(0xAA000000), blurRadius: 6, offset: Offset(1, 3))],
-    ),
-    child: BackButton(color: AppColors.gold, onPressed: onBack),
-  );
+  Widget build(BuildContext context) => TargaBackButton(onPressed: onBack, size: 46);
 }
 
 /// La vetrina che fa da pannello: vetro scuro, telaio di ferro, un filo

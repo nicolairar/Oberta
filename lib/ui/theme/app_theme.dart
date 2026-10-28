@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/targa.dart';
+
 /// Palette noir: sfondo quasi nero, accento rosso sangue, dettagli dorati.
 class AppColors {
   static const background = Color(0xFF14110F);
@@ -40,10 +42,6 @@ class AppText {
 }
 
 ThemeData buildAppTheme() {
-  final buttonShape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(14));
-  const buttonPadding = EdgeInsets.symmetric(horizontal: 28, vertical: 18);
-  const buttonText = TextStyle(fontWeight: FontWeight.w700, letterSpacing: 1.6);
-
   return ThemeData(
     useMaterial3: true,
     scaffoldBackgroundColor: AppColors.background,
@@ -61,27 +59,9 @@ ThemeData buildAppTheme() {
       centerTitle: true,
       titleTextStyle: AppText.display(18, color: AppColors.textPrimary),
     ),
-    elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.accent,
-        foregroundColor: AppColors.textPrimary,
-        disabledBackgroundColor: AppColors.surface,
-        disabledForegroundColor: AppColors.textSecondary,
-        padding: buttonPadding,
-        shape: buttonShape,
-        textStyle: buttonText,
-      ),
-    ),
-    outlinedButtonTheme: OutlinedButtonThemeData(
-      style: OutlinedButton.styleFrom(
-        foregroundColor: AppColors.gold,
-        backgroundColor: AppColors.background.withValues(alpha: 0.72),
-        side: const BorderSide(color: AppColors.gold),
-        padding: buttonPadding,
-        shape: buttonShape,
-        textStyle: buttonText,
-      ),
-    ),
+    // Every plain button wears the Targa plate (widgets/targa.dart).
+    elevatedButtonTheme: ElevatedButtonThemeData(style: targaButtonStyle(TargaKind.primary)),
+    outlinedButtonTheme: OutlinedButtonThemeData(style: targaButtonStyle(TargaKind.secondary)),
     snackBarTheme: const SnackBarThemeData(
       backgroundColor: AppColors.surface,
       contentTextStyle: TextStyle(color: AppColors.textPrimary),

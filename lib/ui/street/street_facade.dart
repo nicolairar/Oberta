@@ -14,6 +14,10 @@ class StreetFacadeLayout {
   final EdgeInsets safe;
   final bool desk;
 
+  /// Sul telefono, quanto spazio tenere libero a destra dell'insegna (il
+  /// borsellino della bottega): l'insegna si stringe e non ci finisce sotto.
+  final double trailing;
+
   /// Il muro di tutta la strada: mattoni e marciapiede alla stessa altezza
   /// del vicolo di casa.
   late final StreetWall wall;
@@ -28,7 +32,7 @@ class StreetFacadeLayout {
   /// Dove stanno i pannelli della sezione.
   late final Rect panel;
 
-  StreetFacadeLayout(this.size, this.safe, {this.desk = false}) {
+  StreetFacadeLayout(this.size, this.safe, {this.desk = false, this.trailing = 0}) {
     final w = size.width;
     final h = size.height;
     wall = StreetWall(size, safe);
@@ -38,7 +42,7 @@ class StreetFacadeLayout {
       neon = Rect.fromCenter(center: Offset(w / 2, 46), width: 640, height: 84);
     } else {
       final tall = (h * 0.082).clamp(44.0, 70.0);
-      neon = Rect.fromLTRB(62, safe.top + 4, w - 62, safe.top + 4 + tall);
+      neon = Rect.fromLTRB(62, safe.top + 4, w - max(62.0, trailing + 14), safe.top + 4 + tall);
     }
     final top = neon.bottom + (desk ? 40 : 8);
     final room = ground - top;
@@ -70,10 +74,10 @@ class StreetFacadeLayout {
 
   @override
   bool operator ==(Object other) =>
-      other is StreetFacadeLayout && other.size == size && other.safe == safe && other.desk == desk;
+      other is StreetFacadeLayout && other.size == size && other.safe == safe && other.desk == desk && other.trailing == trailing;
 
   @override
-  int get hashCode => Object.hash(size, safe, desk);
+  int get hashCode => Object.hash(size, safe, desk, trailing);
 }
 
 /// Le parti della facciata che [StreetFacadePainter] sa disegnare da sole.

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../press.dart';
 import '../../../theme/app_theme.dart';
+import '../../../widgets/targa.dart';
 
 /// I colori della sala da gioco: il panno verde, il legno, l'ottone, lo
 /// smalto rosso delle targhe del vicolo.
@@ -82,105 +83,16 @@ class NoirButton extends StatefulWidget {
 }
 
 class _NoirButtonState extends State<NoirButton> {
-  bool _down = false;
-
-  /// Il mouse ci sta sopra: la targa si accende.
-  bool _hover = false;
-
-  void _set(bool down) {
-    if (_down != down) setState(() => _down = down);
-  }
-
   @override
-  Widget build(BuildContext context) {
-    final enabled = widget.onPressed != null;
-    final desk = NoirDesk.of(context);
-    final lit = enabled && _hover;
-    final enamel = widget.kind == NoirButtonKind.enamel;
-    final face = enamel
-        ? lit
-            ? [const Color(0xFFE0353F), const Color(0xFFB81B25), Saloon.enamelDeep]
-            : [const Color(0xFFC72A33), Saloon.enamel, Saloon.enamelDeep]
-        : lit
-            ? [const Color(0xFF3A2E24), const Color(0xFF1F1812), Saloon.ink]
-            : [const Color(0xFF2A211B), const Color(0xFF15100C), Saloon.ink];
-    final text = enabled ? (enamel ? const Color(0xFFFFF3DC) : (lit ? const Color(0xFFF2D58A) : Saloon.brass)) : AppColors.textSecondary;
-    final radius = desk ? 14.0 : 12.0;
-    final minHeight = desk ? (widget.compact ? 60.0 : 68.0) : (widget.compact ? 44.0 : 56.0);
-    final fontSize = desk ? (widget.compact ? 18.0 : 21.0) : (widget.compact ? 14.0 : 17.0);
-    return Semantics(
-      button: true,
-      enabled: enabled,
-      label: widget.label,
-      excludeSemantics: true,
-      child: MouseRegion(
-        cursor: enabled ? SystemMouseCursors.click : MouseCursor.defer,
-        onEnter: (_) => setState(() => _hover = true),
-        onExit: (_) => setState(() => _hover = false),
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTapDown: enabled ? (_) => _set(true) : null,
-          onTapUp: enabled ? (_) => _set(false) : null,
-          onTapCancel: () => _set(false),
-          onTap: pressed(widget.onPressed, widget.feel),
-          child: AnimatedOpacity(
-            duration: const Duration(milliseconds: 150),
-            opacity: enabled ? 1 : 0.55,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 110),
-              transform: Matrix4.translationValues(0, _down ? 2 : (lit ? -1.5 : 0), 0),
-              constraints: BoxConstraints(minHeight: minHeight),
-              padding: EdgeInsets.symmetric(horizontal: desk ? 28 : 16, vertical: widget.compact ? 8 : 12),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: enabled ? face : [const Color(0xFF2A2420), const Color(0xFF1A1512), Saloon.ink],
-                ),
-                borderRadius: BorderRadius.circular(radius),
-                border: Border.all(
-                  color: lit ? const Color(0xFFF2D58A) : (enabled ? Saloon.brass : Saloon.brassDeep),
-                  width: desk ? 2 : 1.6,
-                ),
-                boxShadow: _down || !enabled
-                    ? const []
-                    : [
-                        const BoxShadow(color: Color(0xCC000000), blurRadius: 10, offset: Offset(0, 4)),
-                        if (lit) BoxShadow(color: Saloon.brass.withValues(alpha: 0.35), blurRadius: 18),
-                      ],
-              ),
-              foregroundDecoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(radius),
-                border: Border.all(color: Colors.black.withValues(alpha: 0.5), width: 0.8),
-              ),
-              child: Center(
-                widthFactor: 1,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (widget.icon != null) ...[
-                      Icon(widget.icon, size: desk ? 24 : 18, color: text),
-                      SizedBox(width: desk ? 12 : 8),
-                    ],
-                    Flexible(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          widget.label.toUpperCase(),
-                          maxLines: 1,
-                          style: AppText.display(fontSize, color: text).copyWith(letterSpacing: desk ? 2.6 : 2),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => TargaButton(
+    label: widget.label,
+    onPressed: widget.onPressed,
+    kind: widget.kind == NoirButtonKind.enamel ? TargaKind.primary : TargaKind.secondary,
+    feel: widget.feel,
+    icon: widget.icon,
+    compact: widget.compact,
+    desk: NoirDesk.of(context),
+  );
 }
 
 /// Testo su un fondo scuro: la regola della leggibilità, in un widget.
