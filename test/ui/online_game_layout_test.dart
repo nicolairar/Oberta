@@ -10,6 +10,8 @@ import 'package:oberta/online/fake_online.dart';
 import 'package:oberta/online/online_services.dart';
 import 'package:oberta/ui/screens/online/online_game_screen.dart';
 
+import 'package:oberta/ui/screens/online/game/chat_dock.dart';
+
 import '../support/languages.dart';
 import '../support/manual_clock.dart';
 import 'online_game_screen_test.dart' show flush, settled;
@@ -196,10 +198,11 @@ void main() {
         }
         await flush(tester);
 
+        expect(find.byType(ChatSeatChip), findsWidgets, reason: 'il numero di posto accanto al nome');
         expect(
-          find.textContaining(RegExp(r'^\d+ (anna|carla|dario): ', multiLine: true), findRichText: true),
+          find.textContaining(RegExp(r'^(anna|carla|dario): ', multiLine: true), findRichText: true),
           findsWidgets,
-          reason: 'il numero accanto al nome',
+          reason: 'il nome dopo il numero',
         );
         if (alive) {
           expect(

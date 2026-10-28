@@ -977,6 +977,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                       seats: _chatSeats,
                       onHold: _holdMessage,
                       trailing: _chatTrailing(),
+                      tabs: _chatTabs(now.view),
                     ),
                   ),
                 ),
@@ -1425,15 +1426,13 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     return Row(mainAxisSize: MainAxisSize.min, children: [?dock, Padding(padding: const EdgeInsets.only(left: 4), child: gestures)]);
   }
 
-  /// In testa alla chat: la voce, e di giorno con un Compare la scelta della chat.
+  /// In testa alla chat, accanto alle linguette: la voce e i gesti.
   Widget? _chatTrailing() {
-    final swap = _stage.chat == 'day' && _view.familyChat ? _chatSwitch() : null;
     final gestures = _gestureButton();
     final voice = _voice;
     final items = [
       if (voice != null) VoiceDock(controller: voice, onPerson: _voicePerson),
       if (gestures != null) Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: gestures),
-      ?swap,
     ];
     if (items.isEmpty) return null;
     if (items.length == 1) return items.single;
@@ -1602,6 +1601,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         seats: _chatSeats,
         onHold: _holdMessage,
         trailing: _chatTrailing(),
+        tabs: _chatTabs(now.view),
       ),
     );
     final bottom = typing ? 8.0 : max(_media.viewPadding.bottom - 8, 8.0);
@@ -1677,25 +1677,43 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     );
   }
 
-  /// Di giorno, con un Compare vivo: la piazza o la famiglia.
-  Widget _chatSwitch() => SizedBox(
-    height: _deskMode ? 40 : 28,
-    child: SegmentedButton<bool>(
-      key: const Key('online.chatSwitch'),
-      style: ButtonStyle(
-        visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        textStyle: WidgetStatePropertyAll(TextStyle(fontSize: _deskMode ? 15 : 12)),
+  /// Quanti messaggi di ogni chat si sono già visti: le linguette contano
+  /// gli altri.
+  final _seenChat = <ChatChannel, int>{};
+
+  /// Le linguette della chat, per chi ha anche la famiglia: la piazza e la
+  /// famiglia, coi non letti. Di giorno, con un Compare vivo, si sceglie; se
+  /// no apre quella della fase e l'altra resta spenta.
+  List<ChatTab>? _chatTabs(ChatChannelView view) {
+    if (!_inFamilyChat && !_view.familyChat) return null;
+    int count(ChatChannel channel) => _client.chat.where((m) => m.channel == channel).length;
+    for (final channel in const [ChatChannel.day, ChatChannel.family]) {
+      // La prima volta conta solo quello che arriva da adesso.
+      if (channel == view.channel || !_seenChat.containsKey(channel)) _seenChat[channel] = count(channel);
+    }
+    int unread(ChatChannel channel) => max(0, count(channel) - (_seenChat[channel] ?? 0));
+    final swap = _stage.chat == 'day' && _view.familyChat;
+    return [
+      ChatTab(
+        key: const Key('online.chatTab.town'),
+        label: _t.online.chatTown,
+        accent: Saloon.brass,
+        icon: Icons.forum,
+        active: view.channel == ChatChannel.day,
+        unread: unread(ChatChannel.day),
+        onTap: swap ? () => setState(() => _familyTab = false) : null,
       ),
-      segments: [
-        ButtonSegment(value: false, label: Text(_t.online.chatTown)),
-        ButtonSegment(value: true, label: Text(_t.online.chatFamily)),
-      ],
-      selected: {_familyTab},
-      showSelectedIcon: false,
-      onSelectionChanged: (choice) => setState(() => _familyTab = choice.single),
-    ),
-  );
+      ChatTab(
+        key: const Key('online.chatTab.family'),
+        label: _t.online.chatFamily,
+        accent: Saloon.mafia,
+        icon: Icons.theater_comedy,
+        active: view.channel == ChatChannel.family,
+        unread: unread(ChatChannel.family),
+        onTap: swap ? () => setState(() => _familyTab = true) : null,
+      ),
+    ];
+  }
 
   /// Le parole sul panno, al centro del tavolo: poche, grandi, sempre a
   /// misura leggibile. Vanno a capo nella larghezza che c'è; solo se sono
@@ -1857,6 +1875,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     numbers: {for (var i = 0; i < _public.seats.length; i++) _public.seats[i].id: i + 1},
     myNumber: _numberOf(_view.seat),
     myName: _view.seat.name,
+    fallen: {for (final p in _public.seats) if (!_isAlive(p)) p.id},
+    mayor: _public.mayor?.id,
+    roster: [
+      for (var i = 0; i < _public.seats.length; i++)
+        (number: i + 1, name: _public.seats[i].name, alive: _isAlive(_public.seats[i])),
+    ],
   );
 
   SeatHand _handOf(Player voter, int from, int to, Color accent) {
@@ -1871,11 +1895,11 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     );
   }
 
-  /// Il pizzino di chi ha votato: il numero di posto dell'accusato, corto,
-  /// così non copre i vicini. Di notte, chi passa non ha pizzino.
+  /// Il bollo di chi ha votato: il numero di posto dell'accusato (chi si
+  /// astiene di giorno ha il bollo grigio). Di notte, chi passa non ha bollo.
   String? _pizzinoOf(SeatVote? vote, {required bool day}) => switch (vote?.target) {
     _ when vote == null => null,
-    final target? => '→ ${_numberOf(target) ?? target.name}',
+    final target? => '${_numberOf(target) ?? target.name}',
     null when !day => null,
     null when _italian && PlayerGenders.of(vote.voter.name) == Gender.feminine => 'astenuta',
     null => _t.online.abstainTag,

@@ -17,7 +17,7 @@ import 'noir_ui.dart';
 /// Un posto al tavolo: un ritratto ad arco con la targhetta del nome.
 /// Tutti i posti sono grandi uguali. Sopra, quello che serve al gioco:
 /// scelto (alone d'oro), accusato (bordo rosso e nastro), quanti voti ha,
-/// il pizzino con chi accusa, morto (grigio, con il garofano).
+/// il numero di chi accusa, morto (grigio, con il garofano).
 class SeatCard extends StatelessWidget {
   final String name;
 
@@ -36,12 +36,13 @@ class SeatCard extends StatelessWidget {
   /// Quanti voti ha (zero: nessun bollo).
   final int votes;
 
-  /// Chi accusa questo giocatore, scritto sul suo pizzino.
+  /// Il voto di questo giocatore: il numero di posto dell'accusato, bianco
+  /// nell'angolo in basso a destra (non un numero: astenuto, un trattino).
   final String? pizzino;
   final Key? pizzinoKey;
   final Color pizzinoColor;
 
-  /// Il timbro del linciato sta sul petto ([LynchMark]): il pizzino sale.
+  /// Il timbro del linciato sta sul petto ([LynchMark]): il voto sale.
   final bool stamped;
 
   /// Una riga sotto il nome (un ruolo scoperto, «offline»).
@@ -244,14 +245,18 @@ class SeatCard extends StatelessWidget {
               child: CustomPaint(size: Size.square(width * 0.3), painter: _CarnationPainter()),
             ),
           ),
+        // Quanti voti ha: un numero chiaro sopra il ritratto.
         if (votes > 0)
           Positioned(
-            right: -width * 0.06,
-            top: -width * 0.02,
-            child: Tooltip(
-              message: '$votes ${tips.votes}',
-              triggerMode: TooltipTriggerMode.longPress,
-              child: _WaxSeal(votes, size: max(24, width * 0.3)),
+            left: 0,
+            right: 0,
+            top: height * 0.06,
+            child: Center(
+              child: Tooltip(
+                message: '$votes ${tips.votes}',
+                triggerMode: TooltipTriggerMode.longPress,
+                child: _VoteCount(votes, size: max(22, width * 0.3)),
+              ),
             ),
           ),
         // Il nastro dell'accusato: sul petto, appena sopra la targhetta; la
@@ -286,27 +291,17 @@ class SeatCard extends StatelessWidget {
               ),
             ),
           ),
-        // Il pizzino: sulla spalla destra, sopra la targhetta; se il petto è
-        // occupato, in cima all'arco fra il numero e il bollo. Non copre mai
-        // il nome né la faccia.
+        // Il voto di questo giocatore: il numero di posto dell'accusato,
+        // bianco, nell'angolo in basso a destra del ritratto; sopra il nastro
+        // o la nota, se il petto è occupato.
         if (pizzino != null)
           Positioned(
-            left: high ? 0 : null,
-            right: high ? 0 : -width * 0.07,
-            top: high ? -width * 0.03 : null,
-            bottom: high ? null : plateHeight * 0.88,
-            child: Align(
-              alignment: high ? Alignment.topCenter : Alignment.bottomRight,
-              widthFactor: high ? null : 1,
-              heightFactor: 1,
-              child: Tooltip(
-                message: tips.voteNote,
-                triggerMode: TooltipTriggerMode.longPress,
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: width * (high ? 0.5 : 0.62)),
-                  child: _Pizzino(key: pizzinoKey, text: pizzino!, color: pizzinoColor, size: max(9, width * 0.12)),
-                ),
-              ),
+            right: width * 0.05,
+            bottom: plateHeight * (high ? 1.75 : 1.02),
+            child: Tooltip(
+              message: tips.voteNote,
+              triggerMode: TooltipTriggerMode.longPress,
+              child: _VoteFor(key: pizzinoKey, label: pizzino!, size: max(17, width * 0.27)),
             ),
           ),
         if (note != null)
@@ -465,12 +460,13 @@ class _SeatNumber extends StatelessWidget {
   );
 }
 
-/// Il bollo di ceralacca con il numero dei voti.
-class _WaxSeal extends StatelessWidget {
+/// Quanti voti ha l'accusato: il numero, bianco e grande, su un tondo
+/// rosso smalto, sopra la faccia: non si confonde col numero di posto.
+class _VoteCount extends StatelessWidget {
   final int votes;
   final double size;
 
-  const _WaxSeal(this.votes, {required this.size});
+  const _VoteCount(this.votes, {required this.size});
 
   @override
   Widget build(BuildContext context) => TweenAnimationBuilder<double>(
@@ -480,50 +476,54 @@ class _WaxSeal extends StatelessWidget {
     curve: Curves.easeOutBack,
     builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
     child: Container(
-      width: size,
+      key: const Key('seat.votes'),
       height: size,
-      alignment: Alignment.center,
+      constraints: BoxConstraints(minWidth: size),
+      padding: EdgeInsets.symmetric(horizontal: size * 0.12),
       decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: const RadialGradient(center: Alignment(-0.3, -0.3), colors: [Color(0xFFE0343F), Color(0xFF7A0A12)]),
-        border: Border.all(color: const Color(0xFF3A0508), width: 1.5),
+        color: Saloon.enamel,
+        borderRadius: BorderRadius.circular(size / 2),
+        border: Border.all(color: const Color(0xFFFFC9B0), width: 1.6),
         boxShadow: const [BoxShadow(color: Colors.black, blurRadius: 6, offset: Offset(0, 2))],
       ),
-      child: Text('$votes', style: AppText.display(size * 0.55, color: Colors.white).copyWith(letterSpacing: 0)),
+      child: Center(
+        widthFactor: 1,
+        child: Text('$votes', style: AppText.display(size * 0.64, color: Colors.white).copyWith(letterSpacing: 0, height: 1)),
+      ),
     ),
   );
 }
 
-/// Il bigliettino di chi ha votato: «→ MARCO».
-class _Pizzino extends StatelessWidget {
-  final String text;
-  final Color color;
+/// Il voto di chi ha votato: il numero di posto dell'accusato, bianco, con
+/// un filo d'ombra perché si legga su ogni ritratto. Chi si astiene di
+/// giorno ha un trattino.
+class _VoteFor extends StatelessWidget {
+  final String label;
   final double size;
 
-  const _Pizzino({super.key, required this.text, required this.color, required this.size});
+  const _VoteFor({super.key, required this.label, required this.size});
 
   @override
-  Widget build(BuildContext context) => Transform.rotate(
-    angle: 0.04,
-    child: Container(
-      padding: const EdgeInsets.fromLTRB(3, 1, 4, 1),
-      decoration: BoxDecoration(
-        color: Saloon.paper,
-        borderRadius: BorderRadius.circular(2),
-        border: Border(left: BorderSide(color: color, width: 3)),
-        boxShadow: const [BoxShadow(color: Colors.black, blurRadius: 4, offset: Offset(0, 2))],
-      ),
-      // Si stringe, non si taglia: «→ 11» si legge sempre intero.
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Text(
-          text,
-          maxLines: 1,
-          style: TextStyle(fontFamily: 'Courier', color: Saloon.paperInk, fontSize: size, fontWeight: FontWeight.w700),
+  Widget build(BuildContext context) {
+    final text = int.tryParse(label) == null ? '–' : label;
+    return Semantics(
+      label: label,
+      child: Text(
+        text,
+        style: AppText.display(size, color: Colors.white).copyWith(
+          letterSpacing: 0,
+          height: 1,
+          shadows: const [
+            Shadow(color: Colors.black, blurRadius: 3),
+            Shadow(color: Colors.black, offset: Offset(1, 1)),
+            Shadow(color: Colors.black, offset: Offset(-1, -1)),
+            Shadow(color: Colors.black, offset: Offset(1, -1)),
+            Shadow(color: Colors.black, offset: Offset(-1, 1)),
+          ],
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 /// Il garofano sul posto di chi non c'è più.

@@ -521,7 +521,7 @@ class VoiceRing extends StatelessWidget {
             ),
             if (muted)
               Positioned(
-                top: 2,
+                top: width * 0.34,
                 right: 2,
                 child: IgnorePointer(
                   child: Container(

@@ -223,7 +223,9 @@ void main() {
     await flush(tester);
     expect(find.byKey(const Key('online.myVote')), findsOneWidget);
     expect(find.textContaining('registrato'), findsNothing);
-    expect(find.textContaining('→ '), findsWidgets, reason: 'il pizzino di Bruno è sul tavolo di tutti');
+    expect(find.byWidgetPredicate((w) => w.key is ValueKey<String> && '${w.key}'.contains('pizzino-')), findsWidgets,
+        reason: 'il bollo di Bruno è sul tavolo di tutti');
+    expect(find.byKey(const Key('seat.votes')), findsWidgets, reason: 'sull\'accusato, quanti voti ha');
     expect(find.text('1').evaluate().length + find.text('2').evaluate().length, greaterThan(0), reason: 'il bollo con i voti');
     await tester.pumpWidget(const SizedBox());
   });
