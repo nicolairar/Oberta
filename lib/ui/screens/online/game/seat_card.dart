@@ -271,7 +271,7 @@ class SeatCard extends StatelessWidget {
           Positioned(
             left: -width * 0.05,
             right: -width * 0.05,
-            bottom: -plateHeight * 0.95,
+            bottom: -width * 0.12,
             child: Center(
               child: Tooltip(
                 message: tips.voteNote,
@@ -284,7 +284,7 @@ class SeatCard extends StatelessWidget {
           Positioned(
             left: -width * 0.05,
             right: -width * 0.05,
-            top: -plateHeight * 0.2,
+            bottom: plateHeight * 0.95,
             child: Center(
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
@@ -379,7 +379,7 @@ class _PlateName extends StatelessWidget {
         textScaler: MediaQuery.textScalerOf(context),
       )..layout();
       final room = box.maxWidth - mark - 2;
-      final fit = painter.width <= 0 ? 1.0 : (room / painter.width).clamp(shrink, 1.0);
+      final fit = painter.width <= 0 ? 1.0 : (room / painter.width).clamp(min(1.0, max(shrink, 9 / style.fontSize!)), 1.0);
       painter.dispose();
       return Center(
         child: Row(
