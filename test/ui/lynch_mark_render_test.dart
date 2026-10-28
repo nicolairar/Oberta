@@ -109,6 +109,14 @@ void main() {
     }
     expect(after, isTrue, reason: 'prima o poi la piazza lincia qualcuno');
     expect(find.byKey(const Key('online.verdictHeadline')), findsOneWidget);
+    // Il verdetto si legge tutto: niente puntini dopo cinque parole.
+    for (final key in const [Key('online.verdictHeadline'), Key('online.verdictStory')]) {
+      final text = tester.widget<Text>(find.byKey(key));
+      expect(text.maxLines, isNull, reason: '$key');
+      expect(text.overflow, isNot(TextOverflow.ellipsis), reason: '$key');
+      expect(tester.renderObject<RenderParagraph>(find.byKey(key)).didExceedMaxLines, isFalse, reason: '$key');
+      expect(text.style!.fontSize, greaterThan(9), reason: '$key resta leggibile');
+    }
     await tester.pumpWidget(const SizedBox());
   });
 

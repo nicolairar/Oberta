@@ -559,12 +559,12 @@ class GameEngine {
     return switch (setup.roleOf(actor)) {
       // La famiglia può colpire chiunque, anche uno dei suoi: un morto in
       // casa, a volte, è il bluff migliore.
-      Role.mafioso || Role.padrino => NightTask(NightTaskKind.kill, others),
+      // Il Compare vota come un Picciotto: il suo potere in più è la chat di
+      // giorno, non un'altra mossa al posto dell'agguato.
+      Role.mafioso || Role.padrino || Role.compare => NightTask(NightTaskKind.kill, others),
       // Il Sarto vota l'agguato come un Picciotto; una volta per partita,
       // al posto del voto, può cucire la bocca a qualcuno.
       Role.sarto => NightTask(NightTaskKind.kill, others, alternative: _silenceSpent ? null : NightTaskKind.silence),
-      // Il Compare non ha mosse di notte: il suo potere è la chat di giorno.
-      Role.compare => NightTask(NightTaskKind.decoy, others),
       Role.medico => NightTask(NightTaskKind.protect, [
         for (final player in _alive)
           if (player != _lastProtected) player,

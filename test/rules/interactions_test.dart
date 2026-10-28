@@ -281,6 +281,27 @@ void main() {
       expect(engine.taskFor(messiah).targets.toSet(), {a, b, mob2});
     });
 
+    test('una volta sola: chi passa la tiene per le notti dopo, chi la usa non la rivede', () {
+      final engine = table({mob: Role.mafioso, mob2: Role.mafioso, messiah: Role.messia});
+      // Prima notte: nessun morto, nessuna resurrezione da offrire.
+      expect(engine.taskFor(messiah).kind, NightTaskKind.decoy);
+      night(engine, {});
+      engine.lynch(a);
+      // Seconda notte passa: la resurrezione resta.
+      expect(engine.taskFor(messiah).kind, NightTaskKind.resurrect);
+      night(engine, {});
+      engine.lynch(null);
+      // Terza notte: ancora sua, la usa.
+      expect(engine.taskFor(messiah).kind, NightTaskKind.resurrect);
+      expect(engine.viewFor(messiah.id).action!.kind, NightTaskKind.resurrect);
+      expect(night(engine, {messiah: a}).resurrected, a);
+      engine.lynch(null);
+      // Da qui in poi solo la copertura, anche con dei morti in giro.
+      expect(engine.taskFor(messiah).kind, NightTaskKind.decoy);
+      expect(engine.viewFor(messiah.id).action!.kind, NightTaskKind.decoy);
+      expectRoundTrip(engine);
+    });
+
     test('il Messia ucciso stanotte: la resurrezione fallisce ed è spesa', () {
       final engine = table({mob: Role.mafioso, mob2: Role.mafioso, messiah: Role.messia});
       night(engine, {});

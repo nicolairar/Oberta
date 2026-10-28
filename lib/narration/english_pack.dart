@@ -508,7 +508,7 @@ const englishPack = NarrationPack(
     NightTaskKind.scoop: 'Tap a name: at dawn everyone learns their side. Only one scoop. Pass to keep it.',
     NightTaskKind.douse: 'Tap a name to douse them, secretly. Or light the match: everyone doused burns.',
     NightTaskKind.ignite: 'Tap your own name: everyone you doused burns tonight.',
-    NightTaskKind.resurrect: 'Tap a name: they come back at dawn, if you live to see it. Only once.',
+    NightTaskKind.resurrect: 'Tap a dead player: back at dawn if you live. Once only; passing keeps it.',
     NightTaskKind.watch: 'Tap a name: at dawn you\'ll know if anyone visited them. Not who.',
     NightTaskKind.lend: 'Tap a name: they can\'t die tonight. Never the same one twice running.',
     NightTaskKind.stab: 'Tap a name: they die tonight, unless someone protects them.',

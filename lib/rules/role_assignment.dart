@@ -92,8 +92,6 @@ List<Role> rolesForPlayerCount(int count, {Random? random, PlayMode mode = PlayM
   for (final role in powers) {
     if (family.length >= min(maxFamilyPowersFor(count), mafia)) break;
     if (!rng.nextBool()) continue;
-    // Il Compare non spara: serve qualcun altro che lo faccia.
-    if (role == Role.compare && family.length + 1 >= mafia && !family.any((r) => r.isKiller)) continue;
     family.add(role);
   }
   family.addAll(List.filled(mafia - family.length, Role.mafioso));

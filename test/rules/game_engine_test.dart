@@ -527,10 +527,32 @@ void main() {
           sniper: Role.cittadino,
         }), seed: 1);
 
-    test('di notte non ha mosse vere, e non vota l\'agguato', () {
+    test('di notte vota l\'agguato con la famiglia, come dice la sua carta', () {
       final engine = table();
-      expect(engine.taskFor(boss).kind, NightTaskKind.decoy);
-      expect(engine.apply(MafiaVote(boss.id, anna.id)), isA<IntentRejected>());
+      expect(engine.taskFor(boss).kind, NightTaskKind.kill);
+      final view = engine.viewFor(boss.id);
+      expect(view.action!.type, ActionType.mafiaVote);
+      expect(view.action!.kind, NightTaskKind.kill);
+      expect(engine.apply(MafiaVote(boss.id, anna.id)), isNot(isA<IntentRejected>()));
+      // Vede le mani della famiglia, e la famiglia vede la sua.
+      expect(engine.viewFor(boss.id).familyVotes, [(voter: boss, target: anna)]);
+      expect(engine.viewFor(picciotto.id).familyVotes, [(voter: boss, target: anna)]);
+      expect(engine.viewFor(anna.id).familyVotes, isEmpty);
+    });
+
+    test('vota ogni notte, dalla prima all\'ultima, anche rimasto solo', () {
+      final engine = table();
+      expect(playNight(engine, {boss: anna, picciotto: anna}).victims, [anna]);
+      engine.lynch(null);
+      // Seconda notte: ancora un voto vero, non la domanda di copertura.
+      expect(engine.taskFor(boss).kind, NightTaskKind.kill);
+      expect(engine.viewFor(boss.id).action!.type, ActionType.mafiaVote);
+      expect(playNight(engine, {boss: bruno, picciotto: bruno}).victims, [bruno]);
+      engine.lynch(picciotto);
+      // Morto il Picciotto, il Compare uccide da solo.
+      expect(engine.taskFor(boss).kind, NightTaskKind.kill);
+      expect(playNight(engine, {boss: doctor}).victims, [doctor]);
+      expect(PlayerView.fromJson(engine.viewFor(boss.id).toJson()).familyChat, isTrue);
     });
 
     test('finché è vivo la famiglia ha la sua chat anche di giorno', () {

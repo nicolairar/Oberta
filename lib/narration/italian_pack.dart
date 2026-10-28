@@ -504,7 +504,7 @@ const italianPack = NarrationPack(
     NightTaskKind.scoop: 'Tocca un nome: all\'alba tutti sanno la sua squadra. Una volta sola. Se passi, ti resta.',
     NightTaskKind.douse: 'Tocca un nome: lo cospargi, e non lo sa. Oppure accendi: bruciano tutti i cosparsi.',
     NightTaskKind.ignite: 'Tocca il tuo nome: stanotte bruciano tutti quelli che hai cosparso.',
-    NightTaskKind.resurrect: 'Tocca un nome: torna in vita all\'alba, se tu ci arrivi. Una volta sola.',
+    NightTaskKind.resurrect: 'Tocca un morto: torna all\'alba, se ci arrivi tu. Una volta sola: se passi, ti resta.',
     NightTaskKind.watch: 'Tocca un nome: all\'alba sai se qualcuno è andato da lui. Non chi.',
     NightTaskKind.lend: 'Tocca un nome: stanotte non può morire. Mai lo stesso due notti di fila.',
     NightTaskKind.stab: 'Tocca un nome: muore stanotte, a meno che qualcuno lo protegga.',

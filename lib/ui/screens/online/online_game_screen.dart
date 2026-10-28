@@ -42,6 +42,7 @@ import '../../../l10n/voice_strings.dart';
 import 'game/action_strip.dart';
 import 'game/chat_dock.dart';
 import 'game/chronicle_headlines.dart';
+import 'game/felt_text.dart';
 import 'game/front_page.dart';
 import 'game/noir_role_card.dart';
 import 'game/noir_ui.dart';
@@ -1662,6 +1663,40 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     ),
   );
 
+  /// Il panno per i testi che vanno letti tutti (il verdetto): niente
+  /// puntini, il carattere si adatta allo spazio fra i posti.
+  Widget _feltFit(List<FeltLine> lines, {Key? key}) => LayoutBuilder(
+    key: key,
+    builder: (context, box) => Center(
+      child: Container(
+        constraints: BoxConstraints(maxWidth: min(box.maxWidth, _deskMode ? 560.0 : 320.0), maxHeight: box.maxHeight),
+        padding: _deskMode
+            ? const EdgeInsets.symmetric(horizontal: 24, vertical: 16)
+            : const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xB0080605),
+          borderRadius: BorderRadius.circular(12 * _k),
+        ),
+        child: FeltText(lines, gap: 4 * _k),
+      ),
+    ),
+  );
+
+  TextStyle _feltTitleStyle(Color color) => AppText.display(_deskMode ? 28 : 17, color: color).copyWith(
+    letterSpacing: _deskMode ? 1.2 : 0.6,
+    height: 1.2,
+    shadows: const [Shadow(color: Colors.black, blurRadius: 6)],
+  );
+
+  TextStyle _feltLineStyle({Color color = AppColors.textPrimary, FontWeight? weight, FontStyle? style}) => TextStyle(
+    color: color,
+    fontSize: _deskMode ? 21 : 15,
+    fontWeight: weight,
+    fontStyle: style,
+    height: 1.3,
+    shadows: const [Shadow(color: Colors.black, blurRadius: 6)],
+  );
+
   /// Il titolo sul panno: la domanda della notte, il verdetto.
   Text _feltTitle(String text, {Key? key, Color color = AppColors.textPrimary, int maxLines = 3}) => Text(
     text,
@@ -1669,11 +1704,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     textAlign: TextAlign.center,
     maxLines: maxLines,
     overflow: TextOverflow.ellipsis,
-    style: AppText.display(_deskMode ? 28 : 17, color: color).copyWith(
-      letterSpacing: _deskMode ? 1.2 : 0.6,
-      height: 1.2,
-      shadows: const [Shadow(color: Colors.black, blurRadius: 6)],
-    ),
+    style: _feltTitleStyle(color),
   );
 
   /// Una riga di testo sul panno: corpo pieno (15 sul telefono, 21 su PC).
@@ -1690,14 +1721,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     textAlign: TextAlign.center,
     maxLines: maxLines,
     overflow: TextOverflow.ellipsis,
-    style: TextStyle(
-      color: color,
-      fontSize: _deskMode ? 21 : 15,
-      fontWeight: weight,
-      fontStyle: style,
-      height: 1.3,
-      shadows: const [Shadow(color: Colors.black, blurRadius: 6)],
-    ),
+    style: _feltLineStyle(color: color, weight: weight, style: style),
   );
 
   // ---------------------------------------------------------------------
@@ -2240,16 +2264,16 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         accusing: false,
         lynched: condemned,
         lynchedAt: into < Duration.zero ? Duration.zero : into,
-        center: _felt([
-          _feltTitle(
-            headline,
+        // Il verdetto si legge tutto, sul telefono come sul PC: va a capo e,
+        // se serve, il carattere si stringe. Mai i puntini.
+        center: _feltFit([
+          (
+            text: headline,
             key: const Key('online.verdictHeadline'),
-            color: role == null ? Saloon.brass : Color.lerp(stampColorFor(role), Colors.white, 0.45)!,
+            style: _feltTitleStyle(role == null ? Saloon.brass : Color.lerp(stampColorFor(role), Colors.white, 0.45)!),
           ),
-          if (story.isNotEmpty) ...[
-            SizedBox(height: 4 * _k),
-            _feltLine(story, key: const Key('online.verdictStory'), style: FontStyle.italic, maxLines: 3),
-          ],
+          if (story.isNotEmpty)
+            (text: story, key: const Key('online.verdictStory'), style: _feltLineStyle(style: FontStyle.italic)),
         ]),
       ),
       strip: ActionStrip(

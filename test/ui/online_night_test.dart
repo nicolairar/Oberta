@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/l10n/app_language.dart';
 import 'package:oberta/online/fake_online.dart';
 import 'package:oberta/online/online_services.dart';
+import 'package:oberta/narration/italian_pack.dart';
+import 'package:oberta/rules/role.dart';
 import 'package:oberta/ui/screens/online/game/saloon_table.dart';
 import 'package:oberta/ui/screens/online/online_game_screen.dart';
 import 'package:oberta/ui/widgets/noir_modal.dart';
@@ -158,5 +160,33 @@ void main() {
       return;
     }
     fail('nessuna partita con Bruno nella famiglia');
+  });
+
+  testWidgets('il Compare, come tutta la famiglia, ha il voto dell\'agguato e non la domanda di copertura', (tester) async {
+    _usePhone(tester);
+    final familyRoles = <Role>{};
+    for (var seed = 1; seed < 120 && !familyRoles.contains(Role.compare); seed++) {
+      final game = await _toTheNight(tester, seed);
+      if (game == null) continue;
+      final frame = game.online.deliveries.lastWhere((d) => d.user == 'bruno' && d.feed.seat != null).feed.seat!;
+      final role = Role.values.byName((frame.payload['view'] as Map)['role'] as String);
+      if (role.team != Team.mafia) {
+        await tester.pumpWidget(const SizedBox());
+        continue;
+      }
+      familyRoles.add(role);
+      expect(find.text('Chi eliminate stanotte?'), findsOneWidget, reason: '$role, seed $seed');
+      for (final decoy in italianPack.decoyPrompts) {
+        expect(find.text(decoy), findsNothing, reason: '$role non è un Onesto: niente «$decoy»');
+      }
+      // Tocca: la sua mano va sul tavolo con quelle della famiglia.
+      await tester.tap(find.byWidget(_tappable().first.widget));
+      await tester.pump();
+      expect(tester.widget<PointingHands>(find.byType(PointingHands)).hands.where((h) => h.mine), hasLength(1),
+          reason: '$role vede la sua mano tra quelle della famiglia');
+      await flush(tester);
+      await tester.pumpWidget(const SizedBox());
+    }
+    expect(familyRoles, contains(Role.compare), reason: 'nessuna partita con Bruno Compare');
   });
 }

@@ -15,8 +15,8 @@ void main() {
     );
   });
 
-  test('in famiglia votano l\'agguato Picciotto, Padrino e Sarto, non il Compare', () {
-    expect(Role.values.where((role) => role.isKiller), [Role.mafioso, Role.padrino, Role.sarto]);
+  test('in famiglia votano l\'agguato tutti, anche il Compare', () {
+    expect(Role.values.where((role) => role.isKiller), [Role.mafioso, Role.padrino, Role.sarto, Role.compare]);
   });
 
   test('il Compare esiste solo online', () {

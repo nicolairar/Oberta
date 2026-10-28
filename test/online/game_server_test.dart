@@ -524,6 +524,56 @@ void main() {
     expect(compares, greaterThan(0), reason: 'online il Compare entra nei mazzi');
   });
 
+  test('ogni notte ogni membro vivo della famiglia, Compare compreso, vota l\'agguato e vede le mani', () {
+    var compareNights = 0;
+    for (var seed = 1; seed <= 40 && compareNights < 3; seed++) {
+      final server = ServerHarness(table(humans: 10, bots: 0), seed: seed);
+      final random = Random(seed);
+      server.step();
+      final roles = {
+        for (final seat in (((server.state!['snapshot'] as Map)['setup'] as Map)['seats'] as List).cast<Map>())
+          seat['seat'] as String: Role.values.byName(seat['role'] as String),
+      };
+      if (!roles.containsValue(Role.compare)) continue;
+      final checkedRounds = <int>{};
+      for (var i = 0; i < 600 && server.last['finished'] != true; i++) {
+        final round = (server.board['board'] as Map)['round'] as int;
+        if (server.stage == Stage.night && !checkedRounds.contains(round)) {
+          checkedRounds.add(round);
+          PlayerView view(String seat) => PlayerView.fromJson(server.seatView(seat)['view'] as Map<String, Object?>);
+          final family = [
+            for (final MapEntry(key: seat, value: role) in roles.entries)
+              if (role.team == Team.mafia && view(seat).alive) seat,
+          ];
+          for (final seat in family) {
+            final option = view(seat).action;
+            expect(option?.type, ActionType.mafiaVote, reason: 'seed=$seed notte $round $seat ${roles[seat]}');
+            expect(option?.kind, NightTaskKind.kill, reason: 'seed=$seed notte $round $seat ${roles[seat]}');
+          }
+          if (family.any((seat) => roles[seat] == Role.compare)) {
+            compareNights++;
+            final compare = family.firstWhere((seat) => roles[seat] == Role.compare);
+            final target = view(compare).action!.targets.firstWhere((p) => !family.contains(p.id));
+            server.send(compare, MafiaVote(compare, target.id).toJson());
+            server.step();
+            for (final seat in family) {
+              expect({for (final v in view(seat).familyVotes) v.voter.id: v.target?.id}, containsPair(compare, target.id),
+                  reason: 'seed=$seed notte $round: $seat vede la mano del Compare');
+            }
+            for (final MapEntry(key: seat, value: role) in roles.entries) {
+              if (role.team != Team.mafia) expect(view(seat).familyVotes, isEmpty, reason: 'fuori dalla famiglia');
+            }
+            server.actedIn[compare] = server.schedule['key'] as String;
+          }
+        }
+        if (!humansAct(server, random)) server.now = server.last['nextDue'] as int;
+        server.step();
+      }
+      expect(server.leaks, isEmpty);
+    }
+    expect(compareNights, greaterThanOrEqualTo(2), reason: 'serve almeno un Compare vivo per due notti');
+  });
+
   test('il bundle JavaScript del server è stato ricompilato dopo l\'ultima modifica al motore', () {
     expect(bundleFingerprint('.'), engineFingerprint('.'),
         reason: 'lancia tool/edge/build.sh e committa supabase/functions/game/engine.js');

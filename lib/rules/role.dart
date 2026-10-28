@@ -100,10 +100,10 @@ extension RoleInfo on Role {
         _ => team,
       };
 
-  /// Chi, nella famiglia, di notte vota l'agguato. Il Sarto vota come un
-  /// Picciotto (o, una volta per partita, cuce una bocca invece di votare);
-  /// il Compare no: il suo potere è la chat di giorno.
-  bool get isKiller => this == Role.mafioso || this == Role.padrino || this == Role.sarto;
+  /// Chi, nella famiglia, di notte vota l'agguato: tutti. Il Sarto vota come
+  /// un Picciotto (o, una volta per partita, cuce una bocca invece di
+  /// votare); il Compare vota e in più, finché vive, apre la chat di giorno.
+  bool get isKiller => team == Team.mafia;
 
   RoleRule get rule => switch (this) {
         Role.mafioso => const RoleRule(RoleCategory.family, maxCopies: null),

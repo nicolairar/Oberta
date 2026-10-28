@@ -226,6 +226,39 @@ class SaloonTable extends StatelessWidget {
     return true;
   }
 
+  /// Lo spazio sul panno per il [center]: almeno il riquadro di sempre (il
+  /// 62% del panno in larghezza, metà in altezza), poi allargato finché non
+  /// tocca una carta (con la targhetta) né esce dal bordo del panno. Così i
+  /// testi lunghi, come il verdetto, hanno tutto lo spazio libero.
+  static Rect centerArea(Rect felt, List<Offset> centers, double width, double height) {
+    var area = Rect.fromCenter(center: felt.center, width: felt.width * 0.62, height: felt.height * 0.5);
+    final limit = felt;
+    final cards = [
+      for (final c in centers) Rect.fromCenter(center: c, width: width, height: height * 1.1).inflate(6),
+    ];
+    // Una carta che già sfiora il riquadro di sempre non lo stringe: blocca
+    // solo la crescita.
+    final start = area;
+    final obstacles = [
+      for (final card in cards)
+        if (!card.overlaps(start)) card,
+    ];
+    bool free(Rect r) =>
+        (r.left >= limit.left || r.left >= start.left) &&
+        (r.right <= limit.right || r.right <= start.right) &&
+        (r.top >= limit.top || r.top >= start.top) &&
+        (r.bottom <= limit.bottom || r.bottom <= start.bottom) &&
+        !obstacles.any(r.overlaps);
+    Rect grown(double dw, double dh) => Rect.fromCenter(center: area.center, width: area.width + dw, height: area.height + dh);
+    final step = max(2.0, felt.shortestSide * 0.01);
+    for (final (dw, dh) in [(step, step * area.height / area.width), (0.0, step), (step, 0.0)]) {
+      while (free(grown(dw, dh))) {
+        area = grown(dw, dh);
+      }
+    }
+    return area;
+  }
+
   /// I centri dei posti su un rettangolo dagli angoli tondi, a passi uguali:
   /// il primo in basso al centro, poi in senso orario (verso sinistra).
   static List<Offset> seats(int count, Size box, double width) => _rings[(count, box, width)] ??= _ring(count, box, width);
@@ -274,7 +307,7 @@ class SaloonTable extends StatelessWidget {
           ),
           if (center != null)
             Positioned.fromRect(
-              rect: Rect.fromCenter(center: felt.center, width: felt.width * 0.62, height: felt.height * 0.5),
+              rect: centerArea(felt, centers, width, height),
               child: Center(child: center),
             ),
           for (var i = 0; i < count; i++)
