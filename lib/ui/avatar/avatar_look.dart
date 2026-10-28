@@ -405,10 +405,12 @@ enum FaceMark {
   giantMoustache,
   mimeFace,
   // L'assurdo.
-  vikingBeard;
+  vikingBeard,
+  // La statua d'oro: la pelle, i capelli e il riflesso, tutto in foglia d'oro.
+  goldStatue;
 
   /// I baffi: chi li porta ha bisogno del pelo, non del rossetto.
-  bool get moustache => this == mustache || (index >= pencil.index && this != mimeFace);
+  bool get moustache => this == mustache || (index >= pencil.index && this != mimeFace && this != goldStatue);
 }
 
 /// La faccia: pelle e segni. L'id è `pelle_segno`, come `olive_mustache`.

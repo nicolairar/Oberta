@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -103,11 +104,11 @@ abstract final class LookPainter {
       canvas.drawRect(
         Rect.fromLTRB(-0.7, cut - 0.3, 0.7, cut),
         Paint()
-          ..shader = const LinearGradient(
+          ..shader = LookPainter._gs(const LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [Color(0x00000000), Color(0xE6000000)],
-          ).createShader(Rect.fromLTRB(-0.7, cut - 0.3, 0.7, cut)),
+          ), Rect.fromLTRB(-0.7, cut - 0.3, 0.7, cut)),
       );
     }
     canvas.restore();
@@ -271,13 +272,13 @@ abstract final class LookPainter {
     canvas.drawRRect(
       leather,
       Paint()
-        ..shader = LinearGradient(
+        ..shader = LookPainter._gs(LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: empty
               ? const [Color(0xFF4A4542), Color(0xFF221F1D)]
               : const [Color(0xFF4A1916), Color(0xFF1A0807)],
-        ).createShader(bounds),
+        ), bounds),
     );
     // Le trapuntature del capitonné.
     final tuft = Paint()..color = Colors.black.withValues(alpha: 0.4);
@@ -302,11 +303,17 @@ abstract final class LookPainter {
   /// Il blu notte delle ombre nette.
   static const night = Color(0xFF1A1236);
 
-  /// Tutto [bounds] tranne il disco di luce [lit] di raggio [r].
-  static Path _unlit(Rect bounds, Offset lit, double r) => Path()
-    ..fillType = PathFillType.evenOdd
-    ..addRect(bounds)
-    ..addOval(Rect.fromCircle(center: lit, radius: r));
+  /// Una sfumatura dei pittori di sempre: nel cartoon noir diventa il suo
+  /// colore di mezzo, pieno (le sfumature con il trasparente, i bagliori,
+  /// restano).
+  static Shader _gs(Gradient g, Rect r) {
+    if (!_style.noir || g.colors.any((c) => c.a < 1)) return g.createShader(r);
+    final mid = g.colors.length == 2 ? Color.lerp(g.colors.first, g.colors.last, 0.5)! : g.colors[g.colors.length ~/ 2];
+    return LinearGradient(colors: [mid, mid]).createShader(r);
+  }
+
+  /// L'oro della bottega (la statua, le giacche d'oro): il ritratto luccica.
+  static bool gilded(AvatarLook look) => _Noir._gilded(look);
 
   /// Quanto salgono le cose che si posano sopra i capelli (l'aureola, le
   /// corna, il gatto) quando i capelli sono alti: stanno sopra, non dentro.
@@ -402,12 +409,12 @@ abstract final class LookPainter {
         canvas.drawRect(
           bounds,
           Paint()
-            ..shader = LinearGradient(
+            ..shader = LookPainter._gs(LinearGradient(
               begin: const Alignment(-1, -0.4),
               end: const Alignment(1, 0.4),
               colors: [Colors.transparent, Colors.white.withValues(alpha: 0.16), Colors.transparent],
               stops: const [0.2, 0.36, 0.52],
-            ).createShader(bounds),
+            ), bounds),
         );
       case CoatPattern.chalkstripe:
         thread
@@ -518,9 +525,9 @@ abstract final class LookPainter {
               ..quadraticBezierTo(side * 0.1, -0.2, side * 0.13, -0.625)
               ..close(),
             Paint()
-              ..shader = LinearGradient(
+              ..shader = LookPainter._gs(LinearGradient(
                 colors: [_bright(outfit.accent, 0.12), _dark(outfit.accent, 0.55)],
-              ).createShader(const Rect.fromLTRB(-0.2, -0.6, 0.2, 0.0)),
+              ), const Rect.fromLTRB(-0.2, -0.6, 0.2, 0.0)),
           );
         }
       case CoatPattern.track:
@@ -605,7 +612,7 @@ abstract final class LookPainter {
     canvas.drawRect(
       bounds,
       Paint()
-        ..shader = LinearGradient(
+        ..shader = LookPainter._gs(LinearGradient(
           colors: [
             Colors.black.withValues(alpha: light.dx < 0 ? 0.18 : 0.42),
             Colors.transparent,
@@ -613,7 +620,7 @@ abstract final class LookPainter {
             Colors.black.withValues(alpha: light.dx < 0 ? 0.42 : 0.18),
           ],
           stops: const [0, 0.3, 0.7, 1],
-        ).createShader(bounds),
+        ), bounds),
     );
     // Le braccia lungo i fianchi, un po' più scure del petto.
     if (pattern != CoatPattern.cape) {
@@ -669,11 +676,11 @@ abstract final class LookPainter {
           ..close(),
         // La stessa pelle del collo, che scende nell'ombra dell'abito.
         Paint()
-          ..shader = LinearGradient(
+          ..shader = LookPainter._gs(LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [_skinShade(look.base.skin, 0.32), _skinShade(look.base.skin, 0.55)],
-          ).createShader(const Rect.fromLTRB(-0.14, -0.62, 0.14, -0.36)),
+          ), const Rect.fromLTRB(-0.14, -0.62, 0.14, -0.36)),
       );
       if (pattern == CoatPattern.cape) _capeCollar(canvas, outfit);
       _patch(canvas, outfit, -0.2);
@@ -694,11 +701,11 @@ abstract final class LookPainter {
     canvas.drawPath(
       shirt,
       Paint()
-        ..shader = LinearGradient(
+        ..shader = LookPainter._gs(LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [outfit.shirt, _dark(outfit.shirt, 0.45)],
-        ).createShader(Rect.fromLTRB(-0.13, -0.63, 0.13, deep)),
+        ), Rect.fromLTRB(-0.13, -0.63, 0.13, deep)),
     );
     if (outfit.satin && pattern != CoatPattern.velvet) {
       // Lo sparato della camicia da sera: le pieghe e i bottoni d'oro.
@@ -808,14 +815,14 @@ abstract final class LookPainter {
       canvas.drawPath(
         path,
         Paint()
-          ..shader = LinearGradient(
+          ..shader = LookPainter._gs(LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: outfit.satin
                 ? [_bright(cloth, lit ? 0.45 : 0.2), cloth, _bright(cloth, lit ? 0.3 : 0.1), _dark(cloth, 0.5)]
                 : [_bright(cloth, lit ? 0.12 : 0.0), cloth, _dark(cloth, 0.4), _dark(cloth, 0.5)],
             stops: const [0, 0.35, 0.55, 1],
-          ).createShader(const Rect.fromLTRB(-0.3, -0.63, 0.3, -0.15)),
+          ), const Rect.fromLTRB(-0.3, -0.63, 0.3, -0.15)),
       );
       canvas.drawPath(path, edge..color = (outfit.satin ? Colors.white : _bright(outfit.coat, 0.35)).withValues(alpha: lit ? 0.5 : 0.25));
       // L'ombra che il risvolto getta sulla giacca.
@@ -1218,11 +1225,11 @@ abstract final class LookPainter {
     canvas.drawPath(
       path,
       Paint()
-        ..shader = LinearGradient(
+        ..shader = LookPainter._gs(LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [_bright(color, 0.15), _dark(color, 0.45)],
-        ).createShader(const Rect.fromLTRB(-0.06, -0.62, 0.06, -0.2)),
+        ), const Rect.fromLTRB(-0.06, -0.62, 0.06, -0.2)),
     );
     if (decorate != null) {
       canvas.save();
@@ -1272,11 +1279,11 @@ abstract final class LookPainter {
     canvas.drawPath(
       bow,
       Paint()
-        ..shader = LinearGradient(
+        ..shader = LookPainter._gs(LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [_bright(color, 0.25), _dark(color, 0.35)],
-        ).createShader(const Rect.fromLTRB(-0.09, -0.63, 0.09, -0.54)),
+        ), const Rect.fromLTRB(-0.09, -0.63, 0.09, -0.54)),
     );
     if (dots) {
       final dot = Paint()..color = paper.withValues(alpha: 0.9);
@@ -1398,20 +1405,20 @@ abstract final class LookPainter {
             ..quadraticBezierTo(0, -0.36, -0.05, -0.43)
             ..close(),
           Paint()
-            ..shader = LinearGradient(
+            ..shader = LookPainter._gs(LinearGradient(
               colors: [_bright(accent, 0.3), _dark(accent, 0.3)],
-            ).createShader(const Rect.fromLTRB(-0.13, -0.63, 0.13, -0.36)),
+            ), const Rect.fromLTRB(-0.13, -0.63, 0.13, -0.36)),
         );
       case AvatarAccessory.delacroixScarf:
         // La sciarpa di seta bianca da sera: gira intorno al collo e scende
         // sui risvolti, con le frange e la luna ricamata.
         final silk = Paint()
-          ..shader = const LinearGradient(
+          ..shader = LookPainter._gs(const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [Color(0xFFFFFBF2), Color(0xFFD8D0C2), Color(0xFFF6F0E4), Color(0xFFB8AFA2)],
             stops: [0, 0.35, 0.6, 1],
-          ).createShader(const Rect.fromLTRB(-0.2, -0.66, 0.2, -0.32));
+          ), const Rect.fromLTRB(-0.2, -0.66, 0.2, -0.32));
         canvas.drawPath(
           Path()
             ..moveTo(-0.14, -0.65)
@@ -1467,9 +1474,9 @@ abstract final class LookPainter {
       case AvatarAccessory.cravat:
         // Il foulard di seta annodato sotto il mento, con la spilla.
         final silk = Paint()
-          ..shader = LinearGradient(
+          ..shader = LookPainter._gs(LinearGradient(
             colors: [_bright(accent, 0.35), _dark(accent, 0.25)],
-          ).createShader(const Rect.fromLTRB(-0.1, -0.64, 0.1, -0.36));
+          ), const Rect.fromLTRB(-0.1, -0.64, 0.1, -0.36));
         canvas.drawPath(_ascotPath, silk);
         canvas.drawCircle(const Offset(0, -0.52), 0.015, Paint()..color = gold);
       case AvatarAccessory.delacroixAscot:
@@ -1477,9 +1484,9 @@ abstract final class LookPainter {
         canvas.drawPath(
           _ascotPath,
           Paint()
-            ..shader = const LinearGradient(
+            ..shader = LookPainter._gs(const LinearGradient(
               colors: [Color(0xFF3A383E), Color(0xFF0E0D10)],
-            ).createShader(const Rect.fromLTRB(-0.1, -0.64, 0.1, -0.36)),
+            ), const Rect.fromLTRB(-0.1, -0.64, 0.1, -0.36)),
         );
         canvas.save();
         canvas.clipPath(_ascotPath);
@@ -1712,10 +1719,10 @@ abstract final class LookPainter {
           c,
           0.048,
           Paint()
-            ..shader = const RadialGradient(
+            ..shader = LookPainter._gs(const RadialGradient(
               center: Alignment(-0.5, -0.5),
               colors: [Color(0xFFFFF0B8), Color(0xFFE2B54A), Color(0xFF8A5E1E)],
-            ).createShader(Rect.fromCircle(center: c, radius: 0.048)),
+            ), Rect.fromCircle(center: c, radius: 0.048)),
         );
         canvas.drawCircle(c, 0.036, Paint()..color = const Color(0xFFF8F2E2));
         final tick = Paint()
@@ -1825,7 +1832,7 @@ abstract final class LookPainter {
 
     final dark = Paint()..color = _dark(_hairColor(look), 0.1);
     switch (mark) {
-      case FaceMark.clean || FaceMark.stubble:
+      case FaceMark.clean || FaceMark.stubble || FaceMark.goldStatue:
         break;
       case FaceMark.mustache:
         canvas.drawPath(
@@ -2185,11 +2192,11 @@ abstract final class LookPainter {
           canvas.drawOval(
             r,
             Paint()
-              ..shader = const LinearGradient(
+              ..shader = LookPainter._gs(const LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [Color(0xFF0C0B0E), Color(0xFF34323A)],
-              ).createShader(r),
+              ), r),
           );
           canvas.drawOval(r, wire);
           canvas.drawLine(Offset(side * 0.045, -0.889), Offset(side * 0.07, -0.894), Paint()
@@ -2242,11 +2249,11 @@ abstract final class LookPainter {
     final top = silhouette
         ? paint
         : (Paint()
-            ..shader = const LinearGradient(
+            ..shader = LookPainter._gs(const LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [Color(0xFF3A3640), _felt],
-            ).createShader(const Rect.fromLTRB(-0.2, -1.22, 0.2, -0.96)));
+            ), const Rect.fromLTRB(-0.2, -1.22, 0.2, -0.96)));
     void brim(double width, double height, {double tilt = 0, double y = -0.965}) {
       canvas.save();
       canvas.translate(0, y);
@@ -2373,11 +2380,11 @@ abstract final class LookPainter {
         final crown = silhouette
             ? paint
             : (Paint()
-                ..shader = LinearGradient(
+                ..shader = LookPainter._gs(LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [light, shade],
-                ).createShader(const Rect.fromLTRB(-0.2, -1.2, 0.2, -0.96)));
+                ), const Rect.fromLTRB(-0.2, -1.2, 0.2, -0.96)));
         canvas.save();
         canvas.translate(0, -0.965);
         canvas.rotate(look.hat == AvatarHead.trilby ? -0.09 : -0.04);
@@ -2517,11 +2524,11 @@ abstract final class LookPainter {
           silhouette
               ? paint
               : (Paint()
-                  ..shader = const LinearGradient(
+                  ..shader = LookPainter._gs(const LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [Color(0xFF4A4452), Color(0xFF0E0D10), Color(0xFF1E1C22)],
-                  ).createShader(const Rect.fromLTRB(-0.2, -1.2, 0.2, -0.96))),
+                  ), const Rect.fromLTRB(-0.2, -1.2, 0.2, -0.96))),
         );
         const satin = Rect.fromLTRB(-0.171, -1.04, 0.171, -0.985);
         if (silhouette) {
@@ -2530,10 +2537,10 @@ abstract final class LookPainter {
           canvas.drawRect(
             satin,
             Paint()
-              ..shader = const LinearGradient(
+              ..shader = LookPainter._gs(const LinearGradient(
                 colors: [Color(0xFF0A090C), Color(0xFF5A5462), Color(0xFF0A090C), Color(0xFF2A2830)],
                 stops: [0, 0.3, 0.6, 1],
-              ).createShader(satin),
+              ), satin),
           );
           canvas.drawLine(
             const Offset(-0.03, -1.16),
@@ -2582,10 +2589,10 @@ abstract final class LookPainter {
           silhouette
               ? paint
               : (Paint()
-                  ..shader = const RadialGradient(
+                  ..shader = LookPainter._gs(const RadialGradient(
                     center: Alignment(-0.4, -0.6),
                     colors: [Color(0xFF5A2430), Color(0xFF2A0E14)],
-                  ).createShader(r)),
+                  ), r)),
         );
         canvas.drawLine(
           const Offset(0, -0.075),
@@ -2622,11 +2629,11 @@ abstract final class LookPainter {
           silhouette
               ? paint
               : (Paint()
-                  ..shader = const LinearGradient(
+                  ..shader = LookPainter._gs(const LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [Color(0xFF3E4A5C), Color(0xFF1C2230)],
-                  ).createShader(const Rect.fromLTRB(-0.2, -1.17, 0.2, -0.88))),
+                  ), const Rect.fromLTRB(-0.2, -1.17, 0.2, -0.88))),
         );
         if (!silhouette) {
           canvas.drawPath(
@@ -2742,7 +2749,7 @@ abstract final class LookPainter {
           AvatarHead.rainbowAfro ||
           AvatarHead.flamingHair ||
           AvatarHead.starHalo ||
-          AvatarHead.catOnHead || AvatarHead.blaugranaCap || AvatarHead.merenguesCap || AvatarHead.celestiCap || AvatarHead.diavoliCap || AvatarHead.redsCap || AvatarHead.rossoneriCap || AvatarHead.nerazzurriCap || AvatarHead.bianconeriCap || AvatarHead.giallorossiCap || AvatarHead.azzurriCap:
+          AvatarHead.catOnHead || AvatarHead.blaugranaCap || AvatarHead.merenguesCap || AvatarHead.celestiCap || AvatarHead.diavoliCap || AvatarHead.redsCap || AvatarHead.rossoneriCap || AvatarHead.nerazzurriCap || AvatarHead.bianconeriCap || AvatarHead.giallorossiCap || AvatarHead.azzurriCap || AvatarHead.crown:
         _Oddities.hat(canvas, look.hat, silhouette ? paint : null);
       case AvatarHead.slicked || AvatarHead.bob || AvatarHead.bun:
         break;
@@ -2929,11 +2936,11 @@ abstract final class LookPainter {
       canvas.drawPath(
         sleeve,
         Paint()
-          ..shader = LinearGradient(
+          ..shader = LookPainter._gs(LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [_dark(coat, 0.7), _dark(coat, 0.15)],
-          ).createShader(Rect.fromPoints(elbow, wrist).inflate(0.1)),
+          ), Rect.fromPoints(elbow, wrist).inflate(0.1)),
       );
       // Il polsino della camicia.
       canvas.drawLine(
@@ -2950,11 +2957,11 @@ abstract final class LookPainter {
       canvas.drawOval(
         Rect.fromCenter(center: hand, width: 0.115, height: 0.075),
         Paint()
-          ..shader = LinearGradient(
+          ..shader = LookPainter._gs(LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [_skinLight(skin, 0.1), _skinShade(skin, 0.35)],
-          ).createShader(Rect.fromCenter(center: hand, width: 0.115, height: 0.075)),
+          ), Rect.fromCenter(center: hand, width: 0.115, height: 0.075)),
       );
       if (look.dame && i == 1) {
         canvas.drawCircle(hand.translate(-0.02, -0.02), 0.012, Paint()..color = gold);
@@ -3025,9 +3032,6 @@ class _Style {
   /// Sotto i 110 px: la faccia semplice, che si legga al tavolo.
   final bool small;
 
-  /// La passata d'inchiostro del ritratto: niente filo di luce né ombre.
-  final bool silhouette;
-
   /// Per i test: solo i pezzi, senza inchiostro, luce né ombre.
   final bool bare;
 
@@ -3035,5 +3039,5 @@ class _Style {
   /// pittori di sempre portano solo i vestiti e gli oggetti.
   final bool noir;
 
-  const _Style({this.small = false, this.silhouette = false, this.bare = false, this.noir = false});
+  const _Style({this.small = false, this.bare = false, this.noir = false});
 }

@@ -272,9 +272,9 @@ abstract final class _Calcio {
     canvas.drawRect(
       const Rect.fromLTRB(-0.22, -1.2, 0.22, -0.9),
       Paint()
-        ..shader = const LinearGradient(
+        ..shader = LookPainter._gs(const LinearGradient(
           colors: [Color(0x22FFFFFF), Color(0x00000000), Color(0x55000000)],
-        ).createShader(const Rect.fromLTRB(-0.22, -1.2, 0.22, -0.9)),
+        ), const Rect.fromLTRB(-0.22, -1.2, 0.22, -0.9)),
     );
     canvas.restore();
     // Il risvolto, a coste fitte, con il distintivo.
@@ -325,7 +325,7 @@ abstract final class _Calcio {
       c,
       0.78,
       Paint()
-        ..shader = RadialGradient(
+        ..shader = LookPainter._gs(RadialGradient(
           colors: [
             _bright(team.primary, 0.35).withValues(alpha: 0.75),
             team.primary.withValues(alpha: 0.45),
@@ -333,7 +333,7 @@ abstract final class _Calcio {
             team.secondary.withValues(alpha: 0),
           ],
           stops: const [0, 0.35, 0.7, 1],
-        ).createShader(Rect.fromCircle(center: c, radius: 0.78)),
+        ), Rect.fromCircle(center: c, radius: 0.78)),
     );
     for (var i = 0; i < 10; i++) {
       final a = -pi / 2 + (i - 4.5) * 0.3;
@@ -345,9 +345,9 @@ abstract final class _Calcio {
           ..lineTo(c.dx + cos(a + 0.07) * 0.9, c.dy + sin(a + 0.07) * 0.9)
           ..close(),
         Paint()
-          ..shader = RadialGradient(
+          ..shader = LookPainter._gs(RadialGradient(
             colors: [_bright(color, 0.5).withValues(alpha: 0.5), color.withValues(alpha: 0)],
-          ).createShader(Rect.fromCircle(center: c, radius: 0.9)),
+          ), Rect.fromCircle(center: c, radius: 0.9)),
       );
     }
     // Le stelline dei flash, come dagli spalti.
@@ -409,9 +409,9 @@ abstract final class _Calcio {
     canvas.drawRect(
       const Rect.fromLTRB(-0.45, -1.4, 0.45, -0.9),
       Paint()
-        ..shader = const LinearGradient(
+        ..shader = LookPainter._gs(const LinearGradient(
           colors: [Color(0x40000000), Color(0x18FFFFFF), Color(0x40000000), Color(0x22FFFFFF), Color(0x30000000)],
-        ).createShader(const Rect.fromLTRB(-0.45, -1.4, 0.45, -0.9)),
+        ), const Rect.fromLTRB(-0.45, -1.4, 0.45, -0.9)),
     );
     canvas.restore();
     canvas.drawPath(flag, _line(_dark(team.primary, 0.5), 0.008));
@@ -489,11 +489,11 @@ abstract final class _Calcio {
     canvas.drawRect(
       const Rect.fromLTRB(-0.22, -0.7, 0.22, -0.5),
       Paint()
-        ..shader = const LinearGradient(
+        ..shader = LookPainter._gs(const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [Color(0x30FFFFFF), Color(0x00000000), Color(0x50000000)],
-        ).createShader(const Rect.fromLTRB(-0.22, -0.7, 0.22, -0.5)),
+        ), const Rect.fromLTRB(-0.22, -0.7, 0.22, -0.5)),
     );
     canvas.restore();
     canvas.drawPath(wrap, _line(_dark(team.primary, 0.5), 0.006));
@@ -522,7 +522,7 @@ abstract final class _Calcio {
       flame,
       0.11,
       Paint()
-        ..shader = RadialGradient(
+        ..shader = LookPainter._gs(RadialGradient(
           colors: [
             const Color(0xFFFFFFFF),
             const Color(0xFFFFE7A0),
@@ -530,7 +530,7 @@ abstract final class _Calcio {
             team.primary.withValues(alpha: 0),
           ],
           stops: const [0, 0.25, 0.55, 1],
-        ).createShader(Rect.fromCircle(center: flame, radius: 0.11)),
+        ), Rect.fromCircle(center: flame, radius: 0.11)),
     );
     canvas.drawPath(
       Path()
@@ -564,11 +564,11 @@ abstract final class _Calcio {
     canvas.drawPath(
       cone,
       Paint()
-        ..shader = LinearGradient(
+        ..shader = LookPainter._gs(LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [_bright(team.primary, 0.35), team.primary, _dark(team.primary, 0.45)],
-        ).createShader(const Rect.fromLTRB(0, -0.11, 0.3, 0.11)),
+        ), const Rect.fromLTRB(0, -0.11, 0.3, 0.11)),
     );
     canvas.save();
     canvas.clipPath(cone);
@@ -596,10 +596,10 @@ abstract final class _Calcio {
     canvas.save();
     canvas.translate(0.36, -0.6);
     final silver = Paint()
-      ..shader = const LinearGradient(
+      ..shader = LookPainter._gs(const LinearGradient(
         colors: [Color(0xFF8E8A84), Color(0xFFF6F2EA), Color(0xFFC8C2B8), Color(0xFF6E6A64)],
         stops: [0, 0.35, 0.6, 1],
-      ).createShader(const Rect.fromLTRB(-0.12, -0.42, 0.12, 0.02));
+      ), const Rect.fromLTRB(-0.12, -0.42, 0.12, 0.02));
     // Lo zoccolo di legno scuro.
     canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(-0.08, -0.05, 0.08, 0.03), const Radius.circular(0.01)), _fill(const Color(0xFF2A1A12)));
     canvas.drawRect(const Rect.fromLTRB(-0.08, -0.03, 0.08, -0.015), _fill(LookPainter.gold));

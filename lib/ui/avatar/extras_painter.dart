@@ -25,11 +25,11 @@ abstract final class _Extras {
   };
 
   static Paint _shade(Color c, Rect r) => Paint()
-    ..shader = LinearGradient(
+    ..shader = LookPainter._gs(LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
       colors: [LookPainter._bright(c, 0.3), c, LookPainter._dark(c, 0.45)],
-    ).createShader(r);
+    ), r);
 
   // ---- Le pettinature ----
 
@@ -140,11 +140,11 @@ abstract final class _Extras {
     canvas.drawRect(
       b,
       Paint()
-        ..shader = LinearGradient(
+        ..shader = LookPainter._gs(LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [Colors.white.withValues(alpha: 0.18), Colors.white.withValues(alpha: 0), Colors.black.withValues(alpha: 0.35)],
-        ).createShader(b),
+        ), b),
     );
     // Il lucido: un filo chiaro lungo la curva, verso l'esterno.
     final shine = Path();

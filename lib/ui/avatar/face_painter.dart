@@ -69,6 +69,7 @@ abstract final class _Face {
     AvatarHead.birthdayCake,
     AvatarHead.starHalo,
     AvatarHead.catOnHead,
+    AvatarHead.crown,
   };
 
   static bool _full(AvatarLook look) => look.bareHead || _onTop.contains(look.hat);

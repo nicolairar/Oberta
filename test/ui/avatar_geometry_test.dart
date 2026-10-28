@@ -36,6 +36,7 @@ const _resting = {
   AvatarHead.birthdayCake,
   AvatarHead.starHalo,
   AvatarHead.catOnHead,
+  AvatarHead.crown,
 };
 
 AvatarLook _look({

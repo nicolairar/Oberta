@@ -500,6 +500,25 @@ class _NB {
           ..close();
         final brim = Path()..addOval(Rect.fromCircle(center: Offset(cx + r * 0.25, by - h * 0.24), radius: w * 0.03));
         return (brim: brim, crown: crown, band: band);
+      case AvatarHead.crown:
+        final by = top + h * 0.12;
+        final cw = r * 0.95;
+        final crown = Path()
+          ..moveTo(cx - cw, by)
+          ..lineTo(cx - cw * 1.08, by - h * 0.3)
+          ..lineTo(cx - cw * 0.55, by - h * 0.14)
+          ..lineTo(cx, by - h * 0.36)
+          ..lineTo(cx + cw * 0.55, by - h * 0.14)
+          ..lineTo(cx + cw * 1.08, by - h * 0.3)
+          ..lineTo(cx + cw, by)
+          ..close();
+        final band = Path()..addRect(Rect.fromLTRB(cx - cw * 1.0, by - h * 0.07, cx + cw * 1.0, by));
+        // Per la corona la «tesa» sono i rubini.
+        final jewels = Path()
+          ..addOval(Rect.fromCircle(center: Offset(cx, by - h * 0.035), radius: w * 0.04))
+          ..addOval(Rect.fromCircle(center: Offset(cx - cw * 0.6, by - h * 0.035), radius: w * 0.03))
+          ..addOval(Rect.fromCircle(center: Offset(cx + cw * 0.6, by - h * 0.035), radius: w * 0.03));
+        return (brim: jewels, crown: crown, band: band);
       case AvatarHead.cloche:
         final cy0 = browY - h * 0.005;
         final crown = Path()
@@ -543,7 +562,8 @@ class _NB {
     AvatarHead.bowler => (const Color(0xFF1C1A1A), const Color(0xFF4A1018)),
     AvatarHead.coppola => (const Color(0xFF5A4C3C), const Color(0xFF3A3026)),
     AvatarHead.beret => (const Color(0xFF5A1A26), const Color(0xFF3A0E16)),
-    AvatarHead.cloche => (const Color(0xFF22304A), Color.lerp(accent, const Color(0xFFD9B45A), 0.5)!),
+    AvatarHead.cloche => (const Color(0xFF6E1626), const Color(0xFF151010)),
+    AvatarHead.crown => (const Color(0xFFF2C14E), const Color(0xFFB3141E)),
     _ => (const Color(0xFF2A2626), const Color(0xFF0E0C0C)),
   };
 }
@@ -599,7 +619,7 @@ abstract final class _Noir {
     if (_real(look)) {
       // Sotto un cappello resta solo quello che scende sotto la tesa: le
       // basette, i lati, la nuca, la coda.
-      final line = native == null ? hatMap(b).transform(const Offset(0, -0.975)).dy : (look.hat == AvatarHead.cloche ? b.browY + b.h * 0.08 : b.brimY + b.h * 0.04);
+      final line = native == null ? hatMap(b).transform(const Offset(0, -0.92)).dy : (look.hat == AvatarHead.cloche ? b.browY + b.h * 0.08 : b.brimY + b.h * 0.04);
       final below = Path()..addRect(Rect.fromLTRB(-1, line, 2, 3));
       if (back != null) back = Path.combine(PathOperation.intersect, back, below);
       if (front != null) front = Path.combine(PathOperation.intersect, front, below);
@@ -610,7 +630,12 @@ abstract final class _Noir {
       if (p != null) crown = min(crown, p.getBounds().top);
     }
     final hairTop = crown;
-    if (native != null) crown = min(crown, native.crown.getBounds().top);
+    var hat = native;
+    if (hat != null && look.hat == AvatarHead.crown) {
+      final dy = min(0.0, hairTop - (b.top - b.h * 0.04));
+      if (dy < 0) hat = (brim: hat.brim?.shift(Offset(0, dy)), crown: hat.crown.shift(Offset(0, dy)), band: hat.band?.shift(Offset(0, dy)));
+    }
+    if (hat != null) crown = min(crown, hat.crown.getBounds().top);
     if (native == null && !look.bareHead && look.hairdo == Hairdo.none) {
       crown = min(crown, hatMap(b).transform(Offset(0, LookPainter.crown(look.copyWith(hairdo: Hairdo.none)))).dy + lift(look, b, hairTop: crown));
     }
@@ -629,7 +654,7 @@ abstract final class _Noir {
       back: back,
       front: front,
       braids: braids,
-      hat: native,
+      hat: hat,
       crown: crown,
       hairTop: hairTop,
     );
@@ -649,6 +674,24 @@ abstract final class _Noir {
   static _M eyeMap(_NB b) => _M(b.cx, b.eyeY, b.eyeDx / 0.064, 0, -0.868);
   static _M mouthMap(_NB b) => _M(b.cx, b.mouthY, b.w / 0.316, 0, -0.762);
   static _M bodyMap(_NB b, AvatarLook look) => _M(b.cx, b.shoulderY + 0.035, look.dame ? 0.98 : 1.04, 0, -0.58);
+
+  static final Map<(AvatarLook, String, double), ui.Picture> _pieces = {};
+
+  /// Un pezzo strano di [look] ([draw], nelle misure dei pittori di sempre
+  /// portate qui da [m]), disegnato una volta sulla tela noir e tenuto da
+  /// parte: al tavolo si ridisegna a ogni fotogramma.
+  static ui.Picture piece(AvatarLook look, String key, double side, _M m, void Function(Canvas c) draw) {
+    final hit = _pieces[(look, key, side)];
+    if (hit != null) return hit;
+    if (_pieces.length > 400) _pieces.clear();
+    final recorder = ui.PictureRecorder();
+    final ink = _InkCanvas(Canvas(recorder), side);
+    final previous = LookPainter._style;
+    LookPainter._style = const _Style(noir: true);
+    _with(ink, m, () => draw(ink));
+    LookPainter._style = previous;
+    return _pieces[(look, key, side)] = recorder.endRecording();
+  }
 
   static void _with(Canvas canvas, _M m, void Function() paint) {
     canvas.save();
@@ -679,7 +722,7 @@ abstract final class _Noir {
         AvatarAccessory.angelWings, AvatarAccessory.batWings, AvatarAccessory.butterflyWings, AvatarAccessory.dragonWings, AvatarAccessory.balloons, //
       }.contains(a);
 
-  static bool _gilded(AvatarLook look) => const {'gold_brocade', 'versalli_baroque'}.contains(look.outfit.id);
+  static bool _gilded(AvatarLook look) => look.base.mark == FaceMark.goldStatue || const {'gold_brocade', 'versalli_baroque'}.contains(look.outfit.id);
 
   /// La persona, pezzo per pezzo nell'ordine di [LookLayer].
   static void paint(
@@ -700,8 +743,9 @@ abstract final class _Noir {
     final sx = light.dx <= 0 ? 1.0 : -1.0; // il lato in ombra
     final bare = only != null;
     final f = look.features;
-    final skin = look.base.mark == FaceMark.mimeFace ? const Color(0xFFF4F0E8) : look.base.skin;
-    final hair = f.hairColor.color;
+    final gold = look.base.mark == FaceMark.goldStatue;
+    final skin = gold ? const Color(0xFFD9A93E) : (look.base.mark == FaceMark.mimeFace ? const Color(0xFFF4F0E8) : look.base.skin);
+    final hair = gold ? const Color(0xFFB98A26) : f.hairColor.color;
     final styled = look.hairdo != Hairdo.none;
     final hatLift = lift(look, b, hairTop: p.hairTop);
     final previous = LookPainter._style;
@@ -716,28 +760,6 @@ abstract final class _Noir {
       if (line) canvas.drawPath(path, _nStroke(_nInk, thin));
     }
 
-    // Un pezzo dei pittori di sempre: nel ritratto in un suo strato, con la
-    // stessa ombra netta (un disco di luce dalla parte della lampada).
-    void legacy(_M m, Rect area, Offset lit, double r, void Function() draw) {
-      if (!layered || bare) {
-        _with(canvas, m, draw);
-        return;
-      }
-      canvas.saveLayer(area, Paint());
-      _with(canvas, m, draw);
-      canvas.drawPath(
-        LookPainter._unlit(area, lit, r),
-        Paint()
-          ..color = _nNight.withValues(alpha: 0.5)
-          ..blendMode = BlendMode.srcATop,
-      );
-      canvas.restore();
-    }
-
-    final head = Rect.fromLTRB(b.cx - b.w * 1.6, -1, b.cx + b.w * 1.6, b.bottom + b.h * 0.3);
-    final headLit = Offset(b.cx - sx * b.w * 0.25, b.top + b.h * 0.1);
-    final body = Rect.fromLTRB(-0.5, b.shoulderY - 0.4, 1.5, b.base + 0.1);
-    final bodyLit = Offset(b.cx - sx * 0.25, b.shoulderY - 0.1);
     final hatAt = hatMap(b);
     final liftedHat = _M(hatAt.x0, hatAt.y0 + hatLift, hatAt.k, hatAt.fx, hatAt.fy);
     final legacyHat = p.hat == null && !look.bareHead && !styled;
@@ -746,11 +768,35 @@ abstract final class _Noir {
     // --- La sagoma d'inchiostro ---
     if (!bare) {
       final heavy = _nStroke(_nInk, ow * 2);
-      for (final path in [p.back, p.neck, p.torso, ...p.ears, p.face, p.front, p.braids, p.hat?.crown, p.hat?.brim]) {
+      for (final path in [p.back, p.neck, p.torso, ...p.ears, p.face, p.front, p.braids, p.hat?.crown, if (look.hat != AvatarHead.crown) p.hat?.brim]) {
         if (path != null) canvas.drawPath(path, heavy);
       }
       if (look.base.mark == FaceMark.fullBeard || look.base.mark == FaceMark.muttonChops) canvas.drawPath(b.beard(), heavy);
-      // I pezzi di sempre: allargati e neri, dietro.
+    }
+
+    // Un pezzo strano della bottega: disegnato una volta sulla tela noir
+    // ([_InkCanvas]) e tenuto da parte.
+    void pic(String key, _M m, void Function(Canvas c) draw, {AvatarLook? as}) => canvas.drawPicture(piece(as ?? look, key, sx, m, draw));
+    final bowed = look.accessory == AvatarAccessory.bowTie || look.accessory == AvatarAccessory.polkaBowTie;
+    final neckLook = bowed ? look.copyWith(accessory: AvatarAccessory.none) : look;
+    final broad = look.dame ? 0.86 : 1.0;
+    final faceTattoo = look.tattoo == Tattoo.teardrop || look.tattoo == Tattoo.cheekStar;
+
+    void wings() => pic('wings', bodyMap(b, look), (c) => _Oddities.wings(c, look.accessory));
+    void oddHat() => pic('hat', liftedHat, (c) => LookPainter._hat(c, look, Paint(), silhouette: false));
+    void hairdoBack() => pic('hairdoBack', hatAt, (c) => _Extras.hairdoBack(c, look, null));
+    void hairdoFront() => pic('hairdoFront', hatAt, (c) => _Extras.hairdoFront(c, look));
+    void coat() => pic('coat', bodyMap(b, look), (c) => LookPainter._coat(c, look, LookPainter._torso(broad), const Offset(-0.6, -0.8)));
+    void oddGlasses() => pic('glasses', eyeMap(b), (c) => LookPainter._glasses(c, look, const CharacterPose()));
+    void oddProp() => pic('prop', mouthMap(b), (c) => LookPainter._mouthProp(c, look));
+    void chest() => pic('chest', bodyMap(b, look), (c) => LookPainter._chest(c, look, broad));
+    void neckwear() => pic('neck', bodyMap(b, look), (c) {
+          LookPainter._neck(c, neckLook, const Offset(-0.6, -0.8));
+          if (!faceTattoo) _Extras.tattoo(c, neckLook);
+        }, as: neckLook);
+
+    // --- La sagoma d'inchiostro dei pezzi strani: allargati e neri, dietro ---
+    if (!bare) {
       final odd = legacyHat || styled || !nativeOutfit || _winged(look.accessory) || !_nativeGlasses(look.glasses) || !_nativeProp(look.accessory);
       if (odd && layered) {
         canvas.saveLayer(
@@ -759,20 +805,16 @@ abstract final class _Noir {
             ..imageFilter = ui.ImageFilter.dilate(radiusX: ow, radiusY: ow)
             ..colorFilter = const ColorFilter.mode(_nInk, BlendMode.srcIn),
         );
-        LookPainter._style = _Style(small: small, noir: true, silhouette: true);
-        _with(canvas, bodyMap(b, look), () => _Oddities.wings(canvas, look.accessory));
-        if (legacyHat) _with(canvas, liftedHat, () => LookPainter._hat(canvas, look, Paint(), silhouette: false));
+        wings();
+        if (legacyHat) oddHat();
         if (styled) {
-          _with(canvas, hatAt, () {
-            _Extras.hairdoBack(canvas, look, null);
-            _Extras.hairdoFront(canvas, look);
-          });
+          hairdoBack();
+          hairdoFront();
         }
-        if (!nativeOutfit) _with(canvas, bodyMap(b, look), () => LookPainter._coat(canvas, look, LookPainter._torso(look.dame ? 0.86 : 1.0), light));
-        if (!_nativeGlasses(look.glasses)) _with(canvas, eyeMap(b), () => LookPainter._glasses(canvas, look, const CharacterPose()));
-        if (!_nativeProp(look.accessory)) _with(canvas, mouthMap(b), () => LookPainter._mouthProp(canvas, look));
-        _with(canvas, bodyMap(b, look), () => LookPainter._chest(canvas, look, look.dame ? 0.86 : 1.0));
-        LookPainter._style = _Style(small: small, noir: true);
+        if (!nativeOutfit) coat();
+        if (!_nativeGlasses(look.glasses)) oddGlasses();
+        if (!_nativeProp(look.accessory)) oddProp();
+        chest();
         canvas.restore();
       }
     }
@@ -781,10 +823,10 @@ abstract final class _Noir {
       if (only != null && !only.contains(layer)) continue;
       switch (layer) {
         case LookLayer.wings:
-          _with(canvas, bodyMap(b, look), () => _Oddities.wings(canvas, look.accessory));
+          if (_winged(look.accessory)) wings();
         case LookLayer.hairBack:
           if (styled) {
-            legacy(hatAt, head, headLit, b.w * 0.75, () => _Extras.hairdoBack(canvas, look, null));
+            hairdoBack();
           } else if (p.back != null) {
             toon(p.back!, Color.lerp(hair, _nInk, 0.12)!, d: 0.08, glow: 0.3);
           }
@@ -793,14 +835,12 @@ abstract final class _Noir {
           if (nativeOutfit) {
             _outfit(canvas, look, p, thin, toon);
           } else {
-            legacy(bodyMap(b, look), body, bodyLit, 0.62, () => LookPainter._coat(canvas, look, LookPainter._torso(look.dame ? 0.86 : 1.0), light));
+            coat();
             if (!bare) canvas.drawPath(p.torso, _nStroke(_nInk, thin));
           }
         case LookLayer.neck:
-          _with(canvas, bodyMap(b, look), () {
-            LookPainter._neck(canvas, look, light);
-            if (look.tattoo != Tattoo.teardrop && look.tattoo != Tattoo.cheekStar) _Extras.tattoo(canvas, look);
-          });
+          neckwear();
+          if (bowed) _bowTie(canvas, look, b, thin);
           if (nativeOutfit && !const {CoatPattern.dress, CoatPattern.blouse, CoatPattern.jersey}.contains(look.outfit.pattern)) {
             final lapel = Color.lerp(look.outfit.coat, _nInk, look.outfit.pattern == CoatPattern.tuxedo ? 0.7 : 0.3)!;
             for (final s in [-1, 1]) {
@@ -815,12 +855,12 @@ abstract final class _Noir {
           _faceDetails(canvas, look, b, skin, thin, small, bare);
           if (p.hat != null && !bare) _brimShadow(canvas, look, p, skin);
           _features(canvas, look, b, skin, thin, small, glance: glance, shaded: p.hat != null);
-          if (look.tattoo == Tattoo.teardrop || look.tattoo == Tattoo.cheekStar) _with(canvas, mouthMap(b), () => _Extras.tattoo(canvas, look));
+          if (faceTattoo) pic('tattoo', mouthMap(b), (c) => _Extras.tattoo(c, look));
         case LookLayer.beard:
-          _beard(canvas, look, b, hair, thin, toon);
+          _beard(canvas, look, b, hair, thin, toon, pic);
         case LookLayer.hairFront:
           if (styled) {
-            legacy(hatAt, head, headLit, b.w * 0.75, () => _Extras.hairdoFront(canvas, look));
+            hairdoFront();
           } else {
             if (p.front != null) {
               toon(p.front!, hair, d: 0.07, glow: 0.3);
@@ -833,18 +873,26 @@ abstract final class _Noir {
             if (p.braids != null) toon(p.braids!, hair, d: 0.03);
           }
         case LookLayer.glasses:
-          _glasses(canvas, look, b, thin, ow);
+          if (_nativeGlasses(look.glasses)) {
+            _glasses(canvas, look, b, thin, ow);
+          } else {
+            oddGlasses();
+          }
         case LookLayer.hat:
           if (p.hat != null) {
             _nativeHat(canvas, look, p, thin, toon);
           } else if (legacyHat) {
-            legacy(liftedHat, head.inflate(0.3), headLit.translate(0, hatLift), b.w * 0.8, () => LookPainter._hat(canvas, look, Paint(), silhouette: false));
+            oddHat();
           }
         case LookLayer.chest:
           _chest(canvas, look, b, thin);
-          _with(canvas, bodyMap(b, look), () => LookPainter._chest(canvas, look, look.dame ? 0.86 : 1.0));
+          chest();
         case LookLayer.mouthProp:
-          _prop(canvas, look, b, thin);
+          if (_nativeProp(look.accessory)) {
+            _prop(canvas, look, b, thin);
+          } else {
+            oddProp();
+          }
       }
     }
     if (gilt) {
@@ -1136,7 +1184,7 @@ abstract final class _Noir {
     final size = _size(f.eyeSize);
     final iris = Color.lerp(f.eyeColor.color, _nLamp, 0.15)!;
     final br = _brow(f.brows);
-    final browColor = Color.lerp(f.hairColor.color, _nInk, look.dame ? 0.45 : 0.75)!;
+    final browColor = Color.lerp(look.base.mark == FaceMark.goldStatue ? const Color(0xFFB98A26) : f.hairColor.color, _nInk, look.dame ? 0.45 : 0.75)!;
     final g = glance.clamp(-1.0, 1.0) * b.w * 0.02;
     for (final s in [-1.0, 1.0]) {
       // Gli occhi stanno sempre sulla stessa riga e sono speculari.
@@ -1356,7 +1404,8 @@ abstract final class _Noir {
     }
   }
 
-  static void _beard(Canvas canvas, AvatarLook look, _NB b, Color hair, double thin, void Function(Path, Color, {double d, bool rim, bool line}) toon) {
+  static void _beard(Canvas canvas, AvatarLook look, _NB b, Color hair, double thin, void Function(Path, Color, {double d, bool rim, bool line}) toon,
+      void Function(String, _M, void Function(Canvas c), {AvatarLook? as}) pic) {
     final mark = look.base.mark;
     switch (mark) {
       case FaceMark.fullBeard:
@@ -1395,10 +1444,10 @@ abstract final class _Noir {
           canvas.drawLine(Offset(b.cx + s * b.w * 0.015, b.mouthY - b.h * 0.045), Offset(b.cx + s * b.w * 0.13, b.mouthY - b.h * 0.03), _nStroke(hair, thin * 2));
         }
       case FaceMark.clean || FaceMark.stubble || FaceMark.mimeFace:
-        if (mark == FaceMark.mimeFace) _with(canvas, mouthMap(b), () => _Oddities.mark(canvas, mark, hair));
+        if (mark == FaceMark.mimeFace) pic('mark', mouthMap(b), (c) => _Oddities.mark(c, mark, hair));
       default:
         // Le barbe della bottega, portate sulla bocca di qui.
-        _with(canvas, mouthMap(b), () => LookPainter._beard(canvas, look));
+        pic('beard', mouthMap(b), (c) => LookPainter._beard(c, look));
     }
   }
 
@@ -1441,10 +1490,7 @@ abstract final class _Noir {
   static void _glasses(Canvas canvas, AvatarLook look, _NB b, double thin, double ow) {
     final g = look.glasses;
     if (g == AvatarGlasses.none) return;
-    if (!_nativeGlasses(g)) {
-      _with(canvas, eyeMap(b), () => LookPainter._glasses(canvas, look, const CharacterPose()));
-      return;
-    }
+    if (!_nativeGlasses(g)) return;
     final y = b.eyeY;
     final dx = b.eyeDx;
     final rr = b.w * 0.13;
@@ -1525,6 +1571,14 @@ abstract final class _Noir {
     final hat = p.hat!;
     final (color, band) = _hatColors(look);
     final b = p.b;
+    if (look.hat == AvatarHead.crown) {
+      toon(hat.crown, color, d: 0.05);
+      canvas.drawPath(hat.band!, _nFill(_nDark(color)));
+      canvas.drawPath(hat.band!, _nStroke(_nInk, thin));
+      canvas.drawPath(hat.brim!, _nStroke(_nInk, thin * 1.5));
+      canvas.drawPath(hat.brim!, _nFill(band));
+      return;
+    }
     if (hat.brim != null && look.hat == AvatarHead.coppola) toon(hat.brim!, Color.lerp(color, _nInk, 0.15)!, d: 0.03);
     toon(hat.crown, color, d: 0.07);
     if (look.hat == AvatarHead.coppola && !LookPainter._style.small) {
@@ -1549,7 +1603,7 @@ abstract final class _Noir {
     if (look.hat == AvatarHead.cloche) {
       final pin = Offset(b.cx + b.r * 0.72, b.browY - b.h * 0.09);
       canvas.drawCircle(pin, b.w * 0.065, _nFill(_nInk));
-      canvas.drawCircle(pin, b.w * 0.05, _nFill(look.outfit.accent));
+      canvas.drawCircle(pin, b.w * 0.05, _nFill(const Color(0xFFEDE6DA)));
     }
     if (look.hat == AvatarHead.pearlFedora) {
       for (var i = 0; i < 7; i++) {
@@ -1574,14 +1628,41 @@ abstract final class _Noir {
     return mouthMap(b).transform(old);
   }
 
+  /// Il farfallino della demo: seta nera, il nodo appena più chiaro; quello a
+  /// pois ha i pois.
+  static void _bowTie(Canvas canvas, AvatarLook look, _NB b, double thin) {
+    final y = b.shoulderY + 0.03;
+    final p = Path()
+      ..moveTo(b.cx, y)
+      ..lineTo(b.cx - 0.07, y - 0.035)
+      ..lineTo(b.cx - 0.07, y + 0.035)
+      ..close()
+      ..moveTo(b.cx, y)
+      ..lineTo(b.cx + 0.07, y - 0.035)
+      ..lineTo(b.cx + 0.07, y + 0.035)
+      ..close();
+    final polka = look.accessory == AvatarAccessory.polkaBowTie;
+    final silk = polka ? const Color(0xFF7A1424) : const Color(0xFF151313);
+    canvas.drawPath(p, _nStroke(_nInk, thin * 2.6));
+    canvas.drawPath(p, _nFill(silk));
+    if (polka) {
+      canvas.save();
+      canvas.clipPath(p);
+      for (var x = b.cx - 0.065; x < b.cx + 0.07; x += 0.025) {
+        for (final dy in [-0.015, 0.012]) {
+          canvas.drawCircle(Offset(x, y + dy), 0.006, _nFill(const Color(0xFFF4EEE2)));
+        }
+      }
+      canvas.restore();
+    }
+    canvas.drawCircle(Offset(b.cx, y), 0.018, _nFill(Color.lerp(silk, const Color(0xFFFFF4E0), 0.2)!));
+  }
+
   static bool _nativeProp(AvatarAccessory a) => !{AvatarAccessory.pipe, AvatarAccessory.cigaretteHolder, AvatarAccessory.baguetteCigar}.contains(a);
 
   static void _prop(Canvas canvas, AvatarLook look, _NB b, double thin) {
     final a = look.accessory;
-    if (!_nativeProp(a)) {
-      _with(canvas, mouthMap(b), () => LookPainter._mouthProp(canvas, look));
-      return;
-    }
+    if (!_nativeProp(a)) return;
     if (a != AvatarAccessory.cigar && a != AvatarAccessory.cigarette && a != AvatarAccessory.toothpick) return;
     final lw = thin * 1.2;
     final cigar = a == AvatarAccessory.cigar;
@@ -1629,4 +1710,151 @@ class _M {
   const _M(this.x0, this.y0, this.k, this.fx, this.fy);
 
   Offset transform(Offset p) => Offset(x0 + (p.dx - fx) * k, y0 + (p.dy - fy) * k);
+}
+
+/// La tela dei pezzi strani: passa tutto alla tela vera, ma ogni forma
+/// grande (un cappello, un'ala, una maschera, un costume) esce nel cartoon
+/// noir: il colore pieno, l'ombra netta tagliata dalla parte lontana dalla
+/// lampada, un filo di luce sul bordo acceso e la linea d'inchiostro
+/// sottile. Le cose piccole (i puntini, le righe, i bottoni) restano come
+/// sono. Si registra una volta in un'immagine vettoriale ([_Noir.piece]).
+class _InkCanvas implements Canvas {
+  final Canvas c;
+
+  /// Il lato in ombra: 1 a destra.
+  final double side;
+
+  _InkCanvas(this.c, this.side);
+
+  static const _big = 0.05;
+  static const _cut = 0.05;
+  static const _line = 0.009;
+
+  /// La scala e l'inversa della trasformazione di adesso, dal quadrato del
+  /// ritratto alle misure del pittore.
+  (double, Offset Function(Offset)) _local() {
+    final m = c.getTransform();
+    final a = m[0], b = m[1], cc = m[4], d = m[5];
+    final det = a * d - b * cc;
+    final scale = sqrt((a * a + b * b).abs());
+    Offset back(Offset v) => det == 0 ? v : Offset((d * v.dx - cc * v.dy) / det, (-b * v.dx + a * v.dy) / det);
+    return (scale, back);
+  }
+
+  void _shape(Path path, Paint paint) {
+    c.drawPath(path, paint);
+    if (paint.style != PaintingStyle.fill || paint.blendMode != BlendMode.srcOver || paint.color.a < 0.6 || paint.maskFilter != null) return;
+    final (scale, back) = _local();
+    final box = path.getBounds();
+    if (max(box.width, box.height) * scale < _big) return;
+    final shadow = Path.combine(PathOperation.difference, path, path.shift(back(Offset(-_cut * side, -_cut * 0.8))));
+    c.drawPath(shadow, Paint()..color = _nNight.withValues(alpha: 0.5));
+    final lit = Path.combine(PathOperation.difference, path, path.shift(back(Offset(0.012 * side, 0.01))));
+    c.drawPath(lit, Paint()..color = _nLamp.withValues(alpha: 0.3));
+    c.drawPath(
+      path,
+      Paint()
+        ..color = _nInk
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = _line / max(scale, 1e-6)
+        ..strokeJoin = StrokeJoin.round,
+    );
+  }
+
+  @override
+  void drawPath(Path path, Paint paint) => _shape(path, paint);
+  @override
+  void drawRect(Rect rect, Paint paint) => _shape(Path()..addRect(rect), paint);
+  @override
+  void drawRRect(RRect rrect, Paint paint) => _shape(Path()..addRRect(rrect), paint);
+  @override
+  void drawDRRect(RRect outer, RRect inner, Paint paint) => _shape(Path()
+    ..fillType = PathFillType.evenOdd
+    ..addRRect(outer)
+    ..addRRect(inner), paint);
+  @override
+  void drawOval(Rect rect, Paint paint) => _shape(Path()..addOval(rect), paint);
+  @override
+  void drawCircle(Offset center, double radius, Paint paint) => _shape(Path()..addOval(Rect.fromCircle(center: center, radius: radius)), paint);
+  @override
+  void drawArc(Rect rect, double startAngle, double sweepAngle, bool useCenter, Paint paint) {
+    if (!useCenter || paint.style != PaintingStyle.fill) {
+      c.drawArc(rect, startAngle, sweepAngle, useCenter, paint);
+      return;
+    }
+    _shape(
+      Path()
+        ..moveTo(rect.center.dx, rect.center.dy)
+        ..arcTo(rect, startAngle, sweepAngle, false)
+        ..close(),
+      paint,
+    );
+  }
+
+  @override
+  void save() => c.save();
+  @override
+  void saveLayer(Rect? bounds, Paint paint) => c.saveLayer(bounds, paint);
+  @override
+  void restore() => c.restore();
+  @override
+  void restoreToCount(int count) => c.restoreToCount(count);
+  @override
+  int getSaveCount() => c.getSaveCount();
+  @override
+  void translate(double dx, double dy) => c.translate(dx, dy);
+  @override
+  void scale(double sx, [double? sy]) => c.scale(sx, sy);
+  @override
+  void rotate(double radians) => c.rotate(radians);
+  @override
+  void skew(double sx, double sy) => c.skew(sx, sy);
+  @override
+  void transform(Float64List matrix4) => c.transform(matrix4);
+  @override
+  Float64List getTransform() => c.getTransform();
+  @override
+  void clipRect(Rect rect, {ui.ClipOp clipOp = ui.ClipOp.intersect, bool doAntiAlias = true}) => c.clipRect(rect, clipOp: clipOp, doAntiAlias: doAntiAlias);
+  @override
+  void clipRRect(RRect rrect, {bool doAntiAlias = true}) => c.clipRRect(rrect, doAntiAlias: doAntiAlias);
+  @override
+  void clipRSuperellipse(RSuperellipse rsuperellipse, {bool doAntiAlias = true}) => c.clipRSuperellipse(rsuperellipse, doAntiAlias: doAntiAlias);
+  @override
+  void clipPath(Path path, {bool doAntiAlias = true}) => c.clipPath(path, doAntiAlias: doAntiAlias);
+  @override
+  Rect getLocalClipBounds() => c.getLocalClipBounds();
+  @override
+  Rect getDestinationClipBounds() => c.getDestinationClipBounds();
+  @override
+  void drawColor(Color color, BlendMode blendMode) => c.drawColor(color, blendMode);
+  @override
+  void drawLine(Offset p1, Offset p2, Paint paint) => c.drawLine(p1, p2, paint);
+  @override
+  void drawPaint(Paint paint) => c.drawPaint(paint);
+  @override
+  void drawRSuperellipse(RSuperellipse rsuperellipse, Paint paint) => c.drawRSuperellipse(rsuperellipse, paint);
+  @override
+  void drawImage(ui.Image image, Offset offset, Paint paint) => c.drawImage(image, offset, paint);
+  @override
+  void drawImageRect(ui.Image image, Rect src, Rect dst, Paint paint) => c.drawImageRect(image, src, dst, paint);
+  @override
+  void drawImageNine(ui.Image image, Rect center, Rect dst, Paint paint) => c.drawImageNine(image, center, dst, paint);
+  @override
+  void drawPicture(ui.Picture picture) => c.drawPicture(picture);
+  @override
+  void drawParagraph(ui.Paragraph paragraph, Offset offset) => c.drawParagraph(paragraph, offset);
+  @override
+  void drawPoints(ui.PointMode pointMode, List<Offset> points, Paint paint) => c.drawPoints(pointMode, points, paint);
+  @override
+  void drawRawPoints(ui.PointMode pointMode, Float32List points, Paint paint) => c.drawRawPoints(pointMode, points, paint);
+  @override
+  void drawVertices(ui.Vertices vertices, BlendMode blendMode, Paint paint) => c.drawVertices(vertices, blendMode, paint);
+  @override
+  void drawAtlas(ui.Image atlas, List<RSTransform> transforms, List<Rect> rects, List<Color>? colors, BlendMode? blendMode, Rect? cullRect, Paint paint) =>
+      c.drawAtlas(atlas, transforms, rects, colors, blendMode, cullRect, paint);
+  @override
+  void drawRawAtlas(ui.Image atlas, Float32List rstTransforms, Float32List rects, Int32List? colors, BlendMode? blendMode, Rect? cullRect, Paint paint) =>
+      c.drawRawAtlas(atlas, rstTransforms, rects, colors, blendMode, cullRect, paint);
+  @override
+  void drawShadow(Path path, Color color, double elevation, bool transparentOccluder) => c.drawShadow(path, color, elevation, transparentOccluder);
 }

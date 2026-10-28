@@ -570,12 +570,12 @@ abstract final class _Absurd {
         canvas.drawRect(
           bounds,
           Paint()
-            ..shader = RadialGradient(
+            ..shader = LookPainter._gs(RadialGradient(
               center: const Alignment(-0.35, -0.45),
               radius: 0.9,
               colors: [Colors.white.withValues(alpha: 0.28), Colors.white.withValues(alpha: 0), Colors.black.withValues(alpha: 0.3)],
               stops: const [0.0, 0.45, 1.0],
-            ).createShader(bounds),
+            ), bounds),
         );
         // I riccioli, appena accennati.
         final curl = _line(Colors.black.withValues(alpha: 0.1), 0.007);

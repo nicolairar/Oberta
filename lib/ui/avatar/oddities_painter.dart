@@ -257,10 +257,10 @@ abstract final class _Oddities {
         canvas.drawOval(
           nose,
           Paint()
-            ..shader = const RadialGradient(
+            ..shader = LookPainter._gs(const RadialGradient(
               center: Alignment(-0.3, -0.4),
               colors: [Color(0xFFF6C0A6), Color(0xFFD0806A)],
-            ).createShader(nose),
+            ), nose),
         );
       case AvatarGlasses.heartGlasses:
         for (final x in [-0.068, 0.068]) {
@@ -708,11 +708,11 @@ abstract final class _Oddities {
         canvas.drawOval(
           nose,
           Paint()
-            ..shader = const RadialGradient(
+            ..shader = LookPainter._gs(const RadialGradient(
               center: Alignment(-0.35, -0.4),
               colors: [Color(0xFFFF6A5A), Color(0xFFC81E1E), Color(0xFF7A0E0E)],
               stops: [0, 0.6, 1],
-            ).createShader(nose),
+            ), nose),
         );
         canvas.drawCircle(const Offset(-0.008, -0.835), 0.01, _fill(Colors.white.withValues(alpha: 0.75)));
       case AvatarAccessory.parrot:

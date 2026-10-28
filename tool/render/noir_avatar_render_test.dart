@@ -200,6 +200,28 @@ void main() {
       faces.addAll([for (final s in FaceShape.values) face(base.copyWith(shape: s))]);
     }
     await _busts(faces, 128, 18, '$out/faces.png');
+    // Every strange piece of the shop: hats, glasses, costumes, props,
+    // wings, hairdos, tattoos and marks, plus the gold statue and its crown.
+    const plainHats = {AvatarHead.slicked, AvatarHead.bob, AvatarHead.bun};
+    final strange = <AvatarLook>[
+      _look('gold', hat: AvatarHead.crown, mark: FaceMark.goldStatue, outfit: 'gold_brocade', accessory: AvatarAccessory.cigar, features: const FaceFeatures(hair: HairStyle.curly, presentation: _man, shape: FaceShape.square)),
+      _look('gold2', hat: AvatarHead.crown, mark: FaceMark.goldStatue, outfit: 'black_dress', features: const FaceFeatures(hair: HairStyle.afro, presentation: _woman)),
+      for (final hat in AvatarHead.values)
+        if (!plainHats.contains(hat) && hat.index > AvatarHead.wideBrim.index) _look('h$hat', hat: hat, features: const FaceFeatures(hair: HairStyle.curly, presentation: _man)),
+      for (final g in AvatarGlasses.values)
+        if (g != AvatarGlasses.none) _look('g$g', glasses: g, accessory: AvatarAccessory.none),
+      for (final o in AvatarOutfit.catalog)
+        if (o.pattern.costume || const {CoatPattern.cape, CoatPattern.track, CoatPattern.cardigan, CoatPattern.canvas, CoatPattern.baroque, CoatPattern.brocade}.contains(o.pattern)) _look('o${o.id}', outfit: o.id, accessory: AvatarAccessory.none),
+      for (final a in AvatarAccessory.values)
+        if (a != AvatarAccessory.none) _look('a$a', accessory: a),
+      for (final h in Hairdo.values)
+        if (h != Hairdo.none) _look('d$h', hairdo: h, features: const FaceFeatures(presentation: _woman)),
+      for (final t in Tattoo.values)
+        if (t != Tattoo.none) _look('t$t', tattoo: t, outfit: 'strongman_leotard', accessory: AvatarAccessory.none),
+      for (final m in FaceMark.values)
+        if (m.index > FaceMark.mole.index) _look('m$m', mark: m, accessory: AvatarAccessory.none, features: const FaceFeatures(hair: HairStyle.crewCut, presentation: _man)),
+    ];
+    await _busts(strange, 128, 16, '$out/strange.png');
     final worst = <AvatarLook>[];
     for (final hat in AvatarHead.values) {
       if (hat == AvatarHead.slicked || hat == AvatarHead.bob || hat == AvatarHead.bun) continue;

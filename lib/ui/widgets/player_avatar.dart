@@ -1,6 +1,8 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../../online/online_models.dart';
 import '../../roster/portrait_registry.dart';
@@ -103,7 +105,12 @@ class PlayerAvatar extends StatelessWidget {
                 ),
               );
               final url = picture ?? (look == null ? PlayerMarks.of(seed).picture : null);
-              return url == null ? drawn : SteamPicture(url: url, size: size, fallback: drawn, faded: fallen);
+              if (url != null) return SteamPicture(url: url, size: size, fallback: drawn, faded: fallen);
+              // L'oro della bottega luccica: il riflesso passa sopra il
+              // ritratto tenuto da parte, senza ridisegnarlo.
+              final worn = look ?? AvatarLook.of(seed);
+              if (fallen || !LookPainter.gilded(worn)) return drawn;
+              return Stack(children: [drawn, Positioned.fill(child: _GoldShine(round: !bare))]);
             },
           ),
           for (final layer in dress.layers)
@@ -206,4 +213,75 @@ class AvatarBustPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(AvatarBustPainter old) => old.look != look || old.faded != faded || old.bare != bare;
+}
+
+/// Il riflesso che attraversa l'oro ogni qualche secondo. Si ferma quando
+/// le animazioni sono spente (e nei test che le spengono).
+class _GoldShine extends StatefulWidget {
+  /// Dentro la moneta tonda, o nel quadrato del ritratto nudo.
+  final bool round;
+
+  const _GoldShine({required this.round});
+
+  @override
+  State<_GoldShine> createState() => _GoldShineState();
+}
+
+class _GoldShineState extends State<_GoldShine> with SingleTickerProviderStateMixin {
+  final _time = ValueNotifier<double>(0);
+  late final Ticker _ticker = createTicker((elapsed) => _time.value = elapsed.inMicroseconds / 1e6);
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final still = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    if (still && _ticker.isActive) {
+      _ticker.stop();
+      _time.value = 0;
+    } else if (!still && !_ticker.isActive) {
+      _ticker.start();
+    }
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    _time.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => IgnorePointer(child: CustomPaint(painter: _ShinePainter(_time, round: widget.round)));
+}
+
+class _ShinePainter extends CustomPainter {
+  final ValueListenable<double> time;
+  final bool round;
+
+  _ShinePainter(this.time, {required this.round}) : super(repaint: time);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Una passata di un secondo ogni quattro.
+    final t = (time.value % 4.0) / 1.0;
+    if (t > 1) return;
+    final area = Offset.zero & size;
+    canvas.save();
+    if (round) canvas.clipPath(Path()..addOval(area.deflate(size.shortestSide * 0.03)));
+    final x = -1.6 + t * 3.2;
+    canvas.drawRect(
+      area,
+      Paint()
+        ..blendMode = BlendMode.plus
+        ..shader = LinearGradient(
+          begin: Alignment(x - 0.5, -0.6),
+          end: Alignment(x + 0.5, 0.6),
+          colors: const [Color(0x00000000), Color(0x66FFF2C0), Color(0x00000000)],
+        ).createShader(area),
+    );
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_ShinePainter old) => old.round != round;
 }
