@@ -324,7 +324,7 @@ abstract class ShopRepository {
 /// confronta): la bottega finta lo usa, quella vera lo legge dal server.
 final List<ShopItem> initialShopCatalog = [..._firstDrop, ...brandDrop, ...houseDrop, ...odditiesDrop, ...barberDrop, ...calcioDrop, ...framesDrop, ...gestureDrop, ...deepDrop];
 
-/// I pezzi che hanno cambiato posto (`supabase/migrations/20261120090000_shop_deep_slots.sql`):
+/// I pezzi che hanno cambiato posto (`supabase/migrations/20261121090000_shop_deep_slots.sql`):
 /// le ali erano un vezzo e ora stanno sulle spalle. Le righe vecchie restano
 /// spente sul server, per i conti delle monete già spese.
 const retiredShopItems = {

@@ -150,7 +150,7 @@ void main() {
         'supabase/migrations/20261024090000_shop_frames_names.sql',
         'supabase/migrations/20261109090000_table_reactions.sql',
         'supabase/migrations/20261119090000_shop_gold_statue.sql',
-        'supabase/migrations/20261120090000_shop_deep_slots.sql',
+        'supabase/migrations/20261121090000_shop_deep_slots.sql',
       ].map((path) => File(path).readAsStringSync()).join('\n');
       final rows = RegExp(r"\('(\w+)\.(\w+)', '(\w+)', '(\w+)', '(\w+)', (\d+), .*?(?:, (null|'(\w+)'))?(?:, '(circo|carnevale|assurdo|calcio)')?\)[,\n]")
           .allMatches(sql);
