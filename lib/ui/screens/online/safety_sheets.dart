@@ -12,6 +12,7 @@ import '../../widgets/noir_notice.dart';
 import 'game/noir_ui.dart';
 import 'online_widgets.dart';
 import 'profile_sheet.dart';
+import 'voice/voice_dock.dart';
 
 /// Il foglio di un altro giocatore, tenendo premuto il suo posto, la sua
 /// riga nella stanza o un suo messaggio: segnalarlo, bloccarlo o sbloccarlo.
@@ -24,9 +25,10 @@ Future<void> showPlayerActions(
   required String myId,
   String? gameId,
   ChatMessage? message,
+  VoiceMuteAction? voice,
 }) async {
   final safety = services.safety;
-  if (safety == null || profileId == myId) return;
+  if (profileId == myId || (safety == null && voice == null)) return;
   HapticFeedback.selectionClick();
   final s = SafetyStrings.of(context);
   final blocked = BlockedPlayers.ids.value.contains(profileId);
@@ -36,34 +38,51 @@ Future<void> showPlayerActions(
     title: name,
     header: message == null ? null : NoirQuote(message.body),
     items: [
+      // In cima: silenziare la voce, solo su questo telefono.
+      if (voice != null)
+        NoirMenuItem(
+          key: const Key('voice.muteSeat'),
+          value: 'voice',
+          icon: voice.muted ? Icons.volume_up : Icons.volume_off,
+          label: voice.label,
+        ),
       NoirMenuItem(
         key: const Key('safety.profile'),
         value: 'profile',
         icon: Icons.badge_outlined,
         label: StatsStrings.of(context).profile,
       ),
-      if (blocked)
-        NoirMenuItem(key: const Key('safety.unblock'), value: 'unblock', icon: Icons.lock_open, label: s.unblock)
-      else
-        NoirMenuItem(key: const Key('safety.block'), value: 'block', icon: Icons.block, label: s.block),
-      NoirMenuItem(
-        key: const Key('safety.rules'),
-        value: 'rules',
-        icon: Icons.menu_book_outlined,
-        label: s.rulesTitle,
-        tone: NoirMenuTone.dim,
-      ),
-      NoirMenuItem(
-        key: const Key('safety.report'),
-        value: 'report',
-        icon: Icons.flag_outlined,
-        label: s.report,
-        tone: NoirMenuTone.danger,
-      ),
+      if (safety != null) ...[
+        if (blocked)
+          NoirMenuItem(key: const Key('safety.unblock'), value: 'unblock', icon: Icons.lock_open, label: s.unblock)
+        else
+          NoirMenuItem(key: const Key('safety.block'), value: 'block', icon: Icons.block, label: s.block),
+        NoirMenuItem(
+          key: const Key('safety.rules'),
+          value: 'rules',
+          icon: Icons.menu_book_outlined,
+          label: s.rulesTitle,
+          tone: NoirMenuTone.dim,
+        ),
+        NoirMenuItem(
+          key: const Key('safety.report'),
+          value: 'report',
+          icon: Icons.flag_outlined,
+          label: s.report,
+          tone: NoirMenuTone.danger,
+        ),
+      ],
     ],
   );
   if (!context.mounted) return;
+  if (safety == null) {
+    if (action == 'voice') voice?.toggle();
+    if (action == 'profile') await showPublicProfile(context, services: services, target: profileId);
+    return;
+  }
   switch (action) {
+    case 'voice':
+      voice?.toggle();
     case 'profile':
       await showPublicProfile(context, services: services, target: profileId);
     case 'report':
@@ -85,8 +104,13 @@ Future<void> showSeatActions(
   required String name,
   required String myId,
   String? gameId,
+  VoiceMuteAction? voice,
 }) async {
-  if (services.safety == null) return;
+  if (services.safety == null) {
+    // Senza segnalazioni resta solo la voce da silenziare.
+    if (voice != null) await _voiceOnly(context, name, voice);
+    return;
+  }
   Profile? profile;
   try {
     final found = await services.profiles.search(name);
@@ -95,7 +119,33 @@ Future<void> showSeatActions(
     return;
   }
   if (profile == null || !context.mounted) return;
-  await showPlayerActions(context, services: services, profileId: profile.id, name: name, myId: myId, gameId: gameId);
+  await showPlayerActions(
+    context,
+    services: services,
+    profileId: profile.id,
+    name: name,
+    myId: myId,
+    gameId: gameId,
+    voice: voice,
+  );
+}
+
+Future<void> _voiceOnly(BuildContext context, String name, VoiceMuteAction voice) async {
+  HapticFeedback.selectionClick();
+  final action = await showNoirMenu<String>(
+    context,
+    key: const Key('safety.actions'),
+    title: name,
+    items: [
+      NoirMenuItem(
+        key: const Key('voice.muteSeat'),
+        value: 'voice',
+        icon: voice.muted ? Icons.volume_up : Icons.volume_off,
+        label: voice.label,
+      ),
+    ],
+  );
+  if (action == 'voice') voice.toggle();
 }
 
 Future<void> _run(BuildContext context, Future<void> Function() call, String done) async {

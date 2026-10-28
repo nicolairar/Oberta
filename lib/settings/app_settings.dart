@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import '../l10n/app_language.dart';
@@ -21,10 +20,8 @@ class AppSettings extends ChangeNotifier {
   static const tutorialKey = 'tutorialSeen';
   static const tutorialsDoneKey = 'tutorialsDone';
   static const voiceModeKey = 'voiceMode';
-  static const voicePushToTalkKey = 'voicePushToTalk';
   static const keys = {
     voiceModeKey,
-    voicePushToTalkKey,
     tutorialsDoneKey,
     languageKey,
     soundKey,
@@ -158,22 +155,6 @@ class AppSettings extends ChangeNotifier {
     _store.setString(voiceModeKey, mode.name);
     notifyListeners();
   }
-
-  /// Premi per parlare (sul PC il tasto V) invece del microfono aperto. Di
-  /// solito sul PC sì, sul telefono no.
-  bool get voicePushToTalk => _store.getBool(voicePushToTalkKey) ?? _desktop;
-
-  set voicePushToTalk(bool on) {
-    if (on == voicePushToTalk) return;
-    _store.setBool(voicePushToTalkKey, on);
-    notifyListeners();
-  }
-
-  static bool get _desktop =>
-      !kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.macOS ||
-          defaultTargetPlatform == TargetPlatform.windows ||
-          defaultTargetPlatform == TargetPlatform.linux);
 
   /// La lingua scelta a mano; `null` segue quella del telefono.
   AppLanguage? get language => _language;

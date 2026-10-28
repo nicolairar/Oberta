@@ -7,6 +7,7 @@
 // Live audio only: no grant here ever allows recording, egress, ingress,
 // data messages, metadata or admin powers to a phone. The admin token below
 // is minted per call for RoomService and never leaves the function.
+import { createHmac } from 'node:crypto';
 import { SignJWT } from 'npm:jose@5.9.6';
 
 export interface LiveKitEnv {
@@ -29,6 +30,20 @@ export function apiOrigin(url: string): string {
   return url.replace(/^ws(s?):\/\//, 'http$1://').replace(/\/+$/, '');
 }
 
+/** From the readable name of a voice room to the one LiveKit sees. */
+export type RoomSeal = (raw: string) => string;
+
+/**
+ * LiveKit room names nobody can guess or recognise: an HMAC of the readable
+ * name (room id, stage, game, round) under a key derived from the API
+ * secret. The same input always gives the same name, so the token function
+ * and the push agree without storing anything new.
+ */
+export function roomSeal(secret: string): RoomSeal {
+  const key = createHmac('sha256', secret).update('oberta-voice-room-names').digest();
+  return (raw) => `ob-${createHmac('sha256', key).update(raw).digest('hex').slice(0, 40)}`;
+}
+
 /** A phone's grant: one room, the microphone at most. */
 export interface ParticipantGrant {
   room: string;
@@ -45,6 +60,9 @@ export async function participantToken(
 ): Promise<string> {
   const now = Math.floor(nowMs / 1000);
   return await new SignJWT({
+    // The name LiveKit shows is the seat too: no account, no nickname, and
+    // the phone cannot change it (canUpdateOwnMetadata false).
+    name: identity,
     video: {
       room: grant.room,
       roomJoin: true,

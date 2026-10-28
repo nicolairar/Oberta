@@ -28,7 +28,7 @@ You can play on a single phone without an account. In that case no personal data
 - Records of abandoned matches, used for penalties.
 - Server technical data (IP address, request timestamps) kept by the hosting provider in its logs.
 
-We do not process location, contacts, photos or health data. The microphone is used only for table voice chat: it turns on only if you choose it, and transmits only when the game gives you the floor.
+We do not process location, contacts, photos or health data. The microphone is used only for table voice chat: it turns on only if you choose it, and transmits only while you hold the talk button, when the game gives you the floor.
 
 ## What we do NOT do
 

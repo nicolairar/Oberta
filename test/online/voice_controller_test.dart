@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/online/safety.dart';
 import 'package:oberta/online/voice/voice_controller.dart';
 import 'package:oberta/online/voice/livekit_voice_engine.dart';
+import 'package:oberta/online/voice/mic_permission.dart';
 import 'package:oberta/online/voice/voice_engine.dart';
 import 'package:oberta/settings/app_settings.dart';
 import 'package:oberta/settings/settings_store.dart';
@@ -91,10 +92,8 @@ void main() {
   late AppSettings settings;
   late List<bool> ducks;
 
-  VoiceController make({VoiceMode mode = VoiceMode.mic, bool ptt = false}) {
-    settings = AppSettings(MemorySettingsStore())
-      ..voiceMode = mode
-      ..voicePushToTalk = ptt;
+  VoiceController make({VoiceMode mode = VoiceMode.mic}) {
+    settings = AppSettings(MemorySettingsStore())..voiceMode = mode;
     return VoiceController(source: server, roomId: 'r', engine: engine, settings: settings, duck: ducks.add);
   }
 
@@ -152,7 +151,7 @@ void main() {
     c.dispose();
   });
 
-  test('the microphone: only in mic mode, only with the right, open or held', () async {
+  test('the microphone: only in mic mode, only with the right, only while held', () async {
     var c = make(mode: VoiceMode.listen);
     server.next = _room('day-1');
     await c.refresh();
@@ -163,35 +162,35 @@ void main() {
     c = make();
     server.next = _room('day-1', publish: false);
     await c.refresh();
+    c.hold(true);
+    await pumpEventQueue();
     expect(engine.microphoneOn, isFalse, reason: 'the dead and the silenced do not transmit');
+    expect(c.holding, isFalse, reason: 'no right, no hold');
     c.dispose();
 
     engine = _Engine();
     c = make();
     server.next = _room('day-1');
     await c.refresh();
-    expect(engine.microphoneOn, isTrue, reason: 'open mic');
-    c.toggleSelfMute();
-    await pumpEventQueue();
-    expect(engine.microphoneOn, isFalse);
-    c.dispose();
-
-    engine = _Engine();
-    c = make(ptt: true);
-    server.next = _room('day-1');
-    await c.refresh();
-    expect(engine.microphoneOn, isFalse);
+    expect(engine.microphoneOn, isFalse, reason: 'there is no open mic: nothing goes out until held');
     c.hold(true);
     await pumpEventQueue();
     expect(engine.microphoneOn, isTrue);
     c.hold(false);
     await pumpEventQueue();
     expect(engine.microphoneOn, isFalse);
+
+    // Held when the right goes away (the day ends): the mic closes at once.
+    c.hold(true);
+    await pumpEventQueue();
+    server.next = _room('day-1', publish: false);
+    await c.refresh();
+    expect([engine.microphoneOn, c.holding], [false, false]);
     c.dispose();
   });
 
   test('desktop push to talk: V held talks, never while typing', () async {
-    final c = make(ptt: true);
+    final c = make();
     server.next = _room('day-1');
     await c.refresh();
     const v = PhysicalKeyboardKey.keyV;
@@ -283,18 +282,21 @@ void main() {
     expect([wait.connects, wait.retryIn], [false, const Duration(milliseconds: 1700)]);
   });
 
-  testWidgets('the ring shows who is speaking; the dock hides where voice is off', (tester) async {
+  testWidgets('the ring shows who is speaking, a badge who is muted; the voice hides where it is off', (tester) async {
     final c = make();
+    engine.others = {'s2'};
     server.next = _room('day-1');
     await c.refresh();
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
         body: Column(children: [
           VoiceDock(controller: c),
+          VoiceTalkButton(controller: c),
           VoiceRing(controller: c, identity: 's2', width: 80, child: const SizedBox(width: 80, height: 100)),
         ]),
       ),
     ));
+    await tester.pump();
     double ring() => tester.widget<AnimatedOpacity>(find.byKey(const Key('voice.ring.s2'))).opacity;
     expect(ring(), 0);
     engine.talking = {'s2'};
@@ -302,12 +304,121 @@ void main() {
     await tester.pump();
     expect(ring(), 1);
     expect(find.byKey(const Key('voice.talk')), findsOneWidget);
+    expect(find.byKey(const Key('voice.muted.s2')), findsNothing);
+
+    c.toggleMute('s2');
+    await tester.pump();
+    expect(ring(), 0, reason: 'a muted player shows no ring');
+    expect(find.byKey(const Key('voice.muted.s2')), findsOneWidget);
 
     server.refuse = const VoiceRefused(VoiceRefusal.unavailable);
     await c.refresh();
     await tester.pump();
     expect(find.byKey(const Key('voice.talk')), findsNothing);
+    expect(find.byKey(const Key('voice.settings')), findsNothing);
     await tester.pumpWidget(const SizedBox());
     c.dispose();
+  });
+
+  testWidgets('the big button: hold to talk, live while held, a reason when the rules say no', (tester) async {
+    final c = make();
+    server.next = _room('day-1');
+    await c.refresh();
+    var reason = 'Di notte parla solo la famiglia';
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(body: Center(child: VoiceTalkButton(controller: c, reason: (_) => reason))),
+    ));
+    String caption() => tester.widget<Text>(find.byKey(const Key('voice.talk.caption'))).data!;
+    expect(tester.getSize(find.byKey(const Key('voice.talk'))).width, greaterThanOrEqualTo(64));
+    expect(caption(), 'Tieni premuto');
+
+    final finger = await tester.startGesture(tester.getCenter(find.byKey(const Key('voice.talk'))));
+    await tester.pump();
+    expect(engine.microphoneOn, isTrue);
+    expect(caption(), 'Ti sentono');
+    await finger.up();
+    await tester.pump();
+    expect(engine.microphoneOn, isFalse);
+    expect(caption(), 'Tieni premuto');
+
+    // The night of the town: muted, with the reason, and a press says why.
+    server.next = const VoiceGrant();
+    await c.refresh();
+    await tester.pump();
+    expect(caption(), reason);
+    await tester.tap(find.byKey(const Key('voice.talk')));
+    await tester.pump();
+    expect(engine.microphoneOn, isFalse);
+    expect(find.text(reason), findsNWidgets(2), reason: 'the full reason as a notice');
+    await tester.pump(const Duration(seconds: 6));
+
+    // Listen only: no talk button at all.
+    reason = '';
+    settings.voiceMode = VoiceMode.listen;
+    await tester.pump();
+    expect(find.byKey(const Key('voice.talk')), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+    c.dispose();
+  });
+
+  testWidgets('choosing the microphone asks the system at once; denied falls back to listen only', (tester) async {
+    final c = make(mode: VoiceMode.listen);
+    var asked = 0;
+    var granted = false;
+    var opened = 0;
+    MicPermission.request = () async {
+      asked++;
+      return granted;
+    };
+    MicPermission.openSettings = () async => opened++;
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => chooseVoiceMode(context, settings, VoiceMode.mic),
+            child: const Text('mic'),
+          ),
+        ),
+      ),
+    ));
+    await tester.tap(find.text('mic'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('voice.micAsk')), findsOneWidget);
+    expect(asked, 0, reason: 'first the two lines on what happens');
+    await tester.tap(find.byKey(const Key('voice.micAllow')));
+    await tester.pumpAndSettle();
+    expect(asked, 1, reason: 'the system is asked right away, not at the first word');
+    expect(settings.voiceMode, VoiceMode.listen);
+    expect(find.byKey(const Key('voice.micDenied')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('voice.openSettings')));
+    await tester.pumpAndSettle();
+    expect(opened, 1);
+
+    granted = true;
+    await tester.tap(find.text('mic'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('voice.micAllow')));
+    await tester.pumpAndSettle();
+    expect([asked, settings.voiceMode], [2, VoiceMode.mic]);
+    expect(find.byKey(const Key('voice.micDenied')), findsNothing);
+    c.dispose();
+  });
+
+  testWidgets('a microphone chosen earlier is checked on entering the voice, once', (tester) async {
+    debugResetVoiceMicCheck();
+    final c = make();
+    var asked = 0;
+    MicPermission.request = () async {
+      asked++;
+      return false;
+    };
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: VoiceDock(controller: c))));
+    await tester.pumpAndSettle();
+    expect(asked, 1);
+    expect(settings.voiceMode, VoiceMode.listen, reason: 'denied: listen only');
+    expect(find.byKey(const Key('voice.micDenied')), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    c.dispose();
+    debugResetVoiceMicCheck();
   });
 }

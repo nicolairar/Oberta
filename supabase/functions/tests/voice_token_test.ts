@@ -7,7 +7,7 @@ import { PGlite } from 'npm:@electric-sql/pglite@0.3.7';
 import { jwtVerify } from 'npm:jose@5.9.6';
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { handleVoiceToken, tokenTtlSeconds, type VoiceTokenDeps } from '../voice-token/handler.ts';
-import { apiOrigin, type LiveParticipant, type Permission, roomService, type RoomService } from '../_shared/livekit.ts';
+import { apiOrigin, type LiveParticipant, type Permission, roomSeal, roomService, type RoomService } from '../_shared/livekit.ts';
 import { sqlVoiceStore, syncVoice, type VoiceSession, type VoiceStore } from '../_shared/voice_sync.ts';
 import { defaultVoiceConfig, voiceGrant, type VoiceMember, type VoiceRoom } from '../_shared/voice_rules.ts';
 import { step } from '../game/engine.ts';
@@ -18,6 +18,7 @@ const env: Record<string, string> = { LIVEKIT_URL: 'wss://oberta-test.livekit.cl
 const roomId = 'aaaaaaaa-0000-4000-8000-000000000001';
 const game = 'bbbbbbbb-0000-4000-8000-000000000002';
 const t0 = 1_800_000_000_000;
+const seal = roomSeal(secret);
 
 const member = (n: number, extra: Partial<VoiceMember> = {}): VoiceMember => ({
   profile: `p${n}`,
@@ -122,7 +123,10 @@ Deno.test('voice-token: the family gets a short token for its room, microphone o
   const { d, memory } = deps(nightRoom);
   const { status, body } = await answer(await handleVoiceToken(post({ room: roomId }), d));
   assertEquals(status, 200);
-  assertEquals(body.room, `ob-${roomId}-family-${game}-1`);
+  assertEquals(body.room, seal(`ob-${roomId}-family-${game}-1`));
+  assert(/^ob-[0-9a-f]{40}$/.test(body.room), 'LiveKit room names are opaque');
+  assert(!body.room.includes(roomId) && !body.room.includes(game), 'no room or game id in the name');
+  assert(body.room !== roomSeal('another-secret')(`ob-${roomId}-family-${game}-1`), 'unguessable without the secret');
   assertEquals([body.kind, body.identity, body.url, body.canPublish, body.canSubscribe], ['family', 's1', env.LIVEKIT_URL, true, true]);
   assert(!JSON.stringify(body).includes(secret), 'the secret never leaves');
   const { payload, protectedHeader } = await jwtVerify(body.token, new TextEncoder().encode(secret), {
@@ -131,6 +135,8 @@ Deno.test('voice-token: the family gets a short token for its room, microphone o
   });
   assertEquals(protectedHeader.alg, 'HS256');
   assertEquals(payload.sub, 's1', 'LiveKit sees a seat, never the account');
+  assertEquals(payload.name, 's1', 'the shown name is the seat too, set by the server');
+  assert(!('metadata' in payload) && !('attributes' in payload), 'no metadata or attributes from anyone');
   assertEquals(payload.exp! - payload.iat!, tokenTtlSeconds);
   assert(tokenTtlSeconds <= 300, 'tokens expire within minutes');
   assertEquals(payload.video, {
@@ -148,6 +154,29 @@ Deno.test('voice-token: the family gets a short token for its room, microphone o
   assertEquals(memory.state.session?.rooms, [body.room], 'the room is watched from now on');
 });
 
+Deno.test("voice-token: the identity is the caller's own seat; nothing the phone sends can change it", async () => {
+  const day = deps({ ...nightRoom, schedule: { stage: 'vote', round: 1, startsAt: t0 } }).d;
+  const forged = { room: roomId, identity: 's1', seat: 's1', name: 'anna', metadata: '{"admin":true}', kind: 'family' };
+  const { body } = await answer(await handleVoiceToken(post(forged, 'jwt-p2'), day));
+  assertEquals([body.identity, body.kind, body.room], ['s2', 'day', seal(`ob-${roomId}-day-${game}-1`)]);
+  const { payload } = await jwtVerify(body.token, new TextEncoder().encode(secret), { currentDate: new Date(t0 + 5000) });
+  assertEquals([payload.sub, payload.name], ['s2', 's2']);
+  assert(!('metadata' in payload));
+  const video = payload.video as Record<string, unknown>;
+  assertEquals([video.room, video.canPublishData, video.canUpdateOwnMetadata], [body.room, false, false]);
+  // At night the town is in no room, whatever it asks for.
+  const night = deps(nightRoom).d;
+  assertEquals((await answer(await handleVoiceToken(post(forged, 'jwt-p2'), night))).body, { room: null, retryIn: null });
+  // A token checked with another key fails: LiveKit verifies the signature.
+  let rejected = false;
+  try {
+    await jwtVerify(body.token, new TextEncoder().encode('not-the-secret-but-long-enough-to-try'));
+  } catch {
+    rejected = true;
+  }
+  assert(rejected);
+});
+
 Deno.test('voice-token: the town at night gets no room; before the start everyone is told when to ask again', async () => {
   const { d } = deps(nightRoom);
   assertEquals(await answer(await handleVoiceToken(post({ room: roomId }, 'jwt-p2'), d)), { status: 200, body: { room: null, retryIn: null } });
@@ -163,8 +192,8 @@ Deno.test('voice-token: the town at night gets no room; before the start everyon
 });
 
 Deno.test('sync: the end of a stage removes whoever may not stay and fixes the rights of the others', async () => {
-  const day = `ob-${roomId}-day-${game}-1`;
-  const family = `ob-${roomId}-family-${game}-1`;
+  const day = seal(`ob-${roomId}-day-${game}-1`);
+  const family = seal(`ob-${roomId}-family-${game}-1`);
   const { service, calls, rooms } = fakeLiveKit({
     [family]: [{ identity: 's1', canPublish: true, canSubscribe: true }],
     [day]: [
@@ -177,7 +206,7 @@ Deno.test('sync: the end of a stage removes whoever may not stay and fixes the r
     { ...nightRoom, schedule: { stage: 'discussion', round: 1, startsAt: t0 } },
     { signature: 'old', rooms: [family, day] },
   );
-  const result = await syncVoice(store, service, roomId, t0 + 5000);
+  const result = await syncVoice(store, service, roomId, t0 + 5000, seal);
   assertEquals(result, { pushed: true, removed: 1, updated: 1 });
   assertEquals(calls, [`list ${family}`, `remove ${family} s1`, `list ${day}`, `update ${day} s3 publish=false subscribe=true`]);
   assertEquals(rooms[family], []);
@@ -185,18 +214,18 @@ Deno.test('sync: the end of a stage removes whoever may not stay and fixes the r
 
   // Nothing changed: no call at all.
   calls.length = 0;
-  assertEquals(await syncVoice(store, service, roomId, t0 + 9000), { pushed: false, removed: 0, updated: 0 });
+  assertEquals(await syncVoice(store, service, roomId, t0 + 9000, seal), { pushed: false, removed: 0, updated: 0 });
   assertEquals(calls, []);
 
   // The vote ends: the day closes at once, nobody is left speaking.
   state.room = { ...state.room, schedule: { stage: 'verdictFilm', round: 1, startsAt: t0 + 60_000 } };
-  await syncVoice(store, service, roomId, t0 + 58_500);
+  await syncVoice(store, service, roomId, t0 + 58_500, seal);
   assertEquals(rooms[day], []);
   assertEquals(state.session?.rooms, []);
 });
 
 Deno.test('sync: a stale identity, or someone who left the room, is removed from the lobby', async () => {
-  const lobby = `ob-${roomId}-lobby-${game}`;
+  const lobby = seal(`ob-${roomId}-lobby-${game}`);
   const { service, calls } = fakeLiveKit({
     [lobby]: [
       { identity: 'm1', canPublish: true, canSubscribe: true },
@@ -208,7 +237,7 @@ Deno.test('sync: a stale identity, or someone who left the room, is removed from
     { ...nightRoom, status: 'lobby', schedule: null, members: [member(1)] },
     { signature: null, rooms: [lobby] },
   );
-  await syncVoice(store, service, roomId, t0);
+  await syncVoice(store, service, roomId, t0, seal);
   assertEquals(calls, [`list ${lobby}`, `remove ${lobby} m2`, `remove ${lobby} s1`]);
 });
 

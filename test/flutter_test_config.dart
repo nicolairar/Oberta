@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/online/incoming_links.dart';
 import 'package:oberta/online/online_services.dart';
+import 'package:oberta/online/voice/mic_permission.dart';
 import 'package:oberta/roster/roster_storage.dart';
 import 'package:oberta/roster/roster_store.dart';
 import 'package:oberta/settings/app_settings.dart';
@@ -29,6 +30,9 @@ Future<void> testExecutable(FutureOr<void> Function() testMain) async {
     // Nessun server: chi vuole l'online porta il suo FakeOnline.
     OnlineServices.instance = null;
     IncomingLinks.instance = IncomingLinks();
+    // Il microfono dei test è sempre concesso: chi prova il rifiuto lo dice.
+    MicPermission.request = () async => true;
+    MicPermission.openSettings = () async {};
   });
   tearDown(binding.platformDispatcher.clearLocalesTestValue);
   await testMain();

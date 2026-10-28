@@ -22,6 +22,9 @@ abstract class VoiceEngine {
 
   bool get microphoneOn;
 
+  /// Quanto forte arriva la propria voce adesso, da 0 a 1.
+  double get level => 0;
+
   Future<void> connect(String url, String token);
 
   Future<void> disconnect();

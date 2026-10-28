@@ -28,7 +28,7 @@ Puoi giocare sullo stesso telefono senza account. In quel caso nessun dato perso
 - Registro degli abbandoni di partita, usato per le penalità.
 - Dati tecnici dei server (indirizzo IP, data e ora delle richieste) conservati dal fornitore di hosting nei suoi log.
 
-Non trattiamo posizione, contatti, foto o dati di salute. Il microfono serve solo alla voce al tavolo: si accende se lo scegli tu, e trasmette solo quando il gioco ti dà la parola.
+Non trattiamo posizione, contatti, foto o dati di salute. Il microfono serve solo alla voce al tavolo: si accende se lo scegli tu, e trasmette solo mentre tieni premuto il tasto per parlare, quando il gioco ti dà la parola.
 
 ## Cosa NON facciamo
 

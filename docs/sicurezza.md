@@ -43,9 +43,20 @@ scoprire niente di nascosto: ruoli, mosse notturne, chat della famiglia, segreti
   token dei telefoni (HS256, 3 minuti) danno una sola stanza e al più il microfono: niente
   `roomAdmin`, `roomCreate`, `roomList`, `roomRecord`, `recorder`, `hidden`, `canPublishData` (falso),
   `canUpdateOwnMetadata` (falso); il token admin per RoomService resta nella funzione (60 s, una
-  stanza). LiveKit vede solo un posto (`s3` in partita, `m3` nella stanza), mai account o nome; le
-  stanze LiveKit hanno nomi opachi per fase (`day-<partita>-<giro>`, `family-<partita>-<giro>`,
-  `ghosts-<partita>`, `lobby-<partita>`). Chi decide è il server, dalla fase pubblicata (`schedule` di
+  stanza). LiveKit vede solo un posto (`s3` in partita, `m3` nella stanza), mai account o nome: il
+  posto è sia `sub` (identità) sia `name` del token, nessun `metadata`/`attributes`, e con
+  `canUpdateOwnMetadata` falso il telefono non può cambiare nome, metadati o attributi; niente canale
+  dati (`canPublishData` falso, `canPublishSources` solo `microphone`). L'identità la decide il server
+  dal JWT di Supabase e dai posti (`room_members`, `game_seats`): qualunque campo in più nella richiesta
+  (identità, posto, nome, tipo di stanza) è ignorato, quindi nessuno può spacciarsi per un altro posto
+  né entrare in una stanza che non è la sua. I nomi delle stanze LiveKit sono un HMAC-SHA256
+  (`roomSeal`, `_shared/livekit.ts`) del nome leggibile per fase (`day-<partita>-<giro>`,
+  `family-<partita>-<giro>`, `ghosts-<partita>`, `lobby-<partita>`) sotto una chiave derivata da
+  `LIVEKIT_API_SECRET`: `ob-` + 40 cifre esadecimali, senza id di stanza o partita, impossibili da
+  indovinare senza il segreto (e in ogni caso entrare richiede un token firmato per quella stanza).
+  L'app mostra l'anello di chi parla e la lista di chi si sente solo dall'identità firmata dal
+  server, tradotta in posto/nome dal tavolo della partita; il nome dichiarato dal partecipante non
+  viene mai letto. Chi decide è il server, dalla fase pubblicata (`schedule` di
   `game_public`) e dai posti (`game_seats`): stanza e dopo la partita tutti; discussione e voto i vivi
   (il cucito dal Sarto e i morti solo ascoltano); notte solo la famiglia viva, e i morti fra loro;
   carta, film, alba e verdetto nessuno. Notte e discussione si aprono solo a `startsAt` +
@@ -53,12 +64,21 @@ scoprire niente di nascosto: ruoli, mosse notturne, chat della famiglia, segreti
   finito la transizione; prima la funzione risponde `{room: null, retryIn}`. Una fase che finisce
   chiude la voce subito: dopo ogni passo che cambia fase o posti la Edge Function `game` spinge i
   permessi con RoomService (`RemoveParticipant` per chi non può restare, `UpdateParticipant` per gli
-  altri), così un token vecchio non tiene la parola. `internal.voice_sessions` tiene solo le stanze
+  altri), così un token vecchio non tiene la parola; chi ha lasciato la stanza, un'identità di un
+  altro tipo (`m3` durante la partita, `s3` nella stanza) o un posto che non appartiene più a quella
+  stanza LiveKit viene tolto. Il microfono parla solo tenendo premuto il tasto (premi-per-parlare,
+  niente microfono aperto). Silenziare qualcuno (dal menu del posto o dalla lista della voce) vale
+  solo su quel telefono: non ci si abbona più alla sua voce. `internal.voice_sessions` tiene solo le stanze
   LiveKit da sorvegliare e la firma dell'ultimo invio. La classificata è spenta (`voice_ranked = 0`). I
   bloccati non si sentono mai e non ci sentono: il telefono di chi blocca non si abbona alla loro voce
   e la nega loro con i permessi d'ascolto che LiveKit applica.
 
 ## Verifica
+
+`deno test -A supabase/functions/tests/voice_token_test.ts supabase/functions/tests/voice_rules_test.ts`:
+le regole della voce e le claim dei token (identità e nome = il posto di chi chiede, campi falsi nella
+richiesta ignorati, niente metadati, dati o poteri admin, nomi di stanza HMAC senza id), la spinta a
+LiveKit che toglie chi non può restare, e il percorso intero sulle migrazioni vere in PGlite.
 
 `supabase/tests/anticheat.sql`: 43 controlli sul database vero dentro `begin … rollback`, impersonando
 un cittadino, un mafioso, un mafioso morto, un estraneo, chi ha lasciato la stanza e `anon`. Si lancia

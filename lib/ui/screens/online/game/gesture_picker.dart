@@ -6,6 +6,7 @@ import '../../../../l10n/app_language.dart';
 import '../../../../l10n/app_strings.dart';
 import '../../../../online/reactions.dart';
 import '../../../widgets/noir_modal.dart';
+import '../voice/voice_dock.dart';
 import 'noir_ui.dart';
 import 'table_gestures.dart';
 
@@ -38,6 +39,7 @@ Future<TableGesture?> showGesturePicker(
   required Set<TableGesture> owned,
   Duration wait = Duration.zero,
   VoidCallback? onReport,
+  VoiceMuteAction? voice,
 }) {
   final s = GestureStrings(italian);
   return showNoirSheet<TableGesture>(
@@ -62,8 +64,22 @@ Future<TableGesture?> showGesturePicker(
               ),
           ],
         ),
-        if (onReport != null) ...[
+        if (voice != null) ...[
           const SizedBox(height: 16),
+          NoirModalButton(
+            key: const Key('voice.muteSeat'),
+            action: NoirAction(
+              label: voice.label,
+              icon: voice.muted ? Icons.volume_up : Icons.volume_off,
+              onPressed: () {
+                Navigator.of(context).pop();
+                voice.toggle();
+              },
+            ),
+          ),
+        ],
+        if (onReport != null) ...[
+          SizedBox(height: voice != null ? 8 : 16),
           NoirModalButton(
             key: const Key('gestures.report'),
             action: NoirAction(

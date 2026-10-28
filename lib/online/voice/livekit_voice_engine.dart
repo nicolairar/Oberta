@@ -36,6 +36,9 @@ class LiveKitVoiceEngine extends VoiceEngine {
   bool get microphoneOn => _room?.localParticipant?.isMicrophoneEnabled() ?? false;
 
   @override
+  double get level => _room?.localParticipant?.audioLevel ?? 0;
+
+  @override
   Future<void> connect(String url, String token) async {
     await disconnect();
     final room = lk.Room(

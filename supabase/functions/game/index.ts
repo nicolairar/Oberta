@@ -16,7 +16,7 @@
 import postgres from 'npm:postgres@3.4.5';
 import { step } from './engine.ts';
 import { type Db, runDue } from './runner.ts';
-import { liveKitEnv, roomService } from '../_shared/livekit.ts';
+import { liveKitEnv, roomSeal, roomService } from '../_shared/livekit.ts';
 import { sqlVoiceStore, syncVoice } from '../_shared/voice_sync.ts';
 
 const sql = postgres(Deno.env.get('SUPABASE_DB_URL')!, { prepare: false, max: 3, idle_timeout: 20 });
@@ -34,13 +34,13 @@ function wrap(s: Sql): Db {
 const db = wrap(sql);
 let secret: string | null = null;
 const lk = liveKitEnv((name) => Deno.env.get(name));
-const voice = lk ? { store: sqlVoiceStore(db), service: roomService(lk) } : null;
+const voice = lk ? { store: sqlVoiceStore(db), service: roomService(lk), seal: roomSeal(lk.secret) } : null;
 
 async function pushVoice(rooms: Set<string>) {
   if (!voice) return;
   for (const room of rooms) {
     try {
-      await syncVoice(voice.store, voice.service, room, Date.now());
+      await syncVoice(voice.store, voice.service, room, Date.now(), voice.seal);
     } catch (error) {
       console.error(`voice ${room}:`, error instanceof Error ? error.message : 'failed');
     }

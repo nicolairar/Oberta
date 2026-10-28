@@ -109,8 +109,18 @@ function lobbyLike(room: VoiceRoom): boolean {
   return room.status !== 'playing' || room.schedule?.stage === 'ended';
 }
 
-/** The decision for [profile] in [room] at [now] (server ms). */
-export function voiceGrant(room: VoiceRoom, profile: string, config: VoiceConfig, now: number): VoiceDecision {
+/**
+ * The decision for [profile] in [room] at [now] (server ms). [seal] turns
+ * the readable room name into the one LiveKit sees (livekit.ts roomSeal: an
+ * HMAC under the server secret); the rules themselves never need it.
+ */
+export function voiceGrant(
+  room: VoiceRoom,
+  profile: string,
+  config: VoiceConfig,
+  now: number,
+  seal: (raw: string) => string = (raw) => raw,
+): VoiceDecision {
   const me = room.members.find((m) => m.profile === profile);
   if (!me) return { ok: false, error: 'not_member' };
   if (room.ranked ? !config.ranked : !config.friends) return { ok: false, error: 'voice_off' };
@@ -118,7 +128,7 @@ export function voiceGrant(room: VoiceRoom, profile: string, config: VoiceConfig
   const prefix = `ob-${room.id}`;
   const grant = (kind: VoiceKind, name: string, identity: string, canPublish: boolean): VoiceGrant => ({
     ok: true,
-    room: `${prefix}-${name}`,
+    room: seal(`${prefix}-${name}`),
     kind,
     identity,
     canPublish,

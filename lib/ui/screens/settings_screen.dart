@@ -177,28 +177,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
             for (final mode in VoiceMode.values)
               ChoiceChip(
                 key: Key('settings.voice.${mode.name}'),
-                label: Text(v.mode(mode)),
+                label: Text(v.modeFull(mode)),
                 selected: settings.voiceMode == mode,
                 selectedColor: AppColors.gold.withValues(alpha: 0.3),
-                onSelected: (_) async {
-                  if (mode == VoiceMode.mic && settings.voiceMode != VoiceMode.mic && !await confirmVoiceMic(context)) {
-                    return;
-                  }
-                  settings.voiceMode = mode;
-                },
+                onSelected: (_) => chooseVoiceMode(context, settings, mode),
               ),
           ],
         ),
       ),
       if (settings.voiceMode == VoiceMode.mic)
-        SwitchListTile(
+        ListTile(
           key: const Key('settings.voice.pushToTalk'),
-          value: settings.voicePushToTalk,
-          activeThumbColor: AppColors.gold,
+          leading: const Icon(Icons.mic, color: AppColors.gold),
           title: Text(v.pushToTalk),
           subtitle: Text(DesktopPlatform.isDesktop ? v.pushToTalkDesk : v.pushToTalkPhone),
-          secondary: const Icon(Icons.mic, color: AppColors.gold),
-          onChanged: (on) => settings.voicePushToTalk = on,
         ),
     ];
   }

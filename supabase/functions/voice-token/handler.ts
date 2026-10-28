@@ -11,7 +11,7 @@
 // The token lives a few minutes: enough to join, useless to come back with
 // after the stage changed (the rooms are named per stage, and voice_sync.ts
 // pushes the new permissions to whoever is still connected).
-import { liveKitEnv, participantToken, type RoomService } from '../_shared/livekit.ts';
+import { liveKitEnv, participantToken, type RoomService, roomSeal } from '../_shared/livekit.ts';
 import { isUuid, syncVoice, type VoiceStore } from '../_shared/voice_sync.ts';
 import { voiceGrant } from '../_shared/voice_rules.ts';
 
@@ -47,14 +47,17 @@ export async function handleVoiceToken(req: Request, deps: VoiceTokenDeps): Prom
   if (!room) return json({ error: 'not_member' }, 403);
   const config = await deps.store.config();
   const now = deps.now();
-  const decision = voiceGrant(room, profile, config, now);
+  const seal = roomSeal(lk.secret);
+  // The identity is the caller's own seat, from the signed-in user: a phone
+  // never says who it is, the server reads it from the JWT and the seats.
+  const decision = voiceGrant(room, profile, config, now, seal);
   if (!decision.ok) return json({ error: decision.error }, 403);
 
   // Whoever asks also makes sure nobody kept a right the game took away
   // (someone who left the room, a stage that changed): cheap when nothing did.
   if (deps.service) {
     try {
-      await syncVoice(deps.store, deps.service, roomId, now);
+      await syncVoice(deps.store, deps.service, roomId, now, seal);
     } catch (error) {
       console.error('voice sync', roomId, error instanceof Error ? error.message : 'failed');
     }

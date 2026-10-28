@@ -38,6 +38,7 @@ import '../../widgets/roles_panel.dart';
 import '../../widgets/wide_scale.dart';
 import '../../widgets/lynch_mark.dart';
 import '../../../l10n/table_strings.dart';
+import '../../../l10n/voice_strings.dart';
 import 'game/action_strip.dart';
 import 'game/chat_dock.dart';
 import 'game/chronicle_headlines.dart';
@@ -225,7 +226,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       _isAlive(_view.seat);
 
   void _seatHeld(Player player) {
-    void report() => showSeatActions(context, services: widget.services, name: player.name, myId: widget.me.id);
+    final voice = voiceMuteFor(context, _voice, player.id);
+    void report() =>
+        showSeatActions(context, services: widget.services, name: player.name, myId: widget.me.id, voice: voice);
     if (!_canGesture(player)) {
       report();
       return;
@@ -238,6 +241,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       owned: _ownedGestures,
       wait: wait.isNegative ? Duration.zero : wait,
       onReport: widget.services.safety == null ? null : report,
+      voice: voice,
     ).then((gesture) async {
       if (gesture == null || !mounted) return;
       HapticFeedback.selectionClick();
@@ -847,22 +851,19 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         return _deskEndView();
       default:
         final phase = _phase();
-        return KeyedSubtree(
-          key: phase.key,
-          child: Column(
-            children: [
-              Expanded(
-                child: SizedBox(key: const Key('game.tableSlot'), width: double.infinity, child: phase.table),
-              ),
-              SizedBox(
-                key: const Key('game.stripSlot'),
-                height: ActionStrip.heightFor(desk: true),
-                width: double.infinity,
-                child: Center(
-                  child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 860), child: phase.strip),
+        return _withTalk(
+          desk: true,
+          expand: true,
+          KeyedSubtree(
+            key: phase.key,
+            child: Column(
+              children: [
+                Expanded(
+                  child: SizedBox(key: const Key('game.tableSlot'), width: double.infinity, child: phase.table),
                 ),
-              ),
-            ],
+                _stripSlot(phase, desk: true, maxWidth: 860),
+              ],
+            ),
           ),
         );
     }
@@ -1060,7 +1061,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                             onLongPress: player == _view.seat
                                 ? null
                                 : () => showSeatActions(context,
-                                    services: widget.services, name: player.name, myId: widget.me.id),
+                                    services: widget.services,
+                                    name: player.name,
+                                    myId: widget.me.id,
+                                    voice: voiceMuteFor(context, _voice, player.id)),
                           ),
                           const SizedBox(height: 12),
                           _castLine(player, roles[player]!),
@@ -1369,8 +1373,69 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     }
   }
 
-  /// La striscia dei comandi tra il tavolo e la chat: sempre alta così.
-  static final _stripHeight = ActionStrip.heightFor(desk: false);
+  /// La striscia dei comandi tra il tavolo e la chat, sempre alta uguale.
+  /// Col microfono scelto lascia a destra il posto al pulsante per parlare.
+  Widget _stripSlot(_Phase phase, {required bool desk, required double maxWidth}) {
+    final strip = Center(
+      child: ConstrainedBox(constraints: BoxConstraints(maxWidth: maxWidth), child: phase.strip),
+    );
+    final voice = _voice;
+    return SizedBox(
+      key: const Key('game.stripSlot'),
+      height: ActionStrip.heightFor(desk: desk),
+      width: double.infinity,
+      child: voice == null
+          ? strip
+          : ListenableBuilder(
+              listenable: voice,
+              child: strip,
+              builder: (context, strip) => Padding(
+                padding: EdgeInsets.only(
+                  right: VoiceTalkButton.shows(voice) ? VoiceTalkButton.widthFor(desk: desk) + (desk ? 24 : 8) : 0,
+                ),
+                child: strip,
+              ),
+            ),
+    );
+  }
+
+  /// Il pulsante grande per parlare, a destra della striscia: sopra la
+  /// pagina della fase e fuori dalla sua dissolvenza, così lo si può tenere
+  /// premuto mentre la fase cambia senza perderlo.
+  Widget _withTalk(Widget page, {required bool desk, bool expand = false}) {
+    final voice = _voice;
+    if (voice == null) return page;
+    return Stack(
+      fit: expand ? StackFit.expand : StackFit.loose,
+      children: [
+        page,
+        Positioned(
+          right: 0,
+          bottom: 0,
+          height: ActionStrip.heightFor(desk: desk),
+          child: Align(
+            widthFactor: 1,
+            child: VoiceTalkButton(controller: voice, reason: _voiceWhy),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Perché adesso non si parla, dalla fase e dal proprio posto (le regole
+  /// le applica il server: qui solo le parole).
+  String? _voiceWhy(VoiceStrings t) {
+    if (!_client.ready || _client.seat == null) return null;
+    final alive = _view.alive;
+    return switch (_stage) {
+      Stage.night when !alive || _inFamilyChat => null,
+      Stage.night => t.nightFamily,
+      Stage.discussion || Stage.vote when !alive => t.deadListen,
+      Stage.discussion || Stage.vote when _view.silenced => t.sewn,
+      Stage.discussion || Stage.vote => null,
+      _ => t.nobodyNow,
+    };
+  }
 
   /// Su schermo largo la chat è una colonna a destra, larga così.
   static const _wideChatWidth = 300.0;
@@ -1438,24 +1503,21 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
-              child: _phaseSwitch(KeyedSubtree(
-                key: phase.key,
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: SizedBox(key: const Key('game.tableSlot'), width: double.infinity, child: phase.table),
-                    ),
-                    SizedBox(
-                      key: const Key('game.stripSlot'),
-                      height: _stripHeight,
-                      width: double.infinity,
-                      child: Center(
-                        child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 560), child: phase.strip),
+              child: _withTalk(
+                desk: false,
+                expand: true,
+                _phaseSwitch(KeyedSubtree(
+                  key: phase.key,
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: SizedBox(key: const Key('game.tableSlot'), width: double.infinity, child: phase.table),
                       ),
-                    ),
-                  ],
-                ),
-              )),
+                      _stripSlot(phase, desk: false, maxWidth: 560),
+                    ],
+                  ),
+                )),
+              ),
             ),
             const SizedBox(width: 16),
             SizedBox(
@@ -1479,27 +1541,23 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       child: Column(
         children: [
           if (!typing)
-            _phaseSwitch(KeyedSubtree(
-              key: phase.key,
-              child: Column(
-                children: [
-                  SizedBox(
-                    key: const Key('game.tableSlot'),
-                    height: _tableHeight,
-                    width: double.infinity,
-                    child: phase.table,
-                  ),
-                  SizedBox(
-                    key: const Key('game.stripSlot'),
-                    height: _stripHeight,
-                    width: double.infinity,
-                    child: Center(
-                      child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 560), child: phase.strip),
+            _withTalk(
+              desk: false,
+              _phaseSwitch(KeyedSubtree(
+                key: phase.key,
+                child: Column(
+                  children: [
+                    SizedBox(
+                      key: const Key('game.tableSlot'),
+                      height: _tableHeight,
+                      width: double.infinity,
+                      child: phase.table,
                     ),
-                  ),
-                ],
-              ),
-            )),
+                    _stripSlot(phase, desk: false, maxWidth: 560),
+                  ],
+                ),
+              )),
+            ),
           if (!typing) const SizedBox(height: 8),
           Expanded(
             child: SizedBox(key: const Key('game.chatSlot'), width: double.infinity, child: chatBox),

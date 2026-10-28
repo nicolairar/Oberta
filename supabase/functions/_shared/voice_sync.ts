@@ -145,7 +145,13 @@ export interface SyncResult {
  * Brings every LiveKit room of [roomId] in line with the rules, if anything
  * changed since the last push. Safe to run twice, and from anywhere.
  */
-export async function syncVoice(store: VoiceStore, service: RoomService, roomId: string, now: number): Promise<SyncResult> {
+export async function syncVoice(
+  store: VoiceStore,
+  service: RoomService,
+  roomId: string,
+  now: number,
+  seal: (raw: string) => string = (raw) => raw,
+): Promise<SyncResult> {
   const result: SyncResult = { pushed: false, removed: 0, updated: 0 };
   const session = await store.session(roomId);
   if (!session) return result;
@@ -158,7 +164,7 @@ export async function syncVoice(store: VoiceStore, service: RoomService, roomId:
   // The rooms someone belongs in during this stage (opening or open).
   const current = new Set<string>();
   for (const member of room.members) {
-    const decision = voiceGrant(room, member.profile, config, Number.MAX_SAFE_INTEGER);
+    const decision = voiceGrant(room, member.profile, config, Number.MAX_SAFE_INTEGER, seal);
     if (decision.ok && decision.room) current.add(decision.room);
   }
   const forget: string[] = [];
@@ -167,7 +173,7 @@ export async function syncVoice(store: VoiceStore, service: RoomService, roomId:
     let left = participants.length;
     for (const participant of participants) {
       const member = memberOf(room, participant.identity);
-      const decision = member ? voiceGrant(room, member.profile, config, now) : null;
+      const decision = member ? voiceGrant(room, member.profile, config, now, seal) : null;
       if (!decision?.ok || decision.room !== name || decision.identity !== participant.identity) {
         await service.remove(name, participant.identity);
         result.removed++;

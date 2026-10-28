@@ -27,7 +27,8 @@ typedef VoiceDirectory = ({String? Function(String identity) profileOf, String? 
 /// che dà. Quando il server dice «fra poco» ([VoiceGrant.retryIn]) si
 /// richiede allora; quando la stanza si perde (rete, server) si riprova con
 /// calma. Il microfono si accende solo se il modo è [VoiceMode.mic], il
-/// permesso lo concede e (a premi-per-parlare) il tasto è tenuto.
+/// permesso lo concede e il tasto è tenuto premuto: si parla solo così
+/// (premi per parlare, niente microfono aperto).
 ///
 /// I bloccati ([BlockedPlayers]) non si sentono mai e non ci sentono mai:
 /// il server di LiveKit non manda loro la nostra voce.
@@ -92,7 +93,7 @@ class VoiceController extends ChangeNotifier {
   bool _again = false;
   bool _connecting = false;
   bool _held = false;
-  bool _selfMuted = false;
+  bool _offline = false;
   int _failures = 0;
   Timer? _retry;
   Timer? _fresh;
@@ -103,7 +104,6 @@ class VoiceController extends ChangeNotifier {
 
   VoiceGrant get grant => _grant;
   VoiceMode get mode => _mode;
-  bool get pushToTalk => settings.voicePushToTalk;
 
   /// Il server ha detto che qui la voce non c'è (spenta, o non si è seduti).
   bool get unavailable => _refusal == VoiceRefusal.unavailable || _refusal == VoiceRefusal.notMember;
@@ -117,8 +117,17 @@ class VoiceController extends ChangeNotifier {
   /// Il microfono è acceso (si sta trasmettendo).
   bool get live => engine.microphoneOn;
 
-  bool get selfMuted => _selfMuted;
   bool get holding => _held;
+
+  /// La voce dovrebbe esserci ma la rete o il server non rispondono: si
+  /// riprova da soli.
+  bool get offline => _offline;
+
+  /// Il server ha detto che la voce si apre fra poco (la fase sta partendo).
+  bool get opensSoon => !connected && _grant.retryIn != null;
+
+  /// Quanto forte arriva la propria voce, da 0 a 1 (mentre si parla).
+  double get level => live ? engine.level.clamp(0.0, 1.0) : 0;
 
   Set<String> get participants => engine.participants;
 
@@ -184,6 +193,7 @@ class VoiceController extends ChangeNotifier {
     } on VoiceRefused catch (refused) {
       _refusal = refused.reason;
       if (refused.reason == VoiceRefusal.network) {
+        _offline = true;
         _backoff();
       } else {
         await _leave();
@@ -192,12 +202,14 @@ class VoiceController extends ChangeNotifier {
       return;
     } catch (_) {
       _refusal = VoiceRefusal.network;
+      _offline = true;
       _backoff();
       _notify();
       return;
     }
     if (_disposed) return;
     _refusal = null;
+    _offline = false;
     if (!next.connects) {
       await _leave();
       _grant = next;
@@ -215,6 +227,7 @@ class VoiceController extends ChangeNotifier {
         next.canPublish == _grant.canPublish &&
         next.canSubscribe == _grant.canSubscribe;
     _grant = next;
+    if (!next.canPublish) _held = false;
     if (!same) {
       _connecting = true;
       _notify();
@@ -225,6 +238,7 @@ class VoiceController extends ChangeNotifier {
         _privacy = null;
       } catch (_) {
         _connecting = false;
+        _offline = true;
         _backoff();
         _notify();
         return;
@@ -250,6 +264,8 @@ class VoiceController extends ChangeNotifier {
   void _lost() {
     if (_disposed) return;
     _grant = VoiceGrant.none;
+    _held = false;
+    _offline = true;
     _backoff();
     _notify();
   }
@@ -262,7 +278,7 @@ class VoiceController extends ChangeNotifier {
     _applyDuck();
   }
 
-  bool get _wantMic => _mode == VoiceMode.mic && mayTalk && (settings.voicePushToTalk ? _held : !_selfMuted);
+  bool get _wantMic => _mode == VoiceMode.mic && mayTalk && _held;
 
   Future<void> _applyMic() async {
     if (_disposed || !engine.connected) return;
@@ -304,6 +320,7 @@ class VoiceController extends ChangeNotifier {
     if (mode != _mode) {
       final wasOff = _mode == VoiceMode.off;
       _mode = mode;
+      if (mode != VoiceMode.mic) _held = false;
       if (mode == VoiceMode.off || wasOff) {
         refresh();
         return;
@@ -316,20 +333,12 @@ class VoiceController extends ChangeNotifier {
   /// Cambia il modo (e lo ricorda sul dispositivo).
   void setMode(VoiceMode mode) => settings.voiceMode = mode;
 
-  void setPushToTalk(bool on) {
-    _held = false;
-    settings.voicePushToTalk = on;
-  }
-
-  /// A microfono aperto: zittirsi un momento, e riprendere.
-  void toggleSelfMute() {
-    _selfMuted = !_selfMuted;
-    _applyMic();
-    _notify();
-  }
+  /// Si può tenere premuto adesso: col microfono scelto e la parola data.
+  bool get canHold => _mode == VoiceMode.mic && mayTalk;
 
   /// Premi per parlare: il tasto (o il pulsante) giù e su.
   void hold(bool down) {
+    if (down && !canHold) return;
     if (down == _held) return;
     _held = down;
     _applyMic();
@@ -343,11 +352,11 @@ class VoiceController extends ChangeNotifier {
     _notify();
   }
 
-  /// Sul PC: V tenuto premuto parla (a premi-per-parlare, fuori dai campi
-  /// di testo). Vero se il tasto è della voce.
+  /// Sul PC: V tenuto premuto parla (fuori dai campi di testo). Vero se il
+  /// tasto è della voce.
   bool handleKey(KeyEvent event) {
     if (event.logicalKey != LogicalKeyboardKey.keyV) return false;
-    if (_mode != VoiceMode.mic || !settings.voicePushToTalk || !mayTalk) {
+    if (!canHold) {
       if (_held && event is KeyUpEvent) hold(false);
       return false;
     }

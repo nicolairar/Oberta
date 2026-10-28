@@ -22,11 +22,40 @@ class VoiceStrings {
     VoiceMode.listen => _t('Ascolta soltanto', 'Listen only'),
     VoiceMode.mic => _t('Microfono', 'Microphone'),
   };
+
+  /// Nelle impostazioni: il microfono dice anche come si usa.
+  String modeFull(VoiceMode mode) =>
+      mode == VoiceMode.mic ? _t('Microfono (premi per parlare)', 'Microphone (push to talk)') : this.mode(mode);
   String get pushToTalk => _t('Premi per parlare', 'Push to talk');
   String get pushToTalkPhone => _t('Tieni premuto il microfono per parlare.', 'Hold the microphone to talk.');
   String get pushToTalkDesk =>
       _t('Tieni premuto V (o il microfono) per parlare.', 'Hold V (or the microphone) to talk.');
-  String get openMic => _t('Microfono aperto: tocca per zittirti.', 'Open mic: tap to mute yourself.');
+
+  /// Sotto il pulsante grande, in due parole.
+  String get holdToTalk => _t('Tieni premuto', 'Hold to talk');
+  String get holdV => _t('Tieni premuto V', 'Hold V');
+  String get offline => _t('Voce scollegata, riprovo', 'Voice offline, retrying');
+
+  /// Perché adesso non si parla (la fase, la regola).
+  String get nightFamily => _t('Di notte parla solo la famiglia', 'At night only the family talks');
+  String get deadListen => _t('I morti ascoltano soltanto', 'The dead only listen');
+  String get sewn => _t('Il Sarto ti ha cucito la bocca', 'The Tailor sewed your mouth shut');
+  String get nobodyNow => _t('Adesso nessuno parla', 'Nobody talks right now');
+  String get opensSoon => _t('La voce si apre fra un attimo', 'Voice opens in a moment');
+
+  /// Silenziare qualcuno, solo su questo telefono.
+  String get muteVoice => _t('Silenzia la voce', 'Mute voice');
+  String get unmuteVoice => _t('Riattiva la voce', 'Unmute voice');
+  String get mutedHere => _t('Silenziato: solo tu non lo senti.', "Muted: only you can't hear them.");
+
+  /// Il microfono negato dal sistema.
+  String get micDeniedTitle => _t('Microfono negato', 'Microphone denied');
+  String get micDenied => _t(
+    'Senza il permesso del microfono puoi solo ascoltare. Puoi darlo dalle impostazioni del sistema, poi scegli di nuovo «Microfono».',
+    'Without microphone access you can only listen. You can allow it in the system settings, then choose "Microphone" again.',
+  );
+  String get openSettings => _t('Apri le impostazioni', 'Open settings');
+  String get notNow => _t('Non ora', 'Not now');
   String get settings => _t('Voce al tavolo', 'Table voice');
   String get settingsHint => _t(
     'Nelle stanze con gli amici. Di giorno parlano i vivi, di notte solo la famiglia. Dal vivo: niente viene registrato.',

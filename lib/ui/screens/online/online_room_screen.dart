@@ -291,9 +291,40 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> with ScreenMusic {
         for (var i = 0; i < _room.bots; i++) CafeGuest(profile: Profile(id: 'bot-$i', handle: botName(i)), bot: true),
       ];
 
+  /// Il pulsante grande per parlare, sopra la chat (col microfono scelto).
+  Widget? _talk({required bool desk}) {
+    final voice = _voice;
+    if (voice == null) return null;
+    return ListenableBuilder(
+      listenable: voice,
+      builder: (context, _) => !VoiceTalkButton.shows(voice)
+          ? const SizedBox.shrink()
+          : Padding(
+              padding: desk ? const EdgeInsets.only(bottom: DeskSize.gap) : const EdgeInsets.fromLTRB(20, 14, 20, 0),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: VoiceTalkButton(controller: voice, direction: Axis.horizontal),
+              ),
+            ),
+    );
+  }
+
   void _guestActions(CafeGuest guest) {
     HapticFeedback.selectionClick();
+    final seat = _members.where((m) => m.profile.id == guest.profile.id).firstOrNull?.seat;
+    final voice = seat == null ? null : voiceMuteFor(context, _voice, 'm$seat');
     if (widget.services.safety == null) {
+      if (voice != null) {
+        showPlayerActions(
+          context,
+          services: widget.services,
+          profileId: guest.profile.id,
+          name: guest.profile.name,
+          myId: widget.me.id,
+          voice: voice,
+        );
+        return;
+      }
       showPublicProfile(context, services: widget.services, target: guest.profile.id);
       return;
     }
@@ -303,6 +334,7 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> with ScreenMusic {
       profileId: guest.profile.id,
       name: guest.profile.name,
       myId: widget.me.id,
+      voice: voice,
     );
   }
 
@@ -557,6 +589,7 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> with ScreenMusic {
                     const SizedBox(height: 14),
                     Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: cta),
                   ],
+                  ?_talk(desk: false),
                   const SizedBox(height: 14),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -618,6 +651,7 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> with ScreenMusic {
                 const SizedBox(height: DeskSize.gap),
                 CafePanel(child: _status(desk: true)),
                 const SizedBox(height: DeskSize.gap),
+                ?_talk(desk: true),
                 Expanded(child: _chatBox(desk: true)),
                 if (cta != null) ...[const SizedBox(height: DeskSize.gap), cta],
               ],
