@@ -56,12 +56,18 @@ void main() {
     await tester.tap(find.byKey(const Key('home.shopSign')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    expect(StreetStage.walking.value, 1, reason: 'a metà strada');
-    for (var i = 0; i < 12; i++) {
+    expect(StreetStage.walking.value, 1, reason: 'si è appena avviato');
+    // A passo tranquillo: a metà del tempo è ancora per strada.
+    for (var i = 0; i < 25; i++) {
       await tester.pump(const Duration(milliseconds: 60));
       expect(tester.takeException(), isNull);
     }
-    await tester.pump(const Duration(milliseconds: 200));
+    expect(StreetStage.walking.value, 1, reason: 'a metà strada');
+    for (var i = 0; i < 25; i++) {
+      await tester.pump(const Duration(milliseconds: 80));
+      expect(tester.takeException(), isNull);
+    }
+    await tester.pump(const Duration(milliseconds: 300));
     expect(StreetStage.walking.value, 0, reason: 'arrivato, entrato');
     expect(find.text('LA BOTTEGA'), findsWidgets);
 

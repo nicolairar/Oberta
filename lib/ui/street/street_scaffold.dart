@@ -44,7 +44,8 @@ class StreetBackdrop extends StatelessWidget {
       child: builder(context, layout),
       builder: (context, child) {
         final t = walks ? incoming.value : 1.0;
-        var door = walks && incoming.status.isAnimating ? StreetTiming.doorIn(t) : 0.0;
+        final arriving = walks && incoming.status.isAnimating;
+        var door = arriving ? StreetTiming.doorIn(t) : 0.0;
         var shown = walks ? StreetTiming.panels(t) : 1.0;
         final s = outgoing.value;
         if (s > 0 && StreetStage.walking.value > 0) {
@@ -61,7 +62,8 @@ class StreetBackdrop extends StatelessWidget {
               rect: layout.neon,
               child: RepaintBoundary(
                 child: CustomPaint(
-                  painter: StreetNeonPainter(text: language, color: section.neon),
+                  // Si accende a singhiozzo quando, a metà strada, entra in vista.
+                  painter: StreetNeonPainter(text: language, color: section.neon, power: arriving ? StreetTiming.neon(t) : 1),
                   child: title == null
                       ? Semantics(header: true, label: language, child: const SizedBox.expand())
                       : Semantics(

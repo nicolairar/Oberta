@@ -9,41 +9,151 @@ import 'street_stage.dart';
 
 double _span(double t, double from, double to) => ((t - from) / (to - from)).clamp(0.0, 1.0);
 
-/// I tempi della camminata, come frazioni della transizione (andata; al
-/// ritorno la stessa scena si riavvolge, con l'uomo girato a sinistra).
+double _mix(double a, double b, double t) => a + (b - a) * t;
+
+/// Un tragitto che parte da fermo, va a passo costante e rallenta in fondo:
+/// [rise] e [fall] sono le frazioni spese ad avviarsi e a frenare (con
+/// un'accelerazione morbida, senza strappi).
+class _Stroll {
+  final double rise;
+  final double fall;
+
+  const _Stroll(this.rise, this.fall);
+
+  double get _area => 1 - rise / 2 - fall / 2;
+
+  static double _smooth(double x) => x * x * (3 - 2 * x);
+
+  /// Lo spazio percorso mentre la velocità sale con [_smooth].
+  static double _gather(double x) => x * x * x - x * x * x * x / 2;
+
+  /// Quanta strada ha fatto, da 0 a 1.
+  double at(double u) {
+    if (u <= 0) return 0;
+    if (u >= 1) return 1;
+    final double done;
+    if (u < rise) {
+      done = rise * _gather(u / rise);
+    } else if (u <= 1 - fall) {
+      done = rise / 2 + u - rise;
+    } else {
+      done = _area - fall * _gather((1 - u) / fall);
+    }
+    return done / _area;
+  }
+
+  /// Quanto va forte, da 0 (fermo) a 1 (il passo pieno).
+  double pace(double u) {
+    if (u <= 0 || u >= 1) return 0;
+    if (u < rise) return _smooth(u / rise);
+    if (u > 1 - fall) return _smooth((1 - u) / fall);
+    return 1;
+  }
+}
+
+/// I tempi della camminata, come frazioni della transizione. All'andata le
+/// cose del posto di prima scivolano via mentre lui si avvia; la strada
+/// scorre con lui a passo tranquillo; a metà strada arriva la facciata nuova
+/// e la sua insegna si accende; lui rallenta davanti alla porta, la porta si
+/// apre, entra, e solo allora compaiono i pannelli. Al ritorno la stessa
+/// scena si riavvolge, con l'uomo girato a sinistra.
 abstract final class StreetTiming {
-  static const duration = Duration(milliseconds: 850);
+  static const duration = Duration(milliseconds: 3500);
+  static const back = Duration(milliseconds: 3000);
   static const still = Duration(milliseconds: 220);
 
-  /// Esce dalla porta del posto di prima (se ne aveva una).
-  static double stepOut(double t) => _span(t, 0.0, 0.12);
+  static const _walker = _Stroll(0.16, 0.30);
+  static const _camera = _Stroll(0.30, 0.34);
 
-  /// La strada scorre e l'uomo cammina: [fromDoor] se prima esce da una porta.
+  /// Quando si avvia (dopo essere uscito dalla porta di prima, se c'era) e
+  /// quando si ferma davanti alla porta nuova.
+  static double start({required bool fromDoor}) => fromDoor ? 0.17 : 0.05;
+  static const arrive = 0.64;
+
+  static double _walk(double t, bool fromDoor) => _span(t, start(fromDoor: fromDoor), arrive);
+
+  /// Quanta strada ha fatto l'uomo, da 0 a 1.
+  static double walk(double t, {required bool fromDoor}) => _walker.at(_walk(t, fromDoor));
+
+  /// Quanto va forte, da 0 (fermo) a 1: il passo si allunga e si accorcia.
+  static double pace(double t, {required bool fromDoor}) => _walker.pace(_walk(t, fromDoor));
+
+  /// La strada che scorre: parte un attimo dopo di lui, più dolce, e si
+  /// ferma insieme a lui.
   static double camera(double t, {required bool fromDoor}) =>
-      Curves.easeInOutCubic.transform(_span(t, fromDoor ? 0.10 : 0.0, 0.66));
+      _camera.at(_span(t, start(fromDoor: fromDoor) + 0.03, arrive));
 
-  /// La porta del posto nuovo: si apre davanti a lui, si richiude alle spalle.
+  /// Le cose del vicolo (l'insegna, i manifesti) che scivolano via appena
+  /// lui si avvia, prima che la strada scorra davvero.
+  static double drift(double s) => Curves.easeInOut.transform(_span(s, 0.02, 0.40));
+
+  /// L'insegna del posto nuovo: si accende a singhiozzo quando entra in vista.
+  static double neon(double t) {
+    const stutter = [0.0, 0.7, 0.0, 0.0, 0.45, 1.0, 0.25, 1.0];
+    final u = _span(t, 0.34, 0.50);
+    if (u >= 1) return 1;
+    return stutter[(u * stutter.length).floor().clamp(0, stutter.length - 1)];
+  }
+
+  /// La porta del posto nuovo: si apre mentre lui rallenta, si richiude alle
+  /// sue spalle.
   static double doorIn(double t) =>
-      t < 0.86 ? Curves.easeOut.transform(_span(t, 0.60, 0.72)) : 1 - Curves.easeIn.transform(_span(t, 0.86, 0.97));
+      t < 0.80 ? Curves.easeOut.transform(_span(t, 0.62, 0.71)) : 1 - Curves.easeInOut.transform(_span(t, 0.85, 0.94));
 
   /// Entra: da 0 (sulla soglia) a 1 (dentro).
-  static double enter(double t) => _span(t, 0.70, 0.88);
+  static double enter(double t) => _span(t, 0.70, 0.85);
 
   /// I pannelli della sezione, una volta dentro.
   static double panels(double t) => Curves.easeOutCubic.transform(_span(t, 0.84, 1.0));
 
   /// Il posto che si lascia ([s] è la sua animazione secondaria): i pannelli
-  /// spariscono, la porta si apre per farlo uscire e si richiude.
-  static double panelsOut(double s) => 1 - _span(s, 0.0, 0.07);
+  /// spariscono, la porta si apre, lui esce, la porta si richiude.
+  static double panelsOut(double s) => 1 - Curves.easeIn.transform(_span(s, 0.0, 0.06));
   static double doorOut(double s) =>
-      s < 0.14 ? Curves.easeOut.transform(_span(s, 0.0, 0.07)) : 1 - _span(s, 0.18, 0.30);
+      s < 0.15 ? Curves.easeOut.transform(_span(s, 0.03, 0.10)) : 1 - Curves.easeInOut.transform(_span(s, 0.17, 0.25));
+
+  /// Esce dalla porta del posto di prima: da 0 (dentro) a 1 (sul marciapiede).
+  static double stepOut(double t) => _span(t, 0.08, 0.18);
+}
+
+/// Le cose davanti al muro del posto che si lascia (l'insegna, i manifesti):
+/// quando l'uomo si avvia scivolano via di [depth] larghezze più del muro e
+/// sfumano, così la scena si svuota prima che arrivi quella nuova. Al
+/// ritorno rientrano mentre lui arriva. Sposta il livello già disegnato,
+/// senza ridisegnare [child].
+class StreetDrift extends StatelessWidget {
+  final double depth;
+  final double fade;
+  final Widget child;
+
+  const StreetDrift({super.key, required this.depth, this.fade = 1, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final leaving = ModalRoute.of(context)?.secondaryAnimation;
+    if (leaving == null) return child;
+    final width = MediaQuery.sizeOf(context).width;
+    return AnimatedBuilder(
+      animation: Listenable.merge([leaving, StreetStage.walking]),
+      child: RepaintBoundary(child: child),
+      builder: (context, child) {
+        // Solo per la strada: le altre pagine coprono il vicolo a modo loro.
+        final d = StreetStage.walking.value > 0 ? StreetTiming.drift(leaving.value) : 0.0;
+        return Opacity(
+          opacity: 1 - fade * d,
+          child: Transform.translate(offset: Offset(-width * depth * d, 0), child: child),
+        );
+      },
+    );
+  }
 }
 
 /// Una pagina dei menu lungo la strada. All'andata l'uomo del vicolo (o
-/// quello che esce dalla porta di prima) cammina verso destra, la strada
-/// scorre con lui, la pagina di prima esce a sinistra; arrivato davanti
-/// alla porta del posto nuovo la apre ed entra, e i pannelli compaiono. Al
-/// ritorno si riavvolge tutto: esce, si gira e cammina a sinistra.
+/// quello che esce dalla porta di prima) si avvia verso destra a passo
+/// tranquillo, la strada scorre con lui, la pagina di prima esce a sinistra;
+/// arrivato davanti alla porta del posto nuovo rallenta, la apre ed entra, e
+/// i pannelli compaiono. Al ritorno si riavvolge tutto: esce, cammina a
+/// sinistra, e a casa si rigira verso la strada.
 ///
 /// Un tocco durante la camminata la salta; con il movimento ridotto è solo
 /// una dissolvenza.
@@ -80,7 +190,7 @@ class StreetRoute<T> extends PageRoute<T> {
   Duration get transitionDuration => still ? StreetTiming.still : StreetTiming.duration;
 
   @override
-  Duration get reverseTransitionDuration => transitionDuration;
+  Duration get reverseTransitionDuration => still ? StreetTiming.still : StreetTiming.back;
 
   @override
   void didChangePrevious(Route<dynamic>? previousRoute) {
@@ -148,7 +258,8 @@ class StreetRoute<T> extends PageRoute<T> {
           builder: (context, child) {
             final t = animation.value;
             final fromDoor = _fromDoor;
-            final moving = animation.status.isAnimating && !(navigator?.userGestureInProgress ?? false);
+            final gesture = navigator?.userGestureInProgress ?? false;
+            final moving = animation.status.isAnimating && !gesture;
             return Stack(
               fit: StackFit.expand,
               children: [
@@ -164,7 +275,7 @@ class StreetRoute<T> extends PageRoute<T> {
                         size: size,
                         from: StreetStage.spotOf(_previous),
                         to: StreetStage.spotOf(this),
-                        back: animation.status == AnimationStatus.reverse,
+                        back: gesture || animation.status == AnimationStatus.reverse,
                         rim: section.neon,
                       ),
                     ),
@@ -238,7 +349,10 @@ class StreetRoute<T> extends PageRoute<T> {
   }
 }
 
-/// L'uomo che cammina sopra le due pagine che scorrono.
+/// L'uomo che cammina sopra le due pagine che scorrono. Va a passo costante
+/// lungo tutta la strada (la pagina di prima più quella nuova) mentre la
+/// strada lo segue: sullo schermo resta quasi fermo, e il passo segue lo
+/// spazio fatto davvero.
 class _WalkerPainter extends CustomPainter {
   final double t;
   final Size size;
@@ -246,6 +360,9 @@ class _WalkerPainter extends CustomPainter {
   final StreetSpot? to;
   final bool back;
   final Color rim;
+
+  /// Il filo di luce del lampione sull'uomo che fuma nel vicolo.
+  static const _lamp = Color(0xFF7A6338);
 
   _WalkerPainter({
     required this.t,
@@ -263,26 +380,39 @@ class _WalkerPainter extends CustomPainter {
     final to = this.to ?? StreetSpot(Offset(w * 1.15, ground), size.height * 0.2);
     final from = this.from ?? StreetSpot(Offset(-w * 0.15, to.feet.dy), to.height);
     final fromDoor = from.door != null;
-    final cam = StreetTiming.camera(t, fromDoor: fromDoor);
     final out = fromDoor ? StreetTiming.stepOut(t) : 1.0;
     final enter = this.to?.door != null ? StreetTiming.enter(t) : 0.0;
     if (out <= 0 || enter >= 1) return;
 
-    final feet = Offset.lerp(from.feet, to.feet, cam)!;
-    final h = from.height + (to.height - from.height) * cam;
-    // Il passo segue la strada percorsa davvero: la pagina di prima più quella nuova.
-    final world = from.feet.dx + cam * (w + to.feet.dx - from.feet.dx);
-    final phase = world / (h * 0.62) * pi;
-    final walking = cam > 0 && cam < 1 ? 1.0 : 0.45;
+    final walked = StreetTiming.walk(t, fromDoor: fromDoor);
+    final cam = StreetTiming.camera(t, fromDoor: fromDoor);
+    final road = w + to.feet.dx - from.feet.dx;
+    final feet = Offset(
+      from.feet.dx + walked * road - cam * w,
+      _mix(from.feet.dy, to.feet.dy, walked),
+    );
+    final h = _mix(from.height, to.height, walked);
+    // Un passo ogni tre quarti d'altezza di strada, più quello per uscire
+    // dalla porta di prima e quello per entrare nella nuova.
+    final step = (from.height + to.height) / 2 * 0.78;
+    final phase = pi / 2 + (walked * road / step - (1 - out) + enter * 1.4) * pi;
+    final stride = max(
+      sqrt(StreetTiming.pace(t, fromDoor: fromDoor)),
+      0.75 * max(sin(pi * out), sin(pi * enter)),
+    );
     // Uscire e entrare: un passo dentro il buio della porta.
-    final depth = (1 - out) + enter;
-    final opacity = (out * (1 - enter)).clamp(0.0, 1.0);
+    final inside = Curves.easeInOut.transform(1 - out) + Curves.easeInOut.transform(enter);
+    final opacity = (Curves.easeOut.transform(out) * (1 - Curves.easeIn.transform(enter))).clamp(0.0, 1.0);
+    // Tornato nel vicolo si rigira verso la strada, come lo si era lasciato.
+    final turn = back && !fromDoor ? -cos(pi * (1 - _span(t, 0, StreetTiming.start(fromDoor: false) * 0.8))) : (back ? -1.0 : 1.0);
 
     canvas.save();
-    canvas.translate(feet.dx, feet.dy - h * 0.05 * depth);
-    final scale = 1 - 0.08 * depth;
-    canvas.scale(back ? -scale : scale, scale);
-    NoirSmoker.walker(canvas, h, phase: phase, walk: walking, rim: rim, opacity: opacity);
+    canvas.translate(feet.dx, feet.dy - h * 0.05 * inside);
+    final scale = 1 - 0.12 * inside;
+    canvas.scale(turn * scale, scale);
+    // Dal vicolo parte con la luce del lampione addosso, e arriva con quella dell'insegna.
+    final light = fromDoor ? rim : Color.lerp(_lamp, rim, walked)!;
+    NoirSmoker.walker(canvas, h, phase: phase, walk: stride, rim: light, opacity: opacity);
     canvas.restore();
   }
 

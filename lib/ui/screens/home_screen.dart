@@ -481,24 +481,28 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
   Widget _posted({required Rect rect, required double tilt, required double at, required Widget child}) {
     return Positioned.fromRect(
       rect: rect,
-      child: AnimatedBuilder(
-        animation: _intro,
-        child: RepaintBoundary(child: child),
-        builder: (context, child) {
-          final t = Curves.easeOutCubic.transform(_span(_intro.value * HomeStreetPainter.opening, at, at + 0.42));
-          return IgnorePointer(
-            ignoring: t < 0.9,
-            child: Opacity(
-              opacity: min(1, t * 2.5),
-              child: Transform(
-                alignment: Alignment.center,
-                transform: Matrix4.rotationZ(tilt + (1 - t) * 0.12)
-                  ..scaleByDouble(1 + (1 - t) * 0.4, 1 + (1 - t) * 0.4, 1, 1),
-                child: child,
+      // Quando l'uomo si avvia per strada, i manifesti scivolano via per primi.
+      child: StreetDrift(
+        depth: 0.55,
+        child: AnimatedBuilder(
+          animation: _intro,
+          child: RepaintBoundary(child: child),
+          builder: (context, child) {
+            final t = Curves.easeOutCubic.transform(_span(_intro.value * HomeStreetPainter.opening, at, at + 0.42));
+            return IgnorePointer(
+              ignoring: t < 0.9,
+              child: Opacity(
+                opacity: min(1, t * 2.5),
+                child: Transform(
+                  alignment: Alignment.center,
+                  transform: Matrix4.rotationZ(tilt + (1 - t) * 0.12)
+                    ..scaleByDouble(1 + (1 - t) * 0.4, 1 + (1 - t) * 0.4, 1, 1),
+                  child: child,
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
@@ -557,9 +561,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                       ),
                     ),
                   ),
-                  RepaintBoundary(
-                    child: CustomPaint(
-                      painter: HomeNeonPainter(sign: layout.sign, cap: layout.cap, state: _neon),
+                  // L'insegna, appesa più avanti del muro, se ne va un po' più
+                  // in fretta di lui (senza sfumare: è grande quanto lo schermo).
+                  StreetDrift(
+                    depth: 0.25,
+                    fade: 0,
+                    child: RepaintBoundary(
+                      child: CustomPaint(
+                        painter: HomeNeonPainter(sign: layout.sign, cap: layout.cap, state: _neon),
+                      ),
                     ),
                   ),
                   // Il titolo vero: i tubi li disegna il pittore, ma chi usa

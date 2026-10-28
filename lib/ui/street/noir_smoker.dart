@@ -158,8 +158,9 @@ abstract final class NoirSmoker {
     canvas.drawCircle(hand, h * 0.034, paint);
   }
 
-  /// L'uomo che cammina: [phase] è il passo (in radianti), [walk] quanto sta
-  /// camminando (0 = fermo), [rim] il filo di luce dietro di lui.
+  /// L'uomo che cammina: [phase] è il passo (in radianti, un passo ogni
+  /// mezzo giro), [walk] quanto è lungo il passo (0 = fermo, in piedi come
+  /// sotto il lampione), [rim] il filo di luce dietro di lui.
   static void walker(
     Canvas canvas,
     double h, {
@@ -169,13 +170,21 @@ abstract final class NoirSmoker {
     double opacity = 1,
   }) {
     final swing = cos(phase) * walk;
-    final lift = h * 0.07 * walk;
-    final front = Offset(h * 0.012 + h * 0.13 * swing, -lift * max(0.0, sin(phase)));
-    final back = Offset(h * 0.012 - h * 0.13 * swing, -lift * max(0.0, -sin(phase)));
-    final bob = -h * 0.012 * walk * cos(2 * phase).abs();
-    final hand = handDown(h) + Offset(-h * 0.05 * swing, h * 0.02 * walk);
-    final backHand = Offset(h * 0.005 + h * 0.07 * swing, -h * 0.045 + h * 0.02 * walk);
+    final rise = sin(phase);
+    // Da fermo i piedi stanno un po' aperti; camminando oscillano attorno
+    // all'anca, e si alza solo quello che va avanti.
+    final rest = h * 0.0725 * (1 - walk);
+    final lift = h * 0.075 * walk;
+    final front = Offset(h * 0.012 + rest + h * 0.17 * swing, -lift * max(0.0, -rise));
+    final back = Offset(h * 0.012 - rest - h * 0.17 * swing, -lift * max(0.0, rise));
+    // Più basso quando i piedi sono aperti, più alto quando si incrociano.
+    final bob = h * walk * (0.010 - 0.020 * rise.abs());
+    final arc = h * 0.012 * swing.abs();
+    final hand = handDown(h) + Offset(-h * 0.06 * swing, h * 0.02 * walk - arc);
+    final backHand = Offset(h * 0.005 + h * 0.085 * swing, -h * 0.045 + h * 0.02 * walk - arc);
     canvas.save();
+    // Appena chinato in avanti, quanto più allunga il passo.
+    canvas.rotate(0.035 * walk);
     canvas.translate(0, bob);
     void pass(Paint paint) => body(
       canvas,
@@ -184,7 +193,7 @@ abstract final class NoirSmoker {
       hand: hand,
       frontFoot: front.translate(0, -bob),
       backFoot: back.translate(0, -bob),
-      backHand: walk > 0 ? backHand : null,
+      backHand: walk > 0.02 ? backHand : null,
     );
     canvas.save();
     canvas.translate(-h * 0.016, -h * 0.008);
