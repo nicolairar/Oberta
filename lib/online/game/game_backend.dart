@@ -109,7 +109,20 @@ abstract class GameBackend {
 
 /// Le chat di una stanza: quella della stanza prima della partita, quella
 /// della piazza di giorno (per i vivi), quella della famiglia di notte.
-enum ChatChannel { lobby, day, family }
+/// [event]: the server's own lines about the game (see game_events.dart),
+/// read in every chat of the game, never written by a phone.
+enum ChatChannel { lobby, day, family, event }
+
+/// A line of the server in the chat: what happened ([kind], with names and
+/// enum names in [data]), for the whole table or, [private], for this phone
+/// only.
+class GameEvent {
+  final String kind;
+  final Map<String, Object?> data;
+  final bool private;
+
+  const GameEvent(this.kind, this.data, {this.private = false});
+}
 
 class ChatMessage {
   final int id;
@@ -120,6 +133,9 @@ class ChatMessage {
   final String body;
   final DateTime at;
 
+  /// Set on the server's lines ([ChatChannel.event]).
+  final GameEvent? event;
+
   const ChatMessage({
     required this.id,
     required this.channel,
@@ -128,7 +144,35 @@ class ChatMessage {
     required this.name,
     required this.body,
     required this.at,
+    this.event,
   });
+
+  /// A row of `game_events`. Its id is made up here (negative, never a
+  /// chat id): the public lines of a step first, then this phone's own, in
+  /// order ([n]); the list sorts by time, then id.
+  factory ChatMessage.event({
+    required String kind,
+    required Map<String, Object?> data,
+    required bool private,
+    required int n,
+    required DateTime at,
+  }) =>
+      ChatMessage(
+        id: (private ? 500 : 0) + n - 1000000,
+        channel: ChatChannel.event,
+        profileId: '',
+        seat: null,
+        name: '',
+        body: '',
+        at: at,
+        event: GameEvent(kind, data, private: private),
+      );
+
+  /// Chat order: by time, then id.
+  static int byTime(ChatMessage a, ChatMessage b) {
+    final at = a.at.compareTo(b.at);
+    return at != 0 ? at : a.id.compareTo(b.id);
+  }
 
   factory ChatMessage.fromJson(Map<String, Object?> json) => ChatMessage(
         id: (json['id'] as num).toInt(),

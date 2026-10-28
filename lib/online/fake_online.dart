@@ -88,6 +88,9 @@ class FakeOnline {
   final Map<String, _FakeGameRoom> _games = {};
   final List<void Function()> _gameWatchers = [];
   final List<({String room, String? game, ChatMessage message})> _chat = [];
+
+  /// The server's lines (`game_events`): `to` the only profile that reads it.
+  final List<({String room, String game, String? to, ChatMessage message})> _events = [];
   int _intentIds = 0;
   int _chatIds = 0;
   int _gameIds = 0;
@@ -981,7 +984,7 @@ class FakeGame implements GameBackend {
         // Di notte la famiglia; di giorno solo se c'è un Compare vivo.
         ChatChannel.family => rights['family'] == true &&
             (game.chatMode == 'night' || (game.chatMode == 'day' && rights['familyDay'] == true)),
-        ChatChannel.lobby => false,
+        ChatChannel.lobby || ChatChannel.event => false,
       };
       if (!allowed) throw const OnlineException(OnlineFailure.chatClosed);
       gameId = game.gameId;
@@ -1018,7 +1021,9 @@ class FakeGame implements GameBackend {
             !_online.blocks.contains((me, m.message.profileId)) &&
             (m.message.channel != ChatChannel.family || (family && m.game == game?.gameId)))
           m.message,
-    ];
+      for (final e in _online._events)
+        if (e.room == roomId && e.game == game?.gameId && (e.to == null || e.to == me)) e.message,
+    ]..sort(ChatMessage.byTime);
   }
 
   @override
@@ -1089,6 +1094,28 @@ extension on FakeOnline {
       game.chatSeats = (chat['seats'] as Map).cast<String, Object?>();
       game.offline = {for (final seat in board['offline'] as List<Object?>) seat as String};
       game.abandons.addAll((out['departed'] as List<Object?>).cast<String>());
+      // As game_commit: public lines for all, private ones for the person at
+      // that seat, none for a bot; earlier games' lines go.
+      _events.removeWhere((e) => e.room == roomId && e.game != game.gameId);
+      final counts = <String?, int>{};
+      for (final event in (out['events'] as List<Object?>? ?? const []).cast<Map<String, Object?>>()) {
+        final seat = event['to'] as String?;
+        final to = seat == null ? null : game.seats[seat]?.profileId;
+        if (seat != null && to == null) continue;
+        final n = counts[to] = (counts[to] ?? 0) + 1;
+        _events.add((
+          room: roomId,
+          game: game.gameId,
+          to: to,
+          message: ChatMessage.event(
+            kind: event['kind'] as String,
+            data: (event['data'] as Map).cast<String, Object?>(),
+            private: to != null,
+            n: n,
+            at: now,
+          ),
+        ));
+      }
       published++;
       if (out['finished'] == true) {
         game.finished = true;

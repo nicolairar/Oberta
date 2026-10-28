@@ -2,6 +2,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../../../l10n/app_strings.dart';
+import '../../../../l10n/game_event_strings.dart';
 import '../../../../online/online_services.dart';
 import '../../../press.dart';
 import '../../../theme/app_theme.dart';
@@ -199,6 +201,7 @@ class _Line extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (message.event case final event?) return _EventSlip(event, maxLines: maxLines, fontSize: fontSize);
     final called = seats.calls(message, mine: mine);
     return Container(
       key: called ? ValueKey('chat.mention-${message.id}') : null,
@@ -223,6 +226,54 @@ class _Line extends StatelessWidget {
         maxLines: maxLines,
         overflow: maxLines == null ? null : TextOverflow.ellipsis,
         style: TextStyle(color: AppColors.textPrimary, fontSize: fontSize, height: 1.3),
+      ),
+    );
+  }
+}
+
+/// A line of the server: a noir slip, centred and in italics, set apart
+/// from what the players write. A private one carries «SOLO TU» in red.
+class _EventSlip extends StatelessWidget {
+  final GameEvent event;
+  final int? maxLines;
+  final double fontSize;
+
+  const _EventSlip(this.event, {this.maxLines, required this.fontSize});
+
+  @override
+  Widget build(BuildContext context) {
+    final words = GameEventStrings(AppStrings.of(context));
+    final text = words.text(event);
+    // A line this phone does not know yet (a newer server) stays out.
+    if (text.isEmpty) return const SizedBox.shrink();
+    final accent = event.private ? Saloon.mafia : Saloon.brassDeep;
+    return Container(
+      key: ValueKey('chat.event-${event.kind}'),
+      margin: EdgeInsets.symmetric(vertical: fontSize > 16 ? 4 : 2),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFF17110C),
+        borderRadius: BorderRadius.circular(4),
+        border: Border(
+          top: BorderSide(color: accent.withValues(alpha: 0.6)),
+          bottom: BorderSide(color: accent.withValues(alpha: 0.6)),
+        ),
+      ),
+      child: Text.rich(
+        TextSpan(children: [
+          if (event.private)
+            TextSpan(
+              text: '${words.onlyYou}  ',
+              style: TextStyle(color: Saloon.mafia, fontWeight: FontWeight.w900, fontStyle: FontStyle.normal,
+                  fontSize: fontSize * 0.75, letterSpacing: 1.4),
+            ),
+          TextSpan(text: text),
+        ]),
+        textAlign: TextAlign.center,
+        maxLines: maxLines,
+        overflow: maxLines == null ? null : TextOverflow.ellipsis,
+        style: TextStyle(color: Saloon.paper.withValues(alpha: 0.85), fontSize: fontSize * 0.92,
+            fontStyle: FontStyle.italic, height: 1.3),
       ),
     );
   }
@@ -344,7 +395,7 @@ class _ChatLogState extends State<ChatLog> {
                     final line = _Line(message,
                         mine: mine, accent: view.accent, seats: widget.seats, fontSize: desk ? 19 : 14.5);
                     final hold = widget.onHold;
-                    if (mine || hold == null) return line;
+                    if (mine || hold == null || message.event != null) return line;
                     return GestureDetector(
                       key: ValueKey('chat.hold-${message.id}'),
                       behavior: HitTestBehavior.opaque,

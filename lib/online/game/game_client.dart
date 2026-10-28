@@ -264,7 +264,7 @@ class GameClient extends ChangeNotifier {
   void _mergeChat() {
     final fed = {for (final message in _fed) message.id};
     _sent.removeWhere((id, _) => fed.contains(id));
-    _chat = [..._fed, ..._sent.values]..sort((a, b) => a.id.compareTo(b.id));
+    _chat = [..._fed, ..._sent.values]..sort(ChatMessage.byTime);
   }
 
   @override

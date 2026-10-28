@@ -147,6 +147,44 @@ void main() {
     }
   });
 
+  test('the chat is told the public events, and each seat only its own secrets', () {
+    for (var seed = 1; seed <= 8; seed++) {
+      final server = ServerHarness(table(humans: 3, bots: 4), seed: seed);
+      playToTheEnd(server, Random(seed));
+      final events = [
+        for (final step in server.steps) ...(step['events'] as List).cast<Map<String, Object?>>(),
+      ];
+      final kinds = [for (final e in events) if (e['to'] == null) e['kind']];
+      expect(kinds.first, 'night', reason: 'partita $seed');
+      expect(kinds.last, 'end');
+      expect(kinds.where((k) => k == 'end'), hasLength(1));
+      expect(kinds, contains('dawn'));
+      final nights = [for (final e in events) if (e['kind'] == 'night') (e['data'] as Map)['round']];
+      expect(nights.toSet(), hasLength(nights.length), reason: 'ogni notte una volta');
+      for (final event in events) {
+        final data = event['data'] as Map<String, Object?>;
+        final to = event['to'] as String?;
+        if (to == null) {
+          expect(['night', 'dawn', 'scoop', 'silenced', 'lynch', 'mayor', 'left', 'end'], contains(event['kind']));
+          // A role in public only for the condemned and the scoop.
+          if (!['lynch', 'scoop'].contains(event['kind'])) expect(data.containsKey('role'), isFalse);
+          if (event['kind'] == 'dawn') expect(data.keys, isNot(contains('target')));
+        } else {
+          expect(['s1', 's2', 's3'], contains(to), reason: 'solo posti umani');
+          expect(['found', 'watch', 'bounty', 'doused', 'familyTarget', 'protected'], contains(event['kind']));
+        }
+      }
+      final state = server.state!;
+      final engine = GameEngine.fromSnapshot(
+        GameSnapshot.fromJson(state['snapshot'] as Map<String, Object?>, Seating.fromJson(state['seating'] as Map<String, Object?>).playerAt),
+      );
+      for (final event in events) {
+        if (event['kind'] != 'familyTarget') continue;
+        expect(engine.setup.roleOf(engine.setup.players.firstWhere((p) => p.id == event['to'])).team, Team.mafia);
+      }
+    }
+  });
+
   test('le fasi seguono l\'orologio del server, con l\'anticipo e la tolleranza', () {
     final server = ServerHarness(table(humans: 2, bots: 2));
     final start = server.now;

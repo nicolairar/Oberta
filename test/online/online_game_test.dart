@@ -413,6 +413,10 @@ void main() {
       }
       await settle();
       expect(clients['anna']!.schedule!.stage, Stage.night);
+      for (final c in clients.values) {
+        expect([for (final m in c.chat) if (m.channel == ChatChannel.event) m.event!.kind], ['night'],
+            reason: 'the server tells everyone that night falls');
+      }
       final family = [for (final MapEntry(:key, :value) in clients.entries) if (value.seat!.view.team == Team.mafia) key];
       final town = [for (final id in clients.keys) if (!family.contains(id)) id];
       for (final id in town) {

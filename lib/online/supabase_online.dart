@@ -823,15 +823,33 @@ class SupabaseGame implements GameBackend {
       });
 
   @override
-  Stream<List<ChatMessage>> watchChat(String roomId) => _watch('game-chat', ['game_chat'], roomId, () async {
-        // Le policy lasciano leggere solo i canali di questo telefono.
+  Stream<List<ChatMessage>> watchChat(String roomId) =>
+      _watch('game-chat', ['game_chat', 'game_events'], roomId, () async {
+        // Le policy lasciano leggere solo i canali di questo telefono, e
+        // degli eventi quelli pubblici e i propri della partita in corso.
         final rows = await _client
             .from('game_chat')
             .select('id, channel, profile_id, seat, name, body, created_at')
             .eq('room_id', roomId)
             .order('id', ascending: false)
             .limit(100);
-        return [for (final row in rows.reversed) ChatMessage.fromJson(row)];
+        final events = await _client
+            .from('game_events')
+            .select('recipient, n, kind, data, created_at')
+            .eq('room_id', roomId)
+            .order('created_at', ascending: false)
+            .limit(100);
+        return [
+          for (final row in rows) ChatMessage.fromJson(row),
+          for (final row in events)
+            ChatMessage.event(
+              kind: row['kind'] as String,
+              data: (row['data'] as Map).cast<String, Object?>(),
+              private: row['recipient'] != null,
+              n: (row['n'] as num).toInt(),
+              at: DateTime.parse(row['created_at'] as String),
+            ),
+        ]..sort(ChatMessage.byTime);
       }, poll: const Duration(seconds: 5));
 }
 

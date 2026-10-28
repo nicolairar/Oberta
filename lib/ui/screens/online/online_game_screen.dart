@@ -1167,8 +1167,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     return (
       view: view,
       messages: [
+        // The server's lines show in every chat of the game.
         for (final m in _client.chat)
-          if (m.channel == view.channel) m,
+          if (m.channel == view.channel || m.channel == ChatChannel.event) m,
       ],
     );
   }

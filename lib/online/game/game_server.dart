@@ -9,6 +9,7 @@ import '../../rules/player.dart';
 import '../../rules/role.dart';
 import '../../table/seating.dart';
 import 'bot_brain.dart';
+import 'game_events.dart';
 import 'game_backend.dart';
 import 'game_protocol.dart';
 import 'game_schedule.dart';
@@ -69,6 +70,10 @@ class ServerStep {
   /// town. The server settles experience and ratings from it. Null before.
   final Map<String, Object?>? result;
 
+  /// The lines for the chat (see game_events.dart): `{to, kind, data}`,
+  /// `to` null for everyone or the only seat that may read it.
+  final List<Map<String, Object?>> events;
+
   const ServerStep({
     required this.changed,
     required this.version,
@@ -81,6 +86,7 @@ class ServerStep {
     required this.chat,
     this.departed = const [],
     this.result,
+    this.events = const [],
   });
 
   Map<String, Object?> toJson() => {
@@ -95,6 +101,7 @@ class ServerStep {
         'chat': chat,
         'departed': departed,
         'result': result,
+        'events': events,
       };
 }
 
@@ -201,6 +208,12 @@ class ServerGame {
   /// [Feats]): seat → feat → how many times. Server side only.
   final Map<String, Map<String, int>> feats;
 
+  /// What the chat has already been told.
+  final EventMarks marks;
+
+  /// Private lines written while a phase closed, for this step's events.
+  final List<Map<String, Object?>> _closing = [];
+
   ServerGame._({
     required this.seating,
     required this.language,
@@ -221,6 +234,7 @@ class ServerGame {
     Map<String, Attendance>? attendance,
     Set<String>? spoke,
     Map<String, Map<String, int>>? feats,
+    EventMarks? marks,
     this.lastChat = 0,
     this.days = 0,
     this.settleUntil,
@@ -228,6 +242,7 @@ class ServerGame {
         attendance = attendance ?? {},
         spoke = spoke ?? {},
         feats = feats ?? {},
+        marks = marks ?? EventMarks(),
         offline = offline ?? {},
         departed = departed ?? [],
         _brain = BotBrain(random),
@@ -300,6 +315,7 @@ class ServerGame {
               feat: (n as num).toInt(),
           },
       },
+      marks: EventMarks.fromJson((json['marks'] as Map?)?.cast<String, Object?>()),
       lastChat: (json['lastChat'] as num?)?.toInt() ?? 0,
       days: (json['days'] as num?)?.toInt() ?? 0,
       settleUntil: json['settleUntil'] == null
@@ -327,6 +343,7 @@ class ServerGame {
         'attendance': {for (final MapEntry(:key, :value) in attendance.entries) key: value.toJson()},
         'spoke': [...spoke]..sort(),
         if (feats.isNotEmpty) 'feats': feats,
+        'marks': marks.toJson(),
         'lastChat': lastChat,
         'days': days,
         if (settleUntil != null) 'settleUntil': settleUntil!.millisecondsSinceEpoch,
@@ -355,6 +372,9 @@ class ServerGame {
     bool fresh = false,
   }) {
     var changed = fresh;
+    // What was published before this step, to tell the chat what changed.
+    final before = fresh ? null : _board();
+    final beforeSeats = fresh ? const <String, Map<String, Object?>>{} : _views(stage.acceptsActions);
     for (final envelope in [...intents]..sort((a, b) => a.id.compareTo(b.id))) {
       if (envelope.id <= lastIntent) continue;
       lastIntent = envelope.id;
@@ -406,11 +426,42 @@ class ServerGame {
     if (finished) botDue.clear();
     if (changed) version++;
     final accepting = stage.acceptsActions;
+    final board = _board();
+    final seatViews = {
+      for (final occupant in seating.occupants)
+        if (occupant.profileId != null) occupant.seat: _seatView(occupant.seat, accepting),
+    };
+    final events = !changed
+        ? const <Map<String, Object?>>[]
+        : [
+            ..._closing,
+            ...tableEvents(
+              before: before,
+              after: board,
+              beforeSeats: beforeSeats,
+              afterSeats: {for (final MapEntry(:key, :value) in seatViews.entries) key: value['view'] as Map<String, Object?>},
+              marks: marks,
+            ),
+          ];
+    _closing.clear();
     return ServerStep(
       changed: changed,
       version: version,
       state: toJson(),
-      board: {
+      board: board,
+      seatViews: seatViews,
+      events: events,
+      lastIntent: lastIntent == 0 ? null : lastIntent,
+      nextDue: _soonest(nextDue(pacing), gone.next),
+      finished: finished,
+      chat: _chat(),
+      departed: gone.departed,
+      result: _result(),
+    );
+  }
+
+  /// The public board, as published.
+  Map<String, Object?> _board() => {
         ...publicPayload(
           engine: engine,
           seating: seating,
@@ -422,20 +473,16 @@ class ServerGame {
         'schedule': window.toJson(),
         'offline': [...offline]..sort(),
         'departed': departed,
-      },
-      seatViews: {
+      };
+
+  /// Every human seat's own view, as published.
+  Map<String, Map<String, Object?>> _views(bool accepting) => {
         for (final occupant in seating.occupants)
           if (occupant.profileId != null)
-            occupant.seat: _seatView(occupant.seat, accepting),
-      },
-      lastIntent: lastIntent == 0 ? null : lastIntent,
-      nextDue: _soonest(nextDue(pacing), gone.next),
-      finished: finished,
-      chat: _chat(),
-      departed: gone.departed,
-      result: _result(),
-    );
-  }
+            occupant.seat: _seatView(occupant.seat, accepting)['view'] as Map<String, Object?>,
+      };
+
+  String _name(String? seat) => seating.occupantOf(seat ?? '')?.name ?? '?';
 
   Map<String, Object?>? _result() {
     final winner = engine.winner;
@@ -632,6 +679,8 @@ class ServerGame {
         for (final player in engine.pendingNightPlayers) {
           engine.apply(Pass(player.id));
         }
+        // The private lines of the night, from the seats' own views.
+        _closing.addAll(nightClosing(_views(true), _name));
         final choices = engine.nightChoices;
         final dawn = engine.resolveNight();
         _countNight(choices, dawn);
@@ -656,6 +705,8 @@ class ServerGame {
           for (final occupant in seating.occupants)
             if (_alive(occupant.seat)) occupant.seat,
         });
+        // The final tally, from the public board (votes are open).
+        marks.tally = voteTally(_board());
         final votes = engine.dayVotes;
         final lynch = engine.closeDayVote();
         _countVote(votes, lynch);
