@@ -129,4 +129,117 @@ void main() {
       expect(asked, TutorialStory.family);
     });
   }
+
+  test('«Conosco già il gioco»: il server finto apre la classificata anche senza le mani', () async {
+    expect(
+      RankedStatus.fromJson({
+        'tutorials': ['skip'],
+      }).tutorialsSkipped,
+      isTrue,
+    );
+    expect(
+      RankedStatus.fromJson({
+        'tutorials': ['family'],
+      }).tutorialsSkipped,
+      isFalse,
+    );
+    final online = world();
+    final ranked = online.services.ranked!;
+    await ranked.completeTutorial('family');
+    expect(await ranked.skipTutorials(), {'family', 'skip'});
+    expect(await ranked.skipTutorials(), {'family', 'skip'});
+    expect((await ranked.status()).tutorialsSkipped, isTrue);
+    expect((await ranked.enqueue(AppLanguage.it)).queued, isTrue);
+  });
+
+  testWidgets('«Conosco già il gioco» chiede «Sicuro?» e solo alla conferma apre la classificata', (tester) async {
+    usePhone(tester);
+    final online = world();
+    Future<void> settle() async {
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+    }
+
+    await tester.pumpWidget(appIn(AppLanguage.it, RankedQueueScreen(services: online.services)));
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    expect(find.byKey(const Key('ranked.locked')), findsOneWidget);
+    // Le mani restano lì per chi le vuole.
+    expect(find.byKey(const Key('ranked.tutorial.family.todo')), findsOneWidget);
+    expect(find.byKey(const Key('ranked.tutorial')), findsOneWidget);
+
+    // Primo tocco: solo il dialogo. «Ci ripenso» non cambia nulla.
+    await tester.ensureVisible(find.byKey(const Key('ranked.skip')));
+    await tester.tap(find.byKey(const Key('ranked.skip')));
+    await settle();
+    expect(find.byKey(const Key('ranked.skip.dialog')), findsOneWidget);
+    expect(find.text('Sicuro?'), findsOneWidget);
+    expect(find.text('Salti tutti i tutorial e vai dritto in classificata.'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('ranked.skip.cancel')));
+    await settle();
+    expect(find.byKey(const Key('ranked.skip.dialog')), findsNothing);
+    expect(online.tutorials['anna'] ?? const <String>{}, isNot(contains('skip')));
+    expect(find.byKey(const Key('ranked.locked')), findsOneWidget);
+
+    // Secondo giro, con la conferma esplicita: si siede.
+    await tester.tap(find.byKey(const Key('ranked.skip')));
+    await settle();
+    await tester.tap(find.byKey(const Key('ranked.skip.confirm')));
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    expect(online.tutorials['anna'], contains('skip'));
+    expect(find.byKey(const Key('ranked.locked')), findsNothing);
+    expect(find.byKey(const Key('ranked.start')), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  for (final MapEntry(key: label, value: size) in desktopSizes.entries) {
+    testWidgets('sul desktop $label: c\'è «I already know the game» sotto le mani', (tester) async {
+      await useDesktop(tester, size);
+      var skipped = false;
+      final sweep = AnimationController(vsync: const TestVSync());
+      addTearDown(sweep.dispose);
+      await tester.pumpWidget(
+        desktopApp(
+          RankedEntryView(
+            language: AppLanguage.en,
+            onLanguage: (_) {},
+            queued: false,
+            sweep: sweep,
+            cooldown: null,
+            warning: false,
+            onStart: () => fail('locked'),
+            onCancel: () {},
+            tutorialsDone: const {},
+            onSkipTutorials: () => skipped = true,
+          ),
+          language: AppLanguage.en,
+        ),
+      );
+      await tester.pump();
+      expect(find.text('I already know the game'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('ranked.skip')));
+      await tester.pumpAndSettle();
+      expect(skipped, isFalse);
+      await tester.tap(find.byKey(const Key('ranked.skip.confirm')));
+      await tester.pumpAndSettle();
+      expect(skipped, isTrue);
+    });
+  }
+
+  testWidgets('saltate sul server: aperta anche senza le mani', (tester) async {
+    usePhone(tester);
+    final online = world();
+    online.tutorials['anna'] = {'skip'};
+    await tester.pumpWidget(appIn(AppLanguage.en, RankedQueueScreen(services: online.services)));
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    expect(find.byKey(const Key('ranked.locked')), findsNothing);
+    expect(find.byKey(const Key('ranked.start')), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
 }

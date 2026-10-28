@@ -23,8 +23,14 @@ class RankedStatus {
   final bool warning;
 
   /// Le mani di prova finite per il server ('family', 'town', 'solo'): la
-  /// classificata le chiede tutte e tre.
+  /// classificata le chiede tutte e tre, oppure 'skip' («Conosco già il
+  /// gioco», [RankedRepository.skipTutorials]).
   final Set<String> tutorials;
+
+  /// Chi ha detto «Conosco già il gioco»: la classificata è aperta.
+  bool get tutorialsSkipped => tutorials.contains(skipTutorialsId);
+
+  static const skipTutorialsId = 'skip';
 
   const RankedStatus({
     this.queued = false,
@@ -157,6 +163,10 @@ abstract class RankedRepository {
   /// Registra una mano di prova finita ([faction]: 'family', 'town', 'solo').
   /// Ripeterla non cambia nulla. Ritorna quelle registrate.
   Future<Set<String>> completeTutorial(String faction);
+
+  /// «Conosco già il gioco»: salta le tre mani di prova e apre la
+  /// classificata (`tutorial_skip`). Ritorna quelle registrate, 'skip' compreso.
+  Future<Set<String>> skipTutorials();
 
   /// Quanti sono in giro (in partita, in sala, in coda) e quanti in coda per
   /// lingua: solo numeri, presi da una cache del server.

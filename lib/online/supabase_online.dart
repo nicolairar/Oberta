@@ -1136,6 +1136,12 @@ class SupabaseRanked implements RankedRepository {
       });
 
   @override
+  Future<Set<String>> skipTutorials() => _guard(() async {
+        final done = await _client.rpc<List<dynamic>>('tutorial_skip');
+        return {...done.whereType<String>()};
+      });
+
+  @override
   Future<OnlineCounts> counts() => _guard(() async =>
       OnlineCounts.fromJson((await _client.rpc<Map<String, dynamic>>('online_counts')).cast<String, Object?>()));
 

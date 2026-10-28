@@ -171,6 +171,11 @@ abstract class OnlineStrings {
   String get rankedTutorialsBody;
   String rankedTutorialName(String faction);
   String rankedTutorialPlay(String name);
+  String get rankedSkipTutorials;
+  String get rankedSkipTitle;
+  String get rankedSkipBody;
+  String get rankedSkipConfirm;
+  String get rankedSkipCancel;
   String get rankedPickTable;
   String get rankedRules;
   String get rankedYourRank;
@@ -410,6 +415,11 @@ abstract class OnlineStrings {
     'rankedTutorialsBody': rankedTutorialsBody,
     for (final f in ['family', 'town', 'solo']) 'rankedTutorialName.$f': rankedTutorialName(f),
     'rankedTutorialPlay': rankedTutorialPlay(rankedTutorialName('family')),
+    'rankedSkipTutorials': rankedSkipTutorials,
+    'rankedSkipTitle': rankedSkipTitle,
+    'rankedSkipBody': rankedSkipBody,
+    'rankedSkipConfirm': rankedSkipConfirm,
+    'rankedSkipCancel': rankedSkipCancel,
     'rankedPickTable': rankedPickTable,
     'rankedRules': rankedRules,
     'rankedYourRank': rankedYourRank,
@@ -502,6 +512,16 @@ final class ItalianOnlineStrings extends OnlineStrings {
       };
   @override
   String rankedTutorialPlay(String name) => 'Gioca la mano: $name';
+  @override
+  String get rankedSkipTutorials => 'Conosco già il gioco';
+  @override
+  String get rankedSkipTitle => 'Sicuro?';
+  @override
+  String get rankedSkipBody => 'Salti tutti i tutorial e vai dritto in classificata.';
+  @override
+  String get rankedSkipConfirm => 'Sì, salto i tutorial';
+  @override
+  String get rankedSkipCancel => 'Ci ripenso';
   @override
   String get rankedPickTable => 'SCEGLI IL TAVOLO';
   @override
@@ -989,6 +1009,16 @@ final class EnglishOnlineStrings extends OnlineStrings {
       };
   @override
   String rankedTutorialPlay(String name) => 'Play the hand: $name';
+  @override
+  String get rankedSkipTutorials => 'I already know the game';
+  @override
+  String get rankedSkipTitle => 'Are you sure?';
+  @override
+  String get rankedSkipBody => 'You skip every tutorial and go straight to ranked.';
+  @override
+  String get rankedSkipConfirm => 'Yes, skip the tutorials';
+  @override
+  String get rankedSkipCancel => 'Never mind';
   @override
   String get rankedPickTable => 'PICK YOUR TABLE';
   @override

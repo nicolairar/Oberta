@@ -14,6 +14,7 @@ import '../../desktop/desktop_canvas.dart';
 import '../../../tutorial/tutorial_story.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/role_style.dart';
+import '../../widgets/noir_modal.dart';
 import 'game/noir_ui.dart';
 
 /// La stanza sul retro: una lampada sopra il tavolo verde, il fumo, il
@@ -44,7 +45,14 @@ class RankedEntryView extends StatelessWidget {
   final Set<TutorialStory> tutorialsDone;
   final ValueChanged<TutorialStory>? onTutorial;
 
-  bool get _locked => !tutorialsDone.containsAll(TutorialStory.values);
+  /// «Conosco già il gioco», già detto al server: la classificata è aperta
+  /// anche senza le tre mani.
+  final bool tutorialsSkipped;
+
+  /// Salta le mani di prova, dopo la conferma nel dialogo (null: niente link).
+  final VoidCallback? onSkipTutorials;
+
+  bool get _locked => !tutorialsSkipped && !tutorialsDone.containsAll(TutorialStory.values);
 
   /// Invio sul PC: «Siediti», o la prima mano di prova che manca.
   void _enter() {
@@ -70,6 +78,8 @@ class RankedEntryView extends StatelessWidget {
     this.onLeaderboard,
     this.tutorialsDone = const {TutorialStory.family, TutorialStory.city, TutorialStory.solo},
     this.onTutorial,
+    this.tutorialsSkipped = false,
+    this.onSkipTutorials,
   });
 
   @override
@@ -320,7 +330,7 @@ class RankedEntryView extends StatelessWidget {
                                         ),
                                       )
                                     else if (_locked)
-                                      _TutorialLock(done: tutorialsDone, onPlay: onTutorial, desk: true)
+                                      _TutorialLock(done: tutorialsDone, onPlay: onTutorial, onSkip: onSkipTutorials, desk: true)
                                     else ...[
                                       NoirButton(
                                         key: const Key('ranked.start'),
@@ -428,7 +438,7 @@ class RankedEntryView extends StatelessWidget {
             child: Text(cooldown!, textAlign: TextAlign.center, style: AppText.body.copyWith(color: AppColors.gold)),
           )
         else if (_locked)
-          _TutorialLock(done: tutorialsDone, onPlay: onTutorial, desk: false)
+          _TutorialLock(done: tutorialsDone, onPlay: onTutorial, onSkip: onSkipTutorials, desk: false)
         else
           SizedBox(
             width: double.infinity,
@@ -439,13 +449,57 @@ class RankedEntryView extends StatelessWidget {
 
 /// Il grado timbrato in inchiostro rosso, con la barra verso il prossimo.
 /// La classificata chiusa: le tre mani di prova (rossa, oro, verde), con la
-/// spunta su quelle finite, e il bottone per la prima che manca.
+/// spunta su quelle finite, il bottone per la prima che manca e
+/// «Conosco già il gioco» per chi le vuole saltare (dopo un «Sicuro?»).
 class _TutorialLock extends StatelessWidget {
   final Set<TutorialStory> done;
   final ValueChanged<TutorialStory>? onPlay;
+  final VoidCallback? onSkip;
   final bool desk;
 
-  const _TutorialLock({required this.done, required this.onPlay, required this.desk});
+  const _TutorialLock({required this.done, required this.onPlay, required this.onSkip, required this.desk});
+
+  Future<void> _confirmSkip(BuildContext context, VoidCallback skip) async {
+    HapticFeedback.selectionClick();
+    final t = AppStrings.of(context).online;
+    final sure = await confirmNoir(
+      context,
+      key: const Key('ranked.skip.dialog'),
+      title: t.rankedSkipTitle,
+      body: t.rankedSkipBody,
+      cancel: t.rankedSkipCancel,
+      confirm: t.rankedSkipConfirm,
+      confirmKey: const Key('ranked.skip.confirm'),
+      cancelKey: const Key('ranked.skip.cancel'),
+    );
+    if (sure) skip();
+  }
+
+  Widget _play(OnlineStrings t, TutorialStory missing) => NoirButton(
+        key: const Key('ranked.tutorial'),
+        label: t.rankedTutorialPlay(t.rankedTutorialName(missing.id)).toUpperCase(),
+        onPressed: onPlay == null ? null : () => onPlay!(missing),
+      );
+
+  Widget _skip(BuildContext context, OnlineStrings t, VoidCallback skip) => TextButton(
+        key: const Key('ranked.skip'),
+        onPressed: () => _confirmSkip(context, skip),
+        style: TextButton.styleFrom(
+          foregroundColor: Saloon.brass,
+          minimumSize: Size(0, desk ? 56 : 44),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+        ),
+        child: Text(
+          t.rankedSkipTutorials,
+          textAlign: TextAlign.center,
+          style: AppText.body.copyWith(
+            fontSize: desk ? 16 : 13,
+            color: Saloon.brass,
+            decoration: TextDecoration.underline,
+            decorationColor: Saloon.brass.withValues(alpha: 0.6),
+          ),
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -530,11 +584,21 @@ class _TutorialLock extends StatelessWidget {
           ),
           if (missing != null) ...[
             SizedBox(height: 12),
-            NoirButton(
-              key: const Key('ranked.tutorial'),
-              label: t.rankedTutorialPlay(t.rankedTutorialName(missing.id)).toUpperCase(),
-              onPressed: onPlay == null ? null : () => onPlay!(missing),
-            ),
+            // Sul PC il link sta accanto al bottone: in colonna non c'è posto.
+            if (desk && onSkip != null)
+              Row(
+                children: [
+                  Expanded(child: _play(t, missing)),
+                  const SizedBox(width: 16),
+                  _skip(context, t, onSkip!),
+                ],
+              )
+            else
+              _play(t, missing),
+          ],
+          if (onSkip case final skip? when !desk || missing == null) ...[
+            SizedBox(height: 6),
+            Center(child: _skip(context, t, skip)),
           ],
         ],
       ),

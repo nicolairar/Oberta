@@ -150,7 +150,7 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
     try {
       var status = await _ranked.status();
       if (!mounted) return;
-      if (!_uploaded && !status.tutorials.containsAll(TutorialStory.values.map((s) => s.id))) {
+      if (!_uploaded && !status.tutorialsSkipped && !status.tutorials.containsAll(TutorialStory.values.map((s) => s.id))) {
         _uploaded = true;
         if (await _sync.upload(status.tutorials)) status = await _ranked.status();
         if (!mounted) return;
@@ -190,6 +190,17 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
     if (!mounted) return;
     _uploaded = false;
     await _refresh();
+  }
+
+  /// «Conosco già il gioco», confermato: il server apre la classificata.
+  Future<void> _skipTutorials() async {
+    try {
+      await _ranked.skipTutorials();
+      if (!mounted) return;
+      await _refresh();
+    } catch (error) {
+      if (mounted) showFailure(context, error);
+    }
   }
 
   Future<void> _start() async {
@@ -412,6 +423,8 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
           ? TutorialSync.done(_status.tutorials, AppSettings.instance)
           : TutorialStory.values.toSet(),
       onTutorial: _tutorial,
+      tutorialsSkipped: _status.tutorialsSkipped,
+      onSkipTutorials: _skipTutorials,
       onLeaderboard: switch (widget.services.progress) {
         final progress? => () => LeaderboardScreen.open(context, progress, _language),
         null => null,

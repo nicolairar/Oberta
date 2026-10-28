@@ -1546,11 +1546,21 @@ class FakeRanked implements RankedRepository {
   }
 
   @override
+  Future<Set<String>> skipTutorials() async {
+    await _online._network();
+    final me = _me;
+    _online._ready(me);
+    (_online.tutorials[me] ??= {}).add(RankedStatus.skipTutorialsId);
+    return _online.tutorialsOf(me);
+  }
+
+  @override
   Future<RankedStatus> enqueue(AppLanguage language) async {
     await _online._network();
     final me = _me;
     _online._ready(me);
-    if (!_online.tutorialsOf(me).containsAll(FakeOnline.tutorialFactions)) {
+    final tutorials = _online.tutorialsOf(me);
+    if (!tutorials.contains(RankedStatus.skipTutorialsId) && !tutorials.containsAll(FakeOnline.tutorialFactions)) {
       throw const OnlineException(OnlineFailure.tutorialsRequired);
     }
     if (_online.cooldowns[me]?.isAfter(_online.clock.now()) ?? false) {
