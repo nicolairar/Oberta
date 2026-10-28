@@ -4,6 +4,7 @@ import '../rules/game_engine.dart';
 import '../rules/role.dart';
 import 'app_language.dart';
 import 'app_strings.dart';
+import 'player_gender.dart';
 
 /// The words of the end-of-game recap ("Il resoconto") and of the table
 /// notices, in Italian and English.
@@ -82,9 +83,16 @@ class RecapStrings {
       AttackSource.fire => _t('dal fuoco', 'by the fire'),
       AttackSource.assassin => _t('dal Sicario', 'by the Hitman'),
     };
+    final g = PlayerGenders.of(target);
     return switch (outcome) {
-      AttackOutcome.killed => _t('$target è stato ucciso $by.', '$target was killed $by.'),
-      AttackOutcome.healed => _t('$target, colpito $by, è stato salvato.', '$target, hit $by, was saved.'),
+      AttackOutcome.killed => _t(
+        agree(g, m: '$target è stato ucciso $by.', f: '$target è stata uccisa $by.', n: '$target non ce la fa: il colpo arriva $by.'),
+        '$target was killed $by.',
+      ),
+      AttackOutcome.healed => _t(
+        agree(g, m: '$target, colpito $by, è stato salvato.', f: '$target, colpita $by, è stata salvata.', n: 'Il colpo arriva $by, ma $target si salva.'),
+        '$target, hit $by, was saved.',
+      ),
       AttackOutcome.shrugged => _t('$target ha incassato il colpo $by.', '$target took the blow $by and lived.'),
     };
   }
@@ -97,7 +105,10 @@ class RecapStrings {
 
   /// A role name in the middle of an Italian sentence: "era il Picciotto".
   String inline(String role) => _en || role.isEmpty ? role : role[0].toLowerCase() + role.substring(1);
-  String risen(String target) => _t('$target è tornato tra i vivi.', '$target is back among the living.');
+  String risen(String target) => _t(
+    agree(PlayerGenders.of(target), m: '$target è tornato tra i vivi.', f: '$target è tornata tra i vivi.', n: '$target torna tra i vivi.'),
+    '$target is back among the living.',
+  );
   String mayor(String name) => _t('$name si rivela Sindaco: il suo voto vale due.', '$name reveals the Mayor: their vote counts twice.');
   String get votes => _t('Lo scrutinio', 'The ballot');
   String get abstained => _t('si astiene', 'abstains');

@@ -12,6 +12,7 @@ import 'package:oberta/online/online_services.dart';
 import 'package:oberta/rules/knowledge.dart';
 import 'package:oberta/rules/player.dart';
 import 'package:oberta/rules/role.dart';
+import 'package:oberta/ui/screens/online/game/verdict_line.dart';
 import 'package:oberta/ui/screens/online/online_game_screen.dart';
 import 'package:oberta/ui/widgets/lynch_mark.dart';
 import 'package:oberta/ui/widgets/player_grid.dart';
@@ -131,9 +132,15 @@ void main() {
     expect(line.maxLines, isNull);
     expect(line.overflow, isNot(TextOverflow.ellipsis));
     expect(tester.renderObject<RenderParagraph>(find.byKey(const Key('online.verdictHeadline'))).didExceedMaxLines, isFalse);
-    expect(line.data, matches(RegExp(r'^(.+ è stato linciato\. Era .+\.|Nessuno è stato linciato\.)$')));
-    expect(line.data!.split(' ').length, lessThanOrEqualTo(10), reason: 'una riga corta: ${line.data}');
-    expect(line.style!.fontSize, greaterThanOrEqualTo(15), reason: 'a grandezza piena');
+    // L'italiano concorda col giocatore; se non si sa, è la piazza che lincia.
+    expect(
+      line.data,
+      matches(RegExp(r'^(.+ è stat[oa] linciat[oa]\. Era .+\.|La piazza ha linciato .+\. Era .+\.|Nessuno è stato linciato\.)$')),
+    );
+    expect(line.data!.split(' ').length, lessThanOrEqualTo(12), reason: 'una riga corta: ${line.data}');
+    // Sul telefono sta nella striscia sopra «Pronto»: su una riga si stringe
+    // appena, su due resta a grandezza piena.
+    expect(line.style!.fontSize, greaterThanOrEqualTo(15 * VerdictLine.oneLineScale - 0.2), reason: 'quasi a grandezza piena');
     expect(find.byKey(const Key('online.verdictStory')), findsNothing);
     // La carta del linciato: un tocco e i dettagli del ruolo.
     if (line.data!.contains('Era ')) {

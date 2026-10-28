@@ -5,6 +5,7 @@ import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart';
 
 import '../l10n/app_language.dart';
+import '../l10n/player_gender.dart';
 import '../online/game/game_backend.dart';
 import '../online/game/game_clock.dart';
 import '../online/game/game_schedule.dart';
@@ -115,6 +116,9 @@ class TutorialTable implements GameBackend {
     required this.language,
     GameClock clock = const TutorialClock(),
   }) : clock = SkewClock(clock) {
+    for (final MapEntry(key: seat, value: name) in TutorialScript.names.entries) {
+      PlayerGenders.remember(name, TutorialScript.women.contains(seat) ? Gender.feminine : Gender.masculine);
+    }
     _game = ServerGame.scripted(
       seats: [
         SeatPlan(seat: you, profileId: youId, name: youName),

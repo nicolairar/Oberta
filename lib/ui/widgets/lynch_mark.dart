@@ -101,13 +101,15 @@ class _LynchMarkState extends State<LynchMark> with SingleTickerProviderStateMix
                   Positioned(
                     left: -w * 0.1,
                     right: -w * 0.1,
-                    top: h * (0.34 + 0.1 * settle),
+                    // Batte sul petto, poi scivola giù sopra la targhetta:
+                    // la faccia resta scoperta.
+                    top: h * (0.34 + 0.24 * settle),
                     child: IgnorePointer(
                       child: Center(
                         child: Opacity(
                           opacity: slam,
                           child: Transform.rotate(
-                            angle: -0.2,
+                            angle: -0.2 + 0.1 * settle,
                             child: Transform.scale(
                               scale: stampScale * (1 - 0.25 * settle),
                               child: _Stamp(label: widget.label, size: max(9, w * 0.15)),
@@ -135,7 +137,7 @@ class _Stamp extends StatelessWidget {
         key: const Key('lynch.stamp'),
         padding: EdgeInsets.symmetric(horizontal: size * 0.4, vertical: size * 0.12),
         decoration: BoxDecoration(
-          color: const Color(0xFF1A0505).withValues(alpha: 0.55),
+          color: const Color(0xFF1A0505).withValues(alpha: 0.88),
           border: Border.all(color: const Color(0xFFD7262E), width: max(1.5, size * 0.16)),
           borderRadius: BorderRadius.circular(size * 0.25),
         ),

@@ -2,6 +2,7 @@ import '../online/game/game_backend.dart';
 import '../rules/role.dart';
 import 'app_language.dart';
 import 'app_strings.dart';
+import 'player_gender.dart';
 
 /// The server's lines in the chat (see lib/online/game/game_events.dart),
 /// in Italian and English. Names and roles come with the event.
@@ -49,11 +50,24 @@ class GameEventStrings {
         final parts = <String>[
           _t('Sorge il giorno ${d['round']}.', 'Day ${d['round']} breaks.'),
           if (dead.isEmpty) _t('Nessun morto stanotte.', 'Nobody died tonight.'),
-          if (dead.length == 1) _t('Trovato morto: ${dead.single}.', 'Found dead: ${dead.single}.'),
+          if (dead.length == 1)
+            _t(
+              agree(
+                PlayerGenders.of('${dead.single}'),
+                m: 'Trovato morto: ${dead.single}.',
+                f: 'Trovata morta: ${dead.single}.',
+                n: 'Vittima della notte: ${dead.single}.',
+              ),
+              'Found dead: ${dead.single}.',
+            ),
           if (dead.length > 1) _t('Trovati morti: ${_names(dead)}.', 'Found dead: ${_names(dead)}.'),
           if (saved == 1) _t('Qualcuno è stato salvato.', 'Someone was saved.'),
           if (saved > 1) _t('$saved agguati sventati.', '$saved attacks foiled.'),
-          if (d['resurrected'] case final String back) _t('$back è tornato tra i vivi.', '$back is back among the living.'),
+          if (d['resurrected'] case final String back)
+            _t(
+              agree(PlayerGenders.of(back), m: '$back è tornato tra i vivi.', f: '$back è tornata tra i vivi.', n: '$back torna tra i vivi.'),
+              '$back is back among the living.',
+            ),
         ];
         return parts.join(' ');
       case 'scoop':

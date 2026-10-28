@@ -226,37 +226,87 @@ class SaloonTable extends StatelessWidget {
     return true;
   }
 
-  /// Lo spazio sul panno per il [center]: almeno il riquadro di sempre (il
-  /// 62% del panno in larghezza, metà in altezza), poi allargato finché non
-  /// tocca una carta (con la targhetta) né esce dal bordo del panno. Così i
-  /// testi lunghi, come il verdetto, hanno tutto lo spazio libero.
-  static Rect centerArea(Rect felt, List<Offset> centers, double width, double height) {
-    var area = Rect.fromCenter(center: felt.center, width: felt.width * 0.62, height: felt.height * 0.5);
-    final limit = felt;
-    final cards = [
-      for (final c in centers) Rect.fromCenter(center: c, width: width, height: height * 1.1).inflate(6),
-    ];
-    // Una carta che già sfiora il riquadro di sempre non lo stringe: blocca
-    // solo la crescita.
-    final start = area;
-    final obstacles = [
-      for (final card in cards)
-        if (!card.overlaps(start)) card,
-    ];
+  /// Quanto un posto largo [width] occupa davvero intorno al centro [c]: la
+  /// carta, la targhetta che sborda ai lati, il gettone del numero e il
+  /// bollo dei voti che sporgono in alto, e il 6% in più del posto scelto.
+  static Rect seatBounds(Offset c, double width) {
+    final height = width * cardAspect;
+    const grow = 0.03;
+    return Rect.fromLTRB(
+      c.dx - width / 2 - width * (0.08 + grow),
+      c.dy - height / 2 - width * 0.06 - height * grow,
+      c.dx + width / 2 + width * (0.08 + grow),
+      c.dy + height / 2 + height * grow,
+    );
+  }
+
+  /// Lo spazio sul panno per il [center]: il rettangolo più grande, centrato
+  /// in larghezza, che resta dentro il panno e non tocca nessun posto (con la
+  /// targhetta, il numero, il bollo). Così le parole sul panno non finiscono
+  /// mai sotto un ritratto.
+  static Rect centerArea(Rect felt, List<Offset> centers, double width, double height) =>
+      _areas[(felt, centers.length, width)] ??= _centerArea(felt, centers, width);
+
+  static final _areas = _Memo<(Rect, int, double), Rect>();
+
+  static Rect _centerArea(Rect felt, List<Offset> centers, double width) {
+    final margin = max(4.0, width * 0.06);
+    final obstacles = [for (final c in centers) seatBounds(c, width).inflate(margin)];
+    // Il panno ha gli angoli tondi: si resta un poco dentro il filetto.
+    final limit = felt.deflate(felt.shortestSide * 0.05);
     bool free(Rect r) =>
-        (r.left >= limit.left || r.left >= start.left) &&
-        (r.right <= limit.right || r.right <= start.right) &&
-        (r.top >= limit.top || r.top >= start.top) &&
-        (r.bottom <= limit.bottom || r.bottom <= start.bottom) &&
+        r.left >= limit.left &&
+        r.right <= limit.right &&
+        r.top >= limit.top &&
+        r.bottom <= limit.bottom &&
         !obstacles.any(r.overlaps);
-    Rect grown(double dw, double dh) => Rect.fromCenter(center: area.center, width: area.width + dw, height: area.height + dh);
-    final step = max(2.0, felt.shortestSide * 0.01);
-    for (final (dw, dh) in [(step, step * area.height / area.width), (0.0, step), (step, 0.0)]) {
-      while (free(grown(dw, dh))) {
-        area = grown(dw, dh);
+    var best = Rect.fromCenter(center: felt.center, width: 0, height: 0);
+    var score = -1.0;
+    // Si prova a varie altezze e proporzioni: il posto in basso al centro
+    // spesso entra nel panno, e lo spazio buono sta un poco più su.
+    for (var shift = -0.3; shift <= 0.3001; shift += 0.05) {
+      final center = Offset(felt.center.dx, felt.center.dy + felt.height * shift);
+      if (!limit.contains(center)) continue;
+      for (final aspect in const [4.0, 3.0, 2.4, 2.0, 1.6, 1.3, 1.0]) {
+        var low = 0.0;
+        var high = felt.width;
+        for (var i = 0; i < 16; i++) {
+          final mid = (low + high) / 2;
+          if (free(Rect.fromCenter(center: center, width: mid, height: mid / aspect))) {
+            low = mid;
+          } else {
+            high = mid;
+          }
+        }
+        final rect = Rect.fromCenter(center: center, width: low, height: low / aspect);
+        // Il testo vuole larghezza, ma oltre i 600 punti non serve più; a
+        // parità, meglio vicino al centro.
+        final value = min(rect.width, 600.0) * rect.height * (1 - shift.abs() * 0.2);
+        if (value > score) {
+          score = value;
+          best = rect;
+        }
       }
     }
-    return area;
+    return best;
+  }
+
+  /// Dove va tutto, per [count] posti in [size]: la larghezza delle carte,
+  /// i centri dei posti, il panno e lo spazio libero sul panno per il centro.
+  static ({double width, List<Offset> centers, Rect felt, Rect center}) layout(
+    int count,
+    Size size, {
+    double maxCard = 118,
+  }) {
+    final width = cardWidth(count, size, maxCard: maxCard);
+    final height = width * cardAspect;
+    final centers = seats(count, size, width);
+    final felt = Rect.fromCenter(
+      center: size.center(Offset.zero),
+      width: max(40, size.width - width * 1.1),
+      height: max(40, size.height - height * 1.0),
+    );
+    return (width: width, centers: centers, felt: felt, center: centerArea(felt, centers, width, height));
   }
 
   /// I centri dei posti su un rettangolo dagli angoli tondi, a passi uguali:
@@ -291,14 +341,8 @@ class SaloonTable extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, box) {
       final size = box.biggest;
-      final width = cardWidth(count, size, maxCard: maxCard);
+      final (:width, :centers, :felt, center: area) = layout(count, size, maxCard: maxCard);
       final height = width * cardAspect;
-      final centers = seats(count, size, width);
-      final felt = Rect.fromCenter(
-        center: size.center(Offset.zero),
-        width: max(40, size.width - width * 1.1),
-        height: max(40, size.height - height * 1.0),
-      );
       return Stack(
         clipBehavior: Clip.none,
         children: [
@@ -307,7 +351,7 @@ class SaloonTable extends StatelessWidget {
           ),
           if (center != null)
             Positioned.fromRect(
-              rect: centerArea(felt, centers, width, height),
+              rect: area,
               child: Center(child: center),
             ),
           for (var i = 0; i < count; i++)

@@ -99,6 +99,9 @@ class TutorialScript {
   static const you = 's1';
   static const names = {'s2': 'Vito', 's3': 'Bruno', 's4': 'Carmela', 's5': 'Dora', 's6': 'Enzo'};
 
+  /// Chi dei bot è una donna: l'italiano concorda («Carmela è stata linciata»).
+  static const women = {'s4', 's5'};
+
   factory TutorialScript.of(TutorialStory story, AppLanguage language) {
     String t(String it, String en) => language == AppLanguage.en ? en : it;
     const card = Key('online.card');

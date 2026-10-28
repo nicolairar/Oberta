@@ -39,6 +39,9 @@ class SeatCard extends StatelessWidget {
   final Key? pizzinoKey;
   final Color pizzinoColor;
 
+  /// Il timbro del linciato sta sul petto ([LynchMark]): il pizzino sale.
+  final bool stamped;
+
   /// Una riga sotto il nome (un ruolo scoperto, «offline»).
   final String? note;
   final Color noteColor;
@@ -71,6 +74,7 @@ class SeatCard extends StatelessWidget {
     this.pizzino,
     this.pizzinoKey,
     this.pizzinoColor = Saloon.blood,
+    this.stamped = false,
     this.note,
     this.noteColor = Saloon.brass,
     this.role,
@@ -106,6 +110,9 @@ class SeatCard extends StatelessWidget {
         ? [BoxShadow(color: Saloon.brass.withValues(alpha: 0.28), blurRadius: 10, spreadRadius: 0.5)]
         : const [BoxShadow(color: Color(0xAA000000), blurRadius: 10, offset: Offset(0, 5))];
     final plateHeight = max(20.0, width * 0.27);
+    // Il petto è già occupato (il nastro, la nota, il timbro): il pizzino va
+    // in cima all'arco.
+    final high = accused || note != null || stamped;
     final card = Stack(
       clipBehavior: Clip.none,
       children: [
@@ -227,16 +234,28 @@ class SeatCard extends StatelessWidget {
               child: CustomPaint(size: Size.square(width * 0.3), painter: _CarnationPainter()),
             ),
           ),
+        if (votes > 0)
+          Positioned(
+            right: -width * 0.06,
+            top: -width * 0.02,
+            child: Tooltip(
+              message: '$votes ${tips.votes}',
+              triggerMode: TooltipTriggerMode.longPress,
+              child: _WaxSeal(votes, size: max(24, width * 0.3)),
+            ),
+          ),
+        // Il nastro dell'accusato: sul petto, appena sopra la targhetta; la
+        // faccia e il nome restano scoperti.
         if (accused && accusedLabel.isNotEmpty)
           Positioned(
             left: -width * 0.06,
             right: -width * 0.06,
-            top: height * 0.44,
+            bottom: plateHeight * 0.92,
             child: Center(
               child: Transform.rotate(
-                angle: -0.2,
+                angle: -0.06,
                 child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: width * 0.06, vertical: 2),
+                  padding: EdgeInsets.symmetric(horizontal: width * 0.05, vertical: 1.5),
                   decoration: BoxDecoration(
                     color: Saloon.enamel,
                     borderRadius: BorderRadius.circular(4),
@@ -248,35 +267,35 @@ class SeatCard extends StatelessWidget {
                     child: Text(
                       accusedLabel.toUpperCase(),
                       style: AppText.display(
-                        max(10, width * 0.13),
+                        max(10, width * 0.12),
                         color: const Color(0xFFFFEBD6),
-                      ).copyWith(letterSpacing: 1.4),
+                      ).copyWith(letterSpacing: 1.2, height: 1.1),
                     ),
                   ),
                 ),
               ),
             ),
           ),
-        if (votes > 0)
-          Positioned(
-            right: -width * 0.06,
-            top: -width * 0.02,
-            child: Tooltip(
-              message: '$votes ${tips.votes}',
-              triggerMode: TooltipTriggerMode.longPress,
-              child: _WaxSeal(votes, size: max(24, width * 0.3)),
-            ),
-          ),
+        // Il pizzino: sulla spalla destra, sopra la targhetta; se il petto è
+        // occupato, in cima all'arco fra il numero e il bollo. Non copre mai
+        // il nome né la faccia.
         if (pizzino != null)
           Positioned(
-            left: -width * 0.05,
-            right: -width * 0.05,
-            bottom: -width * 0.12,
-            child: Center(
+            left: high ? 0 : null,
+            right: high ? 0 : -width * 0.07,
+            top: high ? -width * 0.03 : null,
+            bottom: high ? null : plateHeight * 0.88,
+            child: Align(
+              alignment: high ? Alignment.topCenter : Alignment.bottomRight,
+              widthFactor: high ? null : 1,
+              heightFactor: 1,
               child: Tooltip(
                 message: tips.voteNote,
                 triggerMode: TooltipTriggerMode.longPress,
-                child: _Pizzino(key: pizzinoKey, text: pizzino!, color: pizzinoColor, size: max(10, width * 0.12)),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: width * (high ? 0.5 : 0.62)),
+                  child: _Pizzino(key: pizzinoKey, text: pizzino!, color: pizzinoColor, size: max(9, width * 0.12)),
+                ),
               ),
             ),
           ),
@@ -477,18 +496,21 @@ class _Pizzino extends StatelessWidget {
   Widget build(BuildContext context) => Transform.rotate(
     angle: 0.04,
     child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      padding: const EdgeInsets.fromLTRB(3, 1, 4, 1),
       decoration: BoxDecoration(
         color: Saloon.paper,
         borderRadius: BorderRadius.circular(2),
         border: Border(left: BorderSide(color: color, width: 3)),
         boxShadow: const [BoxShadow(color: Colors.black, blurRadius: 4, offset: Offset(0, 2))],
       ),
-      child: Text(
-        text,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(fontFamily: 'Courier', color: Saloon.paperInk, fontSize: size, fontWeight: FontWeight.w700),
+      // Si stringe, non si taglia: «→ 11» si legge sempre intero.
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          text,
+          maxLines: 1,
+          style: TextStyle(fontFamily: 'Courier', color: Saloon.paperInk, fontSize: size, fontWeight: FontWeight.w700),
+        ),
       ),
     ),
   );

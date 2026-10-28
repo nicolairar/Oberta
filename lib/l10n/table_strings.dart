@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import 'app_language.dart';
 import 'app_strings.dart';
+import 'player_gender.dart';
 
 /// The words of the online table's action strip and of its prompts: what
 /// to do now, what is chosen, who is waiting. Plain sentences, in Italian
@@ -37,19 +38,31 @@ class TableStrings {
   // ---- The day.
   String get readTheNews => _t('Leggi la cronaca, poi Pronto.', 'Read the news, then Ready.');
   String votedFor(String name) => _t('Hai votato $name. Puoi cambiare idea.', 'You voted $name. You can change your mind.');
-  String get abstained => _t('Ti sei astenuto. Puoi ancora votare.', 'You abstained. You can still vote.');
+  String abstained([Gender me = Gender.unknown]) => _t(
+    agree(me, m: 'Ti sei astenuto. Puoi ancora votare.', f: 'Ti sei astenuta. Puoi ancora votare.', n: 'Astensione registrata. Puoi ancora votare.'),
+    'You abstained. You can still vote.',
+  );
   String get revealMayor => _t('Rivelati', 'Reveal');
   String get revealMayorTitle => _t('Ti riveli come Sindaco?', 'Reveal yourself as the Mayor?');
   String get revealMayorBody =>
       _t('Tutti sapranno chi sei, e da oggi il tuo voto vale doppio.', 'Everyone will know who you are, and your vote counts twice from today.');
-  String get silenced => _t('zittito', 'silenced');
-  String get lynched => _t('Linciato', 'Lynched');
+  String silenced([Gender gender = Gender.unknown]) => _t(agree(gender, m: 'zittito', f: 'zittita'), 'silenced');
 
-  /// The verdict on the felt, short and plain: who, and which card.
-  String lynchedLine(String name, String? role) {
-    if (role == null) return _t('$name è stato linciato.', '$name was lynched.');
+  /// The red stamp on the lynched seat.
+  String lynched([Gender gender = Gender.unknown]) => _t(agree(gender, m: 'Linciato', f: 'Linciata'), 'Lynched');
+
+  /// The verdict, short and plain: who, and which card. In Italian it agrees
+  /// with the player; when nobody said how, the square does the lynching.
+  String lynchedLine(String name, String? role, {Gender gender = Gender.unknown}) {
+    final who = agree(
+      gender,
+      m: '$name è stato linciato.',
+      f: '$name è stata linciata.',
+      n: 'La piazza ha linciato $name.',
+    );
+    if (role == null) return _t(who, '$name was lynched.');
     final card = role.isEmpty ? role : role[0].toLowerCase() + role.substring(1);
-    return _t('$name è stato linciato. Era $card.', '$name was lynched. They were the $role.');
+    return _t('$who Era $card.', '$name was lynched. They were the $role.');
   }
 
   String get noLynch => _t('Nessuno è stato linciato.', 'Nobody was lynched.');

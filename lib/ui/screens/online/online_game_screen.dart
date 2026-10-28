@@ -39,6 +39,7 @@ import '../../widgets/roles_panel.dart';
 import '../../widgets/wide_scale.dart';
 import '../../widgets/lynch_mark.dart';
 import '../../../l10n/table_strings.dart';
+import '../../../l10n/player_gender.dart';
 import '../../../l10n/safety_strings.dart';
 import '../../../l10n/voice_strings.dart';
 import 'game/action_strip.dart';
@@ -52,6 +53,7 @@ import 'game/saloon_table.dart';
 import 'game/gesture_picker.dart';
 import 'game/saloon_transitions.dart';
 import 'game/seat_card.dart';
+import 'game/verdict_line.dart';
 import 'online_widgets.dart';
 import 'recap_screen.dart';
 import '../../../l10n/recap_strings.dart';
@@ -248,7 +250,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
           : _offline(player)
           ? _t.online.offlineBadge
           : silenced
-          ? _ts.silenced
+          ? _ts.silenced(PlayerGenders.of(player.name))
           : s.atTable,
     );
   }
@@ -1518,6 +1520,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   /// schermo, così la chat resta grande.
   double get _tableHeight => (_media.size.height * 0.38).clamp(200.0, 330.0);
 
+  /// Il tavolo del telefono in piedi: basso e stretto, il panno non basta
+  /// per le frasi lunghe (il verdetto va nella striscia).
+  bool get _narrowTable => !_deskMode && !WideScale.isWide(_media.size);
+
   _Phase _phase() => switch (_stage) {
     Stage.night => _view.action != null ? _taskPhase() : _waitingPhase(),
     Stage.dawn => _dawnPhase(),
@@ -1700,8 +1706,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Flexible(child: FeltText(lines, gap: 4 * _k)),
-            if (footer != null) ...[SizedBox(height: 6 * _k), footer],
+            if (lines.isNotEmpty) Flexible(child: FeltText(lines, gap: 4 * _k)),
+            // La carta del linciato si rimpicciolisce, ma non si taglia.
+            if (footer != null) ...[
+              if (lines.isNotEmpty) SizedBox(height: 6 * _k),
+              Flexible(child: FittedBox(fit: BoxFit.scaleDown, child: footer)),
+            ],
           ],
         ),
       ),
@@ -1742,13 +1752,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
             children: [
               RoleIcon(role, size: _deskMode ? 30 : 22),
               SizedBox(width: 6 * _k),
-              Flexible(
-                child: Text(
-                  text.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: _feltLineStyle(color: color, weight: FontWeight.w600).copyWith(fontSize: _deskMode ? 18 : 13),
-                ),
+              Text(
+                text.label,
+                maxLines: 1,
+                style: _feltLineStyle(color: color, weight: FontWeight.w600).copyWith(fontSize: _deskMode ? 18 : 13),
               ),
               SizedBox(width: 4 * _k),
               Icon(Icons.info_outline, size: _deskMode ? 18 : 14, color: color),
@@ -1840,7 +1847,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   String? _pizzinoOf(SeatVote? vote, {required bool day}) => switch (vote?.target) {
     _ when vote == null => null,
     final target? => '→ ${_numberOf(target) ?? target.name}',
-    null => day ? _t.online.abstainTag : null,
+    null when !day => null,
+    null when _italian && PlayerGenders.of(vote.voter.name) == Gender.feminine => 'astenuta',
+    null => _t.online.abstainTag,
   };
 
   Widget _table({
@@ -1921,10 +1930,14 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
           pizzino: _pizzinoOf(vote, day: day),
           pizzinoKey: ValueKey('pizzino-${player.id}'),
           pizzinoColor: voteColor,
-          note: _offline(player)
+          stamped: player == lynched,
+          // Sul posto del linciato il timbro dice già tutto: niente nota.
+          note: player == lynched
+              ? null
+              : _offline(player)
               ? _t.online.offlineBadge
               : silenced
-              ? _ts.silenced
+              ? _ts.silenced(PlayerGenders.of(player.name))
               : role != null && _deskMode
               ? _t.role(role).label
               : null,
@@ -1949,7 +1962,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         if (player == lynched) {
           return LynchMark(
             key: ValueKey('lynch-${_public.lastLynch?.round}-${player.id}'),
-            label: _ts.lynched,
+            label: _ts.lynched(PlayerGenders.of(player.name)),
             startAt: lynchedAt,
             child: seat,
           );
@@ -2337,13 +2350,40 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     // resta al narratore e al giornale, non qui in mezzo.
     final verdict = condemned == null
         ? _ts.noLynch
-        : _ts.lynchedLine(_tag(condemned), role == null ? null : _t.role(role).label);
+        : _ts.lynchedLine(_tag(condemned), role == null ? null : _t.role(role).label, gender: PlayerGenders.of(condemned.name));
     final extra = [
       if (condemned != null && report.personalWin) _t.pack.foolWinsFact.replaceAll('{name}', _tag(condemned)),
       if (report.bountyHunter case final hunter?) _t.pack.bountyWinsFact.replaceAll('{name}', _tag(hunter)),
     ];
     final film = _stage == Stage.verdictFilm;
     final into = film ? _client.elapsed : LynchMark.length;
+    final headlineColor = role == null ? Saloon.brass : Color.lerp(stampColorFor(role), Colors.white, 0.45)!;
+    final chip = role == null || condemned == null ? null : _verdictRoleChip(role);
+    final extraLines = [
+      for (final line in extra) (text: line, key: null, style: _feltLineStyle(color: Saloon.brass)),
+    ];
+    // Sul telefono il panno è piccolo: la frase va nella striscia, sopra
+    // «Pronto», e sul panno restano la carta del linciato e le note. Sul
+    // tavolo grande la frase sta sul panno, nello spazio libero fra i posti.
+    final narrow = _narrowTable;
+    final Widget? center = narrow
+        ? (extraLines.isEmpty && chip == null ? null : _feltFit(extraLines, footer: chip))
+        : _feltFit(
+            [
+              (text: verdict, key: const Key('online.verdictHeadline'), style: _feltTitleStyle(headlineColor)),
+              ...extraLines,
+            ],
+            footer: chip,
+          );
+    final m = NoirMetrics(_deskMode);
+    final tallyStyle = TextStyle(
+      color: AppColors.textSecondary,
+      fontSize: m.body * 0.9,
+      height: 1.3,
+      fontWeight: FontWeight.w500,
+      shadows: const [Shadow(color: Colors.black, blurRadius: 8)],
+    );
+    final actions = [if (!film) ?_readyAction()];
     return (
       key: const Key('online.verdict'),
       table: _table(
@@ -2353,26 +2393,29 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         accusing: false,
         lynched: condemned,
         lynchedAt: into < Duration.zero ? Duration.zero : into,
-        // Il verdetto si legge tutto, sul telefono come sul PC: va a capo e,
-        // se serve, il carattere si stringe. Mai i puntini. Sotto, la carta
-        // del linciato: un tocco e se ne leggono i dettagli.
-        center: _feltFit(
-          [
-            (
-              text: verdict,
-              key: const Key('online.verdictHeadline'),
-              style: _feltTitleStyle(role == null ? Saloon.brass : Color.lerp(stampColorFor(role), Colors.white, 0.45)!),
-            ),
-            for (final line in extra) (text: line, key: null, style: _feltLineStyle(color: Saloon.brass)),
-          ],
-          footer: role == null || condemned == null ? null : _verdictRoleChip(role),
-        ),
+        center: center,
       ),
       strip: ActionStrip(
-        status: _verdictTally(),
-        statusKey: const Key('online.verdictVotes'),
+        status: narrow ? '$verdict ${_verdictTally()}' : _verdictTally(),
         tone: film || !_view.alive ? StripTone.out : (_acked ? StripTone.wait : StripTone.done),
-        actions: [if (!film) ?_readyAction()],
+        // Il verdetto si legge tutto, mai i puntini; lo scrutinio scorre di
+        // lato se i voti sono tanti.
+        detail: VerdictLine(
+          headline: narrow ? verdict : null,
+          headlineKey: const Key('online.verdictHeadline'),
+          headlineStyle: TextStyle(
+            color: Color.lerp(headlineColor, Colors.white, 0.25),
+            fontSize: m.body,
+            height: 1.3,
+            fontWeight: FontWeight.w700,
+            shadows: const [Shadow(color: Colors.black, blurRadius: 8)],
+          ),
+          tally: _verdictTally(),
+          tallyKey: const Key('online.verdictVotes'),
+          tallyStyle: tallyStyle,
+          height: ActionStrip.heightFor(desk: _deskMode) - m.gap * (_deskMode ? 3 : 2) - (actions.isEmpty ? 0 : m.button),
+        ),
+        actions: actions,
       ),
     );
   }
@@ -2455,7 +2498,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       status = _t.online.voteHint;
       tone = StripTone.act;
     } else {
-      status = mine.target == null ? _ts.abstained : _ts.votedFor(_tag(mine.target!));
+      status = mine.target == null ? _ts.abstained(PlayerGenders.of(view.seat.name)) : _ts.votedFor(_tag(mine.target!));
       statusKey = const Key('online.myVote');
       tone = StripTone.done;
     }

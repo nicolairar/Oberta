@@ -503,8 +503,11 @@ class _CoachCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Pieno, non velato: sopra la chat non si devono leggere le righe sotto.
     return Material(
-      color: const Color(0xEE151114),
+      color: const Color(0xFF151114),
+      elevation: 4,
+      shadowColor: Colors.black,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(color: color.withValues(alpha: 0.7)),

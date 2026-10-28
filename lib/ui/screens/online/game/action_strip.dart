@@ -24,6 +24,10 @@ class ActionStrip extends StatelessWidget {
   final String? count;
   final String? countTooltip;
 
+  /// Drawn in place of the [status] text when the line needs more than a
+  /// sentence (the verdict and its ballot). [status] stays its label.
+  final Widget? detail;
+
   /// A choice next to the buttons (the Tailor: vote or sew).
   final Widget? control;
   final List<NoirAction> actions;
@@ -35,6 +39,7 @@ class ActionStrip extends StatelessWidget {
     this.tone = StripTone.act,
     this.count,
     this.countTooltip,
+    this.detail,
     this.control,
     this.actions = const [],
   });
@@ -65,7 +70,9 @@ class ActionStrip extends StatelessWidget {
         ),
         SizedBox(width: m.gap),
         Expanded(
-          child: Text(
+          child: detail != null
+              ? Semantics(label: status, child: detail)
+              : Text(
             status,
             key: statusKey,
             maxLines: buttons ? 2 : 3,

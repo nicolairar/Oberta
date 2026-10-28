@@ -1,3 +1,4 @@
+import '../../../../l10n/player_gender.dart';
 import '../../../../rules/game_engine.dart';
 import '../../../../rules/player.dart';
 import '../../../../rules/role.dart';
@@ -23,16 +24,33 @@ import '../../../../rules/role.dart';
     for (final name in dead)
       if (!burned.contains(name)) name,
   ];
+  // L'italiano concorda: tutte donne «trovate morte», un uomo basta per
+  // «trovati morti»; se di qualcuno non si sa, un titolo che non concorda.
+  final genders = [for (final name in dead) PlayerGenders.of(name)];
+  final gender = genders.contains(Gender.unknown)
+      ? Gender.unknown
+      : genders.every((g) => g == Gender.feminine)
+      ? Gender.feminine
+      : Gender.masculine;
+  final otherGender = [for (final name in others) PlayerGenders.of(name)].fold<Gender?>(
+    null,
+    (all, g) => all == null || all == g ? g : (all == Gender.unknown || g == Gender.unknown ? Gender.unknown : Gender.masculine),
+  );
   final headline = burned.isNotEmpty
       ? (italian
-            ? 'Rogo nella notte: ${burned.join(' e ')}${others.isEmpty ? '' : '. Morto anche ${others.join(' e ')}'}'
+            ? 'Rogo nella notte: ${burned.join(' e ')}${others.isEmpty ? '' : '. ${agree(otherGender ?? Gender.unknown, m: others.length > 1 ? 'Morti' : 'Morto', f: others.length > 1 ? 'Morte' : 'Morta', n: 'Tra i morti')} anche ${others.join(' e ')}'}'
             : 'Night fire: ${burned.join(' and ')} burned${others.isEmpty ? '' : ', ${others.join(' and ')} also dead'}')
       : dead.isEmpty && risen != null
       ? (italian ? '$risen torna dalla tomba' : '$risen back from the grave')
       : dead.isEmpty
       ? everyoneAlive
       : italian
-      ? (dead.length > 1 ? 'Trovati morti $names' : 'Trovato morto $names')
+      ? agree(
+          gender,
+          m: dead.length > 1 ? 'Trovati morti $names' : 'Trovato morto $names',
+          f: dead.length > 1 ? 'Trovate morte $names' : 'Trovata morta $names',
+          n: 'Sangue nella notte: $names',
+        )
       : '$names found dead';
   return (headline: headline, dead: dead);
 }
