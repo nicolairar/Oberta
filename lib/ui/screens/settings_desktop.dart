@@ -116,7 +116,7 @@ class _DesktopSettingsState extends State<_DesktopSettings> {
     if (!categories.contains(_selected)) _selected = categories.first;
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: DeskTheme(
+      body: StreetBackdrop(section: StreetSection.settings, desk: true, builder: (context, _) => DeskTheme(
         child: CallbackShortcuts(
           bindings: {
             const SingleActivator(LogicalKeyboardKey.arrowUp): () => _step(-1),
@@ -136,7 +136,7 @@ class _DesktopSettingsState extends State<_DesktopSettings> {
                       gradient: RadialGradient(
                         center: Alignment(-0.7, -1.1),
                         radius: 1.5,
-                        colors: [Color(0xFF3A2A1F), Color(0xFF1C1511), AppColors.background],
+                        colors: [Color(0xCC3A2A1F), Color(0xC01C1511), Color(0xD00B0A0D)],
                         stops: [0, 0.5, 1],
                       ),
                     ),
@@ -181,7 +181,7 @@ class _DesktopSettingsState extends State<_DesktopSettings> {
             ),
           ),
         ),
-      ),
+      )),
     );
   }
 

@@ -18,6 +18,10 @@ import '../widgets/home_caption.dart';
 import '../widgets/home_neon_sign.dart';
 import '../widgets/home_posters.dart';
 import '../widgets/home_settings_plate.dart';
+import '../widgets/home_tutorial_flyer.dart';
+import '../street/street_route.dart';
+import '../street/street_section.dart';
+import '../street/street_stage.dart';
 import 'avatar/barber_mirror_screen.dart';
 import 'lobby_screen.dart';
 import 'online/online_room_screen.dart';
@@ -461,7 +465,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
       _openSetup(profile);
       return;
     }
-    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => OnlineScreen(services: _online)));
+    StreetRoute.push<void>(context, StreetSection.friends, (_) => OnlineScreen(services: _online));
   }
 
   /// Le modalità che non ci sono ancora: il manifesto dondola e la
@@ -516,6 +520,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
         child: LayoutBuilder(
           builder: (context, constraints) {
             final layout = HomeAlleyLayout(constraints.biggest, MediaQuery.paddingOf(context));
+            // La strada dei menu parte da qui: l'uomo sotto il lampione.
+            StreetStage.report(context, StreetSpot(layout.smokerFeet, layout.smoker));
             // Su desktop non c'è «Un telefono per tutti»: restano gli amici
             // e la classificata, alti quanto tutta la zona dei manifesti.
             final desktop = DesktopPlatform.isDesktop;
@@ -692,8 +698,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                         // Ranked is built but locked in this build: the queue
                         // opens only with --dart-define=RANKED_DEBUG=true.
                         onTap: rankedDebug && signedIn && _online?.ranked != null
-                            ? () => Navigator.of(context)
-                                  .push(MaterialPageRoute<void>(builder: (_) => RankedQueueScreen(services: _online!)))
+                            ? () => StreetRoute.push<void>(
+                                context,
+                                StreetSection.ranked,
+                                (_) => RankedQueueScreen(services: _online!),
+                              )
                             : () => _notYet(t.rankedTeaser),
                       ),
                     ),
@@ -705,6 +714,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                       ),
                     ),
                   ),
+                  // Il tutorial si trova sempre: il volantino sul palo del lampione.
+                  if (!canvas && layout.tutorial != null)
+                    _posted(
+                      rect: layout.tutorial!,
+                      tilt: 0,
+                      at: 2.45,
+                      child: HomeTutorialFlyer(
+                        key: const Key('home.tutorial'),
+                        label: TutorialStrings.of(context).deskButton,
+                        onTap: () {
+                          SoundStage.instance.press(Press.tap);
+                          TutorialScreen.open(context);
+                        },
+                      ),
+                    ),
                   Positioned.fromRect(
                     rect: layout.caption,
                     child: IgnorePointer(

@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../street/street_scaffold.dart';
 import '../../../sound/screen_music.dart';
 import '../../../sound/sound_stage.dart';
 import '../../../l10n/app_language.dart';
@@ -266,7 +267,7 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
     final size = lobby.maxPlayers;
     return Scaffold(
       backgroundColor: const Color(0xFF120C08),
-      body: NoirDesk(
+      body: StreetBackdrop(section: StreetSection.ranked, desk: true, builder: (context, _) => NoirDesk(
         child: DeskTheme(
           child: DeskEscape(
             onEscape: _cancel,
@@ -379,7 +380,7 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
             ),
           ),
         ),
-      ),
+      )),
     );
   }
 
@@ -444,7 +445,7 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
     }
     return Scaffold(
       backgroundColor: const Color(0xFF120C08),
-      body: DecoratedBox(
+      body: StreetBackdrop(section: StreetSection.ranked, builder: (context, _) => DecoratedBox(
         decoration: const BoxDecoration(
           gradient: RadialGradient(
             center: Alignment(0, -0.35),
@@ -567,7 +568,7 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
             ],
           ),
         )),
-      ),
+      )),
     );
   }
 }

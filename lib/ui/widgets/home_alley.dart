@@ -2,6 +2,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../street/noir_smoker.dart';
+import '../street/street_stage.dart';
 import 'home_neon_sign.dart';
 
 double _span(double t, double from, double to) => ((t - from) / (to - from)).clamp(0.0, 1.0);
@@ -76,10 +78,16 @@ class HomeAlleyLayout {
     plaque = Rect.fromLTWH(18, top + 12, min(138, w * 0.36), 34);
     final signInWidth = min(112.0, slot.left - 8 - plaque.right - 12);
     signIn = Rect.fromLTWH(slot.left - 8 - signInWidth, slot.center.dy - 17, signInWidth, 34);
-    badge = Rect.fromLTWH(12, top + 4, min(196.0, slot.left - 22), 50);
-    final shopLeft = max(badge.right + 8, slot.left - 10 - 120);
-    shop = Rect.fromLTRB(shopLeft, top + 2, slot.left - 10, top + 54);
-    barber = Rect.fromLTRB(shop.left, shop.bottom - 4, shop.right, shop.bottom + 44);
+    // Dopo l'accesso la fila in alto è: cartellino, bottega, barbiere,
+    // ingranaggio. Le due insegne stanno affiancate, mai appese sotto, così
+    // non coprono le lettere di OBERTÀ; dove il telefono è stretto perdono
+    // la scritta e resta l'icona.
+    final row = slot.left - 8 - 12;
+    // Il cartellino vuole almeno 188 punti (ritratto, nome, livello, monete).
+    final signWidth = ((row - 14 - 188) / 2).clamp(44.0, 80.0);
+    badge = Rect.fromLTWH(12, top + 4, min(196.0, row - 2 * signWidth - 6 - 8), 50);
+    barber = Rect.fromLTRB(slot.left - 8 - signWidth, top + 2, slot.left - 8, top + 54);
+    shop = Rect.fromLTRB(barber.left - 6 - signWidth, top + 2, barber.left - 6, top + 54);
     final compactRight = signIn.left - 6;
     final compactLeft = max(plaque.right + 6, compactRight - 46);
     shopCompact = compactRight - compactLeft >= 34 ? Rect.fromLTRB(compactLeft, top + 6, compactRight, top + 50) : null;
@@ -116,7 +124,19 @@ class HomeAlleyLayout {
     smokerFeet = Offset(lampFoot.dx + smoker * 0.31, ground + street * 0.25);
 
     caption = Rect.fromLTRB(20, curb + 2, w - 20, h - safe.bottom - 2);
+
+    // Il volantino del tutorial, attaccato al palo del lampione tra la
+    // lanterna e il cappello dell'uomo.
+    final flyerTop = lampHead.dy + smoker * 0.34;
+    final flyerBottom = min(flyerTop + 104, smokerFeet.dy - smoker * 1.12 - 8);
+    final flyerRight = min(column - 4, 8 + 84.0);
+    tutorial = flyerBottom - flyerTop >= 64 && flyerRight - 6 >= 60
+        ? Rect.fromLTRB(6, flyerTop, flyerRight, flyerBottom)
+        : null;
   }
+
+  /// Il volantino del tutorial sul palo (null dove non ci sta).
+  late final Rect? tutorial;
 
   /// Quanta luce del lampione arriva in un punto del muro, da 0 a 1: un
   /// cono che scende appena inclinato verso i manifesti.
@@ -337,7 +357,7 @@ class HomeStreetPainter extends CustomPainter {
   final HomeNeonState neon;
 
   HomeStreetPainter({required this.layout, required this.ambient, required this.intro, required this.neon})
-    : super(repaint: Listenable.merge([ambient, intro, neon]));
+    : super(repaint: Listenable.merge([ambient, intro, neon, StreetStage.walking]));
 
   static const loop = 60.0;
   static const opening = 3.0;
@@ -377,7 +397,8 @@ class HomeStreetPainter extends CustomPainter {
     _cat(canvas, size);
     _lampPost(canvas, lamp);
     _drip(canvas, lamp);
-    _smoker(canvas, lamp);
+    // Mentre cammina per strada l'uomo lo disegna la strada, non il vicolo.
+    if (StreetStage.walking.value == 0) _smoker(canvas, lamp);
     _rain(canvas, size);
 
     final rect = Offset.zero & size;
@@ -693,43 +714,6 @@ class HomeStreetPainter extends CustomPainter {
     }
   }
 
-  /// Un arto: più largo all'attaccatura, più stretto in fondo.
-  void _limb(Canvas canvas, Offset from, Offset to, double fromRadius, double toRadius, Paint paint) {
-    final delta = to - from;
-    final length = delta.distance;
-    canvas.drawCircle(from, fromRadius, paint);
-    canvas.drawCircle(to, toRadius, paint);
-    if (length < 0.01) return;
-    final side = Offset(-delta.dy, delta.dx) / length;
-    canvas.drawPath(
-      Path()
-        ..moveTo(from.dx + side.dx * fromRadius, from.dy + side.dy * fromRadius)
-        ..lineTo(to.dx + side.dx * toRadius, to.dy + side.dy * toRadius)
-        ..lineTo(to.dx - side.dx * toRadius, to.dy - side.dy * toRadius)
-        ..lineTo(from.dx - side.dx * fromRadius, from.dy - side.dy * fromRadius)
-        ..close(),
-      paint,
-    );
-  }
-
-  /// Dove si piega un arto di due pezzi teso tra [from] e [to]: delle due
-  /// pieghe possibili sceglie quella più in basso (gomito) o più avanti
-  /// (ginocchio).
-  Offset _joint(Offset from, Offset to, double upper, double lower, {required bool low}) {
-    final delta = to - from;
-    final length = max(delta.distance, 0.001);
-    final reach = min(length, upper + lower - 0.001);
-    final along = delta / length;
-    final base = (upper * upper - lower * lower + reach * reach) / (2 * reach);
-    final rise = sqrt(max(0.0, upper * upper - base * base));
-    final middle = from + along * base;
-    final side = Offset(along.dy, -along.dx);
-    final a = middle + side * rise;
-    final b = middle - side * rise;
-    if (low) return a.dy > b.dy ? a : b;
-    return a.dx > b.dx ? a : b;
-  }
-
   /// Che cosa sta facendo l'uomo con la sigaretta: quanto ha la mano alla
   /// bocca, quanto arde la brace, e a che punto è la boccata di fumo che ha
   /// appena soffiato (o NaN se non ce n'è).
@@ -779,94 +763,7 @@ class HomeStreetPainter extends CustomPainter {
     final butt = Offset.lerp(hand + Offset(h * 0.012, -h * 0.022), lips, pose)!;
     final tip = butt + Offset.lerp(Offset(h * 0.050, -h * 0.062), Offset(h * 0.086, h * 0.008), pose)!;
 
-    void body(Paint paint) {
-      void leg(Offset foot) {
-        final knee = _joint(hip, foot, h * 0.265, h * 0.265, low: false);
-        _limb(canvas, hip, knee, h * 0.058, h * 0.046, paint);
-        _limb(canvas, knee, foot.translate(0, -h * 0.03), h * 0.046, h * 0.034, paint);
-        canvas.drawRRect(
-          RRect.fromRectAndCorners(
-            Rect.fromLTRB(foot.dx - h * 0.04, foot.dy - h * 0.048, foot.dx + h * 0.115, foot.dy),
-            topLeft: Radius.circular(h * 0.02),
-            topRight: Radius.circular(h * 0.045),
-            bottomRight: Radius.circular(h * 0.012),
-          ),
-          paint,
-        );
-      }
-
-      leg(Offset(-h * 0.06, 0));
-      leg(Offset(h * 0.085, 0));
-
-      canvas.save();
-      canvas.translate(hip.dx, hip.dy);
-      // Il braccio dietro, con la mano in tasca.
-      final back = Offset(-h * 0.035, -h * 0.325);
-      final elbow = back + Offset(-h * 0.075, h * 0.165);
-      _limb(canvas, back, elbow, h * 0.046, h * 0.038, paint);
-      _limb(canvas, elbow, Offset(h * 0.005, -h * 0.045), h * 0.038, h * 0.032, paint);
-
-      // Il soprabito: spalle larghe, vita segnata, la falda che si apre dietro.
-      canvas.drawPath(
-        Path()
-          ..moveTo(-h * 0.145, -h * 0.335)
-          ..quadraticBezierTo(-h * 0.10, -h * 0.385, 0, -h * 0.385)
-          ..quadraticBezierTo(h * 0.11, -h * 0.385, h * 0.135, -h * 0.325)
-          ..quadraticBezierTo(h * 0.16, -h * 0.20, h * 0.11, -h * 0.085)
-          ..quadraticBezierTo(h * 0.13, h * 0.08, h * 0.165, h * 0.215)
-          ..lineTo(-h * 0.205, h * 0.215)
-          ..quadraticBezierTo(-h * 0.15, h * 0.04, -h * 0.115, -h * 0.085)
-          ..quadraticBezierTo(-h * 0.17, -h * 0.22, -h * 0.145, -h * 0.335)
-          ..close(),
-        paint,
-      );
-      // Il bavero alzato, la testa di profilo, il cappello calato.
-      canvas.drawPath(
-        Path()
-          ..moveTo(-h * 0.07, -h * 0.375)
-          ..lineTo(-h * 0.055, -h * 0.435)
-          ..lineTo(h * 0.01, -h * 0.385)
-          ..lineTo(h * 0.085, -h * 0.425)
-          ..lineTo(h * 0.075, -h * 0.365)
-          ..close(),
-        paint,
-      );
-      final head = Offset(h * 0.03, -h * 0.485);
-      canvas.drawOval(Rect.fromCenter(center: head, width: h * 0.150, height: h * 0.172), paint);
-      canvas.drawPath(
-        Path()
-          ..moveTo(head.dx + h * 0.060, head.dy - h * 0.030)
-          ..lineTo(head.dx + h * 0.102, head.dy + h * 0.022)
-          ..lineTo(head.dx + h * 0.074, head.dy + h * 0.032)
-          ..lineTo(head.dx + h * 0.080, head.dy + h * 0.062)
-          ..quadraticBezierTo(head.dx + h * 0.065, head.dy + h * 0.105, head.dx + h * 0.010, head.dy + h * 0.095)
-          ..lineTo(head.dx, head.dy)
-          ..close(),
-        paint,
-      );
-      canvas.save();
-      canvas.translate(head.dx + h * 0.025, head.dy - h * 0.046);
-      canvas.rotate(0.16);
-      canvas.drawOval(Rect.fromCenter(center: Offset.zero, width: h * 0.36, height: h * 0.05), paint);
-      canvas.restore();
-      canvas.drawPath(
-        Path()
-          ..moveTo(head.dx - h * 0.082, head.dy - h * 0.050)
-          ..quadraticBezierTo(head.dx - h * 0.090, head.dy - h * 0.160, head.dx - h * 0.040, head.dy - h * 0.160)
-          ..quadraticBezierTo(head.dx + h * 0.010, head.dy - h * 0.130, head.dx + h * 0.055, head.dy - h * 0.165)
-          ..quadraticBezierTo(head.dx + h * 0.105, head.dy - h * 0.150, head.dx + h * 0.100, head.dy - h * 0.040)
-          ..close(),
-        paint,
-      );
-      canvas.restore();
-
-      // Il braccio davanti, che porta la sigaretta alla bocca.
-      final shoulder = hip + Offset(h * 0.035, -h * 0.325);
-      final bend = _joint(shoulder, hand, h * 0.185, h * 0.175, low: true);
-      _limb(canvas, shoulder, bend, h * 0.046, h * 0.038, paint);
-      _limb(canvas, bend, hand, h * 0.038, h * 0.030, paint);
-      canvas.drawCircle(hand, h * 0.034, paint);
-    }
+    void body(Paint paint) => NoirSmoker.body(canvas, h, paint, hand: hand);
 
     // Tre passate: un filo rosso dalla parte dell'insegna, un filo caldo
     // dalla parte del lampione, poi il nero sopra. Sono quei due bordi a

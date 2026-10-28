@@ -24,7 +24,7 @@ extension _Desk on _ShopScreenState {
       onEscape: () => Navigator.of(context).maybePop(),
       child: Scaffold(
         backgroundColor: const Color(0xFF0E0B09),
-        body: ListenableBuilder(
+        body: StreetBackdrop(section: StreetSection.shop, desk: true, builder: (context, _) => ListenableBuilder(
           listenable: _shop,
           builder: (context, _) => CustomPaint(
             painter: const _DeskWallPainter(),
@@ -55,7 +55,7 @@ extension _Desk on _ShopScreenState {
               ],
             ),
           ),
-        ),
+        )),
       ),
     ),
   );

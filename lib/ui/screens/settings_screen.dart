@@ -8,6 +8,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../street/street_route.dart';
+import '../street/street_scaffold.dart';
 import '../../l10n/app_language.dart';
 import '../../l10n/desktop_strings.dart';
 import '../../settings/display_settings.dart';
@@ -58,7 +60,7 @@ class SettingsScreen extends StatefulWidget {
       online = online ?? OnlineServices.instance;
 
   static Future<void> open(BuildContext context, {AppSettings? settings}) =>
-      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => SettingsScreen(settings: settings)));
+      StreetRoute.push<void>(context, StreetSection.settings, (_) => SettingsScreen(settings: settings));
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -219,22 +221,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         final s = SettingsStrings.of(context);
         final signedIn = auth != null && auth.signedIn;
         if (DesktopCanvas.of(context)) return _DesktopSettings(host: this);
-        return Scaffold(
-          backgroundColor: AppColors.background,
-          appBar: AppBar(
-            backgroundColor: const Color(0xFF2A1E16),
-            foregroundColor: AppColors.gold,
-            centerTitle: true,
-            title: Text(t.settingsTitle, style: AppText.display(18)),
-            bottom: const PreferredSize(
-              preferredSize: Size.fromHeight(2),
-              child: SizedBox(
-                height: 2,
-                width: double.infinity,
-                child: ColoredBox(color: Color(0x88C9A227)),
-              ),
-            ),
-          ),
+        return StreetScaffold(
+          section: StreetSection.settings,
+          title: t.settingsTitle,
           body: ContentWidth(
             child: Stack(
               children: [

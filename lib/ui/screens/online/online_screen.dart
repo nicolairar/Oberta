@@ -16,6 +16,7 @@ import '../../theme/app_theme.dart';
 import '../../avatar/avatar_look.dart';
 import '../../widgets/noir_avatar.dart';
 import '../../widgets/player_avatar.dart';
+import '../../street/street_scaffold.dart';
 import '../../widgets/scene_scaffold.dart';
 import 'cafe_room.dart';
 import 'friends_screen.dart';
@@ -113,8 +114,14 @@ class _OnlineScreenState extends State<OnlineScreen> with ScreenMusic {
         ),
       _ => (t.hubTitle, _Hub(services: online, profile: _profile!)),
     };
-    if (DesktopCanvas.of(context)) return CafeDesk(title: title, child: body);
-    return CafeScaffold(resizeForKeyboard: false, title: title, child: body);
+    // Il caffè visto dalla strada: l'uomo entra dalla porta, e dentro c'è la sala.
+    final desk = DesktopCanvas.of(context);
+    return StreetBackdrop(
+      section: StreetSection.friends,
+      desk: desk,
+      builder: (context, _) =>
+          desk ? CafeDesk(title: title, child: body) : CafeScaffold(resizeForKeyboard: false, title: title, child: body),
+    );
   }
 }
 

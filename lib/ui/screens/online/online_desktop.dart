@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../online/online_services.dart';
 import '../../desktop/desktop_canvas.dart';
+import '../../street/street_scaffold.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/city_backdrop.dart';
 import '../../widgets/noir_avatar.dart';
@@ -22,14 +23,24 @@ class DeskOnlineScene extends StatelessWidget {
   final VoidCallback? onBack;
   final EdgeInsetsGeometry padding;
 
+  /// Il posto della strada dei menu dove sta la pagina: la sua facciata
+  /// al posto della città. Null: la città.
+  final StreetSection? section;
+
   const DeskOnlineScene({
     super.key,
     required this.title,
     required this.child,
+    this.section,
     this.actions = const [],
     this.onBack,
     this.padding = const EdgeInsets.fromLTRB(DeskSize.gutter, 8, DeskSize.gutter, DeskSize.gutter),
   });
+
+  Widget _backdrop({required Widget child}) => switch (section) {
+    null => CityBackdrop(child: child),
+    final section => StreetBackdrop(section: section, desk: true, builder: (context, _) => child),
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +48,7 @@ class DeskOnlineScene extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       resizeToAvoidBottomInset: false,
-      body: CityBackdrop(
+      body: _backdrop(
         child: DeskTheme(
           child: DeskEscape(
             onEscape: back,

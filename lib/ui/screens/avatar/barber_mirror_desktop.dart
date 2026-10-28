@@ -13,9 +13,11 @@ extension _DeskMirror on _BarberMirrorScreenState {
       },
       child: Scaffold(
         backgroundColor: AppColors.background,
-        body: CityBackdrop(
-          child: DecoratedBox(
-            decoration: const BoxDecoration(color: Color(0x8C000000)),
+        body: StreetBackdrop(
+          section: StreetSection.barber,
+          desk: true,
+          builder: (context, _) => DecoratedBox(
+            decoration: const BoxDecoration(color: Color(0xB3000000)),
             child: _asking ? _deskAsk() : _deskChair(),
           ),
         ),

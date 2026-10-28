@@ -2,6 +2,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../street/street_route.dart';
+import '../../street/street_scaffold.dart';
 import '../../../l10n/app_language.dart';
 import '../../../l10n/app_strings.dart';
 import '../../../l10n/shop_strings.dart';
@@ -33,10 +35,10 @@ Future<void> openShop(
   required ShopRepository shop,
   VoidCallback? onChangeFace,
 }) =>
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => ShopScreen(account: account, shop: shop, onChangeFace: onChangeFace),
-      ),
+    StreetRoute.push<void>(
+      context,
+      StreetSection.shop,
+      (_) => ShopScreen(account: account, shop: shop, onChangeFace: onChangeFace),
     );
 
 /// I colori delle classi, come le etichette cucite dentro la giacca.
@@ -182,8 +184,9 @@ class _ShopScreenState extends State<ShopScreen> {
   Widget build(BuildContext context) {
     final t = _t;
     if (DesktopCanvas.of(context)) return _desktop(t);
-    return Scaffold(
-      backgroundColor: const Color(0xFF120E0B),
+    return StreetScaffold(
+      section: StreetSection.shop,
+      showBack: false,
       body: ListenableBuilder(
         listenable: _shop,
         builder: (context, _) => SafeArea(

@@ -82,6 +82,9 @@ void main() {
     expect(find.text('Lingua'), findsOneWidget);
     expect(find.text('Automatica (telefono)'), findsOneWidget);
     expect(find.text('Italiano'), findsOneWidget);
+    // La pagina sta nella vetrina della strada: si scorre fino alla voce.
+    await tester.ensureVisible(find.text('English'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('English'));
     await tester.pumpAndSettle();
 
@@ -109,6 +112,9 @@ void main() {
     // Tornando ad "automatica" si torna alla lingua del telefono.
     await tester.tap(find.byTooltip('Settings'));
     await tester.pumpAndSettle();
+    // La pagina sta nella vetrina della strada: si scorre fino alla voce.
+    await tester.ensureVisible(find.text('Automatic (phone)'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Automatic (phone)'));
     await tester.pumpAndSettle();
     expect(find.text('IMPOSTAZIONI'), findsOneWidget);
@@ -128,6 +134,9 @@ void main() {
     _expectEnglishAlley();
 
     await tester.tap(find.byTooltip('Settings'));
+    await tester.pumpAndSettle();
+    // La pagina sta nella vetrina della strada: si scorre fino alla voce.
+    await tester.ensureVisible(find.text('Italiano'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Italiano'));
     await tester.pumpAndSettle();

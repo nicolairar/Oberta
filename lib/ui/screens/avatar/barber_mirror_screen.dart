@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../street/street_route.dart';
+import '../../street/street_scaffold.dart';
 import '../../../l10n/app_language.dart';
 import '../../../l10n/app_strings.dart';
 import '../../../online/online_services.dart';
@@ -12,8 +14,6 @@ import '../../desktop/desktop_canvas.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/noir_avatar.dart' show AvatarHead;
 import '../../widgets/player_avatar.dart';
-import '../../widgets/city_backdrop.dart';
-import '../../widgets/scene_scaffold.dart';
 import '../online/online_widgets.dart';
 
 part 'barber_mirror_desktop.dart';
@@ -35,10 +35,10 @@ class BarberMirrorScreen extends StatefulWidget {
     required OnlineServices services,
     required Profile profile,
     bool firstTime = false,
-  }) => Navigator.of(context).push<Profile>(
-    MaterialPageRoute(
-      builder: (_) => BarberMirrorScreen(services: services, profile: profile, firstTime: firstTime),
-    ),
+  }) => StreetRoute.push<Profile>(
+    context,
+    StreetSection.barber,
+    (_) => BarberMirrorScreen(services: services, profile: profile, firstTime: firstTime),
   );
 
   @override
@@ -279,14 +279,13 @@ class _BarberMirrorScreenState extends State<BarberMirrorScreen> {
     if (DesktopCanvas.of(context)) return _desktop();
     final en = _en;
     if (_asking) {
-      return SceneScaffold(
-        appBar: AppBar(
-          title: Text(en ? "The barber's mirror" : 'Lo specchio del barbiere'),
-          actions: [
+      return StreetScaffold(
+        section: StreetSection.barber,
+        title: en ? "The barber's mirror" : 'Lo specchio del barbiere',
+        actions: [
             if (widget.firstTime)
               TextButton(key: const Key('mirror.skip'), onPressed: () => Navigator.of(context).pop(), child: Text(en ? 'Later' : 'Dopo')),
-          ],
-        ),
+        ],
         body: SafeArea(
           child: _PresentationStep(en: en, seed: widget.profile.avatarSeed, look: _look, onPick: _present),
         ),
@@ -307,18 +306,17 @@ class _BarberMirrorScreenState extends State<BarberMirrorScreen> {
     return DefaultTabController(
       key: ValueKey(tabs.length),
       length: tabs.length,
-      child: SceneScaffold(
-        appBar: AppBar(
-          title: Text(en ? "The barber's mirror" : 'Lo specchio del barbiere'),
-          actions: [
+      child: StreetScaffold(
+        section: StreetSection.barber,
+        title: en ? "The barber's mirror" : 'Lo specchio del barbiere',
+        actions: [
             if (widget.firstTime)
               TextButton(
                 key: const Key('mirror.skip'),
                 onPressed: _busy ? null : () => Navigator.of(context).pop(),
                 child: Text(en ? 'Later' : 'Dopo'),
               ),
-          ],
-        ),
+        ],
         body: SafeArea(
           child: Column(
             children: [
