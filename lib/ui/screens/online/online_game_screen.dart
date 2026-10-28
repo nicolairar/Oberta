@@ -289,7 +289,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     showGesturePicker(
       context,
       name: player.name,
-      italian: _italian,
+      language: _t.language,
       owned: _ownedGestures,
       wait: wait.isNegative ? Duration.zero : wait,
       onReport: onReport,
@@ -311,7 +311,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       widget.services.reactions != null && (_stage == Stage.discussion || _stage == Stage.vote) && _isAlive(_view.seat);
 
   Widget? _gestureButton() =>
-      _gesturesOpen ? GestureButton(italian: _italian, desk: _deskMode, onTap: _pickGestureTarget) : null;
+      _gesturesOpen ? GestureButton(language: _t.language, desk: _deskMode, onTap: _pickGestureTarget) : null;
 
   /// Dal bottone: prima a chi, poi quale gesto.
   Future<void> _pickGestureTarget() async {
@@ -321,7 +321,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         if (_canGesture(seats[i])) (player: seats[i], number: i + 1, name: seats[i].name),
     ];
     if (targets.isEmpty) return;
-    final player = await showGestureTargetPicker<Player>(context, italian: _italian, targets: targets);
+    final player = await showGestureTargetPicker<Player>(context, language: _t.language, targets: targets);
     if (player == null || !mounted || !_canGesture(player)) return;
     _throwGesture(player);
   }
@@ -331,7 +331,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     if (!_gesturesOpen) return;
     final overlay = Overlay.maybeOf(context, rootOverlay: true);
     GestureHint.claim().then((first) {
-      if (first && overlay != null) showNoticeIn(overlay, GestureStrings(_italian).firstHint);
+      if (first && overlay != null) showNoticeIn(overlay, GestureStrings(_t.language).firstHint);
     });
   }
 
@@ -2489,10 +2489,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   bool get _italian => _t.language.locale.languageCode == 'it';
 
-  String get _masthead => _italian ? 'Il Corriere di ${_city.name}' : 'The ${_city.name} Courier';
+  String get _masthead => _t.language.message('courier.masthead', {'city': _city.name});
 
   String _dateLine(String edition) =>
-      _italian ? 'Anno XIX  ·  Giorno ${_public.round}  ·  $edition' : 'Vol. XIX  ·  Day ${_public.round}  ·  $edition';
+      _t.language.message('courier.dateLine', {'round': _public.round, 'edition': edition});
 
   List<FrontPageLine> _printed(List<ScriptLine> lines) => [for (final l in lines) (text: l.text, fact: l.isFact)];
 
@@ -2507,7 +2507,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     if (dawn == null) return _waitingPhaseFor(const Key('online.dawn'));
     final lines = _script('dawn-${dawn.round}')
         .dawn(dawn, discussion: _board.settings.discussion, stories: _storiesOf(dawn), online: true);
-    final (:headline, :dead) = dawnHeadline(dawn, italian: _italian, everyoneAlive: _t.everyoneAlive);
+    final (:headline, :dead) = dawnHeadline(dawn, language: _t.language, everyoneAlive: _t.everyoneAlive);
     return (
       key: const Key('online.dawn'),
       strip: ActionStrip(
@@ -2520,7 +2520,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         compact: !_deskMode,
         scale: _deskMode ? 1.5 : 1,
         masthead: _masthead,
-        dateLine: _dateLine(_italian ? "Edizione dell'alba" : 'Dawn edition'),
+        dateLine: _dateLine(_t.language.message('courier.dawnEdition')),
         headline: headline,
         kicker: _t.crimePage,
         portraits: dead,
@@ -2662,7 +2662,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     final dawn = _public.lastDawn;
     final headline = dawn == null || dawn.round != _public.round
         ? null
-        : dawnHeadline(dawn, italian: _italian, everyoneAlive: _t.everyoneAlive).headline;
+        : dawnHeadline(dawn, language: _t.language, everyoneAlive: _t.everyoneAlive).headline;
     final silenced = _view.alive && _view.silenced;
     final option = _view.action;
     final canPacify = option != null && option.canPacify && _open;

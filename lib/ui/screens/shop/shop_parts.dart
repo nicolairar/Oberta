@@ -299,7 +299,7 @@ class _Chip extends StatelessWidget {
 
 String _collectionLabel(Object collection, AppLanguage language) => switch (collection) {
   final ShopBrand brand => brand.label,
-  final ShopCollection c => language == AppLanguage.en ? c.en : c.it,
+  final ShopCollection c => language == AppLanguage.it ? c.it : c.en,
   _ => '$collection',
 };
 

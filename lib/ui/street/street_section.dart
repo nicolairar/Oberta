@@ -32,7 +32,7 @@ enum StreetSection {
 
   const StreetSection(this.it, this.en, this.neon, this.front);
 
-  String name(AppLanguage language) => language == AppLanguage.en ? en : it;
+  String name(AppLanguage language) => language == AppLanguage.it ? it : en;
 
   String nameOf(BuildContext context) => name(AppStrings.of(context).language);
 }

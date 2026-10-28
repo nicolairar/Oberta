@@ -217,7 +217,7 @@ class ShopItem {
   /// Non si vende: lo regala una missione.
   bool get exclusive => unlock != null;
 
-  String name(AppLanguage language) => language == AppLanguage.en ? nameEn : nameIt;
+  String name(AppLanguage language) => language == AppLanguage.it ? nameIt : nameEn;
 
   factory ShopItem.fromJson(Map<String, dynamic> json) => ShopItem(
     id: json['id'] as String,
@@ -286,8 +286,8 @@ class ShopBundle {
 
   bool get premium => tier == 'premium';
 
-  String name(AppLanguage language) => language == AppLanguage.en ? nameEn : nameIt;
-  String tagline(AppLanguage language) => language == AppLanguage.en ? taglineEn : taglineIt;
+  String name(AppLanguage language) => language == AppLanguage.it ? nameIt : nameEn;
+  String tagline(AppLanguage language) => language == AppLanguage.it ? taglineIt : taglineEn;
 
   /// I pezzi a pagamento che [owned] non ha ancora.
   List<ShopItem> missing(Map<String, ShopItem> catalog, Set<String> owned) => [
@@ -915,7 +915,7 @@ enum CalcioTeam {
   String get scarfId => '${name}Scarf';
   String get propId => '$name${prop.suffix}';
 
-  String tagline(AppLanguage language) => language == AppLanguage.en ? taglineEn : taglineIt;
+  String tagline(AppLanguage language) => language == AppLanguage.it ? taglineIt : taglineEn;
 
   /// I quattro pezzi, come li vende la bottega.
   List<String> get itemIds => ['outfit.$kitId', 'hat.$capId', 'accessory.$scarfId', 'accessory.$propId'];

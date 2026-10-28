@@ -4,7 +4,7 @@ part of 'barber_mirror_screen.dart';
 /// lampada, a sinistra le facce pronte e gli abiti, a destra le schede (in
 /// colonna) con le loro scelte; sotto lo specchio «Tengo questa faccia».
 extension _DeskMirror on _BarberMirrorScreenState {
-  String get _deskTitle => _en ? "The barber's mirror" : 'Lo specchio del barbiere';
+  String get _deskTitle => _language.message('mirror.title');
 
   Widget _desktop() => DeskTheme(
     child: DeskEscape(
@@ -32,12 +32,12 @@ extension _DeskMirror on _BarberMirrorScreenState {
     height: 52,
     feel: Press.back,
     onPressed: _busy ? null : () => Navigator.of(context).pop(),
-    label: _en ? 'Later' : 'Dopo',
+    label: _language.message('mirror.later'),
   );
 
   /// Il primo passo, sul PC: tre grandi ritratti tra cui scegliere.
   Widget _deskAsk() {
-    final en = _en;
+    final language = _language;
     final seed = widget.profile.avatarSeed;
     Widget card(Presentation p, String title, String? sub) {
       final preview = p == Presentation.other
@@ -94,16 +94,14 @@ extension _DeskMirror on _BarberMirrorScreenState {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  en ? 'Who sits in the chair?' : 'Chi si siede sulla poltrona?',
+                  language.message('mirror.whoSits'),
                   style: DeskText.display(DeskText.hero, color: AppColors.textPrimary),
                 ),
                 const SizedBox(height: 16),
                 SizedBox(
                   width: 900,
                   child: Text(
-                    en
-                        ? 'The barber suggests cuts, make-up and clothes to match. You can still pick anything with "Show all".'
-                        : 'Il barbiere ti propone tagli, trucco e abiti adatti. Con «Mostra tutto» puoi comunque scegliere di tutto.',
+                    language.message('mirror.presentationHint'),
                     textAlign: TextAlign.center,
                     style: DeskText.text(size: DeskText.lead, color: AppColors.textSecondary),
                   ),
@@ -112,11 +110,11 @@ extension _DeskMirror on _BarberMirrorScreenState {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    card(Presentation.man, en ? 'Man' : 'Uomo', null),
+                    card(Presentation.man, language.message('mirror.man'), null),
                     const SizedBox(width: 40),
-                    card(Presentation.woman, en ? 'Woman' : 'Donna', null),
+                    card(Presentation.woman, language.message('mirror.woman'), null),
                     const SizedBox(width: 40),
-                    card(Presentation.other, en ? 'Other' : 'Altro', en ? 'Prefer not to say' : 'Preferisco non dire'),
+                    card(Presentation.other, language.message('mirror.other'), language.message('mirror.preferNotToSay')),
                   ],
                 ),
                 const SizedBox(height: 60),
@@ -130,7 +128,7 @@ extension _DeskMirror on _BarberMirrorScreenState {
 
   /// La poltrona: le facce pronte e gli abiti, lo specchio, le schede.
   Widget _deskChair() {
-    final en = _en;
+    final language = _language;
     final p = _presentation;
     final tabs = [
       for (final tab in _tabs)
@@ -157,7 +155,7 @@ extension _DeskMirror on _BarberMirrorScreenState {
               segmentKey: (option) => Key('mirror.presentation.${option.name}'),
               segments: [
                 for (final option in const [Presentation.man, Presentation.woman, Presentation.other])
-                  (option, _presentationLabel(option, en)),
+                  (option, _presentationLabel(option, language)),
               ],
               selected: p,
               onChanged: _present,
@@ -165,7 +163,7 @@ extension _DeskMirror on _BarberMirrorScreenState {
             const SizedBox(width: 28),
             TargaChip(
               key: const Key('mirror.showAll'),
-              label: en ? 'Show all' : 'Mostra tutto',
+              label: language.message('mirror.showAll'),
               selected: _all,
               desk: true,
               height: 52,
@@ -188,7 +186,7 @@ extension _DeskMirror on _BarberMirrorScreenState {
                       Expanded(
                         flex: 3,
                         child: DeskPanel(
-                          title: en ? 'Ready-made faces' : 'Facce pronte',
+                          title: language.message('mirror.readyMadeFaces'),
                           child: _deskWrap([
                             for (final preset in presets)
                               _DeskPick(
@@ -205,7 +203,7 @@ extension _DeskMirror on _BarberMirrorScreenState {
                         Expanded(
                           flex: 2,
                           child: DeskPanel(
-                            title: en ? 'Free clothes' : 'Abiti di casa',
+                            title: language.message('mirror.freeClothes'),
                             child: _deskWrap(key: const Key('mirror.outfits'), [
                               for (final outfit in outfits)
                                 _DeskPick(
@@ -226,7 +224,7 @@ extension _DeskMirror on _BarberMirrorScreenState {
                   ),
                 ),
                 const SizedBox(width: 32),
-                Expanded(child: _deskGlass(en)),
+                Expanded(child: _deskGlass(language)),
                 const SizedBox(width: 32),
                 SizedBox(
                   width: 680,
@@ -246,7 +244,7 @@ extension _DeskMirror on _BarberMirrorScreenState {
                               for (final (i, t) in tabs.indexed)
                                 _DeskTabRow(
                                   key: Key('mirror.tab.${t.en.toLowerCase()}'),
-                                  label: en ? t.en : t.it,
+                                  label: _tabLabel(language, t),
                                   on: t == tab,
                                   onTap: () => _update(() => _deskTab = i),
                                 ),
@@ -260,7 +258,7 @@ extension _DeskMirror on _BarberMirrorScreenState {
                               Padding(
                                 padding: const EdgeInsets.fromLTRB(28, 26, 28, 18),
                                 child: Text(
-                                  (en ? tab.en : tab.it).toUpperCase(),
+                                  _tabLabel(language, tab).toUpperCase(),
                                   style: DeskText.overline(color: AppColors.gold),
                                 ),
                               ),
@@ -321,7 +319,7 @@ extension _DeskMirror on _BarberMirrorScreenState {
   );
 
   /// Lo specchio grande, sotto la lampada; gli attrezzi e i due bottoni.
-  Widget _deskGlass(bool en) {
+  Widget _deskGlass(AppLanguage language) {
     return Column(
       children: [
         Expanded(
@@ -366,21 +364,21 @@ extension _DeskMirror on _BarberMirrorScreenState {
             _DeskTool(
               key: const Key('mirror.hat'),
               icon: _hatOn ? Icons.face : Icons.face_retouching_natural,
-              label: en ? (_hatOn ? 'Hat off' : 'Hat on') : (_hatOn ? 'Togli il cappello' : 'Metti il cappello'),
+              label: language.message(_hatOn ? 'mirror.hatOff' : 'mirror.hatOn'),
               onTap: () => _update(() => _hatOn = !_hatOn),
             ),
             const SizedBox(width: 14),
             _DeskTool(
               key: const Key('mirror.random'),
               icon: Icons.casino_outlined,
-              label: en ? 'Random face' : 'A caso',
+              label: language.message('mirror.randomShort'),
               onTap: () => _set(FacePreset.randomize(_look, _random)),
             ),
             const SizedBox(width: 14),
             _DeskTool(
               key: const Key('mirror.undo'),
               icon: Icons.undo,
-              label: en ? 'As it was' : "Com'era",
+              label: language.message('mirror.asItWas'),
               onTap: _look == _start ? null : () => _set(_start),
             ),
           ],
@@ -396,7 +394,7 @@ extension _DeskMirror on _BarberMirrorScreenState {
                 expand: true,
                 feel: Press.back,
                 onPressed: _busy ? null : () => Navigator.of(context).maybePop(),
-                label: en ? 'Cancel' : 'Annulla',
+                label: language.message('mirror.cancel'),
               ),
             ),
             const SizedBox(width: 18),
@@ -410,7 +408,7 @@ extension _DeskMirror on _BarberMirrorScreenState {
                 onPressed: _busy ? null : _save,
                 busy: _busy,
                 icon: Icons.check,
-                label: en ? 'Save this face' : 'Tengo questa faccia',
+                label: language.message('mirror.saveFace'),
               ),
             ),
           ],

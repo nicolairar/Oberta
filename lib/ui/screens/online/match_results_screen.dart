@@ -4,7 +4,6 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../l10n/app_language.dart';
 import '../../../l10n/app_strings.dart';
 import '../../../online/online_services.dart';
 import '../../../platform/achievements.dart';
@@ -123,23 +122,23 @@ class _MatchResultsScreenState extends State<MatchResultsScreen> with SingleTick
   /// Chi ha vinto, a parole (null se non si dice): il risultato dice solo
   /// se hai vinto tu.
   String? _winners(AppStrings strings) {
-    final en = strings.language == AppLanguage.en;
+    String m(String key) => strings.language.message('results.$key');
     final r = widget.result;
     final role = _role;
     String faction(Team team) => switch (team) {
-          Team.mafia => en ? 'THE FAMILY WINS' : 'VINCE LA FAMIGLIA',
-          Team.citizens => en ? 'THE TOWN WINS' : 'VINCE LA CITTÀ',
-          Team.neutral => en ? 'A LONE WOLF WINS' : 'VINCE UN CANE SCIOLTO',
+          Team.mafia => m('familyWins'),
+          Team.citizens => m('townWins'),
+          Team.neutral => m('loneWolfWins'),
         };
     if (r.abandoned || role == null) return null;
-    if (!r.won) return en ? 'YOU LOST' : 'HAI PERSO';
+    if (!r.won) return m('youLost');
     if (role.team != Team.neutral) return faction(role.team);
     return switch (role) {
-      Role.cacciatore => en ? 'THE BOUNTY IS PAID' : 'LA TAGLIA È PAGATA',
-      Role.strozzino => en ? 'THE LOAN SHARK CASHES IN' : 'LO STROZZINO INCASSA',
-      Role.fesso => en ? 'THE FOOL HAD THE LAST LAUGH' : 'IL FESSO RIDE PER ULTIMO',
-      Role.sicario => en ? 'THE HITMAN STANDS ALONE' : 'IL SICARIO RESTA SOLO',
-      Role.piromane => en ? 'THE CITY BURNS' : 'LA CITTÀ BRUCIA',
+      Role.cacciatore => m('bountyPaid'),
+      Role.strozzino => m('loanSharkCashesIn'),
+      Role.fesso => m('foolLastLaugh'),
+      Role.sicario => m('hitmanStandsAlone'),
+      Role.piromane => m('cityBurns'),
       _ => faction(Team.neutral),
     };
   }
@@ -160,7 +159,7 @@ class _MatchResultsScreenState extends State<MatchResultsScreen> with SingleTick
   Widget _desk(BuildContext context) {
     final strings = AppStrings.of(context);
     final t = strings.online;
-    final en = strings.language == AppLanguage.en;
+    String m(String key) => strings.language.message('results.$key');
     final r = widget.result;
     final role = _role;
     final won = r.won && !r.abandoned;
@@ -344,8 +343,8 @@ class _MatchResultsScreenState extends State<MatchResultsScreen> with SingleTick
                                               key: const Key('results.continue'),
                                               kind: widget.offerReplay ? NoirButtonKind.brass : NoirButtonKind.enamel,
                                               label: widget.offerReplay
-                                                  ? (en ? 'BACK' : 'INDIETRO')
-                                                  : (en ? 'BACK TO THE ROOM' : 'TORNA ALLA STANZA'),
+                                                  ? (m('back'))
+                                                  : (m('backToRoom')),
                                               onPressed: () => Navigator.of(context).pop(false),
                                             ),
                                           ),
@@ -354,7 +353,7 @@ class _MatchResultsScreenState extends State<MatchResultsScreen> with SingleTick
                                             Expanded(
                                               child: NoirButton(
                                                 key: const Key('results.again'),
-                                                label: en ? 'PLAY AGAIN' : 'GIOCA ANCORA',
+                                                label: m('playAgain'),
                                                 onPressed: () => Navigator.of(context).pop(true),
                                               ),
                                             ),
@@ -368,8 +367,8 @@ class _MatchResultsScreenState extends State<MatchResultsScreen> with SingleTick
                                     opacity: buttons,
                                     child: Text(
                                       widget.offerReplay
-                                          ? (en ? 'ENTER  play again   ·   ESC  back' : 'INVIO  gioca ancora   ·   ESC  indietro')
-                                          : (en ? 'ENTER or ESC  back to the room' : 'INVIO o ESC  torna alla stanza'),
+                                          ? (m('keysPlayAgainOrBack'))
+                                          : (m('keysBackToRoom')),
                                       textAlign: TextAlign.center,
                                       style: DeskText.text(size: DeskText.label, color: AppColors.textSecondary),
                                     ),
@@ -394,30 +393,30 @@ class _MatchResultsScreenState extends State<MatchResultsScreen> with SingleTick
   Widget _build(BuildContext context) {
     final strings = AppStrings.of(context);
     final t = strings.online;
-    final en = strings.language == AppLanguage.en;
+    String m(String key) => strings.language.message('results.$key');
     final r = widget.result;
     final role = _role;
     final won = r.won && !r.abandoned;
     final accent = won ? Saloon.brass : Saloon.blood;
     String faction(Team team) => switch (team) {
-          Team.mafia => en ? 'THE FAMILY WINS' : 'VINCE LA FAMIGLIA',
-          Team.citizens => en ? 'THE TOWN WINS' : 'VINCE LA CITTÀ',
-          Team.neutral => en ? 'A LONE WOLF WINS' : 'VINCE UN CANE SCIOLTO',
+          Team.mafia => m('familyWins'),
+          Team.citizens => m('townWins'),
+          Team.neutral => m('loneWolfWins'),
         };
     // Il risultato dice solo se hai vinto tu: chi ha vinto davvero, quando
     // hai perso, non si indovina.
     final winners = r.abandoned || role == null
         ? null
         : !won
-            ? (en ? 'YOU LOST' : 'HAI PERSO')
+            ? (m('youLost'))
             : role.team != Team.neutral
                 ? faction(role.team)
                 : switch (role) {
-                    Role.cacciatore => en ? 'THE BOUNTY IS PAID' : 'LA TAGLIA È PAGATA',
-                    Role.strozzino => en ? 'THE LOAN SHARK CASHES IN' : 'LO STROZZINO INCASSA',
-                    Role.fesso => en ? 'THE FOOL HAD THE LAST LAUGH' : 'IL FESSO RIDE PER ULTIMO',
-                    Role.sicario => en ? 'THE HITMAN STANDS ALONE' : 'IL SICARIO RESTA SOLO',
-                    Role.piromane => en ? 'THE CITY BURNS' : 'LA CITTÀ BRUCIA',
+                    Role.cacciatore => m('bountyPaid'),
+                    Role.strozzino => m('loanSharkCashesIn'),
+                    Role.fesso => m('foolLastLaugh'),
+                    Role.sicario => m('hitmanStandsAlone'),
+                    Role.piromane => m('cityBurns'),
                     _ => faction(Team.neutral),
                   };
     return Scaffold(
@@ -525,7 +524,7 @@ class _MatchResultsScreenState extends State<MatchResultsScreen> with SingleTick
                                     width: double.infinity,
                                     child: NoirButton(
                                       key: const Key('results.again'),
-                                      label: en ? 'PLAY AGAIN' : 'GIOCA ANCORA',
+                                      label: m('playAgain'),
                                       onPressed: () => Navigator.of(context).pop(true),
                                     ),
                                   ),
@@ -548,7 +547,7 @@ class _MatchResultsScreenState extends State<MatchResultsScreen> with SingleTick
                                   child: NoirButton(
                                     key: const Key('results.continue'),
                                     kind: widget.offerReplay ? NoirButtonKind.brass : NoirButtonKind.enamel,
-                                    label: widget.offerReplay ? (en ? 'BACK' : 'INDIETRO') : (en ? 'BACK TO THE ROOM' : 'TORNA ALLA STANZA'),
+                                    label: widget.offerReplay ? (m('back')) : (m('backToRoom')),
                                     onPressed: () => Navigator.of(context).pop(false),
                                   ),
                                 ),
@@ -600,7 +599,7 @@ class _MatchResultsScreenState extends State<MatchResultsScreen> with SingleTick
         Row(
           children: [
             Text(
-              '${AppStrings.of(context).language == AppLanguage.en ? 'LEVEL' : 'LIVELLO'} $level',
+              AppStrings.of(context).language.message('results.level', {'level': level}),
               style: AppText.overline.copyWith(
                 color: Saloon.paper,
                 letterSpacing: 2 * k,

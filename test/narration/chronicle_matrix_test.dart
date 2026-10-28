@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oberta/l10n/app_language.dart';
 import 'package:oberta/narration/english_pack.dart';
 import 'package:oberta/narration/italian_pack.dart';
 import 'package:oberta/narration/narration_pack.dart';
@@ -61,7 +62,7 @@ void main() {
     void checkDawn(DawnReport dawn, int seed) {
       final script = NarratorScript(pack: pack, random: Random(seed));
       final lines = script.dawn(dawn, discussion: const Duration(minutes: 2), online: seed.isEven);
-      final (:headline, :dead) = dawnHeadline(dawn, italian: italian, everyoneAlive: 'EVERYONE');
+      final (:headline, :dead) = dawnHeadline(dawn, language: italian ? AppLanguage.it : AppLanguage.en, everyoneAlive: 'EVERYONE');
       final where = '$lang ${dawn.attacks.map((a) => '${a.source.name}/${a.outcome.name}').join('+')}';
       _clean(headline, '$where titolo');
       for (final line in lines) {
@@ -158,7 +159,7 @@ void main() {
       }
       final (:headline, dead: _) = dawnHeadline(
         DawnReport(round: 2, resurrected: c),
-        italian: italian,
+        language: italian ? AppLanguage.it : AppLanguage.en,
         everyoneAlive: '',
       );
       expect(headline, contains(c.name));
@@ -171,7 +172,7 @@ void main() {
         final lines = NarratorScript(pack: pack, random: Random(seed++)).lynch(report);
         final headline = lynchHeadline(
           report,
-          italian: italian,
+          language: italian ? AppLanguage.it : AppLanguage.en,
           tag: (p) => p.name,
           roleLabel: (r) => pack.role(r).label,
         );

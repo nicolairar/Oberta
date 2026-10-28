@@ -1,3 +1,4 @@
+import '../../../../l10n/app_language.dart';
 import '../../../../l10n/player_gender.dart';
 import '../../../../rules/game_engine.dart';
 import '../../../../rules/player.dart';
@@ -7,14 +8,15 @@ import '../../../../rules/role.dart';
 /// cronaca per la partita online e per la sala prove.
 ({String headline, List<String> dead}) dawnHeadline(
   DawnReport dawn, {
-  required bool italian,
+  required AppLanguage language,
   required String everyoneAlive,
 }) {
+  String m(String key, [Map<String, Object?> args = const {}]) => language.message('chronicle.$key', args);
   final dead = [
     for (final attack in dawn.attacks)
       if (attack.isFatal) attack.target.name,
   ];
-  final names = dead.join(italian ? ' E ' : ' AND ');
+  final names = dead.join(m('deadJoiner'));
   final risen = dawn.resurrected?.name;
   final burned = [
     for (final attack in dawn.attacks)
@@ -37,48 +39,43 @@ import '../../../../rules/role.dart';
     (all, g) => all == null || all == g ? g : (all == Gender.unknown || g == Gender.unknown ? Gender.unknown : Gender.masculine),
   );
   final headline = burned.isNotEmpty
-      ? (italian
-            ? 'Rogo nella notte: ${burned.join(' e ')}${others.isEmpty ? '' : '. ${agree(otherGender ?? Gender.unknown, m: others.length > 1 ? 'Morti' : 'Morto', f: others.length > 1 ? 'Morte' : 'Morta', n: 'Tra i morti')} anche ${others.join(' e ')}'}'
-            : 'Night fire: ${burned.join(' and ')} burned${others.isEmpty ? '' : ', ${others.join(' and ')} also dead'}')
+      ? others.isEmpty
+            ? m('fire', {'burned': burned.join(m('listJoiner'))})
+            : m('fireWithOthers', {
+                'burned': burned.join(m('listJoiner')),
+                'others': others.join(m('listJoiner')),
+                'gender': (otherGender ?? Gender.unknown).name,
+                'n': others.length,
+              })
       : dead.isEmpty && risen != null
-      ? (italian ? '$risen torna dalla tomba' : '$risen back from the grave')
+      ? m('risen', {'name': risen})
       : dead.isEmpty
       ? everyoneAlive
-      : italian
-      ? agree(
-          gender,
-          m: dead.length > 1 ? 'Trovati morti $names' : 'Trovato morto $names',
-          f: dead.length > 1 ? 'Trovate morte $names' : 'Trovata morta $names',
-          n: 'Sangue nella notte: $names',
-        )
-      : '$names found dead';
+      : m('foundDead', {'names': names, 'gender': gender.name, 'n': dead.length});
   return (headline: headline, dead: dead);
 }
 
 /// Il titolo della sera, dopo il verdetto. [tag] scrive il nome sul giornale.
 String lynchHeadline(
   LynchReport report, {
-  required bool italian,
+  required AppLanguage language,
   required String Function(Player) tag,
   required String Function(Role) roleLabel,
 }) {
+  String m(String key, [Map<String, Object?> args = const {}]) => language.message('chronicle.$key', args);
   final condemned = report.condemned;
   final role = report.role;
-  if (condemned == null) return italian ? 'La piazza non si decide' : 'The square cannot decide';
+  if (condemned == null) return m('squareUndecided');
   final name = tag(condemned);
-  if (role == null) return italian ? 'Linciato $name' : '$name lynched';
-  if (report.personalWin) return italian ? 'Linciato $name: il Fesso ha vinto' : '$name lynched: the Fool wins';
+  if (role == null) return m('lynched', {'name': name});
+  if (report.personalWin) return m('lynchedFool', {'name': name});
   final hunter = report.bountyHunter;
   if (hunter != null) {
-    return italian
-        ? 'Linciato $name: ${tag(hunter)} incassa la taglia'
-        : '$name lynched: ${tag(hunter)} collects the bounty';
+    return m('lynchedBounty', {'name': name, 'hunter': tag(hunter)});
   }
   if (role.team == Team.neutral) {
-    return italian ? 'Linciato $name: era ${roleLabel(role)}' : '$name lynched: ${roleLabel(role)}';
+    return m('lynchedNeutral', {'name': name, 'role': roleLabel(role)});
   }
   final mafia = role.team == Team.mafia;
-  return italian
-      ? 'Linciato $name: ${mafia ? 'era della Famiglia' : 'era innocente'}'
-      : '$name lynched: ${mafia ? 'one of the Family' : 'an innocent man'}';
+  return m(mafia ? 'lynchedFamily' : 'lynchedInnocent', {'name': name});
 }

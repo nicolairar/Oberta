@@ -229,7 +229,7 @@ class _BarberMirrorScreenState extends State<BarberMirrorScreen> {
   /// [setState] per l'estensione del layout PC.
   void _update(VoidCallback change) => setState(change);
 
-  bool get _en => AppStrings.of(context).language == AppLanguage.en;
+  AppLanguage get _language => AppStrings.of(context).language;
 
   /// Lo specchio mostra la testa nuda, per vedere i capelli; il cappello si
   /// rimette con un tocco.
@@ -287,11 +287,11 @@ class _BarberMirrorScreenState extends State<BarberMirrorScreen> {
   @override
   Widget build(BuildContext context) {
     if (DesktopCanvas.of(context)) return _desktop();
-    final en = _en;
+    final language = _language;
     if (_asking) {
       return StreetScaffold(
         section: StreetSection.barber,
-        title: en ? "The barber's mirror" : 'Lo specchio del barbiere',
+        title: language.message('mirror.title'),
         actions: [
             if (widget.firstTime)
               Padding(
@@ -302,12 +302,12 @@ class _BarberMirrorScreenState extends State<BarberMirrorScreen> {
                   height: 38,
                   feel: Press.back,
                   onPressed: () => Navigator.of(context).pop(),
-                  label: en ? 'Later' : 'Dopo',
+                  label: language.message('mirror.later'),
                 ),
               ),
         ],
         body: SafeArea(
-          child: _PresentationStep(en: en, seed: widget.profile.avatarSeed, look: _look, onPick: _present),
+          child: _PresentationStep(language: language, seed: widget.profile.avatarSeed, look: _look, onPick: _present),
         ),
       );
     }
@@ -328,7 +328,7 @@ class _BarberMirrorScreenState extends State<BarberMirrorScreen> {
       length: tabs.length,
       child: StreetScaffold(
         section: StreetSection.barber,
-        title: en ? "The barber's mirror" : 'Lo specchio del barbiere',
+        title: language.message('mirror.title'),
         actions: [
             if (widget.firstTime)
               Padding(
@@ -339,7 +339,7 @@ class _BarberMirrorScreenState extends State<BarberMirrorScreen> {
                   height: 38,
                   feel: Press.back,
                   onPressed: _busy ? null : () => Navigator.of(context).pop(),
-                  label: en ? 'Later' : 'Dopo',
+                  label: language.message('mirror.later'),
                 ),
               ),
         ],
@@ -350,7 +350,7 @@ class _BarberMirrorScreenState extends State<BarberMirrorScreen> {
               _Preview(
                 look: _shown(_look),
                 hatOn: _hatOn,
-                en: en,
+                language: language,
                 onHat: () => setState(() => _hatOn = !_hatOn),
                 onRandom: () => _set(FacePreset.randomize(_look, _random)),
                 onUndo: _look == _start ? null : () => _set(_start),
@@ -366,7 +366,7 @@ class _BarberMirrorScreenState extends State<BarberMirrorScreen> {
                         segmentKey: (option) => Key('mirror.presentation.${option.name}'),
                         segments: [
                           for (final option in const [Presentation.man, Presentation.woman, Presentation.other])
-                            (option, _presentationLabel(option, en)),
+                            (option, _presentationLabel(option, language)),
                         ],
                         selected: p,
                         onChanged: _present,
@@ -375,7 +375,7 @@ class _BarberMirrorScreenState extends State<BarberMirrorScreen> {
                     const SizedBox(width: 8),
                     TargaChip(
                       key: const Key('mirror.showAll'),
-                      label: en ? 'Show all' : 'Mostra tutto',
+                      label: language.message('mirror.showAll'),
                       selected: _all,
                       height: 44,
                       onPressed: () => setState(() => _all = !_all),
@@ -435,7 +435,7 @@ class _BarberMirrorScreenState extends State<BarberMirrorScreen> {
                 labelColor: AppColors.gold,
                 unselectedLabelColor: AppColors.textSecondary,
                 indicatorColor: AppColors.gold,
-                tabs: [for (final tab in tabs) Tab(text: en ? tab.en : tab.it)],
+                tabs: [for (final tab in tabs) Tab(text: _tabLabel(language, tab))],
               ),
               Expanded(
                 child: Container(
@@ -484,7 +484,7 @@ class _BarberMirrorScreenState extends State<BarberMirrorScreen> {
                     onPressed: _busy ? null : _save,
                     busy: _busy,
                     icon: Icons.check,
-                    label: en ? 'Save this face' : 'Tengo questa faccia',
+                    label: language.message('mirror.saveFace'),
                   ),
                 ),
               ),
@@ -496,21 +496,21 @@ class _BarberMirrorScreenState extends State<BarberMirrorScreen> {
   }
 }
 
-String _presentationLabel(Presentation p, bool en) => switch (p) {
-  Presentation.man => en ? 'Man' : 'Uomo',
-  Presentation.woman => en ? 'Woman' : 'Donna',
-  Presentation.other => en ? 'Other' : 'Altro',
+String _presentationLabel(Presentation p, AppLanguage language) => switch (p) {
+  Presentation.man => language.message('mirror.man'),
+  Presentation.woman => language.message('mirror.woman'),
+  Presentation.other => language.message('mirror.other'),
 };
 
 /// Il primo passo dello specchio: come ti presenti? Filtra le proposte;
 /// «Altro / Preferisco non dire» lascia tutto aperto.
 class _PresentationStep extends StatelessWidget {
-  final bool en;
+  final AppLanguage language;
   final String seed;
   final AvatarLook look;
   final ValueChanged<Presentation> onPick;
 
-  const _PresentationStep({required this.en, required this.seed, required this.look, required this.onPick});
+  const _PresentationStep({required this.language, required this.seed, required this.look, required this.onPick});
 
   @override
   Widget build(BuildContext context) {
@@ -566,15 +566,13 @@ class _PresentationStep extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            en ? 'Who sits in the chair?' : 'Chi si siede sulla poltrona?',
+            language.message('mirror.whoSits'),
             textAlign: TextAlign.center,
             style: AppText.display(26, color: AppColors.textPrimary),
           ),
           const SizedBox(height: 8),
           Text(
-            en
-                ? 'The barber suggests cuts, make-up and clothes to match. You can still pick anything with "Show all".'
-                : 'Il barbiere ti propone tagli, trucco e abiti adatti. Con «Mostra tutto» puoi comunque scegliere di tutto.',
+            language.message('mirror.presentationHint'),
             textAlign: TextAlign.center,
             style: const TextStyle(color: AppColors.textSecondary),
           ),
@@ -582,11 +580,11 @@ class _PresentationStep extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              card(Presentation.man, en ? 'Man' : 'Uomo', null),
+              card(Presentation.man, language.message('mirror.man'), null),
               const SizedBox(width: 10),
-              card(Presentation.woman, en ? 'Woman' : 'Donna', null),
+              card(Presentation.woman, language.message('mirror.woman'), null),
               const SizedBox(width: 10),
-              card(Presentation.other, en ? 'Other' : 'Altro', en ? 'Prefer not to say' : 'Preferisco non dire'),
+              card(Presentation.other, language.message('mirror.other'), language.message('mirror.preferNotToSay')),
             ],
           ),
         ],
@@ -598,7 +596,7 @@ class _PresentationStep extends StatelessWidget {
 class _Preview extends StatelessWidget {
   final AvatarLook look;
   final bool hatOn;
-  final bool en;
+  final AppLanguage language;
   final VoidCallback onHat;
   final VoidCallback onRandom;
   final VoidCallback? onUndo;
@@ -606,7 +604,7 @@ class _Preview extends StatelessWidget {
   const _Preview({
     required this.look,
     required this.hatOn,
-    required this.en,
+    required this.language,
     required this.onHat,
     required this.onRandom,
     required this.onUndo,
@@ -621,14 +619,14 @@ class _Preview extends StatelessWidget {
         children: [
           TargaIconButton(
             key: const Key('mirror.hat'),
-            tooltip: en ? (hatOn ? 'Take the hat off' : 'Put the hat on') : (hatOn ? 'Togli il cappello' : 'Metti il cappello'),
+            tooltip: language.message(hatOn ? 'mirror.takeHatOff' : 'mirror.putHatOn'),
             onPressed: onHat,
             icon: hatOn ? Icons.face : Icons.face_retouching_natural,
           ),
           const SizedBox(height: 8),
           TargaIconButton(
             key: const Key('mirror.undo'),
-            tooltip: en ? 'Back to how it was' : 'Com\'era prima',
+            tooltip: language.message('mirror.backToBefore'),
             onPressed: onUndo,
             icon: Icons.undo,
           ),
@@ -639,7 +637,7 @@ class _Preview extends StatelessWidget {
       const SizedBox(width: 16),
       TargaIconButton(
         key: const Key('mirror.random'),
-        tooltip: en ? 'Random face' : 'Una faccia a caso',
+        tooltip: language.message('mirror.randomFace'),
         onPressed: onRandom,
         icon: Icons.casino_outlined,
       ),
@@ -742,4 +740,11 @@ class _Swatch extends StatelessWidget {
       border: Border.all(color: Colors.black.withValues(alpha: 0.5), width: 1.5),
     ),
   );
+}
+
+/// A tab's label: its English name is the stable id, and the key of its text.
+String _tabLabel(AppLanguage language, _Tab tab) {
+  final words = tab.en.split(RegExp(r'[\s-]+'));
+  final key = words.first.toLowerCase() + [for (final w in words.skip(1)) w[0].toUpperCase() + w.substring(1).toLowerCase()].join();
+  return language.message('mirror.tab.$key');
 }

@@ -14,24 +14,26 @@ import 'table_gestures.dart';
 
 /// I testi dei gesti.
 class GestureStrings {
-  final bool it;
+  final AppLanguage language;
 
-  const GestureStrings(this.it);
+  const GestureStrings(this.language);
 
-  static GestureStrings of(BuildContext context) => GestureStrings(AppStrings.of(context).language == AppLanguage.it);
+  static GestureStrings of(BuildContext context) => GestureStrings(AppStrings.of(context).language);
 
-  String title(String name) => it ? 'Un gesto per $name' : 'A gesture for $name';
-  String get hint => it ? 'Lo vedono tutti al tavolo.' : 'The whole table sees it.';
-  String get locked => it ? 'In bottega' : 'In the shop';
-  String wait(int seconds) => it ? 'Il prossimo fra $seconds s' : 'Next one in $seconds s';
-  String get report => it ? 'Segnala o blocca' : 'Report or block';
-  String get settingTitle => it ? 'Gesti al tavolo' : 'Table gestures';
-  String get settingHint =>
-      it ? 'Spenti, nessuno può lanciarti sigari, rose o pesci.' : 'Off, nobody can throw cigars, roses or fish at you.';
-  String get button => it ? 'Gesti' : 'Gestures';
-  String get pickTarget => it ? 'A chi lanci un gesto?' : 'Who gets a gesture?';
-  String get pickHint => it ? 'Anche tenendo premuto un posto.' : 'Or hold down on a seat.';
-  String get firstHint => it ? 'Lancia un gesto a qualcuno: tocca «Gesti».' : 'Throw a gesture at someone: tap «Gestures».';
+  /// The text under `gesture.<key>` in the messages of the language.
+  String _m(String key, [Map<String, Object?> args = const {}]) => language.message('gesture.$key', args);
+
+  String title(String name) => _m('title', {'name': name});
+  String get hint => _m('hint');
+  String get locked => _m('locked');
+  String wait(int seconds) => _m('wait', {'seconds': seconds});
+  String get report => _m('report');
+  String get settingTitle => _m('settingTitle');
+  String get settingHint => _m('settingHint');
+  String get button => _m('button');
+  String get pickTarget => _m('pickTarget');
+  String get pickHint => _m('pickHint');
+  String get firstHint => _m('firstHint');
 }
 
 /// Il suggerimento dei gesti, una volta sola per telefono.
@@ -58,15 +60,15 @@ abstract final class GestureHint {
 /// Il bottone sempre in vista dei gesti, accanto alla chat di giorno: un
 /// sigaro nel cerchio d'ottone e, sul PC, la parola «Gesti».
 class GestureButton extends StatelessWidget {
-  final bool italian;
+  final AppLanguage language;
   final bool desk;
   final VoidCallback onTap;
 
-  const GestureButton({super.key, required this.italian, required this.desk, required this.onTap});
+  const GestureButton({super.key, required this.language, required this.desk, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final s = GestureStrings(italian);
+    final s = GestureStrings(language);
     final art = desk ? 30.0 : 24.0;
     final icon = SizedBox.square(
       dimension: art,
@@ -117,10 +119,10 @@ class GestureButton extends StatelessWidget {
 /// ogni posto ([targets], col numero del posto), o null.
 Future<T?> showGestureTargetPicker<T>(
   BuildContext context, {
-  required bool italian,
+  required AppLanguage language,
   required List<({T player, int number, String name})> targets,
 }) {
-  final s = GestureStrings(italian);
+  final s = GestureStrings(language);
   return showNoirSheet<T>(
     context,
     builder: (context) => NoirSheet(
@@ -201,13 +203,13 @@ class _TargetTag extends StatelessWidget {
 Future<TableGesture?> showGesturePicker(
   BuildContext context, {
   required String name,
-  required bool italian,
+  required AppLanguage language,
   required Set<TableGesture> owned,
   Duration wait = Duration.zero,
   VoidCallback? onReport,
   VoiceMuteAction? voice,
 }) {
-  final s = GestureStrings(italian);
+  final s = GestureStrings(language);
   return showNoirSheet<TableGesture>(
     context,
     builder: (context) => NoirSheet(
@@ -223,7 +225,7 @@ Future<TableGesture?> showGesturePicker(
             for (final gesture in TableGesture.values)
               GestureTile(
                 gesture: gesture,
-                label: gesture.label(italian ? AppLanguage.it : AppLanguage.en),
+                label: gesture.label(language),
                 open: gesture.free || owned.contains(gesture),
                 lockedLabel: s.locked,
                 onTap: wait > Duration.zero ? null : () => Navigator.of(context).pop(gesture),
