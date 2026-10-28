@@ -149,6 +149,14 @@ class ShopItem {
       brand = null,
       collection = ShopCollection.calcio;
 
+  /// Un pezzo dei posti più cari (la scena, le spalle, gli effetti, le mani,
+  /// i ritocchi alla faccia): il prezzo è il suo, sopra quello della classe.
+  ShopItem.deep(this.slot, this.lookId, this.rarity, this.price, this.nameIt, this.nameEn, this.sort)
+    : id = '$slot.$lookId',
+      releasedOn = DateTime.utc(2026, 11, 20),
+      brand = null,
+      collection = null;
+
   /// Una cornice o un inchiostro per il nome: si indossano intorno.
   ShopItem.around(this.slot, this.lookId, this.rarity, this.nameIt, this.nameEn, this.sort)
     : id = '$slot.$lookId',
@@ -301,8 +309,10 @@ abstract class ShopRepository {
   /// [tone] è la pelle che l'app mostra, per chi non ha mai salvato un look:
   /// serve solo ai baffi.
   /// [current] è tutto il look che l'app mostra: il server lo salva sotto
-  /// quello già salvato, così cambia solo il pezzo scelto.
-  Future<Profile> equip(String itemId, {String? tone, Map<String, String>? current});
+  /// quello già salvato (solo i pezzi posseduti), così cambia solo il pezzo
+  /// scelto. [hand] (`left` o `right`) dice in che mano va una cosa da
+  /// tenere; un segno della faccia già portato si toglie.
+  Future<Profile> equip(String itemId, {String? tone, Map<String, String>? current, String? hand});
 
   /// Si toglie quello che porta in [slot]: torna il pezzo che gli spetta dal nome.
   Future<Profile> unequip(String slot, {String? tone, Map<String, String>? current});
@@ -312,7 +322,98 @@ abstract class ShopRepository {
 /// `supabase/migrations/20261017221000_shop.sql` e
 /// `supabase/migrations/20261018120000_shop_brands.sql` e seguenti (un test li
 /// confronta): la bottega finta lo usa, quella vera lo legge dal server.
-final List<ShopItem> initialShopCatalog = [..._firstDrop, ...brandDrop, ...houseDrop, ...odditiesDrop, ...barberDrop, ...calcioDrop, ...framesDrop, ...gestureDrop];
+final List<ShopItem> initialShopCatalog = [..._firstDrop, ...brandDrop, ...houseDrop, ...odditiesDrop, ...barberDrop, ...calcioDrop, ...framesDrop, ...gestureDrop, ...deepDrop];
+
+/// I pezzi che hanno cambiato posto (`supabase/migrations/20261120090000_shop_deep_slots.sql`):
+/// le ali erano un vezzo e ora stanno sulle spalle. Le righe vecchie restano
+/// spente sul server, per i conti delle monete già spese.
+const retiredShopItems = {
+  'accessory.angelWings': 'back.angelWings',
+  'accessory.batWings': 'back.batWings',
+  'accessory.butterflyWings': 'back.butterflyWings',
+  'accessory.dragonWings': 'back.dragonWings',
+};
+
+/// I posti più cari, la classe più alta: le scene (un quadro intero) costano
+/// più di ogni leggendario di prima; le spalle, gli effetti e le cose da due
+/// mani poco meno; le mani, le tinte, gli occhi e i segni sono epici, sopra
+/// gli epici di prima.
+final List<ShopItem> deepDrop = [
+  ShopItem.deep('aura', 'none', ShopRarity.base, 0, 'Nessuna scena', 'No scene', 1000),
+  ShopItem.deep('aura', 'inferno', ShopRarity.leggendario, 3000, "Fiamme dell'inferno", 'Hellfire', 1001),
+  ShopItem.deep('aura', 'harbourMoon', ShopRarity.leggendario, 3000, 'Luna sul porto', 'Moon over the harbour', 1002),
+  ShopItem.deep('aura', 'sunburst', ShopRarity.leggendario, 3000, 'Raggiera déco', 'Deco sunburst', 1003),
+  ShopItem.deep('aura', 'neonAlley', ShopRarity.leggendario, 3000, 'Vicolo al neon', 'Neon alley', 1004),
+  ShopItem.deep('aura', 'cardRoomSmoke', ShopRarity.leggendario, 3000, 'Fumo della bisca', 'Card-room smoke', 1005),
+  ShopItem.deep('aura', 'varietyCurtain', ShopRarity.leggendario, 3000, 'Sipario del varietà', 'Variety curtain', 1006),
+  ShopItem.deep('aura', 'vault', ShopRarity.leggendario, 3000, 'Il caveau', 'The vault', 1007),
+  ShopItem.deep('aura', 'vesuvio', ShopRarity.leggendario, 3000, 'Vesuvio al tramonto', 'Vesuvius at sunset', 1008),
+  ShopItem.deep('aura', 'spaghettiStorm', ShopRarity.leggendario, 3000, 'Tempesta di spaghetti', 'Spaghetti storm', 1009),
+  ShopItem.deep('back', 'none', ShopRarity.base, 0, 'Spalle libere', 'Nothing on the back', 1100),
+  ShopItem.deep('back', 'violinCase', ShopRarity.leggendario, 2400, 'Custodia da violino', 'Violin case', 1101),
+  ShopItem.deep('back', 'gildedWings', ShopRarity.leggendario, 2400, 'Ali dorate déco', 'Gilded deco wings', 1102),
+  ShopItem.deep('back', 'skeleton', ShopRarity.leggendario, 2400, "Scheletro nell'armadio", 'Skeleton in the closet', 1103),
+  ShopItem.deep('back', 'parasol', ShopRarity.leggendario, 2400, 'Parasole di pizzo', 'Lace parasol', 1104),
+  ShopItem.deep('back', 'saxophone', ShopRarity.leggendario, 2400, 'Sassofono del night', 'Nightclub saxophone', 1105),
+  ShopItem.deep('headFx', 'none', ShopRarity.base, 0, 'Niente in testa', 'Nothing overhead', 1200),
+  ShopItem.deep('headFx', 'halo', ShopRarity.leggendario, 2200, 'Aureola del santo', "Saint's halo", 1201),
+  ShopItem.deep('headFx', 'starOrbit', ShopRarity.leggendario, 2200, 'Giro di stelle', 'Ring of stars', 1202),
+  ShopItem.deep('headFx', 'sparks', ShopRarity.leggendario, 2200, 'Scintille', 'Sparks', 1203),
+  ShopItem.deep('headFx', 'hearts', ShopRarity.leggendario, 2200, 'Cuori in testa', 'Head over heels', 1204),
+  ShopItem.deep('headFx', 'coins', ShopRarity.leggendario, 2200, 'Giro di monete', 'Orbiting coins', 1205),
+  ShopItem.deep('headFx', 'rainCloud', ShopRarity.leggendario, 2200, 'Nuvoletta della sfiga', 'Bad-luck cloud', 1206),
+  ShopItem.deep('headFx', 'dizzyBirds', ShopRarity.leggendario, 2200, 'Uccellini del cazzotto', 'Knockout birdies', 1207),
+  ShopItem.deep('headFx', 'ghostGlow', ShopRarity.leggendario, 2200, 'Alone del fantasma', 'Ghostly glow', 1208),
+  ShopItem.deep('headFx', 'emberGlow', ShopRarity.leggendario, 2200, 'Alone di brace', 'Ember glow', 1209),
+  ShopItem.deep('faceExtras', 'none', ShopRarity.base, 0, 'Faccia pulita', 'Clean face', 1300),
+  ShopItem.deep('faceExtras', 'blush', ShopRarity.epico, 1200, 'Guance rosse', 'Rosy cheeks', 1301),
+  ShopItem.deep('faceExtras', 'tear', ShopRarity.epico, 1200, 'Lacrima di coccodrillo', 'Crocodile tear', 1302),
+  ShopItem.deep('faceExtras', 'stitchScar', ShopRarity.epico, 1200, 'Cicatrice cucita', 'Stitched scar', 1303),
+  ShopItem.deep('faceExtras', 'skullPaint', ShopRarity.epico, 1200, 'Trucco da teschio', 'Skull paint', 1304),
+  ShopItem.deep('faceExtras', 'beautyStar', ShopRarity.epico, 1200, 'Neo a stella', 'Star beauty mark', 1305),
+  ShopItem.deep('faceExtras', 'goldTooth', ShopRarity.epico, 1200, "Dente d'oro", 'Gold tooth', 1306),
+  ShopItem.deep('faceExtras', 'blackEye', ShopRarity.epico, 1200, 'Occhio nero', 'Black eye', 1307),
+  ShopItem.deep('faceExtras', 'lipstickKiss', ShopRarity.epico, 1200, 'Bacio col rossetto', 'Lipstick kiss', 1308),
+  ShopItem.deep('faceExtras', 'plaster', ShopRarity.epico, 1200, 'Cerotto a croce', 'Cross plaster', 1309),
+  ShopItem.deep('eyeShine', 'none', ShopRarity.base, 0, 'Occhi normali', 'Plain eyes', 1400),
+  ShopItem.deep('eyeShine', 'glint', ShopRarity.epico, 1300, 'Luccichio', 'Glint', 1401),
+  ShopItem.deep('eyeShine', 'star', ShopRarity.epico, 1300, 'Occhi da diva', 'Star-struck', 1402),
+  ShopItem.deep('eyeShine', 'heart', ShopRarity.epico, 1300, 'Occhi innamorati', 'Love-struck', 1403),
+  ShopItem.deep('eyeShine', 'spiral', ShopRarity.epico, 1300, 'Ipnosi', 'Hypnotised', 1404),
+  ShopItem.deep('eyeShine', 'lira', ShopRarity.epico, 1300, 'Occhi a lire', 'Lira eyes', 1405),
+  ShopItem.deep('eyeShine', 'flame', ShopRarity.epico, 1300, 'Occhi di fuoco', 'Eyes of fire', 1406),
+  ShopItem.deep('eyeShine', 'diamond', ShopRarity.epico, 1300, 'Occhi di brillante', 'Diamond eyes', 1407),
+  ShopItem.deep('eyeShine', 'crosshair', ShopRarity.epico, 1300, 'Occhio da sicario', "Hitman's eye", 1408),
+  ShopItem.deep('hairDye', 'none', ShopRarity.base, 0, 'Nessuna tinta', 'No dye', 1500),
+  ShopItem.deep('hairDye', 'midnight', ShopRarity.epico, 1400, 'Tinta mezzanotte', 'Midnight dye', 1501),
+  ShopItem.deep('hairDye', 'neonPop', ShopRarity.epico, 1400, 'Tinta neon', 'Neon dye', 1502),
+  ShopItem.deep('hairDye', 'sunset', ShopRarity.epico, 1400, 'Tinta tramonto', 'Sunset dye', 1503),
+  ShopItem.deep('hairDye', 'cherry', ShopRarity.epico, 1400, 'Tinta ciliegia', 'Cherry dye', 1504),
+  ShopItem.deep('hairDye', 'frost', ShopRarity.epico, 1400, 'Tinta brina', 'Frost dye', 1505),
+  ShopItem.deep('hairDye', 'tricolore', ShopRarity.leggendario, 2000, 'Tinta tricolore', 'Tricolore dye', 1506),
+  ShopItem.deep('hairDye', 'goldLeaf', ShopRarity.leggendario, 2000, "Capelli d'oro", 'Golden locks', 1507),
+  ShopItem.deep('held', 'none', ShopRarity.base, 0, 'Mani libere', 'Empty hands', 1600),
+  ShopItem.deep('held', 'grappa', ShopRarity.epico, 1500, 'Bottiglia di grappa', 'Bottle of grappa', 1601),
+  ShopItem.deep('held', 'rose', ShopRarity.epico, 1500, 'Rosa rossa', 'Red rose', 1602),
+  ShopItem.deep('held', 'revolver', ShopRarity.epico, 1500, 'Rivoltella', 'Revolver', 1603),
+  ShopItem.deep('held', 'cards', ShopRarity.epico, 1500, 'Mano di poker', 'Poker hand', 1604),
+  ShopItem.deep('held', 'coupe', ShopRarity.epico, 1500, 'Coppa di spumante', 'Glass of bubbly', 1605),
+  ShopItem.deep('held', 'candle', ShopRarity.epico, 1500, 'Candela', 'Candle', 1606),
+  ShopItem.deep('held', 'cannolo', ShopRarity.epico, 1500, 'Cannolo gigante', 'Giant cannolo', 1607),
+  ShopItem.deep('held', 'moka', ShopRarity.epico, 1500, 'Moka del caffè', 'Coffee moka', 1608),
+  ShopItem.deep('held', 'fish', ShopRarity.epico, 1500, 'Pesce nel giornale', 'Fish in a newspaper', 1609),
+  ShopItem.deep('held', 'cat', ShopRarity.leggendario, 2400, 'Il gatto del padrino', "The godfather's cat", 1610),
+  ShopItem.deep('held', 'teddy', ShopRarity.leggendario, 2400, 'Orsetto del boss', "The boss's teddy", 1611),
+  ShopItem.deep('frontFx', 'none', ShopRarity.base, 0, 'Niente davanti', 'Nothing in front', 1700),
+  ShopItem.deep('frontFx', 'smokeRings', ShopRarity.leggendario, 2200, 'Anelli di fumo', 'Smoke rings', 1701),
+  ShopItem.deep('frontFx', 'petals', ShopRarity.leggendario, 2200, 'Petali di rosa', 'Rose petals', 1702),
+  ShopItem.deep('frontFx', 'sparkles', ShopRarity.leggendario, 2200, 'Scintillio', 'Twinkles', 1703),
+  ShopItem.deep('frontFx', 'bats', ShopRarity.leggendario, 2200, 'Pipistrelli', 'Bats', 1704),
+  ShopItem.deep('frontFx', 'yarn', ShopRarity.leggendario, 2200, 'Gomitolo', 'Ball of yarn', 1705),
+  ShopItem.deep('frontFx', 'banknotes', ShopRarity.leggendario, 2200, 'Pioggia di lire', 'Raining lire', 1706),
+  ShopItem.deep('frontFx', 'musicNotes', ShopRarity.leggendario, 2200, 'Serenata', 'Serenade', 1707),
+  ShopItem.deep('frontFx', 'fireflies', ShopRarity.leggendario, 2200, 'Lucciole', 'Fireflies', 1708),
+];
 
 final List<ShopItem> _firstDrop = [
   ShopItem.seed('hat', 'fedora', ShopRarity.base, 'Fedora', 'Fedora', 100),
@@ -592,9 +693,9 @@ final List<ShopItem> odditiesDrop = [
   ShopItem.oddity('accessory', 'rubberDuck', ShopRarity.comune, 'Paperella nel taschino', 'Pocket rubber duck', 542, ShopCollection.carnevale),
   ShopItem.oddity('accessory', 'accordion', ShopRarity.epico, 'Fisarmonica', 'Accordion', 543, ShopCollection.carnevale),
   ShopItem.oddity('accessory', 'baguetteCigar', ShopRarity.raro, 'Sigaro a filone', 'Baguette-size cigar', 544, ShopCollection.carnevale),
-  ShopItem.oddity('accessory', 'angelWings', ShopRarity.leggendario, "Ali d'angelo", 'Angel wings', 545, ShopCollection.carnevale),
-  ShopItem.oddity('accessory', 'batWings', ShopRarity.leggendario, 'Ali da diavoletto', 'Devil bat wings', 546, ShopCollection.carnevale),
-  ShopItem.oddity('accessory', 'butterflyWings', ShopRarity.leggendario, 'Ali di farfalla', 'Butterfly wings', 547, ShopCollection.carnevale),
+  ShopItem.oddity('back', 'angelWings', ShopRarity.leggendario, "Ali d'angelo", 'Angel wings', 545, ShopCollection.carnevale),
+  ShopItem.oddity('back', 'batWings', ShopRarity.leggendario, 'Ali da diavoletto', 'Devil bat wings', 546, ShopCollection.carnevale),
+  ShopItem.oddity('back', 'butterflyWings', ShopRarity.leggendario, 'Ali di farfalla', 'Butterfly wings', 547, ShopCollection.carnevale),
   // L'assurdo.
   ShopItem.oddity('hat', 'fishHead', ShopRarity.leggendario, 'Testa di pesce', 'Fish head mask', 151, ShopCollection.assurdo),
   ShopItem.oddity('hat', 'dinoHood', ShopRarity.leggendario, 'Cappuccio da dinosauro', 'Dinosaur hood', 152, ShopCollection.assurdo),
@@ -643,7 +744,7 @@ final List<ShopItem> odditiesDrop = [
   ShopItem.oddity('outfit', 'mummy_wraps', ShopRarity.epico, 'Bende da mummia', 'Mummy wraps', 479, ShopCollection.assurdo),
   ShopItem.oddity('accessory', 'snailShell', ShopRarity.epico, 'Guscio di lumaca', 'Snail shell backpack', 548, ShopCollection.assurdo),
   ShopItem.oddity('accessory', 'jetpack', ShopRarity.leggendario, 'Zaino a razzo', 'Jetpack', 549, ShopCollection.assurdo),
-  ShopItem.oddity('accessory', 'dragonWings', ShopRarity.leggendario, 'Ali di drago', 'Dragon wings', 550, ShopCollection.assurdo),
+  ShopItem.oddity('back', 'dragonWings', ShopRarity.leggendario, 'Ali di drago', 'Dragon wings', 550, ShopCollection.assurdo),
   ShopItem.oddity('accessory', 'balloons', ShopRarity.leggendario, 'Mazzo di palloncini', 'Balloon bunch', 551, ShopCollection.assurdo),
   ShopItem.oddity('accessory', 'giantBowTie', ShopRarity.raro, 'Papillon gigante', 'Giant bow tie', 552, ShopCollection.assurdo),
   ShopItem.oddity('accessory', 'pigeon', ShopRarity.raro, 'Piccione sulla spalla', 'Shoulder pigeon', 553, ShopCollection.assurdo),
@@ -710,7 +811,7 @@ final List<ShopBundle> initialShopBundles = [
   ShopBundle(id: 'vaugirard', tier: 'set', discountPct: 35, nameIt: 'Il Viaggiatore', nameEn: 'The Traveller', taglineIt: 'La collezione Vaugirard al completo.', taglineEn: 'The full Vaugirard collection.', sort: 70, itemIds: ['outfit.vaugirard_travel', 'hat.vaugirardCap', 'accessory.vaugirardStrap']),
   ShopBundle(id: 'versalli', tier: 'premium', discountPct: 40, nameIt: 'Casa Versalli', nameEn: 'House of Versalli', taglineIt: "Tutto l'oro del barocco, in un colpo.", taglineEn: 'All the baroque gold, in one go.', sort: 100, itemIds: ['outfit.versalli_baroque', 'glasses.ricciMonocle', 'accessory.ricciChain', 'accessory.ricciTiePin', 'accessory.ricciWatch']),
   ShopBundle(id: 'chanterelle', tier: 'premium', discountPct: 40, nameIt: 'Maison Chanterelle', nameEn: 'Maison Chanterelle', taglineIt: "L'alta moda intera, perle comprese.", taglineEn: 'The whole couture line, pearls included.', sort: 110, itemIds: ['outfit.delacroix_cape', 'outfit.delacroix_velvet', 'glasses.delacroixShades', 'accessory.delacroixScarf', 'accessory.delacroixAscot', 'accessory.chanterellePearls']),
-  ShopBundle(id: 'ali', tier: 'premium', discountPct: 40, nameIt: 'Paradiso e Inferno', nameEn: 'Heaven and Hell', taglineIt: "Aureola, cornetti e quattro paia d'ali.", taglineEn: 'Halo, horns and four pairs of wings.', sort: 120, itemIds: ['hat.angelHalo', 'hat.devilHorns', 'accessory.angelWings', 'accessory.batWings', 'accessory.butterflyWings', 'accessory.dragonWings']),
+  ShopBundle(id: 'ali', tier: 'premium', discountPct: 40, nameIt: 'Paradiso e Inferno', nameEn: 'Heaven and Hell', taglineIt: "Aureola, cornetti e quattro paia d'ali.", taglineEn: 'Halo, horns and four pairs of wings.', sort: 120, itemIds: ['hat.angelHalo', 'hat.devilHorns', 'back.angelWings', 'back.batWings', 'back.butterflyWings', 'back.dragonWings']),
   ShopBundle(id: 'tendone', tier: 'premium', discountPct: 45, nameIt: 'Il Grande Tendone', nameEn: 'The Big Top', taglineIt: 'Il circo intero: clown, mimo, forzuto e mago.', taglineEn: 'The whole circus: clown, mime, strongman and magician.', sort: 130, itemIds: ['hat.clownWig', 'hat.magicianHat', 'face.curledMoustache', 'face.mimeFace', 'glasses.hypnoGlasses', 'outfit.clown_suit', 'outfit.strongman_leotard', 'outfit.mime_stripes', 'outfit.magician_cape', 'accessory.clownNose']),
   ShopBundle(id: 'leggende', tier: 'premium', discountPct: 40, nameIt: 'Le Leggende', nameEn: 'The Legends', taglineIt: "Dieci pezzi leggendari: il guardaroba di un boss.", taglineEn: "Ten legendary pieces: a boss's wardrobe.", sort: 140, itemIds: ['outfit.trench_coat', 'outfit.gold_brocade', 'hat.morettiHomburg', 'outfit.vanetti_tuxedo', 'outfit.vanetti_ivory', 'outfit.delacroix_cape', 'accessory.ricciWatch', 'outfit.vaugirard_travel', 'outfit.versalli_baroque', 'accessory.chanterellePearls']),
   ...calcioBundles,

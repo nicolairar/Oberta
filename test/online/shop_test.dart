@@ -119,7 +119,13 @@ void main() {
         if (item.isGesture) continue;
         final slot = LookSlot.values.byName(item.slot);
         expect(look.wearing(slot, item.lookId), isNotNull, reason: item.id);
-        expect(item.price, item.rarity.price);
+        // La classe fissa il prezzo; i posti più cari stanno sopra gli altri
+        // della loro classe, mai sotto.
+        if (deepDrop.contains(item)) {
+          expect(item.price, inInclusiveRange(item.rarity.price, item.rarity == ShopRarity.leggendario ? 5000 : 1799), reason: item.id);
+        } else {
+          expect(item.price, item.rarity.price, reason: item.id);
+        }
       }
       for (final seed in ['anna', 'bruno', 'carla', 'dario', 'elena', 'franco', 'gina', 'zeno']) {
         final look = AvatarLook.fallback(seed);
@@ -144,10 +150,14 @@ void main() {
         'supabase/migrations/20261024090000_shop_frames_names.sql',
         'supabase/migrations/20261109090000_table_reactions.sql',
         'supabase/migrations/20261119090000_shop_gold_statue.sql',
+        'supabase/migrations/20261120090000_shop_deep_slots.sql',
       ].map((path) => File(path).readAsStringSync()).join('\n');
       final rows = RegExp(r"\('(\w+)\.(\w+)', '(\w+)', '(\w+)', '(\w+)', (\d+), .*?(?:, (null|'(\w+)'))?(?:, '(circo|carnevale|assurdo|calcio)')?\)[,\n]")
           .allMatches(sql);
-      final fromSql = {for (final m in rows) '${m[1]}.${m[2]}': '${m[4]} ${m[5]} ${m[6]} ${m[8]} ${m[9]}'};
+      final fromSql = {
+        for (final m in rows)
+          if (!retiredShopItems.containsKey('${m[1]}.${m[2]}')) '${m[1]}.${m[2]}': '${m[4]} ${m[5]} ${m[6]} ${m[8]} ${m[9]}',
+      };
       final fromDart = {
         for (final item in initialShopCatalog)
           item.id: '${item.lookId} ${item.rarity.name} ${item.price} ${item.brand?.name} ${item.collection?.name}',
@@ -175,7 +185,7 @@ void main() {
       expect(absurd.length, greaterThanOrEqualTo(25));
       expect(absurd.every((item) => item.rarity.index >= ShopRarity.raro.index), isTrue);
       expect(absurd.where((item) => item.rarity == ShopRarity.leggendario).length, greaterThanOrEqualTo(10));
-      expect(absurd.map((item) => item.slot).toSet(), {'hat', 'face', 'glasses', 'outfit', 'accessory'});
+      expect(absurd.map((item) => item.slot).toSet(), {'hat', 'face', 'glasses', 'outfit', 'accessory', 'back'});
     });
 
     test('le case firmano i pezzi più cari', () {
@@ -202,7 +212,8 @@ void main() {
       };
       final contents = <String, Set<String>>{};
       for (final m in RegExp(r"\('([a-z_]+)', '(\w+\.\w+)'\)").allMatches(sql)) {
-        (contents[m[1]!] ??= {}).add(m[2]!);
+        // Le ali sono passate sulle spalle anche nei pacchetti.
+        (contents[m[1]!] ??= {}).add(retiredShopItems[m[2]!] ?? m[2]!);
       }
       expect(heads, {for (final b in initialShopBundles) b.id: '${b.tier} ${b.discountPct}'});
       expect(contents, {for (final b in initialShopBundles) b.id: b.itemIds.toSet()});

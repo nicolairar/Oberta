@@ -4,6 +4,7 @@ import 'dart:math';
 
 import '../l10n/app_language.dart';
 import '../rules/intent.dart';
+import '../ui/avatar/avatar_look.dart' show AvatarLook, FaceExtra, HeldItem;
 import '../ui/avatar/face_features.dart' show FaceFeatures;
 import 'game/bot_brain.dart';
 import 'game/game_clock.dart';
@@ -1266,6 +1267,24 @@ class FakeShop implements ShopRepository {
     return bought;
   }
 
+  /// Il look mandato dall'app senza i pezzi che non si possiedono, come
+  /// fa il server (`_owned_look`).
+  Map<String, String> _ownedOnly(String me, Map<String, String> look) {
+    bool owns(String id) => (_item(id)?.free ?? false) || (_owned[me]?.contains(id) ?? false);
+    final slots = {for (final item in items) item.slot};
+    return {
+      for (final MapEntry(:key, :value) in look.entries)
+        if (switch (key) {
+          'heldL' || 'heldR' => owns('held.$value'),
+          'faceExtras' => value.split('+').every((t) => owns('faceExtras.$t')),
+          'base' => owns('face.${value.substring(value.indexOf('_') + 1)}'),
+          _ when slots.contains(key) => owns('$key.$value'),
+          _ => true,
+        })
+          key: value,
+    };
+  }
+
   String? _tone(Map<String, String> avatar, String? tone) {
     final saved = avatar['base']?.split('_').first;
     if (_tones.contains(saved)) return saved;
@@ -1273,14 +1292,29 @@ class FakeShop implements ShopRepository {
   }
 
   @override
-  Future<Profile> equip(String itemId, {String? tone, Map<String, String>? current}) async {
+  Future<Profile> equip(String itemId, {String? tone, Map<String, String>? current, String? hand}) async {
     final me = _me();
     final item = _item(itemId) ?? (throw const OnlineException(OnlineFailure.itemNotFound));
     if (!item.free && !(_owned[me.id]?.contains(item.id) ?? false)) throw const OnlineException(OnlineFailure.notOwned);
-    final avatar = {...?current, ...me.avatar};
+    // Come il server: sotto il salvato, solo i pezzi posseduti.
+    final avatar = {..._ownedOnly(me.id, current ?? const {}), ...me.avatar};
     if (item.slot == 'face') {
       final skin = _tone(avatar, tone) ?? (throw const OnlineException(OnlineFailure.itemNotFound));
       avatar['base'] = '${skin}_${item.lookId}';
+    } else if (item.slot == 'held') {
+      final held = HeldItem.values.firstWhere((h) => h.name == item.lookId);
+      if (held == HeldItem.none || held.twoHanded) {
+        avatar['heldL'] = held.name;
+        avatar['heldR'] = 'none';
+      } else {
+        final (key, other) = hand == 'left' ? ('heldL', 'heldR') : ('heldR', 'heldL');
+        if (HeldItem.values.where((h) => h.name == avatar[other]).firstOrNull?.twoHanded ?? false) avatar[other] = 'none';
+        avatar[key] = held.name;
+      }
+    } else if (item.slot == 'faceExtras') {
+      final worn = AvatarLook.parseExtras(avatar['faceExtras'] ?? 'none');
+      final extra = FaceExtra.values.where((e) => e.name == item.lookId).firstOrNull;
+      avatar['faceExtras'] = extra == null ? 'none' : AvatarLook.extrasId(AvatarLook.toggledExtras(worn, extra));
     } else {
       avatar[item.slot] = item.lookId;
     }
@@ -1290,10 +1324,14 @@ class FakeShop implements ShopRepository {
   @override
   Future<Profile> unequip(String slot, {String? tone, Map<String, String>? current}) async {
     final me = _me();
-    final avatar = {...?current, ...me.avatar};
+    final avatar = {..._ownedOnly(me.id, current ?? const {}), ...me.avatar};
     if (slot == 'face') {
       final skin = _tone(avatar, tone);
       if (skin != null) avatar['base'] = '${skin}_clean';
+    } else if (slot == 'held') {
+      avatar
+        ..remove('heldL')
+        ..remove('heldR');
     } else {
       avatar.remove(slot);
     }
