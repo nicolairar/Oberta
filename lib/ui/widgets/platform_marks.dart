@@ -5,9 +5,10 @@ import 'package:flutter/material.dart';
 import '../../online/online_models.dart';
 import '../theme/app_theme.dart';
 
-/// I loghi piccoli accanto a un nome: Steam per chi ha un account Steam
-/// collegato, Apple per chi entra con Apple. Senza [steam]/[apple] li prende
-/// da [PlayerMarks] per [name], e si ridisegna quando arrivano.
+/// Il posto dei loghi accanto a un nome (Steam, Apple). Il padrone del gioco
+/// non vuole nessun logo di piattaforma vicino ai nomi: non si disegna più
+/// niente, da nessuna parte (tavolo, stanze, profili, chat). I dati
+/// ([PlayerMarks], `on_steam`, `on_apple`) restano per il resto dell'app.
 class PlatformBadges extends StatelessWidget {
   final String name;
   final double size;
@@ -26,32 +27,7 @@ class PlatformBadges extends StatelessWidget {
       : name = '';
 
   @override
-  Widget build(BuildContext context) {
-    if (steam != null && apple != null) return _row(steam!, apple!);
-    return ValueListenableBuilder<int>(
-      valueListenable: PlayerMarks.changes,
-      builder: (context, _, _) {
-        final mark = PlayerMarks.of(name);
-        return _row(mark.steam, mark.apple);
-      },
-    );
-  }
-
-  Widget _row(bool onSteam, bool onApple) {
-    if (!onSteam && !onApple) return const SizedBox.shrink();
-    final ink = color ?? AppColors.textSecondary;
-    return Padding(
-      padding: EdgeInsets.only(left: gap),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (onSteam) SteamLogo(key: const Key('mark.steam'), size: size, color: ink),
-          if (onSteam && onApple) SizedBox(width: size * 0.35),
-          if (onApple) Icon(Icons.apple, key: const Key('mark.apple'), size: size * 1.1, color: ink),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => const SizedBox.shrink();
 }
 
 /// Il marchio di Steam, disegnato (niente immagini): il disco, la ruota

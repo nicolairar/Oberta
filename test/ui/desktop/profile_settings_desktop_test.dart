@@ -107,7 +107,7 @@ void main() {
     await desktopFrames(tester);
     expect(find.byKey(const Key('profile.steamPersona')), findsOneWidget);
     expect(find.text('Su Steam: Don Vito ☕'), findsOneWidget);
-    expect(find.byKey(const Key('mark.steam')), findsWidgets);
+    expect(find.byKey(const Key('mark.steam')), findsNothing, reason: 'no platform logo next to names');
     await saveDesktopShot(tester, 'profile_steam');
     expect(account.profile!.pictureUrl, isNull);
     await tester.tap(find.byKey(const Key('profile.picture.steam')));
