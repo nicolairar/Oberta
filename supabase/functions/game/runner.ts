@@ -23,6 +23,8 @@ export interface RunOptions {
   now?: number;
   /** How many games at most in one run. */
   limit?: number;
+  /** Told about each game stepped (committed), e.g. to push voice rights. */
+  onStep?: (room: string) => void;
 }
 
 const due = `(g.next_due_at <= to_timestamp($1::float8 / 1000)
@@ -122,7 +124,10 @@ export async function runDue(db: Db, engine: Engine, options: RunOptions = {}): 
     try {
       // Intents that arrived while another run held the game are due again
       // right after: a few more steps, while there is something to do.
-      for (let round = 0; round < 3 && await stepRoom(db, engine, room, options.now); round++) stepped++;
+      for (let round = 0; round < 3 && await stepRoom(db, engine, room, options.now); round++) {
+        stepped++;
+        options.onStep?.(room);
+      }
     } catch (error) {
       console.error(`game ${room}:`, error);
     }

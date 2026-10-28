@@ -1,3 +1,4 @@
 /* Permessi chiesti da Obertà, in italiano. */
 "NSCameraUsageDescription" = "Obertà usa la fotocamera per scattare la foto segnaletica di chi gioca e per leggere il QR di una stanza online. Le foto restano su questo telefono.";
 "NSPhotoLibraryUsageDescription" = "Obertà ti fa scegliere dalla libreria la foto di chi gioca. La foto scelta resta su questo telefono.";
+"NSMicrophoneUsageDescription" = "Obertà usa il microfono solo per la voce al tavolo con gli amici, quando il gioco ti dà la parola. La voce passa dal vivo e non viene registrata né trascritta.";

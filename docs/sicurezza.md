@@ -37,6 +37,27 @@ scoprire niente di nascosto: ruoli, mosse notturne, chat della famiglia, segreti
 - **Realtime**: `postgres_changes` applica le stesse policy a chi è abbonato; sono pubblicate solo
   tabelle con RLS, nessuna tabella segreta.
 
+- **Voce al tavolo** (`supabase/functions/voice-token`, LiveKit Cloud UE; regole in
+  `supabase/functions/_shared/voice_rules.ts`): solo dal vivo, **zero dati registrati**. Nessuna
+  egress, registrazione, trascrizione, agent o observability su LiveKit; nessun audio sul server. I
+  token dei telefoni (HS256, 3 minuti) danno una sola stanza e al più il microfono: niente
+  `roomAdmin`, `roomCreate`, `roomList`, `roomRecord`, `recorder`, `hidden`, `canPublishData` (falso),
+  `canUpdateOwnMetadata` (falso); il token admin per RoomService resta nella funzione (60 s, una
+  stanza). LiveKit vede solo un posto (`s3` in partita, `m3` nella stanza), mai account o nome; le
+  stanze LiveKit hanno nomi opachi per fase (`day-<partita>-<giro>`, `family-<partita>-<giro>`,
+  `ghosts-<partita>`, `lobby-<partita>`). Chi decide è il server, dalla fase pubblicata (`schedule` di
+  `game_public`) e dai posti (`game_seats`): stanza e dopo la partita tutti; discussione e voto i vivi
+  (il cucito dal Sarto e i morti solo ascoltano); notte solo la famiglia viva, e i morti fra loro;
+  carta, film, alba e verdetto nessuno. Notte e discussione si aprono solo a `startsAt` +
+  `voice_settle_ms` (1 s, `internal.config`), cioè dopo che tutti hanno confermato la fase prima e
+  finito la transizione; prima la funzione risponde `{room: null, retryIn}`. Una fase che finisce
+  chiude la voce subito: dopo ogni passo che cambia fase o posti la Edge Function `game` spinge i
+  permessi con RoomService (`RemoveParticipant` per chi non può restare, `UpdateParticipant` per gli
+  altri), così un token vecchio non tiene la parola. `internal.voice_sessions` tiene solo le stanze
+  LiveKit da sorvegliare e la firma dell'ultimo invio. La classificata è spenta (`voice_ranked = 0`). I
+  bloccati non si sentono mai e non ci sentono: il telefono di chi blocca non si abbona alla loro voce
+  e la nega loro con i permessi d'ascolto che LiveKit applica.
+
 ## Verifica
 
 `supabase/tests/anticheat.sql`: 43 controlli sul database vero dentro `begin … rollback`, impersonando

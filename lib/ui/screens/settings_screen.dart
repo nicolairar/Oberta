@@ -27,6 +27,8 @@ import '../../steam/steam.dart';
 import '../../steam/steam_debug_sheet.dart';
 import '../theme/app_theme.dart';
 import 'online/safety_sheets.dart';
+import 'online/voice/voice_dock.dart';
+import '../../l10n/voice_strings.dart';
 import 'online/game/gesture_picker.dart';
 import 'screening_room_screen.dart';
 import 'tutorial_screen.dart';
@@ -157,6 +159,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   /// Solo su desktop: modo della finestra, risoluzione e orientamento,
   /// salvati su questo dispositivo.
+  /// La voce al tavolo: il modo e premi-per-parlare (vale per ogni stanza).
+  List<Widget> _voiceTiles(AppSettings settings) {
+    final v = VoiceStrings.of(context);
+    return [
+      ListTile(
+        leading: const Icon(Icons.record_voice_over, color: AppColors.gold),
+        title: Text(v.settings),
+        subtitle: Text(v.settingsHint),
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final mode in VoiceMode.values)
+              ChoiceChip(
+                key: Key('settings.voice.${mode.name}'),
+                label: Text(v.mode(mode)),
+                selected: settings.voiceMode == mode,
+                selectedColor: AppColors.gold.withValues(alpha: 0.3),
+                onSelected: (_) async {
+                  if (mode == VoiceMode.mic && settings.voiceMode != VoiceMode.mic && !await confirmVoiceMic(context)) {
+                    return;
+                  }
+                  settings.voiceMode = mode;
+                },
+              ),
+          ],
+        ),
+      ),
+      if (settings.voiceMode == VoiceMode.mic)
+        SwitchListTile(
+          key: const Key('settings.voice.pushToTalk'),
+          value: settings.voicePushToTalk,
+          activeThumbColor: AppColors.gold,
+          title: Text(v.pushToTalk),
+          subtitle: Text(DesktopPlatform.isDesktop ? v.pushToTalkDesk : v.pushToTalkPhone),
+          secondary: const Icon(Icons.mic, color: AppColors.gold),
+          onChanged: (on) => settings.voicePushToTalk = on,
+        ),
+    ];
+  }
+
   Widget _screenSection(AppSettings settings) {
     final d = DesktopStrings.of(context);
     Widget chips<T>(List<T> values, T selected, String Function(T) label, void Function(T) pick, String key) => Padding(
@@ -265,6 +311,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           secondary: const Icon(Icons.sentiment_very_satisfied, color: AppColors.gold),
                           onChanged: settings.soundOn ? (on) => settings.memeMode = on : null,
                         ),
+                        ..._voiceTiles(settings),
                       ],
                     ),
                     if (DesktopPlatform.isDesktop) _screenSection(settings),

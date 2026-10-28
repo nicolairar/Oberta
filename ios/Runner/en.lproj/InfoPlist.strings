@@ -1,3 +1,4 @@
 /* Permissions Obertà asks for, in English. */
 "NSCameraUsageDescription" = "Obertà uses the camera to take each player's mugshot and to scan the QR code of an online room. Photos stay on this phone.";
 "NSPhotoLibraryUsageDescription" = "Obertà lets you pick a player's photo from your library. The chosen photo stays on this phone.";
+"NSMicrophoneUsageDescription" = "Obertà uses the microphone only for table voice chat with friends, when the game gives you the floor. Your voice goes out live and is never recorded or transcribed.";

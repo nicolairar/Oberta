@@ -21,6 +21,8 @@ import 'match_results_screen.dart' show showMatchResults;
 import 'online_widgets.dart';
 import 'profile_sheet.dart';
 import 'safety_sheets.dart';
+import 'voice/voice_dock.dart';
+import '../../../online/voice/voice_controller.dart';
 import '../../widgets/noir_modal.dart';
 
 
@@ -56,6 +58,22 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> with ScreenMusic {
 
   late Room _room = widget.room;
   List<RoomMember> _members = const [];
+
+  /// La voce della stanza (la stessa che la partita usa sopra): nella stanza
+  /// ognuno è il suo posto, "m3".
+  late final VoiceDirectory _voiceSeats = (
+    profileOf: (String id) => _memberAt(id)?.profile.id,
+    nameOf: (String id) => _memberAt(id)?.profile.name,
+  );
+  late final VoiceController? _voice = switch (widget.services.voice) {
+    final source? => VoiceController.acquire(source, widget.room.id, directory: _voiceSeats),
+    null => null,
+  };
+
+  RoomMember? _memberAt(String identity) =>
+      _members.where((m) => identity == 'm${m.seat}').firstOrNull;
+
+  void _voicePhase() => _voice?.phase('${_room.status.name}|${[for (final m in _members) m.seat]}', from: this);
   StreamSubscription<List<RoomMember>>? _watch;
   StreamSubscription<List<ChatMessage>>? _chatWatch;
   List<ChatMessage> _chat = const [];
@@ -95,6 +113,7 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> with ScreenMusic {
       onError: (Object _) {},
     );
     _loadFriends();
+    _voicePhase();
     // Chi rientra in una stanza che sta già giocando torna al tavolo.
     if (_room.status == RoomStatus.playing) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _joinGame());
@@ -112,6 +131,7 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> with ScreenMusic {
 
   Future<void> _seated(List<RoomMember> members) async {
     setState(() => _members = members);
+    _voicePhase();
     // Chi è padrone di casa può cambiare quando qualcuno esce.
     try {
       final room = await widget.services.rooms.fetch(_room.id);
@@ -120,6 +140,7 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> with ScreenMusic {
           _room = room;
           if (room.status != RoomStatus.playing) _stayedOut = false;
         });
+        _voicePhase();
         if (room.status == RoomStatus.playing && !_inGame && !_stayedOut) _joinGame();
       }
     } catch (_) {}
@@ -190,6 +211,7 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> with ScreenMusic {
   void dispose() {
     _watch?.cancel();
     _chatWatch?.cancel();
+    _voice?.release(directory: _voiceSeats);
     // Uscita senza un gesto (l'app che si chiude): la stanza passa da sola
     // al primo arrivato, nessuno resta senza padrone di casa.
     if (!_left) widget.services.rooms.leave(_room.id, autoHeir: true).ignore();
@@ -473,6 +495,16 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> with ScreenMusic {
       hint: t.chatHint,
       empty: t.chatEmpty,
       sendLabel: t.chatSend,
+      trailing: _voice == null
+          ? null
+          : VoiceDock(
+              controller: _voice,
+              onPerson: (id) {
+                if (_memberAt(id)?.profile case final p?) {
+                  showPlayerActions(context, services: widget.services, profileId: p.id, name: p.name, myId: widget.me.id);
+                }
+              },
+            ),
       onSend: (body) => widget.services.game.sendChat(_room.id, ChatChannel.lobby, body),
       onHold: (message) => showPlayerActions(
         context,

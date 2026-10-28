@@ -16,6 +16,7 @@ import 'incoming_links.dart';
 import 'online_config.dart';
 import 'online_services.dart';
 import 'steam_login.dart';
+import 'voice/supabase_voice.dart';
 import '../steam/steam.dart';
 
 /// L'online vero, su Supabase. Lo apre `main` quando l'app è stata compilata
@@ -62,6 +63,7 @@ Future<OnlineServices?> openSupabaseOnline(
     progress: SupabaseProgress(client),
     requirements: SupabaseAppRequirements(client),
     reactions: SupabaseReactions(client, game),
+    voice: SupabaseVoiceTokens(client),
   );
 }
 

@@ -8,9 +8,16 @@
 // due. The call carries a secret the function reads back from
 // internal.config, so nobody else can make it run. It connects with the
 // built-in SUPABASE_DB_URL; no key lives in the app or the repo.
+//
+// After the steps, the voice chat (supabase/functions/voice-token): the
+// rooms whose voice rights just changed (a stage ended, someone died, the
+// Tailor sewed) are pushed to LiveKit at once, so a phone that joined with
+// yesterday's rights cannot keep them (see _shared/voice_sync.ts).
 import postgres from 'npm:postgres@3.4.5';
 import { step } from './engine.ts';
 import { type Db, runDue } from './runner.ts';
+import { liveKitEnv, roomService } from '../_shared/livekit.ts';
+import { sqlVoiceStore, syncVoice } from '../_shared/voice_sync.ts';
 
 const sql = postgres(Deno.env.get('SUPABASE_DB_URL')!, { prepare: false, max: 3, idle_timeout: 20 });
 
@@ -26,6 +33,19 @@ function wrap(s: Sql): Db {
 
 const db = wrap(sql);
 let secret: string | null = null;
+const lk = liveKitEnv((name) => Deno.env.get(name));
+const voice = lk ? { store: sqlVoiceStore(db), service: roomService(lk) } : null;
+
+async function pushVoice(rooms: Set<string>) {
+  if (!voice) return;
+  for (const room of rooms) {
+    try {
+      await syncVoice(voice.store, voice.service, room, Date.now());
+    } catch (error) {
+      console.error(`voice ${room}:`, error instanceof Error ? error.message : 'failed');
+    }
+  }
+}
 
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return new Response('method not allowed', { status: 405 });
@@ -38,6 +58,8 @@ Deno.serve(async (req) => {
   }
   const body = await req.json().catch(() => ({}));
   const room = typeof body?.room === 'string' ? body.room : null;
-  const stepped = await runDue(db, step, { room });
+  const touched = new Set<string>();
+  const stepped = await runDue(db, step, { room, onStep: (r) => touched.add(r) });
+  await pushVoice(touched);
   return Response.json({ stepped });
 });

@@ -427,7 +427,18 @@ class DeviceStage extends SoundStage implements VerdictStage {
     if (_ambienceGroup != null) _ambienceDeck.fadeTo(_ambienceVolume, fade);
   }
 
-  double get _musicTarget => enabled ? (musicVolume * _duck * _memeDuck * _voiceDuck).clamp(0.0, 1.0) : 0;
+  double _chatDuck = 1;
+
+  @override
+  void duckForChat(bool ducked) {
+    final duck = ducked ? 0.35 : 1.0;
+    if (duck == _chatDuck) return;
+    _chatDuck = duck;
+    _musicDeck.fadeTo(_musicTarget, Duration(milliseconds: ducked ? 500 : 1500));
+  }
+
+  double get _musicTarget =>
+      enabled ? (musicVolume * _duck * _memeDuck * _voiceDuck * _chatDuck).clamp(0.0, 1.0) : 0;
 
   final AudioPlayer _memePlayer = AudioPlayer();
   DateTime _memeUntil = DateTime(0);

@@ -109,6 +109,9 @@ class SoundStage {
   /// Mentre parla il narratore, la musica e il sottofondo si fanno da parte.
   void duckForVoice(bool ducked) {}
 
+  /// Mentre si è nella chat vocale con qualcuno, la musica sta più bassa.
+  void duckForChat(bool ducked) {}
+
   /// Un effetto registrato di [group], una registrazione a caso (mai la
   /// stessa due volte di fila). [after] lo ritarda.
   void effect(FxGroup group, {Duration after = Duration.zero, double volume = 1}) {}

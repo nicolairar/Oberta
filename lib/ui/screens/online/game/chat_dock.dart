@@ -52,6 +52,9 @@ class ChatDock extends StatelessWidget {
   /// Tenendo premuto il messaggio di un altro (segnalarlo, bloccarlo).
   final void Function(ChatMessage message)? onHold;
 
+  /// Accanto alla freccia (la voce al tavolo).
+  final Widget? trailing;
+
   const ChatDock({
     super.key,
     required this.view,
@@ -63,6 +66,7 @@ class ChatDock extends StatelessWidget {
     required this.read,
     this.seats = ChatSeats.none,
     this.onHold,
+    this.trailing,
   });
 
   void _open(BuildContext context) {
@@ -139,6 +143,7 @@ class ChatDock extends StatelessWidget {
                 ],
               ),
             ),
+            if (trailing case final trailing?) Padding(padding: const EdgeInsets.only(left: 6, top: 6), child: trailing),
             Padding(
               padding: const EdgeInsets.only(left: 8, top: 4),
               child: Container(

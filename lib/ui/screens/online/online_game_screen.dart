@@ -17,6 +17,7 @@ import '../../../online/game/game_clock.dart';
 import '../../../online/game/game_feed.dart';
 import '../../../online/game/game_schedule.dart';
 import '../../../online/online_services.dart';
+import '../../../online/voice/voice_controller.dart';
 import '../../../rules/game_engine.dart';
 import '../../../rules/intent.dart';
 import '../../../rules/knowledge.dart';
@@ -49,6 +50,7 @@ import 'online_widgets.dart';
 import 'recap_screen.dart';
 import '../../../l10n/recap_strings.dart';
 import 'safety_sheets.dart';
+import 'voice/voice_dock.dart';
 import '../../../l10n/roles_sheet_strings.dart';
 import '../../widgets/roles_sheet.dart';
 import '../../widgets/noir_modal.dart';
@@ -105,6 +107,25 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       GameClient(backend: widget.services.game, roomId: widget.room.id, clock: widget.clock, me: widget.me.id)
         ..addListener(_changed);
   late final AppStrings _t = widget.room.language.strings;
+
+  /// La voce al tavolo: chi parla e chi ascolta lo decide il server, fase
+  /// per fase (Edge Function voice-token). La stessa della stanza sotto.
+  late final VoiceDirectory _voiceSeats = (
+    profileOf: (String id) => _client.board?.seating.occupantOf(id)?.profileId,
+    nameOf: (String id) => _client.board?.seating.occupantOf(id)?.name,
+  );
+  late final VoiceController? _voice = switch (widget.services.voice) {
+    final source? => VoiceController.acquire(source, widget.room.id, directory: _voiceSeats),
+    null => null,
+  };
+
+  /// Chi si sente nella voce: segnalarlo o bloccarlo, come dal suo posto.
+  void _voicePerson(String seat) {
+    final name = _client.board?.seating.occupantOf(seat)?.name;
+    if (name != null) showSeatActions(context, services: widget.services, name: name, myId: widget.me.id);
+  }
+
+  String get _voiceKey => '${_client.schedule?.key}|${_client.seat?.view.alive}';
   late final Random _shuffle = widget.seating ?? Random();
   Timer? _ticker;
 
@@ -223,6 +244,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     WidgetsBinding.instance.addObserver(this);
     RecapShelf.last = null;
     _client;
+    _voice?.phase(_voiceKey);
     _watchGestures();
     MemeDirector.attach(_client, alive: () => mounted);
     // Il cronometro, l'inizio dei film e la fine delle fasi.
@@ -239,6 +261,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     WidgetsBinding.instance.removeObserver(this);
     _client.removeListener(_changed);
     _client.dispose();
+    _voice?.release(directory: _voiceSeats);
     SoundStage.instance.ambience(null);
     super.dispose();
   }
@@ -249,7 +272,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     // risiede, e il server ridà subito il tavolo com'è adesso.
     // Sempre: lo sfondo può aver lasciato il server senza notizie (e gli
     // altri ci vedono assenti) anche se qui sembra tutto a posto.
-    if (state == AppLifecycleState.resumed) _rejoin();
+    if (state == AppLifecycleState.resumed) {
+      _rejoin();
+      _voice?.refresh();
+    }
   }
 
   /// Rientra al tavolo: accesso rinnovato, tempo reale riaperto, un «ci
@@ -264,6 +290,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   void _changed() {
     if (!mounted) return;
+    _voice?.phase(_voiceKey);
     if (_client.takeRejection() != null) showNote(context, _t.online.rejected, kind: NoticeKind.error);
     if (!_client.busy) _hope = null;
     final seat = _client.seat;
@@ -844,7 +871,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                       onSend: (body) => _client.sendChat(_chatView().channel, body),
                       seats: _chatSeats,
                       onHold: _holdMessage,
-                      trailing: _stage.chat == 'day' && _view.familyChat ? _chatSwitch() : null,
+                      trailing: _chatTrailing(),
                     ),
                   ),
                 ),
@@ -1193,7 +1220,16 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       read: _chatNow,
       seats: _chatSeats,
       onHold: _holdMessage,
+      trailing: _voice == null ? null : VoiceDock(controller: _voice, onPerson: _voicePerson),
     );
+  }
+
+  /// In testa alla chat: la voce, e di giorno con un Compare la scelta della chat.
+  Widget? _chatTrailing() {
+    final swap = _stage.chat == 'day' && _view.familyChat ? _chatSwitch() : null;
+    final voice = _voice;
+    if (voice == null) return swap;
+    return Row(mainAxisSize: MainAxisSize.min, children: [VoiceDock(controller: voice, onPerson: _voicePerson), ?swap]);
   }
 
   /// Il messaggio di un altro, tenuto premuto: segnalarlo o bloccarlo.
@@ -1289,7 +1325,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         onSend: (body) => _client.sendChat(_chatView().channel, body),
         seats: _chatSeats,
         onHold: _holdMessage,
-        trailing: _stage.chat == 'day' && _view.familyChat ? _chatSwitch() : null,
+        trailing: _chatTrailing(),
       ),
     );
     final bottom = typing ? 6.0 : max(_media.viewPadding.bottom - 6, 8.0);
@@ -1516,7 +1552,11 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         final role = _publicKnowledge(player).role ?? (player == _view.seat ? null : _knowledgeOf(player).role);
         final silenced = _public.lastDawn?.silenced == player && _public.lastDawn?.round == _public.round;
         final can = selectable.contains(player);
-        final seat = SeatCard(
+        final seat = VoiceRing(
+          controller: _voice,
+          identity: player.id,
+          width: width,
+          child: SeatCard(
           key: ValueKey('seat-${player.id}'),
           name: player.name,
           number: _numberOf(player),
@@ -1544,6 +1584,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
           dimmed: selectable.isNotEmpty && !can && _isAlive(player) && player != selected && player != _view.seat,
           onTap: can && onTap != null ? () => onTap(player) : null,
           onLongPress: player == _view.seat ? null : () => _seatHeld(player),
+          ),
         );
         if (player == lynched) {
           return LynchMark(

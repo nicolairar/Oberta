@@ -29,6 +29,9 @@ class ChatPanel extends StatefulWidget {
   /// Tenendo premuto il messaggio di un altro (segnalarlo, bloccarlo).
   final void Function(ChatMessage message)? onHold;
 
+  /// In testa, a destra del titolo (la voce al tavolo).
+  final Widget? trailing;
+
   const ChatPanel({
     super.key,
     required this.title,
@@ -42,6 +45,7 @@ class ChatPanel extends StatefulWidget {
     this.accent = AppColors.gold,
     this.decoration,
     this.onHold,
+    this.trailing,
   });
 
   @override
@@ -96,7 +100,15 @@ class _ChatPanelState extends State<ChatPanel> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(widget.title, style: desk ? DeskText.overline(color: widget.accent) : AppText.overline.copyWith(color: widget.accent)),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(widget.title,
+                      style: desk ? DeskText.overline(color: widget.accent) : AppText.overline.copyWith(color: widget.accent)),
+                ),
+                ?widget.trailing,
+              ],
+            ),
             SizedBox(height: desk ? 12 : 4),
             Expanded(
               child: messages.isEmpty

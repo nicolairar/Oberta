@@ -56,6 +56,8 @@
 			</array>
 		</dict>
 	</array>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Obertà usa il microfono solo per la voce al tavolo con gli amici, quando il gioco ti dà la parola. La voce passa dal vivo e non viene registrata né trascritta.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Obertà ti fa scegliere dalla libreria la foto di chi gioca. La foto scelta resta su questo telefono.</string>
 	<key>UIApplicationSceneManifest</key>

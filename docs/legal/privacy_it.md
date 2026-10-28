@@ -1,6 +1,6 @@
 # Informativa sulla privacy di Obertà
 
-Ultimo aggiornamento: 22 ottobre 2026
+Ultimo aggiornamento: 28 ottobre 2026
 
 Obertà è un gioco di società. Questa informativa spiega quali dati trattiamo, perché, per quanto tempo e quali diritti hai (Regolamento UE 2016/679, «GDPR»).
 
@@ -23,11 +23,12 @@ Puoi giocare sullo stesso telefono senza account. In quel caso nessun dato perso
 - Amicizie e richieste di amicizia.
 - Stanze in cui entri, posti a tavola e storico delle partite.
 - Messaggi di chat che scrivi nelle stanze, moderati automaticamente (filtro di parole offensive e limiti di frequenza).
+- La voce al tavolo, solo se la accendi, nelle stanze con gli amici: la voce passa dal vivo e non viene registrata né trascritta. Va dal tuo dispositivo agli altri giocatori attraverso LiveKit (server nell'Unione Europea) mentre parli, e non resta da nessuna parte: né noi né LiveKit conserviamo l'audio. LiveKit riceve soltanto il flusso audio, un'etichetta temporanea del posto a tavola (mai il tuo nome o il tuo account) e i dati tecnici della connessione (indirizzo IP).
 - Registro delle monete (acquisti, premi, rimborsi) e riferimento della transazione App Store.
 - Registro degli abbandoni di partita, usato per le penalità.
 - Dati tecnici dei server (indirizzo IP, data e ora delle richieste) conservati dal fornitore di hosting nei suoi log.
 
-Non trattiamo posizione, contatti, foto, microfono o dati di salute.
+Non trattiamo posizione, contatti, foto o dati di salute. Il microfono serve solo alla voce al tavolo: si accende se lo scegli tu, e trasmette solo quando il gioco ti dà la parola.
 
 ## Cosa NON facciamo
 
@@ -35,10 +36,11 @@ Non trattiamo posizione, contatti, foto, microfono o dati di salute.
 - Nessun tracciamento tra app o siti diversi.
 - Nessuna vendita o cessione dei dati.
 - Nessun cookie nell'app.
+- Nessuna registrazione, trascrizione o analisi della voce.
 
 ## Perché e su quale base giuridica
 
-- Fornire il gioco online, l'account, gli amici, le stanze e i cosmetici: esecuzione del contratto (art. 6.1.b).
+- Fornire il gioco online, l'account, gli amici, le stanze, la voce al tavolo e i cosmetici: esecuzione del contratto (art. 6.1.b).
 - Moderazione della chat, penalità per gli abbandoni, prevenzione di imbrogli e abusi, sicurezza dei server: legittimo interesse a un gioco corretto e sicuro (art. 6.1.f).
 - Conservazione delle registrazioni degli acquisti: obbligo di legge, fiscale e contabile (art. 6.1.c).
 
@@ -46,6 +48,7 @@ Non trattiamo posizione, contatti, foto, microfono o dati di salute.
 
 - Dati dell'account: finché l'account esiste. Se lo elimini, li cancelliamo subito.
 - Messaggi di chat: 90 giorni, poi vengono cancellati automaticamente.
+- Voce al tavolo: nessuna conservazione. La voce passa dal vivo e non viene registrata né trascritta.
 - Registro degli abbandoni e delle partite: finché l'account esiste.
 - Acquisti con denaro reale: fino a 10 anni per obblighi fiscali. Dopo l'eliminazione dell'account restano solo in forma anonima (importo, data, riferimento App Store), senza alcun legame con te.
 - Log tecnici: secondo i tempi del fornitore di hosting (di norma pochi giorni).
@@ -53,13 +56,14 @@ Non trattiamo posizione, contatti, foto, microfono o dati di salute.
 ## Chi tratta i dati per nostro conto
 
 - Supabase Inc. — hosting e database, con server nell'Unione Europea (Irlanda, regione eu-west-1). Eventuali trasferimenti fuori dall'UE sono coperti dalle Clausole Contrattuali Standard.
+- LiveKit, Inc. — trasmissione dal vivo della voce al tavolo (LiveKit Cloud, server nell'Unione Europea). Nessuna registrazione, trascrizione o conservazione dell'audio. Eventuali trasferimenti fuori dall'UE sono coperti dalle Clausole Contrattuali Standard.
 - Apple Inc. — accesso con Apple e pagamenti in-app. Per i pagamenti Apple agisce come titolare autonomo secondo la propria informativa.
 - Google LLC — solo se scegli di accedere con Google.
 - Valve Corporation (Steam) — solo se accedi con Steam: conferma l'accesso e fornisce il profilo pubblico Steam. Valve agisce come titolare autonomo secondo la propria informativa.
 
 ## Età minima
 
-L'online include una chat con altri giocatori: per usarlo devi avere almeno 14 anni (art. 2-quinquies del Codice privacy italiano). Sotto i 14 anni puoi giocare solo sul singolo telefono, senza account.
+L'online include una chat, scritta e a voce, con altri giocatori: per usarlo devi avere almeno 14 anni (art. 2-quinquies del Codice privacy italiano). Sotto i 14 anni puoi giocare solo sul singolo telefono, senza account.
 
 ## I tuoi diritti
 

@@ -1,6 +1,6 @@
 # Obertà Privacy Policy
 
-Last updated: 22 October 2026
+Last updated: 28 October 2026
 
 Obertà is a party game. This policy explains what data we process, why, for how long, and what your rights are (EU Regulation 2016/679, "GDPR").
 
@@ -23,11 +23,12 @@ You can play on a single phone without an account. In that case no personal data
 - Friends and friend requests.
 - Rooms you join, seats and match history.
 - Chat messages you write in rooms, automatically moderated (offensive-word filter and rate limits).
+- Table voice chat, only if you turn it on, in friends rooms: your voice goes out live and is never recorded or transcribed. It travels from your device to the other players through LiveKit (servers in the European Union) while you speak, and is kept nowhere: neither we nor LiveKit store the audio. LiveKit receives only the audio stream, a temporary label for your seat (never your name or account) and technical connection data (IP address).
 - The coin ledger (purchases, rewards, refunds) with the App Store transaction reference.
 - Records of abandoned matches, used for penalties.
 - Server technical data (IP address, request timestamps) kept by the hosting provider in its logs.
 
-We do not process location, contacts, photos, microphone or health data.
+We do not process location, contacts, photos or health data. The microphone is used only for table voice chat: it turns on only if you choose it, and transmits only when the game gives you the floor.
 
 ## What we do NOT do
 
@@ -35,10 +36,11 @@ We do not process location, contacts, photos, microphone or health data.
 - No tracking across other apps or websites.
 - No selling or sharing of data.
 - No cookies in the app.
+- No recording, transcription or analysis of voice.
 
 ## Why, and on what legal basis
 
-- Providing online play, the account, friends, rooms and cosmetics: performance of a contract (art. 6.1.b).
+- Providing online play, the account, friends, rooms, table voice chat and cosmetics: performance of a contract (art. 6.1.b).
 - Chat moderation, abandon penalties, cheat and abuse prevention, server security: legitimate interest in a fair and safe game (art. 6.1.f).
 - Keeping purchase records: legal, tax and accounting obligations (art. 6.1.c).
 
@@ -46,6 +48,7 @@ We do not process location, contacts, photos, microphone or health data.
 
 - Account data: as long as the account exists. If you delete it, we erase it immediately.
 - Chat messages: 90 days, then deleted automatically.
+- Table voice chat: nothing is kept. Your voice goes out live and is never recorded or transcribed.
 - Match and abandon records: as long as the account exists.
 - Real-money purchases: up to 10 years for tax obligations. After account deletion they are kept only in anonymous form (amount, date, App Store reference), with no link to you.
 - Technical logs: according to the hosting provider's retention (usually a few days).
@@ -53,13 +56,14 @@ We do not process location, contacts, photos, microphone or health data.
 ## Who processes data on our behalf
 
 - Supabase Inc. — hosting and database, with servers in the European Union (Ireland, region eu-west-1). Any transfers outside the EU are covered by Standard Contractual Clauses.
+- LiveKit, Inc. — live transmission of table voice chat (LiveKit Cloud, servers in the European Union). No recording, transcription or storage of audio. Any transfers outside the EU are covered by Standard Contractual Clauses.
 - Apple Inc. — Sign in with Apple and in-app payments. For payments Apple acts as an independent controller under its own policy.
 - Google LLC — only if you choose to sign in with Google.
 - Valve Corporation (Steam) — only if you sign in with Steam: it confirms the sign-in and provides your public Steam profile. Valve acts as an independent controller under its own privacy policy.
 
 ## Minimum age
 
-Online play includes chat with other players: you must be at least 14 to use it (art. 2-quinquies of the Italian Privacy Code). Under 14 you can play on a single phone only, without an account.
+Online play includes text and voice chat with other players: you must be at least 14 to use it (art. 2-quinquies of the Italian Privacy Code). Under 14 you can play on a single phone only, without an account.
 
 ## Your rights
 

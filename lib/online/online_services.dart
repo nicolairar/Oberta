@@ -10,6 +10,7 @@ import 'ranked_models.dart';
 import 'reactions.dart';
 import 'safety.dart';
 import 'shop_models.dart';
+import 'voice/voice_models.dart';
 
 export 'app_update.dart';
 export 'device_session.dart';
@@ -20,6 +21,7 @@ export 'ranked_models.dart';
 export 'reactions.dart';
 export 'safety.dart';
 export 'shop_models.dart';
+export 'voice/voice_models.dart';
 
 /// L'account: chi è entrato, e come si entra. Avvisa chi ascolta quando
 /// qualcuno entra o esce.
@@ -206,6 +208,9 @@ class OnlineServices {
   /// I gesti del tavolo. Null dove non ci sono.
   final ReactionsRepository? reactions;
 
+  /// La voce al tavolo (stanze con gli amici). Null dove non c'è.
+  final VoiceTokenSource? voice;
+
   const OnlineServices({
     required this.auth,
     required this.profiles,
@@ -221,6 +226,7 @@ class OnlineServices {
     this.progress,
     this.requirements,
     this.reactions,
+    this.voice,
   });
 
   static OnlineServices? instance;
