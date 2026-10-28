@@ -586,9 +586,13 @@ class _NParts {
 
   /// Fin dove salgono i capelli.
   final double hairTop;
+
+  /// Fin dove sale quello che c'è in testa (i capelli, il cappello), senza
+  /// l'effetto che ci galleggia sopra: lì si posa [HeadFx].
+  final double headTop;
   final Map<(Path, double), (Path, Path)> _toon = {};
 
-  _NParts(this.b, {required this.face, required this.neck, required this.torso, required this.ears, this.back, this.front, this.braids, this.hat, required this.crown, required this.hairTop});
+  _NParts(this.b, {required this.face, required this.neck, required this.torso, required this.ears, this.back, this.front, this.braids, this.hat, required this.crown, required this.hairTop, required this.headTop});
 
   /// L'ombra netta (la forma meno sé stessa spostata verso la lampada) e il
   /// filo di luce (meno sé stessa spostata dall'altra parte). [side] è il
@@ -640,11 +644,11 @@ abstract final class _Noir {
       crown = min(crown, hatMap(b).transform(Offset(0, LookPainter.crown(look.copyWith(hairdo: Hairdo.none)))).dy + lift(look, b, hairTop: crown));
     }
     if (look.hairdo != Hairdo.none) crown = min(crown, hatMap(b).transform(Offset(0, LookPainter.crown(look))).dy);
-    final wings = switch (look.accessory) {
-      AvatarAccessory.balloons || AvatarAccessory.dragonWings => bodyMap(b, look).transform(const Offset(0, -1.34)).dy,
-      _ => 1.0,
-    };
+    final wings = look.accessory == AvatarAccessory.balloons || look.back == BackItem.dragonWings ? bodyMap(b, look).transform(const Offset(0, -1.34)).dy : 1.0;
     crown = min(crown, wings);
+    final headTop = crown;
+    // L'effetto in testa galleggia sopra: si fa spazio anche lui.
+    if (look.headFx.rise > 0) crown = min(crown, headTop - look.headFx.rise);
     return _cache[key] = _NParts(
       b,
       face: b.face(),
@@ -657,6 +661,7 @@ abstract final class _Noir {
       hat: hat,
       crown: crown,
       hairTop: hairTop,
+      headTop: headTop,
     );
   }
 
@@ -705,10 +710,33 @@ abstract final class _Noir {
   /// il bordo: si rimpicciolisce tutto verso il basso, le spalle restano.
   static double fit(_NParts p) => p.crown < 0.03 ? (1 - 0.03) / (1 - p.crown) : 1.0;
 
-  /// Il ritratto di [look] in un quadrato di lato [side].
-  static void bust(Canvas canvas, AvatarLook look, double side, {Offset light = const Offset(-0.6, -0.8), double glance = 0, Set<LookLayer>? only}) {
+  /// Quanto si rimpicciolisce chi tiene qualcosa in mano o sulle spalle, per
+  /// fargli posto nel ritratto.
+  static const roomy = 0.86;
+
+  /// La scala del ritratto: [fit], e un poco meno per chi chiede spazio.
+  static double scale(AvatarLook look, _NParts p) => fit(p) * (look.roomy ? roomy : 1.0);
+
+  /// La scena di [look] nel ritratto di lato [side], sull'area [area] (in pixel).
+  static void aura(Canvas canvas, AvatarLook look, double side, Rect area) {
+    if (look.aura == Aura.none) return;
     final p = parts(look);
-    final k = fit(p);
+    final b = p.b;
+    final k = scale(look, p);
+    final head = Offset(0.5 + (b.cx - 0.5) * k, 1 + ((b.top + b.bottom) / 2 - 1) * k);
+    final box = Rect.fromLTRB(area.left / side, area.top / side, area.right / side, area.bottom / side);
+    canvas.save();
+    canvas.scale(side);
+    _Deep.begin(side);
+    _Deep.pic(canvas, ('aura', look.aura, box, head), (c) => _Deep.aura(c, look.aura, box, head));
+    canvas.restore();
+  }
+
+  /// Il ritratto di [look] in un quadrato di lato [side].
+  static void bust(Canvas canvas, AvatarLook look, double side, {Offset light = const Offset(-0.6, -0.8), double glance = 0, Set<LookLayer>? only, bool aura = true}) {
+    final p = parts(look);
+    final k = scale(look, p);
+    if (aura && only == null) _Noir.aura(canvas, look, side, Offset.zero & Size.square(side));
     canvas.save();
     canvas.scale(side);
     canvas.translate(0.5, 1);
@@ -720,12 +748,12 @@ abstract final class _Noir {
 
   /// Quello che sta dietro le spalle: le ali, i palloncini, il guscio, il
   /// razzo, e i fumogeni e le bandiere delle curve (le sciarpe no).
-  static bool _winged(AvatarAccessory a) =>
-      const {
-        AvatarAccessory.angelWings, AvatarAccessory.batWings, AvatarAccessory.butterflyWings, AvatarAccessory.dragonWings, AvatarAccessory.balloons, //
-        AvatarAccessory.snailShell, AvatarAccessory.jetpack,
-      }.contains(a) ||
-      (CalcioTeam.of(a.name) != null && !a.name.endsWith('Scarf'));
+  static bool _winged(AvatarLook look) {
+    final a = look.accessory;
+    return look.back.wing ||
+        const {AvatarAccessory.balloons, AvatarAccessory.snailShell, AvatarAccessory.jetpack}.contains(a) ||
+        (CalcioTeam.of(a.name) != null && !a.name.endsWith('Scarf'));
+  }
 
   static bool _gilded(AvatarLook look) => look.base.mark == FaceMark.goldStatue || const {'gold_brocade', 'versalli_baroque'}.contains(look.outfit.id);
 
@@ -765,19 +793,31 @@ abstract final class _Noir {
       if (line) canvas.drawPath(path, _nStroke(_nInk, thin));
     }
 
+    // I posti più cari: le linee del ritratto, e dove sta la faccia.
+    _Deep.begin(side);
+    final g = _DGeo.of(p, crown: p.headTop);
+    final dye = styled || gold ? HairDye.none : look.hairDye;
+
+    /// I capelli: col loro colore, o con la tinta, una sfumatura dall'alto
+    /// in basso che tiene l'ombra netta e il filo di luce.
+    void hairToon(Path path, Color base, {required double d, double glow = 0.3}) {
+      if (dye == HairDye.none) return toon(path, base, d: d, glow: glow);
+      final band = Rect.fromLTRB(0, p.hairTop, 1, max(b.bottom + 0.12, path.getBounds().bottom));
+      final colors = dye.colors;
+      final stops = colors.length == 3 ? const [0.2, 0.5, 0.8] : const [0.15, 0.85];
+      Paint shade(List<Color> c) => Paint()..shader = ui.Gradient.linear(band.topCenter, band.bottomCenter, c, stops);
+      canvas.drawPath(path, shade(colors));
+      if (bare) return;
+      final (shadow, lit) = p.toon(path, d, sx);
+      canvas.drawPath(shadow, shade([for (final c in colors) _nDark(c)]));
+      canvas.drawPath(lit, shade([for (final c in colors) Color.lerp(c, _nLamp, glow)!]));
+      canvas.drawPath(path, _nStroke(_nInk, thin));
+    }
+
     final hatAt = hatMap(b);
     final liftedHat = _M(hatAt.x0, hatAt.y0 + hatLift, hatAt.k, hatAt.fx, hatAt.fy);
     final legacyHat = p.hat == null && !look.bareHead && !styled;
     final nativeOutfit = _nativeOutfit(look.outfit.pattern);
-
-    // --- La sagoma d'inchiostro ---
-    if (!bare) {
-      final heavy = _nStroke(_nInk, ow * 2);
-      for (final path in [p.back, p.neck, p.torso, ...p.ears, p.face, p.front, p.braids, p.hat?.crown, if (look.hat != AvatarHead.crown) p.hat?.brim]) {
-        if (path != null) canvas.drawPath(path, heavy);
-      }
-      if (look.base.mark == FaceMark.fullBeard || look.base.mark == FaceMark.muttonChops) canvas.drawPath(b.beard(), heavy);
-    }
 
     // Un pezzo strano della bottega: disegnato una volta sulla tela noir
     // ([_InkCanvas]) e tenuto da parte.
@@ -787,7 +827,7 @@ abstract final class _Noir {
     final broad = look.dame ? 0.86 : 1.0;
     final faceTattoo = look.tattoo == Tattoo.teardrop || look.tattoo == Tattoo.cheekStar;
 
-    void wings() => pic('wings', bodyMap(b, look), (c) => _Oddities.wings(c, look.accessory));
+    void wings() => pic('wings', bodyMap(b, look), (c) => _Oddities.wings(c, look));
     void oddHat() => pic('hat', liftedHat, (c) => LookPainter._hat(c, look, Paint(), silhouette: false));
     void hairdoBack() => pic('hairdoBack', hatAt, (c) => _Extras.hairdoBack(c, look, null));
     void hairdoFront() => pic('hairdoFront', hatAt, (c) => _Extras.hairdoFront(c, look));
@@ -810,9 +850,47 @@ abstract final class _Noir {
           if (!faceTattoo) _Extras.tattoo(c, neckLook);
         }, as: neckLook);
 
+    bool on(LookLayer layer) => only == null || only.contains(layer);
+
+    void eyeShine() {
+      if (look.eyeShine == EyeShine.none) return;
+      final pupils = _pupils(look, b, glance);
+      _Deep.pic(canvas, ('eyes', look.eyeShine, pupils.$1, pupils.$2), (c) => _Deep.eyeShine(c, look.eyeShine, pupils.$1, pupils.$2));
+    }
+
+    // --- Dietro a tutto: le spalle e il bagliore, con la loro sagoma ---
+    if (on(LookLayer.back)) {
+      if (_winged(look)) {
+        if (!bare && layered) {
+          canvas.saveLayer(
+            const Rect.fromLTRB(-0.5, -0.5, 1.5, 1.5),
+            Paint()
+              ..imageFilter = ui.ImageFilter.dilate(radiusX: ow, radiusY: ow)
+              ..colorFilter = const ColorFilter.mode(_nInk, BlendMode.srcIn),
+          );
+          wings();
+          canvas.restore();
+        }
+        wings();
+      }
+      if (layered && look.back.roomy) _Deep.pic(canvas, ('back', look.back, g), (c) => _Deep.back(c, look.back, g));
+    }
+    if (on(LookLayer.headGlow) && !bare && look.headFx.glow != null) {
+      _Deep.pic(canvas, ('glow', look.headFx, look), (c) => _Deep.headGlow(c, [p.back, p.neck, ...p.ears, p.face, p.front, p.braids, p.hat?.crown, p.hat?.brim].whereType<Path>().toList(), look.headFx.glow!));
+    }
+
+    // --- La sagoma d'inchiostro ---
+    if (!bare) {
+      final heavy = _nStroke(_nInk, ow * 2);
+      for (final path in [p.back, p.neck, p.torso, ...p.ears, p.face, p.front, p.braids, p.hat?.crown, if (look.hat != AvatarHead.crown) p.hat?.brim]) {
+        if (path != null) canvas.drawPath(path, heavy);
+      }
+      if (look.base.mark == FaceMark.fullBeard || look.base.mark == FaceMark.muttonChops) canvas.drawPath(b.beard(), heavy);
+    }
+
     // --- La sagoma d'inchiostro dei pezzi strani: allargati e neri, dietro ---
     if (!bare) {
-      final odd = legacyHat || styled || !nativeOutfit || _winged(look.accessory) || !_nativeGlasses(look.glasses) || !_nativeProp(look.accessory);
+      final odd = legacyHat || styled || !nativeOutfit || !_nativeGlasses(look.glasses) || !_nativeProp(look.accessory);
       if (odd && layered) {
         canvas.saveLayer(
           const Rect.fromLTRB(-0.5, -0.5, 1.5, 1.5),
@@ -820,7 +898,6 @@ abstract final class _Noir {
             ..imageFilter = ui.ImageFilter.dilate(radiusX: ow, radiusY: ow)
             ..colorFilter = const ColorFilter.mode(_nInk, BlendMode.srcIn),
         );
-        if (_winged(look.accessory)) wings();
         if (legacyHat) oddHat();
         if (styled) {
           hairdoBack();
@@ -837,13 +914,13 @@ abstract final class _Noir {
     for (final layer in LookLayer.values) {
       if (only != null && !only.contains(layer)) continue;
       switch (layer) {
-        case LookLayer.wings:
-          if (_winged(look.accessory)) wings();
+        case LookLayer.back || LookLayer.headGlow:
+          break; // Già dipinti, prima della sagoma.
         case LookLayer.hairBack:
           if (styled) {
             hairdoBack();
           } else if (p.back != null) {
-            toon(p.back!, Color.lerp(hair, _nInk, 0.12)!, d: 0.08, glow: 0.3);
+            hairToon(p.back!, Color.lerp(hair, _nInk, 0.12)!, d: 0.08);
           }
         case LookLayer.body:
           toon(p.neck, Color.lerp(skin, _nNight, 0.5)!, rim: false);
@@ -871,21 +948,24 @@ abstract final class _Noir {
           if (p.hat != null && !bare) _brimShadow(canvas, look, p, skin);
           _features(canvas, look, b, skin, thin, small, glance: glance, shaded: p.hat != null);
           if (faceTattoo) pic('tattoo', mouthMap(b), (c) => _Extras.tattoo(c, look));
+          if (!look.glasses.dark) eyeShine();
         case LookLayer.beard:
           _beard(canvas, look, b, hair, thin, toon, pic);
+          // I segni sulla faccia, sopra i baffi e il rossetto.
+          if (look.faceExtras.isNotEmpty) _Deep.pic(canvas, ('face', AvatarLook.extrasId(look.faceExtras), g), (c) => _Deep.faceExtras(c, look.faceExtras, g));
         case LookLayer.hairFront:
           if (styled) {
             hairdoFront();
           } else {
             if (p.front != null) {
-              toon(p.front!, hair, d: 0.07, glow: 0.3);
-              _hairDetail(canvas, look, p, hair, thin, small);
+              hairToon(p.front!, hair, d: 0.07);
+              _hairDetail(canvas, look, p, dye == HairDye.none ? hair : _nDark(Color.lerp(dye.top, dye.bottom, 0.5)!), thin, small);
             } else if (!_Face._covered.contains(look.hat) && f.hair == HairStyle.bald && !bare) {
               // La testa calva prende la luce.
               canvas.drawArc(Rect.fromCenter(center: Offset(b.cx - sx * b.r * 0.3, b.top + b.h * 0.1), width: b.w * 0.4, height: b.h * 0.12), pi * 1.1, pi * 0.6, false,
                   _nStroke(Color.lerp(skin, _nLamp, 0.6)!, thin * 2));
             }
-            if (p.braids != null) toon(p.braids!, hair, d: 0.03);
+            if (p.braids != null) hairToon(p.braids!, hair, d: 0.03);
           }
         case LookLayer.glasses:
           if (_nativeGlasses(look.glasses)) {
@@ -893,6 +973,26 @@ abstract final class _Noir {
           } else {
             oddGlasses();
           }
+          // Dietro le lenti scure la luce negli occhi passa lo stesso.
+          if (look.glasses.dark) eyeShine();
+        case LookLayer.headFx:
+          if (layered && look.headFx != HeadFx.none && !look.headFx.glows) _Deep.pic(canvas, ('headFx', look.headFx, g), (c) => _Deep.headFx(c, look.headFx, g));
+        case LookLayer.held:
+          if (!layered) break;
+          final skinTone = skin;
+          final sleeve = look.outfit.coat;
+          if (look.heldBoth case final both?) {
+            _Deep.pic(canvas, ('both', both, g, sleeve, skinTone), (c) => _Deep.heldBoth(c, both, g, sleeve: sleeve, skin: skinTone));
+          } else {
+            for (final hand in Hand.values) {
+              final item = look.held(hand);
+              if (item == HeldItem.none) continue;
+              final side = hand == Hand.left ? -1.0 : 1.0;
+              _Deep.pic(canvas, ('held', item, side, g, sleeve, skinTone, look.outfit.shirt), (c) => _Deep.held(c, item, g, side: side, sleeve: sleeve, skin: skinTone, cuff: look.outfit.shirt));
+            }
+          }
+        case LookLayer.frontFx:
+          if (layered && look.frontFx != FrontFx.none) _Deep.pic(canvas, ('front', look.frontFx, g), (c) => _Deep.frontFx(c, look.frontFx, g));
         case LookLayer.hat:
           if (p.hat != null) {
             _nativeHat(canvas, look, p, thin, toon);
@@ -1297,6 +1397,16 @@ abstract final class _Noir {
     }
     _nose(canvas, look, b, skin, thin, small);
     _mouth(canvas, look, b, skin, thin, small);
+  }
+
+  /// Dove stanno le pupille (come le disegna [_features]) e quanto sono grandi.
+  static (List<Offset>, double) _pupils(AvatarLook look, _NB b, double glance) {
+    final e = _eye(look.features.eyes);
+    final ew = b.w * 0.21 * e.w * _size(look.features.eyeSize);
+    final g = glance.clamp(-1.0, 1.0) * b.w * 0.02;
+    final eh = ew * (look.dame ? 0.38 : 0.32) * e.h;
+    final r = max(b.eyeDx * 0.2, eh * 0.7);
+    return ([for (final s in [-1.0, 1.0]) Offset(b.cx + s * b.eyeDx + s * ew * (look.dame ? 0.05 : 0.06) + g, b.eyeY + (look.dame ? eh * 0.05 : 0))], r);
   }
 
   static void _nose(Canvas canvas, AvatarLook look, _NB b, Color skin, double thin, bool small) {

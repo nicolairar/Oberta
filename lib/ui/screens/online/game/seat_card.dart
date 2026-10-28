@@ -2,6 +2,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../../avatar/avatar_look.dart';
+import '../../../widgets/cosmetics/aura_backdrop.dart';
 import '../../../widgets/cosmetics/seat_frame.dart';
 import '../../../widgets/cosmetics/styled_name.dart';
 
@@ -151,11 +153,19 @@ class SeatCard extends StatelessWidget {
               ),
               child: ClipRRect(
                 borderRadius: arch,
-                child: Align(
-                  alignment: const Alignment(0, -0.1),
-                  child: Opacity(
-                    opacity: offline ? 0.5 : 1,
-                    child: PlayerAvatar(seed: name, size: width * 0.86, fallen: fallen, bare: true),
+                child: Opacity(
+                  opacity: offline ? 0.5 : 1,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // La scena della bottega riempie tutto l'arco; chi è
+                      // morto la perde, resta il fondo scuro.
+                      if (!fallen && !accused) AuraBackdrop(look: AvatarLook.of(name), portrait: width * 0.86),
+                      Align(
+                        alignment: const Alignment(0, -0.1),
+                        child: PlayerAvatar(seed: name, size: width * 0.86, fallen: fallen, bare: true),
+                      ),
+                    ],
                   ),
                 ),
               ),

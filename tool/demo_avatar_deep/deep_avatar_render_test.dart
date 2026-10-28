@@ -13,7 +13,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/painting.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oberta/ui/avatar/avatar_look.dart';
+import 'package:oberta/ui/avatar/avatar_look.dart' hide HairDye;
 import 'package:oberta/ui/avatar/look_painter.dart';
 import 'package:oberta/ui/widgets/noir_avatar.dart' show AvatarHead;
 

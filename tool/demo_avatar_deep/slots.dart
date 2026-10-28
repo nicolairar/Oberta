@@ -3,7 +3,7 @@
 // AvatarLook and which ones this demo adds. DEMO ONLY: nothing in lib/ uses
 // this yet.
 import 'package:flutter/painting.dart';
-import 'package:oberta/ui/avatar/avatar_look.dart';
+import 'package:oberta/ui/avatar/avatar_look.dart' hide HairDye;
 
 /// Who paints a slot today.
 enum SlotOwner { live, extended, added }

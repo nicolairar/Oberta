@@ -12,6 +12,7 @@ part 'oddities_painter.dart';
 part 'absurd_painter.dart';
 part 'calcio_painter.dart';
 part 'face_painter.dart';
+part 'deep_painter.dart';
 part 'extras_painter.dart';
 part 'noir_painter.dart';
 
@@ -151,10 +152,19 @@ abstract final class LookPainter {
   /// la testa grande nel mezzo, le spalle che escono dal basso, nel cartoon
   /// noir ([_Noir]). Se quello che porta in testa salirebbe oltre il bordo,
   /// la persona si rimpicciolisce verso le spalle.
-  static void bust(Canvas canvas, AvatarLook look, double side, {CharacterPose pose = const CharacterPose(light: Offset(-0.6, -0.8))}) {
+  ///
+  /// La scena della bottega ([AvatarLook.aura]) riempie il quadrato; con
+  /// [aura] false resta fuori, per chi la dipinge da sé più grande ([aura]).
+  static void bust(Canvas canvas, AvatarLook look, double side, {CharacterPose pose = const CharacterPose(light: Offset(-0.6, -0.8)), bool aura = true}) {
     final light = pose.light.distance == 0 ? const Offset(-0.6, -0.8) : pose.light / pose.light.distance;
-    _Noir.bust(canvas, look, side, light: light, glance: pose.glance);
+    _Noir.bust(canvas, look, side, light: light, glance: pose.glance, aura: aura);
   }
+
+  /// La scena di [look] intorno al ritratto di lato [side] con l'angolo in
+  /// alto a sinistra nell'origine: riempie [area] (in pixel, dalla stessa
+  /// origine; senza, il quadrato del ritratto), così copre tutto l'arco del
+  /// posto al tavolo con la testa al suo posto.
+  static void aura(Canvas canvas, AvatarLook look, double side, {Rect? area}) => _Noir.aura(canvas, look, side, area ?? Offset.zero & Size.square(side));
 
   /// Solo alcuni strati della persona, nel riquadro del ritratto, senza
   /// inchiostro né ombre: per i test che controllano dove sta ogni pezzo.
@@ -167,7 +177,7 @@ abstract final class LookPainter {
   static ({Offset leftEye, Offset rightEye, double nose, double mouth, double chin, double brow, double width}) bustAnchors(AvatarLook look, double side) {
     final p = _Noir.parts(look);
     final b = p.b;
-    final k = _Noir.fit(p);
+    final k = _Noir.scale(look, p);
     Offset at(double x, double y) => Offset(side * (0.5 + (x - 0.5) * k), side * (1 + (y - 1) * k));
     return (
       leftEye: at(b.cx - b.eyeDx, b.eyeY),
@@ -220,10 +230,7 @@ abstract final class LookPainter {
             AvatarHead.devilHorns => -1.27,
             _ => -1.22,
           };
-    final prop = switch (look.accessory) {
-      AvatarAccessory.balloons || AvatarAccessory.dragonWings => -1.34,
-      _ => -1.22,
-    };
+    final prop = look.accessory == AvatarAccessory.balloons || look.back == BackItem.dragonWings ? -1.34 : -1.22;
     final hair = look.hairdo == Hairdo.none ? _Face.hairTop(look) - 0.04 : -1.22;
     return min(min(hairdo, hair), min(hat + _hatLift(look), prop));
   }
@@ -1588,12 +1595,8 @@ abstract final class LookPainter {
           AvatarAccessory.rubberDuck ||
           AvatarAccessory.accordion ||
           AvatarAccessory.baguetteCigar ||
-          AvatarAccessory.angelWings ||
-          AvatarAccessory.batWings ||
-          AvatarAccessory.butterflyWings ||
           AvatarAccessory.snailShell ||
           AvatarAccessory.jetpack ||
-          AvatarAccessory.dragonWings ||
           AvatarAccessory.balloons ||
           AvatarAccessory.giantBowTie ||
           AvatarAccessory.pigeon ||
@@ -2992,8 +2995,12 @@ abstract final class LookPainter {
 /// I pezzi di una persona nell'ordine in cui si dipingono: ognuno copre
 /// quelli prima. L'ordine si decide solo qui.
 enum LookLayer {
-  /// Le ali, dietro a tutto.
-  wings,
+  /// Quello che sta sulle spalle ([BackItem], le ali comprese) e quello che
+  /// il vezzo porta dietro (i palloncini, i fumogeni): dietro a tutto.
+  back,
+
+  /// Il bagliore intorno alla sagoma della testa ([HeadFx.glows]).
+  headGlow,
 
   /// I capelli che stanno dietro la testa.
   hairBack,
@@ -3016,6 +3023,10 @@ enum LookLayer {
   /// Gli occhiali, sulla linea degli occhi.
   glasses,
 
+  /// L'effetto in testa ([HeadFx]): sopra il cappello, che però lo copre
+  /// dove si incrociano.
+  headFx,
+
   /// Il cappello, con quello che porta davanti (la spilla, la piuma).
   hat,
 
@@ -3024,6 +3035,12 @@ enum LookLayer {
 
   /// Quello che sta in bocca: il sigaro, la sigaretta, la pipa.
   mouthProp,
+
+  /// Quello che tiene in mano ([HeldItem]), con le mani che salgono dal bordo.
+  held,
+
+  /// L'effetto davanti a tutto ([FrontFx]).
+  frontFx,
 }
 
 /// Come si dipinge una persona in questo momento.

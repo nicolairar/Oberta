@@ -5,9 +5,11 @@ import '../../online/online_models.dart' show Profile, WornLooks;
 import '../../online/shop_models.dart' show CalcioTeam, ShopBrand;
 import '../widgets/cosmetics/cosmetic_ids.dart';
 import '../widgets/noir_avatar.dart' show AvatarHead, avatarTints, avatarTraitsFor;
+import 'deep_slots.dart';
 import 'face_features.dart';
 
 export '../widgets/cosmetics/cosmetic_ids.dart';
+export 'deep_slots.dart';
 export 'face_features.dart';
 
 /// Come si presenta un giocatore: la faccia, il cappello, gli occhiali,
@@ -41,6 +43,34 @@ class AvatarLook {
   /// Il colore del nome sulla targhetta e in chat, della bottega.
   final NameStyle nameStyle;
 
+  // --- I posti più cari (deep_slots.dart): tutti vuoti, se non comprati.
+
+  /// La scena dietro la persona.
+  final Aura aura;
+
+  /// Quello che porta sulle spalle (le ali comprese).
+  final BackItem back;
+
+  /// L'effetto in testa, o il bagliore intorno ai capelli.
+  final HeadFx headFx;
+
+  /// I segni sulla faccia, fino a [FaceExtra.most], nell'ordine in cui li ha messi.
+  final List<FaceExtra> faceExtras;
+
+  /// La luce negli occhi.
+  final EyeShine eyeShine;
+
+  /// La tinta dei capelli.
+  final HairDye hairDye;
+
+  /// Quello che tiene a sinistra e a destra del ritratto. Una cosa da tenere
+  /// con due mani sta a sinistra, e la destra resta vuota.
+  final HeldItem heldL;
+  final HeldItem heldR;
+
+  /// L'effetto davanti a tutto.
+  final FrontFx frontFx;
+
   const AvatarLook({
     required this.base,
     required this.hat,
@@ -52,6 +82,15 @@ class AvatarLook {
     this.tattoo = Tattoo.none,
     this.border = SeatBorder.none,
     this.nameStyle = NameStyle.plain,
+    this.aura = Aura.none,
+    this.back = BackItem.none,
+    this.headFx = HeadFx.none,
+    this.faceExtras = const [],
+    this.eyeShine = EyeShine.none,
+    this.hairDye = HairDye.none,
+    this.heldL = HeldItem.none,
+    this.heldR = HeldItem.none,
+    this.frontFx = FrontFx.none,
   });
 
   /// Il look di chi non ha scelto niente: si ricava da [seed] (di solito il
@@ -191,6 +230,17 @@ class AvatarLook {
       return id is String ? find(id) ?? otherwise : otherwise;
     }
 
+    // Le ali erano un vezzo: chi le portava prima che passassero sulle
+    // spalle le ritrova lì (il server ha già spostato quelle salvate).
+    final oldWings = json['back'] == null ? _byName(BackItem.values, '${json['accessory']}') : null;
+    var heldL = pick(Hand.left.key, (id) => _byName(HeldItem.values, id), fallback.heldL);
+    var heldR = pick(Hand.right.key, (id) => _byName(HeldItem.values, id), fallback.heldR);
+    if (heldL.twoHanded) {
+      heldR = HeldItem.none;
+    } else if (heldR.twoHanded) {
+      (heldL, heldR) = (heldR, HeldItem.none);
+    }
+    final extras = json['faceExtras'];
     return AvatarLook(
       base: pick('base', AvatarBase.byId, fallback.base),
       hat: pick('hat', (id) => _byName(AvatarHead.values, id), fallback.hat),
@@ -202,8 +252,31 @@ class AvatarLook {
       tattoo: pick('tattoo', (id) => _byName(Tattoo.values, id), fallback.tattoo),
       border: pick('border', (id) => _byName(SeatBorder.values, id), fallback.border),
       nameStyle: pick('nameStyle', (id) => _byName(NameStyle.values, id), fallback.nameStyle),
+      aura: pick('aura', (id) => _byName(Aura.values, id), fallback.aura),
+      back: oldWings != null && oldWings.wing ? oldWings : pick('back', (id) => _byName(BackItem.values, id), fallback.back),
+      headFx: pick('headFx', (id) => _byName(HeadFx.values, id), fallback.headFx),
+      faceExtras: extras is String ? parseExtras(extras) : fallback.faceExtras,
+      eyeShine: pick('eyeShine', (id) => _byName(EyeShine.values, id), fallback.eyeShine),
+      hairDye: pick('hairDye', (id) => _byName(HairDye.values, id), fallback.hairDye),
+      heldL: heldL,
+      heldR: heldR,
+      frontFx: pick('frontFx', (id) => _byName(FrontFx.values, id), fallback.frontFx),
     );
   }
+
+  /// I segni sulla faccia come li salva il profilo: `blush+tear`, o `none`.
+  /// Quelli che il catalogo non conosce si lasciano, e se ne tengono due.
+  static List<FaceExtra> parseExtras(String id) {
+    final extras = <FaceExtra>[];
+    for (final part in id.split('+')) {
+      final extra = _byName(FaceExtra.values, part);
+      if (extra != null && !extras.contains(extra)) extras.add(extra);
+    }
+    return List.unmodifiable(extras.length > FaceExtra.most ? extras.sublist(extras.length - FaceExtra.most) : extras);
+  }
+
+  /// I segni sulla faccia come li salva il profilo.
+  static String extrasId(List<FaceExtra> extras) => extras.isEmpty ? 'none' : extras.map((e) => e.name).join('+');
 
   Map<String, String> toJson() => {
     'base': base.id,
@@ -216,6 +289,15 @@ class AvatarLook {
     'tattoo': tattoo.name,
     'border': border.name,
     'nameStyle': nameStyle.name,
+    'aura': aura.name,
+    'back': back.name,
+    'headFx': headFx.name,
+    'faceExtras': extrasId(faceExtras),
+    'eyeShine': eyeShine.name,
+    'hairDye': hairDye.name,
+    Hand.left.key: heldL.name,
+    Hand.right.key: heldR.name,
+    'frontFx': frontFx.name,
   };
 
   AvatarLook copyWith({
@@ -229,6 +311,15 @@ class AvatarLook {
     Tattoo? tattoo,
     SeatBorder? border,
     NameStyle? nameStyle,
+    Aura? aura,
+    BackItem? back,
+    HeadFx? headFx,
+    List<FaceExtra>? faceExtras,
+    EyeShine? eyeShine,
+    HairDye? hairDye,
+    HeldItem? heldL,
+    HeldItem? heldR,
+    FrontFx? frontFx,
   }) => AvatarLook(
     base: base ?? this.base,
     hat: hat ?? this.hat,
@@ -240,7 +331,51 @@ class AvatarLook {
     tattoo: tattoo ?? this.tattoo,
     border: border ?? this.border,
     nameStyle: nameStyle ?? this.nameStyle,
+    aura: aura ?? this.aura,
+    back: back ?? this.back,
+    headFx: headFx ?? this.headFx,
+    faceExtras: faceExtras ?? this.faceExtras,
+    eyeShine: eyeShine ?? this.eyeShine,
+    hairDye: hairDye ?? this.hairDye,
+    heldL: heldL ?? this.heldL,
+    heldR: heldR ?? this.heldR,
+    frontFx: frontFx ?? this.frontFx,
   );
+
+  /// Quello che tiene in [hand].
+  HeldItem held(Hand hand) => hand == Hand.left ? heldL : heldR;
+
+  /// La cosa tenuta con tutte e due le mani, se c'è.
+  HeldItem? get heldBoth => heldL.twoHanded ? heldL : (heldR.twoHanded ? heldR : null);
+
+  /// Lo stesso look con [item] in mano. Una cosa da due mani le prende
+  /// tutte e due; una da una mano va in [hand] (o in quella libera, la
+  /// destra se lo sono tutte e due) e lascia la cosa da due mani che c'era.
+  AvatarLook holding(HeldItem item, {Hand? hand}) {
+    if (item == HeldItem.none) return copyWith(heldL: HeldItem.none, heldR: HeldItem.none);
+    if (item.twoHanded) return copyWith(heldL: item, heldR: HeldItem.none);
+    final into = hand ?? (heldR == HeldItem.none || heldL != HeldItem.none ? Hand.right : Hand.left);
+    final keep = heldBoth != null ? HeldItem.none : held(into.other);
+    return into == Hand.left ? copyWith(heldL: item, heldR: keep) : copyWith(heldL: keep, heldR: item);
+  }
+
+  /// Lo stesso look con un segno in più sulla faccia (il più vecchio cede il
+  /// posto se ce ne sono già [FaceExtra.most]); con [toggle], un segno che
+  /// c'è già si toglie.
+  AvatarLook marked(FaceExtra extra, {bool toggle = false}) =>
+      faceExtras.contains(extra) && !toggle ? this : copyWith(faceExtras: toggledExtras(faceExtras, extra));
+
+  /// [worn] con [extra] tolto se c'è, o aggiunto (e il più vecchio fuori,
+  /// oltre [FaceExtra.most]): come fa il server (`equip_item`).
+  static List<FaceExtra> toggledExtras(List<FaceExtra> worn, FaceExtra extra) {
+    if (worn.contains(extra)) return List.unmodifiable([for (final e in worn) if (e != extra) e]);
+    final next = [...worn, extra];
+    return List.unmodifiable(next.length > FaceExtra.most ? next.sublist(next.length - FaceExtra.most) : next);
+  }
+
+  /// Porta qualcosa che chiede spazio nel ritratto: le cose in mano e quelle
+  /// sulle spalle (le ali di sempre no, hanno già il loro).
+  bool get roomy => back.roomy || heldL != HeldItem.none || heldR != HeldItem.none;
 
   /// L'id indossato in [slot], come lo vende la bottega: per la faccia è il
   /// segno (`walrus`), la pelle non si compra.
@@ -254,11 +389,29 @@ class AvatarLook {
     LookSlot.tattoo => tattoo.name,
     LookSlot.border => border.name,
     LookSlot.nameStyle => nameStyle.name,
+    LookSlot.aura => aura.name,
+    LookSlot.back => back.name,
+    LookSlot.headFx => headFx.name,
+    LookSlot.faceExtras => extrasId(faceExtras),
+    LookSlot.eyeShine => eyeShine.name,
+    LookSlot.hairDye => hairDye.name,
+    LookSlot.held => (heldBoth ?? (heldR != HeldItem.none ? heldR : heldL)).name,
+    LookSlot.frontFx => frontFx.name,
+  };
+
+  /// Se porta [id] in [slot]: per le mani in una delle due, per i segni
+  /// della faccia tra quelli che ha.
+  bool wears(LookSlot slot, String id) => switch (slot) {
+    LookSlot.held => id == 'none' ? heldL == HeldItem.none && heldR == HeldItem.none : heldL.name == id || heldR.name == id,
+    LookSlot.faceExtras => id == 'none' ? faceExtras.isEmpty : faceExtras.any((e) => e.name == id),
+    _ => idIn(slot) == id,
   };
 
   /// Lo stesso look con [id] indossato in [slot], o null se il catalogo
   /// dell'app non lo conosce (un pezzo arrivato con una versione nuova).
-  AvatarLook? wearing(LookSlot slot, String id) => switch (slot) {
+  /// Per le mani, [hand] dice quale ([holding]); un segno della faccia si
+  /// aggiunge a quelli che ha ([marked]).
+  AvatarLook? wearing(LookSlot slot, String id, {Hand? hand}) => switch (slot) {
     LookSlot.hat => _byName(AvatarHead.values, id).let((v) => copyWith(hat: v)),
     LookSlot.face => _byName(FaceMark.values, id).let((v) => copyWith(base: AvatarBase.of(base.tone, v))),
     LookSlot.glasses => _byName(AvatarGlasses.values, id).let((v) => copyWith(glasses: v)),
@@ -268,6 +421,14 @@ class AvatarLook {
     LookSlot.tattoo => _byName(Tattoo.values, id).let((v) => copyWith(tattoo: v)),
     LookSlot.border => _byName(SeatBorder.values, id).let((v) => copyWith(border: v)),
     LookSlot.nameStyle => _byName(NameStyle.values, id).let((v) => copyWith(nameStyle: v)),
+    LookSlot.aura => _byName(Aura.values, id).let((v) => copyWith(aura: v)),
+    LookSlot.back => _byName(BackItem.values, id).let((v) => copyWith(back: v)),
+    LookSlot.headFx => _byName(HeadFx.values, id).let((v) => copyWith(headFx: v)),
+    LookSlot.faceExtras => id == 'none' ? copyWith(faceExtras: const []) : _byName(FaceExtra.values, id).let(marked),
+    LookSlot.eyeShine => _byName(EyeShine.values, id).let((v) => copyWith(eyeShine: v)),
+    LookSlot.hairDye => _byName(HairDye.values, id).let((v) => copyWith(hairDye: v)),
+    LookSlot.held => _byName(HeldItem.values, id).let((v) => holding(v, hand: hand)),
+    LookSlot.frontFx => _byName(FrontFx.values, id).let((v) => copyWith(frontFx: v)),
   };
 
   /// Una signora: cambia il taglio delle spalle e dove cade la luce sui capelli.
@@ -305,10 +466,31 @@ class AvatarLook {
       other.hairdo == hairdo &&
       other.tattoo == tattoo &&
       other.border == border &&
-      other.nameStyle == nameStyle;
+      other.nameStyle == nameStyle &&
+      other.aura == aura &&
+      other.back == back &&
+      other.headFx == headFx &&
+      listEquals(other.faceExtras, faceExtras) &&
+      other.eyeShine == eyeShine &&
+      other.hairDye == hairDye &&
+      other.heldL == heldL &&
+      other.heldR == heldR &&
+      other.frontFx == frontFx;
 
   @override
-  int get hashCode => Object.hash(base, hat, glasses, outfit, accessory, features, hairdo, tattoo, border, nameStyle);
+  int get hashCode => Object.hash(
+    base,
+    hat,
+    glasses,
+    outfit,
+    accessory,
+    features,
+    hairdo,
+    tattoo,
+    border,
+    nameStyle,
+    Object.hash(aura, back, headFx, Object.hashAll(faceExtras), eyeShine, hairDye, heldL, heldR, frontFx),
+  );
 
   @override
   String toString() => 'AvatarLook(${toJson()})';
@@ -325,10 +507,26 @@ enum LookSlot {
   hairdo,
   tattoo,
   border,
-  nameStyle;
+  nameStyle,
+  // I posti più cari (deep_slots.dart).
+  aura,
+  back,
+  headFx,
+  faceExtras,
+  eyeShine,
+  hairDye,
+
+  /// Le mani: un pezzo solo nel catalogo, che si tiene a sinistra o a
+  /// destra (le chiavi `heldL` e `heldR` del profilo).
+  held,
+  frontFx;
 
   /// Non si indossano addosso ma intorno: la cornice del posto e il nome.
   bool get around => this == border || this == nameStyle;
+
+  /// Chiedono il ritratto intero, non un primo piano: la scena, le spalle,
+  /// le mani e quello che sta davanti.
+  bool get wide => this == aura || this == back || this == held || this == frontFx;
 }
 
 extension _Let<T extends Object> on T? {
@@ -513,13 +711,9 @@ enum AvatarAccessory {
   rubberDuck,
   accordion,
   baguetteCigar,
-  angelWings,
-  batWings,
-  butterflyWings,
-  // L'assurdo.
+  // L'assurdo. (Le ali sono passate sulle spalle: [BackItem].)
   snailShell,
   jetpack,
-  dragonWings,
   balloons,
   giantBowTie,
   pigeon,

@@ -128,7 +128,8 @@ void main() {
 
   test('the layers are painted in one fixed order', () {
     expect(LookLayer.values, [
-      LookLayer.wings,
+      LookLayer.back,
+      LookLayer.headGlow,
       LookLayer.hairBack,
       LookLayer.body,
       LookLayer.neck,
@@ -136,9 +137,12 @@ void main() {
       LookLayer.beard,
       LookLayer.hairFront,
       LookLayer.glasses,
+      LookLayer.headFx,
       LookLayer.hat,
       LookLayer.chest,
       LookLayer.mouthProp,
+      LookLayer.held,
+      LookLayer.frontFx,
     ]);
   });
 

@@ -162,7 +162,8 @@ class AvatarBustPainter extends CustomPainter {
     final background = look.outfit.accent;
     if (faded) canvas.saveLayer(bounds.inflate(s * 0.1), Paint()..colorFilter = _grey);
     if (bare) {
-      LookPainter.bust(canvas, look, s);
+      // La scena la dipinge chi ha il posto ad arco, più grande del quadrato.
+      LookPainter.bust(canvas, look, s, aura: false);
       if (faded) canvas.restore();
       canvas.restore();
       return;

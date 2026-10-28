@@ -618,9 +618,11 @@ abstract final class _Oddities {
 
   // --- Le ali (dietro al busto) ---------------------------------------------
 
-  static void wings(Canvas canvas, AvatarAccessory accessory) {
-    switch (accessory) {
-      case AvatarAccessory.angelWings:
+  /// Le ali sulle spalle ([BackItem]) e, dietro, quello che il vezzo porta
+  /// alle spalle (i palloncini, il guscio, il razzo, le curve).
+  static void wings(Canvas canvas, AvatarLook look) {
+    switch (look.back) {
+      case BackItem.angelWings:
         // Tre file di piume bianche per parte.
         for (final side in [-1.0, 1.0]) {
           for (final (i, shade) in [
@@ -647,7 +649,7 @@ abstract final class _Oddities {
             );
           }
         }
-      case AvatarAccessory.batWings:
+      case BackItem.batWings:
         // Le ali da pipistrello del diavoletto, e la punta della coda.
         const membrane = Color(0xFF3A1A2E);
         for (final side in [-1.0, 1.0]) {
@@ -680,7 +682,7 @@ abstract final class _Oddities {
             ..close(),
           _fill(const Color(0xFFC81E1E)),
         );
-      case AvatarAccessory.butterflyWings:
+      case BackItem.butterflyWings:
         // Le ali di farfalla: arancio, nero e i punti bianchi.
         for (final side in [-1.0, 1.0]) {
           final upper = Rect.fromCenter(center: Offset(side * 0.38, -0.92), width: 0.28, height: 0.36);
@@ -694,9 +696,12 @@ abstract final class _Oddities {
             canvas.drawCircle(c, 0.014, _fill(Colors.white));
           }
         }
+      case BackItem.dragonWings:
+        _Absurd.dragonWings(canvas);
       default:
-        _Absurd.back(canvas, accessory);
+        break;
     }
+    _Absurd.back(canvas, look.accessory);
   }
 
   // --- Quello che si porta addosso ------------------------------------------

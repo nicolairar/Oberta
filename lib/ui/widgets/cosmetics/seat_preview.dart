@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../avatar/avatar_look.dart';
 import '../../theme/app_theme.dart';
 import '../player_avatar.dart';
+import 'aura_backdrop.dart';
 import 'seat_frame.dart';
 import 'styled_name.dart';
 
@@ -60,9 +61,15 @@ class SeatPreview extends StatelessWidget {
                     ),
                     child: ClipRRect(
                       borderRadius: arch,
-                      child: Align(
-                        alignment: const Alignment(0, -0.1),
-                        child: PlayerAvatar(seed: name, look: look, size: width * 0.86, bare: true),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          AuraBackdrop(look: look, portrait: width * 0.86),
+                          Align(
+                            alignment: const Alignment(0, -0.1),
+                            child: PlayerAvatar(seed: name, look: look, size: width * 0.86, bare: true),
+                          ),
+                        ],
                       ),
                     ),
                   ),

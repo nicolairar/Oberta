@@ -706,8 +706,16 @@ abstract final class _Absurd {
             _line(Colors.white.withValues(alpha: 0.4), 0.02),
           );
         }
-      case AvatarAccessory.dragonWings:
-        // Le ali del drago, verdi, enormi, con gli artigli in cima.
+      case AvatarAccessory.balloons:
+        _balloons(canvas);
+      default:
+        _Calcio.back(canvas, accessory);
+    }
+  }
+
+  /// Le ali del drago, verdi, enormi, con gli artigli in cima.
+  static void dragonWings(Canvas canvas) {
+    {
         const membrane = Color(0xFF2E8A4A);
         for (final side in [-1.0, 1.0]) {
           final wing = Path()
@@ -733,8 +741,12 @@ abstract final class _Absurd {
             _fill(const Color(0xFFF2EAD8)),
           );
         }
-      case AvatarAccessory.balloons:
-        // Il mazzo di palloncini legato alla spalla.
+    }
+  }
+
+  /// Il mazzo di palloncini legato alla spalla.
+  static void _balloons(Canvas canvas) {
+    {
         const balloons = [
           // Stretti sopra la spalla, che il bordo del ritratto non li tagli.
           (Offset(0.28, -1.17), Color(0xFFD23A2E)),
@@ -759,8 +771,6 @@ abstract final class _Absurd {
             _fill(color),
           );
         }
-      default:
-        _Calcio.back(canvas, accessory);
     }
   }
 
