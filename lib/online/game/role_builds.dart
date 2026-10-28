@@ -46,6 +46,7 @@ const roleSinceBuild = <Role, int>{
   Role.pacifista: 66,
   Role.cupido: 66,
   Role.presidente: 66,
+  Role.capoSetta: 66,
 };
 
 /// The roles a table whose oldest build is [minBuild] cannot be dealt.

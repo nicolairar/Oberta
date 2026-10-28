@@ -137,6 +137,11 @@ const italianPack = NarrationPack(
       '«Lo Stato non tratta.»',
       'Tutti sanno chi sei, e non ti possono votare. La scorta ti salva dalle prime due notti in cui ti attaccano; alla terza muori. Se muori, la Città perde.',
     ),
+    Role.capoSetta: RoleText(
+      'Il Capo della setta',
+      '«Non vi chiedo di credere. Solo di seguirmi.»',
+      'Giochi da solo: ogni notte converti una persona, che da lì vince solo con te e non sa chi altro c\'è. Vinci quando tutti i vivi sono della setta.',
+    ),
     Role.pacifista: RoleText(
       'Il Pacifista',
       '«Il sangue chiama sangue. Io chiamo la tregua.»',
@@ -480,6 +485,11 @@ const italianPack = NarrationPack(
   ],
   escortFact: 'La scorta ha respinto un attentato al Presidente.',
   presidentFallsFact: 'Il Presidente è caduto. La città è perduta.',
+  sectWins: [
+    'Le candele si accendono in ogni finestra. A {city} non c\'è più nessuno da convertire.',
+    'Un canto basso sale dalle strade di {city}. Hanno visto tutti la luce.',
+  ],
+  sectWinsFact: 'Vince la setta: tutti i vivi seguono il Capo.',
   citizensWin: [
     '{city} è libera. Da domani si dorme con le finestre aperte. Titoli di coda.',
     'In piazza ci si guarda di nuovo in faccia. Sullo schermo: «Fine».',
@@ -541,6 +551,7 @@ const italianPack = NarrationPack(
     NightTaskKind.stab: 'Chi elimini stanotte?',
     NightTaskKind.jail: 'Chi chiudi in cella stanotte?',
     NightTaskKind.link: 'Chi fai innamorare?',
+    NightTaskKind.convert: 'Chi chiami alla luce stanotte?',
     NightTaskKind.block: 'Per chi canti stanotte?',
   },
   taskHints: {
@@ -560,6 +571,7 @@ const italianPack = NarrationPack(
     NightTaskKind.stab: 'Tocca un nome: muore stanotte, a meno che qualcuno lo protegga.',
     NightTaskKind.jail: 'Tocca un nome: stanotte non agisce e nessuno lo tocca. La cella si chiude subito.',
     NightTaskKind.link: 'Tocca due nomi, anche il tuo: da stanotte si amano. Una volta sola.',
+    NightTaskKind.convert: 'Tocca un nome: se la porta si apre, da domani è della setta.',
     NightTaskKind.block: 'Tocca un nome: stanotte la sua mossa salta. Mai lo stesso due notti di fila.',
     NightTaskKind.decoy: 'Non hai mosse: tocca un nome qualsiasi, non succede niente. Serve a non farti scoprire.',
   },

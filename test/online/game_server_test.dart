@@ -600,7 +600,8 @@ void main() {
             if (seat == risen || seat == messiah) continue;
             expect(knows(seat)[messiah], isNull, reason: 'seed=$seed: $seat non sa del Messia');
             // La famiglia conosce già i suoi: solo per gli altri il risorto resta coperto.
-            if (!(family && roles[seat]!.team == Team.mafia)) {
+            // Il Becchino può aver scavato la sua fossa prima che tornasse.
+            if (!(family && roles[seat]!.team == Team.mafia) && roles[seat] != Role.becchino) {
               final public = ((server.board['board'] as Map)['revealed'] as List).any((r) => (r as Map)['seat'] == risen);
               if (!public) expect(knows(seat)[risen], isNull, reason: 'seed=$seed: $seat non sa del risorto');
             }

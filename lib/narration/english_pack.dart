@@ -139,6 +139,11 @@ const englishPack = NarrationPack(
       '“The State does not bargain.”',
       'Everyone knows who you are, and nobody can vote you. Your escort saves you the first two nights you are attacked; the third, you die. If you die, the town loses.',
     ),
+    Role.capoSetta: RoleText(
+      'Cult Leader',
+      '“I don\'t ask you to believe. Just to follow.”',
+      'You play alone: each night you convert someone, who from then on wins only with you and does not know who else is in. You win when every living player is in the cult.',
+    ),
     Role.pacifista: RoleText(
       'Pacifist',
       '“Blood calls for blood. I call a truce.”',
@@ -484,6 +489,11 @@ const englishPack = NarrationPack(
   ],
   escortFact: 'The escort fended off an attack on the President.',
   presidentFallsFact: 'The President has fallen. The town is lost.',
+  sectWins: [
+    'Candles light up in every window. In {city} there is nobody left to convert.',
+    'A low chant rises from the streets of {city}. Everyone has seen the light.',
+  ],
+  sectWinsFact: 'The cult wins: every living soul follows the Leader.',
   citizensWin: [
     '{city} is free. Starting tomorrow, people sleep with the windows open. Roll credits.',
     'On the street, people look each other in the eye again. On screen: “The End.”',
@@ -545,6 +555,7 @@ const englishPack = NarrationPack(
     NightTaskKind.stab: 'Who do you eliminate tonight?',
     NightTaskKind.jail: 'Who do you lock up tonight?',
     NightTaskKind.link: 'Who falls in love?',
+    NightTaskKind.convert: 'Who do you call to the light tonight?',
     NightTaskKind.block: 'Who do you sing for tonight?',
   },
   taskHints: {
@@ -564,6 +575,7 @@ const englishPack = NarrationPack(
     NightTaskKind.stab: 'Tap a name: they die tonight, unless someone protects them.',
     NightTaskKind.jail: 'Tap a name: tonight they can\'t act and nobody can touch them. It shuts at once.',
     NightTaskKind.link: 'Tap two names, yours too: from tonight they love each other. Once only.',
+    NightTaskKind.convert: 'Tap a name: if the door opens, from tomorrow they are in the cult.',
     NightTaskKind.block: 'Tap a name: their move tonight is lost. Never the same one two nights running.',
     NightTaskKind.decoy: 'No move tonight: tap any name, nothing happens. It keeps your role hidden.',
   },

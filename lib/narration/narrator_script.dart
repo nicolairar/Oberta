@@ -234,6 +234,7 @@ class NarratorScript {
     List<Player> loanSharks = const [],
     bool lovers = false,
     bool presidentFell = false,
+    bool sect = false,
   }) {
     final sharks = [
       if (presidentFell) _fact(pack.presidentFallsFact),
@@ -242,6 +243,9 @@ class NarratorScript {
     ];
     if (winner == Team.neutral && bountyHunter != null) {
       return [_fact(pack.bountyWinsFact, name: bountyHunter.name), ...sharks];
+    }
+    if (winner == Team.neutral && sect) {
+      return [_fact(pack.sectWinsFact), _story(_picker.pick('ending.sect', pack.sectWins)), ...sharks];
     }
     if (winner == Team.neutral && assassin) {
       return [_fact(pack.assassinWinsFact), _story(_picker.pick('ending.assassin', pack.assassinWins)), ...sharks];

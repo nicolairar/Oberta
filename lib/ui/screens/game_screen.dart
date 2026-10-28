@@ -518,6 +518,7 @@ class _GameScreenState extends State<GameScreen> {
       ],
       lovers: _engine.loversWon,
       presidentFell: _engine.presidentFallen,
+      sect: _engine.personalWins.any((player) => widget.setup.roleOf(player) == Role.capoSetta),
     );
     _stage = _Stage.end;
   }
@@ -921,9 +922,10 @@ class _GameScreenState extends State<GameScreen> {
   /// Quello che è arrivato all'alba solo a [actor], da leggere al suo turno
   /// (sul telefono unico non c'è altro momento privato): la risposta
   /// dell'indagine o dello scavo, la cella, il blocco, la risposta del
-  /// prigioniero al Carceriere.
+  /// prigioniero al Carceriere, la setta.
   List<String> _privateNotes(Player actor) {
     final last = _engine.round - 1;
+    final view = _engine.viewFor(actor.id);
     return [
       for (final finding in _engine.findingsOf(actor))
         if (finding.round == last)
@@ -941,6 +943,9 @@ class _GameScreenState extends State<GameScreen> {
       if (widget.setup.roleOf(actor) == Role.carceriere)
         if ((_answers[last], _engine.lastJailed) case (final answer?, final prisoner?) when answer.isNotEmpty)
           _lr.prisonerAnswered(prisoner.name, answer),
+      if (view.converted) _lr.converted,
+      if (view.sect.isNotEmpty) _lr.sect(view.sect.map((p) => p.name).join(', ')),
+      if (view.doors.isNotEmpty && view.doors.last.round == last) _lr.doorClosed(view.doors.last.target.name),
       if (_engine.loversFor(actor) case [final a, final b])
         if (actor == a || actor == b)
           _lr.inLoveWith(actor == a ? b.name : a.name)
@@ -1390,7 +1395,9 @@ class _GameScreenState extends State<GameScreen> {
         ),
         const SizedBox(height: 12),
         Text(
-          arsonistWon
+          arsonistWon && _engine.personalWins.any((player) => widget.setup.roleOf(player) == Role.capoSetta)
+              ? _lr.sectWins
+              : arsonistWon
               ? _t.arsonistWins
               : mafiaWon
                   ? _t.familyWins

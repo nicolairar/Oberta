@@ -58,6 +58,9 @@ enum NightTaskKind {
 
   /// Cupido, la prima notte, lega due innamorati ([Link]).
   link,
+
+  /// Il Capo della setta converte qualcuno.
+  convert,
 }
 
 /// Quello che il Portinaio ha visto dalla sua guardiola: se stanotte
@@ -285,6 +288,14 @@ class GameEngine {
   int? _mayorRound;
   Team? _winner;
 
+  /// I convertiti alla setta (il Capo escluso): lo sa il Capo, e ognuno di
+  /// sé. Se il Capo muore la setta si scioglie, e i convertiti tornano alla
+  /// loro squadra.
+  final Set<Player> _sect = {};
+
+  /// Le conversioni tentate, notte per notte: riuscite o «porta chiusa».
+  final List<({int round, Player target, bool converted})> _conversions = [];
+
   /// Le notti in cui la scorta ha già salvato il Presidente: dopo due, alla
   /// terza notte che lo attaccano muore.
   int _escortNights = 0;
@@ -403,6 +414,8 @@ class GameEngine {
     _findings.addAll(snapshot.findings);
     _lovers.addAll(snapshot.lovers);
     _escortNights = snapshot.escortNights;
+    _sect.addAll(snapshot.sect);
+    _conversions.addAll(snapshot.conversions);
     _loversTold = snapshot.loversTold;
   }
 
@@ -464,6 +477,8 @@ class GameEngine {
       findings: List.unmodifiable(_findings),
       lovers: List.unmodifiable(_lovers),
       escortNights: _escortNights,
+      sect: Set.unmodifiable(_sect),
+      conversions: List.unmodifiable(_conversions),
       loversTold: _loversTold,
       log: List.unmodifiable(_log),
     );
@@ -513,6 +528,8 @@ class GameEngine {
   /// chiunque vinca (e allora sono tra i [personalWins]).
   bool hasWon(Player player) {
     if (_lovers.contains(player)) return _personalWins.contains(player);
+    // Un convertito vince solo con la setta (finché la setta c'è).
+    if (_sect.contains(player)) return _personalWins.contains(player);
     return _personalWins.contains(player) ||
         (_winner != null && _winner != Team.neutral && _teamOf(player) == _winner) ||
         (_winner == Team.citizens && bountyLapsed(player));
@@ -794,6 +811,11 @@ class GameEngine {
                     if (player != _lastBlocked) player,
                 ],
               ),
+      // Il Capo della setta chiama alla luce chi non è ancora dei suoi.
+      Role.capoSetta => NightTask(NightTaskKind.convert, [
+        for (final player in others)
+          if (!_sect.contains(player)) player,
+      ]),
       // Cupido, solo la prima notte, lega due persone (anche se stesso).
       Role.cupido =>
         _round == 1 && _lovers.isEmpty ? NightTask(NightTaskKind.link, [..._alive]) : NightTask(NightTaskKind.decoy, others),
@@ -1044,6 +1066,21 @@ class GameEngine {
     // niente lo ferma.
     final heartbroken = _heartbreak(victims);
     victims.addAll(heartbroken);
+
+    // La conversione: non passa in cella, né su chi è protetto, né su chi
+    // non si converte (la Famiglia, chi uccide in proprio, il Presidente),
+    // né su chi muore stanotte.
+    final convertTarget = targetOf(NightTaskKind.convert);
+    final leader = actorOf(NightTaskKind.convert);
+    if (convertTarget != null && leader != null) {
+      final converted = convertTarget != jailed &&
+          !protected.contains(convertTarget) &&
+          !setup.roleOf(convertTarget).resistsConversion &&
+          !victims.contains(convertTarget) &&
+          !victims.contains(leader);
+      if (converted) _sect.add(convertTarget);
+      _conversions.add((round: _round, target: convertTarget, converted: converted));
+    }
 
     if (sniperSpent) _sniperSpent = true;
     Exposure? scoop;
@@ -1351,9 +1388,28 @@ class GameEngine {
   /// Le notti di attacco che la scorta para ancora; `null` senza Presidente.
   int? get escortLeft => setup.roles.values.contains(Role.presidente) ? escortNights - _escortNights : null;
 
+  /// Il Capo della setta, se è vivo.
+  Player? get _cultLeader {
+    for (final player in _alive) {
+      if (setup.roleOf(player) == Role.capoSetta) return player;
+    }
+    return null;
+  }
+
   bool _decideWinner() {
     if (presidentFallen) {
       _winner = Team.mafia;
+      return true;
+    }
+    // Morto il Capo, la setta si scioglie: niente altro.
+    final leader = _cultLeader;
+    if (leader == null) _sect.clear();
+    // La setta vince quando tutti i vivi sono dei suoi.
+    if (leader != null && _alive.every((player) => player == leader || _sect.contains(player))) {
+      _winner = Team.neutral;
+      for (final player in [leader, ..._sect]) {
+        if (!_personalWins.contains(player)) _personalWins.add(player);
+      }
       return true;
     }
     final arsonists = [
@@ -1602,6 +1658,19 @@ class GameEngine {
       cell: cell,
       busy: isBusy(viewer),
       lovers: loversFor(viewer),
+      converted: _sect.contains(viewer),
+      sect: setup.roleOf(viewer) == Role.capoSetta
+          ? [
+              for (final player in setup.players)
+                if (_sect.contains(player)) player,
+            ]
+          : const [],
+      doors: setup.roleOf(viewer) == Role.capoSetta
+          ? [
+              for (final conversion in _conversions)
+                if (!conversion.converted) (round: conversion.round, target: conversion.target),
+            ]
+          : const [],
       board: publicView(),
     );
   }

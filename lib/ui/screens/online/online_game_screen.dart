@@ -1378,6 +1378,14 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     return _stage.chat == 'night' && _view.alive && cell != null && (cell == _view.seat || _view.role == Role.carceriere);
   }
 
+  /// La setta: il convertito sa solo di esserlo; il Capo vede chi c'è, e
+  /// l'ultima porta rimasta chiusa.
+  List<String> get _sectNotes => [
+    if (_view.converted) _ts.converted,
+    if (_view.sect.isNotEmpty) _ts.sectLine(_view.sect.map(_tag).join(', ')),
+    if (_view.doors.isNotEmpty && _view.doors.last.round == _public.round - 1) _ts.doorClosed(_tag(_view.doors.last.target)),
+  ];
+
   /// Gli innamorati, per chi li conosce: Cupido vede la coppia, ognuno dei
   /// due il nome dell'altro.
   List<String> get _loverNotes {
@@ -2190,6 +2198,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       if (_view.cell case final mate? when mate != _view.seat && _view.role != Role.carceriere) _ts.mateInCell(_tag(mate)),
       if (_findingsAtDawn && (kind == NightTaskKind.investigate || kind == NightTaskKind.dig)) _ts.answerAtDawn,
       ..._loverNotes,
+      ..._sectNotes,
     ];
     final String status;
     final StripTone tone;
@@ -2372,9 +2381,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       center = _felt(key: const Key('online.jailer'), [
         _feltTitle(_ts.inYourCell(_tag(cell)), color: Saloon.brass, maxLines: 3),
       ]);
-    } else if (finding == null && _loverNotes.isNotEmpty) {
+    } else if (finding == null && (_loverNotes.isNotEmpty || _sectNotes.isNotEmpty)) {
       center = _felt(key: const Key('online.lovers'), [
-        for (final note in _loverNotes) _feltLine(note, color: const Color(0xFFE58AB0), weight: FontWeight.w700, maxLines: 3),
+        for (final note in [..._loverNotes, ..._sectNotes])
+          _feltLine(note, color: const Color(0xFFE58AB0), weight: FontWeight.w700, maxLines: 3),
       ]);
     } else if (finding == null) {
       center = _felt(key: const Key('online.waiting'), [

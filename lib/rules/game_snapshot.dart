@@ -88,6 +88,10 @@ class GameSnapshot {
 
   /// Le notti in cui la scorta del Presidente ha già parato un attacco.
   final int escortNights;
+
+  /// I convertiti alla setta, e le conversioni tentate.
+  final Set<Player> sect;
+  final List<({int round, Player target, bool converted})> conversions;
   final List<GameCommand> log;
 
   const GameSnapshot({
@@ -128,6 +132,8 @@ class GameSnapshot {
     this.lovers = const [],
     this.loversTold = false,
     this.escortNights = 0,
+    this.sect = const {},
+    this.conversions = const [],
     required this.log,
   });
 
@@ -186,6 +192,11 @@ class GameSnapshot {
     if (lovers.isNotEmpty) 'lovers': seatsOf(lovers),
     if (loversTold) 'loversTold': true,
     if (escortNights > 0) 'escortNights': escortNights,
+    if (sect.isNotEmpty) 'sect': seatsOf(sect),
+    if (conversions.isNotEmpty)
+      'conversions': [
+        for (final c in conversions) {'round': c.round, 'seat': c.target.id, 'converted': c.converted},
+      ],
     if (findings.isNotEmpty)
       'findings': [
         for (final finding in findings)
@@ -264,6 +275,11 @@ class GameSnapshot {
       lovers: json['lovers'] == null ? const [] : seatsFrom(json['lovers'], seat),
       loversTold: json['loversTold'] as bool? ?? false,
       escortNights: json['escortNights'] as int? ?? 0,
+      sect: json['sect'] == null ? const {} : seatsFrom(json['sect'], seat).toSet(),
+      conversions: [
+        for (final row in (json['conversions'] as List<Object?>? ?? const []).cast<Map<String, Object?>>())
+          (round: row['round'] as int, target: seat(row['seat'] as String), converted: row['converted'] as bool),
+      ],
       findings: [
         for (final row in (json['findings'] as List<Object?>? ?? const []).cast<Map<String, Object?>>())
           (

@@ -163,6 +163,10 @@ class NarrationPack {
   final String escortFact;
   final String presidentFallsFact;
 
+  /// La setta resta sola in città: vince il Capo, con tutti i convertiti.
+  final List<String> sectWins;
+  final String sectWinsFact;
+
   final List<String> citizensWin;
   final String citizensWinFact;
   final List<String> mafiaWins;
@@ -260,6 +264,8 @@ class NarrationPack {
     required this.escorts,
     required this.escortFact,
     required this.presidentFallsFact,
+    required this.sectWins,
+    required this.sectWinsFact,
     required this.citizensWin,
     required this.citizensWinFact,
     required this.mafiaWins,

@@ -299,6 +299,14 @@ class PlayerView {
   /// Gli innamorati: per Cupido da quando li lega, per loro due dalla prima
   /// alba (solo il nome dell'altro, non il ruolo). Vuoto per gli altri.
   final List<Player> lovers;
+
+  /// Convertito alla setta: ora vince solo con lei. Non sa chi altro c'è.
+  final bool converted;
+
+  /// Per il Capo della setta: i convertiti, e le porte rimaste chiuse
+  /// (notte per notte). Vuoti per tutti gli altri.
+  final List<Player> sect;
+  final List<({int round, Player target})> doors;
   final PublicView board;
 
   const PlayerView({
@@ -319,6 +327,9 @@ class PlayerView {
     this.cell,
     this.busy = false,
     this.lovers = const [],
+    this.converted = false,
+    this.sect = const [],
+    this.doors = const [],
     required this.board,
   });
 
@@ -342,6 +353,12 @@ class PlayerView {
     if (cell != null) 'cell': seatOf(cell),
     if (busy) 'busy': true,
     if (lovers.isNotEmpty) 'lovers': seatsOf(lovers),
+    if (converted) 'converted': true,
+    if (sect.isNotEmpty) 'sect': seatsOf(sect),
+    if (doors.isNotEmpty)
+      'doors': [
+        for (final door in doors) {'round': door.round, 'seat': door.target.id},
+      ],
     'board': board.toJson(),
   };
 
@@ -374,6 +391,12 @@ class PlayerView {
       cell: optionalSeat(json['cell'], resolve),
       busy: json['busy'] as bool? ?? false,
       lovers: json['lovers'] == null ? const [] : seatsFrom(json['lovers'], resolve),
+      converted: json['converted'] as bool? ?? false,
+      sect: json['sect'] == null ? const [] : seatsFrom(json['sect'], resolve),
+      doors: [
+        for (final row in _rows(json['doors'] ?? const []))
+          (round: row['round'] as int, target: resolve(row['seat'] as String)),
+      ],
       board: PublicView.fromJson(json['board'] as Map<String, Object?>, resolve),
     );
   }

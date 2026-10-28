@@ -34,6 +34,13 @@ class LocalRoleStrings {
       _t('Una domanda per il prigioniero (facoltativa)', 'A question for the prisoner (optional)');
   String jailed(String name) => _t('$name è in cella.', '$name is in your cell.');
 
+  // ---- The cult.
+  String get converted => _t('Hai visto la luce: ora sei della setta, e vinci solo con lei.',
+      'You have seen the light: you are in the cult now, and win only with it.');
+  String sect(String names) => _t('La tua setta: $names.', 'Your cult: $names.');
+  String doorClosed(String name) => _t('Ieri notte, porta chiusa: $name.', 'Last night, a shut door: $name.');
+  String get sectWins => _t('Vince la setta', 'The cult wins');
+
   // ---- Cupid.
   String get linkSecond => _t('E chi altro? Tocca il secondo innamorato.', 'And who else? Tap the second lover.');
   String linked(String a, String b) => _t('Hai legato $a e $b.', 'You bound $a and $b.');

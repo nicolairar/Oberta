@@ -1591,6 +1591,61 @@
       "text": "Il Presidente è caduto. La città è perduta."
     },
     {
+      "key": "a694958321107a5c",
+      "kind": "segment",
+      "text": "Le candele si accendono in ogni finestra. A Chicago non c'è più nessuno da convertire."
+    },
+    {
+      "key": "c8afd96125e9aaef",
+      "kind": "segment",
+      "text": "Le candele si accendono in ogni finestra. A New York non c'è più nessuno da convertire."
+    },
+    {
+      "key": "1cd61951d1b5d086",
+      "kind": "segment",
+      "text": "Le candele si accendono in ogni finestra. A Palermo non c'è più nessuno da convertire."
+    },
+    {
+      "key": "787f58077889ef6d",
+      "kind": "segment",
+      "text": "Le candele si accendono in ogni finestra. A Napoli non c'è più nessuno da convertire."
+    },
+    {
+      "key": "85a2c7035888f2da",
+      "kind": "segment",
+      "text": "Le candele si accendono in ogni finestra. A Las Vegas non c'è più nessuno da convertire."
+    },
+    {
+      "key": "5e341485ad5f2c40",
+      "kind": "segment",
+      "text": "Un canto basso sale dalle strade di Chicago. Hanno visto tutti la luce."
+    },
+    {
+      "key": "9c17b47a604845b7",
+      "kind": "segment",
+      "text": "Un canto basso sale dalle strade di New York. Hanno visto tutti la luce."
+    },
+    {
+      "key": "9fd54250e5f598ca",
+      "kind": "segment",
+      "text": "Un canto basso sale dalle strade di Palermo. Hanno visto tutti la luce."
+    },
+    {
+      "key": "0e0ce6782e71817d",
+      "kind": "segment",
+      "text": "Un canto basso sale dalle strade di Napoli. Hanno visto tutti la luce."
+    },
+    {
+      "key": "cde5fb2698a6dea6",
+      "kind": "segment",
+      "text": "Un canto basso sale dalle strade di Las Vegas. Hanno visto tutti la luce."
+    },
+    {
+      "key": "3b4042ddacb27624",
+      "kind": "segment",
+      "text": "Vince la setta: tutti i vivi seguono il Capo."
+    },
+    {
       "key": "220ae5128f8d4a05",
       "kind": "segment",
       "text": "Chicago è libera. Da domani si dorme con le finestre aperte. Titoli di coda."
@@ -1984,6 +2039,11 @@
       "key": "fb08a69213d0a788",
       "kind": "role",
       "text": "Il Presidente"
+    },
+    {
+      "key": "4b4866d1177b8c4f",
+      "kind": "role",
+      "text": "Il Capo della setta"
     },
     {
       "key": "1549e49a260aab2d",
@@ -3973,6 +4033,61 @@
       "text": "The President has fallen. The town is lost."
     },
     {
+      "key": "6ed9a69c27e3b012",
+      "kind": "segment",
+      "text": "Candles light up in every window. In Chicago there is nobody left to convert."
+    },
+    {
+      "key": "d9d3c75b5eb97911",
+      "kind": "segment",
+      "text": "Candles light up in every window. In New York there is nobody left to convert."
+    },
+    {
+      "key": "e8eea9e612b24db8",
+      "kind": "segment",
+      "text": "Candles light up in every window. In Palermo there is nobody left to convert."
+    },
+    {
+      "key": "4f0abe6965065f21",
+      "kind": "segment",
+      "text": "Candles light up in every window. In Naples there is nobody left to convert."
+    },
+    {
+      "key": "c6f9dd13fb56bb94",
+      "kind": "segment",
+      "text": "Candles light up in every window. In Las Vegas there is nobody left to convert."
+    },
+    {
+      "key": "8692ccb5d8b12814",
+      "kind": "segment",
+      "text": "A low chant rises from the streets of Chicago. Everyone has seen the light."
+    },
+    {
+      "key": "6b0d73ab454b0fc7",
+      "kind": "segment",
+      "text": "A low chant rises from the streets of New York. Everyone has seen the light."
+    },
+    {
+      "key": "40a59fd43359e60a",
+      "kind": "segment",
+      "text": "A low chant rises from the streets of Palermo. Everyone has seen the light."
+    },
+    {
+      "key": "021e6764535d2853",
+      "kind": "segment",
+      "text": "A low chant rises from the streets of Naples. Everyone has seen the light."
+    },
+    {
+      "key": "c30ec1d087d49726",
+      "kind": "segment",
+      "text": "A low chant rises from the streets of Las Vegas. Everyone has seen the light."
+    },
+    {
+      "key": "60fe58ed474e2b97",
+      "kind": "segment",
+      "text": "The cult wins: every living soul follows the Leader."
+    },
+    {
       "key": "e53f5165bad73c66",
       "kind": "segment",
       "text": "Chicago is free. Starting tomorrow, people sleep with the windows open. Roll credits."
@@ -4361,6 +4476,11 @@
       "key": "6714c92ea51fbcca",
       "kind": "role",
       "text": "President"
+    },
+    {
+      "key": "eabc9092674db8c3",
+      "kind": "role",
+      "text": "Cult Leader"
     },
     {
       "key": "d9ea56dccef88c43",

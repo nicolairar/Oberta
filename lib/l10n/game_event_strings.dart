@@ -115,6 +115,13 @@ class GameEventStrings {
         if (d['self'] != true) return _t('Hai legato ${names.join(' e ')}.', 'You bound ${names.join(' and ')}.');
         return _t('Il cuore ha scelto: ${names.join(' e ')} si amano. Vincete solo se restate vivi tutti e due.',
             'The heart has chosen: ${names.join(' and ')} are in love. You win only if both of you live.');
+      case 'converted':
+        return _t('Hai visto la luce: ora sei della setta, e vinci solo con lei.',
+            'You have seen the light: you are in the cult now, and win only with it.');
+      case 'door':
+        return d['converted'] == true
+            ? _t('$name è dei tuoi, ora.', '$name is one of yours now.')
+            : _t('Porta chiusa: $name non si è convertito.', 'Door shut: $name did not convert.');
       case 'busy':
         return _t('Stanotte qualcuno ti ha tenuto occupato.', 'Last night someone kept you busy.');
       case 'left':

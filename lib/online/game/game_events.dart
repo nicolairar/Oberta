@@ -13,7 +13,9 @@
 // Private kinds: found, watch, bounty, doused, familyTarget, protected,
 // cell (who is in the cell tonight: the prisoner, or a Family member about
 // one of theirs), busy (the Prostitute kept you busy last night), lovers
-// (Cupid's couple: to Cupid, and to the two lovers from the first dawn).
+// (Cupid's couple: to Cupid, and to the two lovers from the first dawn),
+// converted (you joined the cult), door (to the Cult Leader: a conversion
+// that worked, or a shut door).
 
 /// What the table has already been told, so that a line is written once.
 /// Kept in the server state between steps.
@@ -229,6 +231,14 @@ List<Map<String, Object?>> tableEvents({
       events.add(_event('cell', {'name': name(cell), 'self': cell == seat}, to: seat));
     }
     if (now['busy'] == true && then['busy'] != true) events.add(_event('busy', const {}, to: seat));
+    if (now['converted'] == true && then['converted'] != true) events.add(_event('converted', const {}, to: seat));
+    final sectBefore = {...(then['sect'] as List<Object?>? ?? const [])};
+    for (final member in (now['sect'] as List<Object?>? ?? const [])) {
+      if (!sectBefore.contains(member)) events.add(_event('door', {'name': name(member as String), 'converted': true}, to: seat));
+    }
+    for (final door in _list(now['doors']).skip(_list(then['doors']).length)) {
+      events.add(_event('door', {'name': name(door['seat'] as String), 'converted': false}, to: seat));
+    }
     final lovers = [for (final s in (now['lovers'] as List<Object?>? ?? const [])) s as String];
     if (lovers.isNotEmpty && (then['lovers'] as List?)?.isNotEmpty != true) {
       events.add(_event('lovers', {'names': [for (final s in lovers) name(s)], 'self': lovers.contains(seat)}, to: seat));

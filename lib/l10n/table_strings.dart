@@ -47,6 +47,12 @@ class TableStrings {
   String mateInCell(String name) => _t('Stanotte $name è in cella.', 'Tonight $name is in a cell.');
   String get jailChat => _t('La cella', 'The cell');
   String get jailer => _t('Il Carceriere', 'The Jailer');
+  // ---- The cult.
+  String get converted =>
+      _t('Hai visto la luce: ora sei della setta, e vinci solo con lei.', 'You have seen the light: you are in the cult now, and win only with it.');
+  String sectLine(String names) => _t('La tua setta: $names.', 'Your cult: $names.');
+  String doorClosed(String name) => _t('Porta chiusa: $name non si è convertito.', 'Door shut: $name did not convert.');
+
   // ---- Cupid.
   String get linkFirst => _t('Tocca il primo innamorato.', 'Tap the first lover.');
   String linkSecond(String name) => _t('$name e chi? Tocca il secondo.', '$name and who? Tap the second.');

@@ -30,6 +30,7 @@ enum Role {
   pacifista,
   cupido,
   presidente,
+  capoSetta,
 }
 
 /// Come si gioca: un telefono passato di mano in mano, o un telefono a testa.
@@ -115,7 +116,7 @@ class RoleRule {
 extension RoleInfo on Role {
   Team get team => switch (this) {
     Role.mafioso || Role.padrino || Role.sarto || Role.compare || Role.prostituta => Team.mafia,
-    Role.fesso || Role.piromane || Role.cacciatore || Role.strozzino || Role.sicario => Team.neutral,
+    Role.fesso || Role.piromane || Role.cacciatore || Role.strozzino || Role.sicario || Role.capoSetta => Team.neutral,
     _ => Team.citizens,
   };
 
@@ -127,7 +128,7 @@ extension RoleInfo on Role {
     // Il Sicario ha la faccia del mestiere: alle carte risulta della famiglia.
     Role.sicario => Team.mafia,
     // Gli altri neutrali non sono della famiglia: alle carte risultano cittadini.
-    Role.fesso || Role.piromane || Role.cacciatore || Role.strozzino => Team.citizens,
+    Role.fesso || Role.piromane || Role.cacciatore || Role.strozzino || Role.capoSetta => Team.citizens,
     _ => team,
   };
 
@@ -185,11 +186,21 @@ extension RoleInfo on Role {
     // Il Presidente: pubblico dall'inizio, con la scorta; se muore la Città
     // perde. Mai con un neutrale che uccide in proprio.
     Role.presidente => const RoleRule(RoleCategory.passive, minPlayers: 10),
+    // Il Capo della setta: ogni notte converte; vince quando tutti i vivi
+    // sono della setta. Uno solo per tavolo, da 11.
+    Role.capoSetta => const RoleRule(RoleCategory.neutral, minPlayers: 11, tier: RoleTier.l4),
   };
 
   /// Ostile alla città, un assassino in proprio (Piromane, Sicario): finché
   /// è vivo la città non ha vinto. Al tavolo ce n'è al massimo uno.
-  bool get isHostileNeutral => this == Role.piromane || this == Role.sicario;
+  ///
+  /// Il Capo della setta non uccide, ma conta come loro: finché vive la Città
+  /// non vince, e non sta mai con il Piromane, il Sicario o il Presidente.
+  bool get isHostileNeutral => this == Role.piromane || this == Role.sicario || this == Role.capoSetta;
+
+  /// Non si converte alla setta: la Famiglia, chi uccide in proprio, il
+  /// Presidente. Il Capo legge «Porta chiusa».
+  bool get resistsConversion => team == Team.mafia || isHostileNeutral || this == Role.presidente;
 
   /// Vince con un linciaggio (Fesso, Cacciatore di taglie): al tavolo ce n'è
   /// al massimo uno, o la piazza diventa una lotteria.
