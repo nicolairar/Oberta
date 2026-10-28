@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'game_settings.dart';
 import 'game_setup.dart';
+import 'game_recap.dart';
 import 'game_snapshot.dart';
 import 'intent.dart';
 import 'knowledge.dart';
@@ -871,17 +872,18 @@ class GameEngine {
   }
 
   /// Qualcuno lascia la città a partita in corso (online: se n'è andato e
-  /// non è tornato in tempo). Esce come un morto, la sua carta si scopre per
-  /// tutti, e si controlla subito se qualcuno ha vinto. Le mosse e i voti
-  /// che lo riguardavano si annullano: chi li aveva fatti sceglie di nuovo.
-  /// Torna la squadra che vince, se adesso vince qualcuno.
+  /// non è tornato in tempo). Esce come un morto della notte: la sua carta
+  /// resta coperta (la scopre solo il resoconto a fine partita), e si
+  /// controlla subito se qualcuno ha vinto. Ai fini della vittoria conta
+  /// per quello che era davvero, come ogni morto: un mafioso che se ne va
+  /// toglie un voto alla famiglia, un cittadino uno alla città. Le mosse e
+  /// i voti che lo riguardavano si annullano: chi li aveva fatti sceglie di
+  /// nuovo. Torna la squadra che vince, se adesso vince qualcuno.
   Team? leaveTown(Player player) {
     if (_phase == GamePhase.ended || !isAlive(player)) return null;
     _log.add(LeaveTownCommand(player.id));
-    final role = setup.roleOf(player);
     _alive.remove(player);
     _doused.remove(player);
-    _facts.add(Fact(subject: player, team: role.team, role: role, visibility: Visibility.public));
     _choices.remove(player);
     _choices.removeWhere((_, choice) => choice.target == player);
     _dayVotes.remove(player);
@@ -1090,7 +1092,13 @@ class GameEngine {
     deck: deckOf(setup.roles.values),
     personalWins: personalWins,
     mayor: mayor,
+    recap: recap,
   );
+
+  GameRecap? _recap;
+
+  /// Il resoconto della partita: solo quando è finita, mai prima.
+  GameRecap? get recap => _phase == GamePhase.ended ? _recap ??= GameRecap.of(this) : null;
 
   /// Quello che il posto [seat], e solo lui, ha diritto di vedere adesso.
   /// Tutto passa dai fatti ([knowledgeOf]): un ruolo altrui compare solo se

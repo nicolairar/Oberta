@@ -133,7 +133,6 @@ abstract class OnlineStrings {
 
   /// Nei risultati, a chi è rimasto senza giocare.
   String get resultsAfk;
-  String leftTown(String name, String role);
   String get gameClosed;
   String get fateLeft;
   String get youLeftTown;
@@ -352,7 +351,6 @@ abstract class OnlineStrings {
     'voteRegistered': voteRegistered,
     'sending': sending,
     'offlineBadge': offlineBadge,
-    'leftTown': leftTown('sara', 'Medico'),
     'gameClosed': gameClosed,
     'fateLeft': fateLeft,
     'youLeftTown': youLeftTown,
@@ -788,8 +786,6 @@ final class ItalianOnlineStrings extends OnlineStrings {
   String get leaveDeadWarning => 'Puoi uscire senza penalità, ma se poi la tua squadra vince non prendi premi.';
   @override
   String get resultsAfk => 'Eri assente: niente premi';
-  @override
-  String leftTown(String name, String role) => '$name ha lasciato la città. Era $role.';
   @override
   String get gameClosed => 'La partita è stata chiusa: non giocava più nessuno.';
   @override
@@ -1260,8 +1256,6 @@ final class EnglishOnlineStrings extends OnlineStrings {
   String get leaveDeadWarning => 'You can leave with no penalty, but if your side wins later you get no rewards.';
   @override
   String get resultsAfk => 'You were away: no rewards';
-  @override
-  String leftTown(String name, String role) => '$name left town. They were the $role.';
   @override
   String get gameClosed => 'The game was closed: nobody was playing any more.';
   @override

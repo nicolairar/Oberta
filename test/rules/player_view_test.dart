@@ -39,7 +39,7 @@ List<String> leaksIn(GameEngine engine, Player? viewer, Object? json) {
           }
         }
         for (final MapEntry(:key, :value) in node.entries) {
-          if (key == 'finalRoles' && engine.phase == GamePhase.ended) continue;
+          if ((key == 'finalRoles' || key == 'recap') && engine.phase == GamePhase.ended) continue;
           // Il mazzo è pubblico, ma solo come conteggio: nessun posto dentro.
           if (key == 'deck') {
             final expected = [
@@ -74,7 +74,10 @@ void main() {
       for (var step = 0; step < 3000; step++) {
         final board = wire(engine.publicView().toJson());
         expect(leaksIn(engine, null, board), isEmpty, reason: 'schermo di tutti, gioco $game');
-        if (engine.phase != GamePhase.ended) expect(board['finalRoles'], isEmpty);
+        if (engine.phase != GamePhase.ended) {
+          expect(board['finalRoles'], isEmpty);
+          expect(board.containsKey('recap'), isFalse, reason: 'il resoconto esce solo a partita finita');
+        }
         for (final player in engine.setup.players) {
           final view = wire(engine.viewFor(player.id).toJson());
           expect(leaksIn(engine, player, view), isEmpty, reason: 'vista di ${player.id}, gioco $game');
@@ -86,6 +89,28 @@ void main() {
       }
     }
     expect(checked, greaterThan(10000));
+  });
+
+  test('il resoconto: solo a partita finita, e racconta tutta la partita', () {
+    final random = Random(23);
+    for (var game = 0; game < 40; game++) {
+      final engine = randomEngine(random);
+      for (var step = 0; step < 3000 && engine.phase != GamePhase.ended; step++) {
+        expect(engine.recap, isNull);
+        final command = randomCommand(engine, random);
+        if (command == null) break;
+        engine.run(command);
+      }
+      final recap = engine.recap!;
+      expect(recap.roles, engine.setup.roles);
+      expect(recap.winner, engine.winner);
+      expect(recap.nights.length, engine.history.length, reason: 'una notte per giro');
+      expect([for (final n in recap.nights) ...n.dawn.victims], [for (final r in engine.history) ...r.nightVictims]);
+      expect([for (final d in recap.days) d.lynch.condemned].nonNulls, [for (final r in engine.history) r.lynched].nonNulls);
+      final board = wire(engine.publicView().toJson());
+      expect(board['recap'], isNotNull);
+      expect(jsonEncode(PublicView.fromJson(board).recap!.toJson()), jsonEncode(recap.toJson()));
+    }
   });
 
   test('il controllo delle fughe se ne accorge', () {

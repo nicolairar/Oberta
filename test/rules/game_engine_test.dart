@@ -1056,13 +1056,14 @@ void main() {
   });
 
   group('chi lascia la città', () {
-    test('esce come un morto, la carta si scopre per tutti, e le mosse su di lui si annullano', () {
+    test('esce come un morto, la carta resta coperta, e le mosse su di lui si annullano', () {
       final engine = fullTable();
       engine.submitNightChoice(boss, anna);
       expect(engine.pendingNightPlayers, contains(picciotto));
       expect(engine.leaveTown(anna), isNull);
       expect(engine.isAlive(anna), isFalse);
-      expect(engine.knowledgeOf(null, anna).role, Role.cittadino, reason: 'la carta è pubblica');
+      expect(engine.knowledgeOf(null, anna).isEmpty, isTrue, reason: 'la carta resta segreta');
+      expect(engine.publicView().toJson().containsKey('recap'), isFalse);
       expect(engine.pendingNightPlayers, contains(boss), reason: 'il colpo su chi se n\'è andato si rifà');
       expect(engine.leaveTown(anna), isNull, reason: 'una volta sola');
     });

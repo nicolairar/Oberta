@@ -233,7 +233,7 @@ void main() {
     var announced = false;
     final start = clock.now();
     for (var i = 0; i < 400 && clock.now().difference(start) < const Duration(minutes: 3); i++) {
-      if (find.textContaining('anna ha lasciato la città').evaluate().isNotEmpty) {
+      if (find.text('anna esce di scena.').evaluate().isNotEmpty) {
         announced = true;
         break;
       }
@@ -241,6 +241,7 @@ void main() {
       await flush(tester);
     }
     expect(announced, isTrue);
+    expect(find.textContaining('Era '), findsNothing, reason: 'la carta di chi se ne va resta coperta');
     expect(find.byKey(const Key('online.youLookOffline')), findsNothing, reason: 'Bruno è collegato');
     expect(find.byKey(const Key('online.youLeftTown')), findsNothing);
     await tester.pumpWidget(const SizedBox());

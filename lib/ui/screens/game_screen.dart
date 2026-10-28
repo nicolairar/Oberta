@@ -21,6 +21,8 @@ import '../theme/role_style.dart';
 import '../widgets/avatar_spotlight.dart';
 import '../widgets/day_board.dart';
 import '../widgets/night_notes.dart';
+import '../../l10n/recap_strings.dart';
+import 'online/recap_screen.dart';
 import '../widgets/death_scene.dart';
 import '../widgets/handoff_view.dart';
 import '../widgets/narrator_roles_sheet.dart';
@@ -871,6 +873,14 @@ class _GameScreenState extends State<GameScreen> {
           ),
         ],
         const SizedBox(height: 28),
+        if (_engine.recap case final recap?) ...[
+          OutlinedButton(
+            key: const Key('game.recap'),
+            onPressed: pressed(() => showGameRecap(context, recap), Press.tap),
+            child: Text(RecapStrings.of(context).open),
+          ),
+          const SizedBox(height: 12),
+        ],
         ElevatedButton(onPressed: pressed(_goHome, Press.confirm), child: Text(_t.backHome)),
       ],
     );

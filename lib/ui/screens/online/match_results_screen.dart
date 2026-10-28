@@ -14,6 +14,8 @@ import 'game/noir_ui.dart';
 import 'progress_widgets.dart';
 import '../../widgets/wide_scale.dart';
 import '../../widgets/content_width.dart';
+import '../../../l10n/recap_strings.dart';
+import 'recap_screen.dart';
 
 /// I risultati dell'ultima partita, a tutto schermo: chi ha vinto, la tua
 /// carta, l'esperienza che riempie la barra (con lo scoppio se si sale di
@@ -322,6 +324,17 @@ class _MatchResultsScreenState extends State<MatchResultsScreen> with SingleTick
                                       ignoring: buttons < 0.5,
                                       child: Row(
                                         children: [
+                                          if (RecapShelf.last case final recap?) ...[
+                                            Expanded(
+                                              child: NoirButton(
+                                                key: const Key('results.recap'),
+                                                kind: NoirButtonKind.brass,
+                                                label: RecapStrings.of(context).open,
+                                                onPressed: () => showGameRecap(context, recap, me: RecapShelf.me),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 20),
+                                          ],
                                           Expanded(
                                             child: NoirButton(
                                               key: const Key('results.continue'),
@@ -510,6 +523,18 @@ class _MatchResultsScreenState extends State<MatchResultsScreen> with SingleTick
                                       key: const Key('results.again'),
                                       label: en ? 'PLAY AGAIN' : 'GIOCA ANCORA',
                                       onPressed: () => Navigator.of(context).pop(true),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                ],
+                                if (RecapShelf.last case final recap?) ...[
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: NoirButton(
+                                      key: const Key('results.recap'),
+                                      kind: NoirButtonKind.brass,
+                                      label: RecapStrings.of(context).open,
+                                      onPressed: () => showGameRecap(context, recap, me: RecapShelf.me),
                                     ),
                                   ),
                                   const SizedBox(height: 10),

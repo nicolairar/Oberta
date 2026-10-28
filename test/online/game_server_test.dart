@@ -356,7 +356,10 @@ void main() {
     expect(server.last['departed'], [away], reason: 'il database annota l\'abbandono');
     final board = server.board['board'] as Map<String, Object?>;
     expect(board['alive'], isNot(contains(away)));
-    expect((board['revealed'] as List).map((k) => (k as Map)['seat']), contains(away), reason: 'la carta si scopre');
+    if (board['phase'] != 'ended') {
+      expect((board['revealed'] as List).map((k) => (k as Map)['seat']), isNot(contains(away)), reason: 'la carta resta coperta');
+      expect(board.containsKey('recap'), isFalse);
+    }
     expect(server.leaks, isEmpty);
   });
 

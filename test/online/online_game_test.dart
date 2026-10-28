@@ -330,7 +330,7 @@ void main() {
       final board = anna.board!;
       if (board.departed.contains('s3')) {
         expect(board.view.alive.map((p) => p.id), isNot(contains('s3')));
-        expect(board.view.revealed.map((k) => k.seat.id), contains('s3'), reason: 'la carta si scopre');
+        expect(board.view.revealed.map((k) => k.seat.id), isNot(contains('s3')), reason: 'la carta resta coperta');
         expect(online.abandonsIn(room.id), ['s3'], reason: 'il server annota l\'abbandono');
       }
       anna.dispose();

@@ -4,7 +4,10 @@ import '../../../l10n/app_strings.dart';
 import '../../../online/online_services.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/noir_avatar.dart';
+import '../../widgets/noir_notice.dart';
 import '../../widgets/platform_marks.dart';
+
+export '../../widgets/noir_notice.dart' show NoticeKind;
 
 /// Che cosa dire quando una chiamata al server non va.
 String failureText(BuildContext context, Object error) {
@@ -12,17 +15,12 @@ String failureText(BuildContext context, Object error) {
   return t.failure(error is OnlineException ? error.failure : OnlineFailure.unknown);
 }
 
-void showFailure(BuildContext context, Object error) {
-  ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(failureText(context, error))));
-}
+void showFailure(BuildContext context, Object error) =>
+    showNotice(context, failureText(context, error), kind: NoticeKind.error);
 
-void showNote(BuildContext context, String text) {
-  ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(text)));
-}
+/// A short notice on the noir paper slip ([showNotice]).
+void showNote(BuildContext context, String text, {NoticeKind kind = NoticeKind.info}) =>
+    showNotice(context, text, kind: kind);
 
 /// Il contenuto delle schermate online: una colonna stretta sopra la città,
 /// che scorre se il telefono è piccolo.

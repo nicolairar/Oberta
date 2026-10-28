@@ -45,6 +45,8 @@ import 'game/saloon_table.dart';
 import 'game/saloon_transitions.dart';
 import 'game/seat_card.dart';
 import 'online_widgets.dart';
+import 'recap_screen.dart';
+import '../../../l10n/recap_strings.dart';
 import 'safety_sheets.dart';
 import '../../../l10n/roles_sheet_strings.dart';
 import '../../widgets/roles_sheet.dart';
@@ -145,6 +147,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   /// tavolo; chi rientra non si sente ripetere quelli vecchi).
   int? _departedShown;
 
+  /// Chi risultava assente l'ultima volta: per dire chi va e chi torna.
+  Set<String>? _offlineShown;
+
   /// Le scene degli agguati di ogni alba: le stesse per il film e per la
   /// cronaca, e su ogni telefono (stesso seme).
   final Map<int, List<DeathStory>> _stories = {};
@@ -153,6 +158,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    RecapShelf.last = null;
     _client;
     MemeDirector.attach(_client, alive: () => mounted);
     // Il cronometro, l'inizio dei film e la fine delle fasi.
@@ -193,7 +199,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   void _changed() {
     if (!mounted) return;
-    if (_client.takeRejection() != null) showNote(context, _t.online.rejected);
+    if (_client.takeRejection() != null) showNote(context, _t.online.rejected, kind: NoticeKind.error);
     if (!_client.busy) _hope = null;
     final seat = _client.seat;
     if (seat?.receipt case (:final id, result: IntentAccepted(:final finding?)) when id != _findingFor) {
@@ -206,6 +212,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       if (_stage == Stage.discussion) _lastFamilyVotes = const [];
       _enterStage();
       _announceDepartures();
+      if (_public.recap case final recap?) {
+        RecapShelf.last = recap;
+        RecapShelf.me = _view.seat;
+      }
       _feelMentions();
     }
     setState(() {});
@@ -249,16 +259,32 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   }
 
   /// Chi ha lasciato la città (telefono spento oltre la tolleranza): lo si
-  /// dice a tutti, con la sua carta.
+  /// dice a tutti, ma la sua carta resta coperta fino al resoconto. E chi si
+  /// allontana dal tavolo, o ci torna, con un biglietto.
   void _announceDepartures() {
+    final r = RecapStrings.of(context);
     final departed = _board.departed;
     final shown = _departedShown;
     _departedShown = departed.length;
-    if (shown == null || departed.length <= shown) return;
-    for (final seat in departed.skip(shown)) {
+    if (shown != null && departed.length > shown) {
+      for (final seat in departed.skip(shown)) {
+        final player = _board.seating.occupantOf(seat);
+        if (player != null) showNote(context, r.leftTown(player.name), kind: NoticeKind.leave);
+      }
+    }
+    final offline = {..._board.offline};
+    final before = _offlineShown;
+    _offlineShown = offline;
+    if (before == null || _stage == Stage.ended) return;
+    for (final seat in offline.difference(before)) {
+      if (seat == _view.seat.id || departed.contains(seat)) continue;
       final player = _board.seating.occupantOf(seat);
-      final role = _public.revealed.where((k) => k.seat.id == seat).firstOrNull?.knowledge.role;
-      if (player != null) showNote(context, _t.online.leftTown(player.name, role == null ? '?' : _t.role(role).label));
+      if (player != null) showNote(context, r.wentAway(player.name), kind: NoticeKind.away);
+    }
+    for (final seat in before.difference(offline)) {
+      if (seat == _view.seat.id || departed.contains(seat)) continue;
+      final player = _board.seating.occupantOf(seat);
+      if (player != null) showNote(context, r.cameBack(player.name), kind: NoticeKind.arrive);
     }
   }
 
@@ -1132,8 +1158,11 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     _mentionSeen = last;
     if (seen == null) return;
     final seats = _chatSeats;
-    final called = chat.any((m) => m.id > seen && seats.calls(m, mine: m.profileId == widget.me.id));
-    if (called) HapticFeedback.lightImpact();
+    final caller = chat.where((m) => m.id > seen && seats.calls(m, mine: m.profileId == widget.me.id)).lastOrNull;
+    if (caller != null) {
+      HapticFeedback.lightImpact();
+      showNote(context, RecapStrings.of(context).calledOut(caller.name), kind: NoticeKind.mention);
+    }
   }
 
   /// La striscia dei comandi tra il tavolo e la chat: sempre alta così.
@@ -2047,6 +2076,18 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
           ),
         ),
         const SizedBox(height: 10),
+        if (_public.recap case final recap?) ...[
+          SizedBox(
+            width: double.infinity,
+            child: NoirButton(
+              key: const Key('online.recap'),
+              kind: NoirButtonKind.brass,
+              label: RecapStrings.of(context).open,
+              onPressed: () => showGameRecap(context, recap, me: _view.seat),
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
         SizedBox(
           width: double.infinity,
           child: NoirButton(

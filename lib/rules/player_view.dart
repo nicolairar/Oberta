@@ -1,4 +1,5 @@
 import 'game_engine.dart';
+import 'game_recap.dart';
 import 'intent.dart';
 import 'knowledge.dart';
 import 'player.dart';
@@ -138,6 +139,10 @@ class PublicView {
   /// Il Sindaco che si è rivelato oggi: il suo voto vale due.
   final Player? mayor;
 
+  /// Il resoconto completo (tutte le mosse, tutti i ruoli). Solo a partita
+  /// finita: fino ad allora `null`, e sul filo non c'è.
+  final GameRecap? recap;
+
   const PublicView({
     required this.round,
     required this.phase,
@@ -154,6 +159,7 @@ class PublicView {
     this.deck = const {},
     this.personalWins = const [],
     this.mayor,
+    this.recap,
   });
 
   /// [player] ha vinto: con la sua fazione o da solo. Si sa a partita finita
@@ -181,6 +187,7 @@ class PublicView {
     ],
     'personalWins': seatsOf(personalWins),
     'mayor': seatOf(mayor),
+    if (recap != null) 'recap': recap!.toJson(),
   };
 
   factory PublicView.fromJson(Map<String, Object?> json, [SeatResolver resolve = seatPlayer]) => PublicView(
@@ -204,6 +211,7 @@ class PublicView {
     },
     personalWins: json['personalWins'] == null ? const [] : seatsFrom(json['personalWins'], resolve),
     mayor: optionalSeat(json['mayor'], resolve),
+    recap: json['recap'] == null ? null : GameRecap.fromJson(json['recap'] as Map<String, Object?>, resolve),
   );
 }
 
