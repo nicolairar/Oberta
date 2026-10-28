@@ -35,7 +35,8 @@ void main() {
   final voice = NarratorVoice.fromJson(index.readAsStringSync());
 
   test('ogni frase del copione della voce ha la sua clip, in tutte e due le lingue', () {
-    for (final language in AppLanguage.values) {
+    // Only Italian and English are recorded; the other languages narrate in text.
+    for (final language in AppLanguage.values.where((l) => l.hasVoice)) {
       final missing = [
         for (final segment in voiceSegments(language.pack))
           if (voice.clip(language, segment.text) == null) segment.text,
@@ -49,7 +50,7 @@ void main() {
   });
 
   test('le clip durano quanto la frase: niente clip vuote, niente clip infinite', () {
-    for (final language in AppLanguage.values) {
+    for (final language in AppLanguage.values.where((l) => l.hasVoice)) {
       for (final segment in voiceSegments(language.pack)) {
         final ms = voice.clip(language, segment.text)!.inMilliseconds;
         // Le clip più corte sono un numero o una parola; poi circa un
