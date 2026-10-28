@@ -429,7 +429,7 @@ class ServerGame {
       }
       final result = _apply(envelope);
       if (result.accepted) _settle(now);
-      receipts[envelope.seat] = {'id': envelope.id, 'result': result.toJson()};
+      receipts[envelope.seat] = {'token': envelope.token, 'result': result.toJson()};
     }
     for (final message in chat) {
       if (message.id <= lastChat) continue;

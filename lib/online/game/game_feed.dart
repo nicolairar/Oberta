@@ -66,8 +66,9 @@ class OnlineBoard {
   }
 }
 
-/// La risposta del server a un'intenzione: il suo numero e l'esito.
-typedef IntentReceipt = ({int id, IntentResult result});
+/// La risposta del server a un'intenzione: il segno casuale che le ha dato
+/// `submit_intent` e l'esito.
+typedef IntentReceipt = ({String? token, IntentResult result});
 
 /// La vista di un posto, letta dal telefono di chi ci siede.
 class OnlineSeat {
@@ -89,7 +90,7 @@ class OnlineSeat {
       receipt: receipt == null
           ? null
           : (
-              id: receipt['id'] as int,
+              token: receipt['token'] as String?,
               result: IntentResult.fromJson(receipt['result'] as Map<String, Object?>, resolve),
             ),
       acked: json['acked'] == true,

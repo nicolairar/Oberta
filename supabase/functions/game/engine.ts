@@ -9,7 +9,7 @@ export interface StepInput {
   seats: { seat: string; profile_id: string | null; name: string }[];
   language: string;
   now: number;
-  intents: { id: number; seat: string; intent: Record<string, unknown> }[];
+  intents: { id: number; token?: string; seat: string; intent: Record<string, unknown> }[];
   seen?: Record<string, number> | null;
   /** Square (day) chat messages after state.lastChat, id = their n: who spoke, for the AFK rule. */
   chat?: { id: number; seat: string | null }[];

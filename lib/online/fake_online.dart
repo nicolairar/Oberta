@@ -105,7 +105,8 @@ class FakeOnline {
   int _intentIds = 0;
   final Random _chatIds = Random();
 
-  /// Like the server's: a random id (a uuid's shape), never a counter.
+  /// Like the server's: a random id (a uuid's shape), never a counter. Chat
+  /// ids and intent tokens.
   String _chatId() {
     String hex(int digits) => [for (var i = 0; i < digits; i++) _chatIds.nextInt(16).toRadixString(16)].join();
     return '${hex(8)}-${hex(4)}-4${hex(3)}-a${hex(3)}-${hex(12)}';
@@ -779,7 +780,7 @@ class _FakeGameRoom {
   int version = 0;
   Map<String, Object?>? board;
   final Map<String, ({String profile, int version, Map<String, Object?> view})> seatViews = {};
-  final List<({int id, String seat, String profile, Map<String, Object?> intent})> intents = [];
+  final List<({int id, String token, String seat, String profile, Map<String, Object?> intent})> intents = [];
   final Map<String, DateTime> lastSeen = {};
 
   /// Chi ha chiesto di uscire (come `game_seats.left_at`).
@@ -917,7 +918,7 @@ class FakeGame implements GameBackend {
     return controller.stream;
   }
 
-  Future<int> _submit(String roomId, Map<String, Object?> json) async {
+  Future<String> _submit(String roomId, Map<String, Object?> json) async {
     await _online._network();
     final me = _me;
     final game = _online._games[roomId];
@@ -931,15 +932,16 @@ class FakeGame implements GameBackend {
     if (game.intents.where((i) => i.profile == me).length >= 20) {
       throw const OnlineException(OnlineFailure.notAllowed, null, 'too_many_intents');
     }
-    final id = ++_online._intentIds;
-    game.intents.add((id: id, seat: seat, profile: me, intent: _wire(json)));
+    // The order stays on the server; the phone gets a random token.
+    final token = _online._chatId();
+    game.intents.add((id: ++_online._intentIds, token: token, seat: seat, profile: me, intent: _wire(json)));
     game.lastSeen[seat] = _online.clock.now();
     _online._wake(roomId);
-    return id;
+    return token;
   }
 
   @override
-  Future<int> sendIntent(String roomId, PlayerIntent intent) => _submit(roomId, intent.toJson());
+  Future<String> sendIntent(String roomId, PlayerIntent intent) => _submit(roomId, intent.toJson());
 
   @override
   Future<void> sendAck(String roomId, String seat, String stage) =>
@@ -947,7 +949,7 @@ class FakeGame implements GameBackend {
 
   /// Solo per i test: manda un'intenzione così com'è, come farebbe un
   /// client modificato. Il server controlla comunque il posto.
-  Future<int> sendRaw(String roomId, Map<String, Object?> json) => _submit(roomId, json);
+  Future<String> sendRaw(String roomId, Map<String, Object?> json) => _submit(roomId, json);
 
   @override
   Future<void> leaveGame(String roomId) async {
@@ -1102,7 +1104,7 @@ extension on FakeOnline {
         'language': game.language,
         'now': now.millisecondsSinceEpoch,
         'intents': [
-          for (final i in game.intents) {'id': i.id, 'seat': i.seat, 'intent': i.intent},
+          for (final i in game.intents) {'id': i.id, 'token': i.token, 'seat': i.seat, 'intent': i.intent},
         ],
         'seen': trackPresence
             ? {for (final MapEntry(:key, :value) in game.lastSeen.entries) key: value.millisecondsSinceEpoch}

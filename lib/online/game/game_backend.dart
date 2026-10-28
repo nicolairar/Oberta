@@ -44,18 +44,23 @@ class GameFeed {
 }
 
 /// Un'intenzione arrivata al server: chi l'ha mandata (il posto lo mette
-/// il database, non il client) e cosa chiede.
+/// il database, non il client) e cosa chiede. [id] è l'ordine di arrivo, solo
+/// per il server; [token] è il segno casuale che il telefono ha ricevuto da
+/// `submit_intent` e ritrova nella risposta (mai l'[id]: conterebbe le mosse
+/// di tutti).
 class IntentEnvelope {
   final int id;
+  final String? token;
   final String seat;
   final Map<String, Object?> intent;
 
-  const IntentEnvelope({required this.id, required this.seat, required this.intent});
+  const IntentEnvelope({required this.id, this.token, required this.seat, required this.intent});
 
-  Map<String, Object?> toJson() => {'id': id, 'seat': seat, 'intent': intent};
+  Map<String, Object?> toJson() => {'id': id, if (token != null) 'token': token, 'seat': seat, 'intent': intent};
 
   factory IntentEnvelope.fromJson(Map<String, Object?> json) => IntentEnvelope(
         id: (json['id'] as num).toInt(),
+        token: json['token'] as String?,
         seat: json['seat'] as String,
         intent: (json['intent'] as Map).cast<String, Object?>(),
       );
@@ -77,9 +82,9 @@ abstract class GameBackend {
   /// la versione attuale, così chi ricarica l'app riprende da dove era.
   Stream<GameFeed> watchGame(String roomId);
 
-  /// Manda un'intenzione per il proprio posto. Torna il suo numero: la
-  /// risposta del server arriva nella vista con lo stesso numero.
-  Future<int> sendIntent(String roomId, PlayerIntent intent);
+  /// Manda un'intenzione per il proprio posto. Torna il suo segno (casuale):
+  /// la risposta del server arriva nella vista con lo stesso segno.
+  Future<String> sendIntent(String roomId, PlayerIntent intent);
 
   /// Conferma al server di aver finito la fase [stage] (`dawn-2`): carta
   /// vista, film finito, letto.

@@ -42,7 +42,7 @@ class GameClient extends ChangeNotifier {
   Duration? _bestTrip;
 
   /// L'intenzione mandata e non ancora vista nella risposta del server.
-  int? _waitingFor;
+  String? _waitingFor;
   bool _sending = false;
 
   /// L'ultima intenzione rifiutata, finché qualcuno non la legge.
@@ -199,9 +199,10 @@ class GameClient extends ChangeNotifier {
   void _checkReceipt() {
     final receipt = _seat?.receipt;
     final waiting = _waitingFor;
-    if (receipt == null || waiting == null || receipt.id < waiting) return;
+    // Una risposta con un altro segno è di una mossa precedente.
+    if (receipt == null || waiting == null || receipt.token != waiting) return;
     _waitingFor = null;
-    if (receipt.id == waiting && receipt.result is IntentRejected) _rejected = receipt.result as IntentRejected;
+    if (receipt.result is IntentRejected) _rejected = receipt.result as IntentRejected;
   }
 
   /// Manda un'intenzione per il proprio posto. La mossa conta solo quando

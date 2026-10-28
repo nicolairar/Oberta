@@ -290,19 +290,21 @@ class TutorialTable implements GameBackend {
   }
 
   @override
-  Future<int> sendIntent(String roomId, PlayerIntent intent) async {
+  Future<String> sendIntent(String roomId, PlayerIntent intent) async {
     final id = ++_ids;
+    // Come il server: il telefono riceve un segno, l'ordine resta qui.
+    final token = 'tutorial-$id';
     if (_onScript(intent)) {
       _flushMoves();
-      _inbox.add(IntentEnvelope(id: id, seat: you, intent: intent.toJson()));
+      _inbox.add(IntentEnvelope(id: id, token: token, seat: you, intent: intent.toJson()));
       if (_scene.acted case final acted?) coach.value = acted;
     } else {
       // Fuori copione: il server la rifiuta, e la mano torna indietro.
-      _inbox.add(IntentEnvelope(id: id, seat: you, intent: {'type': 'offScript', 'seat': you}));
+      _inbox.add(IntentEnvelope(id: id, token: token, seat: you, intent: {'type': 'offScript', 'seat': you}));
       coach.value = _answered ? (_scene.answered ?? _scene.coach) : _scene.coach;
     }
     scheduleMicrotask(_serve);
-    return id;
+    return token;
   }
 
   @override

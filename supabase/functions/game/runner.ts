@@ -57,8 +57,10 @@ export async function stepRoom(
        from public.game_seats where room_id = $1`,
       [room],
     );
-    const intents = await tx.query<{ id: number; seat: string; intent: Record<string, unknown> }>(
-      `select id::float8 as id, seat, intent from public.game_intents where room_id = $1 order by id limit 200`,
+    // id: the arrival order, server side only; token: what the phone got
+    // back from submit_intent and finds again in its receipt.
+    const intents = await tx.query<{ id: number; token: string; seat: string; intent: Record<string, unknown> }>(
+      `select id::float8 as id, token::text as token, seat, intent from public.game_intents where room_id = $1 order by id limit 200`,
       [room],
     );
     // The square's chat counts as taking part (for the AFK rule); only who
@@ -80,7 +82,7 @@ export async function stepRoom(
       seats: seats.map((s) => ({ seat: s.seat, profile_id: s.profile_id, name: s.name })),
       language: games[0].language,
       now: at,
-      intents: intents.map((i) => ({ id: Number(i.id), seat: i.seat, intent: i.intent })),
+      intents: intents.map((i) => ({ id: Number(i.id), token: i.token, seat: i.seat, intent: i.intent })),
       seen,
       chat: chat.map((c) => ({ id: Number(c.id), seat: c.seat })),
     };

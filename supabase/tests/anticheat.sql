@@ -183,6 +183,11 @@ insert into _r (check_name, ok, detail) select 'bruno cannot wake the engine by 
   $q$select internal.wake_game('e0000000-0000-4000-8000-00000000000e')$q$) is not null, null;
 insert into _r (check_name, ok, detail) select 'bruno cannot act for anna', pg_temp.fails(
   $q$select public.submit_intent('e0000000-0000-4000-8000-00000000000e', '{"type":"pass","seat":"s1"}')$q$) like '%not_your_seat%', null;
+insert into _r (check_name, ok, detail) select 'submit_intent returns a random token, not the move counter',
+  pg_typeof(public.submit_intent('e0000000-0000-4000-8000-00000000000e', '{"type":"pass","seat":"s2"}'))::text = 'uuid', null;
+insert into _r (check_name, ok, detail) select 'no client privilege on any column of game_intents',
+  not has_any_column_privilege('authenticated', 'public.game_intents', 'SELECT')
+  and not has_any_column_privilege('anon', 'public.game_intents', 'SELECT'), null;
 
 -- ---- Anna, family: the family chat and her own secret, never Bruno's.
 set local request.jwt.claims to '{"sub": "a0000000-0000-4000-8000-00000000000a", "role": "authenticated"}';
@@ -278,6 +283,14 @@ select 'every game table Realtime publishes has row level security', bool_and(c.
 from pg_publication_tables t join pg_class c on c.relname = t.tablename
 join pg_namespace n on n.oid = c.relnamespace and n.nspname = t.schemaname
 where t.pubname = 'supabase_realtime' and t.schemaname = 'public';
+insert into _r (check_name, ok, detail)
+select 'the game calls hand out no shared counter', count(*) = 0, string_agg(p.proname || ':' || pg_get_function_result(p.oid), ',')
+from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public' and p.proname in ('submit_intent', 'send_chat')
+  and pg_get_function_result(p.oid) <> 'uuid';
+insert into _r (check_name, ok, detail)
+select 'no seat view carries an intent id', count(*) = 0, null
+from public.game_seat_views where view -> 'receipt' ? 'id';
 insert into _r (check_name, ok, detail)
 select 'the secret tables are not published to Realtime', count(*) = 0, string_agg(tablename, ',')
 from pg_publication_tables where pubname = 'supabase_realtime'

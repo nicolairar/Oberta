@@ -115,11 +115,11 @@ select throws_ok(
   'P0001', 'not_your_seat', 'nobody acts for another seat'
 );
 select ok(
-  public.submit_intent((select id from r), '{"type": "pass", "seat": "s2"}'::jsonb) > 0,
+  public.submit_intent((select id from r), '{"type": "pass", "seat": "s2"}'::jsonb) is not null,
   'Bruno sends an intent for his own seat'
 );
 select ok(
-  public.submit_intent((select id from r), '{"type": "ack", "seat": "s2", "stage": "night-1"}'::jsonb) > 0,
+  public.submit_intent((select id from r), '{"type": "ack", "seat": "s2", "stage": "night-1"}'::jsonb) is not null,
   'and an acknowledgement'
 );
 select throws_ok('insert into public.game_intents (room_id, seat, profile_id, intent) select id, ''s2'', auth.uid(), ''{}'' from r',

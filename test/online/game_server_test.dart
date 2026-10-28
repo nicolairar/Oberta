@@ -305,6 +305,17 @@ void main() {
     expect((server.seatView('s1')['view'] as Map)['action'], isNull);
   });
 
+  test('la risposta riporta il segno casuale della mossa, mai il suo numero d\'ordine', () {
+    final server = ServerHarness(table(humans: 2, bots: 2));
+    server.step();
+    server.queue.add({'id': 4242, 'token': 'tok-casuale', 'seat': 's1', 'intent': {'type': 'pass', 'seat': 's1'}});
+    server.step();
+    final receipt = server.seatView('s1')['receipt'] as Map<String, Object?>;
+    expect(receipt['token'], 'tok-casuale');
+    expect(receipt.containsKey('id'), isFalse, reason: 'il numero conterebbe le mosse di tutto il server');
+    expect(jsonEncode(server.seatView('s1')), isNot(contains('4242')));
+  });
+
   test('di notte chi non sceglie passa, al voto chi non vota si astiene', () {
     final server = ServerHarness(table(humans: 2, bots: 2));
     final random = Random(3);

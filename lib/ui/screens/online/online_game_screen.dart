@@ -137,7 +137,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   /// Quello che l'ultima mossa ha scoperto (un'indagine, una fossa).
   Exposure? _finding;
-  int? _findingFor;
+  String? _findingFor;
 
   /// Gli ultimi voti della piazza visti al voto: il verdetto li ricorda
   /// (il tavolo pubblico li cancella appena il voto si chiude).
@@ -267,8 +267,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     if (_client.takeRejection() != null) showNote(context, _t.online.rejected, kind: NoticeKind.error);
     if (!_client.busy) _hope = null;
     final seat = _client.seat;
-    if (seat?.receipt case (:final id, result: IntentAccepted(:final finding?)) when id != _findingFor) {
-      _findingFor = id;
+    if (seat?.receipt case (:final token?, result: IntentAccepted(:final finding?)) when token != _findingFor) {
+      _findingFor = token;
       _finding = finding;
     }
     if (_client.ready) {

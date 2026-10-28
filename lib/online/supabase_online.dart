@@ -790,13 +790,11 @@ class SupabaseGame implements GameBackend {
       });
 
   @override
-  Future<int> sendIntent(String roomId, PlayerIntent intent) => _guard(() async {
-        final id = await _client.rpc<num>('submit_intent', params: {'room': roomId, 'intent': intent.toJson()});
-        return id.toInt();
-      });
+  Future<String> sendIntent(String roomId, PlayerIntent intent) =>
+      _guard(() => _client.rpc<String>('submit_intent', params: {'room': roomId, 'intent': intent.toJson()}));
 
   @override
-  Future<void> sendAck(String roomId, String seat, String stage) => _guard(() => _client.rpc<num>(
+  Future<void> sendAck(String roomId, String seat, String stage) => _guard(() => _client.rpc<String>(
         'submit_intent',
         params: {
           'room': roomId,
