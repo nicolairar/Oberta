@@ -540,7 +540,7 @@ class SupabaseSafety implements SafetyRepository {
   SupabaseSafety(this._client);
 
   @override
-  Future<void> report(String targetId, ReportReason reason, {String? note, String? gameId, int? messageId}) =>
+  Future<void> report(String targetId, ReportReason reason, {String? note, String? gameId, String? messageId}) =>
       _guard(
         () => _client.rpc<void>(
           'report_player',
@@ -817,10 +817,8 @@ class SupabaseGame implements GameBackend {
       });
 
   @override
-  Future<int> sendChat(String roomId, ChatChannel channel, String body) => _guard(() async {
-        final id = await _client.rpc<num>('send_chat', params: {'room': roomId, 'channel': channel.name, 'body': body});
-        return id.toInt();
-      });
+  Future<String> sendChat(String roomId, ChatChannel channel, String body) =>
+      _guard(() => _client.rpc<String>('send_chat', params: {'room': roomId, 'channel': channel.name, 'body': body}));
 
   @override
   Stream<List<ChatMessage>> watchChat(String roomId) =>
@@ -829,9 +827,10 @@ class SupabaseGame implements GameBackend {
         // degli eventi quelli pubblici e i propri della partita in corso.
         final rows = await _client
             .from('game_chat')
-            .select('id, channel, profile_id, seat, name, body, created_at')
+            .select('id, n, channel, profile_id, seat, name, body, created_at')
             .eq('room_id', roomId)
-            .order('id', ascending: false)
+            .order('created_at', ascending: false)
+            .order('n', ascending: false)
             .limit(100);
         final events = await _client
             .from('game_events')

@@ -24,7 +24,7 @@ class GameClient extends ChangeNotifier {
   final String? me;
 
   /// I propri messaggi già scritti e non ancora arrivati dal feed.
-  final Map<int, ChatMessage> _sent = {};
+  final Map<String, ChatMessage> _sent = {};
   List<ChatMessage> _fed = const [];
 
   StreamSubscription<GameFeed>? _feed;
@@ -241,7 +241,7 @@ class GameClient extends ChangeNotifier {
   /// Manda un messaggio e lo mostra subito, senza aspettare il feed (che
   /// poi lo sostituisce, stesso id). [name] e [profileId] facoltativi: di
   /// norma il nome del proprio posto e [me].
-  Future<int> sendChat(ChatChannel channel, String body, {String? name, String? profileId}) async {
+  Future<String> sendChat(ChatChannel channel, String body, {String? name, String? profileId}) async {
     final id = await backend.sendChat(roomId, channel, body);
     final author = profileId ?? me;
     final view = _seat?.view;

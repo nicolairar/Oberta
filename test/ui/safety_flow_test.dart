@@ -22,7 +22,7 @@ void main() {
   late FakeOnline online;
   late Room room;
   late Profile me;
-  late int message;
+  late String message;
 
   setUp(() async {
     BlockedPlayers.clear();

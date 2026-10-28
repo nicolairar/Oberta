@@ -92,7 +92,13 @@ class FakeOnline {
   /// The server's lines (`game_events`): `to` the only profile that reads it.
   final List<({String room, String game, String? to, ChatMessage message})> _events = [];
   int _intentIds = 0;
-  int _chatIds = 0;
+  final Random _chatIds = Random();
+
+  /// Like the server's: a random id (a uuid's shape), never a counter.
+  String _chatId() {
+    String hex(int digits) => [for (var i = 0; i < digits; i++) _chatIds.nextInt(16).toRadixString(16)].join();
+    return '${hex(8)}-${hex(4)}-4${hex(3)}-a${hex(3)}-${hex(12)}';
+  }
   int _gameIds = 0;
 
   /// L'orologio del server finto: quello vero, o uno a mano nei test.
@@ -602,7 +608,7 @@ class FakeReport {
   final ReportReason reason;
   final String? note;
   final String? gameId;
-  final int? messageId;
+  final String? messageId;
 
   /// La copia del messaggio segnalato, come la tiene il server.
   final String? messageText;
@@ -624,7 +630,7 @@ class FakeSafety implements SafetyRepository {
   FakeSafety._(this._online);
 
   @override
-  Future<void> report(String targetId, ReportReason reason, {String? note, String? gameId, int? messageId}) async {
+  Future<void> report(String targetId, ReportReason reason, {String? note, String? gameId, String? messageId}) async {
     await _online._network();
     final me = _online._me;
     if (targetId == me || !_online._profiles.containsKey(targetId)) {
@@ -953,7 +959,7 @@ class FakeGame implements GameBackend {
   }
 
   @override
-  Future<int> sendChat(String roomId, ChatChannel channel, String body) async {
+  Future<String> sendChat(String roomId, ChatChannel channel, String body) async {
     await _online._network();
     final me = _me;
     final text = body.trim();
@@ -990,11 +996,15 @@ class FakeGame implements GameBackend {
       gameId = game.gameId;
       name = game.seats[seat]!.name;
     }
+    // The order within the channel only, as on the server.
+    final n = _online._chat.where((m) => m.room == roomId && m.game == gameId && m.message.channel == channel).length + 1;
+    final id = _online._chatId();
     _online._chat.add((
       room: roomId,
       game: gameId,
       message: ChatMessage(
-        id: ++_online._chatIds,
+        id: id,
+        n: n,
         channel: channel,
         profileId: me,
         seat: seat,
@@ -1004,7 +1014,7 @@ class FakeGame implements GameBackend {
       ),
     ));
     _online._notifyGame(roomId);
-    return _online._chatIds;
+    return id;
   }
 
   /// Come la policy di game_chat: stanza e piazza per chi è nella stanza,

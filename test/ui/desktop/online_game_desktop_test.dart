@@ -53,14 +53,14 @@ void main() {
               // Chi è morto o zittito non parla: si va avanti lo stesso.
               await settled(
                 tester,
-                online.gameAs(who).sendChat(room.id, ChatChannel.day, body).catchError((Object _) => 0),
+                online.gameAs(who).sendChat(room.id, ChatChannel.day, body).catchError((Object _) => ''),
               );
             }
             await settled(
               tester,
               online.services.game
                   .sendChat(room.id, ChatChannel.day, 'Ci sto. Teniamo d\'occhio il 4.')
-                  .catchError((Object _) => 0),
+                  .catchError((Object _) => ''),
             );
             await flush(tester);
             await saveDesktopShot(tester, 'online_game_${name}_$label');

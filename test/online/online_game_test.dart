@@ -430,7 +430,13 @@ void main() {
         for (final id in town) {
           expect(clients[id]!.chat.where((m) => m.channel == ChatChannel.family), isEmpty);
         }
-        expect(clients[family.first]!.chat.last.body, 'stanotte il medico');
+        final secret = clients[family.first]!.chat.last;
+        expect(secret.body, 'stanotte il medico');
+        // Ids random, order counted per channel: nothing to count from outside.
+        expect(int.tryParse(secret.id), isNull);
+        expect(secret.n, 1);
+        final lobby = [for (final m in clients[town.first]!.chat) if (m.channel == ChatChannel.lobby) m.n];
+        expect(lobby, [for (var i = 1; i <= lobby.length; i++) i]);
       }
       await expectLater(
         online.gameAs(town.first).sendChat(room.id, ChatChannel.lobby, 'porca madonna'),

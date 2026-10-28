@@ -1209,17 +1209,17 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       const {Stage.night, Stage.dawn, Stage.discussion, Stage.vote, Stage.verdict, Stage.verdictFilm}.contains(_stage);
 
   /// I messaggi già visti: una chiamata in causa nuova dà un colpetto.
-  int? _mentionSeen;
+  Set<String>? _mentionSeen;
 
   void _feelMentions() {
     final chat = _client.chat;
     if (chat.isEmpty) return;
-    final last = chat.last.id;
     final seen = _mentionSeen;
-    _mentionSeen = last;
+    _mentionSeen = {for (final m in chat) m.id};
     if (seen == null) return;
     final seats = _chatSeats;
-    final caller = chat.where((m) => m.id > seen && seats.calls(m, mine: m.profileId == widget.me.id)).lastOrNull;
+    final caller =
+        chat.where((m) => !seen.contains(m.id) && seats.calls(m, mine: m.profileId == widget.me.id)).lastOrNull;
     if (caller != null) {
       HapticFeedback.lightImpact();
       showNote(context, RecapStrings.of(context).calledOut(caller.name), kind: NoticeKind.mention);

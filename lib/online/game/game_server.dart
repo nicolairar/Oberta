@@ -114,8 +114,10 @@ class ServerStep {
 /// - `language`: `it` o `en`;
 /// - `now`: l'ora del database, in millisecondi;
 /// - `intents`: le intenzioni ancora da gestire (`[{id, seat, intent}]`);
-/// - `chat`: i messaggi di chat della partita (`[{id, seat}]`, quelli dopo
-///   `state.lastChat`): contano come partecipazione, il testo non serve;
+/// - `chat`: i messaggi della piazza (`[{id, seat}]`, `id` è il numero `n`
+///   del messaggio nella piazza, quelli dopo `state.lastChat`): contano come
+///   partecipazione, il testo non serve. Mai quelli della famiglia: non
+///   devono cambiare niente di ciò che vedono gli altri;
 /// - `seen`: per ogni posto umano, l'ultima volta che il suo telefono si è
 ///   fatto sentire (millisecondi; null o assente: tutti collegati);
 /// - `seed` (facoltativo, per i test): il seme di carte e bot.

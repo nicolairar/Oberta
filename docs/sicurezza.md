@@ -16,7 +16,15 @@ scoprire niente di nascosto: ruoli, mosse notturne, chat della famiglia, segreti
 - **`game_seats`, `game_intents`**: nessun permesso ai client; si passa da `submit_intent`,
   `send_chat`, `game_ping`, `game_leave`, che timbrano il posto di chi chiama.
 - **`game_chat`**: stanza e piazza per i membri; famiglia solo per i vivi della famiglia nella partita
-  in corso (`is_family_reader`; il Compare ci scrive anche di giorno).
+  in corso (`is_family_reader`; il Compare ci scrive anche di giorno). Dalla
+  `20261111090000_chat_random_ids.sql` l'id è un uuid casuale (`send_chat` lo restituisce,
+  `report_player` lo riceve) e l'ordine è `n`, contato per stanza, partita e canale: dai numeri della
+  piazza non si conta niente della famiglia. La vecchia sequenza unica non esiste più. I telefoni
+  ordinano per `created_at`, poi `n`.
+- **Niente si muove quando parla la famiglia**: `send_chat` scrive solo la riga del messaggio; niente
+  `updated_at`, versioni, presenza o wake. La regola AFK del motore ascolta solo la piazza (il
+  cursore `lastChat` è l'`n` della piazza): un messaggio della famiglia non cambia chi viene mandato a
+  casa, quindi neanche il tavolo pubblico.
 - **`game_events`** (nuova, `20261110090000_game_events.sql`): le righe di sistema della chat. Quelle
   pubbliche (`recipient` null) per i membri; quelle «solo tu» solo per `recipient = auth.uid()`; solo
   la partita in corso. Le scrive solo `internal.game_commit`. Id casuale e numero d'ordine `n` contato
@@ -27,7 +35,7 @@ scoprire niente di nascosto: ruoli, mosse notturne, chat della famiglia, segreti
 
 ## Verifica
 
-`supabase/tests/anticheat.sql`: 31 controlli sul database vero dentro `begin … rollback`, impersonando
+`supabase/tests/anticheat.sql`: 39 controlli sul database vero dentro `begin … rollback`, impersonando
 un cittadino, un mafioso, un mafioso morto, un estraneo, chi ha lasciato la stanza e `anon`. Si lancia
 dal SQL editor o via Management API (`SUPABASE_ACCESS_TOKEN` in `fastlane/.env`, ref da
 `config/supabase.json`); per provare anche una migrazione nuova, incollarla subito dopo il `begin`.
@@ -37,7 +45,15 @@ Ogni riga deve avere `ok = true`. I test pgTAP in `supabase/tests/database/` res
 
 - Nessun buco trovato: viste per posto, chat della famiglia, stato interno, intenzioni e RPC non
   rivelano niente a chi non deve sapere.
-- Rischio residuo, basso: gli id di `game_chat` vengono da una sequenza unica per tutte le stanze; un
-  buco tra due messaggi della piazza può far intuire che di notte qualcuno ha scritto altrove (anche la
-  famiglia), non cosa né chi. Che la famiglia parli di notte lo sanno già tutti.
+- Chiuso (novembre 2026): gli id di `game_chat` venivano da una sequenza unica per tutte le stanze; un
+  buco tra due messaggi della piazza diceva che di notte qualcuno aveva scritto altrove, cioè che
+  almeno due della famiglia erano vivi (e quindi che l'ultima vittima non era della famiglia). Ora id
+  casuali e `n` per canale; l'anti-cheat fotografa tutto ciò che un cittadino può leggere (ogni
+  tabella e vista di `public`, quindi anche ogni riga che Realtime gli manderebbe, versione e
+  `updated_at` del tavolo compresi), fa scrivere la famiglia e controlla che non cambi niente.
+- Le cancellazioni (`DELETE`) arrivano via Realtime senza policy, ma solo con la chiave: ora un uuid,
+  e i messaggi della partita si cancellano solo all'inizio della successiva.
+- Rischio residuo, da chiudere allo stesso modo: `submit_intent` restituisce l'id di `game_intents`,
+  che viene da una sequenza unica per tutto il server; tra due proprie mosse si vede quante mosse sono
+  state mandate nel frattempo in tutte le stanze (mescolate, non della propria partita).
 - Il numero di chi deve ancora agire di notte (`nightPending`) è pubblico per scelta.

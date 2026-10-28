@@ -61,12 +61,14 @@ export async function stepRoom(
       `select id::float8 as id, seat, intent from public.game_intents where room_id = $1 order by id limit 200`,
       [room],
     );
-    // Chat counts as taking part (for the AFK rule); only who and when.
+    // The square's chat counts as taking part (for the AFK rule); only who
+    // and in what order (n, numbered within the square). Never the family's:
+    // its messages must not change anything the others can see.
     const lastChat = Number((games[0].state as { lastChat?: number } | null)?.lastChat ?? 0);
     const chat = await tx.query<{ id: number; seat: string | null }>(
-      `select c.id::float8 as id, c.seat from public.game_chat c
+      `select c.n::float8 as id, c.seat from public.game_chat c
        join public.game_public g on g.room_id = c.room_id and g.game_id = c.game_id
-       where c.room_id = $1 and c.channel <> 'lobby' and c.id > $2 order by c.id limit 500`,
+       where c.room_id = $1 and c.channel = 'day' and c.n > $2 order by c.n limit 500`,
       [room, lastChat],
     );
     const seen: Record<string, number> = {};

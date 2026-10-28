@@ -23,7 +23,7 @@ abstract class SafetyRepository {
   /// Segnala [targetId]. [messageId] è il messaggio della chat che si
   /// segnala, se c'è: il server ne tiene una copia. Una seconda segnalazione
   /// dello stesso giocatore nello stesso giorno passa in silenzio.
-  Future<void> report(String targetId, ReportReason reason, {String? note, String? gameId, int? messageId});
+  Future<void> report(String targetId, ReportReason reason, {String? note, String? gameId, String? messageId});
 
   /// I giocatori che si sono bloccati. Aggiorna anche [BlockedPlayers].
   Future<List<Profile>> blocked();

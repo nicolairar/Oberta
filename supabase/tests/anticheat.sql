@@ -38,6 +38,41 @@ exception when others then
 end;
 $f$;
 
+-- What the current role can read, one fingerprint per relation of the
+-- public schema: every row it sees, with its physical place (an update
+-- moves a row even when now() is frozen in this transaction).
+create function pg_temp.seen() returns table (rel text, fp text) language plpgsql as $f$
+declare t record; part text;
+begin
+  for t in
+    select c.relname, c.relkind from pg_class c join pg_namespace s on s.oid = c.relnamespace
+    where s.nspname = 'public' and c.relkind in ('r', 'p', 'v', 'm')
+      and has_any_column_privilege(c.oid, 'SELECT')
+    order by c.relname
+  loop
+    begin
+      if t.relkind in ('r', 'p') then
+        execute format('select coalesce(md5(string_agg(x.ctid::text || to_jsonb(x)::text, ''|'' order by x.ctid)), '''') from public.%I x', t.relname) into part;
+      else
+        execute format('select coalesce(md5(string_agg(to_jsonb(x)::text, ''|'' order by to_jsonb(x)::text)), '''') from public.%I x', t.relname) into part;
+      end if;
+    exception when others then
+      begin
+        execute format('select count(*)::text from public.%I', t.relname) into part;
+      exception when others then
+        part := 'unreadable';
+      end;
+    end;
+    rel := t.relname; fp := part;
+    return next;
+  end loop;
+end;
+$f$;
+create temp table _snap (k text, rel text, fp text);
+grant all on _snap to authenticated, anon;
+create temp table _ids (id uuid);
+grant all on _ids to authenticated, anon;
+
 insert into auth.users (id) values
   ('a0000000-0000-4000-8000-00000000000a'),
   ('b0000000-0000-4000-8000-00000000000b'),
@@ -171,6 +206,52 @@ insert into _r (check_name, ok, detail) select 'an outsider reads nothing of the
   and pg_temp.rows($q$select 1 from public.game_seat_views where room_id = 'e0000000-0000-4000-8000-00000000000e'$q$) = 0
   and pg_temp.rows($q$select 1 from public.game_chat where room_id = 'e0000000-0000-4000-8000-00000000000e'$q$) = 0
   and pg_temp.rows($q$select 1 from public.game_events where room_id = 'e0000000-0000-4000-8000-00000000000e'$q$) = 0, null;
+
+-- ---- The family talks: nothing Bruno can read moves, not even a number.
+reset role;
+insert into _r (check_name, ok, detail)
+select 'game_chat has no shared counter (random uuid ids)',
+  (select data_type from information_schema.columns
+   where table_schema = 'public' and table_name = 'game_chat' and column_name = 'id') = 'uuid'
+  and not exists (select 1 from information_schema.columns
+                  where table_schema = 'public' and table_name in ('game_chat', 'game_events')
+                    and (is_identity = 'YES' or column_default like 'nextval%')),
+  null;
+set local role authenticated;
+set local request.jwt.claims to '{"sub": "b0000000-0000-4000-8000-00000000000b", "role": "authenticated"}';
+insert into _snap select 'before', * from pg_temp.seen();
+insert into _r (check_name, ok, detail) select 'the square counts only the square',
+  (select array_agg(n order by n) from public.game_chat where channel = 'day') = '{1}', null;
+
+set local request.jwt.claims to '{"sub": "a0000000-0000-4000-8000-00000000000a", "role": "authenticated"}';
+insert into _ids select public.send_chat('e0000000-0000-4000-8000-00000000000e', 'family', 'bruno è il detective');
+insert into _r (check_name, ok, detail) select 'send_chat returns the new random id',
+  (select count(*) from _ids i join public.game_chat c on c.id = i.id and c.channel = 'family') = 1, null;
+insert into _r (check_name, ok, detail) select 'the family counts only the family',
+  (select array_agg(n order by n) from public.game_chat where channel = 'family') = '{1,2}', null;
+
+set local request.jwt.claims to '{"sub": "b0000000-0000-4000-8000-00000000000b", "role": "authenticated"}';
+insert into _snap select 'after', * from pg_temp.seen();
+insert into _r (check_name, ok, detail)
+select 'a family message changes nothing bruno can read (any table, view, Realtime row, board version)',
+  count(*) = 0, string_agg(coalesce(b.rel, a.rel), ',')
+from (select * from _snap where k = 'before') b
+full join (select * from _snap where k = 'after') a on a.rel = b.rel
+where a.fp is distinct from b.fp;
+insert into _r (check_name, ok, detail) select 'bruno read a fingerprint of the room',
+  (select count(*) from _snap where k = 'before' and rel in ('game_chat', 'game_public', 'game_events') and fp <> '') = 3, null;
+select public.report_player('a0000000-0000-4000-8000-00000000000a', 'language', null, null, (select id from _ids));
+
+reset role;
+insert into _r (check_name, ok, detail) select 'report_player takes the message''s uuid',
+  exists (select 1 from internal.reports where reporter = 'b0000000-0000-4000-8000-00000000000b'
+          and message_id = (select id from _ids)), null;
+update public.game_public set chat_mode = 'day' where room_id = 'e0000000-0000-4000-8000-00000000000e';
+set local role authenticated;
+set local request.jwt.claims to '{"sub": "b0000000-0000-4000-8000-00000000000b", "role": "authenticated"}';
+select public.send_chat('e0000000-0000-4000-8000-00000000000e', 'day', 'chi ha parlato stanotte?');
+insert into _r (check_name, ok, detail) select 'by day the square goes on from 1 to 2, whatever the family wrote',
+  (select array_agg(n order by n) from public.game_chat where channel = 'day') = '{1,2}', null;
 
 -- ---- Bruno leaves the room: his own view closes too.
 reset role;

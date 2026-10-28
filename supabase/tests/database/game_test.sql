@@ -27,7 +27,7 @@ select public.create_room('en');
 
 -- Lobby chat.
 set local request.jwt.claims to '{"sub": "22222222-2222-2222-2222-222222222222", "role": "authenticated"}';
-select ok(public.send_chat((select id from r), 'lobby', 'ciao a tutti') > 0, 'the lobby chats');
+select ok(public.send_chat((select id from r), 'lobby', 'ciao a tutti') is not null, 'the lobby chats');
 set local request.jwt.claims to '{"sub": "44444444-4444-4444-4444-444444444444", "role": "authenticated"}';
 select throws_ok($$ select public.send_chat((select id from r), 'lobby', 'ciao') $$, 'P0001', 'not_allowed',
   'outsiders do not write in the room');
@@ -128,7 +128,7 @@ select ok(public.server_now() > 0, 'the server clock');
 -- Night chat: the family only.
 select throws_ok($$ select public.send_chat((select id from r), 'day', 'ciao') $$, 'P0001', 'chat_closed',
   'no town chat at night');
-select ok(public.send_chat((select id from r), 'family', 'stanotte il medico') > 0, 'the family talks at night');
+select ok(public.send_chat((select id from r), 'family', 'stanotte il medico') is not null, 'the family talks at night');
 select throws_ok($$ select public.send_chat((select id from r), 'lobby', 'ciao') $$, 'P0001', 'chat_closed',
   'the lobby chat closes while playing');
 select throws_ok($$ select public.send_chat((select id from r), 'family', 'porca madonna') $$, 'P0001',
@@ -154,8 +154,8 @@ select lives_ok($$ select internal.game_commit((select id from r), '{
   "departed": ["s3"]}'::jsonb) $$, 'the function opens the day, and records an abandon');
 set local role authenticated;
 set local request.jwt.claims to '{"sub": "22222222-2222-2222-2222-222222222222", "role": "authenticated"}';
-select ok(public.send_chat((select id from r), 'day', 'chi è stato?') > 0, 'the living talk by day');
-select ok(public.send_chat((select id from r), 'day', 'io no') > 0, 'twice');
+select ok(public.send_chat((select id from r), 'day', 'chi è stato?') is not null, 'the living talk by day');
+select ok(public.send_chat((select id from r), 'day', 'io no') is not null, 'twice');
 select throws_ok($$ select public.send_chat((select id from r), 'day', 'basta') $$, 'P0001', 'too_many_messages',
   'but not too fast');
 set local request.jwt.claims to '{"sub": "11111111-1111-1111-1111-111111111111", "role": "authenticated"}';

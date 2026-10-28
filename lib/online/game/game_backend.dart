@@ -100,8 +100,8 @@ abstract class GameBackend {
 
   /// Scrive nella chat [channel] della stanza. Il server controlla chi può
   /// scrivere dove e quando, e le parole.
-  /// Restituisce l'id del messaggio appena scritto.
-  Future<int> sendChat(String roomId, ChatChannel channel, String body);
+  /// Restituisce l'id (casuale) del messaggio appena scritto.
+  Future<String> sendChat(String roomId, ChatChannel channel, String body);
 
   /// I messaggi che questo telefono può leggere, dal più vecchio al più nuovo.
   Stream<List<ChatMessage>> watchChat(String roomId);
@@ -125,7 +125,12 @@ class GameEvent {
 }
 
 class ChatMessage {
-  final int id;
+  /// Random (a uuid on the server): it tells nothing about other messages.
+  final String id;
+
+  /// The order within its channel (1, 2, 3... for the readers of that
+  /// channel only); 0 for a message just sent and not yet in the feed.
+  final int n;
   final ChatChannel channel;
   final String profileId;
   final String? seat;
@@ -138,6 +143,7 @@ class ChatMessage {
 
   const ChatMessage({
     required this.id,
+    this.n = 0,
     required this.channel,
     required this.profileId,
     required this.seat,
@@ -147,9 +153,9 @@ class ChatMessage {
     this.event,
   });
 
-  /// A row of `game_events`. Its id is made up here (negative, never a
-  /// chat id): the public lines of a step first, then this phone's own, in
-  /// order ([n]); the list sorts by time, then id.
+  /// A row of `game_events`. Its id is made up here: the public lines of a
+  /// step first, then this phone's own, in order ([n]); at the same time the
+  /// events come before the messages.
   factory ChatMessage.event({
     required String kind,
     required Map<String, Object?> data,
@@ -158,7 +164,8 @@ class ChatMessage {
     required DateTime at,
   }) =>
       ChatMessage(
-        id: (private ? 500 : 0) + n - 1000000,
+        id: 'event-${private ? 'p' : 't'}-${at.microsecondsSinceEpoch}-$n',
+        n: (private ? 500 : 0) + n,
         channel: ChatChannel.event,
         profileId: '',
         seat: null,
@@ -168,14 +175,20 @@ class ChatMessage {
         event: GameEvent(kind, data, private: private),
       );
 
-  /// Chat order: by time, then id.
+  /// Chat order: by time; at the same time the server's lines first, then
+  /// by the order within the channel ([n]), then by id.
   static int byTime(ChatMessage a, ChatMessage b) {
     final at = a.at.compareTo(b.at);
-    return at != 0 ? at : a.id.compareTo(b.id);
+    if (at != 0) return at;
+    final events = (b.channel == ChatChannel.event ? 1 : 0) - (a.channel == ChatChannel.event ? 1 : 0);
+    if (events != 0) return events;
+    final n = a.n.compareTo(b.n);
+    return n != 0 ? n : a.id.compareTo(b.id);
   }
 
   factory ChatMessage.fromJson(Map<String, Object?> json) => ChatMessage(
-        id: (json['id'] as num).toInt(),
+        id: json['id'] as String,
+        n: (json['n'] as num?)?.toInt() ?? 0,
         channel: ChatChannel.values.byName(json['channel'] as String),
         profileId: json['profile_id'] as String,
         seat: json['seat'] as String?,
