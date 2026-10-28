@@ -90,6 +90,10 @@ extension _Phone on _ShopScreenState {
   /// back, so the shoulders clear the price tag.
   Rect _heroFrame(_Entry? entry) {
     final slot = entry?.item?.slot;
+    // The hands rise from the bottom edge: the portrait sits higher, so they
+    // clear the price tag. The scene and the shoulders want it whole.
+    if (slot == 'held') return const Rect.fromLTWH(-0.225, 0.1, 1.45, 1.45);
+    if (ShopController.slotOf(entry?.item)?.wide ?? false) return const Rect.fromLTWH(-0.05, -0.02, 1.1, 1.1);
     final wide = entry?.bundle != null || slot == 'outfit' || slot == 'accessory';
     return wide ? const Rect.fromLTWH(-0.3, -0.12, 1.6, 1.6) : const Rect.fromLTWH(-0.15, -0.08, 1.3, 1.3);
   }
@@ -131,15 +135,26 @@ extension _Phone on _ShopScreenState {
     );
   }
 
-  /// One medallion per department: what is worn there, or its sign.
+  /// The hands shelf: left or right, as the portrait is seen.
+  List<Widget> _handChips({double scale = 1}) => [
+    for (final hand in Hand.values)
+      _Chip(
+        key: Key('shop.hand.${hand.name}'),
+        label: _t.hand(hand),
+        on: _shop.hand == hand,
+        scale: scale,
+        onTap: () => _shop.chooseHand(hand),
+      ),
+  ];
+
+  /// One medallion per department: what is worn there, or its sign. Ten of
+  /// them: on a narrow phone the row scrolls sideways.
   Widget _medals(DateTime now) {
     final t = _t;
     final ends = _shop.windowEnds(now);
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        for (final dept in ShopDept.values)
-          _Medal(
+    final medals = [
+      for (final dept in ShopDept.values)
+        _Medal(
             key: Key('shop.dept.${dept.name}'),
             dept: dept,
             label: t.dept(dept),
@@ -149,7 +164,18 @@ extension _Phone on _ShopScreenState {
             badge: dept == ShopDept.window && ends != null ? t.timeLeft(ends.difference(now)).split(' ').first : null,
             onTap: () => _openDept(dept),
           ),
-      ],
+    ];
+    return LayoutBuilder(
+      builder: (context, box) {
+        const each = 46.0 + 8;
+        if (medals.length * each <= box.maxWidth) return Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: medals);
+        return SingleChildScrollView(
+          key: const Key('shop.medals'),
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          child: Row(children: [for (final m in medals) Padding(padding: const EdgeInsets.symmetric(horizontal: 2), child: m)]),
+        );
+      },
     );
   }
 
@@ -299,6 +325,7 @@ extension _Phone on _ShopScreenState {
             onTap: () => _setFilter(_filter.copyWith(own: o)),
           ),
         TargaIconButton(key: const Key('shop.filters'), icon: Icons.tune, size: 36, badge: _filter.extra, tooltip: t.filters, onPressed: _openFilters),
+        if (_dept == ShopDept.hands) ..._handChips(),
         if (_dept == ShopDept.face && widget.onChangeFace != null)
           TargaIconButton(key: const Key('shop.changeFace'), icon: Icons.face_retouching_natural, size: 36, tooltip: t.changeFace, onPressed: widget.onChangeFace),
       ];
@@ -343,6 +370,9 @@ class _Medal extends StatelessWidget {
     ShopDept.face => Icons.visibility_outlined,
     ShopDept.outfit => Icons.checkroom,
     ShopDept.vice => Icons.local_fire_department_outlined,
+    ShopDept.scene => Icons.wallpaper,
+    ShopDept.back => Icons.backpack_outlined,
+    ShopDept.hands => Icons.front_hand_outlined,
     ShopDept.frames => Icons.crop_portrait,
     ShopDept.gestures => Icons.waving_hand_outlined,
   };

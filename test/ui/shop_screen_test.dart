@@ -28,6 +28,9 @@ void main() {
   }
 
   Future<void> dept(WidgetTester tester, String name) async {
+    // Ten medallions: on the phone the row scrolls.
+    await tester.ensureVisible(find.byKey(Key('shop.dept.$name')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(Key('shop.dept.$name')));
     await tester.pumpAndSettle();
   }

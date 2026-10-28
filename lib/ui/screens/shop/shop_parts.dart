@@ -25,9 +25,12 @@ Rect _focusOf(_Entry entry) {
   if (entry.bundle != null) return const Rect.fromLTWH(0.1, 0.06, 0.8, 0.8);
   return switch (entry.item!.slot) {
     'hat' => const Rect.fromLTWH(0.12, 0.0, 0.76, 0.6),
-    'hairdo' => const Rect.fromLTWH(0.06, 0.0, 0.88, 0.7),
-    'face' || 'glasses' || 'tattoo' => const Rect.fromLTWH(0.2, 0.22, 0.6, 0.55),
+    'hairdo' || 'hairDye' => const Rect.fromLTWH(0.06, 0.0, 0.88, 0.7),
+    'headFx' => const Rect.fromLTWH(0.06, -0.04, 0.88, 0.72),
+    'face' || 'glasses' || 'tattoo' || 'faceExtras' => const Rect.fromLTWH(0.2, 0.22, 0.6, 0.55),
+    'eyeShine' => const Rect.fromLTWH(0.26, 0.3, 0.48, 0.34),
     'outfit' => const Rect.fromLTWH(0.0, 0.58, 1.0, 0.45),
+    'aura' || 'back' || 'held' || 'frontFx' => const Rect.fromLTWH(0, 0, 1, 1),
     _ => const Rect.fromLTWH(0.06, 0.12, 0.88, 0.88),
   };
 }

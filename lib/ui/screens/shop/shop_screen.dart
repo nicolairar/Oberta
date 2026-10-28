@@ -282,7 +282,7 @@ class _ShopScreenState extends State<ShopScreen> {
       ItemState.owned => (t.wear, TargaKind.primary, () => _run(() => _shop.equip(item)), null),
       ItemState.worn => item.free
           ? (t.worn, TargaKind.secondary, null, null)
-          : (t.takeOff, TargaKind.secondary, () => _run(() => _shop.unequip(item.slot)), null),
+          : (t.takeOff, TargaKind.secondary, () => _run(() => _shop.takeOff(item)), null),
     };
     return TargaButton(
       key: const Key('shop.action'),

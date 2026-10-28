@@ -17,10 +17,14 @@ import 'package:oberta/ui/widgets/cosmetics/seat_preview.dart';
 const _side = 96.0;
 
 Rect _focus(String slot) => switch (slot) {
+  // The same zooms as the shop's thumbnails (shop_parts.dart, _focusOf).
   'hat' => const Rect.fromLTWH(0.12, 0.0, 0.76, 0.6),
-  'hairdo' => const Rect.fromLTWH(0.06, 0.0, 0.88, 0.7),
-  'face' || 'glasses' || 'tattoo' => const Rect.fromLTWH(0.2, 0.22, 0.6, 0.55),
+  'hairdo' || 'hairDye' => const Rect.fromLTWH(0.06, 0.0, 0.88, 0.7),
+  'headFx' => const Rect.fromLTWH(0.06, -0.04, 0.88, 0.72),
+  'face' || 'glasses' || 'tattoo' || 'faceExtras' => const Rect.fromLTWH(0.2, 0.22, 0.6, 0.55),
+  'eyeShine' => const Rect.fromLTWH(0.26, 0.3, 0.48, 0.34),
   'outfit' => const Rect.fromLTWH(0.0, 0.58, 1.0, 0.45),
+  'aura' || 'back' || 'held' || 'frontFx' => const Rect.fromLTWH(0, 0, 1, 1),
   _ => const Rect.fromLTWH(0.06, 0.12, 0.88, 0.88),
 };
 
@@ -77,8 +81,45 @@ void main() {
         final bare = empty == null ? base : base.wearing(slot, empty)!;
         if (worn == bare) continue;
         final changed = _diff(await _bust(bare, slotName), await _bust(worn, slotName));
-        final least = slot == LookSlot.tattoo || slot == LookSlot.face || slot == LookSlot.accessory ? 20 : 150;
+        // Small things (a mark, a shine, a dye under a cap) change few pixels in
+        // the thumbnail; the big ones (a scene, a hat, a suit) many.
+        final least = switch (slot) {
+          LookSlot.tattoo || LookSlot.face || LookSlot.accessory || LookSlot.faceExtras || LookSlot.eyeShine || LookSlot.hairDye => 12,
+          LookSlot.frontFx || LookSlot.headFx => 25,
+          _ => 150,
+        };
         if (changed < least) failures.add('$id ($seed): only $changed pixels change');
+      }
+    }
+    expect(failures, isEmpty, reason: failures.join('\n'));
+  });
+
+  test('every vice and football piece shows at the table too, on the 64 px seat portrait', () async {
+    Future<Uint8List> seat(AvatarLook look) async {
+      final recorder = ui.PictureRecorder();
+      LookPainter.bust(Canvas(recorder), look, 64, aura: false);
+      final image = await recorder.endRecording().toImage(64, 64);
+      final bytes = await image.toByteData();
+      image.dispose();
+      return bytes!.buffer.asUint8List();
+    }
+
+    final pieces = [
+      for (final item in initialShopCatalog)
+        if (item.slot == 'accessory' && !item.free || const {'back', 'held', 'headFx'}.contains(item.slot) && !item.free) item,
+    ];
+    // The ones the owner saw blank in build 65, by name.
+    for (final id in ['accessory.azzurriFlag', 'accessory.azzurriScarf', 'accessory.giallorossiFlare', 'accessory.giallorossiScarf', 'accessory.bianconeriTrophy']) {
+      expect(pieces.map((item) => item.id), contains(id));
+    }
+    final failures = <String>[];
+    for (final seed in ['anna', 'bruno']) {
+      final base = AvatarLook.fallback(seed);
+      for (final item in pieces) {
+        final slot = LookSlot.values.byName(item.slot);
+        final bare = base.wearing(slot, 'none')!;
+        final changed = _diff(await seat(bare), await seat(base.wearing(slot, item.lookId)!));
+        if (changed < 6) failures.add('${item.id} ($seed): only $changed pixels change at the table');
       }
     }
     expect(failures, isEmpty, reason: failures.join('\n'));

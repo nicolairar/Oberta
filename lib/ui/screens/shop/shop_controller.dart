@@ -13,10 +13,13 @@ enum ItemState { forSale, owned, worn }
 /// I posti del corpo di ogni reparto.
 const deptSlots = <ShopDept, List<String>>{
   ShopDept.window: [],
-  ShopDept.hats: ['hat', 'hairdo'],
-  ShopDept.face: ['face', 'glasses', 'tattoo'],
+  ShopDept.hats: ['hat', 'hairdo', 'headFx'],
+  ShopDept.face: ['face', 'glasses', 'tattoo', 'faceExtras', 'eyeShine', 'hairDye'],
   ShopDept.outfit: ['outfit'],
   ShopDept.vice: ['accessory'],
+  ShopDept.scene: ['aura', 'frontFx'],
+  ShopDept.back: ['back'],
+  ShopDept.hands: ['held'],
   ShopDept.frames: ['border', 'nameStyle'],
   ShopDept.gestures: ['gesture'],
 };
@@ -67,6 +70,14 @@ class ShopController extends ChangeNotifier {
   /// Il pezzo in prova, o null: lo specchio mostra il look indossato.
   ShopItem? trying;
 
+  /// La mano in cui si prova e si indossa una cosa da tenere.
+  Hand hand = Hand.right;
+
+  void chooseHand(Hand value) {
+    hand = value;
+    notifyListeners();
+  }
+
   /// Una richiesta al server in corso: i bottoni aspettano.
   bool busy = false;
 
@@ -88,10 +99,10 @@ class ShopController extends ChangeNotifier {
 
   AvatarLook tryOn(ShopItem item) {
     final slot = slotOf(item);
-    return slot == null ? look : look.wearing(slot, item.lookId) ?? look;
+    return slot == null ? look : look.wearing(slot, item.lookId, hand: hand) ?? look;
   }
 
-  static LookSlot? slotOf(ShopItem item) => LookSlot.values.where((slot) => slot.name == item.slot).firstOrNull;
+  static LookSlot? slotOf(ShopItem? item) => item == null ? null : LookSlot.values.where((slot) => slot.name == item.slot).firstOrNull;
 
   /// Solo i pezzi che quest'app sa disegnare: quelli di una versione nuova
   /// restano fuori finché non si aggiorna.
@@ -105,7 +116,7 @@ class ShopController extends ChangeNotifier {
 
   ItemState stateOf(ShopItem item) {
     final slot = slotOf(item);
-    if (slot != null && look.idIn(slot) == item.lookId && (item.free || owned.contains(item.id))) return ItemState.worn;
+    if (slot != null && look.wears(slot, item.lookId) && (item.free || owned.contains(item.id))) return ItemState.worn;
     if (item.free || owned.contains(item.id)) return ItemState.owned;
     return ItemState.forSale;
   }
@@ -287,8 +298,20 @@ class ShopController extends ChangeNotifier {
   });
 
   Future<void> equip(ShopItem item) => _call(() async {
-    account.saved(await shop.equip(item.id, tone: _tone, current: look.toJson()));
+    account.saved(await shop.equip(item.id, tone: _tone, current: look.toJson(), hand: item.slot == 'held' ? hand.name : null));
   });
+
+  /// Si toglie [item]: un segno della faccia da solo (gli altri restano),
+  /// una cosa in mano dalla sua mano, il resto con tutto il suo posto.
+  Future<void> takeOff(ShopItem item) {
+    if (item.slot == 'faceExtras') return equip(item);
+    if (item.slot == 'held') {
+      final held = HeldItem.values.where((h) => h.name == item.lookId).firstOrNull;
+      final key = held == null || held.twoHanded ? 'held' : (look.heldL == held ? Hand.left.key : Hand.right.key);
+      return unequip(key);
+    }
+    return unequip(item.slot);
+  }
 
   Future<void> unequip(String slot) => _call(() async {
     account.saved(await shop.unequip(slot, tone: _tone, current: look.toJson()));

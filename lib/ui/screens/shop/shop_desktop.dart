@@ -57,7 +57,15 @@ extension _Desktop on _ShopScreenState {
               Positioned(
                 left: cx - bust / 2,
                 top: counterTop + 34 - bust,
-                child: _Hero(entry: picked, look: _lookOf(picked), who: _shop.who, size: bust, frame: const Rect.fromLTWH(-0.15, -0.27, 1.3, 1.3), card: false),
+                child: _Hero(
+                  entry: picked,
+                  look: _lookOf(picked),
+                  who: _shop.who,
+                  size: bust,
+                  // The scene, the shoulders and the hands want the whole portrait.
+                  frame: (ShopController.slotOf(picked?.item)?.wide ?? false) ? const Rect.fromLTWH(-0.04, -0.06, 1.08, 1.08) : const Rect.fromLTWH(-0.15, -0.27, 1.3, 1.3),
+                  card: false,
+                ),
               ),
               Positioned(
                 left: stageL - 10,
@@ -288,6 +296,7 @@ extension _Desktop on _ShopScreenState {
                       ),
                   ]
                 : [
+                    if (_dept == ShopDept.hands) ..._handChips(scale: 1.1),
                     for (final o in ShopOwnership.values)
                       _Chip(key: Key('shop.filter.${o.name}'), label: t.ownership(o), on: _filter.own == o, scale: 1.1, onTap: () => _setFilter(_filter.copyWith(own: o))),
                     for (final r in ShopRarity.values)

@@ -1,10 +1,11 @@
 import 'dart:math';
 
 import '../online/shop_models.dart';
+import '../ui/avatar/deep_slots.dart' show Hand;
 
 /// I reparti della bottega, i medaglioni in fila: la vetrina, poi un posto
 /// del corpo per medaglione.
-enum ShopDept { window, hats, face, outfit, vice, frames, gestures }
+enum ShopDept { window, hats, face, outfit, vice, scene, back, hands, frames, gestures }
 
 /// Chi possiede che cosa, per il filtro: tutto, solo il mio, da comprare.
 enum ShopOwnership { all, mine, toBuy }
@@ -84,6 +85,9 @@ abstract class ShopStrings {
   /// The hero toggle: the character, or the seat card as the table sees it.
   String get viewBust;
   String get viewCard;
+
+  /// The hands shelf: which hand the piece goes in, as the portrait is seen.
+  String hand(Hand hand);
   String get changeFaceHint;
   String get back;
 
@@ -155,6 +159,8 @@ abstract class ShopStrings {
     'changeFace': changeFace,
     'viewBust': viewBust,
     'viewCard': viewCard,
+    'handLeft': hand(Hand.left),
+    'handRight': hand(Hand.right),
     'changeFaceHint': changeFaceHint,
     'back': back,
     'save': save(35),
@@ -269,6 +275,9 @@ class ItalianShopStrings extends ShopStrings {
     ShopDept.face => 'Volto',
     ShopDept.outfit => 'Abito',
     ShopDept.vice => 'Vizio',
+    ShopDept.scene => 'Scena',
+    ShopDept.back => 'Spalle',
+    ShopDept.hands => 'Mani',
     ShopDept.frames => 'Cornice',
     ShopDept.gestures => 'Gesti',
   };
@@ -321,6 +330,8 @@ class ItalianShopStrings extends ShopStrings {
   String get viewBust => 'Personaggio';
   @override
   String get viewCard => 'Carta al tavolo';
+  @override
+  String hand(Hand hand) => hand == Hand.left ? 'Sinistra' : 'Destra';
   @override
   String get changeFaceHint => 'Il viso, la pelle, i baffi: dal barbiere.';
   @override
@@ -451,6 +462,9 @@ class EnglishShopStrings extends ShopStrings {
     ShopDept.face => 'Face',
     ShopDept.outfit => 'Suits',
     ShopDept.vice => 'Vices',
+    ShopDept.scene => 'Scene',
+    ShopDept.back => 'Shoulders',
+    ShopDept.hands => 'Hands',
     ShopDept.frames => 'Frames',
     ShopDept.gestures => 'Gestures',
   };
@@ -503,6 +517,8 @@ class EnglishShopStrings extends ShopStrings {
   String get viewBust => 'Character';
   @override
   String get viewCard => 'Seat card';
+  @override
+  String hand(Hand hand) => hand == Hand.left ? 'Left' : 'Right';
   @override
   String get changeFaceHint => 'Face, skin, moustache: see the barber.';
   @override

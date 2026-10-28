@@ -47,6 +47,8 @@ void main() {
       );
       await tester.pumpAndSettle();
       for (final dept in ShopDept.values) {
+        await tester.ensureVisible(find.byKey(Key('shop.dept.${dept.name}')).first);
+        await tester.pump(const Duration(milliseconds: 300));
         await tester.tap(find.byKey(Key('shop.dept.${dept.name}')).first);
         await tester.pump(const Duration(milliseconds: 600));
         await _shot(tester, key, '${desk ? 'desktop' : 'phone'}_${dept.name}');
