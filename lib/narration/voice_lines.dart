@@ -183,6 +183,8 @@ List<String> spokenTemplates(NarrationPack pack) => [
       pack.presidentFallsFact,
       ...pack.sectWins,
       pack.sectWinsFact,
+      ...pack.cannonShots,
+      pack.cannonFact,
       ...pack.citizensWin,
       pack.citizensWinFact,
       ...pack.mafiaWins,

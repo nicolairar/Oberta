@@ -169,6 +169,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   /// Il Pacifista sta scegliendo chi svelare.
   bool _pacifying = false;
 
+  /// L'Artigliere sta scegliendo chi colpire.
+  bool _aiming = false;
+
+  /// Quanti colpi dell'Artigliere si sono già sentiti su questo telefono.
+  int? _shotsHeard;
+
   /// La domanda aperta prima di un'indagine o di uno scavo: si chiude da
   /// sola se la notte finisce prima della risposta.
   BuildContext? _asking;
@@ -392,6 +398,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       if (_stage == Stage.discussion) _lastFamilyVotes = const [];
       _enterStage();
       _announceDepartures();
+      _hearCannon();
       if (_public.recap case final recap?) {
         RecapShelf.last = recap;
         RecapShelf.me = _view.seat;
@@ -439,6 +446,18 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       case Stage.dawn || Stage.verdict:
         break;
     }
+  }
+
+  /// Il colpo dell'Artigliere: il boato lo sente tutta la città, e poi la
+  /// carta del colpito si gira.
+  void _hearCannon() {
+    final shots = _public.shots;
+    final heard = _shotsHeard;
+    _shotsHeard = shots.length;
+    if (heard == null || shots.length <= heard) return;
+    final stage = SoundStage.instance;
+    stage.cue(Cue.bang);
+    stage.cue(shots.last.role.team == Team.mafia ? Cue.caught : Cue.innocent);
   }
 
   /// Chi ha lasciato la città (telefono spento oltre la tolleranza): lo si
@@ -514,12 +533,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   Future<void> _send(PlayerIntent intent) async {
     HapticFeedback.selectionClick();
     final key = _window?.key;
-    if (key != null && intent is! RevealMayor && intent is! Pacify && intent is! Link) {
+    if (key != null && intent is! RevealMayor && intent is! Pacify && intent is! Link && intent is! Fire) {
       final family = _view.action?.type == ActionType.mafiaVote;
       final hope = switch (intent) {
         DayVote(:final target) || NightAction(:final target) => (target: _seatOf(target), stage: key, family: false),
         MafiaVote(:final target) => (target: _seatOf(target), stage: key, family: true),
-        Pass() || RevealMayor() || Pacify() || Link() => (target: null, stage: key, family: family),
+        Pass() || RevealMayor() || Pacify() || Link() || Fire() => (target: null, stage: key, family: family),
       };
       setState(() => _hope = hope);
     }
@@ -2645,14 +2664,36 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     final truce = pacifist == null || pacified == null || shown == null
         ? null
         : _ts.truceLine(_tag(pacifist), _tag(pacified), _lowerFirst(_t.role(shown).label));
+    // L'Artigliere: chi può colpire adesso, e il boato di oggi.
+    final fireTargets = _open && _view.alive ? _view.fireTargets : const <Player>[];
+    final aiming = fireTargets.isNotEmpty && _aiming && !picking;
+    final shot = _public.shots.lastOrNull;
+    final cannon = shot == null || shot.round != _public.round || _public.phase != GamePhase.day
+        ? null
+        : _ts.cannonLine(_tag(shot.target), _lowerFirst(_t.role(shot.role).label));
+    final shotsLeft = _view.shotsLeft;
+    final felt = [
+      if (cannon != null) _feltLine(cannon, key: const Key('online.cannon'), color: Saloon.mafia, weight: FontWeight.w700, maxLines: 4),
+      if (truce != null) _feltLine(truce, key: const Key('online.truce'), color: Saloon.brass, weight: FontWeight.w700, maxLines: 4),
+      if (cannon != null && shotsLeft != null && _view.alive)
+        _feltLine(_ts.shotsLeft(shotsLeft), key: const Key('online.shotsLeft'), color: Saloon.brass, maxLines: 2),
+    ];
     return (
       key: const Key('online.discussion'),
       table: _table(
         players: publicSeating(_public.seats),
-        selectable: picking ? option.targets.toSet() : const {},
-        onTap: picking ? _pacify : null,
-        center: truce != null
-            ? _felt([_feltLine(truce, key: const Key('online.truce'), color: Saloon.brass, weight: FontWeight.w700, maxLines: 4)])
+        selectable: picking
+            ? option.targets.toSet()
+            : aiming
+            ? fireTargets.toSet()
+            : const {},
+        onTap: picking
+            ? _pacify
+            : aiming
+            ? _fire
+            : null,
+        center: felt.isNotEmpty
+            ? _felt(felt)
             : headline == null
             ? null
             : _felt([_feltTitle(headline, maxLines: 2)]),
@@ -2660,10 +2701,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       strip: ActionStrip(
         status: picking
             ? _ts.truceHint
+            : aiming
+            ? _ts.fireHint
             : silenced && !_acked
             ? _t.online.chatSilenced
             : _readyStatus(_t.online.discussionHint),
-        tone: picking
+        tone: picking || aiming
             ? StripTone.act
             : silenced && !_acked
             ? StripTone.muted
@@ -2674,6 +2717,15 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
               key: const Key('online.truce'),
               label: _ts.truce,
               onPressed: canPacify ? () => setState(() => _pacifying = !_pacifying) : null,
+            ),
+          if (fireTargets.isNotEmpty)
+            NoirAction(
+              key: const Key('online.fire'),
+              label: _ts.fire,
+              onPressed: () => setState(() {
+                _aiming = !_aiming;
+                _pacifying = false;
+              }),
             ),
           ?_readyAction(),
         ],
@@ -2700,6 +2752,26 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     setState(() => _pacifying = false);
     if (!yes || _window?.key != stage || !_open) return;
     await _send(Pacify(_view.seat.id, target.id));
+  }
+
+  /// Il colpo non si ritira: prima si chiede, con il nome scelto.
+  Future<void> _fire(Player target) async {
+    final stage = _window?.key;
+    final left = _view.shotsLeft;
+    final yes = await confirmNoir(
+      context,
+      key: const Key('online.askFire'),
+      title: _ts.fireTitle(_tag(target)),
+      body: left == null ? _ts.fireBody : '${_ts.fireBody} ${_ts.shotsLeft(left)}',
+      cancel: _ts.cancel,
+      confirm: _ts.fire,
+      cancelKey: const Key('online.cancel'),
+      confirmKey: const Key('online.confirm'),
+    );
+    if (!mounted) return;
+    setState(() => _aiming = false);
+    if (!yes || _window?.key != stage || !_open) return;
+    await _send(Fire(_view.seat.id, target.id));
   }
 
   /// Il voto: si tocca chi condannare (il voto parte subito e si cambia

@@ -9,7 +9,8 @@
 // its policy shows it to nobody else). `data` carries names and enum names
 // only; the phones word it in their language.
 //
-// Public kinds: night, dawn, scoop, silenced, lynch, mayor, truce, left, end.
+// Public kinds: night, dawn, scoop, silenced, lynch, mayor, truce, cannon,
+// left, end.
 // Private kinds: found, watch, bounty, doused, familyTarget, protected,
 // cell (who is in the cell tonight: the prisoner, or a Family member about
 // one of theirs), busy (the Prostitute kept you busy last night), lovers
@@ -168,6 +169,17 @@ List<Map<String, Object?>> tableEvents({
   if (pacifist != null && pacified != null && pacifist != ((before?['board'] as Map?)?['pacifist'])) {
     final shown = _list(view['revealed']).where((k) => k['seat'] == pacified).firstOrNull;
     events.add(_event('truce', {'name': name(pacifist), 'target': name(pacified), 'role': shown?['role']}));
+  }
+
+  // The Gunner's shots: who fired, who fell and their card, a broken heart.
+  final shotsBefore = _list((before?['board'] as Map?)?['shots']).length;
+  for (final shot in _list(view['shots']).skip(shotsBefore)) {
+    events.add(_event('cannon', {
+      'name': name(shot['gunner'] as String),
+      'target': name(shot['seat'] as String),
+      'role': shot['role'],
+      if (shot['heartbroken'] case final String broken) 'heartbroken': name(broken),
+    }));
   }
 
   // The verdict: once the verdict film is over, with the tally of the vote.

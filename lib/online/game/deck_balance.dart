@@ -10,7 +10,7 @@ import 'bot_brain.dart';
 
 /// I ruoli entrati con il primo gruppo di novità (`docs/ruoli.md`, batch 1):
 /// la simulazione li confronta con il mazzo di prima.
-const newRoles = {Role.prostituta, Role.carceriere, Role.pacifista, Role.cupido, Role.presidente, Role.capoSetta};
+const newRoles = {Role.prostituta, Role.carceriere, Role.pacifista, Role.cupido, Role.presidente, Role.capoSetta, Role.artigliere};
 
 /// Le vittorie di tante partite giocate dai bot, per un tavolo di una certa
 /// misura: per squadra e, per ruolo, quante volte chi l'aveva ha vinto.
@@ -33,7 +33,9 @@ class BalanceReport {
 
 /// Gioca [games] partite online da [players] posti, tutti bot ([BotBrain],
 /// gli stessi del server), con il mazzo automatico ([rolesForPlayerCount])
-/// senza i ruoli in [exclude]. Il Pacifista chiede la tregua una volta, in
+/// senza i ruoli in [exclude]. L'Artigliere spara un giorno su due, dal
+/// secondo: col fiuto su qualcuno della Famiglia, se no a caso. Il
+/// Pacifista chiede la tregua una volta, in
 /// un giorno a caso dal secondo, su un nome a caso.
 ///
 /// I bot da soli votano quasi a caso, mentre la Famiglia si conosce: così
@@ -76,6 +78,20 @@ BalanceReport simulateDecks(
             if (others.isNotEmpty) engine.apply(Pacify(player.id, others[random.nextInt(others.length)].id));
           }
         }
+        for (final player in engine.alivePlayers) {
+          final aim = engine.fireTargets(player);
+          if (aim.isEmpty || !random.nextBool()) continue;
+          final family = [
+            for (final other in aim)
+              if (engine.setup.roleOf(other).team == Team.mafia) other,
+          ];
+          final hit = family.isNotEmpty && random.nextDouble() < hunch
+              ? family[random.nextInt(family.length)]
+              : aim[random.nextInt(aim.length)];
+          engine.apply(Fire(player.id, hit.id));
+          break;
+        }
+        if (engine.phase == GamePhase.ended) continue;
         for (final player in [...engine.alivePlayers]..shuffle(random)) {
           final view = engine.viewFor(player.id);
           final family = [

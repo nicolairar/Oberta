@@ -452,6 +452,8 @@ class ServerGame {
       lastChat = message.id;
       if (message.seat case final seat? when _isHuman(seat) && !finished) spoke.add(seat);
     }
+    // Il colpo dell'Artigliere può chiudere la partita in piena discussione.
+    if (stage == Stage.discussion && engine.phase == GamePhase.ended) _open(Stage.ended, now, Duration.zero, pacing);
     final gone = _presence(now, seen, pacing);
     if (gone.changed) changed = true;
     final connected = seen == null
@@ -633,6 +635,8 @@ class ServerGame {
       action.remove('canPacify');
       view['action'] = action;
     }
+    // L'Artigliere spara in discussione, e solo lì.
+    if (stage != Stage.discussion) view.remove('fireTargets');
     payload['acked'] = acks.contains(seat);
     return payload;
   }
@@ -695,8 +699,9 @@ class ServerGame {
     if (intent.seat != envelope.seat) {
       return IntentRejected(IntentError.unknownSeat, '${envelope.seat} non può agire per ${intent.seat}');
     }
-    // La tregua si chiede in discussione, e solo lì.
-    if (intent is Pacify ? stage != Stage.discussion : !stage.acceptsActions) {
+    // La tregua si chiede in discussione, e solo lì; lo stesso per il colpo
+    // dell'Artigliere.
+    if (intent is Pacify || intent is Fire ? stage != Stage.discussion : !stage.acceptsActions) {
       return IntentRejected(IntentError.wrongPhase, 'adesso non si agisce (${stage.name})');
     }
     return engine.apply(intent);

@@ -92,6 +92,25 @@ class TableStrings {
       _t('$pacifist ha chiesto la tregua: $name è $role.', '$pacifist called a truce: $name is the $role.');
   String get truceVerdict => _t('Tregua: oggi non si impicca nessuno.', 'Truce: nobody hangs today.');
 
+  // ---- The Gunner's shots.
+  String get fire => _t('Fuoco!', 'Fire!');
+  String get fireHint => _t('Tocca chi colpire.', 'Tap who to hit.');
+  String fireTitle(String name) => _t('Fuoco su $name?', 'Fire at $name?');
+  String get fireBody => _t(
+    'Muore subito e il suo ruolo diventa pubblico. Il boato lo sentono tutti: sapranno che sei l\'Artigliere.',
+    'They die on the spot and their role goes public. Everyone hears the roar: they will know you are the Gunner.',
+  );
+  String shotsLeft(int count) => count == 1
+      ? _t('Ti resta un colpo.', 'You have one shot left.')
+      : _t('Ti restano $count colpi.', 'You have $count shots left.');
+  String gunnerShotsLeft(int count) => switch (count) {
+        0 => _t('All\'Artigliere non restano colpi.', 'The Gunner has no shots left.'),
+        1 => _t('All\'Artigliere resta un colpo.', 'The Gunner has one shot left.'),
+        _ => _t('All\'Artigliere restano $count colpi.', 'The Gunner has $count shots left.'),
+      };
+  String cannonLine(String name, String role) =>
+      _t('Un boato in piazza: l\'Artigliere ha colpito $name, che era $role.', 'A roar in the square: the Gunner hit $name, the $role.');
+
   /// The red stamp on the lynched seat.
   String lynched([Gender gender = Gender.unknown]) => _t(agree(gender, m: 'Linciato', f: 'Linciata'), 'Lynched');
 

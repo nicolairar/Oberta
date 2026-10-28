@@ -25,6 +25,7 @@ sealed class PlayerIntent {
       'pass' => Pass(seat),
       'revealMayor' => RevealMayor(seat),
       'pacify' => Pacify(seat, json['target'] as String),
+      'fire' => Fire(seat, json['target'] as String),
       'link' => Link(seat, json['target'] as String, json['second'] as String),
       final type => throw FormatException('intenzione sconosciuta: $type'),
     };
@@ -113,6 +114,19 @@ class Pacify extends PlayerIntent {
 
   @override
   Map<String, Object?> toJson() => {'type': 'pacify', 'seat': seat, 'target': target};
+}
+
+/// Di giorno, in discussione, dal secondo giorno, l'Artigliere spara a
+/// [target]: muore subito, e il suo ruolo diventa pubblico come quello di un
+/// linciato. Al primo colpo si scopre anche l'Artigliere. Due colpi per
+/// partita, uno al giorno.
+class Fire extends PlayerIntent {
+  final String target;
+
+  const Fire(super.seat, this.target);
+
+  @override
+  Map<String, Object?> toJson() => {'type': 'fire', 'seat': seat, 'target': target};
 }
 
 /// Perché un'intenzione è stata rifiutata.

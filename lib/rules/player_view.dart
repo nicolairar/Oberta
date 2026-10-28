@@ -156,6 +156,9 @@ class PublicView {
   /// ancora (2, 1, 0). `null` senza Presidente.
   final int? escortLeft;
 
+  /// I colpi dell'Artigliere finora: li ha sentiti tutta la città.
+  final List<CannonShot> shots;
+
   /// Il resoconto completo (tutte le mosse, tutti i ruoli). Solo a partita
   /// finita: fino ad allora `null`, e sul filo non c'è.
   final GameRecap? recap;
@@ -179,6 +182,7 @@ class PublicView {
     this.pacifist,
     this.pacified,
     this.escortLeft,
+    this.shots = const [],
     this.recap,
   });
 
@@ -210,6 +214,7 @@ class PublicView {
     if (pacifist != null) 'pacifist': seatOf(pacifist),
     if (pacified != null) 'pacified': seatOf(pacified),
     if (escortLeft != null) 'escortLeft': escortLeft,
+    if (shots.isNotEmpty) 'shots': [for (final shot in shots) shotToJson(shot)],
     if (recap != null) 'recap': recap!.toJson(),
   };
 
@@ -237,6 +242,7 @@ class PublicView {
     pacifist: optionalSeat(json['pacifist'], resolve),
     pacified: optionalSeat(json['pacified'], resolve),
     escortLeft: json['escortLeft'] as int?,
+    shots: [for (final row in _rows(json['shots'] ?? const [])) shotFromJson(row, resolve)],
     recap: json['recap'] == null ? null : GameRecap.fromJson(json['recap'] as Map<String, Object?>, resolve),
   );
 }
@@ -307,6 +313,13 @@ class PlayerView {
   /// (notte per notte). Vuoti per tutti gli altri.
   final List<Player> sect;
   final List<({int round, Player target})> doors;
+  /// Per l'Artigliere: i colpi che gli restano. `null` per tutti gli altri.
+  final int? shotsLeft;
+
+  /// Per l'Artigliere, di giorno dal secondo, se oggi non ha ancora
+  /// sparato: chi può colpire ([Fire]). Vuoto se adesso non spara (il
+  /// server lo lascia solo in discussione).
+  final List<Player> fireTargets;
   final PublicView board;
 
   const PlayerView({
@@ -330,6 +343,8 @@ class PlayerView {
     this.converted = false,
     this.sect = const [],
     this.doors = const [],
+    this.shotsLeft,
+    this.fireTargets = const [],
     required this.board,
   });
 
@@ -359,6 +374,8 @@ class PlayerView {
       'doors': [
         for (final door in doors) {'round': door.round, 'seat': door.target.id},
       ],
+    if (shotsLeft != null) 'shotsLeft': shotsLeft,
+    if (fireTargets.isNotEmpty) 'fireTargets': seatsOf(fireTargets),
     'board': board.toJson(),
   };
 
@@ -397,6 +414,8 @@ class PlayerView {
         for (final row in _rows(json['doors'] ?? const []))
           (round: row['round'] as int, target: resolve(row['seat'] as String)),
       ],
+      shotsLeft: json['shotsLeft'] as int?,
+      fireTargets: json['fireTargets'] == null ? const [] : seatsFrom(json['fireTargets'], resolve),
       board: PublicView.fromJson(json['board'] as Map<String, Object?>, resolve),
     );
   }

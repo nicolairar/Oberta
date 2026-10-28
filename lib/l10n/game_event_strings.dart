@@ -106,6 +106,15 @@ class GameEventStrings {
           '$name, il Pacifista, chiede la tregua: ${d['target']} è ${_role(d['role'])}. Oggi non si vota.',
           '$name, the Pacifist, calls a truce: ${d['target']} is the ${_role(d['role'])}. No vote today.',
         );
+      case 'cannon':
+        final broken = d['heartbroken'] == null
+            ? ''
+            : _t(' Il cuore di ${d['heartbroken']} si è spezzato.', ' ${d['heartbroken']} died of a broken heart.');
+        return _t(
+              'Un boato in piazza: $name, l\'Artigliere, ha colpito ${d['target']}, che era ${_role(d['role'])}.',
+              'A roar in the square: $name, the Gunner, hit ${d['target']}, who was the ${_role(d['role'])}.',
+            ) +
+            broken;
       case 'cell':
         return d['self'] == true
             ? _t('Sei in cella. Stanotte non esci.', 'You are in a cell. You are not going out tonight.')

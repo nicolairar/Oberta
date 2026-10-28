@@ -66,6 +66,9 @@ GameCommand? randomCommand(GameEngine engine, Random random) {
         return const CloseDayVoteCommand();
       }
       final seat = _pick(random, alive).id;
+      // L'Artigliere, ogni tanto, spara (anche con la tregua).
+      final aim = engine.viewFor(seat).fireTargets;
+      if (aim.isNotEmpty && random.nextInt(3) == 0) return IntentCommand(Fire(seat, _pick(random, aim).id));
       final option = engine.viewFor(seat).action;
       // La tregua: oggi non si vota.
       if (option == null) return const CloseDayVoteCommand();

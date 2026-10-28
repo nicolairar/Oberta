@@ -142,6 +142,11 @@ const italianPack = NarrationPack(
       '«Non vi chiedo di credere. Solo di seguirmi.»',
       'Giochi da solo: ogni notte converti una persona, che da lì vince solo con te e non sa chi altro c\'è. Vinci quando tutti i vivi sono della setta.',
     ),
+    Role.artigliere: RoleText(
+      'L\'Artigliere',
+      '«Io non sussurro. Io tuono.»',
+      'Hai due colpi, uno al giorno, dal secondo giorno: in discussione chi colpisci muore subito, davanti a tutti. Dal primo colpo tutti sanno chi sei. Vinci con la Città.',
+    ),
     Role.pacifista: RoleText(
       'Il Pacifista',
       '«Il sangue chiama sangue. Io chiamo la tregua.»',
@@ -490,6 +495,12 @@ const italianPack = NarrationPack(
     'Un canto basso sale dalle strade di {city}. Hanno visto tutti la luce.',
   ],
   sectWinsFact: 'Vince la setta: tutti i vivi seguono il Capo.',
+  cannonShots: [
+    'Un boato scuote la piazza. I vetri tremano, i piccioni si alzano tutti insieme.',
+    'Il cannone tuona una volta sola. Quando il fumo si dirada, qualcuno non è più in piedi.',
+    'Fuoco! La terra trema, le tazzine saltano sui tavolini del bar. Poi, silenzio.',
+  ],
+  cannonFact: 'Un boato in piazza: l\'Artigliere ha colpito {name}.',
   citizensWin: [
     '{city} è libera. Da domani si dorme con le finestre aperte. Titoli di coda.',
     'In piazza ci si guarda di nuovo in faccia. Sullo schermo: «Fine».',

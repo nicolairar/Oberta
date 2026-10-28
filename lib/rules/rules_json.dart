@@ -143,6 +143,23 @@ LynchReport lynchFromJson(Map<String, Object?> json, SeatResolver resolve) => Ly
       heartbroken: optionalSeat(json['heartbroken'], resolve),
     );
 
+Map<String, Object?> shotToJson(CannonShot shot) => {
+      'round': shot.round,
+      'gunner': shot.gunner.id,
+      // Il colpito sta sotto 'seat', come ogni posto con il suo ruolo.
+      'seat': shot.target.id,
+      'role': shot.role.name,
+      if (shot.heartbroken != null) 'heartbroken': seatOf(shot.heartbroken),
+    };
+
+CannonShot shotFromJson(Map<String, Object?> json, SeatResolver resolve) => CannonShot(
+      round: json['round'] as int,
+      gunner: resolve(json['gunner'] as String),
+      target: resolve(json['seat'] as String),
+      role: Role.values.byName(json['role'] as String),
+      heartbroken: optionalSeat(json['heartbroken'], resolve),
+    );
+
 Map<String, Object?> roundToJson(RoundRecord record) => {
       'round': record.round,
       'nightVictims': seatsOf(record.nightVictims),

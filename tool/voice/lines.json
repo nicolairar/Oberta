@@ -1646,6 +1646,26 @@
       "text": "Vince la setta: tutti i vivi seguono il Capo."
     },
     {
+      "key": "e25b744073a46d9a",
+      "kind": "segment",
+      "text": "Un boato scuote la piazza. I vetri tremano, i piccioni si alzano tutti insieme."
+    },
+    {
+      "key": "fb2e47c68f8f20c1",
+      "kind": "segment",
+      "text": "Il cannone tuona una volta sola. Quando il fumo si dirada, qualcuno non è più in piedi."
+    },
+    {
+      "key": "6e1caac54b52aeff",
+      "kind": "segment",
+      "text": "Fuoco! La terra trema, le tazzine saltano sui tavolini del bar. Poi, silenzio."
+    },
+    {
+      "key": "be54049fb14e50aa",
+      "kind": "segment",
+      "text": "Un boato in piazza: l'Artigliere ha colpito"
+    },
+    {
       "key": "220ae5128f8d4a05",
       "kind": "segment",
       "text": "Chicago è libera. Da domani si dorme con le finestre aperte. Titoli di coda."
@@ -2044,6 +2064,11 @@
       "key": "4b4866d1177b8c4f",
       "kind": "role",
       "text": "Il Capo della setta"
+    },
+    {
+      "key": "fd0ae8b98707da95",
+      "kind": "role",
+      "text": "L'Artigliere"
     },
     {
       "key": "1549e49a260aab2d",
@@ -4088,6 +4113,26 @@
       "text": "The cult wins: every living soul follows the Leader."
     },
     {
+      "key": "2b012da67c1b2141",
+      "kind": "segment",
+      "text": "A roar shakes the square. The windows rattle, the pigeons take off all at once."
+    },
+    {
+      "key": "1134ad3503feb99e",
+      "kind": "segment",
+      "text": "The cannon thunders once. When the smoke clears, someone is no longer standing."
+    },
+    {
+      "key": "acbe6047b0a11cff",
+      "kind": "segment",
+      "text": "Fire! The ground shakes, the cups jump on the café tables. Then, silence."
+    },
+    {
+      "key": "e0bf60742e344eb9",
+      "kind": "segment",
+      "text": "A roar in the square: the Gunner hit"
+    },
+    {
       "key": "e53f5165bad73c66",
       "kind": "segment",
       "text": "Chicago is free. Starting tomorrow, people sleep with the windows open. Roll credits."
@@ -4481,6 +4526,11 @@
       "key": "eabc9092674db8c3",
       "kind": "role",
       "text": "Cult Leader"
+    },
+    {
+      "key": "4364abae5da17bcd",
+      "kind": "role",
+      "text": "Gunner"
     },
     {
       "key": "d9ea56dccef88c43",

@@ -31,6 +31,7 @@ enum Role {
   cupido,
   presidente,
   capoSetta,
+  artigliere,
 }
 
 /// Come si gioca: un telefono passato di mano in mano, o un telefono a testa.
@@ -51,7 +52,7 @@ enum RoleCategory {
   /// Dottore, Guardaspalle, Carceriere.
   protector,
 
-  /// Cecchino: un colpo in più per la città.
+  /// Cecchino, Artigliere: un colpo in più per la città.
   extraKill,
 
   /// Reduce, Pregiudicato: niente da fare di notte, ma pesano.
@@ -189,6 +190,9 @@ extension RoleInfo on Role {
     // Il Capo della setta: ogni notte converte; vince quando tutti i vivi
     // sono della setta. Uno solo per tavolo, da 11.
     Role.capoSetta => const RoleRule(RoleCategory.neutral, minPlayers: 11, tier: RoleTier.l4),
+    // L'Artigliere: due colpi di giorno, dal secondo giorno, che tutti
+    // sentono. Un colpo extra: mai con Cecchino, Piromane o Sicario.
+    Role.artigliere => const RoleRule(RoleCategory.extraKill, minPlayers: 10, tier: RoleTier.l3),
   };
 
   /// Ostile alla città, un assassino in proprio (Piromane, Sicario): finché

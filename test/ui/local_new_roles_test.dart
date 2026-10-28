@@ -131,4 +131,36 @@ void main() {
     await tapKey(tester, 'local.itsMe');
     expect(find.textContaining('Il tuo cuore batte per Elio'), findsOneWidget);
   });
+
+  testWidgets('l\'Artigliere spara davanti a tutti dal secondo giorno', (tester) async {
+    await pumpGame(tester, deal: {ada: Role.mafioso, bruno: Role.artigliere, carla: Role.cittadino, dino: Role.cittadino, elio: Role.cittadino});
+    await tapLabel(tester, 'COMINCIA LA NOTTE');
+    for (final player in [ada, bruno, carla, dino, elio]) {
+      await nightTurn(tester, player);
+    }
+    await _toTheDay(tester);
+    expect(find.byKey(const Key('game.fire')), findsNothing, reason: 'il primo giorno no');
+    await tapKey(tester, 'local.toVote');
+    await openVote(tester, [ada, bruno, carla, dino, elio], const {});
+    await tapKey(tester, 'local.afterVerdict');
+    await tapLabel(tester, 'COMINCIA LA NOTTE');
+    for (final player in [ada, bruno, carla, dino, elio]) {
+      await nightTurn(tester, player);
+    }
+    await _toTheDay(tester);
+    await tapKey(tester, 'game.fire');
+    await tapSeat(tester, carla);
+    await tapKey(tester, 'game.powerConfirm');
+    expect(find.text('Solo l\'Artigliere può sparare.'), findsOneWidget);
+    await tapSeat(tester, bruno);
+    await tapKey(tester, 'game.powerConfirm');
+    await tapSeat(tester, ada);
+    await tapKey(tester, 'game.powerConfirm');
+    expect(find.byKey(const Key('game.shot')), findsOneWidget);
+    expect(find.textContaining('l\'Artigliere ha colpito'), findsWidgets);
+    // Era l'ultimo della Famiglia: la partita è finita.
+    expect(find.byKey(const Key('game.shotsLeft')), findsNothing);
+    await tapKey(tester, 'game.afterShot');
+    expect(find.byKey(const Key('game.afterShot')), findsNothing);
+  });
 }

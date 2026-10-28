@@ -17,6 +17,7 @@ Legenda livelli: **L0** nessun potere (o malus), **L1** base, **L2** medio, **L3
 - **Cupido:** la prima notte lega due persone, qualunque ruolo abbiano; gli innamorati vincono solo se sono **vivi tutti e due a fine partita** (qualunque squadra vinca); se uno muore l'altro muore subito. Si conoscono (e hanno una chat privata). *Nel codice.* In locale niente chat: gli innamorati leggono «Il tuo cuore batte per…» al loro turno della notte dopo (e a ogni turno), Cupido «Hai legato…».
 - **Presidente:** ammesso **sia in classificata sia tra amici** (nessuna differenza); tutti sanno chi è dall'inizio; la scorta lo salva dalle prime **due notti di attacco** (più attaccanti nella stessa notte contano come un attacco solo), con un'animazione dedicata; la terza notte in cui lo attaccano muore; se muore il Presidente la Città perde. *Nel codice:* pubblico dalla prima carta, non si vota e il Cecchino non gli spara; `AttackOutcome.escorted` con il film della scorta (`DeathAct.escort`); vale −2 punti, da 10 giocatori, mai con Piromane, Sicario o Capo della setta. Anche in locale, uguale (è tutto pubblico).
 - **Capo della setta:** neutrale; ogni notte converte una persona; vince quando tutti i vivi sono della setta; se muore la setta si scioglie e non succede altro; il Commissario **non** vede i convertiti; solo il Capo vede l'elenco della setta: i convertiti **non** sanno chi è il Capo né chi altro è nella setta (sanno solo di essere stati convertiti e che ora vincono con la setta). *Nel codice:* compito `convert`; la conversione non passa su chi è in cella o protetto (Dottore, Strozzino), né sulla Famiglia, sul Piromane, sul Sicario o sul Presidente («porta chiusa», la vede solo il Capo), né su chi muore quella notte. Niente chat della setta (i convertiti non si conoscono). In locale il convertito legge «Hai visto la luce» al suo turno della notte dopo, il Capo l'elenco e le porte chiuse.
+- **Artigliere:** Città, L3, da 10 giocatori, colpo extra (mai con Cecchino, Tiratore, Piromane, Sicario). *Nel codice:* `Fire` di giorno, solo in discussione, dal secondo giorno, due colpi in tutto, uno al giorno; il colpito muore subito (niente Dottore, Guardaspalle, Reduce: di giorno non ci sono protezioni) e la sua carta si gira come quella di un linciato; al primo colpo anche l'Artigliere diventa pubblico. Non spara al Presidente (è della Città, come il Cecchino: la scorta para solo gli attacchi di notte). La tregua del Pacifista e il silenzio del Sarto non lo fermano; l'innamorato del colpito muore di crepacuore; la taglia colpita scade. Se il colpo chiude la partita, finisce lì. Online: bottone «Fuoco!» in discussione, riga in chat (`cannon`), boato; in locale: bottone «Fuoco dell'Artigliere» in discussione accanto alla tregua (l'Artigliere tocca il suo volto, poi il bersaglio), poi il copione del boato. Build 66.
 - **Cecchino** resta per i tavoli piccoli; **Tiratore scelto** per i tavoli grandi (meccanica in attesa della conferma finale: mira di notte, il giorno dopo spara o cambia mira, 2 colpi, muore se spara a un cittadino della Città, i neutrali non lo uccidono).
 - **Classificata e stanze degli amici** usano lo stesso roster e le stesse regole dei livelli.
 - **Gioco in locale:** ogni ruolo nuovo deve funzionare anche sul telefono unico (`PlayMode.sharedPhone`). Dove un meccanismo non può (una chat privata), si adatta e si scrive qui (vedi 3.1, 3.2, 3.10).
@@ -116,7 +117,7 @@ Decisione del proprietario: **stesso roster, stesse regole dei livelli** (2.2) i
 
 `tool/balance/simulate.dart` (3000 partite per tavolo; `lib/online/game/deck_balance.dart`): mazzo automatico online, tutti bot del server (`BotBrain`). I bot da soli votano quasi a caso mentre la Famiglia si conosce, e così la Famiglia vince qualunque mazzo; per simulare un tavolo vero al voto ogni non-mafioso, con probabilità 0,3 (il "fiuto"), punta qualcuno della Famiglia. Con questo fiuto il tavolo più semplice (4 giocatori: Picciotto, Commissario, due Onesti) sta alla pari. `test/online/deck_balance_test.dart` rifà una versione corta a ogni `flutter test`.
 
-**Con le regole di 2.2 (ruoli nuovi compresi):**
+**Con le regole di 2.2 (ruoli nuovi compresi, Capo della setta e Artigliere compresi):**
 
 | n | Città | Famiglia | Neutrali |
 |---|---|---|---|
@@ -125,16 +126,16 @@ Decisione del proprietario: **stesso roster, stesse regole dei livelli** (2.2) i
 | 6 | **75%** | 25% | 0% |
 | 7 | 25% | **75%** | 0% |
 | 8 | 40% | 60% | 0% |
-| 9 | 45% | 44% | 10% |
-| 10 | 59% | 33% | 8% |
-| 11 | 52% | 22% | 26% |
-| 12 | 26% | 52% | 22% |
+| 9 | 46% | 43% | 11% |
+| 10 | 61% | 33% | 7% |
+| 11 | 47% | 25% | 29% |
+| 12 | 24% | 56% | 20% |
 
-Senza i tre ruoli nuovi i numeri cambiano di 1–3 punti al massimo (stessa tabella: 4: 52/48, 6: 76/24, 7: 25/75, 8: 39/61, 10: 60/33/7, 12: 24/55/20): i ruoli nuovi non sbilanciano.
+Senza i ruoli nuovi i numeri cambiano di 1–3 punti al massimo (stessa tabella: 4: 50/50, 6: 76/24, 7: 26/74, 8: 39/61, 10: 58/35/7, 11: 51/24/25, 12: 24/54/22), tranne a 11 dove il Capo della setta sposta 4–5 punti dalla Città ai neutrali: i ruoli nuovi non sbilanciano. Nella simulazione l'Artigliere spara un giorno su due dal secondo, col fiuto su uno della Famiglia, se no a caso.
 
 **Prima della taratura** (regole del documento originale, stesso fiuto): 5: 67/33, 6: 80/20, 7: 26/74, 10: 61/33, **11: 17/67/16**. La taratura ha sistemato 5 (Città 67% → 56%), 8 (Famiglia 62% → 60%, Carceriere e due L3 da 8), 10 e soprattutto 11 (Famiglia 67% → 22%, due della Famiglia invece di tre).
 
-**Vittorie per ruolo** (chi aveva quella carta ha vinto), su tutti i tavoli: Picciotto 49%, Padrino 40%, Sarto 40%, Compare 41%, **Prostituta 40%**, Onesto 50%, Commissario 50%, Dottore 37%, Cecchino 38%, Cronista 46%, Becchino 39%, Guardaspalle 42%, Reduce 50%, Pregiudicato 47%, Messia 48%, Sindaco 45%, Portinaio 43%, **Carceriere 44%**, **Pacifista 45%**, Fesso 17%, Piromane 22%, Cacciatore 39%, Strozzino 39%, Sicario 19%. Nessun ruolo domina.
+**Vittorie per ruolo** (chi aveva quella carta ha vinto), su tutti i tavoli: Picciotto 49%, Padrino 41%, Sarto 42%, Compare 42%, **Prostituta 39%**, Onesto 50%, Commissario 50%, Dottore 37%, Cecchino 36%, Cronista 47%, Becchino 39%, Guardaspalle 42%, Reduce 48%, Pregiudicato 45%, Messia 47%, Sindaco 45%, Portinaio 42%, **Carceriere 43%**, **Pacifista 46%**, **Cupido 44%**, **Presidente 58%**, **Artigliere 62%**, Fesso 18%, Piromane 20%, Cacciatore 40%, Strozzino 43%, Sicario 17%, **Capo della setta 21%**. Nessun ruolo domina; l'Artigliere è il più forte (due colpi pubblici, da 10 giocatori, dove la Città vince già il 61%): sul tetto del 62% del test, da tenere d'occhio (se sale, alzarlo a 11 giocatori o togliergli un colpo).
 
 **Il limite che resta: 6 e 7 giocatori.** Nella simulazione conta quasi solo quanti uccidono di notte: un mafioso su 6 perde tre volte su quattro, due su 7 vincono tre volte su quattro, qualunque potere abbia la Città (a 6 anche senza nessun ruolo speciale la Città vince il 71%; a 7 col mazzo cittadino più forte possibile, Commissario + Dottore + Cecchino, vince il 26%). Bilanci e livelli non bastano: serve una decisione sul tavolo (sezione 6).
 
@@ -180,6 +181,8 @@ Esiste già: **Il Cacciatore di taglie** (`cacciatore`), identico. Proposta: rin
 
 ### 3.5 L'Artigliere — `artigliere`
 Differenza con il Cecchino: il Cecchino spara una volta, di notte, in segreto. L'Artigliere spara due volte, **di giorno**, e fa un rumore che tutti sentono.
+> *Nel codice* (vedi sezione 0). Il Presidente non si colpisce.
+
 - **Squadra:** Città · **Liv.:** L3 · **Da:** 10 · **Categoria:** colpo extra (mai con Cecchino, Tiratore, Piromane, Sicario).
 - **Giorno, dal secondo giorno, solo in discussione:** 2 colpi in tutta la partita, uno al giorno. Il bersaglio muore subito (di giorno non ci sono protezioni: niente Dottore, Guardaspalle, Reduce). Al primo colpo la sua carta diventa pubblica per sempre.
 - **Interazioni:** colpire un innamorato uccide anche l'altro. Sparare alla taglia del Cacciatore: la taglia scade. Il Pacifista non lo ferma. Il Sarto non lo ferma. Dopo il primo colpo, Dottore e Carceriere hanno un motivo per coprirlo.

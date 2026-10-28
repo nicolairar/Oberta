@@ -78,7 +78,11 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-enum _Stage { script, handoff, task, taskDone, crimeIntro, crime, toNarrator, day, power, vote, verdict, end }
+enum _Stage { script, handoff, task, taskDone, crimeIntro, crime, toNarrator, day, power, shot, vote, verdict, end }
+
+/// I poteri di giorno, davanti a tutti: la tregua del Pacifista, il colpo
+/// dell'Artigliere.
+enum _Power { truce, cannon }
 
 class _GameScreenState extends State<GameScreen> {
   static const _mafiaRed = Color(0xFFE5606A);
@@ -112,8 +116,14 @@ class _GameScreenState extends State<GameScreen> {
   /// Cupido ha scelto il primo innamorato e cerca il secondo.
   Player? _firstLover;
 
-  /// La tregua del Pacifista: chi la chiede (verificato), poi su chi.
+  /// La tregua del Pacifista o il colpo dell'Artigliere: chi lo usa
+  /// (verificato), poi su chi.
+  _Power _power = _Power.truce;
   Player? _powerUser;
+
+  /// L'ultimo colpo dell'Artigliere, e il copione da leggere.
+  CannonShot? _shot;
+  List<ScriptLine> _shotLines = const [];
   String? _powerError;
   late final LocalRoleStrings _lr = LocalRoleStrings(_t);
   Exposure? _finding;
@@ -566,7 +576,7 @@ class _GameScreenState extends State<GameScreen> {
   /// Le fasi del tavolo: lo stesso tavolo dei posti della partita online.
   bool get _atTheTable => switch (_stage) {
         _Stage.handoff || _Stage.task || _Stage.taskDone || _Stage.toNarrator => true,
-        _Stage.day || _Stage.power || _Stage.vote || _Stage.verdict => true,
+        _Stage.day || _Stage.power || _Stage.shot || _Stage.vote || _Stage.verdict => true,
         _ => false,
       };
 
@@ -784,6 +794,7 @@ class _GameScreenState extends State<GameScreen> {
         _Stage.toNarrator => _curtain(_narrator!, onReady: () => _advance(_enterDawn)),
         _Stage.day => _dayView(),
         _Stage.power => _powerView(),
+        _Stage.shot => _shotView(),
         _Stage.vote => _voteView(),
         _Stage.end => _endView(),
       };
@@ -1021,29 +1032,65 @@ class _GameScreenState extends State<GameScreen> {
   /// resta anche se è morto: sennò il tavolo lo saprebbe).
   bool get _hasTruce => widget.setup.roles.values.contains(Role.pacifista) && !_engine.truceSpent;
 
-  /// La tregua davanti a tutti: il Pacifista tocca il suo volto, poi chi
-  /// svelare. Il ruolo esatto va sul tavolo e il voto salta.
+  /// L'Artigliere c'è nel mazzo, dal secondo giorno, con un colpo in canna e
+  /// senza aver già sparato oggi. Finché non ha sparato il bottone resta
+  /// anche se è morto (sennò il tavolo lo saprebbe); dopo il primo colpo è
+  /// pubblico, e il bottone c'è solo se è vivo.
+  bool get _hasCannon {
+    final left = _engine.shotsLeft;
+    if (left == null || left == 0 || _engine.round < 2 || _engine.firedToday) return false;
+    if (_engine.shots.isEmpty) return true;
+    return _engine.isAlive(_engine.shots.first.gunner);
+  }
+
+  void _openPower(_Power power) => _advance(() {
+        _power = power;
+        _powerUser = null;
+        _powerError = null;
+        _stage = _Stage.power;
+      });
+
+  Widget _powerButton(Key key, String label, _Power power) => SizedBox(
+        height: NoirMetrics(DesktopCanvas.of(context)).button,
+        child: OutlinedButton(
+          key: key,
+          onPressed: pressed(() => _openPower(power), Press.tap),
+          child: FittedBox(fit: BoxFit.scaleDown, child: Text(label, maxLines: 1)),
+        ),
+      );
+
+  /// I poteri davanti a tutti: chi lo usa tocca il suo volto, poi su chi.
+  /// La tregua: il ruolo esatto va sul tavolo e il voto salta. Il colpo:
+  /// il bersaglio muore e la sua carta si gira.
   Widget _powerView() {
     final user = _powerUser;
     final selected = _selected;
+    final cannon = _power == _Power.cannon;
+    final whoAreYou = cannon ? _lr.gunnerWhoAreYou : _lr.whoAreYou;
+    final whoTo = cannon ? _lr.whoToHit : _lr.whoToReveal;
+    final selectable = user == null
+        ? {..._engine.alivePlayers}
+        : cannon
+        ? {..._engine.fireTargets(user)}
+        : {
+            for (final player in _engine.alivePlayers)
+              if (player != user) player,
+          };
     return _tablePage(
       key: const Key('game.power'),
       table: _publicTable(
         holder: user,
         selected: selected,
-        selectable: {
-          for (final player in _engine.alivePlayers)
-            if (player != user) player,
-        },
+        selectable: selectable,
         onTap: (player) => setState(() => _selected = player),
         center: LocalFelt([
-          (text: user == null ? _lr.whoAreYou : _lr.whoToReveal, key: null, style: LocalFelt.titleStyle(context)),
+          (text: user == null ? whoAreYou : whoTo, key: null, style: LocalFelt.titleStyle(context)),
           if (_powerError case final error?)
             (text: error, key: const Key('game.powerError'), style: LocalFelt.lineStyle(context, color: Saloon.mafia)),
         ]),
       ),
       strip: ActionStrip(
-        status: selected == null ? (user == null ? _lr.whoAreYou : _lr.whoToReveal) : _tag(selected),
+        status: selected == null ? (user == null ? whoAreYou : whoTo) : _tag(selected),
         tone: selected == null ? StripTone.act : StripTone.done,
         actions: [
           NoirAction(
@@ -1065,13 +1112,18 @@ class _GameScreenState extends State<GameScreen> {
 
   void _usePower(Player picked) {
     final user = _powerUser;
+    final cannon = _power == _Power.cannon;
     if (user == null) {
-      final ok = widget.setup.roleOf(picked) == Role.pacifista && _engine.isAlive(picked);
+      final ok = cannon ? _engine.canFire(picked) : widget.setup.roleOf(picked) == Role.pacifista && _engine.isAlive(picked);
       setState(() {
         _powerUser = ok ? picked : null;
-        _powerError = ok ? null : _lr.notYou;
+        _powerError = ok ? null : (cannon ? _lr.notTheGunner : _lr.notYou);
         _selected = null;
       });
+      return;
+    }
+    if (cannon) {
+      _advance(() => _enterShot(_engine.fire(user, picked)));
       return;
     }
     _advance(() {
@@ -1081,6 +1133,59 @@ class _GameScreenState extends State<GameScreen> {
       _enterVerdict(_engine.lynch(null));
     });
   }
+
+  /// Il boato in piazza: il colpito cade, la sua carta si gira davanti a
+  /// tutti, il copione da leggere.
+  void _enterShot(CannonShot shot) {
+    _shot = shot;
+    _shotLines = _script.cannon(shot);
+    SoundStage.instance.cue(Cue.bang);
+    SoundStage.instance.cue(shot.role.team == Team.mafia ? Cue.caught : Cue.innocent);
+    _stage = _Stage.shot;
+  }
+
+  Widget _shotView() {
+    final shot = _shot!;
+    final winner = _engine.winner;
+    final role = _t.role(shot.role).label;
+    final line = _ts.cannonLine(_tag(shot.target), _lowerFirstLocal(role));
+    final left = _engine.shotsLeft ?? 0;
+    return _tablePage(
+      key: const Key('game.shot'),
+      script: SpokenScriptCard(reader: _narrator?.name, lines: _shotLines),
+      table: _publicTable(
+        center: LocalFelt([
+          (
+            text: line,
+            key: const Key('game.shotLine'),
+            style: LocalFelt.titleStyle(context, color: Color.lerp(stampColorFor(shot.role), Colors.white, 0.45)!),
+          ),
+          if (winner == null)
+            (
+              text: _ts.gunnerShotsLeft(left),
+              key: const Key('game.shotsLeft'),
+              style: LocalFelt.lineStyle(context, color: Saloon.brass),
+            ),
+        ]),
+      ),
+      strip: ActionStrip(
+        status: line,
+        tone: StripTone.done,
+        actions: [
+          NoirAction(
+            key: const Key('game.afterShot'),
+            label: winner != null ? _t.finale : _t.continueLabel,
+            style: NoirButtonStyle.primary,
+            feel: Press.confirm,
+            onPressed: () => _advance(() => winner != null ? _enterEnd(winner) : _stage = _Stage.day),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _lowerFirstLocal(String text) =>
+      _t.language.locale.languageCode == 'it' && text.isNotEmpty ? text[0].toLowerCase() + text.substring(1) : text;
 
   /// La mossa è fatta: sul panno la risposta (l'indagine, la fossa) o la
   /// notte che continua. Il posto scoperto resta acceso.
@@ -1196,22 +1301,18 @@ class _GameScreenState extends State<GameScreen> {
       strip: ActionStrip(
         status: expired ? _t.timeUp : _ls.discuss,
         tone: expired ? StripTone.wait : StripTone.act,
-        control: _hasTruce
-            ? SizedBox(
-                height: NoirMetrics(DesktopCanvas.of(context)).button,
-                child: OutlinedButton(
-                  key: const Key('game.truce'),
-                  onPressed: pressed(
-                    () => _advance(() {
-                      _powerUser = null;
-                      _powerError = null;
-                      _stage = _Stage.power;
-                    }),
-                    Press.tap,
-                  ),
-                  child: FittedBox(fit: BoxFit.scaleDown, child: Text(_lr.truce, maxLines: 1)),
-                ),
+        control: _hasTruce && _hasCannon
+            ? Row(
+                children: [
+                  Expanded(child: _powerButton(const Key('game.truce'), _lr.truce, _Power.truce)),
+                  const SizedBox(width: 8),
+                  Expanded(child: _powerButton(const Key('game.fire'), _lr.cannon, _Power.cannon)),
+                ],
               )
+            : _hasTruce
+            ? _powerButton(const Key('game.truce'), _lr.truce, _Power.truce)
+            : _hasCannon
+            ? _powerButton(const Key('game.fire'), _lr.cannon, _Power.cannon)
             : null,
         actions: [
           NoirAction(
@@ -1376,7 +1477,9 @@ class _GameScreenState extends State<GameScreen> {
     for (final record in _engine.history) {
       if (record.nightVictims.contains(player)) return _t.fateNight(record.round);
       if (record.lynched == player) return _t.fateGallows(record.round);
-      if (record.dayVictims.contains(player)) return _lr.fateDay(record.round);
+      if (record.dayVictims.contains(player)) {
+        return _engine.shots.any((shot) => shot.target == player) ? _lr.fateCannon(record.round) : _lr.fateDay(record.round);
+      }
     }
     return _t.stillStanding;
   }

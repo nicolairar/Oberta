@@ -144,6 +144,11 @@ const englishPack = NarrationPack(
       '“I don\'t ask you to believe. Just to follow.”',
       'You play alone: each night you convert someone, who from then on wins only with you and does not know who else is in. You win when every living player is in the cult.',
     ),
+    Role.artigliere: RoleText(
+      'Gunner',
+      '“I do not whisper. I thunder.”',
+      'Two shots, one a day, from the second day: during the discussion whoever you hit dies on the spot. From your first shot everyone knows who you are. You win with the town.',
+    ),
     Role.pacifista: RoleText(
       'Pacifist',
       '“Blood calls for blood. I call a truce.”',
@@ -494,6 +499,12 @@ const englishPack = NarrationPack(
     'A low chant rises from the streets of {city}. Everyone has seen the light.',
   ],
   sectWinsFact: 'The cult wins: every living soul follows the Leader.',
+  cannonShots: [
+    'A roar shakes the square. The windows rattle, the pigeons take off all at once.',
+    'The cannon thunders once. When the smoke clears, someone is no longer standing.',
+    'Fire! The ground shakes, the cups jump on the café tables. Then, silence.',
+  ],
+  cannonFact: 'A roar in the square: the Gunner hit {name}.',
   citizensWin: [
     '{city} is free. Starting tomorrow, people sleep with the windows open. Roll credits.',
     'On the street, people look each other in the eye again. On screen: “The End.”',

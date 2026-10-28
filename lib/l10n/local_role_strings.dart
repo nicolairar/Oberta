@@ -46,6 +46,7 @@ class LocalRoleStrings {
   String linked(String a, String b) => _t('Hai legato $a e $b.', 'You bound $a and $b.');
   String inLoveWith(String name) => _t('Il tuo cuore batte per $name: vincete solo vivi tutti e due.',
       'Your heart beats for $name: you win only if both of you live.');
+  String fateCannon(int round) => _t('Cannonata, giorno $round', 'Shelled, day $round');
   String fateDay(int round) => _t('Di giorno, giorno $round', 'By day, day $round');
 
   // ---- The day powers, in front of everyone.
@@ -53,6 +54,10 @@ class LocalRoleStrings {
   String get whoAreYou => _t('Il Pacifista tocchi il proprio volto.', 'The Pacifist taps their own face.');
   String get notYou => _t('Solo il Pacifista può chiedere la tregua.', 'Only the Pacifist can call the truce.');
   String get whoToReveal => _t('Chi sveli a tutti?', 'Who do you reveal to everyone?');
+  String get cannon => _t('Fuoco dell\'Artigliere', 'Gunner\'s fire');
+  String get gunnerWhoAreYou => _t('L\'Artigliere tocchi il proprio volto.', 'The Gunner taps their own face.');
+  String get notTheGunner => _t('Solo l\'Artigliere può sparare.', 'Only the Gunner can fire.');
+  String get whoToHit => _t('Chi colpisci?', 'Who do you hit?');
   String get cancel => _t('Annulla', 'Cancel');
   String get confirm => _t('Conferma', 'Confirm');
 }

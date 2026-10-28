@@ -166,6 +166,9 @@ class NarrationPack {
   /// La setta resta sola in città: vince il Capo, con tutti i convertiti.
   final List<String> sectWins;
   final String sectWinsFact;
+  /// Il colpo dell'Artigliere, di giorno: il boato, e chi ha colpito ({name}).
+  final List<String> cannonShots;
+  final String cannonFact;
 
   final List<String> citizensWin;
   final String citizensWinFact;
@@ -266,6 +269,8 @@ class NarrationPack {
     required this.presidentFallsFact,
     required this.sectWins,
     required this.sectWinsFact,
+    required this.cannonShots,
+    required this.cannonFact,
     required this.citizensWin,
     required this.citizensWinFact,
     required this.mafiaWins,

@@ -223,6 +223,27 @@ class NarratorScript {
     ];
   }
 
+  /// Il colpo dell'Artigliere, di giorno: il boato, chi ha colpito, la sua
+  /// carta che si gira (come per un linciato) e l'eventuale crepacuore.
+  List<ScriptLine> cannon(CannonShot shot) => [
+        _story(_picker.pick('cannon', pack.cannonShots)),
+        _fact(pack.cannonFact, name: shot.target.name),
+        _line([
+          ..._parts(pack.cardTurns, name: shot.target.name, role: pack.role(shot.role).label),
+          VoicePart.spoken(
+            ' ${switch (shot.role.team) {
+              Team.mafia => pack.wasMafia,
+              Team.citizens => pack.wasCitizen,
+              Team.neutral => pack.wasNeutral,
+            }}',
+          ),
+        ], fact: true),
+        if (shot.heartbroken case final broken?) ...[
+          _story(_picker.pick('heartbreak', pack.heartbreaks), name: broken.name),
+          _fact(pack.heartbreakFact, name: broken.name),
+        ],
+      ];
+
   /// Con [assassin] la città l'ha ripulita il Sicario, non il Piromane; con
   /// [bountyHunter] ha chiuso la partita una taglia pagata in piazza.
   ///

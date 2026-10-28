@@ -85,12 +85,14 @@ class RevealRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  if (winner) const Icon(Icons.emoji_events, size: 16, color: AppColors.gold),
-                  Text(fate, style: AppText.body.copyWith(fontSize: 12.5)),
-                ],
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    if (winner) const Icon(Icons.emoji_events, size: 16, color: AppColors.gold),
+                    Text(fate, textAlign: TextAlign.end, style: AppText.body.copyWith(fontSize: 12.5)),
+                  ],
+                ),
               ),
             ],
           ),

@@ -92,6 +92,8 @@ class GameSnapshot {
   /// I convertiti alla setta, e le conversioni tentate.
   final Set<Player> sect;
   final List<({int round, Player target, bool converted})> conversions;
+  /// I colpi dell'Artigliere.
+  final List<CannonShot> shots;
   final List<GameCommand> log;
 
   const GameSnapshot({
@@ -134,6 +136,7 @@ class GameSnapshot {
     this.escortNights = 0,
     this.sect = const {},
     this.conversions = const [],
+    this.shots = const [],
     required this.log,
   });
 
@@ -197,6 +200,7 @@ class GameSnapshot {
       'conversions': [
         for (final c in conversions) {'round': c.round, 'seat': c.target.id, 'converted': c.converted},
       ],
+    if (shots.isNotEmpty) 'shots': [for (final shot in shots) shotToJson(shot)],
     if (findings.isNotEmpty)
       'findings': [
         for (final finding in findings)
@@ -279,6 +283,10 @@ class GameSnapshot {
       conversions: [
         for (final row in (json['conversions'] as List<Object?>? ?? const []).cast<Map<String, Object?>>())
           (round: row['round'] as int, target: seat(row['seat'] as String), converted: row['converted'] as bool),
+      ],
+      shots: [
+        for (final row in (json['shots'] as List<Object?>? ?? const []).cast<Map<String, Object?>>())
+          shotFromJson(row, seat),
       ],
       findings: [
         for (final row in (json['findings'] as List<Object?>? ?? const []).cast<Map<String, Object?>>())

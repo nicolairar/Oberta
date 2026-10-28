@@ -210,6 +210,19 @@ class RoundRecord {
   const RoundRecord({required this.round, required this.nightVictims, this.lynched, this.dayVictims = const []});
 }
 
+/// Un colpo dell'Artigliere, di giorno, davanti a tutti: chi ha sparato,
+/// chi è caduto (col suo ruolo, ora pubblico come quello di un linciato) e
+/// l'innamorato morto di crepacuore sul posto (la sua carta resta coperta).
+class CannonShot {
+  final int round;
+  final Player gunner;
+  final Player target;
+  final Role role;
+  final Player? heartbroken;
+
+  const CannonShot({required this.round, required this.gunner, required this.target, required this.role, this.heartbroken});
+}
+
 /// La mossa notturna di qualcuno: cosa faceva e su chi (`null`: ha passato).
 typedef NightChoice = ({NightTaskKind kind, Player? target});
 
@@ -322,6 +335,12 @@ class GameEngine {
   int? _truceRound;
   Player? _truceTarget;
 
+  /// I colpi dell'Artigliere, in ordine: due per partita, uno al giorno.
+  final List<CannonShot> _shots = [];
+
+  /// Quanti colpi ha l'Artigliere in tutta la partita.
+  static const cannonShots = 2;
+
   /// Con qualcuno che blocca al tavolo (Prostituta, Carceriere) l'indagine e
   /// lo scavo rispondono all'alba, e solo se chi li fa non è stato fermato.
   late final bool findingsAtDawn = setup.roles.values.any((role) => role.isBlocker);
@@ -417,6 +436,7 @@ class GameEngine {
     _sect.addAll(snapshot.sect);
     _conversions.addAll(snapshot.conversions);
     _loversTold = snapshot.loversTold;
+    _shots.addAll(snapshot.shots);
   }
 
   /// Rigioca una partita dal principio: stesso tavolo, stesso seme, stessi
@@ -480,6 +500,7 @@ class GameEngine {
       sect: Set.unmodifiable(_sect),
       conversions: List.unmodifiable(_conversions),
       loversTold: _loversTold,
+      shots: List.unmodifiable(_shots),
       log: List.unmodifiable(_log),
     );
   }
@@ -631,6 +652,34 @@ class GameEngine {
     }
     return null;
   }
+
+  /// I colpi dell'Artigliere sparati finora (pubblici: li sente tutta la città).
+  List<CannonShot> get shots => List.unmodifiable(_shots);
+
+  /// I colpi che restano all'Artigliere; `null` senza Artigliere al tavolo.
+  int? get shotsLeft => setup.roles.values.contains(Role.artigliere) ? cannonShots - _shots.length : null;
+
+  /// Oggi l'Artigliere ha già sparato (uno al giorno).
+  bool get firedToday => _phase == GamePhase.day && _shots.any((shot) => shot.round == _round);
+
+  /// [gunner] adesso può sparare: è l'Artigliere, vivo, di giorno, dal
+  /// secondo giorno, con un colpo ancora in canna e non ha già sparato oggi.
+  bool canFire(Player gunner) =>
+      _phase == GamePhase.day &&
+      _round >= 2 &&
+      isAlive(gunner) &&
+      setup.roleOf(gunner) == Role.artigliere &&
+      _shots.length < cannonShots &&
+      !firedToday;
+
+  /// A chi può sparare [gunner] adesso: chiunque sia vivo tranne lui e il
+  /// Presidente (l'Artigliere è della Città). Vuoto se adesso non spara.
+  List<Player> fireTargets(Player gunner) => canFire(gunner)
+      ? [
+          for (final player in _alive)
+            if (player != gunner && setup.roleOf(player) != Role.presidente) player,
+        ]
+      : const [];
 
   /// Chi è in cella stanotte (lo sanno il Carceriere, lui, e la Famiglia se
   /// è dei loro). `null` di giorno.
@@ -826,6 +875,7 @@ class GameEngine {
       Role.sindaco ||
       Role.pacifista ||
       Role.presidente ||
+      Role.artigliere ||
       Role.fesso => NightTask(NightTaskKind.decoy, others),
     };
   }
@@ -1289,6 +1339,51 @@ class GameEngine {
     _log.add(IntentCommand(Pacify(pacifist.id, target.id)));
   }
 
+  /// L'Artigliere spara a [target], di giorno: il colpo lo sente tutta la
+  /// città. Il bersaglio muore subito (di giorno niente Dottore, Guardaspalle
+  /// o pelle dura del Reduce) e la sua carta si gira come quella di un
+  /// linciato; al primo colpo si scopre anche l'Artigliere. L'innamorato del
+  /// colpito muore di crepacuore sul posto. Né la tregua del Pacifista né il
+  /// silenzio del Sarto lo fermano. Se adesso qualcuno ha vinto, la partita
+  /// finisce lì.
+  CannonShot fire(Player gunner, Player target) {
+    _require(GamePhase.day);
+    if (setup.roleOf(gunner) != Role.artigliere || !isAlive(gunner)) {
+      throw ArgumentError.value(gunner.name, 'gunner', 'non è l\'Artigliere in gioco');
+    }
+    if (!canFire(gunner)) throw StateError('l\'Artigliere adesso non può sparare');
+    if (!fireTargets(gunner).contains(target)) {
+      throw ArgumentError.value(target.name, 'target', 'non si può colpire');
+    }
+    _log.add(IntentCommand(Fire(gunner.id, target.id)));
+    final role = setup.roleOf(target);
+    final heartbroken = _heartbreak([target]).firstOrNull;
+    final dead = [target, ?heartbroken];
+    for (final player in dead) {
+      _alive.remove(player);
+      _doused.remove(player);
+      _dayVotes.remove(player);
+      _dayVotes.removeWhere((_, voted) => voted == player);
+    }
+    if (_shots.isEmpty) {
+      _facts.add(Fact(subject: gunner, team: Team.citizens, role: Role.artigliere, visibility: Visibility.public));
+    }
+    _facts.add(Fact(subject: target, team: role.team, role: role, visibility: Visibility.public));
+    final record = _history.removeLast();
+    _history.add(
+      RoundRecord(
+        round: record.round,
+        nightVictims: record.nightVictims,
+        lynched: record.lynched,
+        dayVictims: [...record.dayVictims, ...dead],
+      ),
+    );
+    final shot = CannonShot(round: _round, gunner: gunner, target: target, role: role, heartbroken: heartbroken);
+    _shots.add(shot);
+    if (_updateWinner()) _phase = GamePhase.ended;
+    return shot;
+  }
+
   /// Qualcuno lascia la città a partita in corso (online: se n'è andato e
   /// non è tornato in tempo). Esce come un morto della notte: la sua carta
   /// resta coperta (la scopre solo il resoconto a fine partita), e si
@@ -1460,7 +1555,7 @@ class GameEngine {
   }
 
   IntentResult _applyNight(Player actor, PlayerIntent intent) {
-    if (intent is DayVote || intent is RevealMayor || intent is Pacify) {
+    if (intent is DayVote || intent is RevealMayor || intent is Pacify || intent is Fire) {
       return const IntentRejected(IntentError.wrongPhase, 'di notte la piazza non vota');
     }
     if (actor == jailedTonight) {
@@ -1558,6 +1653,20 @@ class GameEngine {
         }
         pacify(actor, revealed);
         return const IntentAccepted();
+      case Fire(target: final seat):
+        if (setup.roleOf(actor) != Role.artigliere) {
+          return IntentRejected(IntentError.notYourAction, '${actor.id} non è l\'Artigliere');
+        }
+        if (_shots.length >= cannonShots || firedToday) {
+          return const IntentRejected(IntentError.alreadyActed, 'niente colpi adesso');
+        }
+        if (!canFire(actor)) return const IntentRejected(IntentError.wrongPhase, 'l\'Artigliere spara dal secondo giorno');
+        final hit = _seat(seat);
+        if (hit == null || !fireTargets(actor).contains(hit)) {
+          return IntentRejected(IntentError.targetNotAllowed, '${actor.id} non può colpire $seat');
+        }
+        fire(actor, hit);
+        return const IntentAccepted();
     }
     // Il voto si può cambiare: conta l'ultimo, nell'ordine dell'ultimo dato.
     _dayVotes.remove(actor);
@@ -1591,6 +1700,7 @@ class GameEngine {
     escortLeft: escortLeft,
     pacifist: pacifist,
     pacified: pacified,
+    shots: shots,
     recap: recap,
   );
 
@@ -1671,6 +1781,8 @@ class GameEngine {
                 if (!conversion.converted) (round: conversion.round, target: conversion.target),
             ]
           : const [],
+      shotsLeft: role == Role.artigliere ? shotsLeft : null,
+      fireTargets: fireTargets(viewer),
       board: publicView(),
     );
   }
