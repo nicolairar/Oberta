@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 import 'noir_ui.dart';
+import 'table_gestures.dart';
 
 /// La sala sul retro del bar, vista dall'alto di tre quarti: le pareti di
 /// legno, il pavimento a scacchi, la lampada che scalda il tavolo. Di notte
@@ -151,6 +152,9 @@ class SaloonTable extends StatelessWidget {
   final int? leading;
   final Widget? center;
 
+  /// I gesti lanciati da un posto all'altro ([GestureLayer]).
+  final List<GestureFlight> gestures;
+
   /// Le carte non vanno oltre questa larghezza (più grandi sul desktop).
   final double maxCard;
 
@@ -167,6 +171,7 @@ class SaloonTable extends StatelessWidget {
     this.hands = const [],
     this.leading,
     this.center,
+    this.gestures = const [],
     this.maxCard = 118,
   });
 
@@ -250,6 +255,11 @@ class SaloonTable extends StatelessWidget {
           Positioned.fill(
             child: IgnorePointer(
               child: PointingHands(hands: hands, centers: centers, card: Size(width, height), leading: leading),
+            ),
+          ),
+          Positioned.fill(
+            child: IgnorePointer(
+              child: GestureLayer(flights: gestures, centers: centers, card: Size(width, height)),
             ),
           ),
         ],

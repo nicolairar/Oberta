@@ -46,12 +46,13 @@ Future<OnlineServices?> openSupabaseOnline(
     return null;
   }
   final client = Supabase.instance.client;
+  final game = SupabaseGame(client);
   return OnlineServices(
     auth: SupabaseAuth(client, config),
     profiles: SupabaseProfiles(client),
     friends: SupabaseFriends(client),
     rooms: SupabaseRooms(client),
-    game: SupabaseGame(client),
+    game: game,
     shop: SupabaseShop(client),
     ranked: SupabaseRanked(client),
     account: SupabaseAccount(client),
@@ -60,6 +61,7 @@ Future<OnlineServices?> openSupabaseOnline(
     links: SupabaseAccountLinks(client, config),
     progress: SupabaseProgress(client),
     requirements: SupabaseAppRequirements(client),
+    reactions: SupabaseReactions(client, game),
   );
 }
 
@@ -150,6 +152,9 @@ OnlineException _classify(Object error, SignInDoor? door) {
       'item_not_found' || 'tone_required' || 'bad_slot' => OnlineFailure.itemNotFound,
       'message_blocked' => OnlineFailure.messageBlocked,
       'too_many_messages' => OnlineFailure.tooManyMessages,
+      'reaction_closed' => OnlineFailure.reactionClosed,
+      'reaction_cooldown' => OnlineFailure.reactionCooldown,
+      'reaction_cap' => OnlineFailure.reactionCap,
       'too_many_reports' => OnlineFailure.tooManyReports,
       'invalid_report' => OnlineFailure.notAllowed,
       'silenced' || 'chat_closed' || 'invalid_message' => OnlineFailure.chatClosed,
@@ -473,6 +478,12 @@ class SupabaseProfiles implements ProfileRepository {
   @override
   Future<Profile> setPublicProfile(bool visible) => _guard(() async {
         await _client.from('profiles').update({'public_profile': visible}).eq('id', _me);
+        return me();
+      });
+
+  @override
+  Future<Profile> setTableReactions(bool on) => _guard(() async {
+        await _client.from('profiles').update({'table_reactions': on}).eq('id', _me);
         return me();
       });
 }
@@ -822,6 +833,39 @@ class SupabaseGame implements GameBackend {
             .limit(100);
         return [for (final row in rows.reversed) ChatMessage.fromJson(row)];
       }, poll: const Duration(seconds: 5));
+}
+
+/// I gesti del tavolo: si lanciano con `send_reaction`, arrivano da
+/// `table_reactions` in tempo reale (la policy toglie quelli dei bloccati).
+class SupabaseReactions implements ReactionsRepository {
+  final SupabaseClient _client;
+  final SupabaseGame _game;
+
+  SupabaseReactions(this._client, this._game);
+
+  @override
+  Future<int?> send(String roomId, String toSeat, TableGesture gesture) => _guard(() async {
+        final id = await _client.rpc<int>('send_reaction',
+            params: {'room': roomId, 'target_seat': toSeat, 'reaction_id': gesture.name});
+        return id == 0 ? null : id;
+      });
+
+  @override
+  Stream<List<TableReaction>> watch(String roomId) => _game._watch('table-reactions', ['table_reactions'], roomId, () async {
+        final rows = await _client
+            .from('table_reactions')
+            .select('id, profile_id, from_seat, to_seat, reaction, created_at')
+            .eq('room_id', roomId)
+            .order('id', ascending: false)
+            .limit(20);
+        return [for (final row in rows.reversed) ?TableReaction.fromJson(row)];
+      }, poll: const Duration(seconds: 6));
+
+  @override
+  Future<Set<TableGesture>> owned() => _guard(() async {
+        final rows = await _client.from('shop_inventory').select('item_id').like('item_id', 'gesture.%');
+        return {for (final row in rows) ?TableGesture.byId((row['item_id'] as String).substring(8))};
+      });
 }
 
 /// La bottega sul server: il catalogo e la vetrina si leggono, comprare e

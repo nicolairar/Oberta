@@ -34,6 +34,13 @@ class FakeOnline {
   late final FakeRooms rooms = FakeRooms._(this);
   late final FakeGame game = FakeGame._(this, () => auth.userId);
   late final FakeShop shop = FakeShop._(this);
+  late final FakeReactions reactions = FakeReactions._(this, () => auth.userId);
+
+  /// I gesti visti da [userId].
+  FakeReactions reactionsAs(String userId) => FakeReactions._(this, () => userId);
+
+  /// I gesti lanciati, come `table_reactions`.
+  final List<({String room, String? game, TableReaction reaction})> _reactions = [];
   late final FakeRanked ranked = FakeRanked._(this);
   late final FakeSafety safety = FakeSafety._(this);
   late final FakeProgress progress = FakeProgress._(this);
@@ -137,7 +144,7 @@ class FakeOnline {
         clock = clock ?? const SystemGameClock();
 
   OnlineServices get services =>
-      OnlineServices(auth: auth, profiles: profiles, friends: friends, rooms: rooms, game: game, shop: shop, account: account, ranked: ranked, safety: safety, sessions: sessions, links: links, progress: progress);
+      OnlineServices(auth: auth, profiles: profiles, friends: friends, rooms: rooms, game: game, shop: shop, account: account, ranked: ranked, safety: safety, sessions: sessions, links: links, progress: progress, reactions: reactions);
 
   /// Gli account di prova: email → (password, id dell'account).
   final Map<String, (String, String)> _testAccounts = {};
@@ -515,6 +522,12 @@ class FakeProfiles implements ProfileRepository {
   Future<Profile> setPublicProfile(bool visible) async {
     final me = _online._me;
     return _online._profiles[me] = _online._profiles[me]!.copyWith(publicProfile: visible);
+  }
+
+  @override
+  Future<Profile> setTableReactions(bool on) async {
+    final me = _online._me;
+    return _online._profiles[me] = _online._profiles[me]!.copyWith(tableReactions: on);
   }
 }
 
@@ -1678,5 +1691,102 @@ class FakeProgress implements ProgressRepository {
     ];
     final mine = rows.indexWhere((r) => r.$1 == _me);
     return Leaderboard(top: top, me: mine < 0 ? null : (rank: mine + 1, tier: RankTier.of(rows[mine].$3)));
+  }
+}
+
+/// I gesti sul server finto: gli stessi controlli di `send_reaction`.
+class FakeReactions implements ReactionsRepository {
+  final FakeOnline _online;
+  final String? Function() _user;
+
+  FakeReactions._(this._online, this._user);
+
+  String get _me => _user() ?? (throw const OnlineException(OnlineFailure.notSignedIn));
+
+  @override
+  Future<Set<TableGesture>> owned() async {
+    final ids = _online.shop.ownedBy(_me);
+    return {for (final g in TableGesture.values) if (ids.contains(g.item.id)) g};
+  }
+
+  @override
+  Future<int?> send(String roomId, String toSeat, TableGesture gesture) async {
+    await _online._network();
+    final me = _me;
+    final room = _online._rooms[roomId];
+    if (room == null || !room.seats.containsKey(me)) throw const OnlineException(OnlineFailure.notAllowed);
+    if (!gesture.free && !_online.shop.ownedBy(me).contains(gesture.item.id)) {
+      throw const OnlineException(OnlineFailure.notOwned);
+    }
+    String from;
+    String? target;
+    String? gameId;
+    if (room.room.status == RoomStatus.lobby) {
+      from = '${room.seats[me]}';
+      target = room.seats.entries.where((e) => '${e.value}' == toSeat).firstOrNull?.key;
+      if (target == null || target == me) throw const OnlineException(OnlineFailure.reactionClosed);
+    } else {
+      final game = _online._games[roomId];
+      final mine = game?.seats.values.where((plan) => plan.profileId == me).firstOrNull?.seat;
+      final theirs = game?.seats[toSeat];
+      if (game == null ||
+          game.chatMode != 'day' ||
+          mine == null ||
+          theirs == null ||
+          mine == toSeat ||
+          game.rightsOf(mine)['alive'] == false ||
+          game.rightsOf(toSeat)['alive'] == false) {
+        throw const OnlineException(OnlineFailure.reactionClosed);
+      }
+      from = mine;
+      target = theirs.profileId;
+      gameId = game.gameId;
+    }
+    final now = _online.clock.now();
+    final mineSent = [for (final r in _online._reactions) if (r.reaction.profileId == me) r];
+    if (mineSent.any((r) => now.difference(r.reaction.at) < ReactionRules.cooldown)) {
+      throw const OnlineException(OnlineFailure.reactionCooldown);
+    }
+    if (mineSent.where((r) => r.room == roomId && r.game == gameId).length >= ReactionRules.perGame) {
+      throw const OnlineException(OnlineFailure.reactionCap);
+    }
+    if (target != null && (_online._blockedBetween(me, target) || _online._profiles[target]?.tableReactions == false)) {
+      return null;
+    }
+    final reaction = TableReaction(
+      id: _online._reactions.length + 1,
+      profileId: me,
+      fromSeat: from,
+      toSeat: toSeat,
+      gesture: gesture,
+      at: now,
+    );
+    _online._reactions.add((room: roomId, game: gameId, reaction: reaction));
+    _online._notifyGame(roomId);
+    return reaction.id;
+  }
+
+  @override
+  Stream<List<TableReaction>> watch(String roomId) {
+    final me = _me;
+    late final StreamController<List<TableReaction>> controller;
+    void push() {
+      if (controller.isClosed) return;
+      final member = _online._rooms[roomId]?.seats.containsKey(me) ?? false;
+      controller.add([
+        if (member)
+          for (final r in _online._reactions)
+            if (r.room == roomId && !_online.blocks.contains((me, r.reaction.profileId))) r.reaction,
+      ]);
+    }
+
+    controller = StreamController<List<TableReaction>>(
+      onListen: () {
+        _online._gameWatchers.add(push);
+        scheduleMicrotask(push);
+      },
+      onCancel: () => _online._gameWatchers.remove(push),
+    );
+    return controller.stream;
   }
 }

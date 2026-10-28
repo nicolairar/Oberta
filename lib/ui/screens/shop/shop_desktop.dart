@@ -292,6 +292,7 @@ extension _Desk on _ShopScreenState {
         strings: t,
         look: _shop.bundleLook(bundle),
         around: _shop.bundleAround(bundle),
+        gestures: _shop.bundleGestures(bundle),
         who: _shop.who,
         count: _shop.bundleItems(bundle).length,
         singles: _shop.bundleSingles(bundle),
@@ -489,6 +490,11 @@ extension _Desk on _ShopScreenState {
     final AvatarLook look;
     final bool around;
     final ShopBrand? brand;
+    final gestures = item != null
+        ? [?ShopController.gestureOf(item)]
+        : bundle != null
+        ? _shop.bundleGestures(bundle)
+        : const <TableGesture>[];
     if (item != null) {
       look = _shop.mirror;
       around = item.around;
@@ -536,7 +542,9 @@ extension _Desk on _ShopScreenState {
                         top: (box.maxHeight - mirrorH) / 2,
                         width: mirrorW,
                         height: mirrorH,
-                        child: around
+                        child: gestures.isNotEmpty
+                            ? GestureShowcase(key: const Key('shop.tryOn.gesture'), gestures: gestures)
+                            : around
                             ? Padding(
                                 padding: EdgeInsets.symmetric(horizontal: mirrorW * 0.08, vertical: mirrorH * 0.06),
                                 child: SeatPreview(key: const Key('shop.tryOn.seat'), look: look, name: _shop.who),
@@ -595,6 +603,7 @@ extension _Desk on _ShopScreenState {
     final state = _shop.stateOf(item);
     final (label, action, price) = switch (state) {
       ItemState.forSale => (t.buy, () => _buy(item), item.price),
+      ItemState.owned when item.isGesture => (t.owned, null, null),
       ItemState.owned => (t.wear, () => _run(() => _shop.equip(item)), null),
       ItemState.worn =>
         item.free ? (t.worn, null, null) : (t.takeOff, () => _run(() => _shop.unequip(item.slot)), null),
@@ -705,6 +714,7 @@ extension _Desk on _ShopScreenState {
                 key: Key('shop.bundle.item.${item.id}'),
                 look: _shop.tryOn(item),
                 around: item.around,
+                gestures: [?ShopController.gestureOf(item)],
                 who: _shop.who,
                 color: rarityColor(item.rarity),
                 mine: _shop.stateOf(item) != ItemState.forSale,
@@ -1250,7 +1260,9 @@ class _DeskItemCard extends StatelessWidget {
                     Positioned.fill(
                       child: Padding(
                         padding: item.around ? const EdgeInsets.fromLTRB(36, 14, 36, 6) : const EdgeInsets.fromLTRB(10, 12, 10, 0),
-                        child: item.around
+                        child: item.isGesture
+                            ? GestureShowcase(gestures: [ShopController.gestureOf(item)!])
+                            : item.around
                             ? SeatPreview(look: look, name: who)
                             : CustomPaint(painter: AvatarBustPainter(look), child: const SizedBox.expand()),
                       ),
@@ -1409,6 +1421,7 @@ class _DeskBundleCard extends StatelessWidget {
   final ShopStrings strings;
   final AvatarLook look;
   final bool around;
+  final List<TableGesture> gestures;
   final String who;
   final int count;
   final int singles;
@@ -1424,6 +1437,7 @@ class _DeskBundleCard extends StatelessWidget {
     required this.strings,
     required this.look,
     required this.around,
+    this.gestures = const [],
     required this.who,
     required this.count,
     required this.singles,
@@ -1479,7 +1493,9 @@ class _DeskBundleCard extends StatelessWidget {
                     ),
                     Positioned.fill(
                       top: 10,
-                      child: around
+                      child: gestures.isNotEmpty
+                          ? Padding(padding: const EdgeInsets.fromLTRB(16, 4, 16, 10), child: GestureShowcase(gestures: gestures))
+                          : around
                           ? Padding(padding: const EdgeInsets.fromLTRB(30, 4, 30, 10), child: SeatPreview(look: look, name: who))
                           : CustomPaint(painter: AvatarBustPainter(look)),
                     ),
@@ -1552,6 +1568,7 @@ class _DeskBundleCard extends StatelessWidget {
 class _DeskPiece extends StatelessWidget {
   final AvatarLook look;
   final bool around;
+  final List<TableGesture> gestures;
   final String who;
   final Color color;
   final bool mine;
@@ -1562,6 +1579,7 @@ class _DeskPiece extends StatelessWidget {
     super.key,
     required this.look,
     required this.around,
+    this.gestures = const [],
     required this.who,
     required this.color,
     required this.mine,
@@ -1588,7 +1606,9 @@ class _DeskPiece extends StatelessWidget {
         children: [
           Positioned.fill(
             top: 5,
-            child: around
+            child: gestures.isNotEmpty
+                ? Padding(padding: const EdgeInsets.all(6), child: GestureShowcase(gestures: gestures))
+                : around
                 ? Padding(padding: const EdgeInsets.fromLTRB(14, 2, 14, 6), child: SeatPreview(look: look, name: who))
                 : CustomPaint(painter: AvatarBustPainter(look)),
           ),

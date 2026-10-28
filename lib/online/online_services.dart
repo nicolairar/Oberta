@@ -7,6 +7,7 @@ import 'game/game_backend.dart';
 import 'online_models.dart';
 import 'progress_models.dart';
 import 'ranked_models.dart';
+import 'reactions.dart';
 import 'safety.dart';
 import 'shop_models.dart';
 
@@ -16,6 +17,7 @@ export 'game/game_backend.dart';
 export 'online_models.dart';
 export 'progress_models.dart';
 export 'ranked_models.dart';
+export 'reactions.dart';
 export 'safety.dart';
 export 'shop_models.dart';
 
@@ -92,6 +94,9 @@ abstract class ProfileRepository {
 
   /// «Profilo pubblico»: spento, gli altri vedono solo nome, livello e ritratto.
   Future<Profile> setPublicProfile(bool visible);
+
+  /// «Gesti al tavolo»: spenti, nessuno può lanciargliene.
+  Future<Profile> setTableReactions(bool on);
 }
 
 abstract class FriendsRepository {
@@ -198,6 +203,9 @@ class OnlineServices {
   /// La build minima chiesta dal server. Null dove non c'è.
   final AppRequirementsRepository? requirements;
 
+  /// I gesti del tavolo. Null dove non ci sono.
+  final ReactionsRepository? reactions;
+
   const OnlineServices({
     required this.auth,
     required this.profiles,
@@ -212,6 +220,7 @@ class OnlineServices {
     this.links,
     this.progress,
     this.requirements,
+    this.reactions,
   });
 
   static OnlineServices? instance;

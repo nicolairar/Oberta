@@ -421,6 +421,18 @@ class _DesktopSettingsState extends State<_DesktopSettings> {
                 onTap: value == null ? null : () => onChanged(!value),
               ),
             ),
+          if (signedIn && _host.widget.online?.reactions != null)
+            PublicProfileToggle.gestures(
+              profiles: _host.widget.online!.profiles,
+              builder: (context, value, onChanged) => _DeskRow(
+                key: const Key('settings.tableGestures'),
+                icon: Icons.back_hand_outlined,
+                title: GestureStrings.of(context).settingTitle,
+                subtitle: GestureStrings.of(context).settingHint,
+                trailing: _DeskSwitch(value: value ?? true, onChanged: value == null ? (_) {} : onChanged),
+                onTap: value == null ? null : () => onChanged(!value),
+              ),
+            ),
           if (signedIn && _host.widget.online?.safety != null)
             _DeskRow(
               key: const Key('settings.blocked'),

@@ -149,6 +149,9 @@ class Profile {
   /// Solo nel proprio profilo: se gli altri vedono le statistiche.
   final bool publicProfile;
 
+  /// Solo nel proprio profilo: se gli altri possono lanciargli i gesti.
+  final bool tableReactions;
+
   const Profile({
     required this.id,
     this.handle,
@@ -164,6 +167,7 @@ class Profile {
     this.steamAvatar,
     this.picture = ProfilePicture.game,
     this.publicProfile = true,
+    this.tableReactions = true,
   });
 
   /// Senza nome unico non si entra nelle stanze.
@@ -191,6 +195,7 @@ class Profile {
     int? coins,
     ProfilePicture? picture,
     bool? publicProfile,
+    bool? tableReactions,
   }) {
     final choice = picture ?? this.picture;
     return Profile(
@@ -208,6 +213,7 @@ class Profile {
       steamAvatar: steamAvatar,
       picture: choice,
       publicProfile: publicProfile ?? this.publicProfile,
+      tableReactions: tableReactions ?? this.tableReactions,
     );
   }
 
@@ -246,6 +252,7 @@ class Profile {
         steamAvatar: safePicture(json['steam_avatar']),
         picture: json['picture'] == 'steam' ? ProfilePicture.steam : ProfilePicture.game,
         publicProfile: json['public_profile'] != false,
+        tableReactions: json['table_reactions'] != false,
       );
 
   static const minHandle = HandleRules.minLength;
@@ -387,6 +394,12 @@ enum OnlineFailure {
   messageBlocked,
   tooManyMessages,
   chatClosed,
+
+  /// I gesti del tavolo: adesso no (di notte, da morti), troppo presto dopo
+  /// l'ultimo, o finiti per questa partita.
+  reactionClosed,
+  reactionCooldown,
+  reactionCap,
 
   /// Troppe segnalazioni in poco tempo.
   tooManyReports,

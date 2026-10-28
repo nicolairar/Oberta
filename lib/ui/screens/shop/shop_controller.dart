@@ -58,6 +58,7 @@ class ShopController extends ChangeNotifier {
   /// Solo i pezzi che quest'app sa disegnare: quelli di una versione nuova
   /// restano fuori finché non si aggiorna.
   bool drawable(ShopItem item) {
+    if (item.isGesture) return TableGesture.byId(item.lookId) != null;
     final slot = slotOf(item);
     return slot != null && look.wearing(slot, item.lookId) != null;
   }
@@ -157,6 +158,12 @@ class ShopController extends ChangeNotifier {
     for (final bundle in bundles)
       if (bundleItems(bundle).length == bundle.itemIds.length && bundle.itemIds.isNotEmpty) bundle,
   ];
+
+  /// Il gesto di un pezzo, o null.
+  static TableGesture? gestureOf(ShopItem item) => item.isGesture ? TableGesture.byId(item.lookId) : null;
+
+  /// I gesti di un pacchetto (vuoto se non ne ha).
+  List<TableGesture> bundleGestures(ShopBundle bundle) => [for (final item in bundleItems(bundle)) ?gestureOf(item)];
 
   /// Un pacchetto di cornici e nomi: si prova sul posto del tavolo.
   bool bundleAround(ShopBundle bundle) => bundleItems(bundle).any((item) => item.around);

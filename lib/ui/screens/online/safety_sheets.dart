@@ -547,7 +547,27 @@ class PublicProfileToggle extends StatefulWidget {
   final ProfileRepository profiles;
   final Widget Function(BuildContext context, bool? value, ValueChanged<bool> onChanged) builder;
 
-  const PublicProfileToggle({super.key, required this.profiles, required this.builder});
+  /// Quale interruttore del profilo: per difetto «Profilo pubblico».
+  final bool Function(Profile me) read;
+  final Future<Profile> Function(ProfileRepository profiles, bool on) write;
+
+  const PublicProfileToggle({
+    super.key,
+    required this.profiles,
+    required this.builder,
+    this.read = _public,
+    this.write = _setPublic,
+  });
+
+  /// «Gesti al tavolo».
+  const PublicProfileToggle.gestures({super.key, required this.profiles, required this.builder})
+    : read = _gestures,
+      write = _setGestures;
+
+  static bool _public(Profile me) => me.publicProfile;
+  static Future<Profile> _setPublic(ProfileRepository profiles, bool on) => profiles.setPublicProfile(on);
+  static bool _gestures(Profile me) => me.tableReactions;
+  static Future<Profile> _setGestures(ProfileRepository profiles, bool on) => profiles.setTableReactions(on);
 
   @override
   State<PublicProfileToggle> createState() => _PublicProfileToggleState();
@@ -560,7 +580,7 @@ class _PublicProfileToggleState extends State<PublicProfileToggle> {
   void initState() {
     super.initState();
     widget.profiles.me().then((me) {
-      if (mounted) setState(() => _value = me.publicProfile);
+      if (mounted) setState(() => _value = widget.read(me));
     }, onError: (_) {});
   }
 
@@ -568,7 +588,7 @@ class _PublicProfileToggleState extends State<PublicProfileToggle> {
     final before = _value;
     setState(() => _value = on);
     try {
-      await widget.profiles.setPublicProfile(on);
+      await widget.write(widget.profiles, on);
     } catch (error) {
       if (!mounted) return;
       setState(() => _value = before);

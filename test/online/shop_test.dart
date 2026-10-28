@@ -116,6 +116,7 @@ void main() {
     test('ogni pezzo si sa disegnare, e la base è il look che si riceve dal nome', () {
       final look = AvatarLook.fallback('anna');
       for (final item in initialShopCatalog) {
+        if (item.isGesture) continue;
         final slot = LookSlot.values.byName(item.slot);
         expect(look.wearing(slot, item.lookId), isNotNull, reason: item.id);
         expect(item.price, item.rarity.price);
@@ -141,6 +142,7 @@ void main() {
         'supabase/migrations/20261020090000_barber_presentation.sql',
         'supabase/migrations/20261023090000_shop_calcio.sql',
         'supabase/migrations/20261024090000_shop_frames_names.sql',
+        'supabase/migrations/20261109090000_table_reactions.sql',
       ].map((path) => File(path).readAsStringSync()).join('\n');
       final rows = RegExp(r"\('(\w+)\.(\w+)', '(\w+)', '(\w+)', '(\w+)', (\d+), .*?(?:, (null|'(\w+)'))?(?:, '(circo|carnevale|assurdo|calcio)')?\)[,\n]")
           .allMatches(sql);
@@ -192,6 +194,7 @@ void main() {
         'supabase/migrations/20261022120000_shop_bundles.sql',
         'supabase/migrations/20261023090000_shop_calcio.sql',
         'supabase/migrations/20261024090000_shop_frames_names.sql',
+        'supabase/migrations/20261109090000_table_reactions.sql',
       ].map((path) => File(path).readAsStringSync()).join('\n');
       final heads = {
         for (final m in RegExp(r"\('([a-z_]+)', '(set|premium)', (\d+), ").allMatches(sql)) m[1]!: '${m[2]} ${m[3]}',

@@ -42,6 +42,7 @@ import 'game/front_page.dart';
 import 'game/noir_role_card.dart';
 import 'game/noir_ui.dart';
 import 'game/saloon_table.dart';
+import 'game/gesture_picker.dart';
 import 'game/saloon_transitions.dart';
 import 'game/seat_card.dart';
 import 'online_widgets.dart';
@@ -154,12 +155,69 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   /// cronaca, e su ogni telefono (stesso seme).
   final Map<int, List<DeathStory>> _stories = {};
 
+  /// I gesti del tavolo arrivati da quando si è seduti (quelli di prima non
+  /// volano più), i gesti comprati e quando si può lanciare il prossimo.
+  StreamSubscription<List<TableReaction>>? _gestureFeed;
+  int? _gestureFloor;
+  List<TableReaction> _gestures = const [];
+  Set<TableGesture> _ownedGestures = const {};
+  DateTime _nextGesture = DateTime.fromMillisecondsSinceEpoch(0);
+
+  void _watchGestures() {
+    final reactions = widget.services.reactions;
+    if (reactions == null) return;
+    reactions.owned().then((owned) {
+      if (mounted) setState(() => _ownedGestures = owned);
+    }, onError: (_) {});
+    _gestureFeed = reactions.watch(widget.room.id).listen((rows) {
+      if (!mounted) return;
+      final floor = _gestureFloor ??= rows.fold<int>(0, (top, r) => max(top, r.id));
+      final fresh = [for (final r in rows) if (r.id > floor) r];
+      setState(() => _gestures = fresh.length > 12 ? fresh.sublist(fresh.length - 12) : fresh);
+    }, onError: (_) {});
+  }
+
+  /// Di giorno, fra vivi, verso un altro posto.
+  bool _canGesture(Player player) =>
+      widget.services.reactions != null &&
+      (_stage == Stage.discussion || _stage == Stage.vote) &&
+      player != _view.seat &&
+      _isAlive(player) &&
+      _isAlive(_view.seat);
+
+  void _seatHeld(Player player) {
+    void report() => showSeatActions(context, services: widget.services, name: player.name, myId: widget.me.id);
+    if (!_canGesture(player)) {
+      report();
+      return;
+    }
+    final wait = _nextGesture.difference(DateTime.now());
+    showGesturePicker(
+      context,
+      name: player.name,
+      italian: _italian,
+      owned: _ownedGestures,
+      wait: wait.isNegative ? Duration.zero : wait,
+      onReport: widget.services.safety == null ? null : report,
+    ).then((gesture) async {
+      if (gesture == null || !mounted) return;
+      HapticFeedback.selectionClick();
+      _nextGesture = DateTime.now().add(ReactionRules.cooldown);
+      try {
+        await widget.services.reactions!.send(widget.room.id, player.id, gesture);
+      } catch (error) {
+        if (mounted) showFailure(context, error);
+      }
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     RecapShelf.last = null;
     _client;
+    _watchGestures();
     MemeDirector.attach(_client, alive: () => mounted);
     // Il cronometro, l'inizio dei film e la fine delle fasi.
     _ticker = Timer.periodic(const Duration(milliseconds: 250), (_) {
@@ -170,6 +228,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   @override
   void dispose() {
     _ticker?.cancel();
+    _gestureFeed?.cancel();
     _chatFocus.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _client.removeListener(_changed);
@@ -1428,11 +1487,17 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     ];
     final leading = top > 0 && leaders.length == 1 ? leaders.single : null;
     final index = {for (var i = 0; i < seats.length; i++) seats[i]: i};
+    final byId = {for (var i = 0; i < seats.length; i++) seats[i].id: i};
     return SaloonTable(
       count: seats.length,
       maxCard: _deskMode ? 152 : 118,
       center: center,
       leading: leading == null ? null : index[leading],
+      gestures: [
+        for (final g in _gestures)
+          if (byId[g.fromSeat] case final from?)
+            if (byId[g.toSeat] case final to?) (id: g.id, from: from, to: to, gesture: g.gesture),
+      ],
       hands: [
         for (final vote in votes)
           if (vote.target != null && index.containsKey(vote.voter) && index.containsKey(vote.target))
@@ -1471,9 +1536,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
           selectable: can && onTap != null && player != selected,
           dimmed: selectable.isNotEmpty && !can && _isAlive(player) && player != selected && player != _view.seat,
           onTap: can && onTap != null ? () => onTap(player) : null,
-          onLongPress: player == _view.seat
-              ? null
-              : () => showSeatActions(context, services: widget.services, name: player.name, myId: widget.me.id),
+          onLongPress: player == _view.seat ? null : () => _seatHeld(player),
         );
         if (player == lynched) {
           return LynchMark(

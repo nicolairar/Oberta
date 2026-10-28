@@ -1,7 +1,7 @@
 import '../online/shop_models.dart';
 
 /// I reparti della bottega, nell'ordine delle linguette.
-enum ShopTab { window, bundles, tailoring, hats, accessories, brands, oddities, calcio, frames, wardrobe }
+enum ShopTab { window, bundles, tailoring, hats, accessories, brands, oddities, calcio, frames, gestures, wardrobe }
 
 /// I testi della bottega: il bancone, lo specchio e il guardaroba. Come
 /// [OnlineStrings], ogni lingua dice tutto e ogni testo finisce nel [catalog].
@@ -171,6 +171,7 @@ class ItalianShopStrings extends ShopStrings {
     'tattoo' => 'Tatuaggi',
     'border' => 'Le cornici',
     'nameStyle' => 'Nomi',
+    'gesture' => 'Gesti',
     _ => 'Vezzi',
   };
   @override
@@ -240,6 +241,7 @@ class ItalianShopStrings extends ShopStrings {
     ShopTab.oddities => 'Stramberie',
     ShopTab.calcio => 'Calcio',
     ShopTab.frames => 'Cornici & nomi',
+    ShopTab.gestures => 'Gesti',
     ShopTab.wardrobe => 'Armadio',
   };
   @override
@@ -326,6 +328,7 @@ class EnglishShopStrings extends ShopStrings {
     'tattoo' => 'Tattoos',
     'border' => 'Frames',
     'nameStyle' => 'Names',
+    'gesture' => 'Gestures',
     _ => 'Accessories',
   };
   @override
@@ -395,6 +398,7 @@ class EnglishShopStrings extends ShopStrings {
     ShopTab.oddities => 'Oddities',
     ShopTab.calcio => 'Football',
     ShopTab.frames => 'Frames & names',
+    ShopTab.gestures => 'Gestures',
     ShopTab.wardrobe => 'Wardrobe',
   };
   @override

@@ -157,8 +157,20 @@ class ShopItem {
       brand = null,
       collection = null;
 
+  /// Un gesto da lanciare al tavolo ([TableGesture]).
+  ShopItem.gesture(this.lookId, this.rarity, this.nameIt, this.nameEn, this.sort)
+    : id = 'gesture.$lookId',
+      slot = 'gesture',
+      price = rarity.price,
+      releasedOn = DateTime.utc(2026, 11, 9),
+      brand = null,
+      collection = null;
+
   /// Non si porta addosso ma intorno: la cornice del posto o il nome.
   bool get around => slot == 'border' || slot == 'nameStyle';
+
+  /// Non si porta affatto: si lancia al tavolo.
+  bool get isGesture => slot == 'gesture';
 
   bool get free => rarity == ShopRarity.base;
 
@@ -300,7 +312,7 @@ abstract class ShopRepository {
 /// `supabase/migrations/20261017221000_shop.sql` e
 /// `supabase/migrations/20261018120000_shop_brands.sql` e seguenti (un test li
 /// confronta): la bottega finta lo usa, quella vera lo legge dal server.
-final List<ShopItem> initialShopCatalog = [..._firstDrop, ...brandDrop, ...houseDrop, ...odditiesDrop, ...barberDrop, ...calcioDrop, ...framesDrop];
+final List<ShopItem> initialShopCatalog = [..._firstDrop, ...brandDrop, ...houseDrop, ...odditiesDrop, ...barberDrop, ...calcioDrop, ...framesDrop, ...gestureDrop];
 
 final List<ShopItem> _firstDrop = [
   ShopItem.seed('hat', 'fedora', ShopRarity.base, 'Fedora', 'Fedora', 100),
@@ -678,6 +690,7 @@ final List<ShopBundle> initialShopBundles = [
   ShopBundle(id: 'leggende', tier: 'premium', discountPct: 40, nameIt: 'Le Leggende', nameEn: 'The Legends', taglineIt: "Dieci pezzi leggendari: il guardaroba di un boss.", taglineEn: "Ten legendary pieces: a boss's wardrobe.", sort: 140, itemIds: ['outfit.trench_coat', 'outfit.gold_brocade', 'hat.morettiHomburg', 'outfit.vanetti_tuxedo', 'outfit.vanetti_ivory', 'outfit.delacroix_cape', 'accessory.ricciWatch', 'outfit.vaugirard_travel', 'outfit.versalli_baroque', 'accessory.chanterellePearls']),
   ...calcioBundles,
   ...framesBundles,
+  ...gestureBundles,
 ];
 
 /// Come veste la maglia: le righe verticali, tinta unita, la fascia
@@ -826,4 +839,37 @@ final List<ShopBundle> framesBundles = [
   ShopBundle(id: 'bisca', tier: 'set', discountPct: 35, nameIt: 'La Bisca', nameEn: 'The Card Den', taglineIt: "Velluto, quattro semi e un nome d'oro.", taglineEn: 'Velvet, four suits and a golden name.', sort: 510, itemIds: ['border.suits', 'border.velvet', 'nameStyle.goldFoil']),
   ShopBundle(id: 'giardino', tier: 'set', discountPct: 30, nameIt: 'Il Giardino', nameEn: 'The Rose Garden', taglineIt: 'Rose, spine e un nome al tramonto.', taglineEn: 'Roses, thorns and a sunset name.', sort: 520, itemIds: ['border.roseThorns', 'nameStyle.tramonto', 'nameStyle.crimson']),
   ShopBundle(id: 'leggenda', tier: 'premium', discountPct: 40, nameIt: 'La Leggenda', nameEn: 'The Legend', taglineIt: 'Fuoco, neon e oro che si muovono: al tavolo ti vedono da lontano.', taglineEn: 'Moving fire, neon and gold: the whole table sees you coming.', sort: 530, itemIds: ['border.flame', 'border.neonPulse', 'border.artDeco', 'nameStyle.shimmer', 'nameStyle.inferno']),
+];
+
+/// I gesti del tavolo (`supabase/migrations/20261109090000_table_reactions.sql`):
+/// sei di casa, sette in vendita. Si lanciano, non si indossano.
+final List<ShopItem> gestureDrop = [
+  ShopItem.gesture('cigar', ShopRarity.base, 'Sigaro acceso', 'Lit cigar', 1000),
+  ShopItem.gesture('toast', ShopRarity.base, 'Brindisi', 'Whiskey toast', 1001),
+  ShopItem.gesture('hatTip', ShopRarity.base, 'Giù il cappello', 'Hat tip', 1002),
+  ShopItem.gesture('omerta', ShopRarity.base, 'Omertà', 'Not a word', 1003),
+  ShopItem.gesture('eye', ShopRarity.base, "Ti tengo d'occhio", "I'm watching you", 1004),
+  ShopItem.gesture('coin', ShopRarity.base, 'Testa o croce', 'Coin flip', 1005),
+  ShopItem.gesture('fish', ShopRarity.comune, 'Dorme con i pesci', 'Sleeps with the fishes', 1010),
+  ShopItem.gesture('gun', ShopRarity.raro, 'Pistola fumante', 'Smoking gun', 1011),
+  ShopItem.gesture('cash', ShopRarity.raro, 'Valigetta di contanti', 'Briefcase of cash', 1012),
+  ShopItem.gesture('rose', ShopRarity.epico, 'Rosa sulla bara', 'Rose on the coffin', 1013),
+  ShopItem.gesture('kiss', ShopRarity.epico, 'Il baciamano', 'Kiss the ring', 1014),
+  ShopItem.gesture('horse', ShopRarity.leggendario, "Un'offerta che non puoi rifiutare", "An offer you can't refuse", 1015),
+  ShopItem.gesture('tommy', ShopRarity.leggendario, 'Raffica di mitra', 'Tommy gun burst', 1016),
+];
+
+/// Tutti i gesti in vendita, insieme.
+final List<ShopBundle> gestureBundles = [
+  ShopBundle(
+    id: 'repertorio',
+    tier: 'premium',
+    discountPct: 40,
+    nameIt: 'Il Repertorio',
+    nameEn: 'The Repertoire',
+    taglineIt: 'Tutti i gesti della famiglia: al tavolo si parla anche senza parlare.',
+    taglineEn: 'Every gesture of the family: at the table you talk without a word.',
+    sort: 600,
+    itemIds: [for (final item in gestureDrop) if (!item.free) item.id],
+  ),
 ];

@@ -46,6 +46,7 @@ extension _Bundles on _ShopScreenState {
     strings: t,
     look: _shop.bundleLook(bundle),
     around: _shop.bundleAround(bundle),
+    gestures: _shop.bundleGestures(bundle),
     who: _shop.who,
     count: _shop.bundleItems(bundle).length,
     singles: _shop.bundleSingles(bundle),
@@ -239,6 +240,9 @@ class _BundleCard extends StatelessWidget {
 
   /// Cornici e nomi: si mostra il posto del tavolo, non il busto.
   final bool around;
+
+  /// I gesti: si mostrano loro, non il busto.
+  final List<TableGesture> gestures;
   final String who;
   final int count;
   final int singles;
@@ -253,6 +257,7 @@ class _BundleCard extends StatelessWidget {
     required this.strings,
     required this.look,
     this.around = false,
+    this.gestures = const [],
     this.who = '',
     required this.count,
     required this.singles,
@@ -306,7 +311,9 @@ class _BundleCard extends StatelessWidget {
                     ),
                     Positioned.fill(
                       top: 8,
-                      child: around
+                      child: gestures.isNotEmpty
+                          ? Padding(padding: const EdgeInsets.fromLTRB(10, 4, 10, 8), child: GestureShowcase(gestures: gestures))
+                          : around
                           ? Padding(padding: const EdgeInsets.fromLTRB(14, 4, 14, 8), child: SeatPreview(look: look, name: who))
                           : CustomPaint(painter: AvatarBustPainter(look)),
                     ),
@@ -479,7 +486,9 @@ class _BundlePage extends StatelessWidget {
                                     top: 54,
                                     width: 150,
                                     height: 190,
-                                    child: shop.bundleAround(bundle)
+                                    child: shop.bundleGestures(bundle).isNotEmpty
+                                        ? GestureShowcase(gestures: shop.bundleGestures(bundle))
+                                        : shop.bundleAround(bundle)
                                         ? Padding(
                                             padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
                                             child: SeatPreview(look: shop.bundleLook(bundle), name: shop.who),
@@ -666,7 +675,9 @@ class _BundleRow extends StatelessWidget {
                   gradient: RadialGradient(radius: 0.7, colors: [color.withValues(alpha: 0.25), Colors.transparent]),
                 ),
                 padding: const EdgeInsets.only(top: 6),
-                child: item.around
+                child: item.isGesture
+                    ? Padding(padding: const EdgeInsets.all(6), child: GestureShowcase(gestures: [ShopController.gestureOf(item)!]))
+                    : item.around
                     ? Padding(padding: const EdgeInsets.fromLTRB(10, 0, 10, 4), child: SeatPreview(look: look, name: who))
                     : CustomPaint(painter: AvatarBustPainter(look), child: const SizedBox.expand()),
               ),

@@ -18,6 +18,7 @@ import '../../widgets/noir_avatar.dart' show AvatarHead;
 import '../../widgets/player_avatar.dart' show AvatarBustPainter;
 import '../online/online_widgets.dart' show showFailure;
 import '../../widgets/content_width.dart';
+import '../online/game/gesture_picker.dart' show GestureShowcase;
 import 'shop_controller.dart';
 
 part 'shop_bundles.dart';
@@ -258,6 +259,7 @@ class _ShopScreenState extends State<ShopScreen> {
                       tab == ShopTab.oddities ||
                       tab == ShopTab.window ||
                       tab == ShopTab.frames ||
+                      tab == ShopTab.gestures ||
                       tab == ShopTab.bundles,
                 ),
               ),
@@ -436,6 +438,7 @@ class _ShopScreenState extends State<ShopScreen> {
       ShopTab.wardrobe => [for (final slot in _allSlots) ..._shop.wardrobe(slot)],
       ShopTab.calcio => _teamItems(_team!),
       ShopTab.frames => [for (final slot in _frameSlots) ..._shop.forSale(slot)],
+      ShopTab.gestures => _shop.forSale('gesture'),
       ShopTab.window || ShopTab.bundles => const <ShopItem>[],
     };
     final picked = [
@@ -721,7 +724,9 @@ class _TryOnPage extends StatelessWidget {
                               top: max(56.0, (box.maxHeight - mirrorH) / 2 + 16),
                               height: mirrorH,
                               width: mirrorW,
-                              child: item.around
+                              child: item.isGesture
+                                  ? GestureShowcase(key: const Key('shop.tryOn.gesture'), gestures: [ShopController.gestureOf(item)!])
+                                  : item.around
                                   ? SeatPreview(key: const Key('shop.tryOn.seat'), look: shop.mirror, name: shop.who)
                                   : _Mirror(look: shop.mirror, brand: item.brand),
                             ),
@@ -768,6 +773,7 @@ class _TryOnPage extends StatelessWidget {
   Widget _action(ShopStrings t, ShopItem item) {
     final (label, action, price) = switch (shop.stateOf(item)) {
       ItemState.forSale => (t.buy, () => onBuy(item), item.price),
+      ItemState.owned when item.isGesture => (t.owned, null, null),
       ItemState.owned => (t.wear, () => onRun(() => shop.equip(item)), null),
       ItemState.worn =>
         item.free ? (t.worn, null, null) : (t.takeOff, () => onRun(() => shop.unequip(item.slot)), null),
@@ -1007,7 +1013,9 @@ class _ItemCard extends StatelessWidget {
                   Positioned.fill(
                     child: Padding(
                       padding: item.around ? const EdgeInsets.fromLTRB(26, 12, 26, 4) : const EdgeInsets.fromLTRB(8, 8, 8, 0),
-                      child: item.around
+                      child: item.isGesture
+                          ? GestureShowcase(gestures: [ShopController.gestureOf(item)!])
+                          : item.around
                           ? SeatPreview(look: look, name: who)
                           : CustomPaint(painter: AvatarBustPainter(look), child: const SizedBox.expand()),
                     ),

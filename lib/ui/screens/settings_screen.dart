@@ -25,6 +25,7 @@ import '../../steam/steam.dart';
 import '../../steam/steam_debug_sheet.dart';
 import '../theme/app_theme.dart';
 import 'online/safety_sheets.dart';
+import 'online/game/gesture_picker.dart';
 import 'screening_room_screen.dart';
 import 'tutorial_screen.dart';
 import '../../l10n/tutorial_strings.dart';
@@ -395,6 +396,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               secondary: const Icon(Icons.badge_outlined, color: AppColors.gold),
                               title: Text(StatsStrings.of(context).publicSwitch),
                               subtitle: Text(StatsStrings.of(context).publicSwitchHint),
+                              value: value ?? true,
+                              onChanged: value == null ? null : onChanged,
+                            ),
+                          ),
+                        if (signedIn && widget.online?.reactions != null)
+                          PublicProfileToggle.gestures(
+                            profiles: widget.online!.profiles,
+                            builder: (context, value, onChanged) => SwitchListTile(
+                              key: const Key('settings.tableGestures'),
+                              secondary: const Icon(Icons.back_hand_outlined, color: AppColors.gold),
+                              title: Text(GestureStrings.of(context).settingTitle),
+                              subtitle: Text(GestureStrings.of(context).settingHint),
                               value: value ?? true,
                               onChanged: value == null ? null : onChanged,
                             ),
