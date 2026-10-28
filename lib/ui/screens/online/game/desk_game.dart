@@ -51,6 +51,9 @@ class DeskGameHud extends StatelessWidget {
   final VoidCallback onMenu;
   final DesktopGameStrings strings;
 
+  /// Al posto dell'orologio, quando non corre (la mano di prova).
+  final Widget? corner;
+
   const DeskGameHud({
     super.key,
     required this.title,
@@ -59,6 +62,7 @@ class DeskGameHud extends StatelessWidget {
     this.ribbon,
     this.countdown,
     this.urgent = false,
+    this.corner,
   });
 
   @override
@@ -111,35 +115,23 @@ class DeskGameHud extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(width: 48, height: 1.6, color: Saloon.brass),
-                    const SizedBox(width: 20),
-                    Flexible(
-                      child: Text(
-                        title.toUpperCase(),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Saloon.plate(DeskText.heading),
-                      ),
-                    ),
-                    const SizedBox(width: 20),
-                    Container(width: 48, height: 1.6, color: Saloon.brass),
-                  ],
+                Text(
+                  title.toUpperCase(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Saloon.plate(DeskText.heading),
                 ),
                 if (ribbon != null) ...[
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 5),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(colors: [Saloon.enamelDeep, Saloon.enamel, Saloon.enamelDeep]),
-                      borderRadius: BorderRadius.circular(5),
-                      border: Border.all(color: Saloon.brass, width: 1.2),
-                    ),
-                    child: Text(
-                      ribbon!.toUpperCase(),
-                      style: AppText.display(16, color: const Color(0xFFFFE9C2)).copyWith(letterSpacing: 3.2),
+                  const SizedBox(height: 6),
+                  Text(
+                    ribbon!,
+                    maxLines: 1,
+                    style: const TextStyle(
+                      fontFamily: 'Georgia',
+                      fontFamilyFallback: ['serif'],
+                      fontSize: 22,
+                      fontStyle: FontStyle.italic,
+                      color: Color(0xFFE8D9B8),
                     ),
                   ),
                 ],
@@ -151,7 +143,7 @@ class DeskGameHud extends StatelessWidget {
             child: Align(
               alignment: Alignment.centerRight,
               child: countdown == null
-                  ? null
+                  ? corner
                   : Container(
                       height: 72,
                       padding: const EdgeInsets.symmetric(horizontal: 22),

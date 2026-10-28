@@ -54,7 +54,8 @@ class ActionOption {
   /// Chi si può scegliere, in ordine di posto.
   final List<Player> targets;
 
-  /// Di giorno, il voto già dato (che si può ancora cambiare).
+  /// Il voto già dato di giorno, o di notte il bersaglio già scelto: si
+  /// possono ancora cambiare.
   final Player? current;
 
   /// Di notte, un compito che si può fare al posto di [kind] sugli stessi

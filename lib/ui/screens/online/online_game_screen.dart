@@ -31,12 +31,14 @@ import '../../avatar/avatar_look.dart';
 import '../../seating.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/death_scene.dart';
-import '../../widgets/night_notes.dart';
+import '../../widgets/night_notes.dart' show alternativeLabels;
 import '../../widgets/scene_scaffold.dart';
 import '../../widgets/content_width.dart';
 import '../../widgets/roles_panel.dart';
 import '../../widgets/wide_scale.dart';
 import '../../widgets/lynch_mark.dart';
+import '../../../l10n/table_strings.dart';
+import 'game/action_strip.dart';
 import 'game/chat_dock.dart';
 import 'game/chronicle_headlines.dart';
 import 'game/front_page.dart';
@@ -86,6 +88,10 @@ class OnlineGameScreen extends StatefulWidget {
   /// corre nessuno.
   final bool showClock;
 
+  /// Nell'angolo in alto a destra, quando l'orologio è spento (la mano di
+  /// prova ci mette «salta»).
+  final Widget? corner;
+
   const OnlineGameScreen({
     super.key,
     required this.services,
@@ -94,6 +100,7 @@ class OnlineGameScreen extends StatefulWidget {
     this.seating,
     this.clock = const SystemGameClock(),
     this.showClock = true,
+    this.corner,
   });
 
   @override
@@ -140,15 +147,20 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   /// Quanto crescono le parole sul panno e nella striscia sul desktop.
   double get _k => _deskMode ? 1.55 : 1.0;
 
-  Player? _selected;
+  late final TableStrings _ts = TableStrings(widget.room.language);
 
   /// La mossa appena fatta, mostrata subito (mano, pizzino) mentre viaggia:
   /// il server poi la conferma (resta) o la rifiuta (la mano torna indietro).
-  /// `target` null: astensione.
-  ({Player? target, String stage})? _hope;
+  /// `target` null: astensione. [family]: è un voto dell'agguato.
+  ({Player? target, String stage, bool family})? _hope;
 
-  /// Il Sarto ha scelto di cucire invece di votare l'agguato.
-  bool _alternative = false;
+  /// Il Sarto ha scelto di cucire invece di votare l'agguato (il Piromane
+  /// di accendere). Null: come dice la scelta già registrata.
+  bool? _alternative;
+
+  /// La domanda aperta prima di un'indagine o di uno scavo: si chiude da
+  /// sola se la notte finisce prima della risposta.
+  BuildContext? _asking;
 
   /// Di giorno, con un Compare vivo, la famiglia guarda la sua chat.
   bool _familyTab = false;
@@ -317,9 +329,11 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     final window = _window;
     if (window == null || window.key == _stageShown) return;
     _stageShown = window.key;
-    _selected = null;
     _hope = null;
-    _alternative = false;
+    _alternative = null;
+    // Una domanda rimasta aperta della fase di prima non vale più.
+    if (_asking case final asking? when asking.mounted) Navigator.of(asking).pop(false);
+    _asking = null;
     final stage = SoundStage.instance;
     switch (window.stage) {
       case Stage.reveal || Stage.night:
@@ -424,11 +438,11 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     HapticFeedback.selectionClick();
     final key = _window?.key;
     if (key != null && intent is! RevealMayor) {
+      final family = _view.action?.type == ActionType.mafiaVote;
       final hope = switch (intent) {
-        DayVote(:final target) ||
-        MafiaVote(:final target) ||
-        NightAction(:final target) => (target: _seatOf(target), stage: key),
-        Pass() || RevealMayor() => (target: null, stage: key),
+        DayVote(:final target) || NightAction(:final target) => (target: _seatOf(target), stage: key, family: false),
+        MafiaVote(:final target) => (target: _seatOf(target), stage: key, family: true),
+        Pass() || RevealMayor() => (target: null, stage: key, family: family),
       };
       setState(() => _hope = hope);
     }
@@ -444,15 +458,27 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   Player? _seatOf(String id) => publicSeating(_public.seats).where((p) => p.id == id).firstOrNull;
 
-  /// I voti del server con, al posto del proprio, la mossa appena fatta.
-  List<SeatVote> _withHope(List<SeatVote> votes) {
+  /// I voti del server con, al posto del proprio, la mossa appena fatta. Di
+  /// notte, fra i voti della famiglia: [family] (il Sarto che cuce non vota).
+  List<SeatVote> _withHope(List<SeatVote> votes, {bool? family}) {
     final hope = _hope;
     if (hope == null || hope.stage != _window?.key) return votes;
+    final mine = family == null || hope.family == family;
     return [
       for (final vote in votes)
         if (vote.voter != _view.seat) vote,
-      (voter: _view.seat, target: hope.target),
+      if (mine) (voter: _view.seat, target: hope.target),
     ];
+  }
+
+  /// La scelta di stanotte, com'è adesso: quella appena mandata, se c'è,
+  /// altrimenti quella che il server ha registrato. [made]: c'è una scelta
+  /// (anche «passo»).
+  ({bool made, Player? target}) get _nightPick {
+    final hope = _hope;
+    if (hope != null && hope.stage == _window?.key) return (made: true, target: hope.target);
+    final choice = _view.nightChoice;
+    return (made: choice != null, target: choice?.target);
   }
 
   void _ack() {
@@ -609,47 +635,57 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
           night: night,
           child: SafeArea(
             bottom: false,
-            child: Column(
+            child: Stack(
               children: [
-                StageHeader(
-                  title: ready ? _title() : widget.room.code,
-                  ribbon: ready && !_board.abandoned ? _ribbon() : null,
-                  countdown: showClock ? (_beforeStart ? '…' : _clock(left)) : null,
-                  urgent: showClock && !_beforeStart && left < const Duration(seconds: 10) && _stage.acceptsActions,
-                  leading: IconButton(
-                    icon: const Icon(Icons.close, color: Saloon.brass),
-                    tooltip: _t.leaveTooltip,
-                    onPressed: pressed(_confirmExit, Press.back),
-                  ),
-                  action: ready
-                      ? RolesButton(
-                          color: Saloon.brass,
-                          onPressed: pressed(
-                            () => RolesSheet.show(context, deck: _public.deck, revealed: publicReveals(_public)),
-                            Press.card,
-                          ),
-                        )
-                      : null,
-                ),
-                ?_connectionBanner(),
-                Expanded(
-                  child: _inlineChat
-                      ? _gamePage()
-                      : ContentWidth(
-                          maxWidth: 780,
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(10, 4, 10, 8),
-                            child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 350),
-                              child: KeyedSubtree(
-                                key: ValueKey(ready ? '${_window?.key}-${_board.abandoned}' : 'connecting'),
-                                child: _stageView(),
+                Column(
+                  children: [
+                    StageHeader(
+                      title: ready ? _title() : widget.room.code,
+                      ribbon: ready && !_board.abandoned ? _ribbon() : null,
+                      countdown: showClock ? (_beforeStart ? '…' : _clock(left)) : null,
+                      urgent: showClock && !_beforeStart && left < const Duration(seconds: 10) && _stage.acceptsActions,
+                      leading: HeaderIconButton(
+                        icon: Icons.close,
+                        tooltip: _t.leaveTooltip,
+                        onPressed: pressed(_confirmExit, Press.back),
+                      ),
+                      action: ready
+                          ? HeaderIconButton(
+                              key: const Key('rolesSheet.button'),
+                              icon: Icons.style,
+                              tooltip: RolesSheetStrings.of(context).title,
+                              onPressed: pressed(
+                                () => RolesSheet.show(context, deck: _public.deck, revealed: publicReveals(_public)),
+                                Press.card,
+                              ),
+                            )
+                          : null,
+                      corner: widget.corner,
+                    ),
+                    Expanded(
+                      child: _inlineChat
+                          ? _gamePage()
+                          : ContentWidth(
+                              maxWidth: 780,
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                                child: AnimatedSwitcher(
+                                  duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : phaseFade,
+                                  child: KeyedSubtree(
+                                    key: ValueKey(ready ? '${_window?.key}-${_board.abandoned}' : 'connecting'),
+                                    child: _stageView(),
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
+                    ),
+                    if (ready && !_board.abandoned && !_inlineChat) ContentWidth(maxWidth: 780, child: _chatDock()),
+                  ],
                 ),
-                if (ready && !_board.abandoned && !_inlineChat) ContentWidth(maxWidth: 780, child: _chatDock()),
+                // Il collegamento che non va: un cartello sopra il tavolo,
+                // così sotto non si sposta niente.
+                if (_connectionBanner() case final banner?)
+                  Positioned(left: 0, right: 0, top: StageHeader.height, child: ContentWidth(maxWidth: 780, child: banner)),
               ],
             ),
           ),
@@ -666,9 +702,6 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   /// Sul desktop la colonna di destra (mazzo e chat) è larga così.
   static const _deskSideWidth = 540.0;
-
-  /// La striscia dei comandi sotto il tavolo, sul desktop.
-  static const _deskStripHeight = 112.0;
 
   void _openPause() {
     if (_paused) return;
@@ -725,7 +758,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         backgroundColor: Saloon.ink,
         body: SaloonBackdrop(
           night: night,
-          child: Column(
+          child: Stack(
+            children: [
+              Column(
             children: [
               DeskGameHud(
                 title: ready ? _title() : widget.room.code,
@@ -734,8 +769,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                 urgent: showClock && !_beforeStart && left < const Duration(seconds: 10) && _stage.acceptsActions,
                 onMenu: _openPause,
                 strings: _dt,
+                corner: widget.corner,
               ),
-              ?_connectionBanner(),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(DeskSize.gutter, 4, DeskSize.gutter, 36),
@@ -759,6 +794,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                   ),
                 ),
               ),
+            ],
+          ),
+              if (_connectionBanner() case final banner?)
+                Positioned(left: 0, right: 0, top: DeskGameHud.height, child: banner),
             ],
           ),
         ),
@@ -815,10 +854,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
               Expanded(
                 child: SizedBox(key: const Key('game.tableSlot'), width: double.infinity, child: phase.table),
               ),
-              const SizedBox(height: 12),
               SizedBox(
                 key: const Key('game.stripSlot'),
-                height: _deskStripHeight,
+                height: ActionStrip.heightFor(desk: true),
                 width: double.infinity,
                 child: Center(
                   child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 860), child: phase.strip),
@@ -940,13 +978,18 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
             },
           ),
         ),
-        const SizedBox(height: 24),
-        ScrimText(_t.online.yourCardHint),
-        const SizedBox(height: 18),
-        SizedBox(width: 560, child: _readyButton(enabled: _cardTurned)),
+        const SizedBox(height: 16),
+        SizedBox(width: 860, child: _cardStrip()),
       ],
     );
   }
+
+  /// Sotto la carta: girala, poi «pronto», poi si aspettano gli altri.
+  Widget _cardStrip() => ActionStrip(
+    status: !_cardTurned ? _ts.holdTheCard : _readyStatus(_t.online.yourCardHint),
+    tone: !_cardTurned ? StripTone.act : _readyTone,
+    actions: [?_readyAction(enabled: _cardTurned)],
+  );
 
   /// La fine, sul desktop: chi ha vinto in una targa larga, poi tutti i
   /// giocatori con la loro carta e com'è finita.
@@ -1012,7 +1055,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                             fallen: !_isAlive(player),
                             me: player == _view.seat,
                             selected: _public.won(player),
-                            note: _t.role(roles[player]!).label,
+                            role: roles[player],
                             noteColor: roles[player]!.team == Team.mafia ? Saloon.mafia : Saloon.brass,
                             onLongPress: player == _view.seat
                                 ? null
@@ -1020,14 +1063,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                                     services: widget.services, name: player.name, myId: widget.me.id),
                           ),
                           const SizedBox(height: 12),
-                          Text(
-                            _public.personalWins.contains(player)
-                                ? '${_t.wonAlone}\n${_fateOf(player)}'
-                                : _fateOf(player),
-                            textAlign: TextAlign.center,
-                            maxLines: 2,
-                            style: DeskText.text(size: DeskText.label, color: const Color(0xFFD8CCBE)).copyWith(height: 1.25),
-                          ),
+                          _castLine(player, roles[player]!),
                         ],
                       ),
                     ),
@@ -1037,18 +1073,57 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
           ),
         ),
         const SizedBox(height: 24),
-        SizedBox(
-          width: 560,
-          child: NoirButton(
-            key: const Key('online.backToRoom'),
-            label: _t.online.backToRoom,
-            feel: Press.confirm,
-            onPressed: () => Navigator.of(context).pop(),
+        SizedBox(width: 640, child: NoirActions(actions: _endActions())),
+      ],
+    );
+  }
+
+  /// Sotto ogni posto, alla fine: il ruolo che aveva e com'è finita.
+  Widget _castLine(Player player, Role role) {
+    final m = NoirMetrics(_deskMode);
+    final fate = _public.personalWins.contains(player) ? '${_t.wonAlone} · ${_fateOf(player)}' : _fateOf(player);
+    return Column(
+      children: [
+        Text(
+          _t.role(role).label,
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: role.team == Team.mafia ? Saloon.mafia : AppColors.textPrimary,
+            fontSize: m.body,
+            fontWeight: FontWeight.w700,
+            height: 1.25,
           ),
+        ),
+        Text(
+          fate,
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(color: AppColors.textSecondary, fontSize: m.small + 0.5, height: 1.3),
         ),
       ],
     );
   }
+
+  /// I pulsanti della fine: il resoconto (se c'è) e l'uscita.
+  List<NoirAction> _endActions() => [
+    if (_public.recap case final recap?)
+      NoirAction(
+        key: const Key('online.recap'),
+        label: RecapStrings.of(context).open,
+        feel: Press.card,
+        onPressed: () => showGameRecap(context, recap, me: _view.seat),
+      ),
+    NoirAction(
+      key: const Key('online.backToRoom'),
+      label: _ts.leave,
+      style: NoirButtonStyle.primary,
+      feel: Press.confirm,
+      onPressed: () => Navigator.of(context).pop(),
+    ),
+  ];
 
   /// Il collegamento che non va: il server tace, la rete ha dato errore, o
   /// il server non sente più questo telefono. Si rientra al tavolo con un
@@ -1078,24 +1153,30 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     } else {
       return null;
     }
+    final m = NoirMetrics(_deskMode);
     return Container(
       margin: _deskMode
           ? const EdgeInsets.fromLTRB(DeskSize.gutter, 0, DeskSize.gutter + _deskSideWidth + 36, 10)
-          : const EdgeInsets.fromLTRB(14, 0, 14, 6),
-      padding: _deskMode ? const EdgeInsets.fromLTRB(22, 10, 10, 10) : const EdgeInsets.fromLTRB(12, 6, 6, 6),
-      decoration: Saloon.scrim(radius: 10, border: Saloon.blood),
+          : const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      padding: _deskMode ? const EdgeInsets.fromLTRB(24, 8, 8, 8) : const EdgeInsets.fromLTRB(16, 8, 8, 8),
+      decoration: Saloon.scrim(radius: 12, border: Saloon.blood),
       child: Row(
         children: [
           Expanded(
             child: Text(
               text,
               key: key,
-              style: AppText.body.copyWith(color: AppColors.textPrimary, fontSize: 13 * _k),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: AppColors.textPrimary, fontSize: m.body, height: 1.3),
             ),
           ),
           if (rejoin) ...[
-            const SizedBox(width: 8),
-            NoirButton(key: const Key('online.reconnect'), compact: true, label: _t.online.rejoin, onPressed: _rejoin),
+            SizedBox(width: m.gap),
+            NoirModalButton(
+              key: const Key('online.reconnect'),
+              action: NoirAction(label: _ts.rejoin, feel: Press.confirm, onPressed: _rejoin),
+            ),
           ],
         ],
       ),
@@ -1110,12 +1191,16 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     Stage.ended => _t.endTitle,
   };
 
+  /// La fase sotto il titolo, come una frase: «Il voto della piazza».
   String? _ribbon() => switch (_stage) {
     Stage.reveal => _city.title,
-    Stage.discussion => _t.online.discussionTitle,
-    Stage.vote => _t.online.voteTitle,
+    Stage.discussion => _sentence(_t.online.discussionTitle),
+    Stage.vote => _sentence(_t.online.voteTitle),
     _ => null,
   };
+
+  static String _sentence(String text) =>
+      text.isEmpty ? text : text[0].toUpperCase() + text.substring(1).toLowerCase();
 
   Widget _stageView() {
     if (!_client.ready) return _connectingView();
@@ -1132,11 +1217,14 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       ? DealingTable(status: _t.online.gameConnecting)
       : DealingTable(
           status: _t.online.connectionLost,
-          below: NoirButton(
+          below: NoirModalButton(
             key: const Key('online.reconnect'),
-            label: _t.online.rejoin,
-            feel: Press.confirm,
-            onPressed: _rejoin,
+            action: NoirAction(
+              label: _ts.rejoin,
+              style: NoirButtonStyle.primary,
+              feel: Press.confirm,
+              onPressed: _rejoin,
+            ),
           ),
         );
 
@@ -1148,33 +1236,45 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       const SizedBox(height: 16),
       ScrimText(_t.online.gameClosed),
       const Spacer(),
-      SizedBox(
-        width: double.infinity,
-        child: NoirButton(
-          label: _t.online.backToRoom,
-          feel: Press.confirm,
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+      NoirActions(
+        actions: [
+          NoirAction(
+            label: _ts.leave,
+            style: NoirButtonStyle.primary,
+            feel: Press.confirm,
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
       ),
     ],
   );
 
-  /// Il pulsante della conferma: «pronto», poi l'attesa degli altri.
-  /// Chi è fuori dal gioco non conferma niente: il server non lo aspetta.
-  Widget _readyButton({bool enabled = true, bool compact = false}) => !_view.alive
-      ? const SizedBox.shrink()
-      : SizedBox(
-          width: double.infinity,
-          child: NoirButton(
-            key: const Key('online.ready'),
-            compact: compact,
-            feel: Press.confirm,
-            kind: _acked ? NoirButtonKind.brass : NoirButtonKind.enamel,
-            onPressed: _acked || !enabled || !_open ? null : _ack,
-            // Niente «invio…» né «registrato»: si vede solo se qualcosa va storto.
-            label: _acked ? _t.online.readyWaiting : _t.online.ready,
-          ),
+  /// «Pronto»: la conferma della fase. Chi è fuori dal gioco non conferma
+  /// niente (il server non lo aspetta): per lui nessun pulsante.
+  NoirAction? _readyAction({bool enabled = true}) => !_view.alive
+      ? null
+      : NoirAction(
+          key: const Key('online.ready'),
+          label: _t.online.ready,
+          style: NoirButtonStyle.primary,
+          feel: Press.confirm,
+          // Niente «invio…» né «registrato»: si vede solo se qualcosa va storto.
+          onPressed: _acked || !enabled || !_open ? null : _ack,
         );
+
+  /// La riga della striscia nelle fasi da confermare: [todo] finché non si
+  /// è confermato, poi l'attesa degli altri; da morti, si guarda soltanto.
+  String _readyStatus(String todo) => !_view.alive
+      ? _t.online.youAreOut
+      : _acked
+      ? _t.online.readyWaiting
+      : todo;
+
+  StripTone get _readyTone => !_view.alive
+      ? StripTone.out
+      : _acked
+      ? StripTone.wait
+      : StripTone.act;
 
   // ---------------------------------------------------------------------
   // La chat, sempre in fondo.
@@ -1186,12 +1286,14 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     if (familyNight || familyDay) {
       return ChatChannelView(channel: ChatChannel.family, title: _t.online.chatFamily, accent: Saloon.mafia);
     }
-    final String? note;
-    if (_stage.chat != 'day') {
-      note = _t.online.chatNightClosed;
-    } else {
-      note = _townChatNote;
-    }
+    // Chiusa: di notte la piazza tace; all'alba e al verdetto si aspetta la
+    // discussione; alla fine non si parla più.
+    final note = switch (_stage) {
+      _ when _stage.chat == 'day' => _townChatNote,
+      Stage.reveal || Stage.night => _t.online.chatNightClosed,
+      Stage.ended => _ts.chatOver,
+      _ => _ts.chatOpensLater,
+    };
     return ChatChannelView(channel: ChatChannel.day, title: _t.online.chatTown, accent: Saloon.brass, note: note);
   }
 
@@ -1268,7 +1370,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   }
 
   /// La striscia dei comandi tra il tavolo e la chat: sempre alta così.
-  static const _stripHeight = 70.0;
+  static final _stripHeight = ActionStrip.heightFor(desk: false);
 
   /// Su schermo largo la chat è una colonna a destra, larga così.
   static const _wideChatWidth = 300.0;
@@ -1316,7 +1418,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: now.view.accent.withValues(alpha: 0.8), width: 1.3),
       ),
-      padding: const EdgeInsets.fromLTRB(12, 6, 8, 8),
+      padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
       child: ChatLog(
         view: now.view,
         messages: now.messages,
@@ -1328,10 +1430,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         trailing: _chatTrailing(),
       ),
     );
-    final bottom = typing ? 6.0 : max(_media.viewPadding.bottom - 6, 8.0);
+    final bottom = typing ? 8.0 : max(_media.viewPadding.bottom - 8, 8.0);
     if (WideScale.isWide(_media.size)) {
       return Padding(
-        padding: EdgeInsets.fromLTRB(10, 0, 10, bottom),
+        padding: EdgeInsets.fromLTRB(16, 0, 16, bottom),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -1355,7 +1457,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                 ),
               )),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 16),
             SizedBox(
               width: _wideChatWidth,
               child: Column(
@@ -1373,7 +1475,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       );
     }
     return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         children: [
           if (!typing)
@@ -1398,10 +1500,11 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                 ],
               ),
             )),
+          if (!typing) const SizedBox(height: 8),
           Expanded(
             child: SizedBox(key: const Key('game.chatSlot'), width: double.infinity, child: chatBox),
           ),
-          SizedBox(height: typing ? 6 : max(_media.viewPadding.bottom - 6, 8)),
+          SizedBox(height: bottom),
         ],
       ),
     );
@@ -1427,49 +1530,67 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     ),
   );
 
-  /// Le parole sul panno, al centro del tavolo: si stringono per starci.
-  Widget _felt(List<Widget> lines, {Key? key}) => FittedBox(
+  /// Le parole sul panno, al centro del tavolo: poche, grandi, sempre a
+  /// misura leggibile. Vanno a capo nella larghezza che c'è; solo se sono
+  /// troppo alte si stringono un poco.
+  Widget _felt(List<Widget> lines, {Key? key}) => LayoutBuilder(
     key: key,
-    fit: BoxFit.scaleDown,
-    child: Container(
-      width: _deskMode ? 430 : 230,
-      padding: _deskMode ? const EdgeInsets.symmetric(horizontal: 24, vertical: 16) : const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: const Color(0xB0080605),
-        borderRadius: BorderRadius.circular(12 * _k),
-        border: _deskMode ? Border.all(color: Saloon.brassDeep.withValues(alpha: 0.5)) : null,
+    builder: (context, box) => FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Container(
+        constraints: BoxConstraints(maxWidth: min(box.maxWidth, _deskMode ? 560.0 : 320.0)),
+        padding: _deskMode
+            ? const EdgeInsets.symmetric(horizontal: 24, vertical: 16)
+            : const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xB0080605),
+          borderRadius: BorderRadius.circular(12 * _k),
+        ),
+        child: Column(mainAxisSize: MainAxisSize.min, children: lines),
       ),
-      child: Column(mainAxisSize: MainAxisSize.min, children: lines),
     ),
   );
 
+  /// Il titolo sul panno: la domanda della notte, il verdetto.
+  Text _feltTitle(String text, {Key? key, Color color = AppColors.textPrimary, int maxLines = 3}) => Text(
+    text,
+    key: key,
+    textAlign: TextAlign.center,
+    maxLines: maxLines,
+    overflow: TextOverflow.ellipsis,
+    style: AppText.display(_deskMode ? 28 : 17, color: color).copyWith(
+      letterSpacing: _deskMode ? 1.2 : 0.6,
+      height: 1.2,
+      shadows: const [Shadow(color: Colors.black, blurRadius: 6)],
+    ),
+  );
+
+  /// Una riga di testo sul panno: corpo pieno (15 sul telefono, 21 su PC).
   Text _feltLine(
     String text, {
     Key? key,
-    double size = 13.5,
     Color color = AppColors.textPrimary,
     FontWeight? weight,
-    int maxLines = 4,
+    FontStyle? style,
+    int maxLines = 3,
   }) => Text(
     text,
     key: key,
     textAlign: TextAlign.center,
     maxLines: maxLines,
     overflow: TextOverflow.ellipsis,
-    style: AppText.body.copyWith(
+    style: TextStyle(
       color: color,
-      fontSize: size * _k,
+      fontSize: _deskMode ? 21 : 15,
       fontWeight: weight,
-      height: _deskMode ? 1.35 : 1.25,
+      fontStyle: style,
+      height: 1.3,
       shadows: const [Shadow(color: Colors.black, blurRadius: 6)],
     ),
   );
 
   // ---------------------------------------------------------------------
   // Il tavolo: tutti grandi uguali, intorno al panno.
-
-  /// I nomi brevi sui pizzini.
-  String _short(Player? player) => player == null ? _t.online.abstainTag : _tag(player);
 
   /// Il numero di posto (1..N), lo stesso per tutta la partita: l'ordine
   /// dei seggi sul tavolo pubblico del server.
@@ -1502,6 +1623,14 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     );
   }
 
+  /// Il pizzino di chi ha votato: il numero di posto dell'accusato, corto,
+  /// così non copre i vicini. Di notte, chi passa non ha pizzino.
+  String? _pizzinoOf(SeatVote? vote, {required bool day}) => switch (vote?.target) {
+    _ when vote == null => null,
+    final target? => '→ ${_numberOf(target) ?? target.name}',
+    null => day ? _t.online.abstainTag : null,
+  };
+
   Widget _table({
     required List<Player> players,
     Set<Player> selectable = const {},
@@ -1513,6 +1642,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     Animation<double>? arrival,
     Player? lynched,
     Duration lynchedAt = Duration.zero,
+    bool hands = true,
+    bool accusing = true,
+    bool day = true,
   }) {
     // I morti restano al loro posto, segnati come caduti.
     final present = [...players];
@@ -1521,14 +1653,16 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     final seats = mine <= 0 ? present : [...present.skip(mine), ...present.take(mine)];
     final tally = <Player, int>{};
     for (final vote in votes) {
-      if (vote.target case final target?) tally[target] = (tally[target] ?? 0) + 1;
+      // Il voto del Sindaco rivelato vale doppio.
+      final weight = day && vote.voter == _public.mayor ? 2 : 1;
+      if (vote.target case final target?) tally[target] = (tally[target] ?? 0) + weight;
     }
     final top = tally.values.fold(0, max);
     final leaders = [
       for (final e in tally.entries)
         if (e.value == top) e.key,
     ];
-    final leading = top > 0 && leaders.length == 1 ? leaders.single : null;
+    final leading = accusing && top > 0 && leaders.length == 1 ? leaders.single : null;
     final index = {for (var i = 0; i < seats.length; i++) seats[i]: i};
     final byId = {for (var i = 0; i < seats.length; i++) seats[i].id: i};
     return SaloonTable(
@@ -1542,13 +1676,17 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
             if (byId[g.toSeat] case final to?) (id: g.id, from: from, to: to, gesture: g.gesture),
       ],
       hands: [
-        for (final vote in votes)
-          if (vote.target != null && index.containsKey(vote.voter) && index.containsKey(vote.target))
-            _handOf(vote.voter, index[vote.voter]!, index[vote.target]!, voteColor),
+        if (hands)
+          for (final vote in votes)
+            if (vote.target != null && index.containsKey(vote.voter) && index.containsKey(vote.target))
+              _handOf(vote.voter, index[vote.voter]!, index[vote.target]!, voteColor),
       ],
       seatBuilder: (context, i, width) {
         final player = seats[i];
         final vote = votes.where((v) => v.voter == player).firstOrNull;
+        // Il ruolo, se si sa: quello pubblico per tutti, quello dei complici
+        // per la famiglia. Sul posto basta l'icona; il nome solo su PC, dove
+        // c'è spazio per leggerlo.
         final role = _publicKnowledge(player).role ?? (player == _view.seat ? null : _knowledgeOf(player).role);
         final silenced = _public.lastDawn?.silenced == player && _public.lastDawn?.round == _public.round;
         final can = selectable.contains(player);
@@ -1568,28 +1706,33 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
           accused: player == leading,
           accusedLabel: _t.online.accusedTag,
           votes: tally[player] ?? 0,
-          pizzino: vote == null ? null : '→ ${_short(vote.target)}',
+          pizzino: _pizzinoOf(vote, day: day),
           pizzinoKey: ValueKey('pizzino-${player.id}'),
           pizzinoColor: voteColor,
           note: _offline(player)
               ? _t.online.offlineBadge
               : silenced
-              ? '🤐 ${RolesSheetStrings.of(context).silenced}'
-              : role == null
-              ? null
-              : _t.role(role).label,
-          noteColor: role?.team == Team.mafia ? Saloon.mafia : Saloon.brass,
-          role: _publicKnowledge(player).role,
+              ? _ts.silenced
+              : role != null && _deskMode
+              ? _t.role(role).label
+              : null,
+          noteColor: _offline(player) || silenced
+              ? AppColors.textSecondary
+              : role?.team == Team.mafia
+              ? Saloon.mafia
+              : Saloon.brass,
+          role: role,
           selectable: can && onTap != null && player != selected,
           dimmed: selectable.isNotEmpty && !can && _isAlive(player) && player != selected && player != _view.seat,
-          onTap: can && onTap != null ? () => onTap(player) : null,
+          // Il posto già scelto non si ritocca: si sceglie un altro.
+          onTap: can && onTap != null && player != selected ? () => onTap(player) : null,
           onLongPress: player == _view.seat ? null : () => _seatHeld(player),
           ),
         );
         if (player == lynched) {
           return LynchMark(
             key: ValueKey('lynch-${_public.lastLynch?.round}-${player.id}'),
-            label: _italian ? 'Linciato' : 'Lynched',
+            label: _ts.lynched,
             startAt: lynchedAt,
             child: seat,
           );
@@ -1648,12 +1791,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         if (opening.isNotEmpty)
           ScrimText(
             opening.map((l) => l.text).join('\n'),
-            style: AppText.body.copyWith(color: AppColors.textPrimary, fontSize: 13.5, fontStyle: FontStyle.italic),
+            style: const TextStyle(color: AppColors.textPrimary, fontSize: 15, height: 1.35, fontStyle: FontStyle.italic),
           ),
         Expanded(
           child: Center(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: NoirRoleCard(
                 role: view.role,
                 teammates: view.teammates,
@@ -1663,9 +1806,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
             ),
           ),
         ),
-        ScrimText(_t.online.yourCardHint),
-        const SizedBox(height: 10),
-        _readyButton(enabled: _cardTurned),
+        ConstrainedBox(constraints: const BoxConstraints(maxWidth: 560), child: _cardStrip()),
       ],
     );
   }
@@ -1675,159 +1816,204 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   bool get _inFamilyChat => _view.alive && _view.team == Team.mafia;
 
+  /// La notte, per chi ha una mossa: si tocca un posto e la scelta parte
+  /// subito; si cambia toccandone un altro (o «passo») fino allo scadere, e
+  /// resta segnata sul tavolo. La famiglia vede le mani di tutti i suoi. Solo
+  /// l'indagine e lo scavo, che rispondono subito, chiedono conferma.
   _Phase _taskPhase() {
     final option = _view.action!;
-    final task = NightTask(option.kind!, option.targets);
     final script = _script('task');
-    final selected = _hope?.target ?? _selected;
-    final busy = _client.busy || !_open;
-    final alternative = _alternative && option.alternative != null;
+    final open = _open;
+    final pick = _nightPick;
+    final choice = _view.nightChoice;
+    final hasAlternative = option.alternative != null;
+    final alternative = hasAlternative && (_alternative ?? (choice != null && choice.kind == option.alternative));
     final family = option.type == ActionType.mafiaVote && !alternative;
-    final alternativeTargets = option.alternativeTargets ?? option.targets;
-    final shown = alternative ? NightTask(option.alternative!, alternativeTargets) : task;
+    final targets = alternative ? (option.alternativeTargets ?? option.targets) : option.targets;
+    final kind = alternative ? option.alternative! : option.kind!;
+    final shown = NightTask(kind, targets);
     final labels = alternativeLabels(_t, option.alternative);
     final lastWatch = _view.watches.isEmpty ? null : _view.watches.last;
+    final familyVotes = option.type == ActionType.mafiaVote
+        ? _withHope(_view.familyVotes.isNotEmpty ? _view.familyVotes : _lastFamilyVotes, family: true)
+        : const <SeatVote>[];
+    final notes = [
+      if (lastWatch != null && lastWatch.round == _public.round - 1)
+        (lastWatch.visited ? _t.pack.watchVisited : _t.pack.watchQuiet).replaceAll('{name}', _tag(lastWatch.target)),
+      if (_view.doused.isNotEmpty) '${_t.dousedBadge}: ${_view.doused.map(_tag).join(', ')}',
+      if (_view.bounty case final mark?) _t.bountyLine.replaceAll('{name}', _tag(mark)),
+    ];
+    final String status;
+    final StripTone tone;
+    if (!pick.made) {
+      status = script.taskHint(shown);
+      tone = StripTone.act;
+    } else if (pick.target case final target?) {
+      status = _ts.picked(_tag(target));
+      tone = StripTone.done;
+    } else {
+      status = _ts.passed;
+      tone = StripTone.done;
+    }
     return (
       key: const Key('online.night'),
       table: _table(
         players: _secretTable(),
-        selectable: (alternative ? alternativeTargets : option.targets).toSet(),
-        selected: selected,
-        onTap: busy ? null : (player) => setState(() => _selected = player),
-        votes: family ? _withHope(_view.familyVotes.isNotEmpty ? _view.familyVotes : _lastFamilyVotes) : const [],
+        selectable: targets.toSet(),
+        selected: pick.target,
+        onTap: open ? (player) => _pickNight(player, kind: kind, family: family) : null,
+        votes: familyVotes,
         voteColor: Saloon.mafia,
-        center: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (option.alternative != null)
-              Padding(
-                padding: EdgeInsets.only(bottom: 4 * _k),
-                child: SizedBox(
-                  height: 32 * _k,
-                  child: SegmentedButton<bool>(
-                    key: const Key('online.alternative'),
-                    style: ButtonStyle(
-                      visualDensity: const VisualDensity(horizontal: -3, vertical: -3),
-                      textStyle: WidgetStatePropertyAll(TextStyle(fontSize: 12 * _k)),
-                    ),
-                    segments: [
-                      ButtonSegment(value: false, label: Text(labels.$1)),
-                      ButtonSegment(value: true, label: Text(labels.$2)),
-                    ],
-                    selected: {_alternative},
-                    showSelectedIcon: false,
-                    onSelectionChanged: busy
-                        ? null
-                        : (choice) => setState(() {
-                            _alternative = choice.single;
-                            // Il fiammifero si accende scegliendo se stessi: già scelto.
-                            _selected = _alternative && option.alternativeTargets != null
-                                ? alternativeTargets.first
-                                : null;
-                          }),
-                  ),
-                ),
-              ),
-            Flexible(
-              child: _felt([
-                NightNotes(
-                  lastWatch: lastWatch != null && lastWatch.round == _public.round - 1 ? lastWatch : null,
-                  doused: _view.doused,
-                  bounty: _view.bounty,
-                ),
-                Text(
-                  script.taskPrompt(shown, _public.round),
-                  textAlign: TextAlign.center,
-                  style: AppText.display(17 * _k, color: family ? const Color(0xFFFFB3B3) : AppColors.textPrimary),
-                ),
-                SizedBox(height: 4 * _k),
-                _feltLine(script.taskHint(shown), size: 12, color: const Color(0xFFD8CCBE)),
-              ]),
-            ),
+        day: false,
+        center: _felt([
+          _feltTitle(script.taskPrompt(shown, _public.round), color: family ? const Color(0xFFFFB3B3) : AppColors.textPrimary),
+          for (final note in notes) ...[
+            SizedBox(height: 4 * _k),
+            _feltLine(note, color: Saloon.brass, maxLines: 2),
           ],
-        ),
+        ]),
       ),
-      strip: Row(
-        children: [
-          Expanded(
-            flex: 2,
-            child: NoirButton(
-              key: const Key('online.pass'),
-              compact: true,
-              kind: NoirButtonKind.brass,
-              label: _t.pass,
-              onPressed: busy ? null : () => _send(Pass(_view.seat.id)),
-            ),
-          ),
-          SizedBox(width: 10 * _k),
-          Expanded(
-            flex: 3,
-            child: NoirButton(
-              key: const Key('online.confirm'),
-              compact: true,
-              label: selected == null ? _t.confirm : '${_t.confirm} · ${_tag(selected)}',
-              onPressed: selected == null || busy
-                  ? null
-                  : () =>
-                        _send(family ? MafiaVote(_view.seat.id, selected.id) : NightAction(_view.seat.id, selected.id)),
-            ),
+      strip: ActionStrip(
+        status: status,
+        statusKey: pick.made ? const Key('online.moveRegistered') : null,
+        tone: tone,
+        control: hasAlternative
+            ? SizedBox(
+                height: NoirMetrics(_deskMode).button,
+                child: SegmentedButton<bool>(
+                  key: const Key('online.alternative'),
+                  style: ButtonStyle(
+                    visualDensity: VisualDensity.standard,
+                    textStyle: WidgetStatePropertyAll(TextStyle(fontSize: _deskMode ? 18 : 14, fontWeight: FontWeight.w600)),
+                  ),
+                  segments: [
+                    ButtonSegment(value: false, label: Text(labels.$1, maxLines: 1, overflow: TextOverflow.ellipsis)),
+                    ButtonSegment(value: true, label: Text(labels.$2, maxLines: 1, overflow: TextOverflow.ellipsis)),
+                  ],
+                  selected: {alternative},
+                  showSelectedIcon: false,
+                  // Cambia solo cosa si tocca: la scelta registrata resta
+                  // finché non si tocca un posto.
+                  onSelectionChanged: open ? (choice) => setState(() => _alternative = choice.single) : null,
+                ),
+              )
+            : null,
+        actions: [
+          NoirAction(
+            key: const Key('online.pass'),
+            label: _t.pass,
+            feel: Press.tap,
+            onPressed: !open || (pick.made && pick.target == null) ? null : () => _send(Pass(_view.seat.id)),
           ),
         ],
       ),
     );
   }
 
+  /// Un posto toccato di notte. Le mosse che si risolvono all'alba partono
+  /// subito (si possono cambiare); l'indagine e lo scavo, che rispondono
+  /// subito e poi non si cambiano, prima chiedono conferma.
+  Future<void> _pickNight(Player target, {required NightTaskKind kind, required bool family}) async {
+    final pick = _nightPick;
+    if (pick.made && pick.target == target) return;
+    final intent = family ? MafiaVote(_view.seat.id, target.id) : NightAction(_view.seat.id, target.id);
+    if (kind.immediate) {
+      final stage = _window?.key;
+      final yes = await _confirmImmediate(target, kind);
+      if (!yes || !mounted || _window?.key != stage || !_open) return;
+    }
+    await _send(intent);
+  }
+
+  Future<bool> _confirmImmediate(Player target, NightTaskKind kind) async {
+    final yes = await showNoirDialog<bool>(
+      context,
+      builder: (context) {
+        _asking = context;
+        return NoirDialog(
+          key: const Key('online.askImmediate'),
+          title: kind == NightTaskKind.dig ? _ts.dig(_tag(target)) : _ts.investigate(_tag(target)),
+          body: _ts.instantAnswer,
+          onEnter: () => Navigator.of(context).pop(true),
+          actions: [
+            NoirAction(
+              key: const Key('online.cancel'),
+              label: _ts.cancel,
+              feel: Press.back,
+              onPressed: () => Navigator.of(context).pop(false),
+            ),
+            NoirAction(
+              key: const Key('online.confirm'),
+              label: _t.confirm,
+              style: NoirButtonStyle.primary,
+              feel: Press.confirm,
+              onPressed: () => Navigator.of(context).pop(true),
+            ),
+          ],
+        );
+      },
+    );
+    _asking = null;
+    return yes == true;
+  }
+
+  /// La notte di chi non ha (più) mosse: chi è fuori, chi ha già avuto la
+  /// risposta dell'indagine o dello scavo. Sul panno la risposta, o la notte
+  /// che scende.
+  /// Quello che l'indagine o lo scavo di stanotte hanno scoperto: dalla
+  /// risposta del server o, per chi rientra al tavolo, da quello che sa.
+  Exposure? get _nightFinding {
+    final choice = _view.nightChoice;
+    final target = choice?.target;
+    if (choice == null || target == null || !choice.kind.immediate) return null;
+    if (_finding case final finding? when finding.subject == target) return finding;
+    final known = _knowledgeOf(target);
+    final team = known.team;
+    if (team == null) return null;
+    return Exposure(target, team, role: choice.kind == NightTaskKind.dig ? known.role : null);
+  }
+
   _Phase _waitingPhase() {
     final view = _view;
-    final finding = view.nightChoice != null ? _finding : null;
+    final finding = _nightFinding;
     final found = finding?.role;
     final isMafia = finding?.team == Team.mafia;
-    final pending = _public.phase == GamePhase.night && _public.nightPending > 0
-        ? _t.online.waitingForOthers(_public.nightPending)
-        : null;
     final Widget center;
     if (finding == null) {
-      final status = !view.alive
-          ? _t.online.youAreOut
-          : view.nightChoice == null
-          ? _script('night-${_public.round}').nightFalls(_public.round, online: true).map((l) => l.text).join('\n')
-          : _t.online.moveRegistered;
       center = _felt(key: const Key('online.waiting'), [
         _feltLine(
-          status,
-          key: view.nightChoice != null ? const Key('online.moveRegistered') : null,
-          size: 13,
-          maxLines: 6,
+          !view.alive
+              ? _script('night-${_public.round}').nightFalls(_public.round, online: true).map((l) => l.text).join('\n')
+              : _t.nobodyWillKnow,
+          style: FontStyle.italic,
+          maxLines: 4,
         ),
-        if (view.nightChoice != null) ...[
-          const SizedBox(height: 4),
-          _feltLine(_t.nobodyWillKnow, size: 11.5, color: Saloon.brass),
-        ],
       ]);
     } else {
       center = _felt(key: const Key('online.waiting'), [
-        Text(
-          found == null ? _t.yourInvestigation : _t.inTheGrave,
-          style: AppText.overline.copyWith(color: Saloon.brass, fontSize: AppText.overline.fontSize! * _k),
-        ),
-        const SizedBox(height: 4),
-        Text(_tag(finding.subject).toUpperCase(), style: AppText.display(24 * _k, color: AppColors.textPrimary)),
-        const SizedBox(height: 4),
-        Text(
+        _feltLine(found == null ? _t.yourInvestigation : _t.inTheGrave, color: Saloon.brass, weight: FontWeight.w700),
+        SizedBox(height: 4 * _k),
+        _feltTitle(_tag(finding.subject), maxLines: 1),
+        SizedBox(height: 4 * _k),
+        _feltTitle(
           found != null
               ? _t.wasRole(_t.role(found).label)
               : isMafia
               ? _t.isFamily
               : _t.isInnocent,
-          textAlign: TextAlign.center,
-          style: AppText.display(18 * _k, color: isMafia ? Saloon.mafia : Saloon.clean),
+          color: isMafia ? Saloon.mafia : Saloon.clean,
+          maxLines: 2,
         ),
       ]);
     }
     return (
       key: const Key('online.night'),
-      table: _table(players: _secretTable(), selected: finding?.subject, center: center),
-      strip: pending == null ? const SizedBox.shrink() : ScrimText(pending),
+      table: _table(players: _secretTable(), selected: finding?.subject, center: center, day: false),
+      strip: ActionStrip(
+        status: !view.alive ? _t.online.youAreOut : _ts.nightRunsOut,
+        statusKey: view.nightChoice != null ? const Key('online.moveRegistered') : null,
+        tone: !view.alive ? StripTone.out : StripTone.done,
+      ),
     );
   }
   // ---------------------------------------------------------------------
@@ -1875,7 +2061,11 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   List<FrontPageLine> _printed(List<ScriptLine> lines) => [for (final l in lines) (text: l.text, fact: l.isFact)];
 
-  _Phase _waitingPhaseFor(Key key) => (key: key, table: _connectingView(), strip: const SizedBox.shrink());
+  _Phase _waitingPhaseFor(Key key) => (
+    key: key,
+    table: _connectingView(),
+    strip: ActionStrip(status: _t.online.startingSoon, tone: StripTone.wait),
+  );
 
   _Phase _dawnPhase() {
     final dawn = _public.lastDawn;
@@ -1885,7 +2075,11 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     final (:headline, :dead) = dawnHeadline(dawn, italian: _italian, everyoneAlive: _t.everyoneAlive);
     return (
       key: const Key('online.dawn'),
-      strip: _readyButton(compact: true),
+      strip: ActionStrip(
+        status: _readyStatus(_ts.readTheNews),
+        tone: _readyTone,
+        actions: [?_readyAction()],
+      ),
       table: _deskPaper(FrontPage(
         key: ValueKey('front-dawn-${dawn.round}'),
         compact: !_deskMode,
@@ -1914,8 +2108,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   /// Il verdetto, sul tavolo: tutti hanno appena visto il voto, quindi
   /// niente film. Il posto del condannato fa il linciaggio sul posto e poi
-  /// mostra la carta, se la piazza l'ha vista; sopra, il titolo della sera,
-  /// il racconto e lo scrutinio in poche righe.
+  /// mostra la carta, se la piazza l'ha vista. Le mani restano puntate
+  /// finché il linciaggio non finisce, poi si ritirano e il panno resta
+  /// libero per il titolo; i pizzini dicono ancora chi ha votato chi.
   _Phase _verdictPhase() {
     final report = _public.lastLynch;
     if (report == null) return _waitingPhaseFor(const Key('online.verdict'));
@@ -1923,50 +2118,57 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     final role = report.role;
     final headline = lynchHeadline(report, italian: _italian, tag: _tag, roleLabel: (r) => _t.role(r).label);
     final story = [for (final line in _script('lynch-${report.round}').lynch(report)) line.text].join(' ');
-    final tally = [for (final vote in _lastVotes) '${_tag(vote.voter)} → ${_short(vote.target)}'].join('  ·  ');
     final film = _stage == Stage.verdictFilm;
     final into = film ? _client.elapsed : LynchMark.length;
     return (
       key: const Key('online.verdict'),
       table: _table(
         players: publicSeating(_public.seats),
-        // Le mani del voto restano puntate finché il linciaggio non finisce.
         votes: _lastVotes,
+        hands: film,
+        accusing: false,
         lynched: condemned,
         lynchedAt: into < Duration.zero ? Duration.zero : into,
         center: _felt([
-          _feltLine(
+          _feltTitle(
             headline,
             key: const Key('online.verdictHeadline'),
-            size: 15,
-            weight: FontWeight.w800,
             color: role == null ? Saloon.brass : Color.lerp(stampColorFor(role), Colors.white, 0.45)!,
-            maxLines: 3,
           ),
           if (story.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            _feltLine(story, key: const Key('online.verdictStory'), size: 12, maxLines: 5),
+            SizedBox(height: 4 * _k),
+            _feltLine(story, key: const Key('online.verdictStory'), style: FontStyle.italic, maxLines: 3),
           ],
         ]),
       ),
-      strip: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (tally.isNotEmpty)
-            Padding(
-              padding: EdgeInsets.only(bottom: 4 * _k),
-              child: Text(
-                tally,
-                key: const Key('online.verdictVotes'),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppText.body.copyWith(color: Saloon.brass, fontSize: 11.5 * _k),
-              ),
-            ),
-          if (!film) _readyButton(compact: true),
-        ],
+      strip: ActionStrip(
+        status: _verdictTally(),
+        statusKey: const Key('online.verdictVotes'),
+        tone: film || !_view.alive ? StripTone.out : (_acked ? StripTone.wait : StripTone.done),
+        actions: [if (!film) ?_readyAction()],
       ),
     );
+  }
+
+  /// Lo scrutinio in una riga: quanti voti a chi, dal più votato, e quanti
+  /// si sono astenuti. Chi ha votato chi lo dicono i pizzini sul tavolo.
+  String _verdictTally() {
+    final counts = <Player, int>{};
+    var abstained = 0;
+    for (final vote in _lastVotes) {
+      final target = vote.target;
+      if (target == null) {
+        abstained++;
+      } else {
+        counts[target] = (counts[target] ?? 0) + (vote.voter == _public.mayor ? 2 : 1);
+      }
+    }
+    final order = counts.keys.toList()..sort((a, b) => counts[b]!.compareTo(counts[a]!));
+    final parts = [
+      for (final target in order) '${_tag(target)}: ${_t.online.votesFor(counts[target]!)}',
+      if (abstained > 0) _ts.abstainedVotes(abstained),
+    ];
+    return parts.isEmpty ? _t.online.verdictWaiting : parts.join('  ·  ');
   }
 
   // ---------------------------------------------------------------------
@@ -1980,15 +2182,30 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     return null;
   }
 
-  _Phase _discussionPhase() => (
-    key: const Key('online.discussion'),
-    table: _table(
-      players: publicSeating(_public.seats),
-      center: _felt([_feltLine(_t.online.discussionHint, size: 12.5, maxLines: 5)]),
-    ),
-    strip: _readyButton(compact: true),
-  );
+  /// La discussione: sul panno il titolo dell'alba (chi è morto stanotte),
+  /// sotto «pronto» per andare al voto.
+  _Phase _discussionPhase() {
+    final dawn = _public.lastDawn;
+    final headline = dawn == null || dawn.round != _public.round
+        ? null
+        : dawnHeadline(dawn, italian: _italian, everyoneAlive: _t.everyoneAlive).headline;
+    final silenced = _view.alive && _view.silenced;
+    return (
+      key: const Key('online.discussion'),
+      table: _table(
+        players: publicSeating(_public.seats),
+        center: headline == null ? null : _felt([_feltTitle(headline, maxLines: 2)]),
+      ),
+      strip: ActionStrip(
+        status: silenced && !_acked ? _t.online.chatSilenced : _readyStatus(_t.online.discussionHint),
+        tone: silenced && !_acked ? StripTone.muted : _readyTone,
+        actions: [?_readyAction()],
+      ),
+    );
+  }
 
+  /// Il voto: si tocca chi condannare (il voto parte subito e si cambia
+  /// toccando un altro), o ci si astiene. Il Sindaco può rivelarsi.
   _Phase _votePhase() {
     final view = _view;
     final option = view.action;
@@ -1997,10 +2214,24 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       for (final vote in votes)
         if (vote.voter == view.seat) vote,
     ].firstOrNull;
-    final canVote = option != null && _open && !_client.busy;
+    final canVote = option != null && _open;
     final selected = mine?.target;
     final cast = votes.length;
     final alive = _public.alive.length;
+    final String status;
+    final StripTone tone;
+    Key? statusKey;
+    if (!view.alive || option == null) {
+      status = _t.online.youAreOut;
+      tone = StripTone.out;
+    } else if (mine == null) {
+      status = _t.online.voteHint;
+      tone = StripTone.act;
+    } else {
+      status = mine.target == null ? _ts.abstained : _ts.votedFor(_tag(mine.target!));
+      statusKey = const Key('online.myVote');
+      tone = StripTone.done;
+    }
     return (
       key: const Key('online.vote'),
       table: _table(
@@ -2014,80 +2245,56 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         selected: selected,
         onTap: (player) => _send(DayVote(view.seat.id, player.id)),
         votes: votes,
-        center: _felt([
-          _feltLine(view.alive ? _t.online.voteHint : _t.online.youAreOut, size: 12.5, maxLines: 4),
-          if (_public.mayor case final mayor?) ...[
-            const SizedBox(height: 4),
-            _feltLine(
-              _t.pack.mayorRevealed.replaceAll('{name}', _tag(mayor)),
-              key: const Key('online.mayor'),
-              color: Saloon.brass,
-              size: 12.5,
-              weight: FontWeight.w700,
-            ),
-          ],
-        ]),
+        center: _public.mayor == null
+            ? null
+            : _felt([
+                _feltLine(
+                  _t.pack.mayorRevealed.replaceAll('{name}', _tag(_public.mayor!)),
+                  key: const Key('online.mayor'),
+                  color: Saloon.brass,
+                  weight: FontWeight.w700,
+                ),
+              ]),
       ),
-      strip: Container(
-        padding: _deskMode ? const EdgeInsets.fromLTRB(24, 10, 10, 10) : const EdgeInsets.fromLTRB(12, 6, 6, 6),
-        decoration: Saloon.scrim(radius: 12 * _k),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.how_to_vote, size: 14 * _k, color: cast > 0 ? Saloon.blood : const Color(0xFF4A423C)),
-                      SizedBox(width: 6 * _k),
-                      Flexible(
-                        child: Text(
-                          _t.online.votesCast(cast, alive),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppText.overline.copyWith(color: AppColors.textPrimary, fontSize: 11 * _k),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (mine != null)
-                    Text(
-                      mine.target == null ? _t.online.abstained : _t.online.votedFor(_tag(mine.target!)),
-                      key: const Key('online.myVote'),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppText.body.copyWith(color: Saloon.brass, fontSize: 13 * _k, fontWeight: FontWeight.w700),
-                    ),
-                ],
-              ),
+      strip: ActionStrip(
+        status: status,
+        statusKey: statusKey,
+        tone: tone,
+        count: '$cast/$alive',
+        countTooltip: _t.online.votesCast(cast, alive),
+        actions: [
+          if (option != null && option.canReveal)
+            NoirAction(
+              key: const Key('online.revealMayor'),
+              label: _ts.revealMayor,
+              onPressed: canVote ? _revealMayor : null,
             ),
-            if (option != null && option.canReveal) ...[
-              SizedBox(width: 6 * _k),
-              NoirButton(
-                key: const Key('online.revealMayor'),
-                compact: true,
-                label: _t.revealAsMayor,
-                onPressed: canVote ? () => _send(RevealMayor(view.seat.id)) : null,
-              ),
-            ],
-            if (option != null) ...[
-              SizedBox(width: 6 * _k),
-              NoirButton(
-                key: const Key('online.abstain'),
-                compact: true,
-                kind: NoirButtonKind.brass,
-                label: _t.online.abstain,
-                onPressed: canVote && mine?.target != null || canVote && mine == null
-                    ? () => _send(Pass(view.seat.id))
-                    : null,
-              ),
-            ],
-          ],
-        ),
+          if (option != null)
+            NoirAction(
+              key: const Key('online.abstain'),
+              label: _t.online.abstain,
+              onPressed: canVote && (mine == null || mine.target != null) ? () => _send(Pass(view.seat.id)) : null,
+            ),
+        ],
       ),
     );
+  }
+
+  /// Rivelarsi Sindaco non si disfa: prima si chiede.
+  Future<void> _revealMayor() async {
+    final stage = _window?.key;
+    final yes = await confirmNoir(
+      context,
+      key: const Key('online.askMayor'),
+      title: _ts.revealMayorTitle,
+      body: _ts.revealMayorBody,
+      cancel: _ts.cancel,
+      confirm: _ts.revealMayor,
+      cancelKey: const Key('online.cancel'),
+      confirmKey: const Key('online.confirm'),
+    );
+    if (!yes || !mounted || _window?.key != stage || !_open) return;
+    await _send(RevealMayor(_view.seat.id));
   }
 
   // ---------------------------------------------------------------------
@@ -2141,42 +2348,36 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
             ],
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         Expanded(
           child: LayoutBuilder(
             builder: (context, box) {
               const columns = 3;
-              final width = (box.maxWidth - 24) / columns * 0.8;
+              const gap = 8.0;
+              final cell = (box.maxWidth - gap * (columns - 1)) / columns;
               return SingleChildScrollView(
                 child: Wrap(
                   alignment: WrapAlignment.center,
-                  spacing: 12,
-                  runSpacing: 30,
+                  spacing: gap,
+                  runSpacing: 24,
                   children: [
                     for (final player in players)
                       SizedBox(
-                        width: (box.maxWidth - 24) / columns,
+                        width: cell,
                         child: Column(
                           children: [
                             SeatCard(
                               name: player.name,
                               number: _numberOf(player),
-                              width: width,
+                              width: cell * 0.78,
                               fallen: !_isAlive(player),
                               me: player == _view.seat,
                               selected: _public.won(player),
-                              note: _t.role(roles[player]!).label,
+                              role: roles[player],
                               noteColor: roles[player]!.team == Team.mafia ? Saloon.mafia : Saloon.brass,
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _public.personalWins.contains(player)
-                                  ? '${_t.wonAlone}\n${_fateOf(player)}'
-                                  : _fateOf(player),
-                              textAlign: TextAlign.center,
-                              maxLines: 2,
-                              style: AppText.body.copyWith(color: const Color(0xFFD8CCBE), fontSize: 11.5, height: 1.2),
-                            ),
+                            const SizedBox(height: 8),
+                            _castLine(player, roles[player]!),
                           ],
                         ),
                       ),
@@ -2186,28 +2387,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
             },
           ),
         ),
-        const SizedBox(height: 10),
-        if (_public.recap case final recap?) ...[
-          SizedBox(
-            width: double.infinity,
-            child: NoirButton(
-              key: const Key('online.recap'),
-              kind: NoirButtonKind.brass,
-              label: RecapStrings.of(context).open,
-              onPressed: () => showGameRecap(context, recap, me: _view.seat),
-            ),
-          ),
-          const SizedBox(height: 8),
-        ],
-        SizedBox(
-          width: double.infinity,
-          child: NoirButton(
-            key: const Key('online.backToRoom'),
-            label: _t.online.backToRoom,
-            feel: Press.confirm,
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ),
+        const SizedBox(height: 16),
+        NoirActions(actions: _endActions()),
+        const SizedBox(height: 8),
       ],
     );
   }
@@ -2261,3 +2443,4 @@ class _RevealIntroState extends State<_RevealIntro> with SingleTickerProviderSta
         : KeyedSubtree(key: const ValueKey('arrive'), child: widget.table(_arrival)),
   );
 }
+

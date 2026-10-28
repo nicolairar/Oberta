@@ -7,6 +7,7 @@ import 'package:oberta/settings/settings_store.dart';
 import 'package:oberta/tutorial/tutorial_story.dart';
 import 'package:oberta/ui/screens/online/game/noir_role_card.dart';
 import 'package:oberta/ui/screens/tutorial_screen.dart';
+import 'package:oberta/ui/widgets/noir_modal.dart';
 
 import '../support/desktop_shots.dart';
 import '../support/languages.dart';
@@ -14,7 +15,7 @@ import '../support/languages.dart';
 bool _enabled(WidgetTester tester, Finder finder) {
   if (finder.evaluate().isEmpty) return false;
   final widget = tester.widget(finder.last);
-  final onPressed = (widget as dynamic).onPressed;
+  final onPressed = widget is NoirModalButton ? widget.action.onPressed : (widget as dynamic).onPressed;
   return onPressed != null;
 }
 

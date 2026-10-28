@@ -130,14 +130,14 @@ class ChatDock extends StatelessWidget {
                         const SizedBox(width: 8),
                         Flexible(
                           child: Text(view.note!, maxLines: 1, overflow: TextOverflow.ellipsis,
-                              style: AppText.body.copyWith(fontSize: 11, color: AppColors.textSecondary)),
+                              style: AppText.body.copyWith(fontSize: 13, color: AppColors.textSecondary)),
                         ),
                       ],
                     ],
                   ),
                   const SizedBox(height: 4),
                   if (last.isEmpty)
-                    Text(labels.empty, style: AppText.body.copyWith(fontSize: 13, fontStyle: FontStyle.italic))
+                    Text(labels.empty, style: AppText.body.copyWith(fontSize: 15, fontStyle: FontStyle.italic))
                   else
                     for (final message in last) _Line(message, mine: message.profileId == myId, accent: view.accent, seats: seats, maxLines: 1),
                 ],
@@ -200,7 +200,7 @@ class _Line extends StatelessWidget {
   final double fontSize;
 
   const _Line(this.message,
-      {required this.mine, required this.accent, required this.seats, this.maxLines, this.fontSize = 14.5});
+      {required this.mine, required this.accent, required this.seats, this.maxLines, this.fontSize = 15});
 
   @override
   Widget build(BuildContext context) {
@@ -366,7 +366,7 @@ class _ChatLogState extends State<ChatLog> {
     // Sul desktop: testi da 1080p, una riga sola (INVIO manda), il tasto
     // destro su un messaggio per segnalarlo.
     final desk = NoirDesk.of(context);
-    final small = desk ? 16.0 : 13.0;
+    final small = desk ? 16.0 : 14.0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -386,7 +386,7 @@ class _ChatLogState extends State<ChatLog> {
           ),
         Expanded(
           child: messages.isEmpty
-              ? Center(child: Text(widget.labels.empty, style: AppText.body.copyWith(fontSize: desk ? 18 : 13, fontStyle: FontStyle.italic)))
+              ? Center(child: Text(widget.labels.empty, style: AppText.body.copyWith(fontSize: desk ? 19 : 15, fontStyle: FontStyle.italic)))
               : ListView.builder(
                   key: const Key('chat.messages'),
                   reverse: true,
@@ -396,7 +396,7 @@ class _ChatLogState extends State<ChatLog> {
                     final message = messages[messages.length - 1 - index];
                     final mine = message.profileId == widget.myId;
                     final line = _Line(message,
-                        mine: mine, accent: view.accent, seats: widget.seats, fontSize: desk ? 19 : 14.5);
+                        mine: mine, accent: view.accent, seats: widget.seats, fontSize: desk ? 19 : 15);
                     final hold = widget.onHold;
                     if (mine || hold == null || message.event != null) return line;
                     return GestureDetector(
@@ -421,7 +421,7 @@ class _ChatLogState extends State<ChatLog> {
             padding: EdgeInsets.symmetric(horizontal: desk ? 20 : 12, vertical: desk ? 16 : 8),
             decoration: Saloon.scrim(radius: 10),
             child: Text(note, key: const Key('chat.note'), textAlign: TextAlign.center,
-                style: AppText.body.copyWith(color: AppColors.textPrimary, fontSize: desk ? 17 : 13.5, height: 1.35)),
+                style: AppText.body.copyWith(color: AppColors.textPrimary, fontSize: desk ? 19 : 15, height: 1.35)),
           )
         else
           Container(

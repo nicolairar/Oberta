@@ -94,11 +94,61 @@ void main() {
       expect(errorOf(engine.apply(MafiaVote(boss.id, anna.id))), IntentError.wrongPhase);
     });
 
-    test('una mossa a notte', () {
-      final engine = fullTable();
+    test('di notte si cambia idea fino all\'alba: conta l\'ultima scelta', () {
+      final engine = fullTable(seed: 3);
       expect(engine.apply(NightAction(doctor.id, anna.id)).accepted, isTrue);
-      expect(errorOf(engine.apply(NightAction(doctor.id, bruno.id))), IntentError.alreadyActed);
-      expect(errorOf(engine.apply(Pass(doctor.id))), IntentError.alreadyActed);
+      expect(engine.viewFor(doctor.id).action?.current, anna, reason: 'la scelta resta aperta, e si vede');
+      expect(engine.apply(NightAction(doctor.id, bruno.id)).accepted, isTrue);
+      expect(engine.apply(Pass(doctor.id)).accepted, isTrue);
+      expect(engine.nightChoices[doctor]?.target, isNull);
+      expect(engine.apply(NightAction(doctor.id, anna.id)).accepted, isTrue);
+      // La famiglia vede le scelte di tutti, anche quando cambiano.
+      expect(engine.apply(MafiaVote(boss.id, bruno.id)).accepted, isTrue);
+      expect(engine.apply(MafiaVote(picciotto.id, bruno.id)).accepted, isTrue);
+      expect(engine.apply(MafiaVote(boss.id, anna.id)).accepted, isTrue);
+      expect(
+        {for (final vote in engine.viewFor(picciotto.id).familyVotes) vote.voter: vote.target},
+        {boss: anna, picciotto: bruno},
+      );
+      expect(engine.apply(MafiaVote(picciotto.id, anna.id)).accepted, isTrue);
+      // Una mossa sbagliata non cancella quella buona.
+      expect(errorOf(engine.apply(NightAction(doctor.id, 'nessuno'))), IntentError.targetNotAllowed);
+      expect(engine.nightChoices[doctor]?.target, anna);
+      passTheRest(engine);
+      final dawn = engine.resolveNight();
+      expect(dawn.victims, isEmpty, reason: 'il Dottore ha protetto Anna, la sua ultima scelta');
+    });
+
+    test('l\'indagine e lo scavo rispondono subito: poi la scelta è chiusa', () {
+      final engine = fullTable();
+      expect(engine.apply(Pass(detective.id)).accepted, isTrue, reason: 'passare non dà risposte');
+      expect(engine.viewFor(detective.id).action, isNotNull);
+      expect(engine.apply(NightAction(detective.id, boss.id)).accepted, isTrue);
+      expect(engine.viewFor(detective.id).action, isNull);
+      expect(errorOf(engine.apply(NightAction(detective.id, anna.id))), IntentError.alreadyActed);
+      expect(errorOf(engine.apply(Pass(detective.id))), IntentError.alreadyActed);
+    });
+
+    test('cambiare la mossa di copertura non lascia sospetti in giro', () {
+      final engine = fullTable();
+      expect(engine.apply(NightAction(anna.id, boss.id)).accepted, isTrue);
+      expect(engine.apply(NightAction(anna.id, bruno.id)).accepted, isTrue);
+      expect(engine.suspicion, {bruno: 1});
+      expect(engine.apply(Pass(anna.id)).accepted, isTrue);
+      expect(engine.suspicion, isEmpty);
+    });
+
+    test('chi cambia idea si rigioca uguale dal registro', () {
+      final engine = GameEngine(fullTable().setup, seed: 11);
+      engine.apply(NightAction(doctor.id, anna.id));
+      engine.apply(NightAction(doctor.id, bruno.id));
+      engine.apply(MafiaVote(boss.id, anna.id));
+      engine.apply(MafiaVote(boss.id, doctor.id));
+      passTheRest(engine, {picciotto.id: MafiaVote(picciotto.id, doctor.id)});
+      engine.resolveNight();
+      final copy = GameEngine.replay(engine.setup, seed: 11, log: engine.log);
+      expect(copy.alivePlayers, engine.alivePlayers);
+      expect(copy.isAlive(doctor), isFalse);
     });
 
     test('ognuno fa la mossa del suo ruolo', () {

@@ -223,7 +223,8 @@ void main() {
       await bruno.send(Pass(seat));
       await settle();
       expect(bruno.takeRejection(), isNull, reason: 'la risposta del server conferma la mossa');
-      expect(bruno.seat!.view.action, isNull, reason: option.type.name);
+      expect(bruno.seat!.view.nightChoice, isNotNull, reason: option.type.name);
+      expect(bruno.seat!.view.action, isNotNull, reason: 'fino allo scadere la scelta si può cambiare');
 
       await online.gameAs('bruno').sendRaw(room.id, {'type': 'magia', 'seat': seat});
       await settle();

@@ -302,7 +302,57 @@ void main() {
     server.step();
     expect(((server.seatView('s1')['receipt'] as Map)['result'] as Map)['ok'], isTrue,
         reason: 'la risposta del server è la conferma della mossa');
-    expect((server.seatView('s1')['view'] as Map)['action'], isNull);
+    expect((server.seatView('s1')['view'] as Map)['nightChoice'], isNotNull, reason: 'il passo è registrato');
+  });
+
+  test('di notte si cambia scelta fino alla scadenza, e la famiglia vede le scelte di tutti', () {
+    final server = ServerHarness(table(humans: 7, bots: 0), seed: 4);
+    server.step();
+    server.now = server.last['nextDue'] as int;
+    server.step();
+    expect(server.stage, Stage.night);
+    PlayerView view(String seat) => PlayerView.fromJson(server.seatView(seat)['view'] as Map<String, Object?>);
+    final seats = (server.last['seatViews'] as Map).keys.cast<String>().toList();
+    final family = [
+      for (final seat in seats)
+        if (view(seat).action?.type == ActionType.mafiaVote) seat,
+    ];
+    expect(family.length, greaterThanOrEqualTo(2), reason: 'a sette, la famiglia è almeno in due');
+    final boss = family.first;
+    final targets = [
+      for (final p in view(boss).action!.targets)
+        if (!family.contains(p.id)) p,
+    ];
+    server.send(boss, MafiaVote(boss, targets[0].id).toJson());
+    server.step();
+    expect({for (final v in view(family[1]).familyVotes) v.voter.id: v.target?.id}, {boss: targets[0].id});
+    // Cambia idea: la mano si sposta, la scelta resta aperta.
+    server.send(boss, MafiaVote(boss, targets[1].id).toJson());
+    server.step();
+    expect({for (final v in view(family[1]).familyVotes) v.voter.id: v.target?.id}, {boss: targets[1].id});
+    expect(view(boss).action?.current?.id, targets[1].id);
+    // Tutti scelgono: la notte non chiude prima del tempo.
+    for (final seat in seats) {
+      if (seat == boss) continue;
+      final option = view(seat).action;
+      if (option == null) continue;
+      server.send(seat, (option.type == ActionType.mafiaVote ? MafiaVote(seat, targets[1].id) : Pass(seat)).toJson());
+    }
+    server.step();
+    final ends = server.schedule['endsAt'] as int;
+    server.now = ends - 1;
+    server.step();
+    expect(server.stage, Stage.night, reason: 'la notte dura fino alla scadenza');
+    expect(view(boss).action, isNotNull, reason: 'fino all\'ultimo si può cambiare');
+    for (var i = 0; i < 20 && server.stage == Stage.night; i++) {
+      server.now = max(server.now + 1, server.last['nextDue'] as int);
+      server.step();
+    }
+    expect(server.stage, isNot(Stage.night));
+    final dawn = (server.board['board'] as Map)['lastDawn'] as Map;
+    final hit = [for (final a in dawn['attacks'] as List) a['target']];
+    expect(hit.contains(targets[0].id), isFalse, reason: 'conta l\'ultima scelta, non la prima');
+    expect(server.leaks, isEmpty);
   });
 
   test('la risposta riporta il segno casuale della mossa, mai il suo numero d\'ordine', () {

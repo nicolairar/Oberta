@@ -519,6 +519,30 @@ class GameEngine {
 
   bool get nightComplete => _phase == GamePhase.night && pendingNightPlayers.isEmpty;
 
+  /// La scelta di stanotte di [actor] non si cambia più: un'indagine o uno
+  /// scavo hanno già dato la risposta. Ogni altra scelta (anche «passo») si
+  /// può cambiare fino a quando la notte si chiude.
+  bool nightChoiceLocked(Player actor) {
+    final choice = _choices[actor];
+    return choice != null && choice.target != null && choice.kind.immediate;
+  }
+
+  /// Ritira la scelta di stanotte di [actor], per sostituirla: anche il
+  /// sospetto di una mossa di copertura torna indietro.
+  void _retractNightChoice(Player actor) {
+    final choice = _choices.remove(actor);
+    if (choice == null) return;
+    final target = choice.target;
+    if (choice.kind == NightTaskKind.decoy && target != null) {
+      final left = (_suspicion[target] ?? 0) - 1;
+      if (left > 0) {
+        _suspicion[target] = left;
+      } else {
+        _suspicion.remove(target);
+      }
+    }
+  }
+
   NightTask taskFor(Player actor) {
     _require(GamePhase.night);
     if (!isAlive(actor)) throw StateError('${actor.name} non è più in gioco');
@@ -1006,7 +1030,8 @@ class GameEngine {
     if (intent is DayVote || intent is RevealMayor) {
       return const IntentRejected(IntentError.wrongPhase, 'di notte la piazza non vota');
     }
-    if (_choices.containsKey(actor)) {
+    // Si cambia idea fino alla fine della notte, tranne dopo una risposta.
+    if (nightChoiceLocked(actor)) {
       return IntentRejected(IntentError.alreadyActed, '${actor.id} ha già fatto la sua mossa stanotte');
     }
     final task = taskFor(actor);
@@ -1040,6 +1065,7 @@ class GameEngine {
         return IntentRejected(IntentError.targetNotAllowed, '${actor.id} non può scegliere $targetSeat');
       }
     }
+    _retractNightChoice(actor);
     return IntentAccepted(submitNightChoice(actor, target, alternative: alternative));
   }
 
@@ -1155,12 +1181,15 @@ class GameEngine {
     if (!isAlive(viewer)) return null;
     switch (_phase) {
       case GamePhase.night:
-        if (_choices.containsKey(viewer)) return null;
+        // Fino all'alba la scelta resta aperta (con quella fatta in
+        // [ActionOption.current]); dopo una risposta immediata, no.
+        if (nightChoiceLocked(viewer)) return null;
         final task = taskFor(viewer);
         return ActionOption(
           type: task.kind == NightTaskKind.kill ? ActionType.mafiaVote : ActionType.nightAction,
           kind: task.kind,
           targets: task.targets,
+          current: _choices[viewer]?.target,
           alternative: task.alternative,
           alternativeTargets: task.alternative == null || task.alternativeTargets == task.targets
               ? null
@@ -1186,6 +1215,12 @@ class GameEngine {
       throw StateError('mossa non valida: la fase è ${_phase.name}, non ${expected.name}');
     }
   }
+}
+
+extension NightTaskTiming on NightTaskKind {
+  /// La mossa dà la sua risposta subito, a chi la fa (l'indagine, lo
+  /// scavo): per questo si conferma, e poi non si cambia.
+  bool get immediate => this == NightTaskKind.investigate || this == NightTaskKind.dig;
 }
 
 extension NightTaskVisits on NightTaskKind {

@@ -6,9 +6,10 @@ import '../../../rules/game_engine.dart';
 import '../../../rules/game_recap.dart';
 import '../../../rules/player.dart';
 import '../../../rules/role.dart';
+import '../../press.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/player_avatar.dart';
-import 'game/noir_ui.dart';
+import '../../widgets/noir_modal.dart';
 
 /// The recap of the last online game seen, so the results screen (which
 /// opens after the table closes) can offer it too.
@@ -76,10 +77,14 @@ class RecapScreen extends StatelessWidget {
     final timeline = _Timeline(recap: recap, k: k);
     final close = SizedBox(
       width: wide ? 260 : double.infinity,
-      child: NoirButton(
+      child: NoirModalButton(
         key: const Key('recap.close'),
-        label: r.close,
-        onPressed: () => Navigator.of(context).pop(),
+        action: NoirAction(
+          label: r.close,
+          style: NoirButtonStyle.primary,
+          feel: Press.back,
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
     );
     return Scaffold(
@@ -191,7 +196,7 @@ class _Masthead extends StatelessWidget {
           textAlign: TextAlign.center,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: _serif(9.5 * k, spacing: 1.6),
+          style: _serif(11 * k, spacing: 1.6),
         ),
         const _Rule(),
         const SizedBox(height: 6),
@@ -224,7 +229,7 @@ class _Heading extends StatelessWidget {
           child: Text(
             text.toUpperCase(),
             maxLines: 2,
-            style: _serif(13 * k, weight: FontWeight.w700, spacing: 2),
+            style: _serif(15 * k, weight: FontWeight.w700, spacing: 2),
           ),
         ),
         const SizedBox(width: 8),
@@ -268,14 +273,14 @@ class _Cast extends StatelessWidget {
                         entry.key == me ? '${entry.key.name} (${r.you})' : entry.key.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: _serif(14.5 * k, weight: FontWeight.w700),
+                        style: _serif(16 * k, weight: FontWeight.w700),
                       ),
                       Text(
                         '${t.role(entry.value).label} · ${r.team(entry.value.team)} · '
                         '${exits.contains(entry.key) ? r.left : recap.survivors.contains(entry.key) ? r.survived : r.fell}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: _serif(12 * k, color: _teamColor(entry.value.team), italic: true),
+                        style: _serif(14 * k, color: _teamColor(entry.value.team), italic: true),
                       ),
                     ],
                   ),
@@ -286,7 +291,7 @@ class _Cast extends StatelessWidget {
                     decoration: BoxDecoration(border: Border.all(color: _red, width: 1.6)),
                     child: Text(
                       recap.personalWins.contains(entry.key) ? r.wonAlone : r.won,
-                      style: _serif(10 * k, color: _red, weight: FontWeight.w700, spacing: 1.2),
+                      style: _serif(12 * k, color: _red, weight: FontWeight.w700, spacing: 1.2),
                     ),
                   ),
               ],
@@ -318,7 +323,7 @@ class _Timeline extends StatelessWidget {
         children: [
           Padding(padding: EdgeInsets.only(top: 2 * k), child: Icon(icon, size: 13 * k, color: color)),
           SizedBox(width: 5 * k),
-          Expanded(child: Text(text, style: _serif(13 * k, color: color, weight: bold ? FontWeight.w700 : FontWeight.w400))),
+          Expanded(child: Text(text, style: _serif(15 * k, color: color, weight: bold ? FontWeight.w700 : FontWeight.w400))),
         ],
       ),
     );
@@ -381,13 +386,13 @@ class _Timeline extends StatelessWidget {
                     padding: EdgeInsets.symmetric(horizontal: 6 * k, vertical: 2 * k),
                     decoration: BoxDecoration(border: Border.all(color: const Color(0x881C140E))),
                     child: vote.target == null
-                        ? Text('${vote.voter.name} ${r.abstained}', style: _serif(11.5 * k, color: _faded, italic: true))
+                        ? Text('${vote.voter.name} ${r.abstained}', style: _serif(14 * k, color: _faded, italic: true))
                         : Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(vote.voter.name, style: _serif(11.5 * k)),
-                              Icon(Icons.arrow_right_alt, size: 14 * k, color: _red),
-                              Text(vote.target!.name, style: _serif(11.5 * k, weight: FontWeight.w700)),
+                              Text(vote.voter.name, style: _serif(14 * k)),
+                              Icon(Icons.arrow_right_alt, size: 16 * k, color: _red),
+                              Text(vote.target!.name, style: _serif(14 * k, weight: FontWeight.w700)),
                             ],
                           ),
                   ),

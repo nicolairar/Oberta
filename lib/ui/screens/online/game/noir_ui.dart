@@ -215,8 +215,10 @@ class ScrimText extends StatelessWidget {
   }
 }
 
-/// Il cartiglio in cima: il giorno (o la notte), la fase in un nastro
-/// smaltato, il cronometro grande. Tutto su legno scuro.
+/// Il cartiglio in cima: il giorno (o la notte) al centro, la fase in una
+/// riga sotto, a sinistra l'uscita, a destra il mazzo e il cronometro.
+/// Sempre alto uguale, col titolo sempre al centro: i due lati hanno la
+/// stessa larghezza.
 class StageHeader extends StatelessWidget {
   final String title;
   final String? ribbon;
@@ -227,6 +229,9 @@ class StageHeader extends StatelessWidget {
   /// Un bottone a destra, prima dell'orologio (il foglio dei ruoli).
   final Widget? action;
 
+  /// Al posto dell'orologio, quando non corre (la mano di prova).
+  final Widget? corner;
+
   const StageHeader({
     super.key,
     required this.title,
@@ -235,14 +240,19 @@ class StageHeader extends StatelessWidget {
     this.urgent = false,
     this.leading,
     this.action,
+    this.corner,
   });
+
+  static const height = 56.0;
+
+  /// Ogni lato è largo così: un pulsante da 48 e l'orologio.
+  static const _side = 124.0;
 
   @override
   Widget build(BuildContext context) {
-    // Sempre alta così, con o senza il nastro: la pagina sotto non si muove.
     return Container(
-      height: 58,
-      padding: const EdgeInsets.fromLTRB(4, 3, 12, 5),
+      height: height,
+      padding: const EdgeInsets.symmetric(horizontal: 4),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -252,37 +262,42 @@ class StageHeader extends StatelessWidget {
         ),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          SizedBox(width: 44, child: leading),
+          SizedBox(
+            width: _side,
+            child: Row(
+              children: [
+                if (leading case final leading?) SizedBox(width: 48, height: 48, child: Center(child: leading)),
+              ],
+            ),
+          ),
           Expanded(
             child: FittedBox(
               fit: BoxFit.scaleDown,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(width: 22, height: 1.2, color: Saloon.brass),
-                        const SizedBox(width: 10),
-                        Text(title.toUpperCase(), maxLines: 1, style: Saloon.plate(22)),
-                        const SizedBox(width: 10),
-                        Container(width: 22, height: 1.2, color: Saloon.brass),
-                      ],
-                    ),
-                  ),
-                  if (ribbon != null) ...[const SizedBox(height: 4), _Ribbon(ribbon!)],
+                  Text(title.toUpperCase(), maxLines: 1, style: Saloon.plate(22)),
+                  if (ribbon != null) ...[const SizedBox(height: 2), _Ribbon(ribbon!)],
                 ],
               ),
             ),
           ),
-          ?action,
           SizedBox(
-            width: action == null ? 76 : 64,
-            child: countdown == null ? null : _Countdown(countdown!, urgent: urgent),
+            width: _side,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (action case final action?) SizedBox(width: 44, height: 48, child: Center(child: action)),
+                SizedBox(
+                  width: 76,
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: countdown != null ? _Countdown(countdown!, urgent: urgent) : corner,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -290,22 +305,41 @@ class StageHeader extends StatelessWidget {
   }
 }
 
+/// Un pulsante a icona del cartiglio: niente cornice, un bersaglio da 48.
+class HeaderIconButton extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback? onPressed;
+
+  const HeaderIconButton({super.key, required this.icon, required this.tooltip, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) => IconButton(
+    icon: Icon(icon, color: Saloon.brass, size: 24),
+    tooltip: tooltip,
+    constraints: const BoxConstraints.tightFor(width: 48, height: 48),
+    padding: EdgeInsets.zero,
+    onPressed: onPressed,
+  );
+}
+
+/// La fase, sotto il titolo: una riga in corsivo, come si scrive.
 class _Ribbon extends StatelessWidget {
   final String text;
 
   const _Ribbon(this.text);
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
-    decoration: BoxDecoration(
-      gradient: const LinearGradient(colors: [Saloon.enamelDeep, Saloon.enamel, Saloon.enamelDeep]),
-      borderRadius: BorderRadius.circular(4),
-      border: Border.all(color: Saloon.brass, width: 1),
-    ),
-    child: Text(
-      text.toUpperCase(),
-      style: AppText.display(12, color: const Color(0xFFFFE9C2)).copyWith(letterSpacing: 2.4),
+  Widget build(BuildContext context) => Text(
+    text,
+    maxLines: 1,
+    style: const TextStyle(
+      fontFamily: 'Georgia',
+      fontFamilyFallback: ['serif'],
+      fontSize: 14,
+      fontStyle: FontStyle.italic,
+      color: Color(0xFFE8D9B8),
+      shadows: [Shadow(color: Colors.black, blurRadius: 6)],
     ),
   );
 }
@@ -320,24 +354,25 @@ class _Countdown extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = urgent ? Saloon.blood : Saloon.brass;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+      width: 72,
+      height: 36,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: Saloon.scrim(radius: 10, border: color),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.hourglass_bottom, size: 16, color: color),
-          const SizedBox(width: 2),
+          const SizedBox(width: 4),
           Flexible(
             child: FittedBox(
               fit: BoxFit.scaleDown,
               child: Text(
                 text,
                 key: const Key('online.countdown'),
-                style: AppText.display(
-                  20,
-                  color: color,
-                ).copyWith(letterSpacing: 1, fontFeatures: const [FontFeature.tabularFigures()]),
+                style: AppText.display(18, color: color).copyWith(
+                  letterSpacing: 0.5,
+                  fontFeatures: const [FontFeature.tabularFigures(), FontFeature.liningFigures()],
+                ),
               ),
             ),
           ),

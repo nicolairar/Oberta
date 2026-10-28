@@ -159,7 +159,21 @@ class _TutorialScreenState extends State<TutorialScreen> {
       key: _stack,
       fit: StackFit.expand,
       children: [
-        OnlineGameScreen(key: _game, services: _services, room: _room, me: _me, clock: _table.clock, showClock: false),
+        OnlineGameScreen(
+          key: _game,
+          services: _services,
+          room: _room,
+          me: _me,
+          clock: _table.clock,
+          showClock: false,
+          // «Salta» sta nel cartiglio, al posto dell'orologio: non copre il tavolo.
+          corner: TextButton(
+            key: const Key('tutorial.skip'),
+            onPressed: _skip,
+            style: TextButton.styleFrom(minimumSize: const Size(48, 48), foregroundColor: AppColors.textSecondary),
+            child: Text(_s.skip, style: const TextStyle(fontSize: 15)),
+          ),
+        ),
         if (_spot case final spot?) IgnorePointer(child: CustomPaint(painter: _CoachScrim(spot.inflate(6)))),
         if (coach != null || replies.isNotEmpty)
           Positioned(
@@ -184,15 +198,6 @@ class _TutorialScreenState extends State<TutorialScreen> {
               ),
             ),
           ),
-        Positioned(
-          right: 6,
-          top: MediaQuery.paddingOf(context).top + 52,
-          child: TextButton(
-            key: const Key('tutorial.skip'),
-            onPressed: _skip,
-            child: Text(_s.skip, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-          ),
-        ),
       ],
     );
   }

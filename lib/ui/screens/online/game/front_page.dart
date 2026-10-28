@@ -94,7 +94,9 @@ class _FrontPageState extends State<FrontPage> with SingleTickerProviderStateMix
   static const _ink = Saloon.paperInk;
   double get _k => widget.scale;
 
-  TextStyle get _body => TextStyle(fontFamily: 'Georgia', color: _ink, fontSize: 13.5 * _k, height: 1.32);
+  /// Il corpo della cronaca: pieno sul telefono (15), grande su PC.
+  TextStyle get _body =>
+      TextStyle(fontFamily: 'Georgia', color: _ink, fontSize: (widget.compact ? 15 : 13.5) * _k, height: 1.32);
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
@@ -163,7 +165,7 @@ class _FrontPageState extends State<FrontPage> with SingleTickerProviderStateMix
                 textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontFamily: 'Georgia', color: _ink, fontSize: 9.5 * _k, letterSpacing: 1.6),
+                style: TextStyle(fontFamily: 'Georgia', color: _ink, fontSize: (widget.compact ? 11 : 9.5) * _k, letterSpacing: 1.2),
               ),
             ),
             const _Rule(),
@@ -185,7 +187,7 @@ class _FrontPageState extends State<FrontPage> with SingleTickerProviderStateMix
                 child: Text(
                   widget.kicker!,
                   textAlign: TextAlign.center,
-                  style: _body.copyWith(fontStyle: FontStyle.italic, fontSize: 12.5 * _k),
+                  style: _body.copyWith(fontStyle: FontStyle.italic, fontSize: (widget.compact ? 14 : 12.5) * _k),
                 ),
               ),
             const SizedBox(height: 6),

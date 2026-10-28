@@ -9,7 +9,7 @@ import 'package:oberta/ui/screens/online/online_game_screen.dart';
 import 'package:oberta/ui/screens/online/online_room_screen.dart';
 import 'package:oberta/ui/widgets/death_scene.dart';
 import 'package:oberta/ui/screens/online/game/noir_role_card.dart';
-import 'package:oberta/ui/screens/online/game/noir_ui.dart';
+import 'package:oberta/ui/widgets/noir_modal.dart';
 import 'package:oberta/ui/widgets/lynch_mark.dart';
 
 import '../support/languages.dart';
@@ -82,7 +82,7 @@ void main() {
     await hold.up();
     await tester.pump(const Duration(milliseconds: 600));
     // Prima dell'inizio comune non si conferma niente.
-    expect(tester.widget<NoirButton>(find.byKey(const Key('online.ready'))).onPressed, isNull);
+    expect(tester.widget<NoirModalButton>(find.byKey(const Key('online.ready'))).action.onPressed, isNull);
     clock.elapse(const Duration(seconds: 2));
     await flush(tester);
     await tester.tap(find.byKey(const Key('online.ready')));

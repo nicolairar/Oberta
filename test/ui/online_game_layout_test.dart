@@ -45,7 +45,7 @@ Future<void> _shoot(WidgetTester tester, Key key, String name) async {
 }
 
 void _phases() {
-  for (final size in const [Size(393, 852), Size(375, 667)]) {
+  for (final size in const [Size(393, 852), Size(375, 667), Size(430, 932)]) {
     final tag = '${size.width.toInt()}x${size.height.toInt()}';
     testWidgets('ogni fase ha lo stesso tavolo e la stessa chat ($tag)', (tester) async {
       await tester.runAsync(_fonts);
@@ -83,7 +83,7 @@ void _phases() {
       await flush(tester);
 
       const phases = {
-        'night_task': Key('online.confirm'),
+        'night_task': Key('online.pass'),
         'night_wait': Key('online.waiting'),
         'dawn': Key('online.dawn'),
         'discussion': Key('online.discussion'),
