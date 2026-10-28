@@ -456,6 +456,16 @@ class _NB {
         return flatTop(brimW: 0.68, height: 0.22);
       case AvatarHead.boater:
         return flatTop(brimW: 0.84, height: 0.2);
+      case AvatarHead.sbirro:
+        // Il berretto da sbirro: la cupola che si allarga in alto, la fascia
+        // e la visiera corta davanti.
+        final t = flatTop(brimW: 0.6, height: 0.24, flare: 1.18);
+        final visor = Path()
+          ..moveTo(cx - r * 0.9, by + h * 0.005)
+          ..quadraticBezierTo(cx, by + h * 0.1, cx + r * 0.9, by + h * 0.005)
+          ..quadraticBezierTo(cx, by + h * 0.05, cx - r * 0.9, by + h * 0.005)
+          ..close();
+        return (brim: visor, crown: t.crown, band: t.band);
       case AvatarHead.topHat:
         final t = flatTop(brimW: 0.72, height: 0.62, flare: 1.06);
         return (brim: t.brim, crown: t.crown, band: Path()..addRect(Rect.fromLTRB(cx - r * 0.97, by - h * 0.11, cx + r * 0.97, by - h * 0.01)));
@@ -564,6 +574,7 @@ class _NB {
     AvatarHead.beret => (const Color(0xFF5A1A26), const Color(0xFF3A0E16)),
     AvatarHead.cloche => (const Color(0xFF6E1626), const Color(0xFF151010)),
     AvatarHead.crown => (const Color(0xFFF2C14E), const Color(0xFFB3141E)),
+    AvatarHead.sbirro => (const Color(0xFF1B2A4A), const Color(0xFF0E0E12)),
     _ => (const Color(0xFF2A2626), const Color(0xFF0E0C0C)),
   };
 }

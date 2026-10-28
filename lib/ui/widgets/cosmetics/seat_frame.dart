@@ -162,6 +162,12 @@ class SeatFramePainter extends CustomPainter {
         _flame(canvas, rr, w);
       case SeatBorder.neonPulse:
         _pulse(canvas, rr, w);
+      case SeatBorder.badge:
+        _badge(canvas, rr, w);
+      case SeatBorder.noose:
+        _noose(canvas, rr, w);
+      case SeatBorder.laurel:
+        _laurel(canvas, rr, w);
     }
   }
 
@@ -206,6 +212,91 @@ class SeatFramePainter extends CustomPainter {
   }
 
   // ---- le cornici ----
+
+  /// Il distintivo: una fascia blu questura con il filo d'argento e la
+  /// stella a sei punte del commissario in cima.
+  void _badge(Canvas canvas, RRect rr, double w) {
+    final r = rr.outerRect;
+    canvas.drawRRect(rr, _stroke(w * 1.05, color: const Color(0xFF14213D)));
+    final silver = _metal(r, const [Color(0xFF8C9298), Color(0xFFF4F7FA), Color(0xFFA9B0B8), Color(0xFFFFFFFF), Color(0xFF7E848A)]);
+    canvas.drawRRect(rr.inflate(w * 0.5), _stroke(w * 0.14, shader: silver));
+    canvas.drawRRect(rr.deflate(w * 0.5), _stroke(w * 0.14, shader: silver));
+    for (final tan in _along(rr, w * 2.4, phase: 0.5)) {
+      canvas.drawCircle(tan.position, w * 0.12, Paint()..color = const Color(0xFFB9C3D6));
+    }
+    void star(Offset c, double s) {
+      final p = Path();
+      for (var i = 0; i < 12; i++) {
+        final a = -pi / 2 + i * pi / 6;
+        final d = i.isEven ? s : s * 0.55;
+        final o = c + Offset(cos(a) * d, sin(a) * d);
+        i == 0 ? p.moveTo(o.dx, o.dy) : p.lineTo(o.dx, o.dy);
+      }
+      p.close();
+      canvas.drawPath(p.shift(Offset(0, s * 0.08)), Paint()..color = const Color(0x99000000));
+      canvas.drawPath(p, Paint()..shader = _metal(Rect.fromCircle(center: c, radius: s), const [Color(0xFF9A7A2A), Color(0xFFFFE7A0), Color(0xFFC79A3A)]));
+      canvas.drawCircle(c, s * 0.28, Paint()..color = const Color(0xFF14213D));
+    }
+    star(Offset(r.center.dx, rr.top), w * 1.5);
+    for (final c in _corners(rr).skip(2)) {
+      star(c, w * 0.75);
+    }
+  }
+
+  /// Il cappio: una corda di canapa intrecciata, con il nodo in cima.
+  void _noose(Canvas canvas, RRect rr, double w) {
+    canvas.drawRRect(rr, _stroke(w * 0.9, color: const Color(0xFF6B5030)));
+    final twist = _stroke(w * 0.22, color: const Color(0xFFC9A66B))..strokeCap = StrokeCap.round;
+    final dark = _stroke(w * 0.14, color: const Color(0xFF3A2814))..strokeCap = StrokeCap.round;
+    for (final tan in _along(rr, w * 0.7)) {
+      final n = Offset(-tan.vector.dy, tan.vector.dx) * (w * 0.4);
+      final t = tan.vector * (w * 0.22);
+      canvas.drawLine(tan.position - n - t, tan.position + n + t, dark);
+      canvas.drawLine(tan.position - n * 0.8 - t * 0.6, tan.position + n * 0.8 + t * 0.6, twist);
+    }
+    // Il nodo: le spire avvolte in cima.
+    final c = Offset(rr.outerRect.center.dx, rr.top);
+    for (var i = -2; i <= 2; i++) {
+      final band = RRect.fromRectAndRadius(
+        Rect.fromCenter(center: c + Offset(i * w * 0.55, 0), width: w * 0.5, height: w * 1.9),
+        Radius.circular(w * 0.25),
+      );
+      canvas.drawRRect(band, Paint()..color = const Color(0xFF8A6A3E));
+      canvas.drawRRect(band, _stroke(w * 0.08, color: const Color(0xFF3A2814)));
+    }
+  }
+
+  /// L'alloro d'oro: due rami di foglie che salgono dai lati e si
+  /// incontrano in cima, su un filo d'oro.
+  void _laurel(Canvas canvas, RRect rr, double w) {
+    final r = rr.outerRect;
+    final gold = _metal(r, const [Color(0xFF8C6420), Color(0xFFFFE7A0), Color(0xFFC79A3A), Color(0xFFFFF4CF), Color(0xFF8C6420)]);
+    canvas.drawRRect(rr, _stroke(w * 0.18, shader: gold));
+    final leaf = Paint()..shader = gold;
+    final vein = _stroke(w * 0.05, color: const Color(0xFF6A4A14));
+    var i = 0;
+    for (final tan in _along(rr, w * 0.9)) {
+      final side = i.isEven ? 1.0 : -1.0;
+      i++;
+      final angle = atan2(tan.vector.dy, tan.vector.dx) + side * 0.6;
+      canvas.save();
+      canvas.translate(tan.position.dx, tan.position.dy);
+      canvas.rotate(angle);
+      final p = Path()
+        ..moveTo(0, 0)
+        ..quadraticBezierTo(w * 0.45, -w * 0.32 * side, w * 0.95, 0)
+        ..quadraticBezierTo(w * 0.45, w * 0.18 * side, 0, 0)
+        ..close();
+      canvas.drawPath(p, leaf);
+      canvas.drawLine(Offset.zero, Offset(w * 0.8, 0), vein);
+      canvas.restore();
+    }
+    // Le bacche agli angoli.
+    for (final c in _corners(rr)) {
+      canvas.drawCircle(c, w * 0.3, Paint()..color = const Color(0xFFB3141E));
+      canvas.drawCircle(c - Offset(w * 0.08, w * 0.08), w * 0.1, Paint()..color = const Color(0x88FFFFFF));
+    }
+  }
 
   /// Ottone a filigrana: due fili d'ottone, i riccioli negli angoli, i ribattini.
   void _brass(Canvas canvas, RRect rr, double w) {

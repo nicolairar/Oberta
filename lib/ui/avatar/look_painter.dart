@@ -2665,6 +2665,29 @@ abstract final class LookPainter {
               ..strokeWidth = 0.012,
           );
         }
+      case AvatarHead.sbirro:
+        // Il berretto da sbirro: cupola blu questura, fascia nera, visiera
+        // lucida e lo stemma d'oro davanti.
+        final cap = Path()
+          ..moveTo(-0.2, -0.97)
+          ..quadraticBezierTo(-0.24, -1.13, 0, -1.15)
+          ..quadraticBezierTo(0.24, -1.13, 0.2, -0.97)
+          ..close();
+        canvas.drawPath(cap, silhouette ? paint : (Paint()..color = const Color(0xFF1B2A4A)));
+        if (!silhouette) {
+          canvas.drawRect(const Rect.fromLTRB(-0.2, -1.01, 0.2, -0.965), Paint()..color = const Color(0xFF0E0E12));
+          canvas.drawCircle(const Offset(0, -1.06), 0.034, Paint()..color = const Color(0xFFE8C45A));
+          canvas.drawCircle(const Offset(0, -1.06), 0.016, Paint()..color = const Color(0xFF1B2A4A));
+        }
+        canvas.drawPath(
+          Path()
+            ..moveTo(-0.15, -0.97)
+            ..quadraticBezierTo(0, -1.0, 0.15, -0.97)
+            ..lineTo(0.12, -0.92)
+            ..quadraticBezierTo(0, -0.945, -0.12, -0.92)
+            ..close(),
+          silhouette ? paint : (Paint()..color = const Color(0xFF0A0A0C)),
+        );
       case AvatarHead.fulmineCap || AvatarHead.vaugirardCap || AvatarHead.adelphiCap:
         // I berretti delle case: spicchi a due colori, la visiera corta e il
         // marchio davanti. Quello di Vaugirard è di tela da baule.

@@ -61,6 +61,10 @@ abstract final class Metric {
   static const doctorSaveSurvive = 'doctor_save_survive';
   static const foolWin = 'fool_win';
 
+  /// Standing in the city: +1 for every game that counts, +2 more for a
+  /// win, plus what missions pay. Shown in the dossier and the missions.
+  static const reputation = 'reputation';
+
   /// How many different roles won at least once (derived from [roleWin]).
   static const rolesWon = 'roles_won';
 
@@ -99,6 +103,7 @@ Map<String, int> progressTally({
   }
 
   add(Metric.games);
+  add(Metric.reputation, won ? 3 : 1);
   add(ranked ? Metric.rankedGames : Metric.friendsGames);
   if (survived) add(Metric.survived);
   if (won) {
@@ -328,3 +333,94 @@ ProgressUpdate applyProgress({
   ];
   return ProgressUpdate(missions: moved, unlocked: unlocked);
 }
+
+/// One mission of the pool, as `internal.mission_defs` holds it (the SQL is
+/// the source the server reads; a test keeps the two equal). Daily and
+/// weekly missions are dealt three per period, one from each [pool]; long
+/// ones ("obiettivi") are always there and move with the lifetime counters.
+/// [item] is a shop piece nobody can buy: only claiming this mission gives
+/// it. XP is paid when a game completes a daily or weekly mission; coins,
+/// [reputation] and the item when the player claims it.
+class MissionDef {
+  final String id;
+  final String cadence;
+  final int pool;
+  final String metric;
+  final int target;
+  final int xp;
+  final int coins;
+  final int reputation;
+  final String? item;
+
+  const MissionDef(
+    this.id,
+    this.cadence,
+    this.pool,
+    this.metric,
+    this.target, {
+    required this.xp,
+    required this.coins,
+    required this.reputation,
+    this.item,
+  });
+
+  bool get long => cadence == 'long';
+
+  static MissionDef? byId(String id) => missionPool.where((m) => m.id == id).firstOrNull;
+
+  /// The long mission that gives [itemId], if any.
+  static MissionDef? unlocking(String itemId) => missionPool.where((m) => m.item == itemId).firstOrNull;
+}
+
+/// The pool. Daily coins 25-50, weekly 120-250, long ones 150-800 with the
+/// mission-only pieces. Never rename an id.
+const missionPool = <MissionDef>[
+  // Daily, pool 1: show up.
+  MissionDef('daily_play_3', 'daily', 1, Metric.games, 3, xp: 60, coins: 30, reputation: 2),
+  MissionDef('daily_nights_2', 'daily', 1, Metric.nights, 2, xp: 60, coins: 25, reputation: 2),
+  MissionDef('daily_ranked_1', 'daily', 1, Metric.rankedGames, 1, xp: 80, coins: 35, reputation: 2),
+  MissionDef('daily_friends_play_2', 'daily', 1, Metric.friendsGames, 2, xp: 60, coins: 30, reputation: 2),
+  // Daily, pool 2: win.
+  MissionDef('daily_win_1', 'daily', 2, Metric.wins, 1, xp: 80, coins: 40, reputation: 3),
+  MissionDef('daily_town_win_1', 'daily', 2, Metric.townWins, 1, xp: 90, coins: 45, reputation: 3),
+  MissionDef('daily_mafia_win_1', 'daily', 2, Metric.mafiaWins, 1, xp: 100, coins: 50, reputation: 3),
+  MissionDef('daily_friends_win_2', 'daily', 2, Metric.friendsWins, 2, xp: 100, coins: 50, reputation: 3),
+  MissionDef('daily_win_alive_1', 'daily', 2, Metric.winsAlive, 1, xp: 90, coins: 45, reputation: 3),
+  // Daily, pool 3: a nose for it.
+  MissionDef('daily_lynch_hits_3', 'daily', 3, Metric.lynchHits, 3, xp: 100, coins: 45, reputation: 3),
+  MissionDef('daily_survive_1', 'daily', 3, Metric.survived, 1, xp: 70, coins: 35, reputation: 2),
+  MissionDef('daily_survive_2', 'daily', 3, Metric.survived, 2, xp: 90, coins: 45, reputation: 3),
+  // Weekly, pool 1: a regular.
+  MissionDef('weekly_play_10', 'weekly', 1, Metric.games, 10, xp: 200, coins: 120, reputation: 8),
+  MissionDef('weekly_play_15', 'weekly', 1, Metric.games, 15, xp: 250, coins: 160, reputation: 10),
+  MissionDef('weekly_nights_12', 'weekly', 1, Metric.nights, 12, xp: 250, coins: 140, reputation: 8),
+  MissionDef('weekly_ranked_5', 'weekly', 1, Metric.rankedGames, 5, xp: 300, coins: 180, reputation: 10),
+  // Weekly, pool 2: a winner.
+  MissionDef('weekly_wins_4', 'weekly', 2, Metric.wins, 4, xp: 250, coins: 150, reputation: 10),
+  MissionDef('weekly_wins_7', 'weekly', 2, Metric.wins, 7, xp: 300, coins: 200, reputation: 12),
+  MissionDef('weekly_town_wins_3', 'weekly', 2, Metric.townWins, 3, xp: 250, coins: 160, reputation: 10),
+  MissionDef('weekly_mafia_wins_2', 'weekly', 2, Metric.mafiaWins, 2, xp: 300, coins: 180, reputation: 10),
+  MissionDef('weekly_ranked_wins_3', 'weekly', 2, Metric.rankedWins, 3, xp: 350, coins: 220, reputation: 12),
+  MissionDef('weekly_neutral_win_1', 'weekly', 2, Metric.neutralWins, 1, xp: 300, coins: 250, reputation: 12),
+  // Weekly, pool 3: the right role at the right time.
+  MissionDef('weekly_lynch_hits_10', 'weekly', 3, Metric.lynchHits, 10, xp: 300, coins: 180, reputation: 10),
+  MissionDef('weekly_saves_2', 'weekly', 3, Metric.saves, 2, xp: 300, coins: 200, reputation: 12),
+  MissionDef('weekly_finds_3', 'weekly', 3, Metric.finds, 3, xp: 300, coins: 180, reputation: 12),
+  MissionDef('weekly_kills_5', 'weekly', 3, Metric.kills, 5, xp: 300, coins: 180, reputation: 10),
+  MissionDef('weekly_detective_win_1', 'weekly', 3, 'role_win:detective', 1, xp: 250, coins: 160, reputation: 10),
+  MissionDef('weekly_doctor_win_1', 'weekly', 3, 'role_win:medico', 1, xp: 250, coins: 160, reputation: 10),
+  // Long: the obiettivi, with the pieces nobody can buy.
+  MissionDef('long_nights_10', 'long', 0, Metric.nights, 10, xp: 0, coins: 150, reputation: 15, item: 'nameStyle.moonlight'),
+  MissionDef('long_lynch_hits_3', 'long', 0, Metric.lynchHits, 3, xp: 0, coins: 150, reputation: 15, item: 'border.noose'),
+  MissionDef('long_detective_wins_5', 'long', 0, 'role_win:detective', 5, xp: 0, coins: 400, reputation: 50, item: 'hat.sbirro'),
+  MissionDef('long_finds_5', 'long', 0, Metric.finds, 5, xp: 0, coins: 300, reputation: 30, item: 'border.badge'),
+  MissionDef('long_mafia_wins_10', 'long', 0, Metric.mafiaWins, 10, xp: 0, coins: 400, reputation: 40, item: 'nameStyle.bloodInk'),
+  MissionDef('long_town_wins_10', 'long', 0, Metric.townWins, 10, xp: 0, coins: 400, reputation: 40, item: 'nameStyle.siren'),
+  MissionDef('long_wins_50', 'long', 0, Metric.wins, 50, xp: 0, coins: 800, reputation: 80, item: 'border.laurel'),
+  MissionDef('long_games_25', 'long', 0, Metric.games, 25, xp: 0, coins: 300, reputation: 25),
+  MissionDef('long_friends_games_20', 'long', 0, Metric.friendsGames, 20, xp: 0, coins: 300, reputation: 30),
+  MissionDef('long_ranked_games_20', 'long', 0, Metric.rankedGames, 20, xp: 0, coins: 400, reputation: 30),
+  MissionDef('long_saves_5', 'long', 0, Metric.saves, 5, xp: 0, coins: 400, reputation: 40),
+  MissionDef('long_survived_25', 'long', 0, Metric.survived, 25, xp: 0, coins: 400, reputation: 30),
+  MissionDef('long_neutral_wins_3', 'long', 0, Metric.neutralWins, 3, xp: 0, coins: 500, reputation: 40),
+];

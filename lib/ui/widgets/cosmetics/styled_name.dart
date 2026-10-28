@@ -73,6 +73,9 @@ class StyledName extends StatefulWidget {
         NameStyle.tramonto => const [Color(0xFFFFC14D), Color(0xFFFF6F4A), Color(0xFFE2366F), Color(0xFF8A3BC6)],
         NameStyle.shimmer => const [Color(0xFFB8862B), Color(0xFFFFE9A6), Color(0xFFFFFFFF), Color(0xFFFFE9A6), Color(0xFFB8862B)],
         NameStyle.inferno => const [Color(0xFFFFF2B0), Color(0xFFFFB02E), Color(0xFFFF5A1A), Color(0xFFC81E12), Color(0xFFFFB02E)],
+        NameStyle.moonlight => const [Color(0xFF8FA6C8), Color(0xFFEAF2FF), Color(0xFFB9C9E4), Color(0xFFFFFFFF), Color(0xFF7D93B8)],
+        NameStyle.bloodInk => const [Color(0xFF5A0610), Color(0xFFC2142A), Color(0xFF7A0A18), Color(0xFFE23A48), Color(0xFF4A040C)],
+        NameStyle.siren => const [Color(0xFF3D7BFF), Color(0xFF9EC0FF), Color(0xFFFF4A4A), Color(0xFFFFB0B0), Color(0xFF3D7BFF)],
         _ => null,
       };
 
@@ -169,6 +172,7 @@ class _StyledNameState extends State<StyledName> with SingleTickerProviderStateM
     final shadow = switch (style) {
       NameStyle.inferno => [Shadow(color: const Color(0xCCFF4A10), blurRadius: size * 0.7)],
       NameStyle.shimmer => [Shadow(color: const Color(0x88FFD36A), blurRadius: size * 0.5)],
+      NameStyle.moonlight => [Shadow(color: const Color(0x887FA8FF), blurRadius: size * 0.45)],
       _ => [Shadow(color: Colors.black.withValues(alpha: 0.75), blurRadius: 2, offset: const Offset(0, 1))],
     };
     Widget masked(double t) => Stack(

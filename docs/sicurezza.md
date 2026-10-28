@@ -93,7 +93,10 @@ dal SQL editor o via Management API (`SUPABASE_ACCESS_TOKEN` in `fastlane/.env`,
 `config/supabase.json`); per provare anche una migrazione nuova, incollarla subito dopo il `begin`.
 Ogni riga deve avere `ok = true`. `supabase/tests/role_stats.sql` fa lo stesso per la collezione dei
 ruoli (carte e traguardi `role_*` scritti solo da `record_match`, ognuno legge solo le sue, il profilo
-pubblico mostra solo quante); in PGlite `deno test -A supabase/functions/tests/role_stats_test.ts`. I test pgTAP in `supabase/tests/database/` restano per `supabase test db`.
+pubblico mostra solo quante); in PGlite `deno test -A supabase/functions/tests/role_stats_test.ts`.
+`supabase/tests/missions.sql` fa lo stesso per missioni e monete: nessuno completa o riscuote da sé
+una missione, la riscuote due volte, compra un pezzo delle missioni o si accredita monete, e non
+esiste più un motivo da soldi veri; in PGlite `deno test -A supabase/functions/tests/missions_test.ts`. I test pgTAP in `supabase/tests/database/` restano per `supabase test db`.
 
 ## Esito dell'audit (ottobre 2026)
 

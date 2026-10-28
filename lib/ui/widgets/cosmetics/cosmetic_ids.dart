@@ -17,7 +17,11 @@ enum SeatBorder {
   roseThorns,
   neonPink,
   flame,
-  neonPulse;
+  neonPulse,
+  // Quelle che non si vendono: le regalano gli obiettivi delle missioni.
+  badge,
+  noose,
+  laurel;
 
   /// Le leggendarie si muovono.
   bool get animated => this == flame || this == neonPulse;
@@ -35,7 +39,11 @@ enum NameStyle {
   tramonto,
   neonGlow,
   shimmer,
-  inferno;
+  inferno,
+  // Quelli che non si vendono: li regalano gli obiettivi delle missioni.
+  moonlight,
+  bloodInk,
+  siren;
 
   bool get animated => this == shimmer || this == inferno;
 }

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/online/fake_online.dart';
+import 'package:oberta/online/game/progress.dart' show MissionDef;
 import 'package:oberta/online/online_services.dart';
 import 'package:oberta/ui/avatar/avatar_look.dart';
 
@@ -26,8 +27,18 @@ void main() {
       expect(after.coins, 300);
       expect((await online.profiles.me()).coins, 300);
       expect(await shop.owned(), {'hat.borsalino'});
-      await expectLater(shop.buy('face.walrus'), _fails(OnlineFailure.notEnoughCoins));
+      await expectLater(shop.buy('hat.panama'), _fails(OnlineFailure.notEnoughCoins));
       expect((await online.profiles.me()).coins, 300, reason: 'un acquisto fallito non costa niente');
+    });
+
+    test('i pezzi delle missioni non si comprano, a nessun prezzo', () async {
+      online.award('me', coins: 99999);
+      for (final item in missionDrop) {
+        expect(item.price, 0, reason: item.id);
+        expect(MissionDef.unlocking(item.id)?.id, item.unlock, reason: item.id);
+        await expectLater(shop.buy(item.id), _fails(OnlineFailure.notAllowed));
+      }
+      expect((await online.profiles.me()).coins, 99999);
     });
 
     test('non si compra due volte, né quello che è già di tutti', () async {
@@ -36,7 +47,7 @@ void main() {
       await expectLater(shop.buy('outfit.trench_coat'), _fails(OnlineFailure.alreadyOwned));
       await expectLater(shop.buy('hat.fedora'), _fails(OnlineFailure.alreadyOwned));
       await expectLater(shop.buy('hat.stetson'), _fails(OnlineFailure.itemNotFound));
-      expect((await online.profiles.me()).coins, 5000 - 1800);
+      expect((await online.profiles.me()).coins, 5000 - ShopRarity.leggendario.price);
     });
   });
 
@@ -54,7 +65,7 @@ void main() {
     });
 
     test('i baffi tengono la pelle salvata, o quella che l\'app mostra', () async {
-      online.award('me', coins: 350);
+      online.award('me', coins: ShopRarity.comune.price);
       await shop.buy('face.walrus');
       var me = await shop.equip('face.walrus', tone: 'tan');
       expect(me.avatar['base'], 'tan_walrus');
@@ -77,7 +88,7 @@ void main() {
 
   group('cornici e nomi', () {
     test('si comprano, si indossano e gli altri li vedono', () async {
-      online.award('me', coins: 1800 + 700);
+      online.award('me', coins: ShopRarity.leggendario.price + ShopRarity.raro.price);
       await expectLater(shop.equip('border.flame'), _fails(OnlineFailure.notOwned));
       await shop.buy('border.flame');
       await shop.buy('nameStyle.goldFoil');
@@ -102,12 +113,12 @@ void main() {
         }
       }
       for (final border in SeatBorder.values) {
-        final item = framesDrop.firstWhere((item) => item.id == 'border.${border.name}');
-        expect(border.animated, item.rarity == ShopRarity.leggendario, reason: item.id);
+        final item = [...framesDrop, ...missionDrop].firstWhere((item) => item.id == 'border.${border.name}');
+        expect(border.animated, item.rarity == ShopRarity.leggendario && !item.exclusive, reason: item.id);
       }
       for (final style in NameStyle.values) {
-        final item = framesDrop.firstWhere((item) => item.id == 'nameStyle.${style.name}');
-        expect(style.animated, item.rarity == ShopRarity.leggendario, reason: item.id);
+        final item = [...framesDrop, ...missionDrop].firstWhere((item) => item.id == 'nameStyle.${style.name}');
+        expect(style.animated, item.rarity == ShopRarity.leggendario && !item.exclusive, reason: item.id);
       }
     });
   });
@@ -121,8 +132,10 @@ void main() {
         expect(look.wearing(slot, item.lookId), isNotNull, reason: item.id);
         // La classe fissa il prezzo; i posti più cari stanno sopra gli altri
         // della loro classe, mai sotto.
-        if (deepDrop.contains(item)) {
-          expect(item.price, inInclusiveRange(item.rarity.price, item.rarity == ShopRarity.leggendario ? 5000 : 1799), reason: item.id);
+        if (item.exclusive) {
+          expect(item.price, 0, reason: item.id);
+        } else if (deepDrop.contains(item)) {
+          expect(item.price, inInclusiveRange(item.rarity.price, item.rarity == ShopRarity.leggendario ? 8000 : 1799), reason: item.id);
         } else {
           expect(item.price, item.rarity.price, reason: item.id);
         }
@@ -156,13 +169,22 @@ void main() {
           .allMatches(sql);
       final fromSql = {
         for (final m in rows)
-          if (!retiredShopItems.containsKey('${m[1]}.${m[2]}')) '${m[1]}.${m[2]}': '${m[4]} ${m[5]} ${m[6]} ${m[8]} ${m[9]}',
+          if (!retiredShopItems.containsKey('${m[1]}.${m[2]}'))
+            // Prices as the earn-only migration set them (20261122090000).
+            '${m[1]}.${m[2]}': '${m[4]} ${m[5]} ${ShopRarity.earned(ShopRarity.parse(m[5]), m[5] == 'comune' ? 120 : int.parse(m[6]!))} ${m[8]} ${m[9]}',
       };
       final fromDart = {
         for (final item in initialShopCatalog)
-          item.id: '${item.lookId} ${item.rarity.name} ${item.price} ${item.brand?.name} ${item.collection?.name}',
+          if (!item.exclusive)
+            item.id: '${item.lookId} ${item.rarity.name} ${item.price} ${item.brand?.name} ${item.collection?.name}',
       };
       expect(fromSql, fromDart);
+      final earned = File('supabase/migrations/20261122100000_earn_only_missions.sql').readAsStringSync();
+      final exclusive = {
+        for (final m in RegExp(r"\('(\w+\.\w+)', '\w+', '(\w+)', '(\w+)', 0, .*?, '(\w+)'\),?\n").allMatches(earned))
+          m[1]!: '${m[2]} ${m[3]} ${m[4]}',
+      };
+      expect(exclusive, {for (final item in missionDrop) item.id: '${item.lookId} ${item.rarity.name} ${item.unlock}'});
       expect(initialShopCatalog.map((item) => item.id).toSet().length, initialShopCatalog.length);
       for (final id in [...brandFeatured, ...odditiesFeatured]) {
         expect(sql, contains("('$id', "), reason: 'la vetrina delle case è anche nella migrazione');
@@ -235,7 +257,8 @@ void main() {
         if (bundle.id == 'curva') {
           expect(price, greaterThan(30000), reason: 'la curva intera è il pacchetto più caro');
         } else if (bundle.premium) {
-          expect(price, inInclusiveRange(4000, 12000), reason: bundle.id);
+          // Il lusso: da uno a quattro mesi di gioco tranquillo (docs/economia.md).
+          expect(price, inInclusiveRange(4000, 18000), reason: bundle.id);
         }
       }
     });
@@ -258,9 +281,9 @@ void main() {
     test('si paga solo quello che manca, sempre scontato', () async {
       online.award('me', coins: 700);
       await shop.buy('hat.trilby');
-      online.award('me', coins: 1620);
+      online.award('me', coins: 2040);
       final after = await shop.buyBundle('detective');
-      expect(after.coins, 0, reason: '(1800 + 350 + 350) meno il 35%, alla decina: 1620');
+      expect(after.coins, 0, reason: '(2900 + 120 + 120) meno il 35%, alla decina: 2040');
       expect(await shop.owned(), containsAll(['outfit.trench_coat', 'hat.trilby', 'face.pencil', 'accessory.pipe']));
       await expectLater(shop.buyBundle('detective'), _fails(OnlineFailure.alreadyOwned));
       await expectLater(shop.buyBundle('padrino'), _fails(OnlineFailure.notEnoughCoins));

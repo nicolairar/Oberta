@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/online/game/match_rewards.dart';
 import 'package:oberta/online/game/progress.dart';
@@ -63,6 +65,7 @@ void main() {
       );
       expect(tally, {
         Metric.games: 1,
+        Metric.reputation: 3,
         Metric.friendsGames: 1,
         Metric.survived: 1,
         Metric.wins: 1,
@@ -79,7 +82,7 @@ void main() {
 
     test('a ranked loss counts the game, not the win', () {
       final tally = progressTally(counts: true, ranked: true, team: 'mafia', role: 'mafioso', won: false, survived: false);
-      expect(tally, {Metric.games: 1, Metric.rankedGames: 1});
+      expect(tally, {Metric.games: 1, Metric.reputation: 1, Metric.rankedGames: 1});
     });
 
     test('the Godfather lynch counts only for the Detective', () {
@@ -181,7 +184,7 @@ void main() {
   });
 
   group('settle', () {
-    test('a completed mission pays XP and coins on top of the game', () {
+    test('a completed mission pays XP with the game; its coins wait for the claim', () {
       final out = settle(
         ranked: false,
         humans: 2,
@@ -190,7 +193,8 @@ void main() {
         ],
       ).single;
       expect(out.xpGained, 100 + 80);
-      expect(out.coins, out.levelCoins + 40);
+      expect(out.matchCoins, Progression.winCoins, reason: 'not the first win of the day');
+      expect(out.coins, out.levelCoins + out.matchCoins);
       expect(out.toJson()['missions'], [
         {'id': 'daily_win_1', 'cadence': 'daily', 'period': '2026-10-21', 'progress': 1, 'completed': true, 'coins': 40, 'xp': 80},
       ]);
@@ -234,7 +238,8 @@ void main() {
       expect((a['tally'] as Map)['nights'], 2);
       expect((a['missions'] as List).single, containsPair('completed', true));
       expect([for (final u in a['unlocked'] as List) (u as Map)['id']], contains('neutral_wins_1'));
-      expect(a['coins'], (a['levelCoins'] as int) + 250 + 50);
+      expect(a['coins'], (a['levelCoins'] as int) + (a['matchCoins'] as int) + 50);
+      expect(a['matchCoins'], Progression.winCoins + Progression.firstWinOfDayCoins);
     });
   });
 
@@ -254,5 +259,37 @@ void main() {
       }
     }
     expect(totals[Feats.nights], greaterThan(0));
+  });
+
+  group('the mission pool', () {
+    test('three pools per cadence, stable ids, long ones without XP', () {
+      final ids = {for (final m in missionPool) m.id};
+      expect(ids.length, missionPool.length);
+      for (final cadence in ['daily', 'weekly']) {
+        for (final k in [1, 2, 3]) {
+          expect(missionPool.where((m) => m.cadence == cadence && m.pool == k).length, greaterThanOrEqualTo(3),
+              reason: '$cadence $k');
+        }
+      }
+      for (final m in missionPool) {
+        expect(RegExp(r'^[a-z0-9_]{3,40}$').hasMatch(m.id), isTrue, reason: m.id);
+        expect(m.id.startsWith(m.cadence), isTrue, reason: m.id);
+        if (m.long) expect(m.xp, 0, reason: 'XP only moves with a game');
+      }
+      expect(missionPool.where((m) => m.long).length, greaterThanOrEqualTo(10));
+    });
+
+    test('is the same as the migration', () {
+      final sql = File('supabase/migrations/20261122100000_earn_only_missions.sql').readAsStringSync();
+      final rows = {
+        for (final m in RegExp(r"\('(\w+)', '(daily|weekly|long)', (\d), '([\w:]+)', (\d+), (\d+), (\d+), (\d+), (null|'[\w.]+')\)")
+            .allMatches(sql))
+          m[1]!: '${m[2]} ${m[3]} ${m[4]} ${m[5]} ${m[6]} ${m[7]} ${m[8]} ${m[9]!.replaceAll("'", '')}',
+      };
+      expect(rows, {
+        for (final m in missionPool)
+          m.id: '${m.cadence} ${m.pool} ${m.metric} ${m.target} ${m.xp} ${m.coins} ${m.reputation} ${m.item ?? 'null'}',
+      });
+    });
   });
 }

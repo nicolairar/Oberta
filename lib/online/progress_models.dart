@@ -3,9 +3,11 @@ import 'game/match_rewards.dart' show RankTier;
 import 'game/progress.dart';
 import 'online_models.dart' show PlayerMarks, Profile;
 
-export 'game/progress.dart' show Achievement, achievements, Metric;
+export 'game/progress.dart' show Achievement, achievements, Metric, MissionDef, missionPool;
 
-/// A mission as the phone sees it: the server assigns it and moves it.
+/// A mission as the phone sees it: the server deals it, moves it and pays
+/// it when claimed. Long missions ("obiettivi") move with the lifetime
+/// counters and some give a piece nobody can buy ([item]).
 class MissionProgress {
   final String id;
   final String cadence;
@@ -14,7 +16,15 @@ class MissionProgress {
   final int progress;
   final int xp;
   final int coins;
+  final int reputation;
+
+  /// The mission-only shop piece it gives, or null.
+  final String? item;
   final bool completed;
+  final bool claimed;
+
+  /// From an earlier day or week, done and still to claim.
+  final bool late;
   final DateTime? endsAt;
 
   const MissionProgress({
@@ -25,12 +35,52 @@ class MissionProgress {
     this.progress = 0,
     this.xp = 0,
     this.coins = 0,
+    this.reputation = 0,
+    this.item,
     this.completed = false,
+    this.claimed = false,
+    this.late = false,
     this.endsAt,
   });
 
   bool get weekly => cadence == 'weekly';
+  bool get long => cadence == 'long';
+
+  /// Done and not paid yet: the button to press.
+  bool get claimable => completed && !claimed;
   double get fraction => target <= 0 ? 1 : (progress / target).clamp(0.0, 1.0);
+
+  MissionProgress copyWith({int? progress, bool? completed, bool? claimed}) => MissionProgress(
+        id: id,
+        cadence: cadence,
+        metric: metric,
+        target: target,
+        progress: progress ?? this.progress,
+        xp: xp,
+        coins: coins,
+        reputation: reputation,
+        item: item,
+        completed: completed ?? this.completed,
+        claimed: claimed ?? this.claimed,
+        late: late,
+        endsAt: endsAt,
+      );
+
+  /// What the pool says about [def], at [progress].
+  factory MissionProgress.of(MissionDef def, {int progress = 0, bool claimed = false, DateTime? endsAt}) => MissionProgress(
+        id: def.id,
+        cadence: def.cadence,
+        metric: def.metric,
+        target: def.target,
+        progress: progress.clamp(0, def.target),
+        xp: def.xp,
+        coins: def.coins,
+        reputation: def.reputation,
+        item: def.item,
+        completed: progress >= def.target,
+        claimed: claimed,
+        endsAt: endsAt,
+      );
 
   factory MissionProgress.fromJson(Map<String, Object?> json) => MissionProgress(
         id: json['id'] as String,
@@ -40,8 +90,30 @@ class MissionProgress {
         progress: (json['progress'] as num?)?.toInt() ?? 0,
         xp: (json['xp'] as num?)?.toInt() ?? 0,
         coins: (json['coins'] as num?)?.toInt() ?? 0,
+        reputation: (json['reputation'] as num?)?.toInt() ?? 0,
+        item: json['item'] as String?,
         completed: json['completed'] == true,
+        claimed: json['claimed'] == true,
+        late: json['late'] == true,
         endsAt: json['ends_at'] == null ? null : DateTime.fromMillisecondsSinceEpoch((json['ends_at'] as num).toInt()),
+      );
+}
+
+/// What a claim paid: the coins, the reputation, the piece (if any) and the
+/// new balance.
+class MissionClaim {
+  final int coins;
+  final int reputation;
+  final String? item;
+  final int? balance;
+
+  const MissionClaim({this.coins = 0, this.reputation = 0, this.item, this.balance});
+
+  factory MissionClaim.fromJson(Map<String, Object?> json) => MissionClaim(
+        coins: (json['coins'] as num?)?.toInt() ?? 0,
+        reputation: (json['reputation'] as num?)?.toInt() ?? 0,
+        item: json['item'] as String?,
+        balance: (json['balance'] as num?)?.toInt(),
       );
 }
 
@@ -55,6 +127,12 @@ class PlayerProgress {
   const PlayerProgress({this.missions = const [], this.stats = const {}, this.unlocked = const {}});
 
   int statOf(String metric) => stats[metric] ?? 0;
+
+  /// Standing in the city: from games and claimed missions.
+  int get reputation => statOf(Metric.reputation);
+
+  /// Missions done and waiting for the claim.
+  int get claimable => missions.where((m) => m.claimable).length;
 
   /// The title to show: from the last unlocked achievement that gives one.
   String? get title {
@@ -218,10 +296,14 @@ class RoleRecord {
       };
 }
 
-/// Missions, achievements and the leaderboard. Read-only: the server moves
-/// everything when it settles a game.
+/// Missions, achievements and the leaderboard. The server moves everything
+/// when it settles a game; the phone only reads and claims.
 abstract class ProgressRepository {
   Future<PlayerProgress> mine();
+
+  /// Pays a completed mission (coins, reputation, a mission-only piece).
+  /// The server checks everything; nothing here is trusted.
+  Future<MissionClaim> claim(String missionId);
 
   /// The caller's role cards, by role name (`my_role_stats`). A role with
   /// no record was never played: locked.

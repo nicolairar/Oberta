@@ -1220,6 +1220,9 @@ class FakeShop implements ShopRepository {
   /// Quello che possiede un account (per i test).
   Set<String> ownedBy(String id) => {...?_owned[id]};
 
+  /// Come il regalo di `claim_mission`: il pezzo entra senza monete.
+  void gift(String id, String itemId) => (_owned[id] ??= {}).add(itemId);
+
   ShopItem? _item(String id) => items.where((item) => item.id == id).firstOrNull;
 
   Profile _me() {
@@ -1243,6 +1246,7 @@ class FakeShop implements ShopRepository {
     if (item.free || (_owned[me.id]?.contains(item.id) ?? false)) {
       throw const OnlineException(OnlineFailure.alreadyOwned);
     }
+    if (item.exclusive) throw const OnlineException(OnlineFailure.notAllowed);
     if (me.coins < item.price) throw const OnlineException(OnlineFailure.notEnoughCoins);
     (_owned[me.id] ??= {}).add(item.id);
     final bought = _online._profiles[me.id] = me.copyWith(coins: me.coins - item.price);
@@ -1768,20 +1772,21 @@ class _FakeSession {
 }
 
 /// Missions, achievements and the leaderboard, like the server's functions
-/// (a small fixed pool: the first three daily and weekly missions).
+/// (a fixed deal: the first daily and weekly mission of each pool, and
+/// every long one).
 class FakeProgress implements ProgressRepository {
   final FakeOnline _online;
 
   FakeProgress._(this._online);
 
-  static const pool = [
-    MissionProgress(id: 'daily_play_3', cadence: 'daily', metric: 'games', target: 3, xp: 60, coins: 30),
-    MissionProgress(id: 'daily_win_1', cadence: 'daily', metric: 'wins', target: 1, xp: 80, coins: 40),
-    MissionProgress(id: 'daily_lynch_hits_3', cadence: 'daily', metric: 'lynch_hits', target: 3, xp: 100, coins: 50),
-    MissionProgress(id: 'weekly_neutral_win_1', cadence: 'weekly', metric: 'neutral_wins', target: 1, xp: 300, coins: 250),
-    MissionProgress(id: 'weekly_wins_7', cadence: 'weekly', metric: 'wins', target: 7, xp: 300, coins: 200),
-    MissionProgress(id: 'weekly_play_15', cadence: 'weekly', metric: 'games', target: 15, xp: 250, coins: 150),
+  static final pool = [
+    for (final cadence in ['daily', 'weekly'])
+      for (final k in [1, 2, 3])
+        MissionProgress.of(missionPool.firstWhere((m) => m.cadence == cadence && m.pool == k)),
   ];
+
+  /// The long missions claimed, per person.
+  final Map<String, Set<String>> claimedLong = {};
 
   final Map<String, List<MissionProgress>> missions = {};
   final Map<String, Map<String, int>> stats = {};
@@ -1807,10 +1812,7 @@ class FakeProgress implements ProgressRepository {
     missions[id] = [
       for (final m in _missionsOf(id))
         if (moved[m.id] case final Map row?)
-          MissionProgress(
-            id: m.id, cadence: m.cadence, metric: m.metric, target: m.target, xp: m.xp, coins: m.coins,
-            progress: row['progress'] as int, completed: row['completed'] == true,
-          )
+          m.copyWith(progress: row['progress'] as int, completed: row['completed'] == true)
         else
           m,
     ];
@@ -1828,11 +1830,43 @@ class FakeProgress implements ProgressRepository {
     );
   }
 
+  List<MissionProgress> _longOf(String id) => [
+        for (final def in missionPool)
+          if (def.long)
+            MissionProgress.of(def,
+                progress: stats[id]?[def.metric] ?? 0, claimed: claimedLong[id]?.contains(def.id) ?? false),
+      ];
+
   @override
   Future<PlayerProgress> mine() async {
     await _online._network();
     final me = _me;
-    return PlayerProgress(missions: _missionsOf(me), stats: {...?stats[me]}, unlocked: {...?unlocked[me]});
+    return PlayerProgress(missions: [..._missionsOf(me), ..._longOf(me)], stats: {...?stats[me]}, unlocked: {...?unlocked[me]});
+  }
+
+  @override
+  Future<MissionClaim> claim(String missionId) async {
+    await _online._network();
+    final me = _me;
+    final def = MissionDef.byId(missionId) ?? (throw const OnlineException(OnlineFailure.itemNotFound));
+    if (def.long) {
+      if (claimedLong[me]?.contains(def.id) ?? false) throw const OnlineException(OnlineFailure.alreadyOwned);
+      if ((stats[me]?[def.metric] ?? 0) < def.target) throw const OnlineException(OnlineFailure.notAllowed);
+      (claimedLong[me] ??= {}).add(def.id);
+    } else {
+      final list = _missionsOf(me);
+      final i = list.indexWhere((m) => m.id == def.id);
+      if (i < 0 || !list[i].completed) throw const OnlineException(OnlineFailure.notAllowed);
+      if (list[i].claimed) throw const OnlineException(OnlineFailure.alreadyOwned);
+      list[i] = list[i].copyWith(claimed: true);
+    }
+    final row = stats[me] ??= {};
+    row[Metric.reputation] = (row[Metric.reputation] ?? 0) + def.reputation;
+    if (def.item case final item?) _online.shop.gift(me, item);
+    final profile = _online._profiles[me]!;
+    _online._profiles[me] = profile.copyWith(coins: profile.coins + def.coins);
+    _online._pushWallet(me);
+    return MissionClaim(coins: def.coins, reputation: def.reputation, item: def.item, balance: profile.coins + def.coins);
   }
 
   @override

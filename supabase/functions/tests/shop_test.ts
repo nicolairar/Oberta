@@ -54,7 +54,7 @@ Deno.test('buying: coins, price, ownership, atomic', async () => {
   assertEquals(after.coins, 300);
   await assertRejects(() => as(anna, `select * from public.buy_item('hat.borsalino')`), Error, 'already_owned');
   await assertRejects(() => as(anna, `select * from public.buy_item('hat.fedora')`), Error, 'already_owned');
-  await assertRejects(() => as(anna, `select * from public.buy_item('face.walrus')`), Error, 'not_enough_coins', '300 < 350');
+  await assertRejects(() => as(anna, `select * from public.buy_item('hat.panama')`), Error, 'not_enough_coins', '300 < 700');
   await assertRejects(() => as(anna, `select * from public.buy_item('hat.nothing')`), Error, 'item_not_found');
   assertEquals(await coins(anna), 300, 'failed buys cost nothing');
   const owned = await as(anna, `select item_id from public.shop_inventory`);
@@ -72,7 +72,7 @@ Deno.test('equipping: only owned or free items, the face keeps its tone', async 
   await assertRejects(() => as(anna, `select * from public.equip_item('face.mustache')`), Error, 'tone_required');
   [me] = await as(anna, `select * from public.equip_item('face.mustache', 'tan')`);
   assertEquals(me.avatar.base, 'tan_mustache');
-  await pg.query(`select public.grant_coins($1, 350, 'gift')`, [anna]);
+  await pg.query(`select public.grant_coins($1, 120, 'gift')`, [anna]);
   await as(anna, `select * from public.buy_item('face.walrus')`);
   [me] = await as(anna, `select * from public.equip_item('face.walrus', 'ebony')`);
   assertEquals(me.avatar.base, 'tan_walrus', 'the saved tone wins');

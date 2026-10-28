@@ -8,21 +8,29 @@ import 'progress.dart';
 // same transaction that saves the game's end), the fake backend runs it in
 // tests, and the phone uses [Progression] and [RankTier] to draw the bars.
 //
-// The numbers are the ones in docs/visione.md, in one place so they can be
-// tuned: a win is worth 100 XP, a loss 30, the first win of the (UTC) day
-// +100; from level L to L+1 takes 150 + 25·L XP; every level gives 50
-// coins, every fifth level 200 more.
+// The numbers are the ones in docs/economia.md, in one place so they can be
+// tuned: a win is worth 100 XP and 10 coins, a loss 30 XP and 4 coins, the
+// first win of the (UTC) day +100 XP and +30 coins; from level L to L+1
+// takes 150 + 25·L XP; every level gives 50 coins, every fifth level 200
+// more. Mission coins are paid when the player claims them (claim_mission),
+// not here. Coins are only ever earned: nothing in the game sells them.
 //
-// Friends games give experience too. Coins from levels reached in friends
-// games are paid only for the first [Progression.friendsCoinGames] friends
-// games of the day, and only in games with at least two people: a room full
-// of bots must not become a coin farm. Ranked games always pay.
+// Friends games give experience too. Coins from friends games (the game's
+// own and the levels reached) are paid only for the first
+// [Progression.friendsCoinGames] friends games of the day, and only in games
+// with at least two people: a room full of bots must not become a coin
+// farm. Ranked games always pay.
 
 /// Experience, levels and coins.
 abstract final class Progression {
   static const winXp = 100;
   static const lossXp = 30;
   static const firstWinOfDayXp = 100;
+
+  /// Coins for the game itself, on top of the levels.
+  static const winCoins = 10;
+  static const lossCoins = 4;
+  static const firstWinOfDayCoins = 30;
 
   /// Friends games per (UTC) day whose level-ups pay coins.
   static const friendsCoinGames = 5;
@@ -41,6 +49,13 @@ abstract final class Progression {
     if (abandoned) return 0;
     if (!won) return lossXp;
     return winXp + (firstWinOfDay ? firstWinOfDayXp : 0);
+  }
+
+  /// Coins for a game: nothing to who did not really play it.
+  static int coinsFor({required bool won, required bool abandoned, required bool firstWinOfDay}) {
+    if (abandoned) return 0;
+    if (!won) return lossCoins;
+    return winCoins + (firstWinOfDay ? firstWinOfDayCoins : 0);
   }
 
   /// Adds [gain] experience to a profile at [level] with [xp] towards the
@@ -275,11 +290,15 @@ class SettleOutcome {
   final int xp;
   final int levelsGained;
 
-  /// Every coin the game paid: levels, missions and achievements.
+  /// Every coin the game paid: the game itself, levels and achievements.
+  /// Mission coins wait for the claim and are not in here.
   final int coins;
 
-  /// The coins from the levels reached (the rest is in [progress]).
+  /// The coins from the levels reached.
   final int levelCoins;
+
+  /// The coins for the game itself (win, loss, first win of the day).
+  final int matchCoins;
 
   /// The counters this game added, and what they moved.
   final Map<String, int> tally;
@@ -296,6 +315,7 @@ class SettleOutcome {
     required this.levelsGained,
     required this.coins,
     int? levelCoins,
+    this.matchCoins = 0,
     this.tally = const {},
     this.progress = const ProgressUpdate(),
     this.rating,
@@ -321,6 +341,7 @@ class SettleOutcome {
         'levelsGained': levelsGained,
         'coins': coins,
         'levelCoins': levelCoins,
+        'matchCoins': matchCoins,
         'tally': tally,
         'missions': [
           for (final m in progress.missions)
@@ -395,14 +416,18 @@ List<SettleOutcome> settle({required bool ranked, required List<SettleSeat> seat
         final next = Progression.addXp(s.level, s.xp, gain);
         final pays = ranked || s.friendsGamesToday < Progression.friendsCoinGames;
         final levelCoins = pays ? next.coins : 0;
+        final matchCoins = rewarded && pays
+            ? Progression.coinsFor(won: s.won, abandoned: !s.earns, firstWinOfDay: s.won && !s.wonToday)
+            : 0;
         return SettleOutcome(
           seat: s,
           xpGained: gain,
           level: next.level,
           xp: next.xp,
           levelsGained: next.levelsGained,
-          coins: levelCoins + progress.missionCoins + progress.achievementCoins,
+          coins: levelCoins + matchCoins + progress.achievementCoins,
           levelCoins: levelCoins,
+          matchCoins: matchCoins,
           tally: tally,
           progress: progress,
           rating: ranked ? _noGain(s, ratings[s.profile] ?? s.rating) : null,

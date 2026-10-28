@@ -44,7 +44,8 @@ void main() {
 
     test('tra amici: esperienza sì, monete solo nelle prime cinque partite del giorno, niente da soli coi bot', () {
       final early = settle(ranked: false, humans: 2, seats: [_seat('a', won: true, xp: 100)]).single;
-      expect((early.xpGained, early.level, early.coins, early.rating), (200, 2, 50, null));
+      expect((early.xpGained, early.level, early.coins, early.rating), (200, 2, 50 + 10 + 30, null), reason: 'level, win, first win of the day');
+      expect(early.matchCoins, 40);
       final late = settle(ranked: false, humans: 2, seats: [_seat('a', won: true, xp: 100, friendsGamesToday: 5)]).single;
       expect((late.xpGained, late.level, late.coins), (200, 2, 0));
       final alone = settle(ranked: false, humans: 1, seats: [_seat('a', won: true)]).single;

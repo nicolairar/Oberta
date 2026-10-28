@@ -4,18 +4,28 @@ import '../l10n/app_language.dart';
 import 'online_models.dart';
 
 /// Le classi della bottega. Il prezzo lo decide la classe, ed è lo stesso
-/// sul server (vincolo su `shop_items.price_coins`).
+/// sul server (vincolo su `shop_items.price_coins`). Le monete si
+/// guadagnano solo giocando: i prezzi sono tarati su quanto si gioca
+/// (docs/economia.md): un comune in due partite, un raro in una settimana
+/// da giocatore occasionale, un leggendario in uno-due mesi.
 enum ShopRarity {
   /// Il corredo di tutti: costa niente e lo si possiede già.
   base(0),
-  comune(350),
+  comune(120),
   raro(700),
   epico(1100),
-  leggendario(1800);
+  leggendario(2900);
 
+  /// Il prezzo della classe (per i pezzi dei posti profondi, il minimo).
   final int price;
 
   const ShopRarity(this.price);
+
+  /// Il prezzo di un pezzo profondo da quello di listino con cui è nato:
+  /// i leggendari ×1,6 alla cinquantina (il riequilibrio senza acquisti,
+  /// `20261122100000_earn_only_missions.sql`), gli altri restano.
+  static int earned(ShopRarity rarity, int listed) =>
+      rarity == leggendario ? (listed * 8 / 5 / 50).round() * 50 : listed;
 
   static ShopRarity parse(String? name) =>
       values.firstWhere((rarity) => rarity.name == name, orElse: () => ShopRarity.comune);
@@ -98,6 +108,10 @@ class ShopItem {
   /// La collezione delle stramberie, o null.
   final ShopCollection? collection;
 
+  /// L'obiettivo che lo regala, o null. Un pezzo con [unlock] non si
+  /// compra: si sblocca solo riscuotendo quella missione (prezzo zero).
+  final String? unlock;
+
   const ShopItem({
     required this.id,
     required this.slot,
@@ -110,11 +124,21 @@ class ShopItem {
     this.sort = 0,
     this.brand,
     this.collection,
+    this.unlock,
   });
+
+  /// Un pezzo che non si vende: lo regala l'obiettivo [unlock].
+  ShopItem.exclusive(this.slot, this.lookId, this.rarity, this.nameIt, this.nameEn, this.sort, String this.unlock)
+    : id = '$slot.$lookId',
+      price = 0,
+      releasedOn = DateTime.utc(2026, 11, 22),
+      brand = null,
+      collection = null;
 
   /// Un pezzo del catalogo di partenza, con il prezzo della sua classe.
   ShopItem.seed(this.slot, this.lookId, this.rarity, this.nameIt, this.nameEn, this.sort, {this.brand})
     : id = '$slot.$lookId',
+      unlock = null,
       price = rarity.price,
       releasedOn = DateTime.utc(2026, 10, 17),
       collection = null;
@@ -122,6 +146,7 @@ class ShopItem {
   /// Un pezzo della seconda consegna (le case di moda e il resto).
   ShopItem.drop(this.slot, this.lookId, this.rarity, this.nameIt, this.nameEn, this.sort, {this.brand})
     : id = '$slot.$lookId',
+      unlock = null,
       price = rarity.price,
       releasedOn = DateTime.utc(2026, 10, 18),
       collection = null;
@@ -129,6 +154,7 @@ class ShopItem {
   /// Un pezzo della terza consegna: una casa e basta.
   ShopItem.house(this.slot, this.lookId, this.rarity, this.nameIt, this.nameEn, this.sort, ShopBrand this.brand)
     : id = '$slot.$lookId',
+      unlock = null,
       price = rarity.price,
       releasedOn = DateTime.utc(2026, 10, 18),
       collection = null;
@@ -136,6 +162,7 @@ class ShopItem {
   /// Una stramberia: il circo e il carnevale.
   ShopItem.oddity(this.slot, this.lookId, this.rarity, this.nameIt, this.nameEn, this.sort, ShopCollection this.collection)
     : id = '$slot.$lookId',
+      unlock = null,
       price = rarity.price,
       releasedOn = DateTime.utc(2026, 10, 18),
       brand = null;
@@ -143,6 +170,7 @@ class ShopItem {
   /// Un pezzo da stadio: la squadra la dice l'id ([CalcioTeam.of]).
   ShopItem.calcio(this.slot, this.lookId, this.nameIt, this.nameEn, this.sort)
     : id = '$slot.$lookId',
+      unlock = null,
       rarity = ShopRarity.leggendario,
       price = ShopRarity.leggendario.price,
       releasedOn = DateTime.utc(2026, 10, 23),
@@ -151,8 +179,10 @@ class ShopItem {
 
   /// Un pezzo dei posti più cari (la scena, le spalle, gli effetti, le mani,
   /// i ritocchi alla faccia): il prezzo è il suo, sopra quello della classe.
-  ShopItem.deep(this.slot, this.lookId, this.rarity, this.price, this.nameIt, this.nameEn, this.sort)
+  ShopItem.deep(this.slot, this.lookId, this.rarity, int listed, this.nameIt, this.nameEn, this.sort)
     : id = '$slot.$lookId',
+      unlock = null,
+      price = ShopRarity.earned(rarity, listed),
       releasedOn = DateTime.utc(2026, 11, 20),
       brand = null,
       collection = null;
@@ -160,6 +190,7 @@ class ShopItem {
   /// Una cornice o un inchiostro per il nome: si indossano intorno.
   ShopItem.around(this.slot, this.lookId, this.rarity, this.nameIt, this.nameEn, this.sort)
     : id = '$slot.$lookId',
+      unlock = null,
       price = rarity.price,
       releasedOn = DateTime.utc(2026, 10, 24),
       brand = null,
@@ -168,6 +199,7 @@ class ShopItem {
   /// Un gesto da lanciare al tavolo ([TableGesture]).
   ShopItem.gesture(this.lookId, this.rarity, this.nameIt, this.nameEn, this.sort)
     : id = 'gesture.$lookId',
+      unlock = null,
       slot = 'gesture',
       price = rarity.price,
       releasedOn = DateTime.utc(2026, 11, 9),
@@ -181,6 +213,9 @@ class ShopItem {
   bool get isGesture => slot == 'gesture';
 
   bool get free => rarity == ShopRarity.base;
+
+  /// Non si vende: lo regala una missione.
+  bool get exclusive => unlock != null;
 
   String name(AppLanguage language) => language == AppLanguage.en ? nameEn : nameIt;
 
@@ -196,6 +231,7 @@ class ShopItem {
     sort: (json['sort'] as num?)?.toInt() ?? 0,
     brand: ShopBrand.byId(json['brand'] as String?),
     collection: ShopCollection.byId(json['collection'] as String?),
+    unlock: json['unlock'] as String?,
   );
 }
 
@@ -322,7 +358,7 @@ abstract class ShopRepository {
 /// `supabase/migrations/20261017221000_shop.sql` e
 /// `supabase/migrations/20261018120000_shop_brands.sql` e seguenti (un test li
 /// confronta): la bottega finta lo usa, quella vera lo legge dal server.
-final List<ShopItem> initialShopCatalog = [..._firstDrop, ...brandDrop, ...houseDrop, ...odditiesDrop, ...barberDrop, ...calcioDrop, ...framesDrop, ...gestureDrop, ...deepDrop];
+final List<ShopItem> initialShopCatalog = [..._firstDrop, ...brandDrop, ...houseDrop, ...odditiesDrop, ...barberDrop, ...calcioDrop, ...framesDrop, ...gestureDrop, ...deepDrop, ...missionDrop];
 
 /// I pezzi che hanno cambiato posto (`supabase/migrations/20261121090000_shop_deep_slots.sql`):
 /// le ali erano un vezzo e ora stanno sulle spalle. Le righe vecchie restano
@@ -998,4 +1034,17 @@ final List<ShopBundle> gestureBundles = [
     sort: 600,
     itemIds: [for (final item in gestureDrop) if (!item.free) item.id],
   ),
+];
+
+/// I pezzi che non si vendono: li regala solo un obiettivo delle missioni
+/// (`MissionDef.item`), riscuotendolo. In bottega si vedono chiusi, con la
+/// missione che li sblocca.
+final List<ShopItem> missionDrop = [
+  ShopItem.exclusive('hat', 'sbirro', ShopRarity.leggendario, 'Berretto da sbirro', "Cop's cap", 160, 'long_detective_wins_5'),
+  ShopItem.exclusive('border', 'badge', ShopRarity.epico, 'Il distintivo', 'The badge', 820, 'long_finds_5'),
+  ShopItem.exclusive('border', 'noose', ShopRarity.raro, 'Il cappio', 'The noose', 821, 'long_lynch_hits_3'),
+  ShopItem.exclusive('border', 'laurel', ShopRarity.leggendario, "Alloro d'oro", 'Golden laurel', 822, 'long_wins_50'),
+  ShopItem.exclusive('nameStyle', 'moonlight', ShopRarity.raro, 'Chiaro di luna', 'Moonlight', 920, 'long_nights_10'),
+  ShopItem.exclusive('nameStyle', 'bloodInk', ShopRarity.epico, 'Inchiostro di sangue', 'Blood ink', 921, 'long_mafia_wins_10'),
+  ShopItem.exclusive('nameStyle', 'siren', ShopRarity.epico, 'Sirena', 'Siren', 922, 'long_town_wins_10'),
 ];

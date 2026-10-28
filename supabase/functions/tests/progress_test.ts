@@ -35,16 +35,31 @@ async function world() {
   return { pg, as, coins };
 }
 
-type Mission = { id: string; cadence: string; progress: number; completed: boolean; coins: number };
+type Mission = {
+  id: string;
+  cadence: string;
+  pool: number;
+  progress: number;
+  completed: boolean;
+  claimed: boolean;
+  coins: number;
+  reputation: number;
+  item: string | null;
+};
 
-Deno.test('missions: three daily and three weekly, the same on every call', async () => {
+Deno.test('missions: one daily and one weekly from each pool, the same on every call, plus the long ones', async () => {
   const { as } = await world();
   const [{ p: first }] = await as<{ p: { missions: Mission[] } }>(anna, `select public.my_progress() as p`);
   const [{ p: again }] = await as<{ p: { missions: Mission[] } }>(anna, `select public.my_progress() as p`);
-  assertEquals(first.missions.filter((m) => m.cadence === 'daily').length, 3);
-  assertEquals(first.missions.filter((m) => m.cadence === 'weekly').length, 3);
+  for (const cadence of ['daily', 'weekly']) {
+    const dealt = first.missions.filter((m) => m.cadence === cadence);
+    assertEquals(dealt.map((m) => m.pool).sort(), [1, 2, 3], cadence);
+  }
   assertEquals(again.missions.map((m) => m.id), first.missions.map((m) => m.id));
-  for (const m of first.missions) assert(m.coins <= (m.cadence === 'daily' ? 60 : 250));
+  for (const m of first.missions) assert(m.coins <= ({ daily: 60, weekly: 250, long: 1000 } as Record<string, number>)[m.cadence]);
+  const long = first.missions.filter((m) => m.cadence === 'long');
+  assert(long.length >= 10, 'the obiettivi are always there');
+  assert(long.some((m) => m.id === 'long_detective_wins_5' && m.item === 'hat.sbirro' && !m.completed));
 });
 
 Deno.test('a settled game writes progress, pays coins and items once, and shows its banners', async () => {
@@ -62,7 +77,7 @@ Deno.test('a settled game writes progress, pays coins and items once, and shows 
   };
   await pg.query(`select internal.record_progress($1, $2, $3::jsonb)`, [anna, game, JSON.stringify(settled)]);
   await pg.query(`select internal.record_progress($1, $2, $3::jsonb)`, [anna, game, JSON.stringify(settled)]);
-  assertEquals(await coins(anna), before + daily.coins + 400, 'paid once, live in the wallet');
+  assertEquals(await coins(anna), before + 400, 'achievements paid once, live in the wallet; mission coins wait for the claim');
   const owned = await as<{ item_id: string }>(anna, `select item_id from public.shop_inventory`);
   assertEquals(owned.map((o) => o.item_id), ['border.artDeco']);
 

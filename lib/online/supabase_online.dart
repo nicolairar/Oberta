@@ -149,7 +149,9 @@ OnlineException _classify(Object error, SignInDoor? door) {
       'request_not_found' => OnlineFailure.requestNotFound,
       'invalid_seats' || 'not_your_seat' || 'stale_version' || 'too_many_intents' => OnlineFailure.notAllowed,
       'not_enough_coins' => OnlineFailure.notEnoughCoins,
-      'already_owned' => OnlineFailure.alreadyOwned,
+      'already_owned' || 'already_claimed' => OnlineFailure.alreadyOwned,
+      'mission_only' || 'not_completed' => OnlineFailure.notAllowed,
+      'mission_not_found' => OnlineFailure.itemNotFound,
       'not_owned' => OnlineFailure.notOwned,
       'item_not_found' || 'tone_required' || 'bad_slot' => OnlineFailure.itemNotFound,
       'message_blocked' => OnlineFailure.messageBlocked,
@@ -1262,6 +1264,10 @@ class SupabaseProgress implements ProgressRepository {
   @override
   Future<Map<String, RoleRecord>> roleStats() =>
       _guard(() async => RoleRecord.listFromJson(await _client.rpc<dynamic>('my_role_stats')));
+
+  @override
+  Future<MissionClaim> claim(String missionId) => _guard(() async => MissionClaim.fromJson(
+      (await _client.rpc<Map<String, dynamic>>('claim_mission', params: {'p_mission': missionId})).cast<String, Object?>()));
 
   @override
   Future<GameUnlocks> unlocksFor(String gameId) => _guard(() async => GameUnlocks.fromJson(
