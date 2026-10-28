@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,11 +12,17 @@ import 'package:oberta/settings/app_settings.dart';
 import 'package:oberta/settings/settings_store.dart';
 import 'package:oberta/ui/screens/online/voice/voice_dock.dart';
 
-/// Un LiveKit finto: chi c'è, chi parla, il microfono, ogni chiamata.
+/// Un LiveKit finto: chi c'è, chi parla, il microfono, ogni chiamata. La
+/// traccia si pubblica in muto ([ready]) e si trasmette solo senza muto;
+/// [gate] tiene la pubblicazione in corso finché non si completa.
 class _Engine extends VoiceEngine {
   final List<String> calls = [];
   bool _connected = false;
   bool _mic = false;
+  bool ready = false;
+  bool allowed = true;
+  bool failPrepare = false;
+  Completer<void>? gate;
   Set<String> others = {};
   Set<String> talking = {};
   Set<String> unheard = {};
@@ -31,6 +39,13 @@ class _Engine extends VoiceEngine {
   String? get selfIdentity => self;
   @override
   bool get microphoneOn => _mic;
+  @override
+  bool get microphoneReady => ready;
+  @override
+  bool get publishAllowed => allowed;
+
+  /// Audio che esce davvero: la traccia pubblicata e senza muto.
+  bool get transmitting => ready && _mic;
 
   @override
   Future<void> connect(String url, String token) async {
@@ -43,13 +58,39 @@ class _Engine extends VoiceEngine {
     if (_connected) calls.add('disconnect');
     _connected = false;
     _mic = false;
+    ready = false;
+  }
+
+  @override
+  Future<bool> prepareMicrophone() async {
+    calls.add('prepare');
+    if (gate case final g?) await g.future;
+    if (failPrepare || !allowed || !_connected) return false;
+    ready = true;
+    return true;
+  }
+
+  @override
+  Future<void> releaseMicrophone() async {
+    calls.add('release');
+    ready = false;
+    _mic = false;
   }
 
   @override
   Future<bool> setMicrophone(bool on) async {
     calls.add('mic $on');
+    if (on && !ready && !await prepareMicrophone()) return false;
     _mic = on;
     return true;
+  }
+
+  /// Il server che toglie la parola a stanza aperta: la traccia se ne va.
+  void revoke() {
+    allowed = false;
+    ready = false;
+    _mic = false;
+    onChanged?.call();
   }
 
   @override
@@ -66,6 +107,7 @@ class _Engine extends VoiceEngine {
   void reconnect() {
     _connected = true;
     _mic = false;
+    ready = false;
     onChanged?.call();
   }
 
@@ -73,6 +115,7 @@ class _Engine extends VoiceEngine {
   void lose() {
     _connected = false;
     _mic = false;
+    ready = false;
     onLost?.call();
   }
 }
@@ -553,8 +596,162 @@ void main() {
     server.next = _room('day-2', token: 'd2');
     c.phase('discussion-2');
     await pumpEventQueue();
-    expect(engine.calls.last, 'connect d2');
+    expect(engine.calls.where((x) => x.startsWith('connect')).last, 'connect d2');
     expect(c.canHold, isTrue);
+    c.dispose();
+  });
+
+  test('joining with the floor publishes the mic muted: the first press transmits at once', () async {
+    final c = make();
+    server.next = _room('day-1');
+    await c.refresh();
+    expect(
+      [engine.microphoneReady, engine.microphoneOn, engine.transmitting],
+      [true, false, false],
+      reason: 'warm and muted on join: nothing goes out',
+    );
+    final before = engine.calls.where((x) => x == 'prepare').length;
+    c.hold(true);
+    await pumpEventQueue();
+    expect(engine.transmitting, isTrue, reason: 'the very first press is heard');
+    expect(engine.calls.where((x) => x == 'prepare').length, before, reason: 'a press only takes the mute off');
+    c.hold(false);
+    await pumpEventQueue();
+    expect([engine.microphoneReady, engine.transmitting], [true, false], reason: 'released: muted, still published');
+
+    // Listen only takes the track away (the capture stops), and so does the vote.
+    settings.voiceMode = VoiceMode.listen;
+    await pumpEventQueue();
+    expect(engine.microphoneReady, isFalse);
+    settings.voiceMode = VoiceMode.mic;
+    await pumpEventQueue();
+    expect(engine.microphoneReady, isTrue);
+    server.next = _room('day-1', publish: false);
+    await c.refresh();
+    expect([engine.microphoneReady, engine.transmitting], [false, false], reason: 'no floor, no track');
+    c.dispose();
+  });
+
+  test('a press while the muted track is still publishing transmits as soon as it is ready, while held', () async {
+    final c = make();
+    engine.gate = Completer<void>();
+    server.next = _room('day-1');
+    final joining = c.refresh();
+    await pumpEventQueue();
+    expect([engine.connected, engine.microphoneReady], [true, false], reason: 'publish in flight');
+    c.hold(true);
+    await pumpEventQueue();
+    expect(engine.transmitting, isFalse);
+    engine.gate!.complete();
+    engine.gate = null;
+    await joining;
+    await pumpEventQueue();
+    expect(engine.transmitting, isTrue, reason: 'the queued press goes live once published');
+
+    // Released before the track was ready: it ends muted.
+    c.hold(false);
+    await pumpEventQueue();
+    engine.reconnect();
+    engine.gate = Completer<void>();
+    await pumpEventQueue();
+    c.hold(true);
+    c.hold(false);
+    engine.gate!.complete();
+    engine.gate = null;
+    await pumpEventQueue();
+    expect([engine.microphoneReady, engine.transmitting], [true, false]);
+    c.dispose();
+  });
+
+  test('a press after the floor comes back (the next day) works the first time', () async {
+    final c = make();
+    server.next = _room('day-1');
+    c.phase('discussion-1');
+    await pumpEventQueue();
+    server.next = _room('day-1', publish: false);
+    c.phase('vote-1');
+    await pumpEventQueue();
+    expect(engine.microphoneReady, isFalse);
+    server.next = _room('day-2', token: 'd2');
+    c.phase('discussion-2');
+    await pumpEventQueue();
+    expect(engine.microphoneReady, isTrue, reason: 'warm again as soon as the floor is back');
+    c.hold(true);
+    await pumpEventQueue();
+    expect(engine.transmitting, isTrue);
+    c.dispose();
+  });
+
+  test('a mic that cannot start is not retried on its own; a press tries again', () async {
+    final c = make();
+    engine.failPrepare = true;
+    server.next = _room('day-1');
+    await c.refresh();
+    engine.onChanged?.call();
+    await pumpEventQueue();
+    expect(engine.calls.where((x) => x == 'prepare').length, 1);
+    engine.failPrepare = false;
+    c.hold(true);
+    await pumpEventQueue();
+    expect(engine.transmitting, isTrue);
+    c.dispose();
+  });
+
+  testWidgets('lynched: the button goes dead in the same frame, the mic closes, the track goes', (tester) async {
+    final c = make();
+    server.next = _room('day-1');
+    await c.refresh();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(child: VoiceTalkButton(controller: c)),
+        ),
+      ),
+    );
+    String caption() => tester.widget<Text>(find.byKey(const Key('voice.talk.caption'))).data!;
+    final finger = await tester.startGesture(tester.getCenter(find.byKey(const Key('voice.talk'))));
+    await tester.pump();
+    expect(engine.transmitting, isTrue);
+
+    // The verdict arrives: the screen learns this seat is dead.
+    c.listenOnly = true;
+    await tester.pump();
+    expect(caption(), 'I morti ascoltano soltanto');
+    expect([c.holding, c.canHold, engine.transmitting, engine.microphoneReady], [false, false, false, false]);
+    await finger.up();
+
+    // A press does nothing: no hold, no notice, no publish.
+    final calls = engine.calls.length;
+    await tester.tap(find.byKey(const Key('voice.talk')));
+    await tester.pump();
+    expect([c.holding, engine.transmitting], [false, false]);
+    expect(find.text('I morti ascoltano soltanto'), findsOneWidget, reason: 'no notice for the dead');
+    expect(engine.calls.sublist(calls).where((x) => x == 'prepare' || x == 'mic true'), isEmpty);
+
+    // Even with a stale grant that still says publish, nothing comes back.
+    await c.refresh();
+    await tester.pump();
+    expect([engine.microphoneReady, engine.transmitting], [false, false]);
+    await tester.pumpWidget(const SizedBox());
+    c.dispose();
+  });
+
+  test('the server takes the floor in an open room (a day shot): the hold ends and the grant is asked again', () async {
+    final c = make();
+    server.next = _room('day-1');
+    await c.refresh();
+    c.hold(true);
+    await pumpEventQueue();
+    expect(engine.transmitting, isTrue);
+    final asked = server.asked;
+    server.next = _room('day-1', publish: false);
+    engine.revoke();
+    await pumpEventQueue();
+    expect([c.holding, c.canHold, engine.transmitting, engine.microphoneReady], [false, false, false, false]);
+    expect(server.asked, asked + 1, reason: 'asked once, at once');
+    engine.onChanged?.call();
+    await pumpEventQueue();
+    expect(server.asked, asked + 1, reason: 'not again on every event');
     c.dispose();
   });
 }

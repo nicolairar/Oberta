@@ -107,13 +107,9 @@ Deno.test('night: closed until the server start plus the settle, then only the l
   // The town hears nothing and cannot speak.
   assertEquals(grant(night, 'p2'), none());
   assertEquals(grant(night, 'p4'), none());
-  // The dead, family or not, are among the ghosts: never in the family room.
-  for (const dead of ['p3', 'p5']) {
-    const ghost = grant(night, dead);
-    assertEquals(ghost.room, `ob-${id}-ghosts-${game}`);
-    assertEquals([ghost.kind, ghost.canPublish], ['ghosts', true]);
-  }
-  assertEquals(grant(night, 'p3', t0 + 5000, { ...config, ghosts: false }), none());
+  // The dead, family or not, are out of the night: no family room, no room
+  // of their own, never a microphone.
+  for (const dead of ['p3', 'p5']) assertEquals(grant(night, dead), none());
 });
 
 Deno.test('day: the living speak after the settle, the dead and the silenced only listen', () => {
@@ -166,7 +162,6 @@ Deno.test('the matrix: every role state, every stage', () => {
   const day: Cell = ['day', true];
   const listen: Cell = ['day', false];
   const fam: Cell = ['family', true];
-  const ghost: Cell = ['ghosts', true];
   const closed: Record<Seat, Cell> = {
     town: off, family: off, compare: off, silenced: off, silencedFamily: off, dead: off, deadFamily: off,
     jailed: off, jailedFamily: off, jailer: off,
@@ -174,7 +169,7 @@ Deno.test('the matrix: every role state, every stage', () => {
   const expected: Record<string, Record<Seat, Cell>> = {
     reveal: closed,
     night: {
-      town: off, family: fam, compare: fam, silenced: off, silencedFamily: fam, dead: ghost, deadFamily: ghost,
+      town: off, family: fam, compare: fam, silenced: off, silencedFamily: fam, dead: off, deadFamily: off,
       jailed: off, jailedFamily: off, jailer: off,
     },
     dawnFilms: closed,

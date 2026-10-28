@@ -140,6 +140,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     if (player != null) _seatSheet(player);
   }
 
+  /// Questo posto è morto, a partita in corso: ascolta soltanto.
+  bool get _deadHere => _client.ready && _client.seat != null && !_view.alive && _stage != Stage.ended;
+
   String get _voiceKey => '${_client.schedule?.key}|${_client.seat?.view.alive}';
   late final Random _shuffle = widget.seating ?? Random();
   Timer? _ticker;
@@ -338,6 +341,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     WidgetsBinding.instance.addObserver(this);
     RecapShelf.last = null;
     _client;
+    _voice?.listenOnly = _deadHere;
     _voice?.phase(_voiceKey);
     _watchGestures();
     MemeDirector.attach(_client, alive: () => mounted);
@@ -384,6 +388,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   void _changed() {
     if (!mounted) return;
+    // Morto (linciato, ucciso, colpito di giorno): la parola se ne va
+    // adesso, nello stesso istante in cui il telefono lo sa.
+    _voice?.listenOnly = _deadHere;
     _voice?.phase(_voiceKey);
     if (_client.takeRejection() != null) showNote(context, _t.online.rejected, kind: NoticeKind.error);
     if (!_client.busy) _hope = null;
@@ -1607,11 +1614,11 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     final alive = _view.alive;
     return switch (_stage) {
       Stage.night when alive && _view.cell == _view.seat => t.jailed,
-      Stage.night when !alive || _inFamilyChat => null,
+      _ when !alive && _stage != Stage.ended => t.deadListen,
+      Stage.night when _inFamilyChat => null,
       Stage.night => t.nightFamily,
       // Il voto si fa in silenzio: nessuno fa rumore per rovinarlo.
       Stage.vote || Stage.verdictFilm || Stage.verdict => t.voteSilence,
-      Stage.discussion when !alive => t.deadListen,
       Stage.discussion when _view.silenced => t.sewn,
       Stage.discussion => null,
       _ => t.nobodyNow,

@@ -11,8 +11,8 @@
 //     microphone away from whoever had it;
 //   * night: only the living family (the Compare too: the mafia team)
 //     speaks and listens, in its own room, except whoever the Jailer locked
-//     up (jailed: no voice at all that night, the cell is a text chat); the
-//     dead may talk among themselves (ghosts); everybody else is out;
+//     up (jailed: no voice at all that night, the cell is a text chat);
+//     everybody else is out, the dead too (they never speak in a game);
 //   * every other stage (the card, the films, the dawn, the verdict):
 //     nobody is connected, nobody speaks.
 //
@@ -66,15 +66,13 @@ export interface VoiceConfig {
   friends: boolean;
   /** Voice in ranked rooms (internal.config voice_ranked, default off). */
   ranked: boolean;
-  /** The dead talk among themselves at night (voice_ghosts, default on). */
-  ghosts: boolean;
   /** After a stage's published start, before its voice opens. */
   settleMs: number;
 }
 
-export const defaultVoiceConfig: VoiceConfig = { friends: true, ranked: false, ghosts: true, settleMs: 1000 };
+export const defaultVoiceConfig: VoiceConfig = { friends: true, ranked: false, settleMs: 1000 };
 
-export type VoiceKind = 'lobby' | 'day' | 'family' | 'ghosts';
+export type VoiceKind = 'lobby' | 'day' | 'family';
 
 export type VoiceError = 'not_member' | 'voice_off' | 'room_closed';
 
@@ -158,9 +156,10 @@ export function voiceGrant(
   if (now < opensAt) return nobody(opensAt);
 
   if (schedule.stage === 'night') {
-    if (me.alive && me.jailed) return nobody();
-    if (me.alive && me.family) return grant('family', `family-${game}-${schedule.round}`, seat, true);
-    if (!me.alive && config.ghosts) return grant('ghosts', `ghosts-${game}`, seat, true);
+    // The dead, family or not, are out of the night: never in the family
+    // room, and there is no room of their own.
+    if (!me.alive || me.jailed) return nobody();
+    if (me.family) return grant('family', `family-${game}-${schedule.round}`, seat, true);
     return nobody();
   }
   const speaks = schedule.stage === 'discussion' && me.alive && !me.silenced;

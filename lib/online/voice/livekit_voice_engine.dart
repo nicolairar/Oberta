@@ -14,15 +14,22 @@ import 'voice_engine.dart';
 /// Le brevi perdite di rete le ricuce LiveKit da solo (riconnessione e
 /// ripresa); se si arrende, [onLost].
 ///
-/// Premi per parlare: lasciare il tasto mette la traccia in muto (non passa
-/// niente), e il microfono resta pronto per [warm]; così ripremere parla
-/// subito. Passato quel tempo senza parlare la traccia si toglie e il
-/// microfono del telefono si spegne del tutto.
+/// Premi per parlare: la traccia del microfono si pubblica già in muto
+/// appena si ha la parola ([prepareMicrophone]), così premere toglie solo il
+/// muto e la voce passa dal primo istante; lasciare rimette il muto (non
+/// passa niente). La traccia resta per tutta la fase e si toglie solo quando
+/// la parola se ne va o si esce ([releaseMicrophone]).
 class LiveKitVoiceEngine extends VoiceEngine {
-  /// Quanto il microfono resta pronto dopo aver lasciato il tasto.
-  static const warm = Duration(seconds: 20);
+  /// Il microfono: cancellazione dell'eco, niente rumore, e il muto che
+  /// ferma l'invio, non la cattura (togliere il muto è immediato).
+  static const _capture = lk.AudioCaptureOptions(
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+    stopAudioCaptureOnMute: false,
+  );
 
-  Timer? _cool;
+  Future<bool>? _preparing;
   lk.Room? _room;
   lk.EventsListener<lk.RoomEvent>? _events;
   Set<String> _unheard = const {};
@@ -41,8 +48,21 @@ class LiveKitVoiceEngine extends VoiceEngine {
   @override
   String? get selfIdentity => _room?.localParticipant?.identity;
 
+  lk.LocalTrackPublication? get _mic => _room?.localParticipant?.getTrackPublicationBySource(lk.TrackSource.microphone);
+
+  /// In onda solo se la traccia stessa non è in muto (il muto vero, quello
+  /// che spegne l'invio), non solo quello annunciato al server.
   @override
-  bool get microphoneOn => _room?.localParticipant?.isMicrophoneEnabled() ?? false;
+  bool get microphoneOn {
+    final mic = _mic;
+    return mic != null && !mic.muted && !(mic.track?.muted ?? true);
+  }
+
+  @override
+  bool get microphoneReady => _mic != null;
+
+  @override
+  bool get publishAllowed => _room?.localParticipant?.permissions.canPublish ?? false;
 
   @override
   double get level => _room?.localParticipant?.audioLevel ?? 0;
@@ -54,14 +74,7 @@ class LiveKitVoiceEngine extends VoiceEngine {
       roomOptions: const lk.RoomOptions(
         adaptiveStream: false,
         dynacast: false,
-        defaultAudioCaptureOptions: lk.AudioCaptureOptions(
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          // Il muto ferma l'invio, non la cattura: ripremere è immediato
-          // (la cattura si chiude dopo [warm], vedi [_coolDown]).
-          stopAudioCaptureOnMute: false,
-        ),
+        defaultAudioCaptureOptions: _capture,
         defaultAudioPublishOptions: lk.AudioPublishOptions(dtx: true),
       ),
     );
@@ -85,7 +98,14 @@ class LiveKitVoiceEngine extends VoiceEngine {
       ..on<lk.LocalTrackUnpublishedEvent>((_) => _changed())
       ..on<lk.TrackMutedEvent>((_) => _changed())
       ..on<lk.TrackUnmutedEvent>((_) => _changed())
-      ..on<lk.ParticipantPermissionsUpdatedEvent>((_) => _changed())
+      ..on<lk.ParticipantPermissionsUpdatedEvent>((event) {
+        // La parola tolta dal server (un morto, il voto): la traccia se ne
+        // va subito, senza aspettare il controller.
+        if (event.participant is lk.LocalParticipant && !event.permissions.canPublish) {
+          unawaited(releaseMicrophone());
+        }
+        _changed();
+      })
       ..on<lk.RoomReconnectedEvent>((_) => _sync())
       ..on<lk.RoomDisconnectedEvent>((event) {
         if (_leaving || _room != room) return;
@@ -147,13 +167,53 @@ class LiveKitVoiceEngine extends VoiceEngine {
   }
 
   @override
-  Future<bool> setMicrophone(bool on) async {
-    final local = _room?.localParticipant;
-    if (local == null) return false;
-    _cool?.cancel();
+  Future<bool> prepareMicrophone() => _preparing ??= _prepare().whenComplete(() => _preparing = null);
+
+  Future<bool> _prepare() async {
+    final room = _room;
+    final local = room?.localParticipant;
+    if (room == null || local == null) return false;
+    if (_mic != null) return true;
+    lk.LocalAudioTrack? track;
     try {
-      await local.setMicrophoneEnabled(on);
-      if (!on) _cool = Timer(warm, _coolDown);
+      track = await lk.LocalAudioTrack.create(_capture);
+      // In muto prima di pubblicarla: la traccia spenta (enabled falso)
+      // manda solo silenzio, e il server la sa muta fin dall'inizio. Sui
+      // telefoni Apple la sessione audio passa adesso a playAndRecord, una
+      // volta per fase, invece che alla prima pressione.
+      await track.start();
+      await track.mute(stopOnMute: false);
+      if (_room != room) throw StateError('left');
+      await local.publishAudioTrack(track);
+      _changed();
+      return true;
+    } catch (_) {
+      if (track != null && _mic?.track != track) {
+        try {
+          await track.stop();
+        } catch (_) {}
+      }
+      _changed();
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> setMicrophone(bool on) async {
+    if (_room?.localParticipant == null) return false;
+    try {
+      var mic = _mic;
+      if (mic == null) {
+        if (!on) return true;
+        if (!await prepareMicrophone()) return false;
+        mic = _mic;
+        if (mic == null) return false;
+      }
+      if (on) {
+        await mic.unmute(stopOnMute: false);
+      } else {
+        await mic.mute(stopOnMute: false);
+      }
       _changed();
       return true;
     } catch (_) {
@@ -162,14 +222,15 @@ class LiveKitVoiceEngine extends VoiceEngine {
     }
   }
 
-  /// Nessuno parla da un po': la traccia si toglie, il microfono si spegne.
-  Future<void> _coolDown() async {
+  @override
+  Future<void> releaseMicrophone() async {
+    await _preparing;
     final local = _room?.localParticipant;
-    if (local == null || local.isMicrophoneEnabled()) return;
-    final publication = local.getTrackPublicationBySource(lk.TrackSource.microphone);
-    if (publication == null) return;
+    final mic = _mic;
+    if (local == null || mic == null) return;
     try {
-      await local.removePublishedTrack(publication.sid);
+      await mic.mute(stopOnMute: false);
+      await local.removePublishedTrack(mic.sid);
     } catch (_) {}
     _changed();
   }
@@ -184,7 +245,6 @@ class LiveKitVoiceEngine extends VoiceEngine {
 
   @override
   Future<void> disconnect() async {
-    _cool?.cancel();
     final room = _room;
     if (room == null) return;
     _leaving = true;

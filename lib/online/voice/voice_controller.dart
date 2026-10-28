@@ -30,6 +30,17 @@ typedef VoiceDirectory = ({String? Function(String identity) profileOf, String? 
 /// permesso lo concede e il tasto è tenuto premuto: si parla solo così
 /// (premi per parlare, niente microfono aperto).
 ///
+/// Con la parola la traccia si pubblica subito in muto ([VoiceEngine.prepareMicrophone]):
+/// premere toglie solo il muto, e la voce passa dal primo istante anche la
+/// prima volta. La traccia resta (muta) per tutta la fase e si toglie quando
+/// la parola se ne va, si sceglie di solo ascoltare o si esce. Una pressione
+/// che arriva mentre la traccia si sta ancora pubblicando parla appena è
+/// pronta, se il tasto è ancora giù.
+///
+/// I morti ascoltano soltanto ([listenOnly], dalla vista del proprio posto):
+/// la parola se ne va nell'istante in cui il telefono sa della morte, senza
+/// aspettare il server (che intanto la toglie anche a LiveKit).
+///
 /// I bloccati ([BlockedPlayers]) non si sentono mai e non ci sentono mai:
 /// il server di LiveKit non manda loro la nostra voce.
 class VoiceController extends ChangeNotifier {
@@ -109,6 +120,12 @@ class VoiceController extends ChangeNotifier {
   Timer? _fresh;
   VoiceRefusal? _refusal;
   bool _ducked = false;
+  bool _listenOnly = false;
+  bool _allowed = true;
+
+  /// La traccia muta non si è potuta preparare (il sistema, la rete): non
+  /// si riprova da soli fino alla prossima stanza; una pressione riprova.
+  bool _warmFailed = false;
   String? _privacy;
   final Set<String> _muted = {};
 
@@ -121,8 +138,19 @@ class VoiceController extends ChangeNotifier {
   bool get connected => engine.connected;
   bool get connecting => _connecting;
 
-  /// Si può parlare adesso, per il server.
-  bool get mayTalk => connected && _grant.canPublish;
+  /// Si può parlare adesso, per il server (e per la partita: i morti no).
+  bool get mayTalk => connected && _grant.canPublish && engine.publishAllowed && !_listenOnly;
+
+  /// Questo posto ascolta soltanto (è morto): niente parola, niente
+  /// traccia, il pulsante spento. Lo dice la schermata appena lo sa.
+  bool get listenOnly => _listenOnly;
+  set listenOnly(bool value) {
+    if (value == _listenOnly || _disposed) return;
+    _listenOnly = value;
+    if (value) _holders.clear();
+    _applyMic();
+    _notify();
+  }
 
   /// Il microfono è acceso (si sta trasmettendo).
   bool get live => engine.microphoneOn;
@@ -242,11 +270,13 @@ class VoiceController extends ChangeNotifier {
     _grant = next;
     if (!next.canPublish) _holders.clear();
     if (!same) {
+      _warmFailed = false;
       _connecting = true;
       _notify();
       try {
         await engine.disconnect();
         await engine.connect(next.url!, next.token!);
+        _allowed = engine.publishAllowed;
         _failures = 0;
         _privacy = null;
       } catch (_) {
@@ -261,8 +291,10 @@ class VoiceController extends ChangeNotifier {
     }
     if (_disposed) return;
     _fresh = Timer(keepFresh, refresh);
-    await _applyMic();
+    // Prima chi non deve sentirci, poi la traccia (muta) del microfono.
     await _applyPrivacy();
+    _notify();
+    await _applyMic();
     _notify();
   }
 
@@ -301,6 +333,9 @@ class VoiceController extends ChangeNotifier {
 
   bool get _wantMic => _mode == VoiceMode.mic && mayTalk && _held;
 
+  /// La traccia muta, pronta: col microfono scelto e la parola data.
+  bool get _wantReady => _mode == VoiceMode.mic && mayTalk && !_warmFailed;
+
   /// Porta il microfono dove deve essere: una sola operazione alla volta,
   /// e dopo ognuna si guarda di nuovo (si può aver lasciato il tasto mentre
   /// il microfono si accendeva, o il contrario).
@@ -310,20 +345,39 @@ class VoiceController extends ChangeNotifier {
   }
 
   Future<void> _syncMic() async {
-    for (var tries = 0; tries < 4; tries++) {
+    for (var tries = 0; tries < 8; tries++) {
       if (_disposed || !engine.connected) return;
       final want = _wantMic;
-      if (want == engine.microphoneOn) return;
-      final ok = await engine.setMicrophone(want);
-      if (!ok) {
-        if (want && _held) {
-          // Il microfono non si accende (il sistema lo nega): non si resta
-          // a «parlare» nel vuoto.
-          _holders.clear();
-          _notify();
+      if (want != engine.microphoneOn) {
+        final ok = await engine.setMicrophone(want);
+        if (!ok) {
+          if (want) {
+            // Il microfono non si accende (il sistema lo nega): non si resta
+            // a «parlare» nel vuoto, e non si riprova da soli.
+            _warmFailed = true;
+            if (_held) {
+              _holders.clear();
+              _notify();
+            }
+          }
+          return;
         }
-        return;
+        if (want) _warmFailed = false;
+        continue;
       }
+      if (_wantReady && !engine.microphoneReady) {
+        if (!await engine.prepareMicrophone()) {
+          _warmFailed = true;
+          return;
+        }
+        continue;
+      }
+      if (!_wantReady && !want && engine.microphoneReady) {
+        await engine.releaseMicrophone();
+        if (engine.microphoneReady) return;
+        continue;
+      }
+      return;
     }
   }
 
@@ -350,9 +404,20 @@ class VoiceController extends ChangeNotifier {
 
   void _engineChanged() {
     if (_disposed) return;
+    // LiveKit ha tolto la parola a stanza aperta (un morto): la presa se ne
+    // va, e si chiede subito il permesso nuovo.
+    final allowed = !engine.connected || engine.publishAllowed;
+    if (allowed != _allowed) {
+      _allowed = allowed;
+      if (!allowed && _grant.canPublish) {
+        _holders.clear();
+        refresh();
+      }
+    }
     // Rientrati (o il motore che ha cambiato da solo il microfono): chi
-    // tiene premuto parla di nuovo, chi non lo tiene resta muto.
-    if (engine.connected && _wantMic != engine.microphoneOn) _applyMic();
+    // tiene premuto parla di nuovo, chi non lo tiene resta muto; la traccia
+    // muta c'è finché c'è la parola.
+    if (engine.connected && (_wantMic != engine.microphoneOn || _wantReady != engine.microphoneReady)) _applyMic();
     _applyPrivacy();
     _notify();
   }
@@ -364,6 +429,7 @@ class VoiceController extends ChangeNotifier {
       final wasOff = _mode == VoiceMode.off;
       _mode = mode;
       if (mode != VoiceMode.mic) _holders.clear();
+      if (mode == VoiceMode.mic) _warmFailed = false;
       if (mode == VoiceMode.off || wasOff) {
         refresh();
         return;

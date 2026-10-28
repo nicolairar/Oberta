@@ -104,7 +104,7 @@ class _VoiceDockState extends State<VoiceDock> {
 }
 
 /// Lo stato del pulsante grande per parlare.
-enum TalkState { hold, talking, muted, connecting, offline }
+enum TalkState { hold, talking, muted, connecting, offline, dead }
 
 /// Il pulsante grande per parlare: si tiene premuto (sul PC anche V) e la
 /// voce passa finché lo si tiene. Rotondo, almeno 64 punti, con sotto una
@@ -144,6 +144,8 @@ class _VoiceTalkButtonState extends State<VoiceTalkButton> with SingleTickerProv
   }
 
   TalkState get _state {
+    // I morti ascoltano soltanto: il pulsante si spegne appena lo si sa.
+    if (c.listenOnly) return TalkState.dead;
     if (c.offline) return TalkState.offline;
     if (c.connecting) return TalkState.connecting;
     if (c.holding && c.canHold) return TalkState.talking;
@@ -158,6 +160,8 @@ class _VoiceTalkButtonState extends State<VoiceTalkButton> with SingleTickerProv
   }
 
   void _down() {
+    // Un morto non ha niente da premere: né vibrazione né avvisi.
+    if (c.listenOnly) return;
     if (!c.canHold) {
       HapticFeedback.selectionClick();
       final t = VoiceStrings.of(context);
@@ -200,6 +204,7 @@ class _VoiceTalkButtonState extends State<VoiceTalkButton> with SingleTickerProv
           TalkState.muted => (Icons.mic_off, Saloon.ink, Saloon.brassDeep, _why(t)),
           TalkState.connecting => (Icons.more_horiz, Saloon.ink, Saloon.brassDeep, t.connecting),
           TalkState.offline => (Icons.cloud_off, Saloon.ink, Saloon.brassDeep, t.offline),
+          TalkState.dead => (Icons.mic_off, Saloon.ink, Saloon.brassDeep, t.deadListen),
         };
         final circle = AnimatedBuilder(
           animation: _pulse,
@@ -215,9 +220,7 @@ class _VoiceTalkButtonState extends State<VoiceTalkButton> with SingleTickerProv
                 shape: BoxShape.circle,
                 color: fill,
                 border: Border.all(
-                  color: state == TalkState.muted || state == TalkState.offline || state == TalkState.connecting
-                      ? Saloon.brassDeep
-                      : Saloon.brass,
+                  color: state != TalkState.hold && state != TalkState.talking ? Saloon.brassDeep : Saloon.brass,
                   width: desk ? 3 : 2.4,
                 ),
                 boxShadow: [
@@ -251,6 +254,7 @@ class _VoiceTalkButtonState extends State<VoiceTalkButton> with SingleTickerProv
         );
         final button = Semantics(
           button: true,
+          enabled: state != TalkState.dead,
           label: '${t.pushToTalk}. $caption',
           child: Listener(
             key: const Key('voice.talk'),
@@ -258,7 +262,7 @@ class _VoiceTalkButtonState extends State<VoiceTalkButton> with SingleTickerProv
             onPointerDown: (_) => _down(),
             onPointerUp: (_) => _up(),
             onPointerCancel: (_) => _up(),
-            child: circle,
+            child: state == TalkState.dead ? Opacity(opacity: 0.45, child: circle) : circle,
           ),
         );
         final gap = desk ? 8.0 : 4.0;

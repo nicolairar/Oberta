@@ -98,7 +98,7 @@ export function sqlVoiceStore(db: Query): VoiceStore {
     },
     async config() {
       const rows = await db.query<{ key: string; value: string }>(
-        `select key, value from internal.config where key in ('voice_friends', 'voice_ranked', 'voice_ghosts', 'voice_settle_ms')`,
+        `select key, value from internal.config where key in ('voice_friends', 'voice_ranked', 'voice_settle_ms')`,
       );
       const value = (key: string) => rows.find((r) => r.key === key)?.value;
       const flag = (key: string, fallback: boolean) => (value(key) === undefined ? fallback : value(key) === '1');
@@ -106,7 +106,6 @@ export function sqlVoiceStore(db: Query): VoiceStore {
       return {
         friends: flag('voice_friends', defaultVoiceConfig.friends),
         ranked: flag('voice_ranked', defaultVoiceConfig.ranked),
-        ghosts: flag('voice_ghosts', defaultVoiceConfig.ghosts),
         settleMs: Number.isFinite(settle) && settle >= 0 ? settle : defaultVoiceConfig.settleMs,
       };
     },

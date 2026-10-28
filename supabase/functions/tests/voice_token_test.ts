@@ -257,6 +257,49 @@ Deno.test('sync: the vote takes the floor from everyone, without kicking anyone 
   }
 });
 
+Deno.test('sync: a death takes the floor at the step that commits it, never at the next phase', async () => {
+  const day = seal(`ob-${roomId}-day-${game}-1`);
+  const family = seal(`ob-${roomId}-family-${game}-2`);
+  const { service, calls, rooms } = fakeLiveKit({
+    [day]: [
+      { identity: 's1', canPublish: true, canSubscribe: true },
+      { identity: 's2', canPublish: true, canSubscribe: true },
+    ],
+  });
+  const discussion: VoiceRoom = {
+    ...nightRoom,
+    schedule: { stage: 'discussion', round: 1, startsAt: t0 },
+    members: [member(1, { family: true }), member(2), member(3, { alive: false })],
+  };
+  const { store, state } = memoryStore(discussion, { signature: 'old', rooms: [day] });
+  await syncVoice(store, service, roomId, t0 + 5000, seal);
+  calls.length = 0;
+  // A shot in the discussion kills s2: the same step pushes, s2 keeps listening without a microphone.
+  state.room = { ...discussion, members: [member(1, { family: true }), member(2, { alive: false }), member(3, { alive: false })] };
+  assertEquals(await syncVoice(store, service, roomId, t0 + 6000, seal), { pushed: true, removed: 0, updated: 1 });
+  assertEquals(calls, [`list ${day}`, `update ${day} s2 publish=false subscribe=true`]);
+  const d = deps(state.room, { now: () => t0 + 6000 }).d;
+  const { body } = await answer(await handleVoiceToken(post({ room: roomId }, 'jwt-p2'), d));
+  assertEquals([body.room, body.canPublish], [day, false]);
+
+  // Lynched at the vote: the verdict closes the day for everyone at once.
+  state.room = {
+    ...state.room,
+    schedule: { stage: 'verdictFilm', round: 1, startsAt: t0 + 60_000 },
+    members: [member(1, { family: true, alive: false }), member(2, { alive: false }), member(3, { alive: false })],
+  };
+  await syncVoice(store, service, roomId, t0 + 60_000, seal);
+  assertEquals(rooms[day], []);
+  // The night after: a dead family member has no room at all, not even with the dead.
+  state.room = { ...state.room, schedule: { stage: 'night', round: 2, startsAt: t0 + 90_000 } };
+  for (const who of ['jwt-p1', 'jwt-p2', 'jwt-p3']) {
+    const night = deps(state.room, { now: () => t0 + 95_000 }).d;
+    const { body } = await answer(await handleVoiceToken(post({ room: roomId }, who), night));
+    assertEquals([body.room, body.token ?? null, body.canPublish ?? false], [null, null, false], who);
+  }
+  assertEquals(rooms[family], undefined);
+});
+
 Deno.test('sync: a stale identity, or someone who left the room, is removed from the lobby', async () => {
   const lobby = seal(`ob-${roomId}-lobby-${game}`);
   const { service, calls } = fakeLiveKit({
@@ -339,7 +382,7 @@ Deno.test('on the real schema: lobby voice, nothing during the card, the night o
   }
   const store = sqlVoiceStore(tx(pg));
   const config = await store.config();
-  assertEquals(config, { friends: true, ranked: false, ghosts: true, settleMs: 1000 }, 'the switches of the migration');
+  assertEquals(config, { friends: true, ranked: false, settleMs: 1000 }, 'the switches of the migration');
 
   const [{ id: room, code }] = await as<{ id: string; code: string }>('anna', `select id, code from public.create_room('it')`);
   await as('bruno', `select public.join_room($1)`, [code]);

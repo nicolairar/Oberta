@@ -51,7 +51,7 @@ scoprire niente di nascosto: ruoli, mosse notturne, chat della famiglia, segreti
   (identità, posto, nome, tipo di stanza) è ignorato, quindi nessuno può spacciarsi per un altro posto
   né entrare in una stanza che non è la sua. I nomi delle stanze LiveKit sono un HMAC-SHA256
   (`roomSeal`, `_shared/livekit.ts`) del nome leggibile per fase (`day-<partita>-<giro>`,
-  `family-<partita>-<giro>`, `ghosts-<partita>`, `lobby-<partita>`) sotto una chiave derivata da
+  `family-<partita>-<giro>`, `lobby-<partita>`) sotto una chiave derivata da
   `LIVEKIT_API_SECRET`: `ob-` + 40 cifre esadecimali, senza id di stanza o partita, impossibili da
   indovinare senza il segreto (e in ogni caso entrare richiede un token firmato per quella stanza).
   L'app mostra l'anello di chi parla e la lista di chi si sente solo dall'identità firmata dal
@@ -61,8 +61,13 @@ scoprire niente di nascosto: ruoli, mosse notturne, chat della famiglia, segreti
   (il cucito dal Sarto e i morti solo ascoltano); **voto nessuno** (tutti restano nella stanza del
   giorno ad ascoltare, ma la spinta all'inizio del voto toglie il microfono a chi l'aveva, così nessuno
   fa rumore per rovinare il voto; l'app scrive «Durante il voto si tace»); notte solo la famiglia viva
-  (il Compare compreso: è della squadra della mafia), e i morti fra loro; carta, film, alba e verdetto
-  nessuno. Non esiste un ruolo che imprigiona: se arriverà dovrà togliere il microfono in ogni fase,
+  (il Compare compreso: è della squadra della mafia); carta, film, alba e verdetto nessuno. **I morti
+  non parlano mai** in partita: ascoltano la discussione e il voto, di notte non hanno nessuna stanza
+  (non esiste una stanza dei morti; fra loro hanno solo la chat scritta). La parola se ne va nel passo
+  che rende nota la morte: la spinta dopo quel passo (anche un colpo di giorno, a discussione aperta)
+  toglie il microfono a LiveKit, e il telefono spegne il pulsante («I morti ascoltano soltanto»,
+  niente da premere) e toglie la traccia appena la sua vista dice che il posto è morto, senza aspettare
+  il server. Non esiste un ruolo che imprigiona: se arriverà dovrà togliere il microfono in ogni fase,
   e la matrice di `voice_rules_test.ts` elenca ogni stato di un posto per ogni fase. Notte e discussione si aprono solo a `startsAt` +
   `voice_settle_ms` (1 s, `internal.config`), cioè dopo che tutti hanno confermato la fase prima e
   finito la transizione; prima la funzione risponde `{room: null, retryIn}`. Una fase che finisce
@@ -72,8 +77,12 @@ scoprire niente di nascosto: ruoli, mosse notturne, chat della famiglia, segreti
   altro tipo (`m3` durante la partita, `s3` nella stanza) o un posto che non appartiene più a quella
   stanza LiveKit viene tolto. Il microfono parla solo tenendo premuto il tasto (premi-per-parlare,
   niente microfono aperto): si trasmette finché il pulsante (o V) resta giù, anche mentre il telefono
-  richiede il permesso; lasciato il tasto la traccia va in muto (non passa niente) e il microfono
-  resta pronto 20 s, poi la traccia si toglie e la cattura si spegne. Discussione e voto sono la
+  richiede il permesso. Appena si ha la parola (col microfono scelto e il permesso del sistema dato)
+  la traccia si pubblica già in muto: la traccia è spenta prima di entrare nella stanza, quindi esce
+  solo silenzio e il server la sa muta fin dall'inizio; premere toglie solo il muto, e si sente dal
+  primo istante anche la prima volta. Lasciato il tasto torna in muto (non passa niente). La traccia
+  resta muta per tutta la fase e si toglie (la cattura si spegne) quando la parola se ne va (voto,
+  verdetto, notte, morte), si sceglie di solo ascoltare o si esce dalla voce. Discussione e voto sono la
   stessa stanza del giorno, senza stacco: al voto si perde solo la parola. Silenziare qualcuno (dal menu del posto o dalla lista della voce) vale
   solo su quel telefono: non ci si abbona più alla sua voce. `internal.voice_sessions` tiene solo le stanze
   LiveKit da sorvegliare e la firma dell'ultimo invio. La classificata è spenta (`voice_ranked = 0`). I
