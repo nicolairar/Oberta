@@ -148,6 +148,9 @@ class FakeOnline {
   /// Qualcun altro, già con il suo profilo.
   Profile addPlayer(String id, {required String handle}) => _profiles[id] = Profile(id: id, handle: handle);
 
+  /// [id] spegne «Profilo pubblico».
+  void hideProfile(String id) => _profiles[id] = _profiles[id]!.copyWith(publicProfile: false);
+
   /// Entra già con il profilo pronto, come chi ha giocato altre volte.
   void signInReady({String handle = 'tu', int level = 1, int xp = 0, int coins = 0}) {
     _profiles[accountId] = Profile(id: accountId, handle: handle, level: level, xp: xp, coins: coins);
@@ -492,6 +495,26 @@ class FakeProfiles implements ProfileRepository {
       for (final profile in _online._profiles.values)
         if (profile.id != me && (profile.handle?.startsWith(prefix) ?? false)) profile,
     ]..sort((a, b) => a.handle!.compareTo(b.handle!));
+  }
+
+  @override
+  Future<PublicProfile> publicProfile(String handleOrId) async {
+    final me = _online._me;
+    final key = handleOrId.toLowerCase().replaceFirst('@', '');
+    final profile = _online._profiles[handleOrId] ??
+        _online._profiles.values.where((p) => p.handle == key).firstOrNull;
+    if (profile == null || profile.handle == null) throw const OnlineException(OnlineFailure.playerNotFound);
+    if (profile.id != me && _online._blockedBetween(me, profile.id)) {
+      throw const OnlineException(OnlineFailure.notAllowed);
+    }
+    if (!profile.publicProfile && profile.id != me) return PublicProfile(profile: profile, open: false);
+    return PublicProfile(profile: profile);
+  }
+
+  @override
+  Future<Profile> setPublicProfile(bool visible) async {
+    final me = _online._me;
+    return _online._profiles[me] = _online._profiles[me]!.copyWith(publicProfile: visible);
   }
 }
 

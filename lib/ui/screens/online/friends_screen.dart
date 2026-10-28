@@ -11,6 +11,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/scene_scaffold.dart';
 import 'online_desktop.dart';
 import 'online_widgets.dart';
+import 'profile_sheet.dart';
 
 /// Gli amici: cercare qualcuno per nome unico, rispondere alle richieste,
 /// vedere chi aspetta una risposta e chi è già amico.
@@ -198,7 +199,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
                         children: [
                           for (final link in friends)
                             ProfileRow(
+                              key: Key('friends.row.${link.other.id}'),
                               profile: link.other,
+                              onTap: () => showPublicProfile(context, services: widget.services, target: link.other.id),
                               trailing: TextButton(
                                 onPressed: () => _act(() => _friends.remove(link.other.id)),
                                 child: Text(t.remove),
@@ -328,6 +331,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                         for (final link in friends)
                           DeskProfileRow(
                             profile: link.other,
+                            onTap: () => showPublicProfile(context, services: widget.services, target: link.other.id),
                             subtitle: t.levelShort(link.other.level),
                             actions: [
                               DeskIconAction(

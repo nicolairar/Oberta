@@ -138,10 +138,15 @@ class DeskProfileRow extends StatelessWidget {
     this.actions = const [],
     this.subtitle,
     this.avatar = 56,
+    this.onTap,
   });
+
+  /// Clic sulla riga (non sulle azioni): il fascicolo pubblico.
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) => _HoverRow(
+          onTap: onTap,
           child: Row(
             children: [
               MarkedPortrait(
@@ -186,8 +191,9 @@ class DeskProfileRow extends StatelessWidget {
 /// Il fondo che si accende sotto il mouse, per le righe senza tocco.
 class _HoverRow extends StatefulWidget {
   final Widget child;
+  final VoidCallback? onTap;
 
-  const _HoverRow({required this.child});
+  const _HoverRow({required this.child, this.onTap});
 
   @override
   State<_HoverRow> createState() => _HoverRowState();
@@ -198,9 +204,13 @@ class _HoverRowState extends State<_HoverRow> {
 
   @override
   Widget build(BuildContext context) => MouseRegion(
+        cursor: widget.onTap == null ? MouseCursor.defer : SystemMouseCursors.click,
         onEnter: (_) => setState(() => _over = true),
         onExit: (_) => setState(() => _over = false),
-        child: AnimatedContainer(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: widget.onTap,
+          child: AnimatedContainer(
           duration: const Duration(milliseconds: 120),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
           decoration: BoxDecoration(
@@ -209,6 +219,7 @@ class _HoverRowState extends State<_HoverRow> {
             border: Border.all(color: _over ? AppColors.gold.withValues(alpha: 0.25) : Colors.transparent),
           ),
           child: widget.child,
+          ),
         ),
       );
 }

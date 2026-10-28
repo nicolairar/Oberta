@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import '../../../l10n/app_strings.dart';
 import '../../../l10n/settings_strings.dart';
+import '../../../l10n/progress_strings.dart';
 import '../../../l10n/stats_strings.dart';
 import '../../../online/online_account.dart';
 import '../../../online/online_services.dart';
@@ -22,6 +23,7 @@ import 'online_widgets.dart';
 import 'progress_hooks.dart';
 
 part 'profile_dossier_desktop.dart';
+part 'profile_public.dart';
 part 'profile_stats.dart';
 
 /// La cartellina di cartone kraft e il foglio dattiloscritto dentro.

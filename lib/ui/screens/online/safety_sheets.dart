@@ -3,10 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../l10n/safety_strings.dart';
+import '../../../l10n/stats_strings.dart';
 import '../../../online/online_services.dart';
 import '../../theme/app_theme.dart';
 import 'game/noir_ui.dart';
 import 'online_widgets.dart';
+import 'profile_sheet.dart';
 
 /// Il foglio di un altro giocatore, tenendo premuto il suo posto, la sua
 /// riga nella stanza o un suo messaggio: segnalarlo, bloccarlo o sbloccarlo.
@@ -36,6 +38,12 @@ Future<void> showPlayerActions(
           _Quote(message.body),
         ],
         const SizedBox(height: 16),
+        _SheetButton(
+          key: const Key('safety.profile'),
+          icon: Icons.badge_outlined,
+          label: StatsStrings.of(context).profile,
+          onTap: () => Navigator.pop(context, 'profile'),
+        ),
         _SheetButton(
           key: const Key('safety.report'),
           icon: Icons.flag_outlined,
@@ -71,6 +79,8 @@ Future<void> showPlayerActions(
   );
   if (!context.mounted) return;
   switch (action) {
+    case 'profile':
+      await showPublicProfile(context, services: services, target: profileId);
     case 'report':
       await showReportDialog(context, safety: safety, profileId: profileId, name: name, gameId: gameId, message: message);
     case 'block':
@@ -528,4 +538,44 @@ class _SheetButton extends StatelessWidget {
           label: Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
         ),
       );
+}
+
+/// «Profilo pubblico: sì/no» nelle impostazioni: legge il proprio profilo e
+/// salva la scelta. [builder] disegna l'interruttore (telefono o desktop);
+/// il valore è null finché non si sa.
+class PublicProfileToggle extends StatefulWidget {
+  final ProfileRepository profiles;
+  final Widget Function(BuildContext context, bool? value, ValueChanged<bool> onChanged) builder;
+
+  const PublicProfileToggle({super.key, required this.profiles, required this.builder});
+
+  @override
+  State<PublicProfileToggle> createState() => _PublicProfileToggleState();
+}
+
+class _PublicProfileToggleState extends State<PublicProfileToggle> {
+  bool? _value;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.profiles.me().then((me) {
+      if (mounted) setState(() => _value = me.publicProfile);
+    }, onError: (_) {});
+  }
+
+  Future<void> _set(bool on) async {
+    final before = _value;
+    setState(() => _value = on);
+    try {
+      await widget.profiles.setPublicProfile(on);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _value = before);
+      showFailure(context, error);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.builder(context, _value, _set);
 }

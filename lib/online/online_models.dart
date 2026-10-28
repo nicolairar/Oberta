@@ -146,6 +146,9 @@ class Profile {
   final String? steamAvatar;
   final ProfilePicture picture;
 
+  /// Solo nel proprio profilo: se gli altri vedono le statistiche.
+  final bool publicProfile;
+
   const Profile({
     required this.id,
     this.handle,
@@ -160,6 +163,7 @@ class Profile {
     this.steamPersona,
     this.steamAvatar,
     this.picture = ProfilePicture.game,
+    this.publicProfile = true,
   });
 
   /// Senza nome unico non si entra nelle stanze.
@@ -186,6 +190,7 @@ class Profile {
     int? xp,
     int? coins,
     ProfilePicture? picture,
+    bool? publicProfile,
   }) {
     final choice = picture ?? this.picture;
     return Profile(
@@ -202,6 +207,7 @@ class Profile {
       steamPersona: steamPersona,
       steamAvatar: steamAvatar,
       picture: choice,
+      publicProfile: publicProfile ?? this.publicProfile,
     );
   }
 
@@ -239,6 +245,7 @@ class Profile {
         steamPersona: json['steam_persona'] as String?,
         steamAvatar: safePicture(json['steam_avatar']),
         picture: json['picture'] == 'steam' ? ProfilePicture.steam : ProfilePicture.game,
+        publicProfile: json['public_profile'] != false,
       );
 
   static const minHandle = HandleRules.minLength;

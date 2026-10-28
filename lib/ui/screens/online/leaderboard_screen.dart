@@ -7,6 +7,7 @@ import '../../../online/online_services.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/platform_marks.dart';
 import 'game/noir_ui.dart';
+import 'profile_sheet.dart';
 import 'progress_widgets.dart';
 
 /// The ranked board, chalked on the wall of the back room: the top hundred
@@ -19,7 +20,9 @@ class LeaderboardScreen extends StatefulWidget {
 
   static Future<void> open(BuildContext context, ProgressRepository progress, AppLanguage language) =>
       Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => LeaderboardScreen(progress: progress, language: language)),
+        MaterialPageRoute<void>(
+          builder: (_) => LeaderboardScreen(progress: progress, language: language),
+        ),
       );
 
   @override
@@ -82,57 +85,70 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                     if (board.top.isEmpty)
                       Padding(
                         padding: const EdgeInsets.all(24),
-                        child: Text(s.leaderboardEmpty,
-                            textAlign: TextAlign.center, style: AppText.body.copyWith(color: AppColors.textSecondary)),
+                        child: Text(
+                          s.leaderboardEmpty,
+                          textAlign: TextAlign.center,
+                          style: AppText.body.copyWith(color: AppColors.textSecondary),
+                        ),
                       ),
                     for (final row in board.top)
-                      Container(
-                        key: Key('leaderboard.row.${row.rank}'),
-                        padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 8),
-                        decoration: const BoxDecoration(
-                          border: Border(bottom: BorderSide(color: Color(0x22EFE4CB))),
-                        ),
-                        child: Row(
-                          children: [
-                            SizedBox(
-                              width: 40,
-                              child: Text(
-                                '${row.rank}',
-                                style: AppText.display(row.rank <= 3 ? 20 : 16,
-                                    color: row.rank <= 3 ? Saloon.brass : Saloon.paper),
+                      InkWell(
+                        onTap: switch (OnlineServices.instance) {
+                          final services? => () => showPublicProfile(context, services: services, target: row.handle),
+                          null => null,
+                        },
+                        child: Container(
+                          key: Key('leaderboard.row.${row.rank}'),
+                          padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 8),
+                          decoration: const BoxDecoration(
+                            border: Border(bottom: BorderSide(color: Color(0x22EFE4CB))),
+                          ),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                width: 40,
+                                child: Text(
+                                  '${row.rank}',
+                                  style: AppText.display(
+                                    row.rank <= 3 ? 20 : 16,
+                                    color: row.rank <= 3 ? Saloon.brass : Saloon.paper,
+                                  ),
+                                ),
                               ),
-                            ),
-                            Expanded(
-                              child: Row(
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      '@${row.handle}',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: AppText.body.copyWith(color: Saloon.paper, fontWeight: FontWeight.w700),
+                              Expanded(
+                                child: Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        '@${row.handle}',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: AppText.body.copyWith(color: Saloon.paper, fontWeight: FontWeight.w700),
+                                      ),
                                     ),
-                                  ),
-                                  PlatformBadges.of(
-                                    steam: row.steam,
-                                    apple: row.apple,
-                                    size: 13,
-                                    color: Saloon.paper.withValues(alpha: 0.7),
-                                  ),
-                                ],
+                                    PlatformBadges.of(
+                                      steam: row.steam,
+                                      apple: row.apple,
+                                      size: 13,
+                                      color: Saloon.paper.withValues(alpha: 0.7),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            Text(
-                              t.tierName(row.tier).toUpperCase(),
-                              style: AppText.overline.copyWith(color: Saloon.mafia, fontSize: 10, letterSpacing: 1.6),
-                            ),
-                          ],
+                              Text(
+                                t.tierName(row.tier).toUpperCase(),
+                                style: AppText.overline.copyWith(color: Saloon.mafia, fontSize: 10, letterSpacing: 1.6),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     const SizedBox(height: 12),
-                    Text(s.leaderboardHint,
-                        textAlign: TextAlign.center,
-                        style: AppText.body.copyWith(color: AppColors.textSecondary, fontSize: 12)),
+                    Text(
+                      s.leaderboardHint,
+                      textAlign: TextAlign.center,
+                      style: AppText.body.copyWith(color: AppColors.textSecondary, fontSize: 12),
+                    ),
                   ],
                 ),
               ),

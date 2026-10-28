@@ -247,50 +247,14 @@ class _StatsView {
   }
 
   /// I quattro numeri grossi: partite, vinte, perse, percentuale.
-  Widget bigNumbers() => Row(
-    children: [
-      for (final (i, (value, label, color)) in [
-        ('${s.games}', w.games, _ink),
-        ('${s.wins}', w.wins, _won),
-        ('${s.losses}', w.losses, _stamp),
-        (w.percent(s.winRate), w.winRate, _ink),
-      ].indexed) ...[
-        if (i > 0) SizedBox(width: 8 * k),
-        Expanded(
-          child: Container(
-            key: Key('stats.big.$i'),
-            padding: EdgeInsets.symmetric(vertical: 8 * k, horizontal: 4 * k),
-            decoration: BoxDecoration(
-              border: Border.all(color: color.withValues(alpha: 0.7), width: 1.6 * k),
-              borderRadius: BorderRadius.circular(3 * k),
-            ),
-            child: Column(
-              children: [
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    value,
-                    style: _typed.copyWith(fontSize: 26 * k, fontWeight: FontWeight.w900, color: color, height: 1.1),
-                  ),
-                ),
-                SizedBox(height: 2 * k),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    label.toUpperCase(),
-                    style: TextStyle(
-                      color: color.withValues(alpha: 0.85),
-                      fontSize: 10 * k,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.2 * k,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
+  Widget bigNumbers() => _BigNumbers(
+    keyPrefix: 'stats.big',
+    k: k,
+    items: [
+      ('${s.games}', w.games, _ink),
+      ('${s.wins}', w.wins, _won),
+      ('${s.losses}', w.losses, _stamp),
+      (w.percent(s.winRate), w.winRate, _ink),
     ],
   );
 

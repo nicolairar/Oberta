@@ -17,6 +17,7 @@ import 'online/link_account_sheet.dart';
 import '../widgets/content_width.dart';
 import '../../l10n/app_strings.dart';
 import '../../l10n/safety_strings.dart';
+import '../../l10n/stats_strings.dart';
 import '../../l10n/settings_strings.dart';
 import '../../online/online_services.dart';
 import '../../settings/app_settings.dart';
@@ -376,6 +377,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           trailing: const Icon(Icons.chevron_right),
                           onTap: () => showCommunityRules(context),
                         ),
+                        if (signedIn && widget.online != null)
+                          PublicProfileToggle(
+                            profiles: widget.online!.profiles,
+                            builder: (context, value, onChanged) => SwitchListTile(
+                              key: const Key('settings.publicProfile'),
+                              secondary: const Icon(Icons.badge_outlined, color: AppColors.gold),
+                              title: Text(StatsStrings.of(context).publicSwitch),
+                              subtitle: Text(StatsStrings.of(context).publicSwitchHint),
+                              value: value ?? true,
+                              onChanged: value == null ? null : onChanged,
+                            ),
+                          ),
                         if (signedIn && widget.online?.safety != null)
                           ListTile(
                             key: const Key('settings.blocked'),

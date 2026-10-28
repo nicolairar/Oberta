@@ -85,6 +85,13 @@ abstract class ProfileRepository {
 
   /// I profili il cui nome unico comincia così, tranne il proprio.
   Future<List<Profile>> search(String handlePrefix);
+
+  /// Il fascicolo pubblico di un altro giocatore, per nome unico o id.
+  /// `notAllowed` se uno dei due ha bloccato l'altro.
+  Future<PublicProfile> publicProfile(String handleOrId);
+
+  /// «Profilo pubblico»: spento, gli altri vedono solo nome, livello e ritratto.
+  Future<Profile> setPublicProfile(bool visible);
 }
 
 abstract class FriendsRepository {

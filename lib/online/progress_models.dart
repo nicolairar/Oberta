@@ -1,7 +1,7 @@
 import '../l10n/app_language.dart';
 import 'game/match_rewards.dart' show RankTier;
 import 'game/progress.dart';
-import 'online_models.dart' show PlayerMarks;
+import 'online_models.dart' show PlayerMarks, Profile;
 
 export 'game/progress.dart' show Achievement, achievements, Metric;
 
@@ -163,4 +163,63 @@ abstract class ProgressRepository {
   Future<PlayerProgress> mine();
   Future<GameUnlocks> unlocksFor(String gameId);
   Future<Leaderboard> leaderboard(AppLanguage language);
+}
+
+/// Another player's public dossier (`public_stats`): account-level numbers
+/// from real games only. Never abandons, AFK, conduct, coins or the Steam
+/// name. With the profile private ([open] false) only the handle, the level
+/// and the portrait come back.
+class PublicProfile {
+  final Profile profile;
+  final bool open;
+  final RankTier? tier;
+  final String? title;
+
+  /// The three rarest achievements unlocked, rarest first.
+  final List<String> featured;
+  final int games;
+  final int wins;
+  final int longestStreak;
+  final int seconds;
+  final int timed;
+
+  /// The five most played roles, most played first.
+  final List<({String role, int games, int wins})> roles;
+
+  const PublicProfile({
+    required this.profile,
+    this.open = true,
+    this.tier,
+    this.title,
+    this.featured = const [],
+    this.games = 0,
+    this.wins = 0,
+    this.longestStreak = 0,
+    this.seconds = 0,
+    this.timed = 0,
+    this.roles = const [],
+  });
+
+  double get winRate => games == 0 ? 0 : wins / games;
+  String? get favouriteRole => roles.firstOrNull?.role;
+
+  static int _int(Object? v) => (v as num?)?.toInt() ?? 0;
+
+  factory PublicProfile.fromJson(Map<String, Object?> json) => PublicProfile(
+        profile: Profile.fromJson(json.cast<String, dynamic>()),
+        open: json['public'] != false,
+        tier: json['tier'] == null ? null : Leaderboard._tier(json['tier']),
+        title: json['title'] as String?,
+        featured: [for (final id in (json['featured'] as List<Object?>? ?? const [])) if (id is String) id],
+        games: _int(json['games']),
+        wins: _int(json['wins']),
+        longestStreak: _int(json['longest_streak']),
+        seconds: _int(json['seconds']),
+        timed: _int(json['timed']),
+        roles: [
+          for (final row in (json['roles'] as List<Object?>? ?? const []))
+            if (row is Map && row['role'] is String)
+              (role: row['role'] as String, games: _int(row['games']), wins: _int(row['wins'])),
+        ],
+      );
 }

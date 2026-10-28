@@ -140,7 +140,8 @@ OnlineException _classify(Object error, SignInDoor? door) {
       'room_full' => OnlineFailure.roomFull,
       'host_must_choose' => OnlineFailure.hostMustChoose,
       'player_not_found' => OnlineFailure.playerNotFound,
-      'not_allowed' => OnlineFailure.notAllowed,
+      'not_allowed' || 'profile_blocked' => OnlineFailure.notAllowed,
+      'profile_not_found' => OnlineFailure.playerNotFound,
       'request_not_found' => OnlineFailure.requestNotFound,
       'invalid_seats' || 'not_your_seat' || 'stale_version' || 'too_many_intents' => OnlineFailure.notAllowed,
       'not_enough_coins' => OnlineFailure.notEnoughCoins,
@@ -463,6 +464,16 @@ class SupabaseProfiles implements ProfileRepository {
             .order('handle')
             .limit(20);
         return [for (final row in rows) Profile.fromJson(row)];
+      });
+
+  @override
+  Future<PublicProfile> publicProfile(String handleOrId) => _guard(() async => PublicProfile.fromJson(
+      (await _client.rpc<Map<String, dynamic>>('public_stats', params: {'target': handleOrId})).cast<String, Object?>()));
+
+  @override
+  Future<Profile> setPublicProfile(bool visible) => _guard(() async {
+        await _client.from('profiles').update({'public_profile': visible}).eq('id', _me);
+        return me();
       });
 }
 

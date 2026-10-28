@@ -89,4 +89,22 @@ class StatsStrings {
   }
 
   String percent(double rate) => '${(rate * 100).round()}%';
+
+  // Public profiles: another player's dossier.
+  String get profile => _t('Profilo', 'Profile');
+  String get publicTitle => _t('FASCICOLO PUBBLICO', 'PUBLIC FILE');
+  String get onRecord => _t('AGLI ATTI', 'ON RECORD');
+  String get featured => _t('MEDAGLIE IN VETRINA', 'SHOWCASE MEDALS');
+  String get noMedals => _t('Nessuna medaglia, per ora.', 'No medals yet.');
+  String get topRoles => _t('RUOLI PIÙ GIOCATI', 'MOST PLAYED ROLES');
+  String get closedFile => _t(
+    'Fascicolo riservato: questo giocatore tiene per sé le sue statistiche.',
+    'Restricted file: this player keeps their stats to themselves.',
+  );
+  String get unavailable => _t('Profilo non disponibile.', 'Profile not available.');
+  String get publicSwitch => _t('Profilo pubblico', 'Public profile');
+  String get publicSwitchHint => _t(
+    'Gli altri vedono statistiche, grado e medaglie. Spento: solo nome, livello e ritratto.',
+    'Others see your stats, rank and medals. Off: only your name, level and portrait.',
+  );
 }

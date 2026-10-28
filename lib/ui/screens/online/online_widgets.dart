@@ -87,10 +87,18 @@ class ProfileRow extends StatelessWidget {
   final List<Widget> badges;
   final Widget? trailing;
 
-  const ProfileRow({super.key, required this.profile, this.badges = const [], this.trailing});
+  /// Tocco sulla riga (non sui bottoni): il fascicolo pubblico.
+  final VoidCallback? onTap;
+
+  const ProfileRow({super.key, required this.profile, this.badges = const [], this.trailing, this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    final row = _row();
+    return onTap == null ? row : InkWell(onTap: onTap, borderRadius: BorderRadius.circular(8), child: row);
+  }
+
+  Widget _row() {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(

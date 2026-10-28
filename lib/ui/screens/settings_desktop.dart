@@ -402,6 +402,18 @@ class _DesktopSettingsState extends State<_DesktopSettings> {
             chevron: true,
             onTap: () => showCommunityRules(context),
           ),
+          if (signedIn && _host.widget.online != null)
+            PublicProfileToggle(
+              profiles: _host.widget.online!.profiles,
+              builder: (context, value, onChanged) => _DeskRow(
+                key: const Key('settings.publicProfile'),
+                icon: Icons.badge_outlined,
+                title: StatsStrings.of(context).publicSwitch,
+                subtitle: StatsStrings.of(context).publicSwitchHint,
+                trailing: _DeskSwitch(value: value ?? true, onChanged: value == null ? (_) {} : onChanged),
+                onTap: value == null ? null : () => onChanged(!value),
+              ),
+            ),
           if (signedIn && _host.widget.online?.safety != null)
             _DeskRow(
               key: const Key('settings.blocked'),
