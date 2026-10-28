@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="250" height="250" viewBox="0 0 250 250">
+  <defs>
+    <linearGradient id="badge" x1="0" y1="0" x2=".8" y2="1">
+      <stop offset="0" stop-color="#E8C86E"/><stop offset=".58" stop-color="#D6AD48"/><stop offset="1" stop-color="#A77C25"/>
+    </linearGradient>
+    <linearGradient id="rifle" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6B5440"/><stop offset="1" stop-color="#35281F"/>
+    </linearGradient>
+    <linearGradient id="steel" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#D9D2C3"/><stop offset="1" stop-color="#7B756D"/>
+    </linearGradient>
+  </defs>
+  <circle cx="125" cy="125" r="116" fill="#100B09"/>
+  <circle cx="125" cy="125" r="110" fill="url(#badge)" stroke="#100B09" stroke-width="5"/>
+  <path d="M42 79A91 91 0 0 1 93 39" fill="none" stroke="#FFF2C9" stroke-opacity=".34" stroke-width="5" stroke-linecap="round"/>
+  <g stroke="#100B09" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M43 124h139l27 9-27 9H43Z" fill="url(#steel)" stroke-width="9"/>
+    <path d="M47 119h48v29H47l-13-7v-15Z" fill="url(#rifle)" stroke-width="9"/>
+    <path d="M174 124h34v18h-34Z" fill="#4B4238" stroke-width="8"/>
+    <path d="M103 139h52l-8 29h-29Z" fill="url(#rifle)" stroke-width="8"/>
+    <path d="M112 167h34l-5 17h-23Z" fill="#5C4938" stroke-width="8"/>
+    <path d="M125 114v-18h18l13 8v10Z" fill="#4B4238" stroke-width="8"/>
+    <path d="M128 93V77c0-10 9-17 21-17h32c12 0 20 7 20 17v16" fill="#352F2A" stroke-width="9"/>
+    <path d="M136 88V78c0-5 5-8 12-8h33c7 0 12 3 12 8v10Z" fill="#EFDFB9" stroke-width="5"/>
+    <path d="M160 77v11m13-11v11m13-11v11" stroke="#100B09" stroke-width="4"/>
+    <path d="M53 119v-6m12 6v-6m12 6v-6" stroke="#D6AD48" stroke-width="4"/>
+  </g>
+  <g stroke="#100B09" stroke-width="6" stroke-linejoin="round">
+    <path d="M70 179h20v40H70Z" fill="url(#steel)"/>
+    <path d="M70 179h20v11H70Z" fill="#D6AD48" stroke-width="4"/>
+    <path d="M99 184h20v35H99Z" fill="url(#steel)"/>
+    <path d="M99 184h20v10H99Z" fill="#D6AD48" stroke-width="4"/>
+    <path d="m70 179 10-14 10 14m9 5 10-14 10 14" fill="#EFDFB9" stroke-width="5"/>
+  </g>
+</svg>
