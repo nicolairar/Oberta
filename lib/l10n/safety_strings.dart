@@ -49,6 +49,16 @@ class SafetyStrings {
         'Gone from your sight: no messages, no friendship, no seat in your rooms. '
             'Ranked keeps you at different tables. You can undo it in Settings.',
       );
+  String get muteChat => _t('Silenzia la chat', 'Mute chat');
+  String get unmuteChat => _t('Riattiva la chat', 'Unmute chat');
+  String chatMuted(String name) =>
+      _t('Non vedi più i messaggi di $name (solo qui).', 'You no longer see the messages of $name (only here).');
+  String chatUnmuted(String name) => _t('Rivedi i messaggi di $name.', 'You see the messages of $name again.');
+  String seat(int number) => _t('Posto $number', 'Seat $number');
+  String get atTable => _t('Al tavolo', 'At the table');
+  String get outOfGame => _t('Fuori dal gioco', 'Out of the game');
+  String get inRoom => _t('Nella stanza', 'In the room');
+
   String blocked(String name) => _t('Hai bloccato $name.', 'You blocked $name.');
   String unblocked(String name) => _t('Hai sbloccato $name.', 'You unblocked $name.');
 
@@ -76,10 +86,10 @@ class SafetyStrings {
           'Sii gentile con chi è nuovo. Lo siamo stati tutti.',
         ];
   String get rulesEnforcement => _t(
-        'Puoi segnalare un giocatore tenendo premuto il suo posto o un suo messaggio. Le segnalazioni vengono esaminate: '
+        'Puoi segnalare un giocatore toccando il suo volto al tavolo o tenendo premuto un suo messaggio. Le segnalazioni vengono esaminate: '
             'chi non rispetta le regole può perdere la chat, la classificata o l\'account. I messaggi e i nomi '
             'offensivi vengono bloccati in automatico.',
-        'You can report a player by long-pressing their seat or one of their messages. Every report is reviewed: '
+        'You can report a player by tapping their face at the table or long-pressing one of their messages. Every report is reviewed: '
             'players who break the rules can lose chat, ranked or their account. Offensive messages and names '
             'are blocked automatically.',
       );

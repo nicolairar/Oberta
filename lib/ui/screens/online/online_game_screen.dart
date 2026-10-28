@@ -39,6 +39,7 @@ import '../../widgets/roles_panel.dart';
 import '../../widgets/wide_scale.dart';
 import '../../widgets/lynch_mark.dart';
 import '../../../l10n/table_strings.dart';
+import '../../../l10n/safety_strings.dart';
 import '../../../l10n/voice_strings.dart';
 import 'game/action_strip.dart';
 import 'game/chat_dock.dart';
@@ -132,8 +133,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   /// Chi si sente nella voce: segnalarlo o bloccarlo, come dal suo posto.
   void _voicePerson(String seat) {
-    final name = _client.board?.seating.occupantOf(seat)?.name;
-    if (name != null) showSeatActions(context, services: widget.services, name: name, myId: widget.me.id);
+    final player = _client.board?.view.seats.where((p) => p.id == seat).firstOrNull;
+    if (player != null) _seatSheet(player);
   }
 
   String get _voiceKey => '${_client.schedule?.key}|${_client.seat?.view.alive}';
@@ -228,15 +229,38 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       _isAlive(player) &&
       _isAlive(_view.seat);
 
+  /// Il foglio di chi siede in [player]: solo quello che si vede adesso
+  /// (il posto, se è al tavolo, caduto o assente), mai il ruolo.
+  void _seatSheet(Player player) {
+    if (player == _view.seat) return;
+    final s = SafetyStrings.of(context);
+    final silenced = _public.lastDawn?.silenced == player && _public.lastDawn?.round == _public.round;
+    showSeatActions(
+      context,
+      services: widget.services,
+      name: player.name,
+      myId: widget.me.id,
+      profileId: _client.board?.seating.occupantOf(player.id)?.profileId,
+      voice: voiceMuteFor(context, _voice, player.id),
+      seat: switch (_numberOf(player)) { final n? => s.seat(n), null => null },
+      status: !_isAlive(player)
+          ? s.outOfGame
+          : _offline(player)
+          ? _t.online.offlineBadge
+          : silenced
+          ? _ts.silenced
+          : s.atTable,
+    );
+  }
+
+  /// Tenuto premuto: di giorno fra vivi i gesti (col foglio a un tocco),
+  /// altrimenti il foglio del giocatore.
   void _seatHeld(Player player) {
-    final voice = voiceMuteFor(context, _voice, player.id);
-    void report() =>
-        showSeatActions(context, services: widget.services, name: player.name, myId: widget.me.id, voice: voice);
     if (!_canGesture(player)) {
-      report();
+      _seatSheet(player);
       return;
     }
-    _throwGesture(player, onReport: widget.services.safety == null ? null : report);
+    _throwGesture(player, onReport: widget.services.safety == null ? null : () => _seatSheet(player));
   }
 
   void _throwGesture(Player player, {VoidCallback? onReport}) {
@@ -1095,13 +1119,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                             selected: _public.won(player),
                             role: roles[player],
                             noteColor: roles[player]!.team == Team.mafia ? Saloon.mafia : Saloon.brass,
-                            onLongPress: player == _view.seat
-                                ? null
-                                : () => showSeatActions(context,
-                                    services: widget.services,
-                                    name: player.name,
-                                    myId: widget.me.id,
-                                    voice: voiceMuteFor(context, _voice, player.id)),
+                            onTap: player == _view.seat ? null : () => _seatSheet(player),
+                            onLongPress: player == _view.seat ? null : () => _seatSheet(player),
                           ),
                           const SizedBox(height: 12),
                           _castLine(player, roles[player]!),
@@ -1917,8 +1936,13 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
           role: role,
           selectable: can && onTap != null && player != selected,
           dimmed: selectable.isNotEmpty && !can && _isAlive(player) && player != selected && player != _view.seat,
-          // Il posto già scelto non si ritocca: si sceglie un altro.
-          onTap: can && onTap != null && player != selected ? () => onTap(player) : null,
+          // Il posto da scegliere si sceglie; ogni altro volto apre il
+          // foglio del giocatore (il posto già scelto non si ritocca).
+          onTap: can && onTap != null && player != selected
+              ? () => onTap(player)
+              : player == _view.seat
+              ? null
+              : () => _seatSheet(player),
           onLongPress: player == _view.seat ? null : () => _seatHeld(player),
           ),
         );

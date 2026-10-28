@@ -46,9 +46,22 @@ abstract final class BlockedPlayers {
 
   static void remove(String id) => set({...ids.value}..remove(id));
 
-  /// Solo i messaggi di chi non è bloccato.
+  /// Chi si è silenziato nella chat, solo su questo telefono e finché l'app
+  /// resta aperta: i suoi messaggi non si vedono, ma resta tutto il resto
+  /// (niente blocco, niente segnalazione, lui non lo sa).
+  static final ValueNotifier<Set<String>> chatMuted = ValueNotifier(const {});
+
+  static bool chatMutes(String id) => chatMuted.value.contains(id);
+
+  static void toggleChat(String id) => chatMuted.value =
+      Set.unmodifiable(chatMutes(id) ? ({...chatMuted.value}..remove(id)) : {...chatMuted.value, id});
+
+  /// Cambia quando cambia chi si nasconde: bloccati o silenziati.
+  static final Listenable changes = Listenable.merge([ids, chatMuted]);
+
+  /// Solo i messaggi di chi non è bloccato né silenziato.
   static List<T> visible<T>(List<T> items, String Function(T item) profileOf) {
-    final hidden = ids.value;
+    final hidden = {...ids.value, ...chatMuted.value};
     if (hidden.isEmpty) return items;
     return [
       for (final item in items)
@@ -57,5 +70,8 @@ abstract final class BlockedPlayers {
   }
 
   /// Per i test.
-  static void clear() => ids.value = const {};
+  static void clear() {
+    ids.value = const {};
+    chatMuted.value = const {};
+  }
 }

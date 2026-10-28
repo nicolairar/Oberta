@@ -87,6 +87,34 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('a face in the room opens the sheet: befriend, mute the chat only here', (tester) async {
+    await openRoom(tester);
+    expect(said('sei una schiappa'), findsOneWidget);
+    await tester.scrollUntilVisible(find.byKey(const Key('online.memberActions.bruno')), -150,
+        scrollable: find.byType(Scrollable).first);
+    await tester.tap(find.byKey(const Key('online.memberActions.bruno')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('player.header')), findsOneWidget);
+    expect(find.text('Nella stanza'), findsOneWidget);
+    expect(find.byKey(const Key('safety.befriend')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('safety.muteChat')));
+    await tester.pumpAndSettle();
+    expect(online.blocks, isEmpty, reason: 'muting the chat is not a block');
+    await tester.scrollUntilVisible(find.byKey(const Key('online.lobbyChat')), 150,
+        scrollable: find.byType(Scrollable).first);
+    expect(said('sei una schiappa'), findsNothing);
+
+    await tester.scrollUntilVisible(find.byKey(const Key('online.memberActions.bruno')), -150,
+        scrollable: find.byType(Scrollable).first);
+    await tester.tap(find.byKey(const Key('online.memberActions.bruno')));
+    await tester.pumpAndSettle();
+    expect(find.text('Riattiva la chat'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('safety.befriend')));
+    await tester.pumpAndSettle();
+    expect((await online.services.friends.list()).map((f) => f.other.id), contains('bruno'));
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('dalle impostazioni: le regole, e i bloccati da sbloccare', (tester) async {
     _usePhone(tester);
     await online.safety.block('bruno');

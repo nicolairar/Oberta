@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../l10n/app_strings.dart';
+import '../../../l10n/safety_strings.dart';
 import '../../../online/game/bot_brain.dart';
 import '../../../online/join_code.dart';
 import '../../../online/online_services.dart';
@@ -19,7 +20,6 @@ import 'game/noir_ui.dart';
 import 'online_game_screen.dart';
 import 'match_results_screen.dart' show showMatchResults;
 import 'online_widgets.dart';
-import 'profile_sheet.dart';
 import 'safety_sheets.dart';
 import 'voice/voice_dock.dart';
 import '../../../online/voice/voice_controller.dart';
@@ -314,32 +314,18 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> with ScreenMusic {
     );
   }
 
+  /// Un volto al tavolo della stanza: il foglio del giocatore.
   void _guestActions(CafeGuest guest) {
-    HapticFeedback.selectionClick();
     final seat = _members.where((m) => m.profile.id == guest.profile.id).firstOrNull?.seat;
-    final voice = seat == null ? null : voiceMuteFor(context, _voice, 'm$seat');
-    if (widget.services.safety == null) {
-      if (voice != null) {
-        showPlayerActions(
-          context,
-          services: widget.services,
-          profileId: guest.profile.id,
-          name: guest.profile.name,
-          myId: widget.me.id,
-          voice: voice,
-        );
-        return;
-      }
-      showPublicProfile(context, services: widget.services, target: guest.profile.id);
-      return;
-    }
     showPlayerActions(
       context,
       services: widget.services,
       profileId: guest.profile.id,
       name: guest.profile.name,
       myId: widget.me.id,
-      voice: voice,
+      voice: seat == null ? null : voiceMuteFor(context, _voice, 'm$seat'),
+      status: guest.host ? AppStrings.of(context).online.hostBadge : SafetyStrings.of(context).inRoom,
+      canBefriend: guest.canBefriend,
     );
   }
 

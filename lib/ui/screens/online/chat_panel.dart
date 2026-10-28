@@ -77,9 +77,9 @@ class _ChatPanelState extends State<ChatPanel> {
   }
 
   @override
-  Widget build(BuildContext context) => ValueListenableBuilder(
-        valueListenable: BlockedPlayers.ids,
-        builder: (context, _, _) => _panel(context, BlockedPlayers.visible(widget.messages, (m) => m.profileId)),
+  Widget build(BuildContext context) => ListenableBuilder(
+        listenable: BlockedPlayers.changes,
+        builder: (context, _) => _panel(context, BlockedPlayers.visible(widget.messages, (m) => m.profileId)),
       );
 
   Widget _panel(BuildContext context, List<ChatMessage> messages) {

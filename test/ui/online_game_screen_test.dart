@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oberta/ui/screens/online/game/seat_card.dart';
 import 'package:oberta/l10n/app_language.dart';
 import 'package:oberta/online/fake_online.dart';
 import 'package:oberta/online/game/game_schedule.dart';
@@ -47,6 +48,21 @@ Future<void> flush(WidgetTester tester) async {
     await tester.pump(const Duration(milliseconds: 1));
   }
   await tester.pump(const Duration(milliseconds: 300));
+}
+
+
+/// Un posto che si sceglie (gli altri volti, toccati, aprono il foglio del
+/// giocatore): niente SeatCard sopra, o una che si può scegliere.
+bool _choosable(Element row) {
+  SeatCard? card;
+  row.visitAncestorElements((e) {
+    if (e.widget is SeatCard) {
+      card = e.widget as SeatCard;
+      return false;
+    }
+    return true;
+  });
+  return card?.selectable ?? true;
 }
 
 void main() {
@@ -198,7 +214,7 @@ void main() {
     final rows = find.descendant(of: find.byKey(const Key('online.vote')), matching: find.byType(InkWell));
     final target = [
       for (final row in rows.evaluate())
-        if ((row.widget as InkWell).onTap != null) row,
+        if ((row.widget as InkWell).onTap != null && _choosable(row)) row,
     ].first;
     await tester.tap(find.byWidget(target.widget));
     await tester.pump();

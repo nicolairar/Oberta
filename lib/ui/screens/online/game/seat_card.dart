@@ -83,7 +83,7 @@ class SeatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => _SeatHover(
         enabled: onTap != null || onLongPress != null,
-        builder: (hover) => _card(context, hover && onTap != null),
+        builder: (hover) => _card(context, hover && selectable),
       );
 
   /// [hover]: il mouse è sopra un posto che si può scegliere.

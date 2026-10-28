@@ -91,9 +91,9 @@ class ChatDock extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => ValueListenableBuilder(
-        valueListenable: BlockedPlayers.ids,
-        builder: (context, _, _) => _strip(context, BlockedPlayers.visible(messages, (m) => m.profileId)),
+  Widget build(BuildContext context) => ListenableBuilder(
+        listenable: BlockedPlayers.changes,
+        builder: (context, _) => _strip(context, BlockedPlayers.visible(messages, (m) => m.profileId)),
       );
 
   Widget _strip(BuildContext context, List<ChatMessage> messages) {
@@ -356,9 +356,9 @@ class _ChatLogState extends State<ChatLog> {
   }
 
   @override
-  Widget build(BuildContext context) => ValueListenableBuilder(
-        valueListenable: BlockedPlayers.ids,
-        builder: (context, _, _) => _log(context, BlockedPlayers.visible(widget.messages, (m) => m.profileId)),
+  Widget build(BuildContext context) => ListenableBuilder(
+        listenable: BlockedPlayers.changes,
+        builder: (context, _) => _log(context, BlockedPlayers.visible(widget.messages, (m) => m.profileId)),
       );
 
   Widget _log(BuildContext context, List<ChatMessage> messages) {

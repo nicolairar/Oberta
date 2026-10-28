@@ -2,21 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../l10n/app_strings.dart';
 import '../../../l10n/safety_strings.dart';
 import '../../../l10n/stats_strings.dart';
 import '../../../online/online_services.dart';
 import '../../press.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/noir_modal.dart';
+import '../../widgets/noir_avatar.dart';
 import '../../widgets/noir_notice.dart';
+import '../../widgets/platform_marks.dart';
 import 'game/noir_ui.dart';
 import 'online_widgets.dart';
 import 'profile_sheet.dart';
 import 'voice/voice_dock.dart';
 
-/// Il foglio di un altro giocatore, tenendo premuto il suo posto, la sua
-/// riga nella stanza o un suo messaggio: segnalarlo, bloccarlo o sbloccarlo.
-/// Non fa niente per sé stessi, per i bot o dove la sicurezza non c'è.
+/// Il foglio di un altro giocatore: toccando il suo volto al tavolo o nella
+/// stanza, tenendo premuto un suo messaggio. In testa solo quello che si vede
+/// adesso (ritratto, nome, livello, posto, stato pubblico: mai il ruolo),
+/// sotto le azioni: il fascicolo, chiedere l'amicizia, silenziarne la voce o
+/// la chat (solo qui), bloccarlo, segnalarlo. Niente per sé stessi.
 Future<void> showPlayerActions(
   BuildContext context, {
   required OnlineServices services,
@@ -26,19 +31,41 @@ Future<void> showPlayerActions(
   String? gameId,
   ChatMessage? message,
   VoiceMuteAction? voice,
+  String? seat,
+  String? status,
+  bool? canBefriend,
 }) async {
   final safety = services.safety;
-  if (profileId == myId || (safety == null && voice == null)) return;
+  if (profileId == myId) return;
   HapticFeedback.selectionClick();
   final s = SafetyStrings.of(context);
+  final t = AppStrings.of(context).online;
   final blocked = BlockedPlayers.ids.value.contains(profileId);
+  final chatMuted = BlockedPlayers.chatMutes(profileId);
+  final friendable = !blocked && (canBefriend ?? await _notLinked(services, profileId));
+  if (!context.mounted) return;
   final action = await showNoirMenu<String>(
     context,
     key: const Key('safety.actions'),
     title: name,
-    header: message == null ? null : NoirQuote(message.body),
+    header: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _PlayerHeader(services: services, profileId: profileId, name: name, seat: seat, status: status),
+        if (message != null) ...[SizedBox(height: NoirMetrics.of(context).gap), NoirQuote(message.body)],
+      ],
+    ),
     items: [
-      // In cima: silenziare la voce, solo su questo telefono.
+      NoirMenuItem(
+        key: const Key('safety.profile'),
+        value: 'profile',
+        icon: Icons.badge_outlined,
+        label: StatsStrings.of(context).profile,
+      ),
+      if (friendable)
+        NoirMenuItem(key: const Key('safety.befriend'), value: 'friend', icon: Icons.person_add_alt, label: t.addFriend),
+      // Silenziare la voce e la chat: solo su questo telefono.
       if (voice != null)
         NoirMenuItem(
           key: const Key('voice.muteSeat'),
@@ -47,10 +74,10 @@ Future<void> showPlayerActions(
           label: voice.label,
         ),
       NoirMenuItem(
-        key: const Key('safety.profile'),
-        value: 'profile',
-        icon: Icons.badge_outlined,
-        label: StatsStrings.of(context).profile,
+        key: const Key('safety.muteChat'),
+        value: 'chat',
+        icon: chatMuted ? Icons.chat_bubble_outline : Icons.speaker_notes_off_outlined,
+        label: chatMuted ? s.unmuteChat : s.muteChat,
       ),
       if (safety != null) ...[
         if (blocked)
@@ -75,58 +102,140 @@ Future<void> showPlayerActions(
     ],
   );
   if (!context.mounted) return;
-  if (safety == null) {
-    if (action == 'voice') voice?.toggle();
-    if (action == 'profile') await showPublicProfile(context, services: services, target: profileId);
-    return;
-  }
   switch (action) {
     case 'voice':
       voice?.toggle();
+    case 'chat':
+      BlockedPlayers.toggleChat(profileId);
+      showNotice(context, chatMuted ? s.chatUnmuted(name) : s.chatMuted(name), kind: NoticeKind.done);
+    case 'friend':
+      await _run(context, () async {
+        final status = await services.friends.request(profileId);
+        return status == FriendStatus.accepted ? t.nowFriends(name) : t.friendRequestSent(name);
+      });
     case 'profile':
       await showPublicProfile(context, services: services, target: profileId);
-    case 'report':
+    case 'report' when safety != null:
       await showReportDialog(context, safety: safety, profileId: profileId, name: name, gameId: gameId, message: message);
-    case 'block':
+    case 'block' when safety != null:
       await confirmBlock(context, safety: safety, profileId: profileId, name: name);
-    case 'unblock':
-      await _run(context, () => safety.unblock(profileId), s.unblocked(name));
+    case 'unblock' when safety != null:
+      await _run(context, () async {
+        await safety.unblock(profileId);
+        return s.unblocked(name);
+      });
     case 'rules':
       await showCommunityRules(context);
   }
 }
 
-/// Il foglio di un posto al tavolo: si sa solo il nome, che è unico, e da
-/// lì si ritrova il profilo. I bot non hanno profilo, e non si segnalano.
+/// Vero se con [profileId] non c'è ancora un legame (amici o richiesta).
+Future<bool> _notLinked(OnlineServices services, String profileId) async {
+  try {
+    final links = await services.friends.list().timeout(const Duration(seconds: 3));
+    return !links.any((link) => link.other.id == profileId);
+  } catch (_) {
+    return false;
+  }
+}
+
+/// In testa al foglio: il ritratto, il livello (dal fascicolo pubblico, se
+/// c'è), il posto e lo stato che vedono tutti. Il nome è il titolo.
+class _PlayerHeader extends StatefulWidget {
+  final OnlineServices services;
+  final String profileId;
+  final String name;
+  final String? seat;
+  final String? status;
+
+  const _PlayerHeader({required this.services, required this.profileId, required this.name, this.seat, this.status});
+
+  @override
+  State<_PlayerHeader> createState() => _PlayerHeaderState();
+}
+
+class _PlayerHeaderState extends State<_PlayerHeader> {
+  late final Future<PublicProfile> _load = widget.services.profiles.publicProfile(widget.profileId);
+
+  @override
+  Widget build(BuildContext context) {
+    final m = NoirMetrics.of(context);
+    final t = AppStrings.of(context).online;
+    final size = m.desk ? 88.0 : 64.0;
+    return FutureBuilder<PublicProfile>(
+      future: _load,
+      builder: (context, snap) {
+        final profile = snap.data?.profile;
+        final line = [?widget.seat, ?widget.status].join(' · ');
+        return Row(
+          key: const Key('player.header'),
+          children: [
+            MarkedPortrait(
+              name: widget.name,
+              picture: profile?.pictureUrl,
+              size: size,
+              fallback: NoirAvatar.drawn(seed: profile?.avatarSeed ?? widget.name, size: size),
+            ),
+            SizedBox(width: m.gap * 2),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (profile != null)
+                    Text(
+                      t.levelShort(profile.level),
+                      key: const Key('player.level'),
+                      style: NoirType.label(m, color: NoirInk.brass),
+                    ),
+                  if (line.isNotEmpty)
+                    Text(line, key: const Key('player.status'), style: NoirType.small(m, color: NoirInk.body)),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Il foglio di un posto al tavolo. [profileId] è chi siede lì (dal tavolo
+/// della partita); senza, lo si ritrova dal nome, che è unico. I bot non
+/// hanno profilo, e non si segnalano.
 Future<void> showSeatActions(
   BuildContext context, {
   required OnlineServices services,
   required String name,
   required String myId,
+  String? profileId,
   String? gameId,
   VoiceMuteAction? voice,
+  String? seat,
+  String? status,
 }) async {
-  if (services.safety == null) {
-    // Senza segnalazioni resta solo la voce da silenziare.
+  var id = profileId;
+  if (id == null) {
+    try {
+      final found = await services.profiles.search(name);
+      id = found.where((p) => p.handle?.toLowerCase() == name.toLowerCase()).firstOrNull?.id;
+    } catch (_) {}
+  }
+  if (!context.mounted) return;
+  if (id == null) {
+    // Un bot, o nessun profilo da trovare: resta solo la voce da silenziare.
     if (voice != null) await _voiceOnly(context, name, voice);
     return;
   }
-  Profile? profile;
-  try {
-    final found = await services.profiles.search(name);
-    profile = found.where((p) => p.handle?.toLowerCase() == name.toLowerCase()).firstOrNull;
-  } catch (_) {
-    return;
-  }
-  if (profile == null || !context.mounted) return;
   await showPlayerActions(
     context,
     services: services,
-    profileId: profile.id,
+    profileId: id,
     name: name,
     myId: myId,
     gameId: gameId,
     voice: voice,
+    seat: seat,
+    status: status,
   );
 }
 
@@ -148,10 +257,10 @@ Future<void> _voiceOnly(BuildContext context, String name, VoiceMuteAction voice
   if (action == 'voice') voice.toggle();
 }
 
-Future<void> _run(BuildContext context, Future<void> Function() call, String done) async {
+Future<void> _run(BuildContext context, Future<String> Function() call) async {
   final overlay = Overlay.of(context, rootOverlay: true);
   try {
-    await call();
+    final done = await call();
     showNoticeIn(overlay, done, kind: NoticeKind.done);
   } catch (error) {
     if (context.mounted) showFailure(context, error);
@@ -177,7 +286,10 @@ Future<bool> confirmBlock(
     confirmKey: const Key('safety.block.confirm'),
   );
   if (!sure || !context.mounted) return false;
-  await _run(context, () => safety.block(profileId), s.blocked(name));
+  await _run(context, () async {
+    await safety.block(profileId);
+    return s.blocked(name);
+  });
   return true;
 }
 
@@ -449,7 +561,10 @@ class _BlockedPlayersScreenState extends State<BlockedPlayersScreen> {
 
   Future<void> _unblock(Profile profile) async {
     final s = SafetyStrings.of(context);
-    await _run(context, () => widget.safety.unblock(profile.id), s.unblocked(profile.name));
+    await _run(context, () async {
+      await widget.safety.unblock(profile.id);
+      return s.unblocked(profile.name);
+    });
     if (!mounted) return;
     final next = widget.safety.blocked();
     setState(() {

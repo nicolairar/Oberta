@@ -2,6 +2,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oberta/l10n/app_strings.dart';
+import 'package:oberta/ui/screens/online/game/seat_card.dart';
 import 'package:oberta/l10n/app_language.dart';
 import 'package:oberta/online/fake_online.dart';
 import 'package:oberta/online/online_services.dart';
@@ -51,10 +53,25 @@ Future<({FakeOnline online, Room room, ManualClock clock})?> _toTheNight(WidgetT
 /// I posti che adesso si possono toccare.
 List<Element> _tappable() => [
   for (final row in find.descendant(of: find.byKey(const Key('online.night')), matching: find.byType(InkWell)).evaluate())
-    if ((row.widget as InkWell).onTap != null) row,
+    if ((row.widget as InkWell).onTap != null && _choosable(row)) row,
 ];
 
 String _status(WidgetTester tester) => tester.widget<Text>(find.byKey(const Key('online.moveRegistered'))).data!;
+
+
+/// Un posto che si sceglie (gli altri volti, toccati, aprono il foglio del
+/// giocatore): niente SeatCard sopra, o una che si può scegliere.
+bool _choosable(Element row) {
+  SeatCard? card;
+  row.visitAncestorElements((e) {
+    if (e.widget is SeatCard) {
+      card = e.widget as SeatCard;
+      return false;
+    }
+    return true;
+  });
+  return card?.selectable ?? true;
+}
 
 void main() {
   testWidgets('di notte si tocca e la scelta parte subito; si cambia fino allo scadere, e resta segnata', (tester) async {
@@ -188,5 +205,46 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     }
     expect(familyRoles, contains(Role.compare), reason: 'nessuna partita con Bruno Compare');
+  });
+
+  testWidgets('a face on the table that is not a choice opens the player sheet, never the role', (tester) async {
+    _usePhone(tester);
+    for (var seed = 1; seed < 40; seed++) {
+      final game = await _toTheNight(tester, seed);
+      if (game == null) continue;
+      // Bruno chooses Anna; her face, already chosen, is no longer a choice.
+      final pick = find.byWidgetPredicate((w) => w is SeatCard && w.name == 'anna' && w.selectable);
+      if (pick.evaluate().isEmpty || find.text('Su chi vuoi indagare?').evaluate().isNotEmpty ||
+          find.text('Quale fossa scavi stanotte?').evaluate().isNotEmpty) {
+        await tester.pumpWidget(const SizedBox());
+        continue;
+      }
+      await tester.tap(pick);
+      await flush(tester);
+      final anna = find.byWidgetPredicate((w) => w is SeatCard && w.name == 'anna' && !w.selectable);
+      if (anna.evaluate().isEmpty) {
+        await tester.pumpWidget(const SizedBox());
+        continue;
+      }
+      final before = _status(tester);
+      await tester.tap(anna);
+      await flush(tester);
+      expect(find.byKey(const Key('safety.actions')), findsOneWidget);
+      expect(find.byKey(const Key('player.header')), findsOneWidget);
+      expect(find.textContaining('Posto '), findsOneWidget, reason: 'the seat, as everyone sees it');
+      expect(find.textContaining('Al tavolo'), findsOneWidget);
+      for (final key in ['safety.profile', 'safety.muteChat', 'safety.block', 'safety.report']) {
+        expect(find.byKey(Key(key)), findsOneWidget, reason: key);
+      }
+      final roleShown = AppStrings.of(tester.element(anna)).role;
+      for (final role in Role.values) {
+        expect(find.descendant(of: find.byKey(const Key('safety.actions')), matching: find.text(roleShown(role).label)), findsNothing,
+            reason: 'the sheet never tells a role');
+      }
+      expect(_status(tester), before, reason: 'opening the sheet chose nothing');
+      await tester.pumpWidget(const SizedBox());
+      return;
+    }
+    fail('no night with a face that is not a choice');
   });
 }

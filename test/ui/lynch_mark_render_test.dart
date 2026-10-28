@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oberta/ui/screens/online/game/seat_card.dart';
 import 'package:oberta/l10n/app_language.dart';
 import 'package:oberta/online/fake_online.dart';
 import 'package:oberta/online/online_services.dart';
@@ -45,6 +46,21 @@ void _phone(WidgetTester tester) {
   tester.view.padding = const FakeViewPadding(top: 47 * 3, bottom: 34 * 3);
   tester.view.viewPadding = const FakeViewPadding(top: 47 * 3, bottom: 34 * 3);
   addTearDown(tester.view.reset);
+}
+
+
+/// Un posto che si sceglie (gli altri volti, toccati, aprono il foglio del
+/// giocatore): niente SeatCard sopra, o una che si può scegliere.
+bool _choosable(Element row) {
+  SeatCard? card;
+  row.visitAncestorElements((e) {
+    if (e.widget is SeatCard) {
+      card = e.widget as SeatCard;
+      return false;
+    }
+    return true;
+  });
+  return card?.selectable ?? true;
 }
 
 void main() {
@@ -95,7 +111,7 @@ void main() {
         final rows = find.descendant(of: find.byKey(const Key('online.vote')), matching: find.byType(InkWell));
         final target = [
           for (final row in rows.evaluate())
-            if ((row.widget as InkWell).onTap != null) row,
+            if ((row.widget as InkWell).onTap != null && _choosable(row)) row,
         ].lastOrNull;
         if (target != null) {
           await tester.tap(find.byWidget(target.widget));
