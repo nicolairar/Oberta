@@ -23,6 +23,7 @@ import '../widgets/home_tutorial_flyer.dart';
 import '../street/street_route.dart';
 import '../street/street_section.dart';
 import '../street/street_stage.dart';
+import '../street/street_wall.dart';
 import 'avatar/barber_mirror_screen.dart';
 import 'lobby_screen.dart';
 import 'online/online_room_screen.dart';
@@ -527,6 +528,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
             final layout = HomeAlleyLayout(constraints.biggest, MediaQuery.paddingOf(context));
             // La strada dei menu parte da qui: l'uomo sotto il lampione.
             StreetStage.report(context, StreetSpot(layout.smokerFeet, layout.smoker));
+            StreetStage.place(context, StreetPlace(0, layout.lights));
             // Su desktop non c'è «Un telefono per tutti»: restano gli amici
             // e la classificata, alti quanto tutta la zona dei manifesti.
             final desktop = DesktopPlatform.isDesktop;
@@ -553,7 +555,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Migliaia di mattoni: si dipingono una volta, poi è un'immagine.
+                  // Il primo tratto del muro di tutta la strada: quando l'uomo
+                  // si avvia scorre via con gli stessi mattoni e la stessa luce
+                  // della facciata che arriva. Si dipinge una volta, poi è
+                  // un'immagine.
+                  StreetWallLayer(wall: layout.wall, index: 0, fixed: layout.lights),
                   Baked(
                     child: CustomPaint(
                       painter: HomeWallPainter(

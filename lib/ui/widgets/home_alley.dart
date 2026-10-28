@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../street/noir_smoker.dart';
 import '../street/street_stage.dart';
+import '../street/street_wall.dart';
 import 'home_neon_sign.dart';
 
 double _span(double t, double from, double to) => ((t - from) / (to - from)).clamp(0.0, 1.0);
@@ -100,9 +101,11 @@ class HomeAlleyLayout {
       cap * HomeNeonSign.height,
     );
 
+    // Il muro e il marciapiede sono quelli di tutta la strada dei menu.
+    wall = StreetWall(size, safe);
     final street = (usable * 0.122).clamp(80.0, 112.0);
-    ground = h - safe.bottom - street;
-    curb = ground + street * 0.34;
+    ground = wall.ground;
+    curb = wall.curb;
 
     final zoneTop = sign.bottom + cap * 0.34;
     final zone = ground - 12 - zoneTop;
@@ -138,25 +141,24 @@ class HomeAlleyLayout {
   /// Il volantino del tutorial sul palo (null dove non ci sta).
   late final Rect? tutorial;
 
-  /// Quanta luce del lampione arriva in un punto del muro, da 0 a 1: un
-  /// cono che scende appena inclinato verso i manifesti.
-  double lampLight(Offset point) {
-    final v = point - lampHead;
-    if (v.dy < -smoker * 0.05) return 0;
-    final angle = atan2(v.dx, v.dy) - 0.16;
-    final cone = exp(-pow(angle / 0.62, 2).toDouble());
-    final reach = v.distance / (smoker * 1.25);
-    return cone / (1 + reach * reach);
-  }
+  late final StreetWall wall;
 
-  /// Quanta luce dell'insegna arriva in un punto del muro, da 0 a 1.
-  double neonLight(Offset point) {
-    final band = Rect.fromLTRB(sign.left, sign.top + cap * HomeNeonSign.headroom, sign.right, sign.bottom);
-    final dx = max(0.0, max(band.left - point.dx, point.dx - band.right));
-    final dy = max(0.0, max(band.top - point.dy, point.dy - band.bottom));
-    final reach = sqrt(dx * dx + dy * dy) / (cap * 0.60);
-    return 1 / (1 + reach * reach);
-  }
+  // La luce si somma canale per canale: notte blu, neon rosso, lampione caldo.
+  static const _neon = (1.05 * 0.95, 0.20 * 0.95, 0.15 * 0.95);
+  static const _lamp = (0.92 * 1.25, 0.72 * 1.25, 0.42 * 1.25);
+
+  /// Le luci del vicolo sul muro: il rosso di OBERTÀ (forte sotto le
+  /// lettere, poi sempre più tenue lungo la strada) e il cono del lampione.
+  late final List<StreetLight> lights = [
+    StreetSignLight(
+      band: Rect.fromLTRB(sign.left, sign.top + cap * HomeNeonSign.headroom, sign.right, sign.bottom),
+      reach: cap * 0.60,
+      wash: 0.10,
+      spread: size.width * 0.40,
+      color: _neon,
+    ),
+    StreetLampLight(head: lampHead, size: smoker, color: _lamp),
+  ];
 
   @override
   bool operator ==(Object other) => other is HomeAlleyLayout && other.size == size && other.safe == safe;
@@ -165,9 +167,9 @@ class HomeAlleyLayout {
   int get hashCode => Object.hash(size, safe);
 }
 
-/// Il muro del vicolo e il selciato: tutto quello che non si muove. Ogni
-/// mattone prende il colore dalla luce che gli arriva (il rosso dell'insegna,
-/// il giallo del lampione), come nelle tavole di un fumetto.
+/// Le cose fisse sul muro del vicolo: i colpi della raffica e la targa col
+/// nome. Il muro sotto è quello di tutta la strada ([StreetWallLayer]); qui
+/// si prende la stessa luce.
 class HomeWallPainter extends CustomPainter {
   final HomeAlleyLayout layout;
 
@@ -181,80 +183,13 @@ class HomeWallPainter extends CustomPainter {
 
   HomeWallPainter(this.layout, {required this.plaque, this.signIn = false});
 
-  static const _mortar = Color(0xFF07070B);
-
-  // La luce si somma canale per canale: notte blu, neon rosso, lampione caldo.
-  static const _night = (0.15, 0.20, 0.38);
-  static const _neon = (1.05, 0.20, 0.15);
-  static const _lamp = (0.92, 0.72, 0.42);
-
-  Color _lit((double, double, double) albedo, Offset point, {double gain = 1}) {
-    final neon = layout.neonLight(point) * 0.95;
-    final lamp = layout.lampLight(point) * 1.25;
-    int channel(double surface, double night, double red, double warm) =>
-        (255 * surface * gain * (night + red * neon + warm * lamp)).round().clamp(0, 255);
-    return Color.fromARGB(
-      255,
-      channel(albedo.$1, _night.$1, _neon.$1, _lamp.$1),
-      channel(albedo.$2, _night.$2, _neon.$2, _lamp.$2),
-      channel(albedo.$3, _night.$3, _neon.$3, _lamp.$3),
-    );
-  }
+  Color _lit((double, double, double) albedo, Offset point, {double gain = 1}) =>
+      StreetWall.lit(albedo, point, layout.lights, gain: gain);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-    canvas.drawRect(Offset.zero & size, Paint()..color = _mortar);
-    _bricks(canvas, w);
     _holes(canvas);
     if (plaque case final plaque?) _plaque(canvas, plaque);
-
-    // Lo sporco che sale dal marciapiede.
-    final grime = Rect.fromLTRB(0, layout.ground - layout.cap * 0.9, w, layout.ground);
-    canvas.drawRect(
-      grime,
-      Paint()
-        ..shader = const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0x00000000), Color(0xB0000000)],
-        ).createShader(grime),
-    );
-
-    _pavement(canvas, w);
-    final asphalt = Rect.fromLTRB(0, layout.curb, w, h);
-    canvas.drawRect(
-      asphalt,
-      Paint()
-        ..shader = const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF0E1016), Color(0xFF030304)],
-        ).createShader(asphalt),
-    );
-  }
-
-  void _bricks(Canvas canvas, double w) {
-    final rng = Random(41);
-    final course = max(9.0, layout.cap * 0.185);
-    final length = course * 2.55;
-    final paint = Paint();
-    for (var row = 0, y = layout.ground - course; y > -course; row++, y -= course) {
-      final shift = row.isOdd ? length / 2 : 0.0;
-      for (var x = -shift; x < w; x += length) {
-        final tone = rng.nextDouble();
-        final chipped = rng.nextDouble() < 0.04;
-        final center = Offset(x + length / 2, y + course / 2);
-        final albedo = (0.44 + 0.16 * tone, 0.27 + 0.07 * tone, 0.25 + 0.05 * tone);
-        final brick = Rect.fromLTWH(x + 0.8, y + 0.8, length - 1.6, course - 1.6);
-        paint.color = _lit(albedo, center, gain: chipped ? 0.55 : 1);
-        canvas.drawRect(brick, paint);
-        // Un filo di luce sul bordo alto dà spessore al mattone.
-        paint.color = _lit(albedo, center, gain: 1.45);
-        canvas.drawRect(Rect.fromLTWH(brick.left, brick.top, brick.width, 1), paint);
-      }
-    }
   }
 
   /// La raffica che ha mancato qualcuno, tanto tempo fa.
@@ -326,20 +261,6 @@ class HomeWallPainter extends CustomPainter {
     canvas.drawCircle(hit, 2.2, Paint()..color = const Color(0xFF020203));
   }
 
-  void _pavement(Canvas canvas, double w) {
-    final slab = layout.smoker * 0.42;
-    final paint = Paint();
-    final depth = layout.curb - layout.ground;
-    for (var x = -slab * 0.3; x < w; x += slab) {
-      final center = Offset(x + slab / 2, layout.ground - layout.smoker * 0.15);
-      paint.color = _lit((0.50, 0.50, 0.54), center, gain: 0.8);
-      canvas.drawRect(Rect.fromLTWH(x + 0.8, layout.ground, slab - 1.6, depth * 0.78), paint);
-      paint.color = _lit((0.50, 0.50, 0.54), center, gain: 0.42);
-      canvas.drawRect(Rect.fromLTWH(x + 0.8, layout.ground + depth * 0.78, slab - 1.6, depth * 0.22), paint);
-    }
-    canvas.drawRect(Rect.fromLTWH(0, layout.ground, w, 1.2), Paint()..color = Colors.white.withValues(alpha: 0.10));
-  }
-
   @override
   bool shouldRepaint(HomeWallPainter old) => old.layout != layout || old.plaque != plaque || old.signIn != signIn;
 }
@@ -402,16 +323,8 @@ class HomeStreetPainter extends CustomPainter {
     _rain(canvas, size);
 
     final rect = Offset.zero & size;
-    canvas.drawRect(
-      rect,
-      Paint()
-        ..shader = const RadialGradient(
-          center: Alignment(0, -0.15),
-          radius: 1.15,
-          colors: [Color(0x00000000), Color(0x00000000), Color(0x99000000)],
-          stops: [0, 0.55, 1],
-        ).createShader(rect),
-    );
+    // Mentre si cammina la vignettatura la mette la strada, ferma sullo schermo.
+    if (StreetStage.walking.value == 0) StreetWall.vignette(canvas, size);
     final dark = 1 - _smooth(_span(intro.value * opening, 0, 0.7));
     if (dark > 0) canvas.drawRect(rect, Paint()..color = Colors.black.withValues(alpha: dark));
   }

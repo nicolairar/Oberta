@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'street_section.dart';
 import 'street_stage.dart';
+import 'street_wall.dart';
 
 /// Le misure di un tratto di strada davanti a un locale: l'insegna, la
 /// facciata con la vetrina e la porta, il marciapiede, e il riquadro dove
@@ -12,6 +13,10 @@ class StreetFacadeLayout {
   final Size size;
   final EdgeInsets safe;
   final bool desk;
+
+  /// Il muro di tutta la strada: mattoni e marciapiede alla stessa altezza
+  /// del vicolo di casa.
+  late final StreetWall wall;
 
   late final Rect neon;
   late final double ground;
@@ -26,9 +31,9 @@ class StreetFacadeLayout {
   StreetFacadeLayout(this.size, this.safe, {this.desk = false}) {
     final w = size.width;
     final h = size.height;
-    final street = desk ? 120.0 : (h * 0.10).clamp(60.0, 96.0);
-    ground = h - safe.bottom - street;
-    curb = ground + street * 0.34;
+    wall = StreetWall(size, safe);
+    ground = wall.ground;
+    curb = wall.curb;
     if (desk) {
       neon = Rect.fromCenter(center: Offset(w / 2, 46), width: 640, height: 84);
     } else {
@@ -49,6 +54,18 @@ class StreetFacadeLayout {
   }
 
   /// L'uomo sulla soglia: i piedi in mezzo alla porta, alto quasi quanto lei.
+  /// La luce dell'insegna di [section] sul muro: forte vicino ai tubi, poi
+  /// sempre più tenue, fino a mescolarsi con le insegne accanto.
+  List<StreetLight> lightsOf(StreetSection section) => [
+    StreetSignLight(
+      band: neon.deflate(neon.height * 0.2),
+      reach: neon.height * 0.9,
+      wash: 0.8,
+      spread: size.width * 0.40,
+      color: StreetLight.tint(section.neon, 0.95),
+    ),
+  ];
+
   StreetSpot get spot => StreetSpot(door.bottomCenter.translate(0, (curb - ground) * 0.25), door.height * 0.80, door: door);
 
   @override
@@ -61,14 +78,11 @@ class StreetFacadeLayout {
 
 /// Le parti della facciata che [StreetFacadePainter] sa disegnare da sole.
 enum StreetFacadePart {
-  /// I mattoni, con la malta.
-  wall,
-
-  /// Tutto quello che sta sopra i mattoni: la vetrina, la porta, la tenda,
-  /// il marciapiede.
+  /// Tutto quello che sta sopra il muro: la vetrina, la porta, la tenda.
+  /// Il muro lo dipinge [StreetWallLayer], uno solo per tutta la strada.
   front,
 
-  /// La facciata intera.
+  /// La facciata intera, muro compreso.
   all,
 }
 
@@ -86,14 +100,21 @@ class StreetFacadePainter extends CustomPainter {
   /// parte in un'immagine), tutto il resto sopra il muro, o tutto insieme.
   final StreetFacadePart part;
 
-  StreetFacadePainter({required this.layout, required this.section, required this.open, this.part = StreetFacadePart.all});
+  /// Quanto è accesa l'insegna (il suo riflesso sull'asfalto).
+  final double glow;
 
-  /// Solo il muro: la porta non conta.
-  StreetFacadePainter.wall({required this.layout, required this.section})
-      : open = 0,
-        part = StreetFacadePart.wall;
+  /// La vignettatura: mentre si cammina la mette la strada, ferma sullo schermo.
+  final bool vignette;
 
-  static const _mortar = Color(0xFF07070B);
+  StreetFacadePainter({
+    required this.layout,
+    required this.section,
+    required this.open,
+    this.part = StreetFacadePart.all,
+    this.glow = 1,
+    this.vignette = true,
+  });
+
   static const _ink = Color(0xFF050506);
 
   StreetFront get _front => section.front;
@@ -104,50 +125,16 @@ class StreetFacadePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
-    if (part != StreetFacadePart.front) {
-      canvas.drawRect(Offset.zero & size, Paint()..color = _mortar);
-      _bricks(canvas, w);
+    if (part == StreetFacadePart.all) {
+      StreetWallPainter(wall: layout.wall, index: 0, lights: layout.lightsOf(section)).paint(canvas, size);
     }
-    if (part == StreetFacadePart.wall) return;
     _front_(canvas);
     _window(canvas);
     _door(canvas, open.clamp(0.0, 1.0));
     _awning(canvas);
     _props(canvas);
-    _pavement(canvas, w, h);
-
-    final rect = Offset.zero & size;
-    canvas.drawRect(
-      rect,
-      Paint()
-        ..shader = const RadialGradient(
-          center: Alignment(0, -0.2),
-          radius: 1.2,
-          colors: [Color(0x00000000), Color(0x00000000), Color(0xA0000000)],
-          stops: [0, 0.5, 1],
-        ).createShader(rect),
-    );
-  }
-
-  void _bricks(Canvas canvas, double w) {
-    final rng = Random(section.index * 7 + 3);
-    final course = (layout.size.height * 0.024).clamp(9.0, 24.0);
-    final length = course * 2.55;
-    final paint = Paint();
-    final glow = layout.neon.center;
-    final reach = max(layout.neon.width, 120.0);
-    for (var row = 0, y = layout.ground - course; y > -course; row++, y -= course) {
-      final shift = row.isOdd ? length / 2 : 0.0;
-      for (var x = -shift; x < w; x += length) {
-        final tone = rng.nextDouble();
-        final center = Offset(x + length / 2, y + course / 2);
-        final d = (center - glow).distance / reach;
-        final lit = 1 / (1 + d * d * 2.2);
-        final base = Color.fromARGB(255, (52 + 22 * tone).round(), (30 + 10 * tone).round(), (34 + 8 * tone).round());
-        paint.color = Color.lerp(_shade(base, 0.55 + 0.25 * tone), section.neon, 0.38 * lit)!;
-        canvas.drawRect(Rect.fromLTWH(x + 0.8, y + 0.8, length - 1.6, course - 1.6), paint);
-      }
-    }
+    _shine(canvas, w, h);
+    if (vignette) StreetWall.vignette(canvas, size);
   }
 
   Color get _wood => switch (_front) {
@@ -439,39 +426,25 @@ class StreetFacadePainter extends CustomPainter {
     }
   }
 
-  void _pavement(Canvas canvas, double w, double h) {
-    final depth = layout.curb - layout.ground;
-    final slab = max(40.0, layout.door.height * 0.36);
-    final paint = Paint();
-    for (var x = -slab * 0.4; x < w; x += slab) {
-      paint.color = const Color(0xFF2A2B31);
-      canvas.drawRect(Rect.fromLTWH(x + 0.8, layout.ground, slab - 1.6, depth * 0.78), paint);
-      paint.color = const Color(0xFF17181C);
-      canvas.drawRect(Rect.fromLTWH(x + 0.8, layout.ground + depth * 0.78, slab - 1.6, depth * 0.22), paint);
-    }
-    canvas.drawRect(Rect.fromLTWH(0, layout.ground, w, 1.2), Paint()..color = Colors.white.withValues(alpha: 0.10));
-    final asphalt = Rect.fromLTRB(0, layout.curb, w, h);
-    canvas.drawRect(
-      asphalt,
-      Paint()
-        ..shader = const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF0E1016), Color(0xFF030304)],
-        ).createShader(asphalt),
-    );
+  void _shine(Canvas canvas, double w, double h) {
+    if (glow <= 0) return;
     // Il riflesso dell'insegna sull'asfalto bagnato.
     final shine = Rect.fromCenter(center: Offset(layout.neon.center.dx, layout.curb + (h - layout.curb) * 0.4), width: layout.neon.width, height: max(8.0, (h - layout.curb) * 0.5));
     canvas.drawOval(
       shine,
       Paint()
         ..shader = RadialGradient(
-          colors: [section.neon.withValues(alpha: 0.22), section.neon.withValues(alpha: 0)],
+          colors: [section.neon.withValues(alpha: 0.22 * glow.clamp(0.0, 1.0)), section.neon.withValues(alpha: 0)],
         ).createShader(shine),
     );
   }
 
   @override
   bool shouldRepaint(StreetFacadePainter old) =>
-      old.layout != layout || old.section != section || old.part != part || (part != StreetFacadePart.wall && old.open != open);
+      old.layout != layout ||
+      old.section != section ||
+      old.part != part ||
+      old.open != open ||
+      old.glow != glow ||
+      old.vignette != vignette;
 }

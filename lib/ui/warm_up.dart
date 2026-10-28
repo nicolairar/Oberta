@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'avatar/avatar_look.dart';
 import 'street/street_facade.dart';
 import 'street/street_section.dart';
+import 'street/street_wall.dart';
 import 'widgets/death_scene.dart';
 import 'widgets/home_alley.dart';
 import 'widgets/particle_sprites.dart';
@@ -32,7 +33,11 @@ abstract final class WarmUp {
     final sprites = await ParticleSprites.shared.then<ParticleSprites?>((s) => s, onError: (_) => null);
     const size = Size(480, 270);
     final steps = <void Function(Canvas)>[
-      (c) => HomeWallPainter(HomeAlleyLayout(size, EdgeInsets.zero), plaque: 'VICOLO', signIn: false).paint(c, size),
+      (c) {
+        final layout = HomeAlleyLayout(size, EdgeInsets.zero);
+        StreetWallPainter(wall: layout.wall, index: 0, lights: layout.lights).paint(c, size);
+        HomeWallPainter(layout, plaque: 'VICOLO', signIn: false).paint(c, size);
+      },
       (c) => StreetFacadePainter(
         layout: StreetFacadeLayout(size, EdgeInsets.zero, desk: true),
         section: StreetSection.shop,

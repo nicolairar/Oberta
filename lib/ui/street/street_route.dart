@@ -1,11 +1,13 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../desktop/desktop_canvas.dart';
 import 'noir_smoker.dart';
 import 'street_section.dart';
 import 'street_stage.dart';
+import 'street_wall.dart';
 
 double _span(double t, double from, double to) => ((t - from) / (to - from)).clamp(0.0, 1.0);
 
@@ -174,6 +176,9 @@ class StreetRoute<T> extends PageRoute<T> {
   Route<dynamic>? _previous;
   bool _walking = false;
 
+  /// La pagina da cui si parte (e a cui si torna).
+  Route<dynamic>? get previous => _previous;
+
   @override
   Color? get barrierColor => null;
 
@@ -209,6 +214,12 @@ class StreetRoute<T> extends PageRoute<T> {
     if (moving == _walking) return;
     _walking = moving;
     StreetStage.walking.value += moving ? 1 : -1;
+    final previous = _previous;
+    if (moving && previous != null) {
+      StreetStage.ahead.value = StreetAhead(previous, this, animation!);
+    } else if (!moving && StreetStage.ahead.value?.to == this) {
+      StreetStage.ahead.value = null;
+    }
   }
 
   @override
@@ -216,6 +227,12 @@ class StreetRoute<T> extends PageRoute<T> {
     if (_walking) {
       _walking = false;
       StreetStage.walking.value -= 1;
+    }
+    if (StreetStage.ahead.value?.to == this) {
+      // Qui si è a metà di un fotogramma: le pagine si avvisano dopo.
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (StreetStage.ahead.value?.to == this) StreetStage.ahead.value = null;
+      });
     }
     super.dispose();
   }
@@ -280,6 +297,9 @@ class StreetRoute<T> extends PageRoute<T> {
                       ),
                     ),
                   ),
+                // La vignettatura resta ferma sullo schermo: è l'obiettivo,
+                // non il muro (le pagine la tolgono mentre si cammina).
+                if (_walking) const IgnorePointer(child: RepaintBoundary(child: CustomPaint(painter: StreetVignettePainter(), size: Size.infinite))),
                 // Un tocco salta la camminata.
                 if (moving)
                   Positioned.fill(

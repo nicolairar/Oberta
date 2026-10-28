@@ -4,12 +4,12 @@ import 'package:flutter/material.dart';
 
 import '../desktop/desktop_canvas.dart';
 import '../theme/app_theme.dart';
-import '../widgets/baked.dart';
 import 'street_facade.dart';
 import 'street_neon.dart';
 import 'street_route.dart';
 import 'street_section.dart';
 import 'street_stage.dart';
+import 'street_wall.dart';
 
 export 'street_section.dart';
 
@@ -36,6 +36,13 @@ class StreetBackdrop extends StatelessWidget {
     StreetStage.report(context, layout.spot);
     final route = ModalRoute.of(context);
     final walks = route is StreetRoute && !route.still;
+    // Questo tratto di muro sta subito a destra di quello da cui si arriva,
+    // e ne prende la luce che arriva fin qui.
+    final before = route is StreetRoute ? StreetStage.placeOf(route.previous) : null;
+    final index = (before?.index ?? 0) + 1;
+    final own = layout.lightsOf(section);
+    StreetStage.place(context, StreetPlace(index, own));
+    final fixed = [for (final light in before?.lights ?? const <StreetLight>[]) light.shift(-media.size.width)];
     final incoming = route?.animation ?? kAlwaysCompleteAnimation;
     final outgoing = route?.secondaryAnimation ?? kAlwaysDismissedAnimation;
     final language = section.nameOf(context);
@@ -53,14 +60,23 @@ class StreetBackdrop extends StatelessWidget {
           door = max(door, StreetTiming.doorOut(s));
           shown *= StreetTiming.panelsOut(s);
         }
+        final power = arriving ? StreetTiming.neon(t) : 1.0;
         return Stack(
           fit: StackFit.expand,
           children: [
-            // I mattoni sono un'immagine; la porta che si apre si disegna sopra.
-            Baked(child: CustomPaint(painter: StreetFacadePainter.wall(layout: layout, section: section))),
+            // I mattoni sono immagini di un muro solo, lungo tutta la strada;
+            // la porta che si apre si disegna sopra.
+            StreetWallLayer(wall: layout.wall, index: index, fixed: fixed, own: own, power: arriving ? power : null),
             RepaintBoundary(
               child: CustomPaint(
-                painter: StreetFacadePainter(layout: layout, section: section, open: door, part: StreetFacadePart.front),
+                painter: StreetFacadePainter(
+                  layout: layout,
+                  section: section,
+                  open: door,
+                  part: StreetFacadePart.front,
+                  glow: power,
+                  vignette: StreetStage.walking.value == 0,
+                ),
               ),
             ),
             Positioned.fromRect(
@@ -68,7 +84,7 @@ class StreetBackdrop extends StatelessWidget {
               child: RepaintBoundary(
                 child: CustomPaint(
                   // Si accende a singhiozzo quando, a metà strada, entra in vista.
-                  painter: StreetNeonPainter(text: language, color: section.neon, power: arriving ? StreetTiming.neon(t) : 1),
+                  painter: StreetNeonPainter(text: language, color: section.neon, power: power),
                   child: title == null
                       ? Semantics(header: true, label: language, child: const SizedBox.expand())
                       : Semantics(
