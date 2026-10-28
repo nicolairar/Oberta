@@ -366,7 +366,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   OnlineBoard get _board => _client.board!;
   PlayerView get _view => _client.seat!.view;
   PublicView get _public => _board.view;
-  StageWindow? get _window => _board.schedule;
+  StageWindow? get _window => _client.board?.schedule;
   Stage get _stage => _window?.stage ?? Stage.ended;
 
   void _changed() {
@@ -597,15 +597,19 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   // ---------------------------------------------------------------------
 
   Future<void> _confirmExit() async {
-    if (_stage == Stage.ended || (_client.ready && _board.abandoned)) {
+    // Senza tavolo (ancora in collegamento, o un tavolo che questa build non
+    // sa leggere) si esce lo stesso: mai leggere tavolo o vista qui.
+    final ready = _client.ready;
+    if (ready && (_stage == Stage.ended || _board.abandoned)) {
       Navigator.of(context).pop();
       return;
     }
+    final alive = !ready || _view.alive;
     if (_deskMode) {
       final leave = await confirmDeskLeave(
         context,
         title: _t.leaveQuestion,
-        body: _view.alive ? _t.online.leaveAbandonWarning : _t.online.leaveDeadWarning,
+        body: alive ? _t.online.leaveAbandonWarning : _t.online.leaveDeadWarning,
       );
       if (!leave || !mounted) return;
       setState(() => _paused = false);
@@ -617,7 +621,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       context,
       key: const Key('online.leaveDialog'),
       title: _t.leaveQuestion,
-      body: _view.alive ? _t.online.leaveAbandonWarning : _t.online.leaveDeadWarning,
+      body: alive ? _t.online.leaveAbandonWarning : _t.online.leaveDeadWarning,
       icon: Icons.door_back_door_outlined,
       danger: true,
       cancel: _t.stay,
@@ -891,7 +895,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                     child: DeskPauseMenu(
                       strings: _dt,
                       onResume: _closePause,
-                      onRoles: () => RolesSheet.show(context, deck: _public.deck, revealed: publicReveals(_public)),
+                      onRoles: () {
+                        if (_client.ready) RolesSheet.show(context, deck: _public.deck, revealed: publicReveals(_public));
+                      },
                       onSettings: () => SettingsScreen.open(context),
                       onLeave: _confirmExit,
                     ),
@@ -1279,7 +1285,21 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     };
   }
 
-  Widget _connectingView() => _client.error == null
+  Widget _connectingView() => _client.unreadable
+      ? DealingTable(
+          key: const Key('online.unreadable'),
+          status: _t.online.updateServer,
+          below: NoirModalButton(
+            key: const Key('online.unreadable.leave'),
+            action: NoirAction(
+              label: _ts.leave,
+              style: NoirButtonStyle.primary,
+              feel: Press.back,
+              onPressed: _confirmExit,
+            ),
+          ),
+        )
+      : _client.error == null
       ? DealingTable(status: _t.online.gameConnecting)
       : DealingTable(
           status: _t.online.connectionLost,

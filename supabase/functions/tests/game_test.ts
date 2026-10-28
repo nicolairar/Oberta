@@ -294,3 +294,86 @@ Deno.test('the cell: only the Jailer and the prisoner read it, and the Jailer ha
   assert(hidden, 'no phone reads the authors');
   await pg.close();
 });
+
+const newRoles = ['prostituta', 'carceriere', 'pacifista'];
+const dealt = (out: StepOutput) => (out.board.board as { deck: { role: string }[] }).deck.map((d) => d.role);
+
+Deno.test('a table with an old build is never dealt a role that build cannot read', () => {
+  const seats = Array.from({ length: 12 }, (_, i) => ({
+    seat: `s${i + 1}`,
+    profile_id: i < 2 ? `p${i + 1}` : null,
+    name: i < 2 ? `human${i + 1}` : `bot.${i}`,
+  }));
+  const now = Date.UTC(2026, 9, 28, 16);
+  let seenNew = false;
+  for (let seed = 1; seed <= 40; seed++) {
+    const old = dealt(step({ state: null, seats, language: 'it', now, intents: [], seed, minBuild: 65 }));
+    for (const role of newRoles) assert(!old.includes(role), `seed ${seed}: build 65 is dealt ${role}`);
+    const fresh = dealt(step({ state: null, seats, language: 'it', now, intents: [], seed, minBuild: 66 }));
+    if (fresh.some((r) => newRoles.includes(r))) seenNew = true;
+  }
+  assert(seenNew, 'build 66 tables still get the new roles');
+});
+
+Deno.test('two people on build 65 in a friends room: bots fill the table and the game goes on', async () => {
+  const pg = new PGlite();
+  await pg.exec(await Deno.readTextFile(new URL('functions/tests/pglite_prelude.sql', root)));
+  const migrations = [...Deno.readDirSync(new URL('migrations/', root))].map((e) => e.name).sort();
+  for (const name of migrations) {
+    await pg.exec(`begin;\n${await Deno.readTextFile(new URL(`migrations/${name}`, root))}\ncommit;`);
+  }
+  const db = pgliteDb(pg);
+  const people = { anna: users.anna, bruno: users.bruno };
+  for (const [name, id] of Object.entries(people)) {
+    await pg.query(`insert into auth.users (id) values ($1)`, [id]);
+    await pg.query(`update public.profiles set handle = $1 where id = $2`, [name, id]);
+  }
+  const headers = JSON.stringify({ 'x-app-build': '65', 'x-app-platform': 'ios' });
+  async function as<T = Record<string, unknown>>(who: 'anna' | 'bruno', text: string, params: unknown[] = []): Promise<T[]> {
+    await pg.exec(
+      `set role authenticated; set request.jwt.claims to '{"sub": "${people[who]}", "role": "authenticated"}'; set request.headers to '${headers}'`,
+    );
+    try {
+      return (await pg.query(text, params)).rows as T[];
+    } finally {
+      await pg.exec('reset role; reset request.jwt.claims; reset request.headers');
+    }
+  }
+  const [{ id: room, code }] = await as<{ id: string; code: string }>('anna', `select id, code from public.create_room('it')`);
+  await as('bruno', `select public.join_room($1)`, [code]);
+  // Production: the test period on, no size cap (the room's own size).
+  await pg.query(`delete from internal.config where key = 'friends_test_size'`);
+  await pg.query(
+    `insert into internal.config (key, value) values ('friends_test_bots', '1') on conflict (key) do update set value = excluded.value`,
+  );
+  const builds = (await pg.query<{ build: number }>(`select build from internal.client_builds order by build`)).rows;
+  assertEquals(builds.map((b) => b.build), [65, 65], 'both builds are recorded');
+  await as('anna', `select public.start_game($1)`, [room]);
+
+  let now = Number((await pg.query<{ now: number }>(`select extract(epoch from now()) * 1000 as now`)).rows[0].now);
+  assertEquals(await runDue(db, step, { now, room }), 1, 'the runner deals the cards');
+  const [{ seats }] = (await pg.query<{ seats: number }>(`select count(*)::int as seats from public.game_seats where room_id = $1`, [room])).rows;
+  assertEquals(seats, 12, 'bots fill the room up to its size');
+  const [first] = await as<{ view: { board: { deck: { role: string }[] }; schedule: { stage: string } } }>(
+    'anna',
+    `select view from public.game_public`,
+  );
+  assertEquals(first.view.schedule.stage, 'reveal');
+  for (const { role } of first.view.board.deck) assert(!newRoles.includes(role), `build 65 is dealt ${role}`);
+
+  // Nobody does anything: the clock alone moves the game on.
+  const stages = new Set<string>();
+  for (let i = 0; i < 6; i++) {
+    const [{ due }] = (await pg.query<{ due: number }>(
+      `select extract(epoch from next_due_at) * 1000 as due from internal.game_state where room_id = $1`,
+      [room],
+    )).rows;
+    now = Math.max(now, Number(due));
+    await pg.query(`update public.game_seats set last_seen = to_timestamp($1::float8 / 1000) where room_id = $2`, [now, room]);
+    await runDue(db, step, { now });
+    const [board] = await as<{ view: { schedule: { stage: string } } }>('bruno', `select view from public.game_public`);
+    stages.add(board.view.schedule.stage);
+  }
+  assert(stages.has('night'), `the game reaches the night: ${[...stages]}`);
+  await pg.close();
+});

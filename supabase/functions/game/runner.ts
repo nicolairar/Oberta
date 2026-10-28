@@ -79,8 +79,22 @@ export async function stepRoom(
     for (const s of seats) {
       if (s.profile_id !== null && s.seen !== null) seen[s.seat] = Number(s.seen);
     }
+    // Dealing: the oldest build at the table, so that no phone is dealt a
+    // role it cannot read (lib/online/game/role_builds.dart). A person whose
+    // build was never recorded counts as the oldest.
+    let minBuild: number | null = null;
+    if (games[0].state === null || games[0].state === undefined) {
+      const [row] = await tx.query<{ build: number | null }>(
+        `select min(coalesce(b.build, 0))::int as build
+         from public.game_seats s left join internal.client_builds b on b.profile_id = s.profile_id
+         where s.room_id = $1 and s.profile_id is not null`,
+        [room],
+      );
+      minBuild = row?.build ?? null;
+    }
     const input: StepInput = {
       state: games[0].state ?? null,
+      ...(minBuild === null ? {} : { minBuild }),
       seats: seats.map((s) => ({ seat: s.seat, profile_id: s.profile_id, name: s.name })),
       language: games[0].language,
       now: at,

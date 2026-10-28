@@ -14,6 +14,8 @@ export interface StepInput {
   /** Square (day) chat messages after state.lastChat, id = their n: who spoke, for the AFK rule. */
   chat?: { id: number; seat: string | null }[];
   seed?: number;
+  /** When dealing: the oldest app build among the people at the table. */
+  minBuild?: number;
 }
 
 export interface StepOutput {

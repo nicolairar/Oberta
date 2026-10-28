@@ -7,6 +7,7 @@ import '../../rules/game_snapshot.dart';
 import '../../rules/intent.dart';
 import '../../rules/player.dart';
 import '../../rules/role.dart';
+import '../../rules/role_assignment.dart';
 import '../../table/seating.dart';
 import 'bot_brain.dart';
 import 'game_events.dart';
@@ -14,6 +15,7 @@ import 'game_backend.dart';
 import 'game_protocol.dart';
 import 'game_schedule.dart';
 import 'progress.dart' show Feats;
+import 'role_builds.dart';
 
 // La partita online gira sul server. Questo file è puro Dart (niente
 // Flutter): si compila in JavaScript con `tool/edge/build.sh` e lo chiama la
@@ -120,7 +122,10 @@ class ServerStep {
 ///   devono cambiare niente di ciò che vedono gli altri;
 /// - `seen`: per ogni posto umano, l'ultima volta che il suo telefono si è
 ///   fatto sentire (millisecondi; null o assente: tutti collegati);
-/// - `seed` (facoltativo, per i test): il seme di carte e bot.
+/// - `seed` (facoltativo, per i test): il seme di carte e bot;
+/// - `minBuild` (facoltativo): la build più vecchia fra le persone al
+///   tavolo, quando si danno le carte: i ruoli che quella build non conosce
+///   non escono (vedi `role_builds.dart`).
 ///
 /// In uscita un [ServerStep] in JSON. Non lancia per un'intenzione storta:
 /// quella torna rifiutata a chi l'ha mandata.
@@ -136,6 +141,7 @@ Map<String, Object?> serverStep(Map<String, Object?> input, {OnlinePacing pacing
           now: now,
           random: random,
           pacing: pacing,
+          minBuild: (input['minBuild'] as num?)?.toInt(),
         )
       : ServerGame.fromJson(stateJson, random: random);
   final intents = [
@@ -266,13 +272,23 @@ class ServerGame {
     required DateTime now,
     required Random random,
     OnlinePacing pacing = const OnlinePacing(),
+    int? minBuild,
   }) {
     final ordered = [...seats]..sort((a, b) => _seatNumber(a.seat).compareTo(_seatNumber(b.seat)));
     final seating = Seating([
       for (final plan in ordered) Occupant(seat: plan.seat, name: plan.name, profileId: plan.profileId),
     ]);
+    // Come GameSetup.deal, ma senza i ruoli che un telefono al tavolo non
+    // saprebbe leggere.
+    final players = seating.players;
+    final deck = rolesForPlayerCount(
+      players.length,
+      random: random,
+      mode: PlayMode.online,
+      exclude: rolesTooNewFor(minBuild),
+    )..shuffle(random);
     final engine = GameEngine(
-      GameSetup.deal(lobby: seating.players, random: random, mode: PlayMode.online),
+      GameSetup.fromRoles(Map.fromIterables(players, deck)),
       settings: GameSettings(night: pacing.night, discussion: pacing.discussion, vote: pacing.vote),
       seed: random.nextInt(seedRange),
     );

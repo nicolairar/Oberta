@@ -189,12 +189,30 @@ class GameClient extends ChangeNotifier {
     // stessa versione (arrivano dal server una alla volta).
     if (seat == null || seat.version != board.version) return;
     if (_board?.version == board.version) return;
-    final parsed = OnlineBoard.fromPayload(board.version, board.payload);
-    _board = parsed;
-    _seat = OnlineSeat.fromPayload(seat.version, seat.payload, parsed.seating);
+    try {
+      final parsed = OnlineBoard.fromPayload(board.version, board.payload);
+      final mine = OnlineSeat.fromPayload(seat.version, seat.payload, parsed.seating);
+      _board = parsed;
+      _seat = mine;
+    } catch (error) {
+      // Un tavolo che questa build non sa leggere (un ruolo, una fase più
+      // nuovi): mai un'eccezione nel feed, che lascerebbe lo schermo su
+      // «collegamento» per sempre. Lo schermo dice di aggiornare, e si esce.
+      _error = error;
+      _unreadable = true;
+      notifyListeners();
+      return;
+    }
+    _unreadable = false;
     _checkReceipt();
     notifyListeners();
   }
+
+  bool _unreadable = false;
+
+  /// Vero se l'ultimo tavolo arrivato non si lascia leggere da questa build:
+  /// va aggiornata l'app.
+  bool get unreadable => _unreadable;
 
   void _checkReceipt() {
     final receipt = _seat?.receipt;

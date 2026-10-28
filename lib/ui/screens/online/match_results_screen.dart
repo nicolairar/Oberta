@@ -26,7 +26,7 @@ Future<bool> showMatchResults(BuildContext context, OnlineServices services, {bo
   if (ranked == null) return false;
   MatchResult? result;
   try {
-    result = await ranked.lastResult(since: since);
+    result = await ranked.lastResult(since: since).timeout(const Duration(seconds: 8));
   } catch (_) {
     return false;
   }

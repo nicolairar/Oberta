@@ -199,6 +199,22 @@ String _rawNonce() {
 
 String _sha256(String text) => sha256.convert(utf8.encode(text)).toString();
 
+/// Esce dall'account: prima col server ([remote]); se non risponde entro
+/// [timeout], o sbaglia, solo da questo telefono ([local], senza rete).
+/// Uscire funziona sempre.
+@visibleForTesting
+Future<void> signOutOrLocal(
+  Future<void> Function() remote,
+  Future<void> Function() local, {
+  Duration timeout = SupabaseAuth.signOutTimeout,
+}) async {
+  try {
+    await remote().timeout(timeout);
+  } catch (_) {
+    await local();
+  }
+}
+
 class SupabaseAuth extends OnlineAuth {
   final SupabaseClient _client;
   final OnlineConfig _config;
@@ -359,9 +375,22 @@ class SupabaseAuth extends OnlineAuth {
 
   @override
   Future<void> signOut() => _guard(() async {
-        await _client.auth.signOut();
-        if (_googleNonce != null) await GoogleSignIn.instance.signOut();
+        // Il server che non risponde (o la rete che non c'è) non tiene mai
+        // dentro l'account: dopo qualche secondo si esce da questo telefono
+        // soltanto, che non chiede niente alla rete.
+        await signOutOrLocal(
+          () => _client.auth.signOut(),
+          () => _client.auth.signOut(scope: SignOutScope.local),
+        );
+        if (_googleNonce != null) {
+          try {
+            await GoogleSignIn.instance.signOut().timeout(signOutTimeout);
+          } catch (_) {}
+        }
       });
+
+  /// Quanto si aspetta il server all'uscita dall'account.
+  static const signOutTimeout = Duration(seconds: 5);
 
   @override
   void dispose() {

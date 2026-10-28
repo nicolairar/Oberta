@@ -218,6 +218,9 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> with ScreenMusic {
     super.dispose();
   }
 
+  /// Quanto si aspetta il server prima di uscire comunque dalla stanza.
+  static const leaveTimeout = Duration(seconds: 6);
+
   /// Uscire è una scelta: prima si conferma, e il padrone di casa con altra
   /// gente al tavolo sceglie a chi lasciare la stanza.
   Future<void> _askToLeave() async {
@@ -257,12 +260,16 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> with ScreenMusic {
       if (!sure || !mounted) return;
     }
     try {
-      await widget.services.rooms.leave(_room.id, newHostId: heir);
-      _left = true;
-      if (mounted) Navigator.of(context).pop();
+      await widget.services.rooms.leave(_room.id, newHostId: heir).timeout(leaveTimeout);
+    } on TimeoutException {
+      // Il server non risponde: si esce lo stesso, l'uscita resta in viaggio
+      // (e la stanza passa da sola al primo arrivato).
     } catch (error) {
       if (mounted) showFailure(context, error);
+      return;
     }
+    _left = true;
+    if (mounted) Navigator.of(context).pop();
   }
 
   Future<void> _addFriend(Profile other) async {
