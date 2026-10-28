@@ -14,7 +14,7 @@ Usando Obertà accetti questi termini. Il gioco è offerto da Nicolai Tana (cont
 
 - Le monete sono una valuta virtuale del gioco: non hanno valore in denaro, non si possono convertire, prelevare né trasferire ad altri.
 - Servono solo per cosmetici (aspetto dell'avatar), che non danno alcun vantaggio nel gioco.
-- Gli acquisti non sono rimborsabili, salvo quando lo prevedono la legge o le regole di Apple; i rimborsi si chiedono ad Apple.
+- Nel gioco non si compra niente con denaro reale: le monete si guadagnano solo giocando (partite, livelli e missioni).
 - Possiamo cambiare prezzi, oggetti e offerte della bottega.
 
 ## Regole di condotta

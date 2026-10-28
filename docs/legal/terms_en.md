@@ -14,7 +14,7 @@ By using Obertà you accept these terms. The game is offered by Nicolai Tana (co
 
 - Coins are an in-game virtual currency: they have no cash value and cannot be exchanged, withdrawn or transferred to others.
 - They are used only for cosmetics (avatar looks), which give no gameplay advantage.
-- Purchases are non-refundable, except where required by law or by Apple's rules; refunds are requested from Apple.
+- Nothing in the game is sold for real money: coins are only earned by playing (games, levels and missions).
 - We may change prices, items and shop offers.
 
 ## Conduct rules

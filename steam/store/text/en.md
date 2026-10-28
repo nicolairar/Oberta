@@ -38,7 +38,7 @@ Open a room and share the code: friends join from their own computer or phone an
 Every role is explained in a few plain sentences, and the roles in play are always on screen.
 
 [h2]The tailor and the barber[/h2]
-Get your face done at the barber: cuts, moustaches, scars. The tailor's shop has hats, suits, accessories, frames and full looks. Coins are only earned by playing and levelling up: there is nothing to buy with real money, and nothing you wear changes the game. Free to play, no pay-to-win.
+Get your face done at the barber: cuts, moustaches, scars. The tailor's shop has hats, suits, accessories, frames and full looks. Coins are only earned by playing: games, levels, daily and weekly missions and long goals, some with pieces that are never sold. There is nothing to buy with real money, and nothing you wear changes the game. Free to play, no pay-to-win.
 
 [h2]Cross-play with iPhone[/h2]
 Same rooms, same ranked queue, same account on PC, Mac and iPhone. You play on one device at a time: sign in on another and the first one steps aside.

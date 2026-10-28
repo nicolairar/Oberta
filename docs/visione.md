@@ -68,28 +68,16 @@ furba; votano anche di giorno.
   baffi, cappelli, occhiali, vestiti, accessori, skin complete; più avanti
   cornici, titoli, badge. Il look (`AvatarLook`, colonna `avatar` dei profili)
   si vede ovunque: al tavolo in prima persona, nei ritratti, nei filmati.
-- **Come si guadagna:** vincendo le partite si prende esperienza, con
-  l'esperienza si sale di livello, e salire di livello dà monete.
-- **Soldi veri:** si compra la valuta con acquisti in-app (StoreKit, obbligatorio
-  su iOS per beni digitali), e con la valuta si comprano i cosmetici.
-- **Una valuta sola: le monete** (deciso il 17 ottobre). Si guadagnano solo
-  salendo di livello; si sale di livello vincendo. Con soldi veri si comprano
-  monete.
-- **Classi e prezzi** (deciso il 17 ottobre, prezzi in euro voluti dal
-  proprietario): comune (baffi, cravatta) 350 monete ≈ 3–4 €; raro (cappello,
-  occhiali, capelli) 700 ≈ 7 €; epico (vestito completo) 1100 ≈ 11 €;
-  leggendario (skin intera) 1800 ≈ 15–20 €.
-- **Pacchetti:** 4,99 € = 500, 9,99 € = 1050, 19,99 € = 2200, 49,99 € = 6000.
-- **Guadagno giocando** (da tarare con i dati): vittoria 100 XP, sconfitta 30,
-  prima vittoria del giorno +100; dal livello L al successivo 150 + 25·L XP;
-  150 monete a livello + 250 ogni 5 livelli. Obiettivo: primo comune in 2–3
-  ore, leggendario in 20–30 ore, mai tutto in poche ore. Numeri in un file di
-  configurazione unico + simulatore.
-- **Pacchetti "skin + monete"** (idea del proprietario): si comprano SOLO con
-  soldi veri, es. 9,99 € = skin epica + 1100 monete ("due al prezzo di uno").
-  Valore "a parte" sempre vero (stessi prezzi del negozio), 1–2 pacchetti alla
-  volta e a tempo; se la skin è già posseduta il pacchetto non si propone.
-  Il server verifica l'acquisto e accredita skin e monete insieme.
+- **Solo guadagnate, mai comprate** (deciso il 28 ottobre, sostituisce i soldi
+  veri del 17 ottobre): è un progetto per imparare, senza partita IVA, quindi
+  nessun acquisto con denaro reale, mai. Una valuta sola, le monete: si
+  guadagnano con ogni partita, la prima vittoria del giorno, i livelli e le
+  missioni (del giorno, della settimana, gli obiettivi lunghi). Alcuni pezzi si
+  sbloccano solo con un obiettivo e non si vendono. Numeri, obiettivi di tempo
+  e stime di spazio in `docs/economia.md`.
+- **Classi e prezzi:** comune 120 monete (un paio di partite), raro 700 (una
+  settimana di gioco tranquillo), epico 1100-1799, leggendario 2900-8000 (uno o
+  due mesi). Pacchetti scontati del 30-45%.
 - **Rotazioni:** la vetrina (skin e pacchetti in evidenza, date di inizio e
   fine, prezzi) sta in tabelle Supabase, così cambia senza una build nuova. Le
   skin nuove arrivano con gli aggiornamenti dell'app (i disegni sono nel

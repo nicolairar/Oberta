@@ -24,7 +24,7 @@ You can play on a single phone without an account. In that case no personal data
 - Rooms you join, seats and match history.
 - Chat messages you write in rooms, automatically moderated (offensive-word filter and rate limits).
 - Table voice chat, only if you turn it on, in friends rooms: your voice goes out live and is never recorded or transcribed. It travels from your device to the other players through LiveKit (servers in the European Union) while you speak, and is kept nowhere: neither we nor LiveKit store the audio. LiveKit receives only the audio stream, a temporary label for your seat (never your name or account) and technical connection data (IP address).
-- The coin ledger (purchases, rewards, refunds) with the App Store transaction reference.
+- The coin ledger (coins earned by playing and spent in the shop).
 - Records of abandoned matches, used for penalties.
 - Server technical data (IP address, request timestamps) kept by the hosting provider in its logs.
 
@@ -42,7 +42,6 @@ We do not process location, contacts, photos or health data. The microphone is u
 
 - Providing online play, the account, friends, rooms, table voice chat and cosmetics: performance of a contract (art. 6.1.b).
 - Chat moderation, abandon penalties, cheat and abuse prevention, server security: legitimate interest in a fair and safe game (art. 6.1.f).
-- Keeping purchase records: legal, tax and accounting obligations (art. 6.1.c).
 
 ## How long
 
@@ -50,7 +49,7 @@ We do not process location, contacts, photos or health data. The microphone is u
 - Chat messages: 90 days, then deleted automatically.
 - Table voice chat: nothing is kept. Your voice goes out live and is never recorded or transcribed.
 - Match and abandon records: as long as the account exists.
-- Real-money purchases: up to 10 years for tax obligations. After account deletion they are kept only in anonymous form (amount, date, App Store reference), with no link to you.
+- Coin ledger: as long as the account exists. Nothing in the game is sold for real money, so we keep no payment data.
 - Technical logs: according to the hosting provider's retention (usually a few days).
 
 ## Who processes data on our behalf

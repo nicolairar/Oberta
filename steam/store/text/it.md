@@ -41,7 +41,7 @@ Apri una stanza e condividi il codice: gli amici entrano dal loro computer o tel
 Ogni ruolo si spiega in poche frasi semplici, e i ruoli in gioco sono sempre sullo schermo.
 
 [h2]Il sarto e il barbiere[/h2]
-Dal barbiere ti fai la faccia: tagli, baffi, cicatrici. In sartoria cappelli, completi, accessori, cornici e look completi. Le monete si guadagnano solo giocando e salendo di livello: non c'è niente da comprare con soldi veri, e niente di quello che indossi cambia la partita. Gratis, senza pay-to-win.
+Dal barbiere ti fai la faccia: tagli, baffi, cicatrici. In sartoria cappelli, completi, accessori, cornici e look completi. Le monete si guadagnano solo giocando: partite, livelli, missioni del giorno e della settimana e obiettivi lunghi, alcuni con pezzi che non si vendono. Non c'è niente da comprare con soldi veri, e niente di quello che indossi cambia la partita. Gratis, senza pay-to-win.
 
 [h2]Cross-play con iPhone[/h2]
 Stesse stanze, stessa coda classificata, stesso account su PC, Mac e iPhone. Si gioca su un dispositivo alla volta: se entri da un altro, il primo si ferma.
