@@ -116,7 +116,9 @@ abstract class GameBackend {
 /// della piazza di giorno (per i vivi), quella della famiglia di notte.
 /// [event]: the server's own lines about the game (see game_events.dart),
 /// read in every chat of the game, never written by a phone.
-enum ChatChannel { lobby, day, family, event }
+/// [jail]: the Jailer and the prisoner, one night only (on the server the
+/// channel is `jail:<round>`, see [ChatMessage.thread]).
+enum ChatChannel { lobby, day, family, event, jail }
 
 /// A line of the server in the chat: what happened ([kind], with names and
 /// enum names in [data]), for the whole table or, [private], for this phone
@@ -146,6 +148,13 @@ class ChatMessage {
   /// Set on the server's lines ([ChatChannel.event]).
   final GameEvent? event;
 
+  /// The server's channel when it is more than [channel]: the night of a
+  /// cell (`jail:3`). Null otherwise.
+  final String? thread;
+
+  /// In the cell: the Jailer wrote this (no profile, no seat, no name).
+  bool get fromJailer => channel == ChatChannel.jail && seat == null;
+
   const ChatMessage({
     required this.id,
     this.n = 0,
@@ -156,6 +165,7 @@ class ChatMessage {
     required this.body,
     required this.at,
     this.event,
+    this.thread,
   });
 
   /// A row of `game_events`. Its id is made up here: the public lines of a
@@ -194,11 +204,16 @@ class ChatMessage {
   factory ChatMessage.fromJson(Map<String, Object?> json) => ChatMessage(
         id: json['id'] as String,
         n: (json['n'] as num?)?.toInt() ?? 0,
-        channel: ChatChannel.values.byName(json['channel'] as String),
-        profileId: json['profile_id'] as String,
+        channel: _channelOf(json['channel'] as String),
+        thread: (json['channel'] as String).contains(':') ? json['channel'] as String : null,
+        // The Jailer's lines carry no profile: the prisoner must not know.
+        profileId: json['profile_id'] as String? ?? '',
         seat: json['seat'] as String?,
         name: json['name'] as String,
         body: json['body'] as String,
         at: DateTime.parse(json['created_at'] as String),
       );
 }
+
+ChatChannel _channelOf(String name) =>
+    name.startsWith('jail:') ? ChatChannel.jail : ChatChannel.values.byName(name);

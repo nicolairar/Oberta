@@ -27,6 +27,9 @@ extension RoleStyle on Role {
         Role.cacciatore => const Color(0xFF7A5C2E),
         Role.strozzino => const Color(0xFF3E7A3A),
         Role.sicario => const Color(0xFF3A3A48),
+        Role.prostituta => const Color(0xFFA3324F),
+        Role.carceriere => const Color(0xFF4B5A6E),
+        Role.pacifista => const Color(0xFF6E8FA8),
       };
 
   /// L'icona disegnata del ruolo (`assets/roles/<ruolo>.png`).
@@ -54,6 +57,9 @@ extension RoleStyle on Role {
         Role.cacciatore => Icons.assignment_ind,
         Role.strozzino => Icons.payments,
         Role.sicario => Icons.dangerous,
+        Role.prostituta => Icons.nightlife,
+        Role.carceriere => Icons.key,
+        Role.pacifista => Icons.flag,
       };
 }
 

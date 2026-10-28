@@ -95,6 +95,17 @@ class GameEventStrings {
         return tally.isEmpty ? '$verdict$hunter' : '$verdict$hunter ($tally)';
       case 'mayor':
         return _t('$name si rivela Sindaco: il suo voto vale doppio.', '$name reveals the Mayor: their vote counts twice.');
+      case 'truce':
+        return _t(
+          '$name, il Pacifista, chiede la tregua: ${d['target']} è ${_role(d['role'])}. Oggi non si vota.',
+          '$name, the Pacifist, calls a truce: ${d['target']} is the ${_role(d['role'])}. No vote today.',
+        );
+      case 'cell':
+        return d['self'] == true
+            ? _t('Sei in cella. Stanotte non esci.', 'You are in a cell. You are not going out tonight.')
+            : _t('Stanotte $name è in cella.', 'Tonight $name is in a cell.');
+      case 'busy':
+        return _t('Stanotte qualcuno ti ha tenuto occupato.', 'Last night someone kept you busy.');
       case 'left':
         return _t('$name ha lasciato la città.', '$name has left town.');
       case 'end':

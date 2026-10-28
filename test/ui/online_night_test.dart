@@ -27,14 +27,14 @@ void _usePhone(WidgetTester tester) {
 
 /// Una partita di Bruno con il dado [seed], fino alla prima notte già
 /// cominciata. Null se la partita non ci arriva.
-Future<({FakeOnline online, Room room, ManualClock clock})?> _toTheNight(WidgetTester tester, int seed) async {
+Future<({FakeOnline online, Room room, ManualClock clock})?> _toTheNight(WidgetTester tester, int seed, {int bots = 5}) async {
   final clock = ManualClock();
   final online = FakeOnline(accountId: 'bruno', clock: clock, random: Random(seed))
     ..signInReady(handle: 'bruno')
     ..addPlayer('anna', handle: 'anna');
   final room = online.openRoomAs('anna', AppLanguage.it);
   online.joinAs('bruno', room.code);
-  await settled(tester, online.gameAs('anna').setBots(room.id, 5));
+  await settled(tester, online.gameAs('anna').setBots(room.id, bots));
   await settled(tester, online.gameAs('anna').startGame(room.id));
   final me = await settled(tester, online.services.profiles.me());
   await tester.pumpWidget(appIn(AppLanguage.it, OnlineGameScreen(services: online.services, room: room, me: me, clock: clock)));
@@ -182,12 +182,14 @@ void main() {
   testWidgets('il Compare, come tutta la famiglia, ha il voto dell\'agguato e non la domanda di copertura', (tester) async {
     _usePhone(tester);
     final familyRoles = <Role>{};
+    // Nove al tavolo: sotto i 9 la Famiglia non ha poteri (docs/ruoli.md, 2.2).
     for (var seed = 1; seed < 120 && !familyRoles.contains(Role.compare); seed++) {
-      final game = await _toTheNight(tester, seed);
+      final game = await _toTheNight(tester, seed, bots: 7);
       if (game == null) continue;
       final frame = game.online.deliveries.lastWhere((d) => d.user == 'bruno' && d.feed.seat != null).feed.seat!;
       final role = Role.values.byName((frame.payload['view'] as Map)['role'] as String);
-      if (role.team != Team.mafia) {
+      // La Prostituta non vota l'agguato: ha la sua domanda.
+      if (role.team != Team.mafia || !role.isKiller) {
         await tester.pumpWidget(const SizedBox());
         continue;
       }

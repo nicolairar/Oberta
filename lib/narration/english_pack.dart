@@ -117,7 +117,22 @@ const englishPack = NarrationPack(
     Role.sicario: RoleText(
       'Hitman',
       '“I work alone. Coffee\'s on me.”',
-      'You play alone and kill someone every night. Watch out: the Detective sees you as Family. You win if you are alone, or left with just one other player, even Family.',
+      'You play alone and kill someone every night. Watch out: the Detective sees you as Family. You win only if you are the last one standing.',
+    ),
+    Role.prostituta: RoleText(
+      'Consort',
+      '“One song, one drink, and the night is gone.”',
+      'You are in the Family but do not vote the hit: each night you block someone\'s move, never the same one twice running. If you are the last who can vote, you vote.',
+    ),
+    Role.carceriere: RoleText(
+      'Jailer',
+      '“In here we talk. Out there you die.”',
+      'Each night you lock someone up, never the same one twice running: they cannot act and nobody can kill them. Question them in the chat; they won\'t know you.',
+    ),
+    Role.pacifista: RoleText(
+      'Pacifist',
+      '“Blood calls for blood. I call a truce.”',
+      'Once a game, by day, reveal someone\'s exact role to everyone, and your own: there is no vote that day. You win with the town.',
     ),
   },
   cities: [
@@ -437,6 +452,11 @@ const englishPack = NarrationPack(
     'In {city}, not agreeing on anything is business as usual.',
   ],
   noLynchFact: 'Nobody is eliminated today.',
+  truces: [
+    'Hold it, everyone. Nobody hangs today.',
+    'The square lowers the ropes: a truce, for today.',
+  ],
+  truceFact: 'The Pacifist called a truce: no vote today.',
   citizensWin: [
     '{city} is free. Starting tomorrow, people sleep with the windows open. Roll credits.',
     'On the street, people look each other in the eye again. On screen: “The End.”',
@@ -496,6 +516,8 @@ const englishPack = NarrationPack(
     NightTaskKind.watch: 'Whose door do you watch tonight?',
     NightTaskKind.lend: 'Who do you protect tonight by lending them money?',
     NightTaskKind.stab: 'Who do you eliminate tonight?',
+    NightTaskKind.jail: 'Who do you lock up tonight?',
+    NightTaskKind.block: 'Who do you sing for tonight?',
   },
   taskHints: {
     NightTaskKind.kill: 'Tap a name: that\'s your vote for who dies. The Family\'s majority decides.',
@@ -512,6 +534,8 @@ const englishPack = NarrationPack(
     NightTaskKind.watch: 'Tap a name: at dawn you\'ll know if anyone visited them. Not who.',
     NightTaskKind.lend: 'Tap a name: they can\'t die tonight. Never the same one twice running.',
     NightTaskKind.stab: 'Tap a name: they die tonight, unless someone protects them.',
+    NightTaskKind.jail: 'Tap a name: tonight they can\'t act and nobody can touch them. It shuts at once.',
+    NightTaskKind.block: 'Tap a name: their move tonight is lost. Never the same one two nights running.',
     NightTaskKind.decoy: 'No move tonight: tap any name, nothing happens. It keeps your role hidden.',
   },
   decoyPrompts: [

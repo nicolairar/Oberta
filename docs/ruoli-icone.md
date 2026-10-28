@@ -29,3 +29,8 @@ Colore per fazione: famiglia rosso, città ottone, neutrali verde salvia #7A9A6A
 | cacciatore | Il Cacciatore di taglie | Neutrale | Deve far linciare il suo bersaglio | Manifesto «WANTED» / mirino su foto |
 | strozzino | Lo Strozzino | Neutrale | Protegge un debitore ogni notte, vince se sopravvive | Mazzetta di banconote / registro dei debiti |
 | sicario | Il Sicario | Neutrale | Uccide da solo ogni notte | Coltello / guanto nero con silenziatore |
+| prostituta | La Prostituta | Famiglia | Di notte passa la notte con qualcuno: la sua mossa salta | Coppa da cocktail con ciliegia e segno di rossetto sul bordo |
+| carceriere | Il Carceriere | Città | Ogni notte chiude qualcuno in cella: lo blocca e lo protegge, e lo interroga in una chat privata senza farsi riconoscere | Grata di cella con lucchetto (le chiavi sono già del Portinaio) |
+| pacifista | Il Pacifista | Città | Una volta, di giorno, svela a tutti il ruolo esatto di qualcuno e annulla il voto di quel giorno | Bandiera bianca sull'asta |
+
+Le tre icone dei ruoli nuovi (prostituta, carceriere, pacifista) sono disegnate a codice (PIL, 1000 px ridotti a 250 px), sulla stessa geometria del medaglione degli altri: da rifare con ImageGen se si vuole lo stesso tratto del set.

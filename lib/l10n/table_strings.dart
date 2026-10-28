@@ -35,6 +35,21 @@ class TableStrings {
       _t('La risposta arriva subito, e poi non puoi cambiare.', 'The answer comes at once, and then you cannot change it.');
   String get cancel => _t('Annulla', 'Cancel');
 
+  /// The Jailer's question: the cell closes at once.
+  String jail(String name) => _t('Chiudi $name in cella?', 'Lock $name up?');
+  String get jailBody => _t(
+    'La cella si chiude subito: stanotte non agisce e nessuno lo tocca. Poi non puoi cambiare.',
+    'The cell shuts at once: tonight they cannot act and nobody can touch them. You cannot change it.',
+  );
+  String get youAreJailed => _t('Sei in cella. Stanotte non esci.', 'You are in a cell. You are not going out tonight.');
+  String get jailerWantsYou => _t('Il Carceriere vuole parlarti.', 'The Jailer wants a word.');
+  String inYourCell(String name) => _t('In cella: $name. Interrogalo in chat.', 'In your cell: $name. Question them in the chat.');
+  String mateInCell(String name) => _t('Stanotte $name è in cella.', 'Tonight $name is in a cell.');
+  String get jailChat => _t('La cella', 'The cell');
+  String get jailer => _t('Il Carceriere', 'The Jailer');
+  String get answerAtDawn =>
+      _t('Al tavolo c\'è chi blocca: la risposta arriva all\'alba.', 'Someone at this table blocks: the answer comes at dawn.');
+
   // ---- The day.
   String get readTheNews => _t('Leggi la cronaca, poi Pronto.', 'Read the news, then Ready.');
   String votedFor(String name) => _t('Hai votato $name. Puoi cambiare idea.', 'You voted $name. You can change your mind.');
@@ -47,6 +62,18 @@ class TableStrings {
   String get revealMayorBody =>
       _t('Tutti sapranno chi sei, e da oggi il tuo voto vale doppio.', 'Everyone will know who you are, and your vote counts twice from today.');
   String silenced([Gender gender = Gender.unknown]) => _t(agree(gender, m: 'zittito', f: 'zittita'), 'silenced');
+
+  // ---- The Pacifist's truce.
+  String get truce => _t('Tregua', 'Truce');
+  String get truceHint => _t('Tocca chi svelare a tutti.', 'Tap who to reveal to everyone.');
+  String truceTitle(String name) => _t('Fermi tutti: sveli $name?', 'Stop everything: reveal $name?');
+  String get truceBody => _t(
+    'Tutti vedranno il suo ruolo esatto e il tuo. Oggi non si vota. Una volta sola.',
+    'Everyone will see their exact role, and yours. No vote today. Only once.',
+  );
+  String truceLine(String pacifist, String name, String role) =>
+      _t('$pacifist ha chiesto la tregua: $name è $role.', '$pacifist called a truce: $name is the $role.');
+  String get truceVerdict => _t('Tregua: oggi non si impicca nessuno.', 'Truce: nobody hangs today.');
 
   /// The red stamp on the lynched seat.
   String lynched([Gender gender = Gender.unknown]) => _t(agree(gender, m: 'Linciato', f: 'Linciata'), 'Lynched');

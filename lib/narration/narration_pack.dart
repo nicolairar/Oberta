@@ -135,6 +135,10 @@ class NarrationPack {
   final List<String> noLynch;
   final String noLynchFact;
 
+  /// La tregua del Pacifista: oggi non si vota, nessuno sale sul patibolo.
+  final List<String> truces;
+  final String truceFact;
+
   final List<String> citizensWin;
   final String citizensWinFact;
   final List<String> mafiaWins;
@@ -219,6 +223,8 @@ class NarrationPack {
     required this.lynchedLastMafioso,
     required this.noLynch,
     required this.noLynchFact,
+    required this.truces,
+    required this.truceFact,
     required this.citizensWin,
     required this.citizensWinFact,
     required this.mafiaWins,

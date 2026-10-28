@@ -197,7 +197,7 @@ void main() {
         await flush(tester);
 
         expect(
-          find.textContaining(RegExp(r'^\d+ anna: ', multiLine: true), findRichText: true),
+          find.textContaining(RegExp(r'^\d+ (anna|carla|dario): ', multiLine: true), findRichText: true),
           findsWidgets,
           reason: 'il numero accanto al nome',
         );

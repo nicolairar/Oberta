@@ -165,6 +165,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   /// di accendere). Null: come dice la scelta già registrata.
   bool? _alternative;
 
+  /// Il Pacifista sta scegliendo chi svelare.
+  bool _pacifying = false;
+
   /// La domanda aperta prima di un'indagine o di uno scavo: si chiude da
   /// sola se la notte finisce prima della risposta.
   BuildContext? _asking;
@@ -504,12 +507,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   Future<void> _send(PlayerIntent intent) async {
     HapticFeedback.selectionClick();
     final key = _window?.key;
-    if (key != null && intent is! RevealMayor) {
+    if (key != null && intent is! RevealMayor && intent is! Pacify) {
       final family = _view.action?.type == ActionType.mafiaVote;
       final hope = switch (intent) {
         DayVote(:final target) || NightAction(:final target) => (target: _seatOf(target), stage: key, family: false),
         MafiaVote(:final target) => (target: _seatOf(target), stage: key, family: true),
-        Pass() || RevealMayor() => (target: null, stage: key, family: family),
+        Pass() || RevealMayor() || Pacify() => (target: null, stage: key, family: family),
       };
       setState(() => _hope = hope);
     }
@@ -1341,7 +1344,16 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   // ---------------------------------------------------------------------
   // La chat, sempre in fondo.
 
+  /// Stanotte questo posto è nella cella: il Carceriere o il prigioniero.
+  bool get _inJailChat {
+    final cell = _view.cell;
+    return _stage.chat == 'night' && _view.alive && cell != null && (cell == _view.seat || _view.role == Role.carceriere);
+  }
+
   ChatChannelView _chatView() {
+    if (_inJailChat) {
+      return ChatChannelView(channel: ChatChannel.jail, title: _ts.jailChat, accent: Saloon.brass);
+    }
     final familyNight = _stage.chat == 'night' && _inFamilyChat;
     // Di giorno, con un Compare vivo, la famiglia sceglie quale chat guardare.
     final familyDay = _stage.chat == 'day' && _view.familyChat && _familyTab;
@@ -1366,10 +1378,26 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       messages: [
         // The server's lines show in every chat of the game.
         for (final m in _client.chat)
-          if (m.channel == view.channel || m.channel == ChatChannel.event) m,
+          if (m.channel == view.channel || m.channel == ChatChannel.event) _signed(m),
       ],
     );
   }
+
+  /// In cella il Carceriere non ha nome: le sue righe si firmano «Il
+  /// Carceriere», e per lui sono le sue.
+  ChatMessage _signed(ChatMessage m) => !m.fromJailer
+      ? m
+      : ChatMessage(
+          id: m.id,
+          n: m.n,
+          channel: m.channel,
+          profileId: _view.role == Role.carceriere ? widget.me.id : '',
+          seat: null,
+          name: _ts.jailer,
+          body: m.body,
+          at: m.at,
+          thread: m.thread,
+        );
 
   Widget _chatDock() {
     final now = _chatNow();
@@ -1502,6 +1530,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     if (!_client.ready || _client.seat == null) return null;
     final alive = _view.alive;
     return switch (_stage) {
+      Stage.night when alive && _view.cell == _view.seat => t.jailed,
       Stage.night when !alive || _inFamilyChat => null,
       Stage.night => t.nightFamily,
       // Il voto si fa in silenzio: nessuno fa rumore per rovinarlo.
@@ -2072,6 +2101,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         (lastWatch.visited ? _t.pack.watchVisited : _t.pack.watchQuiet).replaceAll('{name}', _tag(lastWatch.target)),
       if (_view.doused.isNotEmpty) '${_t.dousedBadge}: ${_view.doused.map(_tag).join(', ')}',
       if (_view.bounty case final mark?) _t.bountyLine.replaceAll('{name}', _tag(mark)),
+      if (_view.cell case final mate? when mate != _view.seat && _view.role != Role.carceriere) _ts.mateInCell(_tag(mate)),
+      if (_findingsAtDawn && (kind == NightTaskKind.investigate || kind == NightTaskKind.dig)) _ts.answerAtDawn,
     ];
     final String status;
     final StripTone tone;
@@ -2147,7 +2178,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     final pick = _nightPick;
     if (pick.made && pick.target == target) return;
     final intent = family ? MafiaVote(_view.seat.id, target.id) : NightAction(_view.seat.id, target.id);
-    if (kind.immediate) {
+    if (_locks(kind)) {
       final stage = _window?.key;
       final yes = await _confirmImmediate(target, kind);
       if (!yes || !mounted || _window?.key != stage || !_open) return;
@@ -2162,8 +2193,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         _asking = context;
         return NoirDialog(
           key: const Key('online.askImmediate'),
-          title: kind == NightTaskKind.dig ? _ts.dig(_tag(target)) : _ts.investigate(_tag(target)),
-          body: _ts.instantAnswer,
+          title: switch (kind) {
+            NightTaskKind.dig => _ts.dig(_tag(target)),
+            NightTaskKind.jail => _ts.jail(_tag(target)),
+            _ => _ts.investigate(_tag(target)),
+          },
+          body: kind == NightTaskKind.jail ? _ts.jailBody : _ts.instantAnswer,
           onEnter: () => Navigator.of(context).pop(true),
           actions: [
             NoirAction(
@@ -2192,10 +2227,18 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   /// che scende.
   /// Quello che l'indagine o lo scavo di stanotte hanno scoperto: dalla
   /// risposta del server o, per chi rientra al tavolo, da quello che sa.
+  /// Con chi blocca al tavolo (il mazzo è pubblico) le indagini rispondono
+  /// all'alba, come dice il motore ([GameEngine.findingsAtDawn]).
+  bool get _findingsAtDawn => _public.deck.keys.any((role) => role.isBlocker);
+
+  /// La mossa, una volta fatta, non si cambia: la cella, e l'indagine o lo
+  /// scavo quando rispondono subito.
+  bool _locks(NightTaskKind kind) => kind == NightTaskKind.jail || (kind.immediate && !_findingsAtDawn);
+
   Exposure? get _nightFinding {
     final choice = _view.nightChoice;
     final target = choice?.target;
-    if (choice == null || target == null || !choice.kind.immediate) return null;
+    if (choice == null || target == null || !choice.kind.immediate || _findingsAtDawn) return null;
     if (_finding case final finding? when finding.subject == target) return finding;
     final known = _knowledgeOf(target);
     final team = known.team;
@@ -2209,7 +2252,18 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     final found = finding?.role;
     final isMafia = finding?.team == Team.mafia;
     final Widget center;
-    if (finding == null) {
+    final cell = view.alive ? view.cell : null;
+    if (cell != null && cell == view.seat) {
+      center = _felt(key: const Key('online.jailed'), [
+        _feltTitle(_ts.youAreJailed, color: Saloon.brass, maxLines: 2),
+        SizedBox(height: 4 * _k),
+        _feltLine(_ts.jailerWantsYou, style: FontStyle.italic, maxLines: 2),
+      ]);
+    } else if (cell != null && view.role == Role.carceriere) {
+      center = _felt(key: const Key('online.jailer'), [
+        _feltTitle(_ts.inYourCell(_tag(cell)), color: Saloon.brass, maxLines: 3),
+      ]);
+    } else if (finding == null) {
       center = _felt(key: const Key('online.waiting'), [
         _feltLine(
           !view.alive
@@ -2349,7 +2403,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     // Sul panno una riga tecnica e corta: chi, e che carta aveva. Il racconto
     // resta al narratore e al giornale, non qui in mezzo.
     final verdict = condemned == null
-        ? _ts.noLynch
+        ? (report.truce ? _ts.truceVerdict : _ts.noLynch)
         : _ts.lynchedLine(_tag(condemned), role == null ? null : _t.role(role).label, gender: PlayerGenders.of(condemned.name));
     final extra = [
       if (condemned != null && report.personalWin) _t.pack.foolWinsFact.replaceAll('{name}', _tag(condemned)),
@@ -2460,18 +2514,70 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         ? null
         : dawnHeadline(dawn, italian: _italian, everyoneAlive: _t.everyoneAlive).headline;
     final silenced = _view.alive && _view.silenced;
+    final option = _view.action;
+    final canPacify = option != null && option.canPacify && _open;
+    final picking = canPacify && _pacifying;
+    final pacifist = _public.pacifist;
+    final pacified = _public.pacified;
+    final shown = pacified == null ? null : _publicKnowledge(pacified).role;
+    final truce = pacifist == null || pacified == null || shown == null
+        ? null
+        : _ts.truceLine(_tag(pacifist), _tag(pacified), _lowerFirst(_t.role(shown).label));
     return (
       key: const Key('online.discussion'),
       table: _table(
         players: publicSeating(_public.seats),
-        center: headline == null ? null : _felt([_feltTitle(headline, maxLines: 2)]),
+        selectable: picking ? option.targets.toSet() : const {},
+        onTap: picking ? _pacify : null,
+        center: truce != null
+            ? _felt([_feltLine(truce, key: const Key('online.truce'), color: Saloon.brass, weight: FontWeight.w700, maxLines: 4)])
+            : headline == null
+            ? null
+            : _felt([_feltTitle(headline, maxLines: 2)]),
       ),
       strip: ActionStrip(
-        status: silenced && !_acked ? _t.online.chatSilenced : _readyStatus(_t.online.discussionHint),
-        tone: silenced && !_acked ? StripTone.muted : _readyTone,
-        actions: [?_readyAction()],
+        status: picking
+            ? _ts.truceHint
+            : silenced && !_acked
+            ? _t.online.chatSilenced
+            : _readyStatus(_t.online.discussionHint),
+        tone: picking
+            ? StripTone.act
+            : silenced && !_acked
+            ? StripTone.muted
+            : _readyTone,
+        actions: [
+          if (option != null && option.canPacify)
+            NoirAction(
+              key: const Key('online.truce'),
+              label: _ts.truce,
+              onPressed: canPacify ? () => setState(() => _pacifying = !_pacifying) : null,
+            ),
+          ?_readyAction(),
+        ],
       ),
     );
+  }
+
+  String _lowerFirst(String text) => _italian && text.isNotEmpty ? text[0].toLowerCase() + text.substring(1) : text;
+
+  /// La tregua non si disfa: prima si chiede, con il nome scelto.
+  Future<void> _pacify(Player target) async {
+    final stage = _window?.key;
+    final yes = await confirmNoir(
+      context,
+      key: const Key('online.askTruce'),
+      title: _ts.truceTitle(_tag(target)),
+      body: _ts.truceBody,
+      cancel: _ts.cancel,
+      confirm: _ts.truce,
+      cancelKey: const Key('online.cancel'),
+      confirmKey: const Key('online.confirm'),
+    );
+    if (!mounted) return;
+    setState(() => _pacifying = false);
+    if (!yes || _window?.key != stage || !_open) return;
+    await _send(Pacify(_view.seat.id, target.id));
   }
 
   /// Il voto: si tocca chi condannare (il voto parte subito e si cambia

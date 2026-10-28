@@ -168,6 +168,8 @@ List<String> spokenTemplates(NarrationPack pack) => [
       ...pack.lynchedLastMafioso,
       ...pack.noLynch,
       pack.noLynchFact,
+      ...pack.truces,
+      pack.truceFact,
       ...pack.citizensWin,
       pack.citizensWinFact,
       ...pack.mafiaWins,

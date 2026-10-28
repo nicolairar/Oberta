@@ -115,7 +115,22 @@ const italianPack = NarrationPack(
     Role.sicario: RoleText(
       'Il Sicario',
       '«Lavoro da solo. Pago io il caffè.»',
-      'Giochi da solo e ogni notte uccidi una persona. Attenzione: al Commissario risulti della Famiglia. Vinci se resti da solo, o con una sola persona: anche con la Famiglia.',
+      'Giochi da solo e ogni notte uccidi una persona. Attenzione: al Commissario risulti della Famiglia. Vinci solo se resti l\'ultimo vivo.',
+    ),
+    Role.prostituta: RoleText(
+      'La Prostituta',
+      '«Una canzone, un bicchiere, e la notte vola.»',
+      'Sei della Famiglia ma non voti l\'agguato: ogni notte blocchi la mossa di una persona, mai la stessa due notti di fila. Se resti sola a poter votare, voti tu.',
+    ),
+    Role.carceriere: RoleText(
+      'Il Carceriere',
+      '«Qui dentro si parla. Fuori si muore.»',
+      'Ogni notte chiudi in cella una persona, mai la stessa due notti di fila: non agisce e nessuno la uccide. La interroghi in chat, e non sa chi sei.',
+    ),
+    Role.pacifista: RoleText(
+      'Il Pacifista',
+      '«Il sangue chiama sangue. Io chiamo la tregua.»',
+      'Una volta a partita, di giorno, sveli a tutti il ruolo esatto di una persona e il tuo: quel giorno non si vota. Vinci con la Città.',
     ),
   },
   cities: [
@@ -433,6 +448,11 @@ const italianPack = NarrationPack(
     'A {city} non mettersi d\'accordo è la normalità.',
   ],
   noLynchFact: 'Oggi non viene eliminato nessuno.',
+  truces: [
+    'Fermi tutti. Oggi non si impicca nessuno.',
+    'La piazza abbassa le corde: per oggi, tregua.',
+  ],
+  truceFact: 'Il Pacifista ha chiesto la tregua: oggi non si vota.',
   citizensWin: [
     '{city} è libera. Da domani si dorme con le finestre aperte. Titoli di coda.',
     'In piazza ci si guarda di nuovo in faccia. Sullo schermo: «Fine».',
@@ -492,6 +512,8 @@ const italianPack = NarrationPack(
     NightTaskKind.watch: 'Di chi guardi la porta stanotte?',
     NightTaskKind.lend: 'Chi proteggi stanotte, prestandogli i soldi?',
     NightTaskKind.stab: 'Chi elimini stanotte?',
+    NightTaskKind.jail: 'Chi chiudi in cella stanotte?',
+    NightTaskKind.block: 'Per chi canti stanotte?',
   },
   taskHints: {
     NightTaskKind.kill: 'Tocca un nome: è il tuo voto per chi muore. Decide la maggioranza della Famiglia.',
@@ -508,6 +530,8 @@ const italianPack = NarrationPack(
     NightTaskKind.watch: 'Tocca un nome: all\'alba sai se qualcuno è andato da lui. Non chi.',
     NightTaskKind.lend: 'Tocca un nome: stanotte non può morire. Mai lo stesso due notti di fila.',
     NightTaskKind.stab: 'Tocca un nome: muore stanotte, a meno che qualcuno lo protegga.',
+    NightTaskKind.jail: 'Tocca un nome: stanotte non agisce e nessuno lo tocca. La cella si chiude subito.',
+    NightTaskKind.block: 'Tocca un nome: stanotte la sua mossa salta. Mai lo stesso due notti di fila.',
     NightTaskKind.decoy: 'Non hai mosse: tocca un nome qualsiasi, non succede niente. Serve a non farti scoprire.',
   },
   decoyPrompts: [

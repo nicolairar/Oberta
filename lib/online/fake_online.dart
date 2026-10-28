@@ -100,6 +100,10 @@ class FakeOnline {
   final List<void Function()> _gameWatchers = [];
   final List<({String room, String? game, ChatMessage message})> _chat = [];
 
+  /// Chi ha scritto, senza firma, i messaggi del Carceriere (id -> profilo):
+  /// come la tabella riservata del server, per la moderazione.
+  final Map<String, String> _jailers = {};
+
   /// The server's lines (`game_events`): `to` the only profile that reads it.
   final List<({String room, String game, String? to, ChatMessage message})> _events = [];
   int _intentIds = 0;
@@ -994,13 +998,17 @@ class FakeGame implements GameBackend {
     if (text.isEmpty || text.length > 300) throw const OnlineException(OnlineFailure.chatClosed);
     final now = _online.clock.now();
     final recent = _online._chat.where(
-      (m) => m.message.profileId == me && now.difference(m.message.at) < const Duration(seconds: 3),
+      (m) =>
+          (m.message.profileId == me || _online._jailers[m.message.id] == me) &&
+          now.difference(m.message.at) < const Duration(seconds: 3),
     );
     if (recent.length >= 3) throw const OnlineException(OnlineFailure.tooManyMessages);
     if (HandleRules.offensive(text)) throw const OnlineException(OnlineFailure.messageBlocked);
     final room = _room(roomId);
     String? seat;
     String? gameId;
+    String? thread;
+    var jailer = false;
     var name = _online._profiles[me]!.name;
     if (channel == ChatChannel.lobby) {
       if (room.room.status != RoomStatus.lobby) throw const OnlineException(OnlineFailure.chatClosed);
@@ -1017,14 +1025,28 @@ class FakeGame implements GameBackend {
         // Di notte la famiglia; di giorno solo se c'è un Compare vivo.
         ChatChannel.family => rights['family'] == true &&
             (game.chatMode == 'night' || (game.chatMode == 'day' && rights['familyDay'] == true)),
+        // La cella: il Carceriere e il prigioniero, la notte della cella.
+        ChatChannel.jail => game.chatMode == 'night' && rights['jail'] is String,
         ChatChannel.lobby || ChatChannel.event => false,
       };
       if (!allowed) throw const OnlineException(OnlineFailure.chatClosed);
       gameId = game.gameId;
       name = game.seats[seat]!.name;
+      if (channel == ChatChannel.jail) {
+        thread = rights['jail'] as String;
+        // Il Carceriere resta senza nome: niente profilo, posto, nome.
+        if (rights['jailer'] == true) {
+          jailer = true;
+          seat = null;
+          name = '';
+        }
+      }
     }
     // The order within the channel only, as on the server.
-    final n = _online._chat.where((m) => m.room == roomId && m.game == gameId && m.message.channel == channel).length + 1;
+    final n = _online._chat
+            .where((m) => m.room == roomId && m.game == gameId && m.message.channel == channel && m.message.thread == thread)
+            .length +
+        1;
     final id = _online._chatId();
     _online._chat.add((
       room: roomId,
@@ -1033,13 +1055,15 @@ class FakeGame implements GameBackend {
         id: id,
         n: n,
         channel: channel,
-        profileId: me,
+        profileId: jailer ? '' : me,
         seat: seat,
         name: name,
         body: text,
         at: now,
+        thread: thread,
       ),
     ));
+    if (jailer) _online._jailers[id] = me;
     _online._notifyGame(roomId);
     return id;
   }
@@ -1052,11 +1076,13 @@ class FakeGame implements GameBackend {
     final seat = game == null ? null : _seatOf(game, me);
     final rights = seat == null ? const <String, Object?>{} : game!.rightsOf(seat);
     final family = rights['family'] == true && rights['alive'] != false;
+    final jail = rights['jail'] as String?;
     return [
       for (final m in _online._chat)
         if (m.room == roomId &&
             !_online.blocks.contains((me, m.message.profileId)) &&
-            (m.message.channel != ChatChannel.family || (family && m.game == game?.gameId)))
+            (m.message.channel != ChatChannel.family || (family && m.game == game?.gameId)) &&
+            (m.message.channel != ChatChannel.jail || (jail != null && m.message.thread == jail && m.game == game?.gameId)))
           m.message,
       for (final e in _online._events)
         if (e.room == roomId && e.game == game?.gameId && (e.to == null || e.to == me)) e.message,

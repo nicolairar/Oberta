@@ -69,6 +69,8 @@ class RecapStrings {
     NightTaskKind.resurrect => _t('ha richiamato in vita $target.', 'called $target back to life.'),
     NightTaskKind.lend => _t('ha prestato soldi a $target.', 'lent money to $target.'),
     NightTaskKind.stab => _t('ha colpito $target.', 'knifed $target.'),
+    NightTaskKind.jail => _t('ha chiuso in cella $target.', 'locked $target up.'),
+    NightTaskKind.block => _t('ha passato la notte con $target.', 'spent the night with $target.'),
     NightTaskKind.watch => _t(
       'ha sorvegliato la porta di $target: ${visited == true ? 'qualcuno è passato' : 'nessuno è passato'}.',
       'watched $target\'s door: ${visited == true ? 'someone came by' : 'nobody came by'}.',

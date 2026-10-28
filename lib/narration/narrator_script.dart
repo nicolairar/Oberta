@@ -162,6 +162,9 @@ class NarratorScript {
   /// carta, e chi impagina il copione la tiene coperta fino a quel momento.
   List<ScriptLine> lynch(LynchReport report) {
     final condemned = report.condemned;
+    if (condemned == null && report.truce) {
+      return [_fact(pack.truceFact), _story(_picker.pick('lynch.truce', pack.truces))];
+    }
     if (condemned == null) {
       return [_fact(pack.noLynchFact), _story(_picker.pick('lynch.none', pack.noLynch))];
     }

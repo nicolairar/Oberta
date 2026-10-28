@@ -316,7 +316,7 @@ class _StatsView {
     ],
   );
 
-  /// I ventun ruoli, dal più giocato; quelli mai toccati in fondo, sbiaditi.
+  /// Tutti i ruoli, dal più giocato; quelli mai toccati in fondo, sbiaditi.
   List<Widget> roleRows() {
     final roles = [...Role.values]
       ..sort((a, b) {
