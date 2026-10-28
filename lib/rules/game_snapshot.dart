@@ -68,6 +68,16 @@ class GameSnapshot {
 
   /// A chi lo Strozzino ha prestato la notte scorsa.
   final Player? lastLent;
+
+  /// Chi il Carceriere ha chiuso in cella, e con chi la Prostituta ha
+  /// passato la notte, la notte scorsa; chi è stato tenuto occupato.
+  final Player? lastJailed;
+  final Player? lastBlocked;
+  final Player? busy;
+
+  /// Il giro della tregua del Pacifista, e chi ha svelato.
+  final int? truceRound;
+  final Player? truceTarget;
   final List<GameCommand> log;
 
   const GameSnapshot({
@@ -99,6 +109,11 @@ class GameSnapshot {
     this.mayorRound,
     this.bounties = const {},
     this.lastLent,
+    this.lastJailed,
+    this.lastBlocked,
+    this.busy,
+    this.truceRound,
+    this.truceTarget,
     required this.log,
   });
 
@@ -149,6 +164,11 @@ class GameSnapshot {
       for (final entry in bounties.entries) {'hunter': entry.key.id, 'seat': entry.value.id},
     ],
     'lastLent': seatOf(lastLent),
+    if (lastJailed != null) 'lastJailed': seatOf(lastJailed),
+    if (lastBlocked != null) 'lastBlocked': seatOf(lastBlocked),
+    if (busy != null) 'busy': seatOf(busy),
+    if (truceRound != null) 'truceRound': truceRound,
+    if (truceTarget != null) 'truceTarget': seatOf(truceTarget),
         'log': [for (final command in log) command.toJson()],
       };
 
@@ -214,6 +234,11 @@ class GameSnapshot {
           seat(row['hunter'] as String): seat(row['seat'] as String),
       },
       lastLent: optionalSeat(json['lastLent'], seat),
+      lastJailed: optionalSeat(json['lastJailed'], seat),
+      lastBlocked: optionalSeat(json['lastBlocked'], seat),
+      busy: optionalSeat(json['busy'], seat),
+      truceRound: json['truceRound'] as int?,
+      truceTarget: optionalSeat(json['truceTarget'], seat),
       log: [for (final row in rows('log')) GameCommand.fromJson(row)],
     );
   }

@@ -69,6 +69,10 @@ class ActionOption {
   /// Di giorno, il Sindaco può ancora rivelarsi ([RevealMayor]).
   final bool canReveal;
 
+  /// Di giorno, il Pacifista può ancora chiedere la tregua ([Pacify]) su
+  /// uno dei [targets]: il server la accetta solo in discussione.
+  final bool canPacify;
+
   const ActionOption({
     required this.type,
     this.kind,
@@ -77,6 +81,7 @@ class ActionOption {
     this.alternative,
     this.alternativeTargets,
     this.canReveal = false,
+    this.canPacify = false,
   });
 
   Map<String, Object?> toJson() => {
@@ -87,6 +92,7 @@ class ActionOption {
     'alternative': alternative?.name,
     if (alternativeTargets != null) 'alternativeTargets': seatsOf(alternativeTargets!),
     if (canReveal) 'canReveal': true,
+    if (canPacify) 'canPacify': true,
   };
 
   factory ActionOption.fromJson(Map<String, Object?> json, SeatResolver resolve) => ActionOption(
@@ -97,6 +103,7 @@ class ActionOption {
     alternative: optionalEnum(NightTaskKind.values, json['alternative']),
     alternativeTargets: json['alternativeTargets'] == null ? null : seatsFrom(json['alternativeTargets'], resolve),
     canReveal: json['canReveal'] as bool? ?? false,
+    canPacify: json['canPacify'] as bool? ?? false,
   );
 }
 
@@ -140,6 +147,11 @@ class PublicView {
   /// Il Sindaco che si è rivelato oggi: il suo voto vale due.
   final Player? mayor;
 
+  /// Oggi la tregua: il Pacifista che l'ha chiesta e chi ha svelato (il suo
+  /// ruolo è tra i [revealed]). Oggi non si vota.
+  final Player? pacifist;
+  final Player? pacified;
+
   /// Il resoconto completo (tutte le mosse, tutti i ruoli). Solo a partita
   /// finita: fino ad allora `null`, e sul filo non c'è.
   final GameRecap? recap;
@@ -160,6 +172,8 @@ class PublicView {
     this.deck = const {},
     this.personalWins = const [],
     this.mayor,
+    this.pacifist,
+    this.pacified,
     this.recap,
   });
 
@@ -188,6 +202,8 @@ class PublicView {
     ],
     'personalWins': seatsOf(personalWins),
     'mayor': seatOf(mayor),
+    if (pacifist != null) 'pacifist': seatOf(pacifist),
+    if (pacified != null) 'pacified': seatOf(pacified),
     if (recap != null) 'recap': recap!.toJson(),
   };
 
@@ -212,6 +228,8 @@ class PublicView {
     },
     personalWins: json['personalWins'] == null ? const [] : seatsFrom(json['personalWins'], resolve),
     mayor: optionalSeat(json['mayor'], resolve),
+    pacifist: optionalSeat(json['pacifist'], resolve),
+    pacified: optionalSeat(json['pacified'], resolve),
     recap: json['recap'] == null ? null : GameRecap.fromJson(json['recap'] as Map<String, Object?>, resolve),
   );
 }
@@ -261,6 +279,15 @@ class PlayerView {
 
   /// Per il Portinaio: le porte che ha guardato e se qualcuno ci è passato.
   final List<WatchReport> watches;
+
+  /// Stanotte chi è in cella, se questo posto lo può sapere: il Carceriere
+  /// (il suo prigioniero), il prigioniero (se stesso), la Famiglia (se è
+  /// uno dei loro). Chi ha chiuso la cella non c'è mai.
+  final Player? cell;
+
+  /// Oggi: stanotte la Prostituta l'ha tenuto occupato, la sua mossa è
+  /// saltata. Lo sa solo lui.
+  final bool busy;
   final PublicView board;
 
   const PlayerView({
@@ -278,6 +305,8 @@ class PlayerView {
     this.doused = const [],
     this.bounty,
     this.watches = const [],
+    this.cell,
+    this.busy = false,
     required this.board,
   });
 
@@ -298,6 +327,8 @@ class PlayerView {
     'watches': [
       for (final watch in watches) {'round': watch.round, 'seat': watch.target.id, 'visited': watch.visited},
     ],
+    if (cell != null) 'cell': seatOf(cell),
+    if (busy) 'busy': true,
     'board': board.toJson(),
   };
 
@@ -327,6 +358,8 @@ class PlayerView {
         for (final row in _rows(json['watches'] ?? const []))
           (round: row['round'] as int, target: resolve(row['seat'] as String), visited: row['visited'] as bool),
       ],
+      cell: optionalSeat(json['cell'], resolve),
+      busy: json['busy'] as bool? ?? false,
       board: PublicView.fromJson(json['board'] as Map<String, Object?>, resolve),
     );
   }

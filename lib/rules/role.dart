@@ -25,6 +25,9 @@ enum Role {
   cacciatore,
   strozzino,
   sicario,
+  prostituta,
+  carceriere,
+  pacifista,
 }
 
 /// Come si gioca: un telefono passato di mano in mano, o un telefono a testa.
@@ -36,13 +39,13 @@ enum RoleCategory {
   /// Picciotto: spara con la famiglia.
   family,
 
-  /// Padrino, Sarto, Compare: la famiglia con un potere in più.
+  /// Padrino, Sarto, Compare, Prostituta: la famiglia con un potere in più.
   familyPower,
 
   /// Commissario, Becchino, Cronista.
   investigator,
 
-  /// Dottore, Guardaspalle.
+  /// Dottore, Guardaspalle, Carceriere.
   protector,
 
   /// Cecchino: un colpo in più per la città.
@@ -51,7 +54,7 @@ enum RoleCategory {
   /// Reduce, Pregiudicato: niente da fare di notte, ma pesano.
   passive,
 
-  /// Messia, Sindaco: un potere una volta per partita, per la piazza.
+  /// Messia, Sindaco, Pacifista: un potere una volta per partita, per la piazza.
   civic,
 
   /// Fesso, Piromane, Cacciatore, Strozzino, Sicario: giocano per sé.
@@ -61,20 +64,46 @@ enum RoleCategory {
   plain,
 }
 
+/// Quanto pesa un ruolo nel mazzo (`docs/ruoli.md`, 2.1): dal nessun potere
+/// al potere che decide una partita da solo.
+enum RoleTier {
+  /// Nessun potere (o un malus).
+  l0(0),
+
+  /// Un potere piccolo o tardivo.
+  l1(1),
+
+  /// Un potere vero.
+  l2(2),
+
+  /// Un potere forte.
+  l3(3),
+
+  /// Un potere che vale per due.
+  l4(5);
+
+  /// I punti nel bilancio del mazzo: da L3 a L4 il salto è voluto.
+  final int points;
+
+  const RoleTier(this.points);
+}
+
 /// Le regole di composizione di un ruolo: da quanti giocatori entra, quante
-/// copie al massimo, la categoria e in che modalità esiste.
+/// copie al massimo, la categoria, il livello e in che modalità esiste.
 class RoleRule {
   final int minPlayers;
 
   /// `null`: quante ne servono (Picciotti, Onesti).
   final int? maxCopies;
   final RoleCategory category;
+  final RoleTier tier;
   final Set<PlayMode> modes;
 
   const RoleRule(
     this.category, {
     this.minPlayers = 3,
     this.maxCopies = 1,
+    this.tier = RoleTier.l0,
     this.modes = const {PlayMode.sharedPhone, PlayMode.online},
   });
 }
@@ -83,51 +112,78 @@ class RoleRule {
 /// pacchetti di lingua (`NarrationPack.roles`): qui non c'è testo per chi gioca.
 extension RoleInfo on Role {
   Team get team => switch (this) {
-        Role.mafioso || Role.padrino || Role.sarto || Role.compare => Team.mafia,
+    Role.mafioso || Role.padrino || Role.sarto || Role.compare || Role.prostituta => Team.mafia,
     Role.fesso || Role.piromane || Role.cacciatore || Role.strozzino || Role.sicario => Team.neutral,
-        _ => Team.citizens,
-      };
+    _ => Team.citizens,
+  };
 
   /// La fazione che risulta a chi indaga. Quasi sempre è quella vera: ma il
   /// Padrino ha le carte in regola, e il Pregiudicato no.
   Team get apparentTeam => switch (this) {
-        Role.padrino => Team.citizens,
-        Role.pregiudicato => Team.mafia,
+    Role.padrino => Team.citizens,
+    Role.pregiudicato => Team.mafia,
     // Il Sicario ha la faccia del mestiere: alle carte risulta della famiglia.
     Role.sicario => Team.mafia,
     // Gli altri neutrali non sono della famiglia: alle carte risultano cittadini.
     Role.fesso || Role.piromane || Role.cacciatore || Role.strozzino => Team.citizens,
-        _ => team,
-      };
+    _ => team,
+  };
 
-  /// Chi, nella famiglia, di notte vota l'agguato: tutti. Il Sarto vota come
-  /// un Picciotto (o, una volta per partita, cuce una bocca invece di
-  /// votare); il Compare vota e in più, finché vive, apre la chat di giorno.
-  bool get isKiller => team == Team.mafia;
+  /// Chi, nella famiglia, di notte vota l'agguato: tutti tranne la
+  /// Prostituta, che passa la notte altrove (vota solo se resta l'ultima
+  /// della Famiglia che può farlo). Il Sarto vota come un Picciotto (o, una
+  /// volta per partita, cuce una bocca invece di votare); il Compare vota e
+  /// in più, finché vive, apre la chat di giorno.
+  bool get isKiller => team == Team.mafia && this != Role.prostituta;
+
+  /// I punti del ruolo nel bilancio del mazzo. Il Pregiudicato pesa meno di
+  /// zero: è un guaio per la Città.
+  int get points => this == Role.pregiudicato ? -1 : rule.tier.points;
 
   RoleRule get rule => switch (this) {
-        Role.mafioso => const RoleRule(RoleCategory.family, maxCopies: null),
-        Role.padrino => const RoleRule(RoleCategory.familyPower, minPlayers: 10),
-        Role.sarto => const RoleRule(RoleCategory.familyPower, minPlayers: 7),
-        Role.compare => const RoleRule(RoleCategory.familyPower, minPlayers: 7, modes: {PlayMode.online}),
-        Role.cittadino => const RoleRule(RoleCategory.plain, maxCopies: null),
-        Role.detective => const RoleRule(RoleCategory.investigator, minPlayers: 4),
-        Role.medico => const RoleRule(RoleCategory.protector, minPlayers: 5),
-        Role.cecchino => const RoleRule(RoleCategory.extraKill, minPlayers: 7),
-        Role.giornalista => const RoleRule(RoleCategory.investigator, minPlayers: 8),
-        Role.becchino => const RoleRule(RoleCategory.investigator, minPlayers: 8),
-        Role.guardaspalle => const RoleRule(RoleCategory.protector, minPlayers: 9),
-        Role.reduce => const RoleRule(RoleCategory.passive, minPlayers: 9),
-        Role.pregiudicato => const RoleRule(RoleCategory.passive, minPlayers: 10),
-    Role.messia => const RoleRule(RoleCategory.civic, minPlayers: 10),
-    Role.sindaco => const RoleRule(RoleCategory.civic, minPlayers: 9),
-    Role.portinaio => const RoleRule(RoleCategory.investigator, minPlayers: 9),
-    Role.fesso => const RoleRule(RoleCategory.neutral, minPlayers: 8),
-    Role.piromane => const RoleRule(RoleCategory.neutral, minPlayers: 11),
-    Role.cacciatore => const RoleRule(RoleCategory.neutral, minPlayers: 9),
-    Role.strozzino => const RoleRule(RoleCategory.neutral, minPlayers: 10),
-    Role.sicario => const RoleRule(RoleCategory.neutral, minPlayers: 12),
-      };
+    Role.mafioso => const RoleRule(RoleCategory.family, maxCopies: null),
+    Role.padrino => const RoleRule(RoleCategory.familyPower, minPlayers: 10, tier: RoleTier.l2),
+    Role.sarto => const RoleRule(RoleCategory.familyPower, minPlayers: 7, tier: RoleTier.l2),
+    Role.compare => const RoleRule(
+      RoleCategory.familyPower,
+      minPlayers: 7,
+      tier: RoleTier.l1,
+      modes: {PlayMode.online},
+    ),
+    Role.cittadino => const RoleRule(RoleCategory.plain, maxCopies: null),
+    Role.detective => const RoleRule(RoleCategory.investigator, minPlayers: 4, tier: RoleTier.l3),
+    Role.medico => const RoleRule(RoleCategory.protector, minPlayers: 5, tier: RoleTier.l2),
+    Role.cecchino => const RoleRule(RoleCategory.extraKill, minPlayers: 7, tier: RoleTier.l2),
+    Role.giornalista => const RoleRule(RoleCategory.investigator, minPlayers: 8, tier: RoleTier.l2),
+    Role.becchino => const RoleRule(RoleCategory.investigator, minPlayers: 8, tier: RoleTier.l1),
+    Role.guardaspalle => const RoleRule(RoleCategory.protector, minPlayers: 9, tier: RoleTier.l2),
+    Role.reduce => const RoleRule(RoleCategory.passive, minPlayers: 9, tier: RoleTier.l1),
+    Role.pregiudicato => const RoleRule(RoleCategory.passive, minPlayers: 10),
+    Role.messia => const RoleRule(RoleCategory.civic, minPlayers: 10, tier: RoleTier.l2),
+    Role.sindaco => const RoleRule(RoleCategory.civic, minPlayers: 9, tier: RoleTier.l1),
+    Role.portinaio => const RoleRule(RoleCategory.investigator, minPlayers: 9, tier: RoleTier.l1),
+    Role.fesso => const RoleRule(RoleCategory.neutral, minPlayers: 8, tier: RoleTier.l1),
+    Role.piromane => const RoleRule(RoleCategory.neutral, minPlayers: 11, tier: RoleTier.l4),
+    Role.cacciatore => const RoleRule(RoleCategory.neutral, minPlayers: 9, tier: RoleTier.l2),
+    Role.strozzino => const RoleRule(RoleCategory.neutral, minPlayers: 10, tier: RoleTier.l1),
+    Role.sicario => const RoleRule(RoleCategory.neutral, minPlayers: 12, tier: RoleTier.l3),
+    // I ruoli nuovi esistono solo online: la cella ha la sua chat, la tregua
+    // il suo bottone, e con chi blocca le risposte delle indagini arrivano
+    // all'alba, in privato.
+    Role.prostituta => const RoleRule(
+      RoleCategory.familyPower,
+      minPlayers: 9,
+      tier: RoleTier.l2,
+      modes: {PlayMode.online},
+    ),
+    Role.carceriere => const RoleRule(
+      RoleCategory.protector,
+      minPlayers: 8,
+      tier: RoleTier.l3,
+      modes: {PlayMode.online},
+    ),
+    Role.pacifista => const RoleRule(RoleCategory.civic, minPlayers: 9, tier: RoleTier.l2, modes: {PlayMode.online}),
+  };
 
   /// Ostile alla città, un assassino in proprio (Piromane, Sicario): finché
   /// è vivo la città non ha vinto. Al tavolo ce n'è al massimo uno.
@@ -136,6 +192,10 @@ extension RoleInfo on Role {
   /// Vince con un linciaggio (Fesso, Cacciatore di taglie): al tavolo ce n'è
   /// al massimo uno, o la piazza diventa una lotteria.
   bool get isLynchSeeker => this == Role.fesso || this == Role.cacciatore;
+
+  /// Chi tiene fermo qualcuno di notte (Prostituta, Carceriere): con uno di
+  /// loro al tavolo le indagini rispondono all'alba, non subito.
+  bool get isBlocker => this == Role.prostituta || this == Role.carceriere;
 
   /// Esiste in questa modalità? Il Compare vive solo online, dove c'è la chat.
   bool playableIn(PlayMode mode) => rule.modes.contains(mode);

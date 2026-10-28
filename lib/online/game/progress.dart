@@ -201,7 +201,7 @@ const achievements = <Achievement>[
   Achievement('neutral_wins_10', 'neutral_wins', 2, Metric.neutralWins, 10, xp: 300, coins: 150, title: 'lone_wolf'),
   Achievement('roles_won_5', 'roles_won', 1, Metric.rolesWon, 5, xp: 150, coins: 75),
   Achievement('roles_won_12', 'roles_won', 2, Metric.rolesWon, 12, xp: 400, coins: 200),
-  Achievement('roles_won_all', 'roles_won', 3, Metric.rolesWon, 21,
+  Achievement('roles_won_all', 'roles_won', 3, Metric.rolesWon, 24,
       xp: 1000, coins: 500, title: 'chameleon', item: 'border.flame'),
   Achievement('wins_alive_25', 'wins_alive', 1, Metric.winsAlive, 25, xp: 300, coins: 150),
   Achievement('lynch_hits_10', 'lynch_hits', 1, Metric.lynchHits, 10, xp: 100, coins: 50),

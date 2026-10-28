@@ -606,13 +606,30 @@ class ServerGame {
     final payload = seatPayload(engine.viewFor(seat), receipt: receipts[seat]);
     final view = payload['view'] as Map<String, Object?>;
     // Fuori dalla sua finestra una mossa non si può fare: il telefono non
-    // la mostra nemmeno.
-    if (!accepting) view['action'] = null;
+    // la mostra nemmeno. La tregua del Pacifista si chiede solo in
+    // discussione: lì resta solo lei.
+    final action = (view['action'] as Map?)?.cast<String, Object?>();
+    if (stage == Stage.discussion && action?['canPacify'] == true) {
+      view['action'] = {...action!, 'current': null};
+    } else if (!accepting) {
+      view['action'] = null;
+    } else if (action != null) {
+      action.remove('canPacify');
+      view['action'] = action;
+    }
     payload['acked'] = acks.contains(seat);
     return payload;
   }
 
+  /// La chat della cella di stanotte: un canale per notte, così il numero
+  /// dei messaggi non dice niente delle notti prima.
+  String? get _jailChannel =>
+      !finished && stage.chat == 'night' && engine.jailedTonight != null ? 'jail:${engine.round}' : null;
+
   Map<String, Object?> _chat() {
+    final jail = _jailChannel;
+    final prisoner = jail == null ? null : engine.jailedTonight?.id;
+    final jailer = jail == null ? null : engine.jailerTonight?.id;
     return {
       'mode': finished ? 'closed' : stage.chat,
       'seats': {
@@ -625,6 +642,11 @@ class ServerGame {
               // chat della famiglia anche di giorno.
               'silenced': stage.chat == 'day' && engine.viewFor(occupant.seat).silenced,
               'familyDay': stage.chat == 'day' && engine.viewFor(occupant.seat).familyChat,
+              // La cella: il prigioniero non parla (né voce né Famiglia),
+              // scrive solo al Carceriere, che resta senza nome.
+              'jailed': occupant.seat == prisoner,
+              'jail': occupant.seat == prisoner || occupant.seat == jailer ? jail : null,
+              'jailer': occupant.seat == jailer,
             },
       },
     };
@@ -654,7 +676,8 @@ class ServerGame {
     if (intent.seat != envelope.seat) {
       return IntentRejected(IntentError.unknownSeat, '${envelope.seat} non può agire per ${intent.seat}');
     }
-    if (!stage.acceptsActions) {
+    // La tregua si chiede in discussione, e solo lì.
+    if (intent is Pacify ? stage != Stage.discussion : !stage.acceptsActions) {
       return IntentRejected(IntentError.wrongPhase, 'adesso non si agisce (${stage.name})');
     }
     return engine.apply(intent);
@@ -742,7 +765,13 @@ class ServerGame {
           _open(Stage.discussion, now, engine.settings.discussion, pacing);
         }
       case Stage.discussion:
-        _open(Stage.vote, now, engine.settings.vote, pacing);
+        // La tregua del Pacifista: oggi non si vota, si va al verdetto.
+        if (engine.truceToday) {
+          engine.closeDayVote();
+          _open(Stage.verdictFilm, now, OnlinePacing.verdictFilm(condemns: false), pacing);
+        } else {
+          _open(Stage.vote, now, engine.settings.vote, pacing);
+        }
       case Stage.vote:
         _judgeTurn({
           for (final occupant in seating.occupants)

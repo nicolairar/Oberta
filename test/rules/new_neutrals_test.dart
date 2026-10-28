@@ -178,12 +178,16 @@ void main() {
       expect(Role.sicario.apparentTeam, Team.mafia);
     });
 
-    test('la città non vince finché è vivo; vince lui se resta con uno', () {
+    test('la città non vince finché è vivo; vince lui solo se resta l\'ultimo', () {
       final engine = table({mob: Role.mafioso, hitman: Role.sicario, a: Role.cittadino, b: Role.cittadino});
       endNight(engine);
       engine.lynch(mob);
       expect(engine.winner, isNull);
       engine.submitNightChoice(hitman, a);
+      endNight(engine);
+      expect(engine.winner, isNull, reason: 'con una persona sola la partita va avanti');
+      engine.lynch(null);
+      engine.submitNightChoice(hitman, b);
       endNight(engine);
       expect(engine.winner, Team.neutral);
       expect(engine.personalWins, [hitman]);

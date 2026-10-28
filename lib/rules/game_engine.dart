@@ -48,6 +48,13 @@ enum NightTaskKind {
   /// Il Portinaio guarda una porta: saprà se qualcuno ci è passato.
   watch,
   decoy,
+
+  /// Il Carceriere chiude qualcuno in cella: stanotte non agisce e non
+  /// muore. Si decide una volta, e subito: il prigioniero lo sa.
+  jail,
+
+  /// La Prostituta passa la notte con qualcuno: la sua mossa salta.
+  block,
 }
 
 /// Quello che il Portinaio ha visto dalla sua guardiola: se stanotte
@@ -161,6 +168,9 @@ class LynchReport {
   /// Il Cacciatore di taglie che incassa: il condannato era la sua taglia.
   final Player? bountyHunter;
 
+  /// Oggi il Pacifista ha chiesto la tregua: niente voto, niente condanna.
+  final bool truce;
+
   const LynchReport({
     required this.round,
     this.condemned,
@@ -168,6 +178,7 @@ class LynchReport {
     this.winner,
     this.personalWin = false,
     this.bountyHunter,
+    this.truce = false,
   });
 }
 
@@ -254,6 +265,24 @@ class GameEngine {
   int? _mayorRound;
   Team? _winner;
 
+  /// Chi il Carceriere ha chiuso in cella la notte scorsa: mai due di fila.
+  Player? _lastJailed;
+
+  /// Con chi la Prostituta ha passato la notte scorsa: mai due di fila.
+  Player? _lastBlocked;
+
+  /// Chi la Prostituta ha tenuto occupato l'ultima notte: lo sa solo lui,
+  /// all'alba.
+  Player? _busy;
+
+  /// Il giro della tregua del Pacifista (una per partita) e chi ha svelato.
+  int? _truceRound;
+  Player? _truceTarget;
+
+  /// Con qualcuno che blocca al tavolo (Prostituta, Carceriere) l'indagine e
+  /// lo scavo rispondono all'alba, e solo se chi li fa non è stato fermato.
+  late final bool findingsAtDawn = setup.roles.values.any((role) => role.isBlocker);
+
   /// [random] e [seed] si escludono. Senza nessuno dei due il motore tira un
   /// seme a caso, e la partita resta fotografabile.
   factory GameEngine(GameSetup setup, {GameSettings settings = const GameSettings(), Random? random, int? seed}) {
@@ -328,6 +357,11 @@ class GameEngine {
     _mayorRound = snapshot.mayorRound;
     _bounties.addAll(snapshot.bounties);
     _lastLent = snapshot.lastLent;
+    _lastJailed = snapshot.lastJailed;
+    _lastBlocked = snapshot.lastBlocked;
+    _busy = snapshot.busy;
+    _truceRound = snapshot.truceRound;
+    _truceTarget = snapshot.truceTarget;
   }
 
   /// Rigioca una partita dal principio: stesso tavolo, stesso seme, stessi
@@ -380,6 +414,11 @@ class GameEngine {
       mayorRound: _mayorRound,
       bounties: Map.unmodifiable(_bounties),
       lastLent: _lastLent,
+      lastJailed: _lastJailed,
+      lastBlocked: _lastBlocked,
+      busy: _busy,
+      truceRound: _truceRound,
+      truceTarget: _truceTarget,
       log: List.unmodifiable(_log),
     );
   }
@@ -463,6 +502,33 @@ class GameEngine {
 
   /// Il Sindaco si è già rivelato (lo fa una volta per partita).
   bool get mayorRevealed => _mayorRound != null;
+
+  /// Il Pacifista ha già chiesto la sua tregua (una per partita).
+  bool get truceSpent => _truceRound != null;
+
+  /// Oggi c'è la tregua: il voto salta.
+  bool get truceToday => _truceRound == _round && _phase == GamePhase.day;
+
+  /// Il Pacifista che oggi ha chiesto la tregua, e chi ha svelato.
+  Player? get pacifist => truceToday ? _roleHolder(Role.pacifista) : null;
+  Player? get pacified => truceToday ? _truceTarget : null;
+
+  Player? _roleHolder(Role role) {
+    for (final player in setup.players) {
+      if (setup.roleOf(player) == role) return player;
+    }
+    return null;
+  }
+
+  /// Chi è in cella stanotte (lo sanno il Carceriere, lui, e la Famiglia se
+  /// è dei loro). `null` di giorno.
+  Player? get jailedTonight => _phase == GamePhase.night ? _targetOf(NightTaskKind.jail) : null;
+
+  /// Il Carceriere che stanotte ha chiuso qualcuno in cella.
+  Player? get jailerTonight => jailedTonight == null ? null : _actorOf(NightTaskKind.jail);
+
+  /// Chi la Prostituta ha tenuto occupato l'ultima notte: lo sa all'alba.
+  bool isBusy(Player player) => _phase == GamePhase.day && _busy == player;
   List<Player> get alivePlayers => List.unmodifiable(_alive);
   List<RoundRecord> get history => List.unmodifiable(_history);
 
@@ -484,9 +550,11 @@ class GameEngine {
 
   /// [player] può scrivere e leggere adesso nella chat della famiglia: vivo,
   /// della famiglia, di notte, o di giorno se c'è un Compare vivo.
+  /// In cella non si parla con la Famiglia.
   bool canUseFamilyChat(Player player) =>
       isAlive(player) &&
       _teamOf(player) == Team.mafia &&
+      player != jailedTonight &&
       (_phase == GamePhase.night || (_phase == GamePhase.day && familyDayChat));
 
   Team _teamOf(Player player) => setup.roleOf(player).team;
@@ -524,8 +592,12 @@ class GameEngine {
   /// può cambiare fino a quando la notte si chiude.
   bool nightChoiceLocked(Player actor) {
     final choice = _choices[actor];
-    return choice != null && choice.target != null && choice.kind.immediate;
+    return choice != null && choice.target != null && _locks(choice.kind);
   }
+
+  /// La mossa, una volta fatta, non si cambia: la cella si chiude subito,
+  /// l'indagine e lo scavo danno subito la risposta (se nessuno blocca).
+  bool _locks(NightTaskKind kind) => kind == NightTaskKind.jail || (kind.immediate && !findingsAtDawn);
 
   /// Ritira la scelta di stanotte di [actor], per sostituirla: anche il
   /// sospetto di una mossa di copertura torna indietro.
@@ -600,11 +672,34 @@ class GameEngine {
       ]),
       // Il Sicario lavora da solo, ogni notte.
       Role.sicario => NightTask(NightTaskKind.stab, others),
+      // Il Carceriere chiude in cella chi vuole, mai lo stesso due notti di fila.
+      Role.carceriere => NightTask(NightTaskKind.jail, [
+        for (final player in others)
+          if (player != _lastJailed) player,
+      ]),
+      // La Prostituta non vota l'agguato, finché nella Famiglia c'è un altro
+      // che lo vota: se resta sola, vota, e può ancora passare la notte fuori.
+      Role.prostituta =>
+        _alive.any((player) => player != actor && setup.roleOf(player).isKiller)
+            ? NightTask(NightTaskKind.block, [
+                for (final player in others)
+                  if (player != _lastBlocked) player,
+              ])
+            : NightTask(
+                NightTaskKind.kill,
+                others,
+                alternative: NightTaskKind.block,
+                alternativeTargets: [
+                  for (final player in others)
+                    if (player != _lastBlocked) player,
+                ],
+              ),
       Role.cittadino ||
       Role.cacciatore ||
       Role.reduce ||
       Role.pregiudicato ||
       Role.sindaco ||
+      Role.pacifista ||
       Role.fesso => NightTask(NightTaskKind.decoy, others),
     };
   }
@@ -645,6 +740,16 @@ class GameEngine {
     if (kind == NightTaskKind.decoy) {
       _suspicion[target] = (_suspicion[target] ?? 0) + 1;
     }
+    if (kind == NightTaskKind.jail) {
+      // La cella si chiude adesso: la mossa del prigioniero salta, e
+      // stanotte non ne fa altre.
+      final task = taskFor(target);
+      _retractNightChoice(target);
+      _choices[target] = (kind: task.kind, target: null);
+      return null;
+    }
+    // Con chi blocca al tavolo la risposta arriva all'alba (resolveNight).
+    if (findingsAtDawn) return null;
     if (kind == NightTaskKind.investigate) {
       // Il Commissario legge le carte, e le carte a volte mentono.
       final team = setup.roleOf(target).apparentTeam;
@@ -686,32 +791,77 @@ class GameEngine {
     if (!nightComplete) throw StateError('la notte non è finita: manca qualcuno');
     _log.add(const ResolveNightCommand());
 
-    final protected = {?_targetOf(NightTaskKind.protect), ?_targetOf(NightTaskKind.lend)};
+    // Prima la cella, poi la Prostituta: chi è fermo stanotte non fa niente
+    // (la cella si chiude comunque). Una mossa fermata si spende lo stesso.
+    final jailed = _targetOf(NightTaskKind.jail);
+    final hooker = _actorOf(NightTaskKind.block);
+    final hooked = _targetOf(NightTaskKind.block);
+    final busy = hooker != null && hooker != jailed ? hooked : null;
+    final stopped = {?jailed, ?busy};
+    final live = {
+      for (final entry in _choices.entries)
+        if (!stopped.contains(entry.key) || entry.value.kind == NightTaskKind.jail) entry.key: entry.value,
+    };
+    Player? actorOf(NightTaskKind kind) => _actorIn(live, kind);
+    Player? targetOf(NightTaskKind kind) => live[actorOf(kind)]?.target;
+
+    final protected = {?targetOf(NightTaskKind.protect), ?targetOf(NightTaskKind.lend)};
     final lent = _targetOf(NightTaskKind.lend);
-    final guard = _actorOf(NightTaskKind.guard);
-    final guarded = _targetOf(NightTaskKind.guard);
-    final sniped = _targetOf(NightTaskKind.snipe);
-    final silenceTarget = _targetOf(NightTaskKind.silence);
-    final scoopTarget = _targetOf(NightTaskKind.scoop);
-    final journalist = _actorOf(NightTaskKind.scoop);
-    final dousedTonight = _targetOf(NightTaskKind.douse);
-    final ignited = _actorOf(NightTaskKind.ignite) != null;
-    final messiah = _actorOf(NightTaskKind.resurrect);
-    final risen = _targetOf(NightTaskKind.resurrect);
+    final guard = actorOf(NightTaskKind.guard);
+    final guarded = targetOf(NightTaskKind.guard);
+    final sniped = targetOf(NightTaskKind.snipe);
+    final sniperSpent = _targetOf(NightTaskKind.snipe) != null;
+    final silenceTarget = targetOf(NightTaskKind.silence);
+    final silenceSpent = _targetOf(NightTaskKind.silence) != null;
+    final scoopTarget = targetOf(NightTaskKind.scoop);
+    final scoopSpent = _targetOf(NightTaskKind.scoop) != null;
+    final journalist = actorOf(NightTaskKind.scoop);
+    final dousedTonight = targetOf(NightTaskKind.douse);
+    final ignited = actorOf(NightTaskKind.ignite) != null;
+    final messiah = actorOf(NightTaskKind.resurrect);
+    final risen = targetOf(NightTaskKind.resurrect);
+    final resurrectionSpent = _targetOf(NightTaskKind.resurrect) != null;
 
     // La famiglia sceglie una sola porta: solo chi ha votato quella ci va
     // davvero. Il sorteggio dello spareggio si fa qui, una volta sola.
-    final familyTarget = _resolveMafiaVote();
+    final familyTarget = _resolveMafiaVote(live);
+
+    // Le risposte che aspettavano l'alba: a chi ha indagato o scavato e non
+    // è stato fermato.
+    if (findingsAtDawn) {
+      for (final MapEntry(key: actor, value: choice) in live.entries) {
+        final target = choice.target;
+        if (target == null) continue;
+        final role = setup.roleOf(target);
+        if (choice.kind == NightTaskKind.investigate) {
+          _facts.add(
+            Fact(
+              subject: target,
+              team: role.apparentTeam,
+              visibility: Visibility.acquired,
+              audience: {actor},
+              apparent: true,
+            ),
+          );
+        } else if (choice.kind == NightTaskKind.dig) {
+          _facts.add(
+            Fact(subject: target, team: role.team, role: role, visibility: Visibility.acquired, audience: {actor}),
+          );
+        }
+      }
+    }
 
     // Il Portinaio: qualcuno è passato dalla porta che guardava? Contano le
     // mosse vere, non i compiti di copertura, né i voti della famiglia
-    // finiti su un'altra porta.
-    for (final entry in _choices.entries) {
+    // finiti su un'altra porta, né le mosse di chi è stato fermato.
+    for (final entry in live.entries) {
       if (entry.value.kind != NightTaskKind.watch) continue;
       final watched = entry.value.target;
       if (watched == null) continue;
-      final visited = _choices.entries.any(
-        (other) => other.key != entry.key && other.value.target == watched &&
+      final visited = live.entries.any(
+        (other) =>
+            other.key != entry.key &&
+            other.value.target == watched &&
             other.value.kind.visits &&
             (other.value.kind != NightTaskKind.kill || watched == familyTarget),
       );
@@ -721,20 +871,22 @@ class GameEngine {
     // Chi viene colpito davvero, e da chi. La famiglia passa per prima.
     final struck = <Player, AttackSource>{};
     void aim(Player? target, AttackSource source) {
-      if (target == null) return;
+      // In cella non arriva nessuno.
+      if (target == null || target == jailed) return;
       final shielded = target == guarded && !protected.contains(target);
       struck.putIfAbsent(shielded ? guard! : target, () => source);
     }
 
     aim(familyTarget, AttackSource.family);
     aim(sniped, AttackSource.sniper);
-    aim(_targetOf(NightTaskKind.stab), AttackSource.assassin);
+    aim(targetOf(NightTaskKind.stab), AttackSource.assassin);
     // Il fuoco non si ferma: niente Dottore, Strozzino, Guardaspalle o pelle
-    // dura del Reduce. Chi brucia, brucia.
+    // dura del Reduce. Chi brucia, brucia. Solo la cella lo tiene fuori: chi
+    // è dentro resta cosparso.
     final burning = <Player>{};
     if (ignited) {
       for (final player in _alive) {
-        if (!_doused.contains(player)) continue;
+        if (!_doused.contains(player) || player == jailed) continue;
         burning.add(player);
         // Protetto dagli altri colpi ma cosparso: lo prende il fuoco.
         if (protected.contains(player) || setup.roleOf(player) == Role.reduce) {
@@ -743,7 +895,7 @@ class GameEngine {
           struck.putIfAbsent(player, () => AttackSource.fire);
         }
       }
-      _doused.clear();
+      _doused.removeWhere((player) => player != jailed);
     }
 
     AttackOutcome land(Player target) {
@@ -762,10 +914,10 @@ class GameEngine {
         if (attack.isFatal) attack.target,
     ];
 
-    if (sniped != null) _sniperSpent = true;
+    if (sniperSpent) _sniperSpent = true;
     Exposure? scoop;
+    if (scoopSpent) _scoopSpent = true;
     if (scoopTarget != null) {
-      _scoopSpent = true;
       if (!victims.contains(journalist)) {
         scoop = Exposure(scoopTarget, _teamOf(scoopTarget));
         _facts.add(Fact(subject: scoopTarget, team: scoop.team, visibility: Visibility.public));
@@ -774,17 +926,21 @@ class GameEngine {
 
     _lastProtected = _targetOf(NightTaskKind.protect);
     _lastLent = lent;
+    _lastJailed = jailed;
+    _lastBlocked = hooked;
+    _busy = busy;
     _lastSilenced = silenceTarget;
-    if (silenceTarget != null) _silenceSpent = true;
+    if (silenceSpent) _silenceSpent = true;
     _alive.removeWhere(victims.contains);
     if (dousedTonight != null && _alive.contains(dousedTonight)) _doused.add(dousedTonight);
     _doused.removeWhere((player) => !_alive.contains(player));
     // Il Messia: se ha visto l'alba, chi ha scelto torna tra i vivi, prima
     // che si contino i vincitori.
     Player? resurrected;
-    // Passare non spende la resurrezione: la spende solo una scelta vera.
+    // Passare non spende la resurrezione: la spende solo una scelta vera
+    // (anche se la Prostituta ferma il Messia).
+    if (resurrectionSpent) _resurrectionSpent = true;
     if (messiah != null && risen != null) {
-      _resurrectionSpent = true;
       if (!victims.contains(messiah)) {
         resurrected = risen;
         // Si conoscono solo loro due: chi torna sa chi l'ha riportato (e che
@@ -792,14 +948,24 @@ class GameEngine {
         final messiahRole = setup.roleOf(messiah);
         final risenRole = setup.roleOf(risen);
         _facts
-          ..add(Fact(
-            subject: messiah,
-            team: messiahRole.team,
-            role: messiahRole,
-            visibility: Visibility.acquired,
-            audience: {risen},
-          ))
-          ..add(Fact(subject: risen, team: risenRole.team, role: risenRole, visibility: Visibility.acquired, audience: {messiah}));
+          ..add(
+            Fact(
+              subject: messiah,
+              team: messiahRole.team,
+              role: messiahRole,
+              visibility: Visibility.acquired,
+              audience: {risen},
+            ),
+          )
+          ..add(
+            Fact(
+              subject: risen,
+              team: risenRole.team,
+              role: risenRole,
+              visibility: Visibility.acquired,
+              audience: {messiah},
+            ),
+          );
         _alive
           ..add(risen)
           ..sort((a, b) => setup.players.indexOf(a).compareTo(setup.players.indexOf(b)));
@@ -835,12 +1001,13 @@ class GameEngine {
   /// Chiude il voto della piazza e condanna il più votato. Con un pareggio,
   /// o se si astengono tutti, non si condanna nessuno. Chi non ha votato
   /// conta come astenuto: l'autorità può chiudere allo scadere del tempo.
+  /// Con la tregua del Pacifista non si conta niente: nessuna condanna.
   LynchReport closeDayVote() {
     _require(GamePhase.day);
     final mayor = this.mayor;
     final leaders = tallyVotes(_dayVotes, weights: {?mayor: 2}).leaders;
     _log.add(const CloseDayVoteCommand());
-    return _lynch(leaders.length == 1 ? leaders.single : null);
+    return _lynch(leaders.length == 1 && !truceToday ? leaders.single : null);
   }
 
   /// Applica il verdetto della piazza; `condemned` nullo significa nessuna condanna.
@@ -849,11 +1016,13 @@ class GameEngine {
     if (condemned != null && !isAlive(condemned)) {
       throw ArgumentError.value(condemned.name, 'condemned', 'non è più in gioco');
     }
+    if (condemned != null && truceToday) throw StateError('oggi c\'è la tregua: non si condanna nessuno');
     _log.add(LynchCommand(condemned?.id));
     return _lynch(condemned);
   }
 
   LynchReport _lynch(Player? condemned) {
+    final truce = truceToday;
     _dayVotes.clear();
     Role? role;
     if (condemned != null) {
@@ -885,6 +1054,7 @@ class GameEngine {
       winner: hunter != null ? _bountyWin() : (_updateWinner() ? _winner : null),
       personalWin: personalWin,
       bountyHunter: hunter,
+      truce: truce,
     );
     if (_winner != null) {
       _phase = GamePhase.ended;
@@ -908,6 +1078,27 @@ class GameEngine {
     _log.add(IntentCommand(RevealMayor(mayor.id)));
   }
 
+  /// Il Pacifista ferma la piazza: il ruolo esatto di [target] diventa
+  /// pubblico, la sua carta anche, e oggi non si vota. Una volta per partita.
+  void pacify(Player pacifist, Player target) {
+    _require(GamePhase.day);
+    if (!isAlive(pacifist) || setup.roleOf(pacifist) != Role.pacifista) {
+      throw ArgumentError.value(pacifist.name, 'pacifist', 'non è il Pacifista in gioco');
+    }
+    if (truceSpent) throw StateError('il Pacifista ha già chiesto la tregua');
+    if (!isAlive(target) || target == pacifist) {
+      throw ArgumentError.value(target.name, 'target', 'non si può svelare');
+    }
+    _truceRound = _round;
+    _truceTarget = target;
+    _dayVotes.clear();
+    final role = setup.roleOf(target);
+    _facts
+      ..add(Fact(subject: pacifist, team: Team.citizens, role: Role.pacifista, visibility: Visibility.public))
+      ..add(Fact(subject: target, team: role.team, role: role, visibility: Visibility.public));
+    _log.add(IntentCommand(Pacify(pacifist.id, target.id)));
+  }
+
   /// Qualcuno lascia la città a partita in corso (online: se n'è andato e
   /// non è tornato in tempo). Esce come un morto della notte: la sua carta
   /// resta coperta (la scopre solo il resoconto a fine partita), e si
@@ -921,6 +1112,8 @@ class GameEngine {
     _log.add(LeaveTownCommand(player.id));
     _alive.remove(player);
     _doused.remove(player);
+    // Se se ne va il Carceriere, il prigioniero esce e sceglie di nuovo.
+    if (_choices[player] case (kind: NightTaskKind.jail, target: final prisoner?)) _choices.remove(prisoner);
     _choices.remove(player);
     _choices.removeWhere((_, choice) => choice.target == player);
     _dayVotes.remove(player);
@@ -932,8 +1125,10 @@ class GameEngine {
     return null;
   }
 
-  Player? _actorOf(NightTaskKind kind) {
-    for (final entry in _choices.entries) {
+  Player? _actorOf(NightTaskKind kind) => _actorIn(_choices, kind);
+
+  static Player? _actorIn(Map<Player, NightChoice> choices, NightTaskKind kind) {
+    for (final entry in choices.entries) {
       if (entry.value.kind == kind) return entry.key;
     }
     return null;
@@ -941,9 +1136,9 @@ class GameEngine {
 
   Player? _targetOf(NightTaskKind kind) => _choices[_actorOf(kind)]?.target;
 
-  Player? _resolveMafiaVote() {
+  Player? _resolveMafiaVote(Map<Player, NightChoice> choices) {
     final votes = {
-      for (final entry in _choices.entries)
+      for (final entry in choices.entries)
         if (entry.value.kind == NightTaskKind.kill) entry.key: entry.value.target,
     };
     if (votes.isEmpty) return null;
@@ -964,8 +1159,7 @@ class GameEngine {
   }
 
   /// Chi ha vinto, se qualcuno ha vinto:
-  /// - il Sicario, se resta da solo o con al massimo un altro; il Piromane
-  ///   solo se resta l'ultimo vivo;
+  /// - il Piromane o il Sicario, solo se resta l'ultimo vivo;
   /// - la mafia, quando non può più essere messa in minoranza (i neutrali
   ///   contano come non mafiosi);
   /// - la città, quando non c'è più mafia né un Piromane vivo.
@@ -995,15 +1189,14 @@ class GameEngine {
       for (final player in _alive)
         if (setup.roleOf(player).isHostileNeutral) player,
     ];
-    // Il Sicario vince se resta da solo o con un altro; il Piromane solo se
-    // resta l'ultimo vivo (con un altro la partita va avanti: lo cosparge e
-    // lo brucia). Contro un mafioso, però, vince la parità della famiglia.
+    // Il Piromane e il Sicario vincono solo se restano l'ultimo vivo: con un
+    // altro la partita va avanti (lo cosparge e lo brucia, lo colpisce).
+    // Contro un mafioso, però, vince la parità della famiglia.
     final soloWinners = [
       for (final player in arsonists)
-        if (setup.roleOf(player) == Role.piromane ? _alive.length == 1 : _alive.length <= 2) player,
+        if (_alive.length == 1) player,
     ];
-    final familyLeft = _alive.any((player) => _teamOf(player) == Team.mafia);
-    if (soloWinners.isNotEmpty && !(familyLeft && setup.roleOf(soloWinners.first) == Role.piromane)) {
+    if (soloWinners.isNotEmpty) {
       _winner = Team.neutral;
       for (final player in soloWinners) {
         if (!_personalWins.contains(player)) _personalWins.add(player);
@@ -1040,8 +1233,11 @@ class GameEngine {
   }
 
   IntentResult _applyNight(Player actor, PlayerIntent intent) {
-    if (intent is DayVote || intent is RevealMayor) {
+    if (intent is DayVote || intent is RevealMayor || intent is Pacify) {
       return const IntentRejected(IntentError.wrongPhase, 'di notte la piazza non vota');
+    }
+    if (actor == jailedTonight) {
+      return IntentRejected(IntentError.alreadyActed, '${actor.id} è in cella stanotte');
     }
     // Si cambia idea fino alla fine della notte, tranne dopo una risposta.
     if (nightChoiceLocked(actor)) {
@@ -1087,6 +1283,8 @@ class GameEngine {
     switch (intent) {
       case NightAction() || MafiaVote():
         return const IntentRejected(IntentError.wrongPhase, 'di giorno non si fanno mosse notturne');
+      case DayVote() || RevealMayor() when truceToday:
+        return const IntentRejected(IntentError.wrongPhase, 'oggi c\'è la tregua: non si vota');
       case DayVote(target: final seat):
         target = _seat(seat);
         if (target == null || !isAlive(target) || target == actor) {
@@ -1100,6 +1298,17 @@ class GameEngine {
         }
         if (mayorRevealed) return IntentRejected(IntentError.alreadyActed, 'il Sindaco si è già rivelato');
         revealMayor(actor);
+        return const IntentAccepted();
+      case Pacify(target: final seat):
+        if (setup.roleOf(actor) != Role.pacifista) {
+          return IntentRejected(IntentError.notYourAction, '${actor.id} non è il Pacifista');
+        }
+        if (truceSpent) return const IntentRejected(IntentError.alreadyActed, 'la tregua è già stata chiesta');
+        final revealed = _seat(seat);
+        if (revealed == null || !isAlive(revealed) || revealed == actor) {
+          return IntentRejected(IntentError.targetNotAllowed, '${actor.id} non può svelare $seat');
+        }
+        pacify(actor, revealed);
         return const IntentAccepted();
     }
     // Il voto si può cambiare: conta l'ultimo, nell'ordine dell'ultimo dato.
@@ -1131,6 +1340,8 @@ class GameEngine {
     deck: deckOf(setup.roles.values),
     personalWins: personalWins,
     mayor: mayor,
+    pacifist: pacifist,
+    pacified: pacified,
     recap: recap,
   );
 
@@ -1147,7 +1358,16 @@ class GameEngine {
     if (viewer == null) throw ArgumentError.value(seat, 'seat', 'non gioca');
     final role = setup.roleOf(viewer);
     final alive = isAlive(viewer);
-    final family = alive && _phase == GamePhase.night && role.team == Team.mafia;
+    final family = alive && _phase == GamePhase.night && role.team == Team.mafia && viewer != jailedTonight;
+    // Chi è in cella stanotte, per chi lo può sapere: il Carceriere, il
+    // prigioniero, e la Famiglia se è uno dei loro. Mai chi l'ha chiuso.
+    final jailed = jailedTonight;
+    final cell =
+        jailed != null &&
+            alive &&
+            (viewer == jailed || viewer == jailerTonight || (role.team == Team.mafia && _teamOf(jailed) == Team.mafia))
+        ? jailed
+        : null;
     return PlayerView(
       seat: viewer,
       alive: alive,
@@ -1186,6 +1406,8 @@ class GameEngine {
           for (final entry in _choices.entries)
             if (entry.value.kind == NightTaskKind.kill) (voter: entry.key, target: entry.value.target),
       ],
+      cell: cell,
+      busy: isBusy(viewer),
       board: publicView(),
     );
   }
@@ -1196,7 +1418,8 @@ class GameEngine {
       case GamePhase.night:
         // Fino all'alba la scelta resta aperta (con quella fatta in
         // [ActionOption.current]); dopo una risposta immediata, no.
-        if (nightChoiceLocked(viewer)) return null;
+        // In cella non si fa niente.
+        if (nightChoiceLocked(viewer) || viewer == jailedTonight) return null;
         final task = taskFor(viewer);
         return ActionOption(
           type: task.kind == NightTaskKind.kill ? ActionType.mafiaVote : ActionType.nightAction,
@@ -1209,6 +1432,8 @@ class GameEngine {
               : task.alternativeTargets,
         );
       case GamePhase.day:
+        // La tregua: oggi non si vota.
+        if (truceToday) return null;
         return ActionOption(
           type: ActionType.dayVote,
           targets: [
@@ -1216,7 +1441,8 @@ class GameEngine {
               if (player != viewer) player,
           ],
           current: _dayVotes[viewer],
-          canReveal: setup.roleOf(viewer) == Role.sindaco && !mayorRevealed,
+          canReveal: setup.roleOf(viewer) == Role.sindaco && !mayorRevealed && !truceToday,
+          canPacify: setup.roleOf(viewer) == Role.pacifista && !truceSpent,
         );
       case GamePhase.ended:
         return null;

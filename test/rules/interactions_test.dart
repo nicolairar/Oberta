@@ -667,15 +667,18 @@ void main() {
       expect(engine.hasWon(shark), isFalse);
     });
 
-    test('Sicario in due con lo Strozzino: vincono tutti e due', () {
+    test('Sicario in due con lo Strozzino: non basta, deve restare l\'ultimo', () {
       final engine = GameEngine(
         GameSetup.fromRoles({mob: Role.mafioso, hitman: Role.sicario, shark: Role.strozzino, a: Role.cittadino}),
         seed: 1,
       );
       night(engine, {hitman: a});
       engine.lynch(mob);
+      expect(engine.winner, isNull, reason: 'in due la partita va avanti');
+      night(engine, {hitman: shark});
       expect(engine.winner, Team.neutral);
-      expect(engine.personalWins, containsAll([hitman, shark]));
+      expect(engine.personalWins, [hitman]);
+      expect(engine.hasWon(shark), isFalse);
     });
 
     test('Piromane in due col mafioso: vince la famiglia (parità)', () {
@@ -728,12 +731,14 @@ void main() {
       expect(engine.lynch(pyro).winner, Team.citizens);
     });
 
-    test('Piromane e Sicario ultimi due (mai nel mazzo): vince il Sicario', () {
+    test('Piromane e Sicario ultimi due (mai nel mazzo): vince chi resta', () {
       final engine = GameEngine(
         GameSetup.fromRoles({pyro: Role.piromane, hitman: Role.sicario, a: Role.cittadino}),
         seed: 1,
       );
-      final dawn = night(engine, {hitman: a});
+      expect(night(engine, {hitman: a}).winner, isNull);
+      engine.lynch(null);
+      final dawn = night(engine, {hitman: pyro});
       expect(dawn.winner, Team.neutral);
       expect(engine.personalWins, [hitman]);
       expect(engine.hasWon(pyro), isFalse);

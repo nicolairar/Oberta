@@ -126,6 +126,7 @@ Map<String, Object?> lynchToJson(LynchReport lynch) => {
       'winner': lynch.winner?.name,
       if (lynch.personalWin) 'personalWin': true,
       if (lynch.bountyHunter != null) 'bountyHunter': seatOf(lynch.bountyHunter),
+      if (lynch.truce) 'truce': true,
     };
 
 LynchReport lynchFromJson(Map<String, Object?> json, SeatResolver resolve) => LynchReport(
@@ -135,6 +136,7 @@ LynchReport lynchFromJson(Map<String, Object?> json, SeatResolver resolve) => Ly
       winner: optionalEnum(Team.values, json['winner']),
       personalWin: json['personalWin'] as bool? ?? false,
       bountyHunter: optionalSeat(json['bountyHunter'], resolve),
+      truce: json['truce'] as bool? ?? false,
     );
 
 Map<String, Object?> roundToJson(RoundRecord record) => {

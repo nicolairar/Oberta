@@ -1073,7 +1073,12 @@ void main() {
       expect(engine.winner, isNotNull, reason: 'seed=$seed');
     }
     expect(played, Role.values.where((role) => role.playableIn(PlayMode.sharedPhone)).toSet(), reason: 'tutti i ruoli del telefono unico sono scesi in campo');
-    expect(tasks, NightTaskKind.values.toSet(), reason: 'tutte le mosse sono state fatte');
+    // La cella e la Prostituta esistono solo online (vedi i loro test).
+    expect(
+      tasks,
+      NightTaskKind.values.toSet().difference({NightTaskKind.jail, NightTaskKind.block}),
+      reason: 'tutte le mosse sono state fatte',
+    );
     expect(outcomes, AttackOutcome.values.toSet(), reason: 'tutti gli esiti si sono visti');
   });
 

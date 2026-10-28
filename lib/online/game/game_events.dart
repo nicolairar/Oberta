@@ -9,8 +9,10 @@
 // its policy shows it to nobody else). `data` carries names and enum names
 // only; the phones word it in their language.
 //
-// Public kinds: night, dawn, scoop, silenced, lynch, mayor, left, end.
-// Private kinds: found, watch, bounty, doused, familyTarget, protected.
+// Public kinds: night, dawn, scoop, silenced, lynch, mayor, truce, left, end.
+// Private kinds: found, watch, bounty, doused, familyTarget, protected,
+// cell (who is in the cell tonight: the prisoner, or a Family member about
+// one of theirs), busy (the Prostitute kept you busy last night).
 
 /// What the table has already been told, so that a line is written once.
 /// Kept in the server state between steps.
@@ -154,6 +156,14 @@ List<Map<String, Object?>> tableEvents({
   final mayorBefore = ((before?['board'] as Map?)?['mayor']) as String?;
   if (mayor != null && mayor != mayorBefore) events.add(_event('mayor', {'name': name(mayor)}));
 
+  // The Pacifist's truce: who asked for it, and the exact role they showed.
+  final pacifist = view['pacifist'] as String?;
+  final pacified = view['pacified'] as String?;
+  if (pacifist != null && pacified != null && pacifist != ((before?['board'] as Map?)?['pacifist'])) {
+    final shown = _list(view['revealed']).where((k) => k['seat'] == pacified).firstOrNull;
+    events.add(_event('truce', {'name': name(pacifist), 'target': name(pacified), 'role': shown?['role']}));
+  }
+
   // The verdict: once the verdict film is over, with the tally of the vote.
   final lynch = (view['lastLynch'] as Map?)?.cast<String, Object?>();
   if (lynch != null && (lynch['round'] as int) > marks.lynch && stage != 'verdictFilm') {
@@ -205,6 +215,11 @@ List<Map<String, Object?>> tableEvents({
       if (subject == seat || mates.contains(subject) || revealed.contains(subject) || knew.contains(_key(known))) continue;
       events.add(_event('found', {'name': name(subject as String), 'team': known['team'], 'role': known['role']}, to: seat));
     }
+    final cell = now['cell'] as String?;
+    if (cell != null && cell != then['cell']) {
+      events.add(_event('cell', {'name': name(cell), 'self': cell == seat}, to: seat));
+    }
+    if (now['busy'] == true && then['busy'] != true) events.add(_event('busy', const {}, to: seat));
     final watched = _list(then['watches']).length;
     for (final watch in _list(now['watches']).skip(watched)) {
       events.add(_event('watch', {'name': name(watch['seat'] as String), 'visited': watch['visited'] == true}, to: seat));

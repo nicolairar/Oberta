@@ -24,6 +24,7 @@ sealed class PlayerIntent {
       'dayVote' => DayVote(seat, json['target'] as String),
       'pass' => Pass(seat),
       'revealMayor' => RevealMayor(seat),
+      'pacify' => Pacify(seat, json['target'] as String),
       final type => throw FormatException('intenzione sconosciuta: $type'),
     };
   }
@@ -87,6 +88,18 @@ class RevealMayor extends PlayerIntent {
 
   @override
   Map<String, Object?> toJson() => {'type': 'revealMayor', 'seat': seat};
+}
+
+/// Di giorno, in discussione, il Pacifista chiede la tregua: svela a tutti
+/// il ruolo esatto di [target], si scopre, e oggi non si vota. Una volta per
+/// partita.
+class Pacify extends PlayerIntent {
+  final String target;
+
+  const Pacify(super.seat, this.target);
+
+  @override
+  Map<String, Object?> toJson() => {'type': 'pacify', 'seat': seat, 'target': target};
 }
 
 /// Perché un'intenzione è stata rifiutata.
@@ -165,13 +178,13 @@ sealed class GameCommand {
   Map<String, Object?> toJson();
 
   factory GameCommand.fromJson(Map<String, Object?> json) => switch (json['type']) {
-        'intent' => IntentCommand(PlayerIntent.fromJson(json['intent'] as Map<String, Object?>)),
-        'resolveNight' => const ResolveNightCommand(),
-        'closeDayVote' => const CloseDayVoteCommand(),
-        'lynch' => LynchCommand(json['seat'] as String?),
-        'leaveTown' => LeaveTownCommand(json['seat'] as String),
-        final type => throw FormatException('comando sconosciuto: $type'),
-      };
+    'intent' => IntentCommand(PlayerIntent.fromJson(json['intent'] as Map<String, Object?>)),
+    'resolveNight' => const ResolveNightCommand(),
+    'closeDayVote' => const CloseDayVoteCommand(),
+    'lynch' => LynchCommand(json['seat'] as String?),
+    'leaveTown' => LeaveTownCommand(json['seat'] as String),
+    final type => throw FormatException('comando sconosciuto: $type'),
+  };
 
   @override
   bool operator ==(Object other) => other is GameCommand && jsonEncode(other.toJson()) == jsonEncode(toJson());

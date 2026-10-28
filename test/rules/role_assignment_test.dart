@@ -33,8 +33,8 @@ void main() {
       }
     });
 
-    test('la famiglia è proporzionale: 1 fino a 6, 2 fino a 10, 3 a 11 e 12', () {
-      const expected = {3: 1, 4: 1, 6: 1, 7: 2, 10: 2, 11: 3, 12: 3};
+    test('la famiglia è proporzionale: 1 fino a 6, 2 fino a 11, 3 a 12', () {
+      const expected = {3: 1, 4: 1, 6: 1, 7: 2, 10: 2, 11: 2, 12: 3};
       expected.forEach((n, family) {
         for (var seed = 0; seed < 20; seed++) {
           final deck = rolesForPlayerCount(n, random: Random(seed));
@@ -93,6 +93,23 @@ void main() {
             final onesti = _count(deck, Role.cittadino);
             expect(onesti * 3, greaterThanOrEqualTo(citizens), reason: why);
             expect(citizens - onesti, lessThanOrEqualTo((citizens * 2) ~/ 3), reason: why);
+
+            // I bilanci dei livelli (docs/ruoli.md, 2.2).
+            int points(Iterable<Role> roles) => roles.fold(0, (sum, role) => sum + role.points);
+            final town = [for (final role in deck) if (role.team == Team.citizens) role];
+            final neutrals = [for (final role in deck) if (role.team == Team.neutral) role];
+            final strongest = deck.where((role) => role.rule.tier == RoleTier.l4).length;
+            expect(strongest, lessThanOrEqualTo(1), reason: why);
+            if (n < minPlayersForL4) expect(strongest, 0, reason: why);
+            expect(points(town), lessThanOrEqualTo(cityBudgetFor(n) + strongest), reason: why);
+            expect(points(family), lessThanOrEqualTo(familyBudgetFor(n)), reason: why);
+            expect(points(neutrals), lessThanOrEqualTo(neutralBudgetFor(n)), reason: why);
+            expect(neutrals.where((role) => role.rule.tier.index >= RoleTier.l3.index).length, lessThanOrEqualTo(1));
+            expect(
+              town.where((role) => role.rule.tier == RoleTier.l3).length,
+              lessThanOrEqualTo(maxStrongCitizensFor(n)),
+              reason: why,
+            );
           }
         }
         // La pesca è davvero a caso: ai tavoli grandi escono ruoli diversi.
@@ -105,15 +122,42 @@ void main() {
           }
         }
         expect(seen[12], containsAll([Role.padrino, Role.sarto]));
+        if (mode == PlayMode.online) {
+          expect(seen[12], containsAll([Role.prostituta, Role.carceriere, Role.pacifista]));
+        }
       });
     }
+
+    test('il contrappeso: la Città spende quasi tutto, la Famiglia riceve un potere', () {
+      for (var seed = 0; seed < 300; seed++) {
+        for (final n in [9, 10, 11, 12]) {
+          final deck = rolesForPlayerCount(n, random: Random(seed), mode: PlayMode.online);
+          final town = [for (final role in deck) if (role.team == Team.citizens) role];
+          final spent = town.fold(0, (sum, role) => sum + role.points);
+          final strongest = deck.where((role) => role.rule.tier == RoleTier.l4).length;
+          if (spent >= cityBudgetFor(n) + strongest - 1) {
+            expect(deck.any((role) => role.rule.category == RoleCategory.familyPower), isTrue, reason: 'n=$n $deck');
+          }
+        }
+      }
+    });
+
+    test('i ruoli esclusi non escono mai', () {
+      for (var seed = 0; seed < 200; seed++) {
+        final deck = rolesForPlayerCount(12, random: Random(seed), mode: PlayMode.online, exclude: {Role.carceriere});
+        expect(deck, isNot(contains(Role.carceriere)));
+      }
+    });
 
     test('un investigatore e un protettore escono per primi, appena possibile', () {
       for (var seed = 0; seed < 50; seed++) {
         final deck = rolesForPlayerCount(4, random: Random(seed));
         expect(deck, contains(Role.detective));
+        // Fino a 6 il bilancio della Città basta per il Commissario soltanto.
         final six = rolesForPlayerCount(6, random: Random(seed));
-        expect(six, containsAll([Role.detective, Role.medico]));
+        expect(six.where((role) => role.rule.category != RoleCategory.plain && role.team == Team.citizens), [Role.detective]);
+        final seven = rolesForPlayerCount(7, random: Random(seed));
+        expect(seven, containsAll([Role.detective, Role.medico]));
       }
     });
   });
