@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_strings.dart';
+import '../../l10n/local_role_strings.dart';
 import '../../narration/death_story.dart';
 import '../../narration/narrator_script.dart';
 import '../../rules/game_engine.dart';
@@ -63,7 +64,7 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-enum _Stage { script, handoff, task, taskDone, crimeIntro, crime, toNarrator, day, vote, verdict, end }
+enum _Stage { script, handoff, task, taskDone, crimeIntro, crime, toNarrator, day, power, vote, verdict, end }
 
 class _GameScreenState extends State<GameScreen> {
   static const _mafiaRed = Color(0xFFE5606A);
@@ -89,6 +90,16 @@ class _GameScreenState extends State<GameScreen> {
 
   /// Il Sarto ha scelto di cucire invece di votare l'agguato.
   bool _alternative = false;
+
+  /// La cella sul telefono unico: la domanda scritta dal Carceriere e la
+  /// risposta del prigioniero, notte per notte. Non escono mai dal telefono.
+  final Map<int, String> _questions = {};
+  final Map<int, String> _answers = {};
+
+  /// La tregua del Pacifista: chi la chiede (verificato), poi su chi.
+  Player? _powerUser;
+  String? _powerError;
+  late final LocalRoleStrings _lr = LocalRoleStrings(_t);
   Exposure? _finding;
   late DawnReport _dawn;
   // Il verdetto della piazza, sul tavolo.
@@ -503,7 +514,7 @@ class _GameScreenState extends State<GameScreen> {
               _stage = _Stage.task;
             }),
           ),
-        _Stage.task => _taskView(_queue[_turn]),
+        _Stage.task => _engine.jailedTonight == _queue[_turn] ? _jailedView(_queue[_turn]) : _taskView(_queue[_turn]),
         _Stage.taskDone => _taskDoneView(),
         _Stage.crimeIntro => _crimeIntroView(),
         _Stage.crime => const SizedBox.shrink(),
@@ -520,7 +531,22 @@ class _GameScreenState extends State<GameScreen> {
               _voteLines = _script.voteCall();
               _stage = _Stage.vote;
             }),
+            power: _hasTruce
+                ? OutlinedButton(
+                    key: const Key('game.truce'),
+                    onPressed: pressed(
+                      () => _advance(() {
+                        _powerUser = null;
+                        _powerError = null;
+                        _stage = _Stage.power;
+                      }),
+                      Press.tap,
+                    ),
+                    child: Text(_lr.truce),
+                  )
+                : null,
           ),
+        _Stage.power => _powerView(),
         _Stage.vote => _voteView(),
         _Stage.end => _endView(),
       };
@@ -573,6 +599,7 @@ class _GameScreenState extends State<GameScreen> {
                 if (_engine.doused.contains(player)) player,
           ],
           bounty: _engine.bountyOf(actor),
+          notes: _privateNotes(actor),
         ),
         if (alternative != null) ...[
           SegmentedButton<bool>(
@@ -630,6 +657,139 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  /// Quello che è arrivato all'alba solo a [actor], da leggere al suo turno
+  /// (sul telefono unico non c'è altro momento privato): la risposta
+  /// dell'indagine o dello scavo, la cella, il blocco, la risposta del
+  /// prigioniero al Carceriere.
+  List<String> _privateNotes(Player actor) {
+    final last = _engine.round - 1;
+    return [
+      for (final finding in _engine.findingsOf(actor))
+        if (finding.round == last)
+          if (finding.exposure.role case final role?)
+            _lr.foundRole(finding.exposure.subject.name, _t.role(role).label)
+          else if (finding.exposure.team == Team.mafia)
+            _lr.foundFamily(finding.exposure.subject.name)
+          else
+            _lr.foundClean(finding.exposure.subject.name),
+      if (_engine.wasBusy(actor)) _lr.wasBusy,
+      if (_engine.lastJailed == actor && _answers[last] == null) ...[
+        _lr.wasJailed,
+        if (_questions[last] case final question?) _lr.jailerAsked(question),
+      ],
+      if (widget.setup.roleOf(actor) == Role.carceriere)
+        if ((_answers[last], _engine.lastJailed) case (final answer?, final prisoner?) when answer.isNotEmpty)
+          _lr.prisonerAnswered(prisoner.name, answer),
+    ];
+  }
+
+  /// Il prigioniero al suo turno: niente mossa, la domanda del Carceriere e
+  /// la risposta, scritta, che il Carceriere leggerà al suo turno dopo.
+  Widget _jailedView(Player actor) {
+    final question = _questions[_engine.round];
+    return Column(
+      key: const Key('game.jailed'),
+      children: [
+        const Spacer(),
+        const Icon(Icons.lock, color: AppColors.gold, size: 56),
+        const SizedBox(height: 20),
+        Text(_lr.jailedTitle, style: AppText.display(34)),
+        const SizedBox(height: 12),
+        Text(_lr.jailedBody, textAlign: TextAlign.center, style: AppText.body),
+        if (question != null) ...[
+          const SizedBox(height: 20),
+          Text(_lr.jailerAsks, style: AppText.overline),
+          const SizedBox(height: 6),
+          Text('«$question»', textAlign: TextAlign.center, style: AppText.display(20, color: AppColors.textPrimary)),
+          const SizedBox(height: 12),
+          TextField(
+            key: const Key('game.cellAnswer'),
+            maxLength: 140,
+            decoration: InputDecoration(hintText: _lr.answerHint),
+            onChanged: (text) => _answers[_engine.round] = text.trim(),
+          ),
+        ],
+        const Spacer(),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: pressed(() {
+              // Ha visto la cella: domani niente avviso «eri in cella».
+              _answers.putIfAbsent(_engine.round, () => '');
+              _afterTask();
+            }, Press.confirm),
+            child: Text(_t.done),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Il Pacifista c'è nel mazzo e la tregua non è ancora spesa (il bottone
+  /// resta anche se è morto: sennò il tavolo lo saprebbe).
+  bool get _hasTruce => widget.setup.roles.values.contains(Role.pacifista) && !_engine.truceSpent;
+
+  /// La tregua davanti a tutti: il Pacifista tocca il suo volto, poi chi
+  /// svelare. Il ruolo esatto va sul tavolo e il voto salta.
+  Widget _powerView() {
+    final user = _powerUser;
+    return Column(
+      key: const Key('game.power'),
+      children: [
+        Text(user == null ? _lr.whoAreYou : _lr.whoToReveal, textAlign: TextAlign.center, style: AppText.display(23)),
+        if (_powerError case final error?) ...[
+          const SizedBox(height: 6),
+          Text(error, style: AppText.body.copyWith(color: _mafiaRed)),
+        ],
+        const SizedBox(height: 12),
+        Expanded(
+          child: _publicGrid(
+            selectable: [
+              for (final player in _engine.alivePlayers)
+                if (player != user) player,
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: pressed(() => _advance(() => _stage = _Stage.day), Press.back),
+                child: Text(_lr.cancel),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton(
+                key: const Key('game.powerConfirm'),
+                onPressed: pressed(_selected == null ? null : () => _usePower(_selected!), Press.confirm),
+                child: Text(_lr.confirm),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  void _usePower(Player picked) {
+    final user = _powerUser;
+    if (user == null) {
+      final ok = widget.setup.roleOf(picked) == Role.pacifista && _engine.isAlive(picked);
+      setState(() {
+        _powerUser = ok ? picked : null;
+        _powerError = ok ? null : _lr.notYou;
+        _selected = null;
+      });
+      return;
+    }
+    _advance(() {
+      _engine.pacify(user, picked);
+      _enterVerdict(null);
+    });
+  }
+
   Widget _taskDoneView() {
     final finding = _finding;
     final found = finding?.role;
@@ -643,6 +803,21 @@ class _GameScreenState extends State<GameScreen> {
           Text(_t.doneTitle, style: AppText.display(36)),
           const SizedBox(height: 12),
           Text(_t.nobodyWillKnow, style: AppText.body),
+          // Il Carceriere: chi è in cella, e una domanda scritta per lui.
+          if (_engine.nightChoices[_queue[_turn]] case (kind: NightTaskKind.jail, target: final prisoner?)) ...[
+            const SizedBox(height: 20),
+            Text(_lr.jailed(prisoner.name), style: AppText.display(20, color: AppColors.textPrimary)),
+            const SizedBox(height: 8),
+            TextField(
+              key: const Key('game.cellQuestion'),
+              maxLength: 140,
+              decoration: InputDecoration(hintText: _lr.questionHint),
+              onChanged: (text) {
+                final question = text.trim();
+                question.isEmpty ? _questions.remove(_engine.round) : _questions[_engine.round] = question;
+              },
+            ),
+          ],
         ] else ...[
           // L'indagine dice da che parte sta; la fossa dice chi era.
           SizedBox.square(

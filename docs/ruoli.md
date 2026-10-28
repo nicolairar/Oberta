@@ -19,6 +19,7 @@ Legenda livelli: **L0** nessun potere (o malus), **L1** base, **L2** medio, **L3
 - **Capo della setta:** neutrale; ogni notte converte una persona; vince quando tutti i vivi sono della setta; se muore la setta si scioglie e non succede altro; il Commissario **non** vede i convertiti; solo il Capo vede l'elenco della setta: i convertiti **non** sanno chi è il Capo né chi altro è nella setta (sanno solo di essere stati convertiti e che ora vincono con la setta). *Batch successivo.*
 - **Cecchino** resta per i tavoli piccoli; **Tiratore scelto** per i tavoli grandi (meccanica in attesa della conferma finale: mira di notte, il giorno dopo spara o cambia mira, 2 colpi, muore se spara a un cittadino della Città, i neutrali non lo uccidono).
 - **Classificata e stanze degli amici** usano lo stesso roster e le stesse regole dei livelli.
+- **Gioco in locale:** ogni ruolo nuovo deve funzionare anche sul telefono unico (`PlayMode.sharedPhone`). Dove un meccanismo non può (una chat privata), si adatta e si scrive qui (vedi 3.1, 3.2, 3.10).
 
 ---
 
@@ -47,9 +48,9 @@ Legenda livelli: **L0** nessun potere (o malus), **L1** base, **L2** medio, **L3
 | Il Cacciatore di taglie | `cacciatore` | Neutrale | Vince se la sua taglia viene linciata; se muore altrimenti passa con la Città | 9 | L2 | **È già il "Cacciatore di teste" chiesto.** Unica differenza: dopo la taglia scaduta la carta dovrebbe mostrare "Ora sei un Onesto" (oggi passa con la Città senza dirlo chiaro). |
 | Lo Strozzino | `strozzino` | Neutrale | Ogni notte protegge uno; vince se vivo a fine partita | 10 | L1 | È un secondo Dottore che non sceglie parte: aiuta chi protegge, quindi ok. |
 | Il Sicario | `sicario` | Neutrale ostile | Uccide ogni notte; risulta della Famiglia; vince solo se resta l'ultimo vivo | 12 | L3 | Ok, fermabile da protezioni e dalla cella. |
-| La Prostituta | `prostituta` | Famiglia | Blocca la mossa notturna di una persona; non vota l'agguato (lo vota se resta l'unica che può) | 9 | L2 | Solo online. |
-| Il Carceriere | `carceriere` | Città | Chiude in cella: blocca e protegge (anche dal fuoco); chat anonima | 8 | L3 | Solo online. |
-| Il Pacifista | `pacifista` | Città | Una volta, di giorno: ruolo esatto di uno a tutti, niente voto | 9 | L2 | Solo online. |
+| La Prostituta | `prostituta` | Famiglia | Blocca la mossa notturna di una persona; non vota l'agguato (lo vota se resta l'unica che può) | 9 | L2 | Anche in locale. |
+| Il Carceriere | `carceriere` | Città | Chiude in cella: blocca e protegge (anche dal fuoco); chat anonima | 8 | L3 | In locale: domanda e risposta scritte. |
+| Il Pacifista | `pacifista` | Città | Una volta, di giorno: ruolo esatto di uno a tutti, niente voto | 9 | L2 | Anche in locale. |
 
 **Altre incoerenze trovate**
 - `ruoli-analisi.md` dice "cittadini speciali al massimo il 40%", il codice (`maxSpecialCitizensFor`) usa due terzi. Va deciso quale vale.
@@ -159,13 +160,13 @@ Ordine del **giorno**: discussione (Pacifista, Artigliere, Tiratore possono agir
 - **Quando:** la cella si chiude appena il Carceriere sceglie, e non si cambia: la mossa già fatta dal prigioniero salta e non ne può fare altre.
 - **Con chi blocca al tavolo** (Carceriere o Prostituta nel mazzo, che è pubblico) l'indagine del Commissario e lo scavo del Becchino non rispondono più subito: rispondono all'alba, e solo se chi li ha fatti non è stato fermato.
 - **Interazioni:** Picciotto/Padrino/Sarto in cella non votano l'agguato e non vedono la chat della Famiglia quella notte; se il prigioniero è l'unico killer, niente agguato. Messia, Piromane, Sicario, Capo della setta, Strozzino, Prostituta in cella: azione annullata. Dottore o Guardaspalle sul prigioniero: inutili (nessun colpo da assorbire). La Prostituta che blocca il Carceriere non libera il prigioniero (la cella viene prima). Conta come visita per il Portinaio.
-- **Solo online** (per ora): sul telefono unico non c'è la chat, e le risposte all'alba non si possono dare in privato.
+- **Telefono unico** (adattato): niente chat. Al suo turno, dopo aver scelto, il Carceriere può scrivere una domanda; se il prigioniero ha il turno dopo, vede «Sei in cella», la domanda, e può scrivere una risposta che il Carceriere legge al suo turno della notte dopo. Se il prigioniero aveva già giocato, la sua mossa salta e al suo turno della notte dopo legge «Ieri notte eri in cella» e la domanda. Le risposte che arrivano all'alba (indagini e scavi con chi blocca al tavolo, il blocco della Prostituta) sul telefono unico non hanno un momento privato: si leggono al proprio turno della notte dopo, in cima alla scelta. Il testo non esce mai dal telefono.
 - **Chi vede cosa:** Carceriere: nome del prigioniero e chat. Prigioniero: *«Sei in cella.»* e la chat anonima. Famiglia (se il prigioniero è dei loro): *«Stanotte Tizio è in cella.»* Gli altri: niente; all'alba nessun annuncio.
 - **Testi:** «Chi chiudi in cella stanotte?» · «Sei in cella. Stanotte non esci.» · «Il Carceriere vuole parlarti.» · motto: «Qui dentro si parla. Fuori si muore.»
 
 ### 3.2 Il Pacifista — `pacifista`
 - **Squadra:** Città · **Liv.:** L2 · **Da:** 9 · **Categoria:** civico.
-- **Giorno, una volta per partita, solo in discussione:** sceglie una persona (non sé). Tutti vedono il **ruolo esatto** di quella persona e la carta del Pacifista diventa pubblica. Il voto di quel giorno è annullato: finita la discussione si salta al verdetto («Tregua: oggi non si impicca nessuno.»). Solo online.
+- **Giorno, una volta per partita, solo in discussione:** sceglie una persona (non sé). Tutti vedono il **ruolo esatto** di quella persona e la carta del Pacifista diventa pubblica. Il voto di quel giorno è annullato: finita la discussione si salta al verdetto («Tregua: oggi non si impicca nessuno.»). Sul telefono unico: in discussione c'è il bottone «Tregua del Pacifista» finché la tregua non è spesa (resta anche se il Pacifista è morto, sennò il tavolo lo saprebbe); il Pacifista tocca il proprio volto (il telefono controlla che lo sia), poi chi svelare, e si va al verdetto.
 - **Interazioni:** batte il Padrino (ruolo esatto, non fazione apparente) e il Pregiudicato. Il Fesso svelato quel giorno non può essere linciato. Il Sindaco non può rivelarsi quel giorno (non c'è voto). Il Sarto non lo ferma (il silenzio toglie la chat, non i bottoni). Il Pacifista rivelato diventa un bersaglio della Famiglia: il prezzo del potere.
 - **Chi vede cosa:** tutti: nome del Pacifista, nome e ruolo dello svelato. Nessun dato privato.
 - **Voce/chat:** nessun canale nuovo.
@@ -231,7 +232,7 @@ Diverso dal Sindaco: il Sindaco è segreto e si rivela per un voto doppio; il Pr
 - **Testi:** «Chi chiami alla luce stanotte?» · «Hai visto la luce. Ora sei della setta.» · motto: «Non vi chiedo di credere. Vi chiedo di seguirmi.»
 
 ### 3.10 La Prostituta — `prostituta`
-Decisione del proprietario: **della Famiglia**. Solo online.
+Decisione del proprietario: **della Famiglia**. Anche in locale: chi è stato bloccato lo legge al suo turno della notte dopo.
 - **Squadra:** Famiglia · **Liv.:** L2 · **Da:** 9 · **Categoria:** potere di Famiglia (conta in `maxFamilyPowersFor`).
 - **Notte:** passa la notte con una persona (mai la stessa due notti di fila): l'azione di quella persona è annullata (una mossa da una volta sola, come lo scoop, è spesa lo stesso). Non vota l'agguato finché nella Famiglia c'è un altro che lo vota; se resta l'unica, vota l'agguato e può ancora, al suo posto, passare la notte fuori.
 - **Interazioni:** blocca Commissario, Dottore, Guardaspalle, Becchino, Portinaio, Cronista (lo scoop è speso), Messia (spesa), Tiratore (mira), Piromane, Sicario, Capo della setta, Strozzino. Non blocca Cupido (prima notte) né i poteri di giorno. Non sblocca la cella. Conta come visita per il Portinaio. In cella non agisce.
@@ -250,7 +251,7 @@ Setacciatore (cacciatore di setta), Hacker.
 |---|---|---|---|---|
 | Piazza (`day`) | Vivi, tranne il silenziato dal Sarto | Vivi, tranne il silenziato | Giorno | Il silenzio deve spegnere anche la voce |
 | Famiglia (`family`) | Famiglia viva, tranne chi è in cella | Idem | Notte (e giorno con il Compare) | Anche la Prostituta. *Nel codice.* |
-| Cella (`jail:<notte>`) | Carceriere (anonimo) e prigioniero | Nessuno (il prigioniero perde anche la voce della Famiglia) | Notte | Solo online. *Nel codice.* |
+| Cella (`jail:<notte>`) | Carceriere (anonimo) e prigioniero | Nessuno (il prigioniero perde anche la voce della Famiglia) | Notte | Online; in locale domanda e risposta scritte (3.1). *Nel codice.* |
 | Innamorati (`lovers`, nuovo) | I due innamorati | Nessuno | Notte | Solo online |
 | Setta (`sect`, nuovo) | Capo della setta e convertiti | Nessuno | Notte | Solo online |
 | Eventi (`event`) | Server | — | Sempre | Righe private per seggio dove serve |
@@ -284,7 +285,7 @@ Restano:
 
 1. **Tavoli da 6 e 7** (simulazione, 2.5): a 6 la Città vince il 75%, a 7 la Famiglia il 75%, e nessun bilancio di livelli lo cambia. Strade possibili: (a) accettarlo (i tavoli veri hanno più fiuto dei bot: va visto con le partite vere); (b) a 6 e 7 un solo mafioso più un neutrale che uccide (in simulazione: a 6 Città 28%, Famiglia 28%, Sicario 44%; a 7 con Commissario e Dottore Città 42%, Famiglia 16%, Sicario 42%: nessuna squadra sopra il 60%, ma il Sicario da solo vince troppo); (c) a 7 la Famiglia da 2 con un voto della piazza in più al primo giorno (da progettare).
 2. **Tiratore scelto:** conferma della meccanica (sezione 0).
-3. **Carceriere e Prostituta sul telefono unico:** per ora solo online (la chat della cella e le risposte all'alba hanno bisogno di un telefono a testa). Si vuole una versione da telefono unico (cella senza chat, risposte delle indagini lette dal narratore all'alba)?
+3. **Telefono unico:** le risposte all'alba arrivano al turno della notte dopo (vedi 3.1): il Commissario con un Carceriere o una Prostituta al tavolo gioca la piazza senza la risposta della notte. Va bene, o si preferisce un passaggio di telefono privato all'alba?
 4. **Indagini all'alba:** con un Carceriere o una Prostituta nel mazzo il Commissario e il Becchino ricevono la risposta all'alba invece che subito (sennò il blocco non bloccherebbe niente). Va bene così, o la risposta resta immediata e il blocco ferma solo le mosse che si risolvono all'alba?
 5. **Pacifista:** la tregua si chiede solo in discussione (non durante il voto). Va bene?
 6. **Cittadini speciali:** vale il 40% del documento o i due terzi del codice? (il codice resta ai due terzi)

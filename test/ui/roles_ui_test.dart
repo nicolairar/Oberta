@@ -109,7 +109,7 @@ void main() {
 
   testWidgets('il narratore vede tutti i ruoli, la famiglia in rosso', (tester) async {
     // Uno schermo alto: con tutti i ruoli insieme l'elenco scorre.
-    _useScreen(tester, const Size(393, 1800));
+    _useScreen(tester, const Size(393, 2600));
     // Il narratore c'è solo sul telefono unico: lì il Compare non esiste.
     final roles = [for (final role in Role.values) if (role.playableIn(PlayMode.sharedPhone)) role];
     final players = _players(roles.length);

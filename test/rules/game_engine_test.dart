@@ -1042,6 +1042,8 @@ void main() {
         expect(rounds++, lessThan(100), reason: 'seed=$seed: la partita non finisce');
         final before = engine.alivePlayers;
         for (final player in before) {
+          // In cella la mossa c'è già: il Carceriere l'ha fatta saltare.
+          if (engine.nightChoices.containsKey(player)) continue;
           final task = engine.taskFor(player);
           tasks.add(task.kind);
           expect(task.targets.toSet(), hasLength(task.targets.length), reason: 'seed=$seed');
@@ -1051,7 +1053,7 @@ void main() {
           final target = skip ? null : pool[random.nextInt(pool.length)];
           if (sew) tasks.add(task.alternative!);
           final finding = engine.submitNightChoice(player, target, alternative: sew);
-          if (task.kind == NightTaskKind.dig && target != null) {
+          if (task.kind == NightTaskKind.dig && target != null && !engine.findingsAtDawn) {
             expect(finding!.role, engine.setup.roleOf(target), reason: 'seed=$seed');
           }
         }
@@ -1073,12 +1075,7 @@ void main() {
       expect(engine.winner, isNotNull, reason: 'seed=$seed');
     }
     expect(played, Role.values.where((role) => role.playableIn(PlayMode.sharedPhone)).toSet(), reason: 'tutti i ruoli del telefono unico sono scesi in campo');
-    // La cella e la Prostituta esistono solo online (vedi i loro test).
-    expect(
-      tasks,
-      NightTaskKind.values.toSet().difference({NightTaskKind.jail, NightTaskKind.block}),
-      reason: 'tutte le mosse sono state fatte',
-    );
+    expect(tasks, NightTaskKind.values.toSet(), reason: 'tutte le mosse sono state fatte');
     expect(outcomes, AttackOutcome.values.toSet(), reason: 'tutti gli esiti si sono visti');
   });
 

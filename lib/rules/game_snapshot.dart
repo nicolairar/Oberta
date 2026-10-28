@@ -78,6 +78,9 @@ class GameSnapshot {
   /// Il giro della tregua del Pacifista, e chi ha svelato.
   final int? truceRound;
   final Player? truceTarget;
+
+  /// Le risposte arrivate all'alba, notte per notte.
+  final List<({Player actor, int round, Exposure exposure})> findings;
   final List<GameCommand> log;
 
   const GameSnapshot({
@@ -114,6 +117,7 @@ class GameSnapshot {
     this.busy,
     this.truceRound,
     this.truceTarget,
+    this.findings = const [],
     required this.log,
   });
 
@@ -169,6 +173,11 @@ class GameSnapshot {
     if (busy != null) 'busy': seatOf(busy),
     if (truceRound != null) 'truceRound': truceRound,
     if (truceTarget != null) 'truceTarget': seatOf(truceTarget),
+    if (findings.isNotEmpty)
+      'findings': [
+        for (final finding in findings)
+          {'actor': finding.actor.id, 'round': finding.round, 'exposure': exposureToJson(finding.exposure)},
+      ],
         'log': [for (final command in log) command.toJson()],
       };
 
@@ -239,6 +248,14 @@ class GameSnapshot {
       busy: optionalSeat(json['busy'], seat),
       truceRound: json['truceRound'] as int?,
       truceTarget: optionalSeat(json['truceTarget'], seat),
+      findings: [
+        for (final row in (json['findings'] as List<Object?>? ?? const []).cast<Map<String, Object?>>())
+          (
+            actor: seat(row['actor'] as String),
+            round: row['round'] as int,
+            exposure: exposureFromJson(row['exposure'] as Map<String, Object?>, seat),
+          ),
+      ],
       log: [for (final row in rows('log')) GameCommand.fromJson(row)],
     );
   }

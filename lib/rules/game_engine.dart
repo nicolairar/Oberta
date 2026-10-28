@@ -257,6 +257,9 @@ class GameEngine {
   /// Quello che il Portinaio ha visto, notte per notte.
   final List<({Player watcher, WatchReport report})> _watches = [];
 
+  /// Le risposte arrivate all'alba ([findingsAtDawn]), notte per notte.
+  final List<({Player actor, int round, Exposure exposure})> _findings = [];
+
   /// Chi ha vinto da solo, nell'ordine: il Fesso linciato, il Piromane.
   final List<Player> _personalWins = [];
   bool _resurrectionSpent = false;
@@ -362,6 +365,7 @@ class GameEngine {
     _busy = snapshot.busy;
     _truceRound = snapshot.truceRound;
     _truceTarget = snapshot.truceTarget;
+    _findings.addAll(snapshot.findings);
   }
 
   /// Rigioca una partita dal principio: stesso tavolo, stesso seme, stessi
@@ -419,6 +423,7 @@ class GameEngine {
       busy: _busy,
       truceRound: _truceRound,
       truceTarget: _truceTarget,
+      findings: List.unmodifiable(_findings),
       log: List.unmodifiable(_log),
     );
   }
@@ -481,6 +486,21 @@ class GameEngine {
     final mark = _bounties[hunter];
     return mark != null && !_personalWins.contains(hunter) && (!isAlive(mark) || _everDied(mark));
   }
+
+  /// Le risposte che [actor] ha avuto all'alba (indagini e scavi, quando
+  /// al tavolo c'è chi blocca), con la notte. Sul telefono unico si leggono
+  /// al turno dopo.
+  List<({int round, Exposure exposure})> findingsOf(Player actor) => [
+    for (final finding in _findings)
+      if (finding.actor == actor) (round: finding.round, exposure: finding.exposure),
+  ];
+
+  /// Chi il Carceriere ha chiuso in cella l'ultima notte.
+  Player? get lastJailed => _lastJailed;
+
+  /// La Prostituta ha tenuto occupato [player] l'ultima notte (vale fino
+  /// alla notte dopo: sul telefono unico lo si legge al proprio turno).
+  bool wasBusy(Player player) => _busy == player;
 
   /// Quello che [watcher] ha visto dalla guardiola, notte per notte.
   List<WatchReport> watchesOf(Player watcher) => [
@@ -843,10 +863,12 @@ class GameEngine {
               apparent: true,
             ),
           );
+          _findings.add((actor: actor, round: _round, exposure: Exposure(target, role.apparentTeam)));
         } else if (choice.kind == NightTaskKind.dig) {
           _facts.add(
             Fact(subject: target, team: role.team, role: role, visibility: Visibility.acquired, audience: {actor}),
           );
+          _findings.add((actor: actor, round: _round, exposure: Exposure(target, role.team, role: role)));
         }
       }
     }

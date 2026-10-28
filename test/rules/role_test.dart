@@ -19,8 +19,8 @@ void main() {
     expect(Role.values.where((role) => role.isKiller), [Role.mafioso, Role.padrino, Role.sarto, Role.compare]);
   });
 
-  test('il Compare e i ruoli nuovi esistono solo online', () {
-    const online = {Role.compare, Role.prostituta, Role.carceriere, Role.pacifista};
+  test('solo il Compare esiste solo online: i ruoli nuovi anche sul telefono unico', () {
+    const online = {Role.compare};
     for (final role in Role.values) {
       expect(role.playableIn(PlayMode.online), isTrue, reason: role.name);
       expect(role.playableIn(PlayMode.sharedPhone), !online.contains(role), reason: role.name);

@@ -167,22 +167,12 @@ extension RoleInfo on Role {
     Role.cacciatore => const RoleRule(RoleCategory.neutral, minPlayers: 9, tier: RoleTier.l2),
     Role.strozzino => const RoleRule(RoleCategory.neutral, minPlayers: 10, tier: RoleTier.l1),
     Role.sicario => const RoleRule(RoleCategory.neutral, minPlayers: 12, tier: RoleTier.l3),
-    // I ruoli nuovi esistono solo online: la cella ha la sua chat, la tregua
-    // il suo bottone, e con chi blocca le risposte delle indagini arrivano
-    // all'alba, in privato.
-    Role.prostituta => const RoleRule(
-      RoleCategory.familyPower,
-      minPlayers: 9,
-      tier: RoleTier.l2,
-      modes: {PlayMode.online},
-    ),
-    Role.carceriere => const RoleRule(
-      RoleCategory.protector,
-      minPlayers: 8,
-      tier: RoleTier.l3,
-      modes: {PlayMode.online},
-    ),
-    Role.pacifista => const RoleRule(RoleCategory.civic, minPlayers: 9, tier: RoleTier.l2, modes: {PlayMode.online}),
+    // Sul telefono unico la cella non ha chat (una domanda e una risposta
+    // scritte, al proprio turno) e le risposte che arrivano all'alba si
+    // leggono al turno della notte dopo (docs/ruoli.md, 3.1).
+    Role.prostituta => const RoleRule(RoleCategory.familyPower, minPlayers: 9, tier: RoleTier.l2),
+    Role.carceriere => const RoleRule(RoleCategory.protector, minPlayers: 8, tier: RoleTier.l3),
+    Role.pacifista => const RoleRule(RoleCategory.civic, minPlayers: 9, tier: RoleTier.l2),
   };
 
   /// Ostile alla città, un assassino in proprio (Piromane, Sicario): finché

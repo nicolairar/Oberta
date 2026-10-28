@@ -1891,6 +1891,21 @@
       "text": "Il Sicario"
     },
     {
+      "key": "fdae34ca09ade60a",
+      "kind": "role",
+      "text": "La Prostituta"
+    },
+    {
+      "key": "1ddba76753ba8d78",
+      "kind": "role",
+      "text": "Il Carceriere"
+    },
+    {
+      "key": "1549e49a260aab2d",
+      "kind": "role",
+      "text": "Il Pacifista"
+    },
+    {
       "key": "2822e8c596bcbdef",
       "kind": "number",
       "text": "1"
@@ -3916,6 +3931,21 @@
       "key": "4016f5b7018351fd",
       "kind": "role",
       "text": "Hitman"
+    },
+    {
+      "key": "e8a5aa34cd1bd63e",
+      "kind": "role",
+      "text": "Consort"
+    },
+    {
+      "key": "90a94f628a565d79",
+      "kind": "role",
+      "text": "Jailer"
+    },
+    {
+      "key": "d9ea56dccef88c43",
+      "kind": "role",
+      "text": "Pacifist"
     },
     {
       "key": "91406e605da800c9",

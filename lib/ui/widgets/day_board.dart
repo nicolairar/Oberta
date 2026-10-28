@@ -26,6 +26,10 @@ class DayBoard extends StatefulWidget {
   final int total;
   final VoidCallback onVote;
 
+  /// I poteri di giorno usati davanti a tutti (la tregua del Pacifista):
+  /// un bottone in più sopra il voto.
+  final Widget? power;
+
   const DayBoard({
     super.key,
     required this.strings,
@@ -34,6 +38,7 @@ class DayBoard extends StatefulWidget {
     required this.alive,
     required this.total,
     required this.onVote,
+    this.power,
   });
 
   @override
@@ -120,6 +125,7 @@ class _DayBoardState extends State<DayBoard> {
         const SizedBox(height: 14),
         Expanded(child: widget.table),
         const SizedBox(height: 12),
+        if (widget.power case final power?) ...[SizedBox(width: double.infinity, child: power), const SizedBox(height: 8)],
         Row(
           children: [
             Expanded(
