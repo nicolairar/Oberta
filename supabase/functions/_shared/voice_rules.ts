@@ -10,15 +10,15 @@
 //     in the day room listening, and the push at the vote's start takes the
 //     microphone away from whoever had it;
 //   * night: only the living family (the Compare too: the mafia team)
-//     speaks and listens, in its own room; the dead may talk among
-//     themselves (ghosts); everybody else is out;
+//     speaks and listens, in its own room, except whoever the Jailer locked
+//     up (jailed: no voice at all that night, the cell is a text chat); the
+//     dead may talk among themselves (ghosts); everybody else is out;
 //   * every other stage (the card, the films, the dawn, the verdict):
 //     nobody is connected, nobody speaks.
 //
-// There is no jail in the game today. A role that locks someone up must add
-// a VoiceMember flag here (and in voice_sync.ts) and take the microphone in
-// every stage: until then the matrix test (voice_rules_test.ts) lists every
-// state a seat can be in.
+// The jail: game_seats.jailed (from the server's chat rights, only during
+// the night of the cell) takes the microphone and the family room away; the
+// matrix test (voice_rules_test.ts) lists every state a seat can be in.
 //
 // A stage opens for voice only once the server says it has started for
 // everyone: the night (and the discussion) at its published start plus
@@ -46,6 +46,8 @@ export interface VoiceMember {
   alive: boolean;
   family: boolean;
   silenced: boolean;
+  /** In the Jailer's cell tonight: no voice, not even the family's. */
+  jailed?: boolean;
 }
 
 export interface VoiceRoom {
@@ -156,6 +158,7 @@ export function voiceGrant(
   if (now < opensAt) return nobody(opensAt);
 
   if (schedule.stage === 'night') {
+    if (me.alive && me.jailed) return nobody();
     if (me.alive && me.family) return grant('family', `family-${game}-${schedule.round}`, seat, true);
     if (!me.alive && config.ghosts) return grant('ghosts', `ghosts-${game}`, seat, true);
     return nobody();
@@ -183,7 +186,7 @@ export function memberOf(room: VoiceRoom, identity: string): VoiceMember | null 
 export function voiceSignature(room: VoiceRoom): string {
   const members = [...room.members]
     .sort((a, b) => a.memberSeat - b.memberSeat)
-    .map((m) => [m.profile, m.memberSeat, m.gameSeat, m.alive, m.family, m.silenced]);
+    .map((m) => [m.profile, m.memberSeat, m.gameSeat, m.alive, m.family, m.silenced, m.jailed ?? false]);
   const s = room.schedule;
   return JSON.stringify([room.status, room.gameId, s?.stage ?? null, s?.round ?? null, members]);
 }

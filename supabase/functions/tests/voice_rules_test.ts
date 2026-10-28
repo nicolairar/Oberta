@@ -144,8 +144,8 @@ Deno.test('the vote: nobody speaks, everyone stays in the day room listening', (
 /**
  * Every state a seat can be in, stage by stage: [room kind or null, speaks].
  * The Compare is on the mafia team, so family (it opens the family chat by
- * day, never a family voice room). There is no jail role yet (see
- * voice_rules.ts).
+ * day, never a family voice room). Jailed: in the Jailer's cell, the flag
+ * only exists at night (the server's chat rights), and takes every voice.
  */
 Deno.test('the matrix: every role state, every stage', () => {
   const seats = {
@@ -156,6 +156,9 @@ Deno.test('the matrix: every role state, every stage', () => {
     silencedFamily: member(5, { family: true, silenced: true }),
     dead: member(6, { alive: false }),
     deadFamily: member(7, { alive: false, family: true }),
+    jailed: member(8, { jailed: true }),
+    jailedFamily: member(9, { family: true, jailed: true }),
+    jailer: member(10),
   };
   type Seat = keyof typeof seats;
   type Cell = [string | null, boolean];
@@ -166,17 +169,23 @@ Deno.test('the matrix: every role state, every stage', () => {
   const ghost: Cell = ['ghosts', true];
   const closed: Record<Seat, Cell> = {
     town: off, family: off, compare: off, silenced: off, silencedFamily: off, dead: off, deadFamily: off,
+    jailed: off, jailedFamily: off, jailer: off,
   };
   const expected: Record<string, Record<Seat, Cell>> = {
     reveal: closed,
-    night: { town: off, family: fam, compare: fam, silenced: off, silencedFamily: fam, dead: ghost, deadFamily: ghost },
+    night: {
+      town: off, family: fam, compare: fam, silenced: off, silencedFamily: fam, dead: ghost, deadFamily: ghost,
+      jailed: off, jailedFamily: off, jailer: off,
+    },
     dawnFilms: closed,
     dawn: closed,
     discussion: {
       town: day, family: day, compare: day, silenced: listen, silencedFamily: listen, dead: listen, deadFamily: listen,
+      jailed: day, jailedFamily: day, jailer: day,
     },
     vote: {
       town: listen, family: listen, compare: listen, silenced: listen, silencedFamily: listen, dead: listen, deadFamily: listen,
+      jailed: listen, jailedFamily: listen, jailer: listen,
     },
     verdictFilm: closed,
     verdict: closed,
@@ -224,4 +233,14 @@ Deno.test('the signature changes with the stage and the seats, never with the cl
   assertNotEquals(voiceSignature(room('vote')), day);
   assertNotEquals(voiceSignature(room('discussion', { members: members.slice(1) })), day);
   assertNotEquals(voiceSignature(room('discussion', { members: [member(1, { alive: false }), ...members.slice(1)] })), day);
+  const night = voiceSignature(room('night'));
+  assertNotEquals(voiceSignature(room('night', { members: [member(1, { family: true, jailed: true }), ...members.slice(1)] })), night);
+});
+
+Deno.test('the cell: the jailed family member leaves the family room at once, the rest of the family stays', () => {
+  const jailed = [member(1, { family: true, jailed: true }), member(2, { family: true }), member(3)];
+  const night = room('night', { members: jailed });
+  assertEquals(grant(night, 'p1'), none());
+  assertEquals(grant(night, 'p2').kind, 'family');
+  assertEquals(grant(night, 'p3'), none());
 });

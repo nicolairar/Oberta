@@ -70,9 +70,10 @@ export function sqlVoiceStore(db: Query): VoiceStore {
         alive: boolean | null;
         family: boolean | null;
         silenced: boolean | null;
+        jailed: boolean | null;
       }>(
         `select m.profile_id::text as profile, m.seat::int as member_seat, s.seat as game_seat,
-                s.alive, s.family, s.silenced
+                s.alive, s.family, s.silenced, s.jailed
          from public.room_members m
          left join public.game_seats s on s.room_id = m.room_id and s.profile_id = m.profile_id
          where m.room_id = $1::uuid and m.left_at is null`,
@@ -91,6 +92,7 @@ export function sqlVoiceStore(db: Query): VoiceStore {
           alive: m.alive ?? true,
           family: m.family ?? false,
           silenced: m.silenced ?? false,
+          jailed: m.jailed ?? false,
         })),
       };
     },

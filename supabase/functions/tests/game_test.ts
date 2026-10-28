@@ -227,3 +227,70 @@ Deno.test('runs that overlap never step a game twice from the same state, and a 
   assertEquals(await version(), before + 1);
   await pg.close();
 });
+
+Deno.test('the cell: only the Jailer and the prisoner read it, and the Jailer has no name', async () => {
+  const { pg, db, as, room } = await startedGame();
+  const now = Number((await pg.query<{ now: number }>(`select extract(epoch from now()) * 1000 as now`)).rows[0].now);
+  await runDue(db, step, { now, room });
+  // A night with anna (s1) the Jailer and bruno (s2) in her cell; carla (s3) outside.
+  const [current] = (await pg.query<{ version: number; view: unknown; state: unknown }>(
+    `select g.version, g.view, s.state from public.game_public g join internal.game_state s using (room_id) where g.room_id = $1`,
+    [room],
+  )).rows;
+  const rights = (extra: Record<string, unknown>) => ({ alive: true, family: false, silenced: false, familyDay: false, ...extra });
+  const commit = {
+    changed: true,
+    version: current.version + 1,
+    state: current.state,
+    board: current.view,
+    seatViews: {},
+    chat: {
+      mode: 'night',
+      seats: {
+        s1: rights({ jail: 'jail:1', jailer: true }),
+        s2: rights({ jail: 'jail:1', jailed: true, family: true }),
+        s3: rights({ family: true }),
+      },
+    },
+  };
+  await pg.query(`select internal.game_commit($1::uuid, $2::jsonb)`, [room, JSON.stringify(commit)]);
+
+  const [{ send_chat: fromJailer }] = await as<{ send_chat: string }>('anna', `select public.send_chat($1, 'jail', 'Chi sei?')`, [room]);
+  await as('bruno', `select public.send_chat($1, 'jail', 'Nessuno.')`, [room]);
+  type Row = { id: string; channel: string; profile_id: string | null; seat: string | null; name: string; body: string };
+  const read = (who: Who) =>
+    as<Row>(who, `select id, channel, profile_id, seat, name, body from public.game_chat where channel like 'jail:%' order by n`);
+  const prisoner = await read('bruno');
+  assertEquals(prisoner.map((r) => r.body), ['Chi sei?', 'Nessuno.']);
+  assertEquals(prisoner[0], { id: fromJailer, channel: 'jail:1', profile_id: null, seat: null, name: '', body: 'Chi sei?' });
+  assertEquals((await read('anna')).length, 2, 'the Jailer reads the cell');
+  assertEquals(await read('carla'), [], 'nobody else reads it');
+
+  // Outsiders cannot write in it; the prisoner cannot write to the family.
+  for (const [who, channel] of [['carla', 'jail'], ['bruno', 'family']] as [Who, string][]) {
+    let refused = '';
+    try {
+      await as(who, `select public.send_chat($1, $2, 'ciao')`, [room, channel]);
+    } catch (error) {
+      refused = String(error);
+    }
+    assert(refused.includes('chat_closed'), `${who} ${channel}: ${refused}`);
+  }
+  await as('carla', `select public.send_chat($1, 'family', 'ci sono')`, [room]);
+  assertEquals(await as('bruno', `select body from public.game_chat where channel = 'family'`), [], 'the prisoner does not read the family');
+
+  // Who wrote it stays on the server, out of every phone's reach.
+  const [{ author }] = (await pg.query<{ author: string }>(
+    `select profile_id::text as author from internal.jail_authors where message_id = $1`,
+    [fromJailer],
+  )).rows;
+  assertEquals(author, users.anna);
+  let hidden = false;
+  try {
+    await as('anna', `select * from internal.jail_authors`);
+  } catch {
+    hidden = true;
+  }
+  assert(hidden, 'no phone reads the authors');
+  await pg.close();
+});
