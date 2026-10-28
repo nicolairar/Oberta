@@ -72,16 +72,19 @@ const year = document.querySelector('#year');
 if (year) year.textContent = String(new Date().getFullYear());
 
 // Carta ruolo: tieni premuto per scoprirla, come nel gioco.
+// roles:start
 const roles = [
-  ['padrino', 'Padrino', 'La famiglia', 'famiglia'], ['cittadino', 'Onesto', 'La città', 'citta'], ['detective', 'Commissario', 'La città', 'citta'],
-  ['mafioso', 'Picciotto', 'La famiglia', 'famiglia'], ['medico', 'Dottore', 'La città', 'citta'], ['fesso', 'Fesso', 'Per sé', 'neutrale'],
-  ['cecchino', 'Cecchino', 'La città', 'citta'], ['sarto', 'Sarto', 'La famiglia', 'famiglia'], ['piromane', 'Piromane', 'Per sé', 'neutrale'],
-  ['giornalista', 'Cronista', 'La città', 'citta'], ['compare', 'Compare', 'La famiglia', 'famiglia'], ['sicario', 'Sicario', 'Per sé', 'neutrale'],
-  ['becchino', 'Becchino', 'La città', 'citta'], ['guardaspalle', 'Guardaspalle', 'La città', 'citta'], ['strozzino', 'Strozzino', 'Per sé', 'neutrale'],
-  ['reduce', 'Reduce', 'La città', 'citta'], ['pregiudicato', 'Pregiudicato', 'La città', 'citta'], ['cacciatore', 'Cacciatore di taglie', 'Per sé', 'neutrale'],
-  ['messia', 'Messia', 'La città', 'citta'], ['sindaco', 'Sindaco', 'La città', 'citta'], ['portinaio', 'Portinaio', 'La città', 'citta'],
-  ['prostituta', 'Prostituta', 'La famiglia', 'famiglia'], ['carceriere', 'Carceriere', 'La città', 'citta'], ['pacifista', 'Pacifista', 'La città', 'citta'], ['cupido', 'Cupido', 'La città', 'citta'], ['presidente', 'Presidente', 'La città', 'citta'], ['capoSetta', 'Capo della setta', 'Per sé', 'neutrale']
+  ['cittadino', 'Onesto', 'La città', 'citta'], ['mafioso', 'Picciotto', 'La famiglia', 'famiglia'], ['fesso', 'Fesso', 'Per sé', 'neutrale'],
+  ['detective', 'Commissario', 'La città', 'citta'], ['padrino', 'Padrino', 'La famiglia', 'famiglia'], ['piromane', 'Piromane', 'Per sé', 'neutrale'],
+  ['medico', 'Dottore', 'La città', 'citta'], ['sarto', 'Sarto', 'La famiglia', 'famiglia'], ['cacciatore', 'Cacciatore di taglie', 'Per sé', 'neutrale'],
+  ['cecchino', 'Cecchino', 'La città', 'citta'], ['compare', 'Compare', 'La famiglia', 'famiglia'], ['strozzino', 'Strozzino', 'Per sé', 'neutrale'],
+  ['giornalista', 'Cronista', 'La città', 'citta'], ['prostituta', 'Prostituta', 'La famiglia', 'famiglia'], ['sicario', 'Sicario', 'Per sé', 'neutrale'],
+  ['becchino', 'Becchino', 'La città', 'citta'], ['capoSetta', 'Capo della setta', 'Per sé', 'neutrale'], ['guardaspalle', 'Guardaspalle', 'La città', 'citta'],
+  ['reduce', 'Reduce', 'La città', 'citta'], ['pregiudicato', 'Pregiudicato', 'La città', 'citta'], ['messia', 'Messia', 'La città', 'citta'],
+  ['sindaco', 'Sindaco', 'La città', 'citta'], ['portinaio', 'Portinaio', 'La città', 'citta'], ['carceriere', 'Carceriere', 'La città', 'citta'],
+  ['pacifista', 'Pacifista', 'La città', 'citta'], ['cupido', 'Cupido', 'La città', 'citta'], ['presidente', 'Presidente', 'La città', 'citta']
 ];
+// roles:end
 const card = document.querySelector('.role-card');
 if (card) {
   let index = 0;
