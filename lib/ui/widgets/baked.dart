@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:ui' as ui;
 
 import 'package:flutter/rendering.dart';
@@ -23,13 +24,19 @@ class Baked extends SingleChildRenderObjectWidget {
   /// quello finisce nell'immagine.
   final EdgeInsets overflow;
 
-  const Baked({super.key, this.overflow = EdgeInsets.zero, required Widget super.child});
+  /// Anche girato (un manifesto storto sul muro): allora l'immagine si fa al
+  /// doppio dei pixel e si rimpicciolisce, così i testi restano nitidi.
+  final bool tilted;
+
+  const Baked({super.key, this.overflow = EdgeInsets.zero, this.tilted = false, required Widget super.child});
 
   @override
-  RenderBaked createRenderObject(BuildContext context) => RenderBaked(overflow: overflow);
+  RenderBaked createRenderObject(BuildContext context) => RenderBaked(overflow: overflow, tilted: tilted);
 
   @override
-  void updateRenderObject(BuildContext context, RenderBaked renderObject) => renderObject.overflow = overflow;
+  void updateRenderObject(BuildContext context, RenderBaked renderObject) => renderObject
+    ..overflow = overflow
+    ..tilted = tilted;
 }
 
 /// Come si vede l'origine di un [RenderBaked] sullo schermo: quanti pixel per
@@ -44,7 +51,17 @@ bool _same(_Placement? a, _Placement? b) {
 }
 
 class RenderBaked extends RenderProxyBox {
-  RenderBaked({EdgeInsets overflow = EdgeInsets.zero}) : _overflow = overflow; // ignore: prefer_initializing_formals
+  RenderBaked({EdgeInsets overflow = EdgeInsets.zero, bool tilted = false}) // ignore: prefer_initializing_formals
+      : _overflow = overflow, // ignore: prefer_initializing_formals
+        _tilted = tilted; // ignore: prefer_initializing_formals
+
+  bool get tilted => _tilted;
+  bool _tilted;
+  set tilted(bool value) {
+    if (value == _tilted) return;
+    _tilted = value;
+    markNeedsPaint();
+  }
 
   EdgeInsets get overflow => _overflow;
   EdgeInsets _overflow;
@@ -115,8 +132,17 @@ class RenderBaked extends RenderProxyBox {
 
   _Placement? _placement() {
     final m = getTransformTo(null).storage;
-    // Prospettiva, rotazioni, deformazioni, specchi: niente immagine.
-    if (m[3] != 0 || m[7] != 0 || m[15] != 1 || m[1] != 0 || m[4] != 0) return null;
+    if (m[3] != 0 || m[7] != 0 || m[15] != 1) return null;
+    if (m[1] != 0 || m[4] != 0) {
+      // Girato: un'immagine al doppio dei pixel, posata dove capita. Le
+      // deformazioni e gli specchi restano dal vivo.
+      if (!_tilted) return null;
+      final sx = sqrt(m[0] * m[0] + m[1] * m[1]);
+      final sy = sqrt(m[4] * m[4] + m[5] * m[5]);
+      if (sx <= 0 || !_sameScale(sx, sy) || (m[0] * m[4] + m[1] * m[5]).abs() > sx * sx * 1e-6) return null;
+      if (m[0] * m[5] - m[1] * m[4] <= 0) return null;
+      return (scale: sx * 2, dx: -1, dy: -1);
+    }
     final sx = m[0];
     if (sx <= 0 || !_sameScale(sx, m[5])) return null;
     // L'angolo dell'immagine, compreso quello che sborda.
@@ -180,13 +206,14 @@ class RenderBaked extends RenderProxyBox {
     final bounds = _overflow.inflateRect(Offset.zero & size);
     final scale = _imageScale;
     final exact = _sameScale(scale, place.scale);
+    final turned = place.dx < 0;
     // Da fermo l'angolo dell'immagine cade su un pixel intero dello schermo.
-    final shift = exact ? Offset(-place.dx / scale, -place.dy / scale) : Offset.zero;
+    final shift = exact && !turned ? Offset(-place.dx / scale, -place.dy / scale) : Offset.zero;
     context.canvas.drawImageRect(
       _image!,
       Rect.fromLTWH(0, 0, bounds.width * scale, bounds.height * scale),
       bounds.shift(offset + shift),
-      Paint()..filterQuality = FilterQuality.low,
+      Paint()..filterQuality = turned ? FilterQuality.medium : FilterQuality.low,
     );
     if (exact) _crisp = place;
   }

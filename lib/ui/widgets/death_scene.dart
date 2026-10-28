@@ -1135,10 +1135,12 @@ class DeathScenePainter extends CustomPainter {
     bool killer = false,
     bool dame = false,
     bool smoking = false,
+    bool cigar = false,
+    double build = 1,
     Color? cloth,
   }) {
     if (killer && _spared) _handover!.killer = feet;
-    final h = killer ? _u * 1.08 : _u;
+    final h = (killer ? _u * 1.08 : _u) * build;
     canvas.save();
     canvas.translate(feet.dx, feet.dy);
     canvas.rotate(tilt);
@@ -1307,6 +1309,20 @@ class DeathScenePainter extends CustomPainter {
           h * 0.013,
           Paint()..color = const Color(0xFFE23A4A),
         );
+      }
+      if (details && cigar) {
+        // Il sigaro: corto, grosso, scuro, con la brace che appena si vede.
+        final lips = head.translate(h * 0.080, h * 0.052);
+        final tip = lips.translate(h * 0.058, -h * 0.010);
+        canvas.drawLine(
+          lips,
+          tip,
+          Paint()
+            ..color = const Color(0xFF5A3A22)
+            ..strokeWidth = h * 0.026
+            ..strokeCap = StrokeCap.round,
+        );
+        canvas.drawCircle(tip, h * 0.012, Paint()..color = const Color(0xFFD9542A));
       }
       if (details && smoking) {
         final lips = head.translate(h * 0.080, h * 0.050);
@@ -5063,13 +5079,15 @@ class DeathScenePainter extends CustomPainter {
 
     // Escono in punta di piedi, chinati, le mani avanti; al colpo lo
     // agguantano, e poi se lo tirano dietro l'angolo.
-    // Sono due uomini diversi, non lo stesso ripetuto: il secondo ha la
-    // coppola, sta più dritto e allunga le mani più in alto, al bavero.
-    for (final (gap, delay, hat, reach) in [
-      (0.40, 0.0, AvatarHead.fedora, 0.0),
-      (0.82, 0.06, AvatarHead.coppola, 0.25),
+    // Sono due uomini diversi, non lo stesso ripetuto: il primo alto e
+    // magro, col borsalino e il sigaro; il secondo basso e tarchiato, con
+    // la coppola e la sigaretta, che esce dopo, cammina col suo passo e
+    // allunga le mani più in alto, al bavero.
+    for (final (gap, delay, hat, reach, build, pace, cigar) in [
+      (0.40, 0.0, AvatarHead.fedora, 0.0, 1.06, 1.0, true),
+      (0.84, 0.07, AvatarHead.coppola, 0.25, 0.88, 1.35, false),
     ]) {
-      final come = _smooth(_span(t, 0.43 + delay, strike));
+      final come = _smooth(_span(t, 0.43 + delay, strike + delay * 0.4));
       final x = _mix(
         _mix(_hiddenX + _u * gap, _victimX + _u * gap, come),
         _hiddenX + _u * gap,
@@ -5082,7 +5100,7 @@ class DeathScenePainter extends CustomPainter {
         canvas,
         feet: Offset(x, _ground),
         facing: drag > 0.05 ? 1 : -1,
-        walk: sneaking ? _prowl * 0.6 + gap * 5 : _prowl + gap * 5,
+        walk: (sneaking ? _prowl * 0.6 : _prowl) * pace + gap * 5,
         stride: moving ? (sneaking ? 0.6 : 0.9) : 0,
         lean: sneaking ? 0.20 - reach * 0.3 : (clamp ? 0.10 : 0),
         crouch: sneaking ? 0.12 - reach * 0.3 : 0,
@@ -5091,6 +5109,9 @@ class DeathScenePainter extends CustomPainter {
         backArm: clamp ? 1.3 + reach * 0.6 : _mix(-0.1, 1.4, come),
         backElbow: clamp ? 0.3 : _mix(0.2, -0.1, come),
         hat: hat,
+        build: build,
+        cigar: cigar,
+        smoking: !cigar,
         killer: true,
       );
     }

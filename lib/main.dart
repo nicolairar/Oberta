@@ -27,6 +27,7 @@ import 'ui/screens/home_screen.dart';
 import 'ui/widgets/app_update_gate.dart';
 import 'ui/widgets/device_session_gate.dart';
 import 'ui/theme/app_theme.dart';
+import 'ui/warm_up.dart';
 import 'ui/screens/settings_screen.dart';
 
 Future<void> main() async {
@@ -68,6 +69,8 @@ Future<void> main() async {
   // Il QR di una stanza inquadrato con la fotocamera apre l'app su quella stanza.
   listenToDeviceLinks(IncomingLinks.instance);
   runApp(const ObertaApp(offerTutorial: true));
+  // Un po' di tutto disegnato una volta, fuori schermo: niente scatti dopo.
+  WarmUp.start();
   SoundStage.instance.music(MusicMood.menu);
 }
 

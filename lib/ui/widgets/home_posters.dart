@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import 'baked.dart';
 import 'noir_avatar.dart';
 
 const _ink = Color(0xFF14110F);
@@ -497,7 +498,11 @@ class _HomeSoonPosterState extends State<HomeSoonPoster> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
-    final sheet = RepaintBoundary(
+    // Il foglio è fermo (storto sul muro): si stampa una volta in
+    // un'immagine fitta, e non si ridisegna a ogni goccia di pioggia.
+    final sheet = Baked(
+      tilted: true,
+      overflow: const EdgeInsets.all(12),
       child: _Sheet(
         width: 132,
         minHeight: 150,
