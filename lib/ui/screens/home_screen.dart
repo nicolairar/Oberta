@@ -31,6 +31,8 @@ import 'online/online_widgets.dart';
 import 'online/profile_sheet.dart';
 import 'online/sign_in_sheet.dart';
 import 'shop/shop_screen.dart';
+import 'tutorial_screen.dart';
+import '../../l10n/tutorial_strings.dart';
 import '../../sound/fx_groups.dart';
 import '../../sound/screen_music.dart';
 import '../../sound/sound_stage.dart';
@@ -61,7 +63,10 @@ class HomeScreen extends StatefulWidget {
   /// Da dove arrivano i link delle stanze. Senza, quelli del telefono.
   final IncomingLinks? links;
 
-  const HomeScreen({super.key, this.onSettings, this.services, this.links});
+  /// Al primo avvio si propone il tutorial (una volta sola: il flag è nelle preferenze).
+  final bool offerTutorial;
+
+  const HomeScreen({super.key, this.onSettings, this.services, this.links, this.offerTutorial = false});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -155,6 +160,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
     // Un link arrivato prima del vicolo (l'app aperta proprio dal QR).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _linkArrived();
+      if (widget.offerTutorial && mounted) TutorialScreen.offer(context);
       if (_account?.signedIn ?? false) _checkShop();
       _readCounts();
     });
@@ -721,6 +727,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                           onMirror: _openMirror,
                           settingsLabel: t.settings,
                           onSettings: widget.onSettings,
+                          tutorialLabel: TutorialStrings.of(context).deskButton,
+                          onTutorial: () => TutorialScreen.open(context),
                           onQuit: () => confirmDeskQuit(context),
                         ),
                       ),

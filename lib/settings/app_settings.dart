@@ -16,6 +16,7 @@ class AppSettings extends ChangeNotifier {
   static const windowModeKey = 'windowMode';
   static const resolutionKey = 'resolution';
   static const orientationKey = 'orientation';
+  static const tutorialKey = 'tutorialSeen';
   static const keys = {
     languageKey,
     soundKey,
@@ -25,6 +26,7 @@ class AppSettings extends ChangeNotifier {
     windowModeKey,
     resolutionKey,
     orientationKey,
+    tutorialKey,
   };
 
   /// Le preferenze in uso. I test le tengono in memoria; `main` le apre dal
@@ -79,6 +81,16 @@ class AppSettings extends ChangeNotifier {
     if (orientation == _orientation) return;
     _orientation = orientation;
     _store.setString(orientationKey, orientation.name);
+    notifyListeners();
+  }
+
+  /// Il tutorial è già stato proposto (giocato o rimandato): al primo
+  /// avvio si offre una volta sola.
+  bool get tutorialSeen => _store.getBool(tutorialKey) ?? false;
+
+  set tutorialSeen(bool seen) {
+    if (seen == tutorialSeen) return;
+    _store.setBool(tutorialKey, seen);
     notifyListeners();
   }
 

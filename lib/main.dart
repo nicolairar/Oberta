@@ -65,7 +65,7 @@ Future<void> main() async {
   unawaited(UpdateGate.instance!.check());
   // Il QR di una stanza inquadrato con la fotocamera apre l'app su quella stanza.
   listenToDeviceLinks(IncomingLinks.instance);
-  runApp(const ObertaApp());
+  runApp(const ObertaApp(offerTutorial: true));
   SoundStage.instance.music(MusicMood.menu);
 }
 
@@ -93,7 +93,10 @@ class ObertaApp extends StatelessWidget {
   /// Le preferenze da seguire; senza, quelle aperte da `main`.
   final AppSettings? settings;
 
-  const ObertaApp({super.key, this.settings});
+  /// Proporre il tutorial al primo avvio. Spento nei test dell'app intera.
+  final bool offerTutorial;
+
+  const ObertaApp({super.key, this.settings, this.offerTutorial = false});
 
   @override
   Widget build(BuildContext context) {
@@ -125,7 +128,10 @@ class ObertaApp extends StatelessWidget {
           return DesktopFrame(orientation: settings.orientation, child: gated);
         },
         home: Builder(
-          builder: (context) => HomeScreen(onSettings: () => SettingsScreen.open(context, settings: settings)),
+          builder: (context) => HomeScreen(
+            onSettings: () => SettingsScreen.open(context, settings: settings),
+            offerTutorial: offerTutorial && !settings.tutorialSeen,
+          ),
         ),
       ),
     );

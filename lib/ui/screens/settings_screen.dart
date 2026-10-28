@@ -26,6 +26,8 @@ import '../../steam/steam_debug_sheet.dart';
 import '../theme/app_theme.dart';
 import 'online/safety_sheets.dart';
 import 'screening_room_screen.dart';
+import 'tutorial_screen.dart';
+import '../../l10n/tutorial_strings.dart';
 
 part 'settings_desktop.dart';
 
@@ -315,6 +317,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           onTap: () =>
                               Navigator.of(context)
                                   .push(MaterialPageRoute<void>(builder: (_) => const ScreeningRoomScreen())),
+                        ),
+                        ListTile(
+                          key: const Key('settings.tutorial'),
+                          leading: const Icon(Icons.school_outlined, color: AppColors.gold),
+                          title: Text(TutorialStrings.of(context).replay),
+                          subtitle: Text(TutorialStrings.of(context).replayHint),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => TutorialScreen.open(context, settings: widget.settings),
                         ),
                       ],
                     ),

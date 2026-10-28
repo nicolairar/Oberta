@@ -357,6 +357,13 @@ class _DesktopSettingsState extends State<_DesktopSettings> {
             onTap: () =>
                 Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const ScreeningRoomScreen())),
           ),
+          _DeskRow(
+            icon: Icons.school_outlined,
+            title: TutorialStrings.of(context).replay,
+            subtitle: TutorialStrings.of(context).replayHint,
+            chevron: true,
+            onTap: () => TutorialScreen.open(context, settings: _settings),
+          ),
         ];
       case _DeskCategory.account:
         final auth = _host._auth!;

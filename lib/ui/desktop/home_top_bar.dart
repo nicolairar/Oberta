@@ -35,6 +35,8 @@ class HomeDeskTopBar extends StatelessWidget {
   final VoidCallback? onMirror;
   final String settingsLabel;
   final VoidCallback? onSettings;
+  final String tutorialLabel;
+  final VoidCallback? onTutorial;
   final VoidCallback onQuit;
 
   const HomeDeskTopBar({
@@ -55,6 +57,8 @@ class HomeDeskTopBar extends StatelessWidget {
     this.onMirror,
     required this.settingsLabel,
     this.onSettings,
+    this.tutorialLabel = 'Tutorial',
+    this.onTutorial,
     required this.onQuit,
   });
 
@@ -99,6 +103,15 @@ class HomeDeskTopBar extends StatelessWidget {
             ],
             if (signedIn == true && onMirror != null) ...[
               _BarButton(key: const Key('desk.mirror'), icon: Icons.content_cut, label: mirrorLabel, onTap: onMirror!),
+              const SizedBox(width: 14),
+            ],
+            if (onTutorial != null) ...[
+              _BarButton(
+                key: const Key('desk.tutorial'),
+                icon: Icons.school_outlined,
+                label: tutorialLabel,
+                onTap: onTutorial!,
+              ),
               const SizedBox(width: 14),
             ],
             if (onSettings != null) ...[
