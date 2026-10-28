@@ -55,6 +55,12 @@ void main() {
     }
   });
 
+  test('a win always plays the victory song, even right after a long meme', () {
+    beat.heard(Meme.hellNah);
+    now = now.add(const Duration(seconds: 1));
+    expect(beat.hit(MemeMoment.victory), Meme.auraFarming);
+  });
+
   test('long memes stay rare', () {
     var longs = 0;
     for (var i = 0; i < 60; i++) {

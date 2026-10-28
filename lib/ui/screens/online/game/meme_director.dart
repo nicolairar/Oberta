@@ -34,6 +34,9 @@ class MemeSnapshot {
   final bool condemnedMafia;
   final Team? winner;
 
+  /// Se a vincere è stato chi tiene questo telefono.
+  final bool iWon;
+
   /// I messaggi della piazza scritti dagli altri, con l'ora.
   final List<DateTime> dayChat;
   final Duration timeLeft;
@@ -52,6 +55,7 @@ class MemeSnapshot {
     this.condemned,
     this.condemnedMafia = false,
     this.winner,
+    this.iWon = false,
     this.dayChat = const [],
     this.timeLeft = Duration.zero,
   });
@@ -77,6 +81,7 @@ class MemeSnapshot {
       condemned: lynch?.condemned?.id,
       condemnedMafia: lynch?.role?.team == Team.mafia,
       winner: view.winner,
+      iWon: view.winner != null && client.seat != null && view.won(client.seat!.view.seat),
       dayChat: [
         for (final message in client.chat)
           if (message.channel == ChatChannel.day && message.seat != mine) message.at,
@@ -181,7 +186,11 @@ class MemeDirector {
       case Stage.ended:
         if (now.winner != null) {
           beat.hit(
-            now.winner != Team.citizens ? MemeMoment.mafiaWins : MemeMoment.townWins,
+            now.iWon
+                ? MemeMoment.victory
+                : now.winner != Team.citizens
+                ? MemeMoment.mafiaWins
+                : MemeMoment.townWins,
             after: const Duration(milliseconds: 800),
           );
         }

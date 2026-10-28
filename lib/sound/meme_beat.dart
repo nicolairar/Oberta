@@ -25,7 +25,10 @@ enum MemeMoment {
   verdictInnocent([Meme.catLaugh, Meme.hellNah, Meme.faaah], big: true),
   noConviction([Meme.chicken, Meme.heeHee], big: true),
   mafiaWins([Meme.catLaugh, Meme.hellNah], big: true),
-  townWins([Meme.rizz, Meme.applePay, Meme.lutador], big: true);
+  townWins([Meme.rizz, Meme.applePay, Meme.lutador], big: true),
+
+  /// Hai vinto tu: la canzone della vittoria, sempre, anche se è lunga.
+  victory([Meme.auraFarming], big: true);
 
   final List<Meme> pool;
 
@@ -89,12 +92,13 @@ class MemeBeat {
     final start = _clock().add(after);
     final sinceLast = start.difference(_lastStart);
     if (moment.big) {
-      if (sinceLast < bigGap) return null;
+      if (sinceLast < bigGap && moment != MemeMoment.victory) return null;
     } else {
       // I meme piccoli: mai sopra un altro, e con calma.
       if (start.isBefore(_busyUntil) || sinceLast < smallGap) return null;
     }
-    final longOk = !start.isBefore(_busyUntil) && start.difference(_lastLong) >= longGap;
+    final longOk = moment == MemeMoment.victory ||
+        (!start.isBefore(_busyUntil) && start.difference(_lastLong) >= longGap);
     var choices = [
       for (final meme in moment.pool)
         if (meme != _last && (!meme.isLong || longOk)) meme,

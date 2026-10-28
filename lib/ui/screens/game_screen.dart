@@ -518,7 +518,8 @@ class _GameScreenState extends State<GameScreen> {
     SoundStage.instance.music(dark ? MusicMood.winFamily : MusicMood.winTown);
     SoundStage.instance.ambience(null);
     SoundStage.instance.cue(dark ? Cue.familyWins : Cue.townWins);
-    beat(dark ? MemeMoment.mafiaWins : MemeMoment.townWins, after: const Duration(milliseconds: 800));
+    // Su un telefono solo c'è sempre qualcuno che ha vinto: la sua canzone.
+    beat(MemeMoment.victory, after: const Duration(milliseconds: 800));
     _title = _t.endTitle;
     _mood = dark ? SceneMood.night : SceneMood.dawn;
     _endingLines = _script.ending(

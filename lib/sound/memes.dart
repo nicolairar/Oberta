@@ -23,7 +23,8 @@ enum Meme {
   dexter,
   applePay,
   error,
-  knocked;
+  knocked,
+  auraFarming;
 
   /// Quanto dura, in millisecondi: quelli lunghi (le canzoncine, la risata)
   /// zittiscono la musica finché non finiscono.
@@ -43,6 +44,7 @@ enum Meme {
         applePay => 630,
         error => 790,
         knocked => 650,
+        auraFarming => 12420,
       };
 
   /// Una canzoncina o una risata lunga: sopra la tarantella non si capisce
@@ -58,6 +60,7 @@ enum Meme {
         hellNah => 'hell_nah',
         englishSpanish => 'english_spanish',
         applePay => 'applepay',
+        auraFarming => 'aura_farming',
         _ => name,
       }}.m4a';
 }
