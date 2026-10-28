@@ -37,8 +37,10 @@ import 'online/online_widgets.dart';
 import 'online/profile_sheet.dart';
 import 'online/sign_in_sheet.dart';
 import 'shop/shop_screen.dart';
+import 'rules_screen.dart';
 import 'tutorial_screen.dart';
 import '../../settings/app_settings.dart';
+import '../../l10n/rules_strings.dart';
 import '../../l10n/tutorial_strings.dart';
 import '../../sound/fx_groups.dart';
 import '../../sound/screen_music.dart';
@@ -470,6 +472,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
     StreetRoute.push<void>(context, StreetSection.friends, (_) => OnlineScreen(services: _online));
   }
 
+  /// Le regole da leggere ad alta voce. In fondo si va a giocare: su un
+  /// telefono solo dove c'è, altrimenti con gli amici.
+  void _openRules() {
+    SoundStage.instance.press(Press.tap);
+    RulesScreen.open(
+      context,
+      onPlayLocal: DesktopPlatform.isDesktop ? null : _createRoom,
+      onPlayFriends: DesktopPlatform.isDesktop ? _playWithFriends : null,
+    );
+  }
+
   /// Le modalità che non ci sono ancora: il manifesto dondola e la
   /// didascalia risponde.
   void _notYet(String teaser) {
@@ -748,6 +761,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                           SoundStage.instance.press(Press.tap);
                           TutorialScreen.open(context);
                         },
+                      ),
+                    ),
+                  // Sotto, sullo stesso palo, le regole da leggere al tavolo.
+                  if (layout.rules case final sign?)
+                    _posted(
+                      rect: sign,
+                      tilt: 0.018,
+                      at: 2.55,
+                      child: HomeTutorialSign(
+                        key: const Key('home.rules'),
+                        label: RulesStrings.of(context).sign,
+                        pole: layout.lampFoot.dx - sign.left,
+                        onTap: _openRules,
                       ),
                     ),
                   Positioned.fromRect(

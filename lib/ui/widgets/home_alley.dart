@@ -132,16 +132,31 @@ class HomeAlleyLayout {
     // e il cappello dell'uomo, che punta verso i manifesti.
     final roomTop = lampHead.dy + smoker * 0.30;
     final roomBottom = smokerFeet.dy - smoker * 1.12 - 6;
-    final plate = (smoker * 0.20).clamp(30.0, 56.0);
+    // Sotto, un secondo cartello sullo stesso palo, per le regole del gioco:
+    // dove i due non ci stanno interi si stringono un po', e se nemmeno così
+    // resta solo il tutorial.
+    final room = roomBottom - roomTop;
+    final full = (smoker * 0.20).clamp(30.0, 56.0);
+    final between = full * 0.30;
+    final paired = min(full, (room - 8 - between) / 2);
+    final two = paired >= 26;
+    final plate = two ? paired : full;
     final signLeft = max(4.0, lampFoot.dx - plate * 0.7);
     final signRight = min(column - 4, lampFoot.dx + plate * 3.7);
-    tutorial = roomBottom - roomTop >= plate + 8 && signRight - signLeft >= plate * 2.6
-        ? Rect.fromLTWH(signLeft, (roomTop + roomBottom - plate) / 2, signRight - signLeft, plate)
+    final wideEnough = signRight - signLeft >= plate * 2.6;
+    final stack = two ? plate * 2 + between : plate;
+    final firstTop = (roomTop + roomBottom - stack) / 2;
+    tutorial = room >= plate + 8 && wideEnough ? Rect.fromLTWH(signLeft, firstTop, signRight - signLeft, plate) : null;
+    rules = two && wideEnough
+        ? Rect.fromLTWH(signLeft, firstTop + plate + between, signRight - signLeft, plate)
         : null;
   }
 
   /// Il cartello del tutorial sul palo (null dove non ci sta).
   late final Rect? tutorial;
+
+  /// Il cartello delle regole, sotto quello del tutorial (null dove non ci sta).
+  late final Rect? rules;
 
   late final StreetWall wall;
 
