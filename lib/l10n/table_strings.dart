@@ -44,6 +44,15 @@ class TableStrings {
       _t('Tutti sapranno chi sei, e da oggi il tuo voto vale doppio.', 'Everyone will know who you are, and your vote counts twice from today.');
   String get silenced => _t('zittito', 'silenced');
   String get lynched => _t('Linciato', 'Lynched');
+
+  /// The verdict on the felt, short and plain: who, and which card.
+  String lynchedLine(String name, String? role) {
+    if (role == null) return _t('$name è stato linciato.', '$name was lynched.');
+    final card = role.isEmpty ? role : role[0].toLowerCase() + role.substring(1);
+    return _t('$name è stato linciato. Era $card.', '$name was lynched. They were the $role.');
+  }
+
+  String get noLynch => _t('Nessuno è stato linciato.', 'Nobody was lynched.');
   String abstainedVotes(int n) => _t(n == 1 ? '1 astenuto' : '$n astenuti', '$n abstained');
 
   // ---- The chat, when it is closed.

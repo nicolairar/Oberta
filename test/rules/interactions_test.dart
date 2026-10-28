@@ -302,6 +302,34 @@ void main() {
       expectRoundTrip(engine);
     });
 
+    test('dopo la resurrezione si conoscono solo loro due: il risorto sa chi è il Messia, il Messia la sua carta', () {
+      final engine = table({mob: Role.mafioso, mob2: Role.mafioso, messiah: Role.messia, cop: Role.detective});
+      // Prima notte: la famiglia uccide il Commissario, ruolo segreto.
+      night(engine, {mob: cop, mob2: cop});
+      engine.lynch(null);
+      // Seconda notte: c'è un morto, il Messia può già usarla.
+      expect(engine.taskFor(messiah).kind, NightTaskKind.resurrect);
+      expect(night(engine, {messiah: cop}).resurrected, cop);
+      expect(engine.isAlive(cop), isTrue);
+
+      final copView = engine.viewFor(cop.id);
+      final copKnows = {for (final k in copView.known) k.seat: k.knowledge.role};
+      expect(copKnows[messiah], Role.messia, reason: 'il risorto sa chi l\'ha riportato');
+      final messiahView = engine.viewFor(messiah.id);
+      final messiahKnows = {for (final k in messiahView.known) k.seat: k.knowledge.role};
+      expect(messiahKnows[cop], Role.detective, reason: 'il Messia sa che carta ha il risorto');
+      // Nessun altro sa niente dei due.
+      for (final other in engine.setup.players) {
+        if (other == cop || other == messiah) continue;
+        expect(engine.knowledgeOf(other, messiah).role, isNull, reason: '${other.id} non sa del Messia');
+        expect(engine.knowledgeOf(other, cop).role, isNull, reason: '${other.id} non sa del risorto');
+      }
+      expect(engine.knowledgeOf(null, messiah).isEmpty, isTrue);
+      expect(engine.knowledgeOf(null, cop).isEmpty, isTrue);
+      expectNoLeaks(engine);
+      expectRoundTrip(engine);
+    });
+
     test('il Messia ucciso stanotte: la resurrezione fallisce ed è spesa', () {
       final engine = table({mob: Role.mafioso, mob2: Role.mafioso, messiah: Role.messia});
       night(engine, {});

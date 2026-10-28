@@ -787,6 +787,19 @@ class GameEngine {
       _resurrectionSpent = true;
       if (!victims.contains(messiah)) {
         resurrected = risen;
+        // Si conoscono solo loro due: chi torna sa chi l'ha riportato (e che
+        // è il Messia), il Messia sa che carta ha chi è tornato. Nessun altro.
+        final messiahRole = setup.roleOf(messiah);
+        final risenRole = setup.roleOf(risen);
+        _facts
+          ..add(Fact(
+            subject: messiah,
+            team: messiahRole.team,
+            role: messiahRole,
+            visibility: Visibility.acquired,
+            audience: {risen},
+          ))
+          ..add(Fact(subject: risen, team: risenRole.team, role: risenRole, visibility: Visibility.acquired, audience: {messiah}));
         _alive
           ..add(risen)
           ..sort((a, b) => setup.players.indexOf(a).compareTo(setup.players.indexOf(b)));

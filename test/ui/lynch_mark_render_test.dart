@@ -109,13 +109,26 @@ void main() {
     }
     expect(after, isTrue, reason: 'prima o poi la piazza lincia qualcuno');
     expect(find.byKey(const Key('online.verdictHeadline')), findsOneWidget);
-    // Il verdetto si legge tutto: niente puntini dopo cinque parole.
-    for (final key in const [Key('online.verdictHeadline'), Key('online.verdictStory')]) {
-      final text = tester.widget<Text>(find.byKey(key));
-      expect(text.maxLines, isNull, reason: '$key');
-      expect(text.overflow, isNot(TextOverflow.ellipsis), reason: '$key');
-      expect(tester.renderObject<RenderParagraph>(find.byKey(key)).didExceedMaxLines, isFalse, reason: '$key');
-      expect(text.style!.fontSize, greaterThan(9), reason: '$key resta leggibile');
+    // Il verdetto si legge tutto: una riga corta e tecnica, mai puntini, e
+    // niente racconto lungo in mezzo al tavolo.
+    final line = tester.widget<Text>(find.byKey(const Key('online.verdictHeadline')));
+    expect(line.maxLines, isNull);
+    expect(line.overflow, isNot(TextOverflow.ellipsis));
+    expect(tester.renderObject<RenderParagraph>(find.byKey(const Key('online.verdictHeadline'))).didExceedMaxLines, isFalse);
+    expect(line.data, matches(RegExp(r'^(.+ è stato linciato\. Era .+\.|Nessuno è stato linciato\.)$')));
+    expect(line.data!.split(' ').length, lessThanOrEqualTo(10), reason: 'una riga corta: ${line.data}');
+    expect(line.style!.fontSize, greaterThanOrEqualTo(15), reason: 'a grandezza piena');
+    expect(find.byKey(const Key('online.verdictStory')), findsNothing);
+    // La carta del linciato: un tocco e i dettagli del ruolo.
+    if (line.data!.contains('Era ')) {
+      expect(find.byKey(const Key('online.verdictRole')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('online.verdictRole')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byKey(const Key('online.verdictRoleDetails')), findsOneWidget);
+      await _shoot(tester, shot, 'lynch_online_role_details');
+      Navigator.of(tester.element(find.byKey(const Key('online.verdictRoleDetails')))).pop();
+      await tester.pump(const Duration(milliseconds: 300));
     }
     await tester.pumpWidget(const SizedBox());
   });

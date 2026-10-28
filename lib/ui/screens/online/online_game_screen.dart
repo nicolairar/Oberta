@@ -30,6 +30,7 @@ import '../../press.dart';
 import '../../avatar/avatar_look.dart';
 import '../../seating.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/role_style.dart';
 import '../../widgets/death_scene.dart';
 import '../../widgets/night_notes.dart' show alternativeLabels;
 import '../../widgets/scene_scaffold.dart';
@@ -1665,7 +1666,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   /// Il panno per i testi che vanno letti tutti (il verdetto): niente
   /// puntini, il carattere si adatta allo spazio fra i posti.
-  Widget _feltFit(List<FeltLine> lines, {Key? key}) => LayoutBuilder(
+  Widget _feltFit(List<FeltLine> lines, {Key? key, Widget? footer}) => LayoutBuilder(
     key: key,
     builder: (context, box) => Center(
       child: Container(
@@ -1677,10 +1678,67 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
           color: const Color(0xB0080605),
           borderRadius: BorderRadius.circular(12 * _k),
         ),
-        child: FeltText(lines, gap: 4 * _k),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(child: FeltText(lines, gap: 4 * _k)),
+            if (footer != null) ...[SizedBox(height: 6 * _k), footer],
+          ],
+        ),
       ),
     ),
   );
+
+  /// La carta del linciato, piccola sul panno: l'icona e il nome del ruolo.
+  /// Un tocco apre i dettagli (cosa fa, con chi vince).
+  Widget _verdictRoleChip(Role role) {
+    final text = _t.role(role);
+    final color = Color.lerp(stampColorFor(role), Colors.white, 0.35)!;
+    return Semantics(
+      button: true,
+      label: text.label,
+      child: InkWell(
+        key: const Key('online.verdictRole'),
+        borderRadius: BorderRadius.circular(8 * _k),
+        onTap: () => showNoirDialog<void>(
+          context,
+          builder: (context) => NoirDialog(
+            key: const Key('online.verdictRoleDetails'),
+            lead: RoleIcon(role, size: _deskMode ? 72 : 56),
+            title: text.label,
+            overline: text.motto,
+            body: text.description,
+            closeButton: true,
+          ),
+        ),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 10 * _k, vertical: 4 * _k),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.35),
+            borderRadius: BorderRadius.circular(8 * _k),
+            border: Border.all(color: color.withValues(alpha: 0.8), width: 1.2),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              RoleIcon(role, size: _deskMode ? 30 : 22),
+              SizedBox(width: 6 * _k),
+              Flexible(
+                child: Text(
+                  text.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: _feltLineStyle(color: color, weight: FontWeight.w600).copyWith(fontSize: _deskMode ? 18 : 13),
+                ),
+              ),
+              SizedBox(width: 4 * _k),
+              Icon(Icons.info_outline, size: _deskMode ? 18 : 14, color: color),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   TextStyle _feltTitleStyle(Color color) => AppText.display(_deskMode ? 28 : 17, color: color).copyWith(
     letterSpacing: _deskMode ? 1.2 : 0.6,
@@ -2251,8 +2309,15 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     if (report == null) return _waitingPhaseFor(const Key('online.verdict'));
     final condemned = report.condemned;
     final role = report.role;
-    final headline = lynchHeadline(report, italian: _italian, tag: _tag, roleLabel: (r) => _t.role(r).label);
-    final story = [for (final line in _script('lynch-${report.round}').lynch(report)) line.text].join(' ');
+    // Sul panno una riga tecnica e corta: chi, e che carta aveva. Il racconto
+    // resta al narratore e al giornale, non qui in mezzo.
+    final verdict = condemned == null
+        ? _ts.noLynch
+        : _ts.lynchedLine(_tag(condemned), role == null ? null : _t.role(role).label);
+    final extra = [
+      if (condemned != null && report.personalWin) _t.pack.foolWinsFact.replaceAll('{name}', _tag(condemned)),
+      if (report.bountyHunter case final hunter?) _t.pack.bountyWinsFact.replaceAll('{name}', _tag(hunter)),
+    ];
     final film = _stage == Stage.verdictFilm;
     final into = film ? _client.elapsed : LynchMark.length;
     return (
@@ -2265,16 +2330,19 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         lynched: condemned,
         lynchedAt: into < Duration.zero ? Duration.zero : into,
         // Il verdetto si legge tutto, sul telefono come sul PC: va a capo e,
-        // se serve, il carattere si stringe. Mai i puntini.
-        center: _feltFit([
-          (
-            text: headline,
-            key: const Key('online.verdictHeadline'),
-            style: _feltTitleStyle(role == null ? Saloon.brass : Color.lerp(stampColorFor(role), Colors.white, 0.45)!),
-          ),
-          if (story.isNotEmpty)
-            (text: story, key: const Key('online.verdictStory'), style: _feltLineStyle(style: FontStyle.italic)),
-        ]),
+        // se serve, il carattere si stringe. Mai i puntini. Sotto, la carta
+        // del linciato: un tocco e se ne leggono i dettagli.
+        center: _feltFit(
+          [
+            (
+              text: verdict,
+              key: const Key('online.verdictHeadline'),
+              style: _feltTitleStyle(role == null ? Saloon.brass : Color.lerp(stampColorFor(role), Colors.white, 0.45)!),
+            ),
+            for (final line in extra) (text: line, key: null, style: _feltLineStyle(color: Saloon.brass)),
+          ],
+          footer: role == null || condemned == null ? null : _verdictRoleChip(role),
+        ),
       ),
       strip: ActionStrip(
         status: _verdictTally(),

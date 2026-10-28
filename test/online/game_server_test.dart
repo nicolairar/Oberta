@@ -574,6 +574,48 @@ void main() {
     expect(compareNights, greaterThanOrEqualTo(2), reason: 'serve almeno un Compare vivo per due notti');
   });
 
+  test('dopo una resurrezione, nelle viste del server si conoscono solo il Messia e il risorto', () {
+    var checked = 0;
+    for (var seed = 1; seed <= 80 && checked < 2; seed++) {
+      final server = ServerHarness(table(humans: 12, bots: 0), seed: seed);
+      final random = Random(seed);
+      server.step();
+      final roles = {
+        for (final seat in (((server.state!['snapshot'] as Map)['setup'] as Map)['seats'] as List).cast<Map>())
+          seat['seat'] as String: Role.values.byName(seat['role'] as String),
+      };
+      final messiah = roles.entries.where((e) => e.value == Role.messia).firstOrNull?.key;
+      if (messiah == null) continue;
+      for (var i = 0; i < 800 && server.last['finished'] != true; i++) {
+        final risen = ((server.board['board'] as Map)['lastDawn'] as Map?)?['resurrected'] as String?;
+        if (risen != null && server.stage != Stage.night) {
+          Map<String, Role?> knows(String seat) => {
+                for (final k in PlayerView.fromJson(server.seatView(seat)['view'] as Map<String, Object?>).known)
+                  k.seat.id: k.knowledge.role,
+              };
+          expect(knows(risen)[messiah], Role.messia, reason: 'seed=$seed: il risorto sa chi è il Messia');
+          expect(knows(messiah)[risen], roles[risen], reason: 'seed=$seed: il Messia sa la carta del risorto');
+          final family = roles[risen]!.team == Team.mafia;
+          for (final seat in roles.keys) {
+            if (seat == risen || seat == messiah) continue;
+            expect(knows(seat)[messiah], isNull, reason: 'seed=$seed: $seat non sa del Messia');
+            // La famiglia conosce già i suoi: solo per gli altri il risorto resta coperto.
+            if (!(family && roles[seat]!.team == Team.mafia)) {
+              final public = ((server.board['board'] as Map)['revealed'] as List).any((r) => (r as Map)['seat'] == risen);
+              if (!public) expect(knows(seat)[risen], isNull, reason: 'seed=$seed: $seat non sa del risorto');
+            }
+          }
+          checked++;
+          break;
+        }
+        if (!humansAct(server, random)) server.now = server.last['nextDue'] as int;
+        server.step();
+      }
+      expect(server.leaks, isEmpty);
+    }
+    expect(checked, greaterThan(0), reason: 'nessuna partita con una resurrezione');
+  });
+
   test('il bundle JavaScript del server è stato ricompilato dopo l\'ultima modifica al motore', () {
     expect(bundleFingerprint('.'), engineFingerprint('.'),
         reason: 'lancia tool/edge/build.sh e committa supabase/functions/game/engine.js');
