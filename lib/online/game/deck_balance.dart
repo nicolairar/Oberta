@@ -10,7 +10,16 @@ import 'bot_brain.dart';
 
 /// I ruoli entrati con il primo gruppo di novità (`docs/ruoli.md`, batch 1):
 /// la simulazione li confronta con il mazzo di prima.
-const newRoles = {Role.prostituta, Role.carceriere, Role.pacifista, Role.cupido, Role.presidente, Role.capoSetta, Role.artigliere};
+const newRoles = {
+  Role.prostituta,
+  Role.carceriere,
+  Role.pacifista,
+  Role.cupido,
+  Role.presidente,
+  Role.capoSetta,
+  Role.artigliere,
+  Role.tiratoreScelto,
+};
 
 /// Le vittorie di tante partite giocate dai bot, per un tavolo di una certa
 /// misura: per squadra e, per ruolo, quante volte chi l'aveva ha vinto.
@@ -36,7 +45,9 @@ class BalanceReport {
 /// senza i ruoli in [exclude]. L'Artigliere spara un giorno su due, dal
 /// secondo: col fiuto su qualcuno della Famiglia, se no a caso. Il
 /// Pacifista chiede la tregua una volta, in
-/// un giorno a caso dal secondo, su un nome a caso.
+/// un giorno a caso dal secondo, su un nome a caso. Il Tiratore scelto, di
+/// notte, con il fiuto ([hunch]) mira a uno della Famiglia, sennò come il
+/// bot; di giorno spara una volta su due.
 ///
 /// I bot da soli votano quasi a caso, mentre la Famiglia si conosce: così
 /// la Famiglia stravince qualunque mazzo. [hunch] simula il fiuto di un
@@ -63,7 +74,17 @@ BalanceReport simulateDecks(
       if (engine.phase == GamePhase.night) {
         for (final player in [...engine.alivePlayers]..shuffle(random)) {
           if (!engine.pendingNightPlayers.contains(player)) continue;
-          final intent = brain.decide(engine.viewFor(player.id)) ?? Pass(player.id);
+          final view = engine.viewFor(player.id);
+          if (view.action?.kind == NightTaskKind.aim && random.nextDouble() < hunch) {
+            final family = [
+              for (final other in view.action!.targets)
+                if (engine.setup.roleOf(other).team == Team.mafia) other,
+            ];
+            if (family.isNotEmpty && engine.apply(NightAction(player.id, family[random.nextInt(family.length)].id)).accepted) {
+              continue;
+            }
+          }
+          final intent = brain.decide(view) ?? Pass(player.id);
           if (!engine.apply(intent).accepted) engine.apply(Pass(player.id));
         }
         for (final player in engine.pendingNightPlayers) {
@@ -77,6 +98,8 @@ BalanceReport simulateDecks(
             final others = option.targets;
             if (others.isNotEmpty) engine.apply(Pacify(player.id, others[random.nextInt(others.length)].id));
           }
+          if (option != null && option.canShoot && random.nextBool()) engine.apply(Shoot(player.id));
+          if (engine.phase != GamePhase.day) break;
         }
         for (final player in engine.alivePlayers) {
           final aim = engine.fireTargets(player);
@@ -91,7 +114,7 @@ BalanceReport simulateDecks(
           engine.apply(Fire(player.id, hit.id));
           break;
         }
-        if (engine.phase == GamePhase.ended) continue;
+        if (engine.phase != GamePhase.day) continue;
         for (final player in [...engine.alivePlayers]..shuffle(random)) {
           final view = engine.viewFor(player.id);
           final family = [

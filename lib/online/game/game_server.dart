@@ -432,7 +432,7 @@ class ServerGame {
       lastIntent = envelope.id;
       changed = true;
       if (!_isHuman(envelope.seat)) {
-        if (scripted && envelope.intent['type'] != 'ack' && _apply(envelope).accepted) _settle(now);
+        if (scripted && envelope.intent['type'] != 'ack' && _apply(envelope, now, pacing).accepted) _settle(now);
         continue;
       }
       _heard = true;
@@ -443,7 +443,7 @@ class ServerGame {
         if (envelope.intent['stage'] == window.key) acks.add(envelope.seat);
         continue;
       }
-      final result = _apply(envelope);
+      final result = _apply(envelope, now, pacing);
       if (result.accepted) _settle(now);
       receipts[envelope.seat] = {'token': envelope.token, 'result': result.toJson()};
     }
@@ -625,14 +625,16 @@ class ServerGame {
     final view = payload['view'] as Map<String, Object?>;
     // Fuori dalla sua finestra una mossa non si può fare: il telefono non
     // la mostra nemmeno. La tregua del Pacifista si chiede solo in
-    // discussione: lì resta solo lei.
+    // discussione: lì resta solo lei. Così il colpo del Tiratore scelto.
     final action = (view['action'] as Map?)?.cast<String, Object?>();
-    if (stage == Stage.discussion && action?['canPacify'] == true) {
+    if (stage == Stage.discussion && (action?['canPacify'] == true || action?['canShoot'] == true)) {
       view['action'] = {...action!, 'current': null};
     } else if (!accepting) {
       view['action'] = null;
     } else if (action != null) {
-      action.remove('canPacify');
+      action
+        ..remove('canPacify')
+        ..remove('canShoot');
       view['action'] = action;
     }
     // L'Artigliere spara in discussione, e solo lì.
@@ -688,7 +690,7 @@ class ServerGame {
     return soonest;
   }
 
-  IntentResult _apply(IntentEnvelope envelope) {
+  IntentResult _apply(IntentEnvelope envelope, DateTime now, OnlinePacing pacing) {
     if (finished) return const IntentRejected(IntentError.wrongPhase, 'la partita è finita');
     PlayerIntent intent;
     try {
@@ -700,11 +702,16 @@ class ServerGame {
       return IntentRejected(IntentError.unknownSeat, '${envelope.seat} non può agire per ${intent.seat}');
     }
     // La tregua si chiede in discussione, e solo lì; lo stesso per il colpo
-    // dell'Artigliere.
-    if (intent is Pacify || intent is Fire ? stage != Stage.discussion : !stage.acceptsActions) {
+    // dell'Artigliere e per quello del Tiratore scelto.
+    if (intent is Pacify || intent is Fire || intent is Shoot ? stage != Stage.discussion : !stage.acceptsActions) {
       return IntentRejected(IntentError.wrongPhase, 'adesso non si agisce (${stage.name})');
     }
-    return engine.apply(intent);
+    final result = engine.apply(intent);
+    // Un colpo di giorno può chiudere la partita.
+    if (engine.phase == GamePhase.ended && stage != Stage.ended) {
+      _open(Stage.ended, now, Duration.zero, pacing);
+    }
+    return result;
   }
 
   /// La fase è finita per tutti prima del tempo? La notte e il voto durano

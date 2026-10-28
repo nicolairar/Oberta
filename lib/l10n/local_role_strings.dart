@@ -58,6 +58,14 @@ class LocalRoleStrings {
   String get gunnerWhoAreYou => _t('L\'Artigliere tocchi il proprio volto.', 'The Gunner taps their own face.');
   String get notTheGunner => _t('Solo l\'Artigliere può sparare.', 'Only the Gunner can fire.');
   String get whoToHit => _t('Chi colpisci?', 'Who do you hit?');
+  String get marksman => _t('Colpo del Tiratore', 'Marksman\'s shot');
+  String get whoIsMarksman => _t('Il Tiratore scelto tocchi il proprio volto.', 'The Marksman taps their own face.');
+  String get notMarksman => _t('Solo il Tiratore scelto può sparare.', 'Only the Marksman can shoot.');
+  String aimed(String name, int left) =>
+      _t('Nel mirino: $name. Colpi rimasti: $left.', 'In your sights: $name. Shots left: $left.');
+  String get noAim => _t('Nessuno nel mirino: stanotte scegli chi.', 'Nobody in your sights: pick someone tonight.');
+  String get fire => _t('Fuoco!', 'Fire!');
+  String get carryOn => _t('Avanti', 'Carry on');
   String get cancel => _t('Annulla', 'Cancel');
   String get confirm => _t('Conferma', 'Confirm');
 }

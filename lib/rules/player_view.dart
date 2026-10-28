@@ -73,6 +73,10 @@ class ActionOption {
   /// uno dei [targets]: il server la accetta solo in discussione.
   final bool canPacify;
 
+  /// Di giorno, il Tiratore scelto può sparare a chi ha nel mirino
+  /// ([Shoot]): il server lo accetta solo in discussione.
+  final bool canShoot;
+
   const ActionOption({
     required this.type,
     this.kind,
@@ -82,6 +86,7 @@ class ActionOption {
     this.alternativeTargets,
     this.canReveal = false,
     this.canPacify = false,
+    this.canShoot = false,
   });
 
   Map<String, Object?> toJson() => {
@@ -93,6 +98,7 @@ class ActionOption {
     if (alternativeTargets != null) 'alternativeTargets': seatsOf(alternativeTargets!),
     if (canReveal) 'canReveal': true,
     if (canPacify) 'canPacify': true,
+    if (canShoot) 'canShoot': true,
   };
 
   factory ActionOption.fromJson(Map<String, Object?> json, SeatResolver resolve) => ActionOption(
@@ -104,6 +110,7 @@ class ActionOption {
     alternativeTargets: json['alternativeTargets'] == null ? null : seatsFrom(json['alternativeTargets'], resolve),
     canReveal: json['canReveal'] as bool? ?? false,
     canPacify: json['canPacify'] as bool? ?? false,
+    canShoot: json['canShoot'] as bool? ?? false,
   );
 }
 
@@ -158,6 +165,9 @@ class PublicView {
 
   /// I colpi dell'Artigliere finora: li ha sentiti tutta la città.
   final List<CannonShot> shots;
+  /// L'ultimo colpo di giorno del Tiratore scelto: chi è morto e il suo
+  /// ruolo; chi ha sparato solo se il colpo gli è tornato indietro.
+  final ShotReport? lastShot;
 
   /// Il resoconto completo (tutte le mosse, tutti i ruoli). Solo a partita
   /// finita: fino ad allora `null`, e sul filo non c'è.
@@ -183,6 +193,7 @@ class PublicView {
     this.pacified,
     this.escortLeft,
     this.shots = const [],
+    this.lastShot,
     this.recap,
   });
 
@@ -215,6 +226,7 @@ class PublicView {
     if (pacified != null) 'pacified': seatOf(pacified),
     if (escortLeft != null) 'escortLeft': escortLeft,
     if (shots.isNotEmpty) 'shots': [for (final shot in shots) shotToJson(shot)],
+    if (lastShot != null) 'lastShot': marksmanShotToJson(lastShot!),
     if (recap != null) 'recap': recap!.toJson(),
   };
 
@@ -243,6 +255,7 @@ class PublicView {
     pacified: optionalSeat(json['pacified'], resolve),
     escortLeft: json['escortLeft'] as int?,
     shots: [for (final row in _rows(json['shots'] ?? const [])) shotFromJson(row, resolve)],
+    lastShot: json['lastShot'] == null ? null : marksmanShotFromJson(json['lastShot'] as Map<String, Object?>, resolve),
     recap: json['recap'] == null ? null : GameRecap.fromJson(json['recap'] as Map<String, Object?>, resolve),
   );
 }
@@ -320,6 +333,10 @@ class PlayerView {
   /// sparato: chi può colpire ([Fire]). Vuoto se adesso non spara (il
   /// server lo lascia solo in discussione).
   final List<Player> fireTargets;
+
+  /// Per il Tiratore scelto: chi ha nel mirino (se è vivo). Anche per lui
+  /// [shotsLeft] dice i colpi che gli restano.
+  final Player? aim;
   final PublicView board;
 
   const PlayerView({
@@ -345,6 +362,7 @@ class PlayerView {
     this.doors = const [],
     this.shotsLeft,
     this.fireTargets = const [],
+    this.aim,
     required this.board,
   });
 
@@ -376,6 +394,7 @@ class PlayerView {
       ],
     if (shotsLeft != null) 'shotsLeft': shotsLeft,
     if (fireTargets.isNotEmpty) 'fireTargets': seatsOf(fireTargets),
+    if (aim != null) 'aim': seatOf(aim),
     'board': board.toJson(),
   };
 
@@ -416,6 +435,7 @@ class PlayerView {
       ],
       shotsLeft: json['shotsLeft'] as int?,
       fireTargets: json['fireTargets'] == null ? const [] : seatsFrom(json['fireTargets'], resolve),
+      aim: optionalSeat(json['aim'], resolve),
       board: PublicView.fromJson(json['board'] as Map<String, Object?>, resolve),
     );
   }

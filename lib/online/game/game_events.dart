@@ -10,13 +10,15 @@
 // only; the phones word it in their language.
 //
 // Public kinds: night, dawn, scoop, silenced, lynch, mayor, truce, cannon,
-// left, end.
+// shot (the Marksman's day shot: who fell and their card; the shooter only
+// when the shot came back), left, end.
 // Private kinds: found, watch, bounty, doused, familyTarget, protected,
 // cell (who is in the cell tonight: the prisoner, or a Family member about
 // one of theirs), busy (the Prostitute kept you busy last night), lovers
 // (Cupid's couple: to Cupid, and to the two lovers from the first dawn),
 // converted (you joined the cult), door (to the Cult Leader: a conversion
-// that worked, or a shut door).
+// that worked, or a shut door),
+// aim (the Marksman's target, when it changes at dawn).
 
 /// What the table has already been told, so that a line is written once.
 /// Kept in the server state between steps.
@@ -182,6 +184,19 @@ List<Map<String, Object?>> tableEvents({
     }));
   }
 
+  // The Marksman's day shot: who fell, and the card they had.
+  final lastShot = (view['lastShot'] as Map?)?.cast<String, Object?>();
+  final shotBefore = (((before?['board'] as Map?)?['lastShot']) as Map?)?.cast<String, Object?>();
+  if (lastShot case final shot?
+      when shotBefore == null || shotBefore['round'] != shot['round'] || shotBefore['seat'] != shot['seat']) {
+    events.add(_event('shot', {
+      'name': name(shot['seat'] as String),
+      'role': shot['role'],
+      if (shot['backfired'] == true) 'backfired': true,
+      if (shot['heartbroken'] case final String broken) 'heartbroken': name(broken),
+    }));
+  }
+
   // The verdict: once the verdict film is over, with the tally of the vote.
   final lynch = (view['lastLynch'] as Map?)?.cast<String, Object?>();
   if (lynch != null && (lynch['round'] as int) > marks.lynch && stage != 'verdictFilm') {
@@ -255,6 +270,8 @@ List<Map<String, Object?>> tableEvents({
     if (lovers.isNotEmpty && (then['lovers'] as List?)?.isNotEmpty != true) {
       events.add(_event('lovers', {'names': [for (final s in lovers) name(s)], 'self': lovers.contains(seat)}, to: seat));
     }
+    final aim = now['aim'] as String?;
+    if (aim != null && aim != then['aim']) events.add(_event('aim', {'name': name(aim)}, to: seat));
     final watched = _list(then['watches']).length;
     for (final watch in _list(now['watches']).skip(watched)) {
       events.add(_event('watch', {'name': name(watch['seat'] as String), 'visited': watch['visited'] == true}, to: seat));

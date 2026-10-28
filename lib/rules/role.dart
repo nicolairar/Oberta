@@ -32,6 +32,7 @@ enum Role {
   presidente,
   capoSetta,
   artigliere,
+  tiratoreScelto,
 }
 
 /// Come si gioca: un telefono passato di mano in mano, o un telefono a testa.
@@ -52,7 +53,7 @@ enum RoleCategory {
   /// Dottore, Guardaspalle, Carceriere.
   protector,
 
-  /// Cecchino, Artigliere: un colpo in più per la città.
+  /// Cecchino, Artigliere, Tiratore scelto: un colpo in più per la città.
   extraKill,
 
   /// Reduce, Pregiudicato: niente da fare di notte, ma pesano.
@@ -193,6 +194,10 @@ extension RoleInfo on Role {
     // L'Artigliere: due colpi di giorno, dal secondo giorno, che tutti
     // sentono. Un colpo extra: mai con Cecchino, Piromane o Sicario.
     Role.artigliere => const RoleRule(RoleCategory.extraKill, minPlayers: 10, tier: RoleTier.l3),
+    // Il Tiratore scelto: di notte mira, di giorno spara (due colpi); se
+    // colpisce uno della Città muore lui. Prende il posto del Cecchino ai
+    // tavoli grandi ([rolesForPlayerCount]).
+    Role.tiratoreScelto => const RoleRule(RoleCategory.extraKill, minPlayers: 9, tier: RoleTier.l3),
   };
 
   /// Ostile alla città, un assassino in proprio (Piromane, Sicario): finché

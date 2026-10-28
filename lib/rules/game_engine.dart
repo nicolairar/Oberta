@@ -61,6 +61,9 @@ enum NightTaskKind {
 
   /// Il Capo della setta converte qualcuno.
   convert,
+  /// Il Tiratore scelto mette qualcuno nel mirino: di giorno potrà
+  /// sparargli ([Shoot]). Non è una visita, e passare tiene la mira vecchia.
+  aim,
 }
 
 /// Quello che il Portinaio ha visto dalla sua guardiola: se stanotte
@@ -196,6 +199,32 @@ class LynchReport {
     this.bountyHunter,
     this.truce = false,
     this.heartbroken,
+  });
+}
+
+/// Il colpo di giorno del Tiratore scelto. Tutti sentono lo sparo e vedono
+/// chi è morto, con il suo ruolo; chi ha sparato resta anonimo, tranne
+/// quando il colpo gli torna indietro ([backfired]: era uno della Città, e
+/// il morto è lui). A chi mirava, se è rimasto vivo, non si dice.
+class ShotReport {
+  final int round;
+
+  /// Chi è morto: il bersaglio, o il Tiratore se il colpo è tornato indietro.
+  final Player victim;
+  final Role role;
+  final bool backfired;
+
+  /// L'innamorato del morto, morto di crepacuore sul posto.
+  final Player? heartbroken;
+  final Team? winner;
+
+  const ShotReport({
+    required this.round,
+    required this.victim,
+    required this.role,
+    this.backfired = false,
+    this.heartbroken,
+    this.winner,
   });
 }
 
@@ -340,6 +369,14 @@ class GameEngine {
 
   /// Quanti colpi ha l'Artigliere in tutta la partita.
   static const cannonShots = 2;
+  /// Chi il Tiratore scelto ha nel mirino (resta finché non lo cambia), i
+  /// colpi già sparati e l'ultimo sparo.
+  Player? _aimed;
+  int _shotsFired = 0;
+  ShotReport? _lastShot;
+
+  /// I colpi del Tiratore scelto in tutta la partita.
+  static const marksmanShots = 2;
 
   /// Con qualcuno che blocca al tavolo (Prostituta, Carceriere) l'indagine e
   /// lo scavo rispondono all'alba, e solo se chi li fa non è stato fermato.
@@ -437,6 +474,9 @@ class GameEngine {
     _conversions.addAll(snapshot.conversions);
     _loversTold = snapshot.loversTold;
     _shots.addAll(snapshot.shots);
+    _aimed = snapshot.aimed;
+    _shotsFired = snapshot.shotsFired;
+    _lastShot = snapshot.lastShot;
   }
 
   /// Rigioca una partita dal principio: stesso tavolo, stesso seme, stessi
@@ -501,6 +541,9 @@ class GameEngine {
       conversions: List.unmodifiable(_conversions),
       loversTold: _loversTold,
       shots: List.unmodifiable(_shots),
+      aimed: _aimed,
+      shotsFired: _shotsFired,
+      lastShot: _lastShot,
       log: List.unmodifiable(_log),
     );
   }
@@ -680,6 +723,23 @@ class GameEngine {
             if (player != gunner && setup.roleOf(player) != Role.presidente) player,
         ]
       : const [];
+  /// Chi il Tiratore scelto ha nel mirino, se è ancora vivo.
+  Player? get aimed => _aimed != null && isAlive(_aimed!) ? _aimed : null;
+
+  /// I colpi che restano al Tiratore scelto.
+  int get marksmanShotsLeft => marksmanShots - _shotsFired;
+
+  /// L'ultimo colpo di giorno del Tiratore scelto.
+  ShotReport? get lastShot => _lastShot;
+
+  /// Il Tiratore scelto [player] può sparare adesso: è giorno, ha colpi e
+  /// qualcuno nel mirino.
+  bool canShoot(Player player) =>
+      _phase == GamePhase.day &&
+      isAlive(player) &&
+      setup.roleOf(player) == Role.tiratoreScelto &&
+      marksmanShotsLeft > 0 &&
+      aimed != null;
 
   /// Chi è in cella stanotte (lo sanno il Carceriere, lui, e la Famiglia se
   /// è dei loro). `null` di giorno.
@@ -868,6 +928,12 @@ class GameEngine {
       // Cupido, solo la prima notte, lega due persone (anche se stesso).
       Role.cupido =>
         _round == 1 && _lovers.isEmpty ? NightTask(NightTaskKind.link, [..._alive]) : NightTask(NightTaskKind.decoy, others),
+      // Il Tiratore scelto, finché ha colpi, mette qualcuno nel mirino (mai il
+      // Presidente, che è della Città e lo sanno tutti).
+      Role.tiratoreScelto => NightTask(marksmanShotsLeft > 0 ? NightTaskKind.aim : NightTaskKind.decoy, [
+        for (final player in others)
+          if (setup.roleOf(player) != Role.presidente) player,
+      ]),
       Role.cittadino ||
       Role.cacciatore ||
       Role.reduce ||
@@ -1008,6 +1074,8 @@ class GameEngine {
     final messiah = actorOf(NightTaskKind.resurrect);
     final risen = targetOf(NightTaskKind.resurrect);
     final resurrectionSpent = _targetOf(NightTaskKind.resurrect) != null;
+    // La mira nuova, se il Tiratore non è stato fermato; sennò resta la vecchia.
+    final aimedTonight = targetOf(NightTaskKind.aim);
 
     // La famiglia sceglie una sola porta: solo chi ha votato quella ci va
     // davvero. Il sorteggio dello spareggio si fa qui, una volta sola.
@@ -1142,6 +1210,7 @@ class GameEngine {
       }
     }
 
+    if (aimedTonight != null) _aimed = aimedTonight;
     _lastProtected = _targetOf(NightTaskKind.protect);
     _lastLent = lent;
     _lastJailed = jailed;
@@ -1384,6 +1453,51 @@ class GameEngine {
     return shot;
   }
 
+  /// Il Tiratore scelto spara a chi ha nel mirino, davanti a tutti. Se è uno
+  /// della Città (squadra vera: anche il Pregiudicato) il colpo torna
+  /// indietro: muore lui, e la sua carta si scopre; sennò (Famiglia, Padrino
+  /// compreso, o un neutrale) muore il bersaglio, con il ruolo scoperto come
+  /// un linciato. Di giorno non ci sono protezioni. La mira si consuma.
+  ShotReport shoot(Player marksman) {
+    _require(GamePhase.day);
+    if (!isAlive(marksman) || setup.roleOf(marksman) != Role.tiratoreScelto) {
+      throw ArgumentError.value(marksman.name, 'marksman', 'non è il Tiratore scelto in gioco');
+    }
+    if (marksmanShotsLeft <= 0) throw StateError('il Tiratore scelto ha finito i colpi');
+    final target = aimed;
+    if (target == null) throw StateError('il Tiratore scelto non ha nessuno nel mirino');
+    _log.add(IntentCommand(Shoot(marksman.id)));
+    final backfired = _teamOf(target) == Team.citizens;
+    final victim = backfired ? marksman : target;
+    final role = setup.roleOf(victim);
+    final heartbroken = _heartbreak([victim]).firstOrNull;
+    final dead = [victim, ?heartbroken];
+    _shotsFired++;
+    _aimed = null;
+    _alive.removeWhere(dead.contains);
+    _doused.removeWhere(dead.contains);
+    _dayVotes.removeWhere((voter, voted) => dead.contains(voter) || dead.contains(voted));
+    _facts.add(Fact(subject: victim, team: role.team, role: role, visibility: Visibility.public));
+    final record = _history.removeLast();
+    _history.add(
+      RoundRecord(
+        round: record.round,
+        nightVictims: record.nightVictims,
+        lynched: record.lynched,
+        dayVictims: [...record.dayVictims, ...dead],
+      ),
+    );
+    if (_updateWinner()) _phase = GamePhase.ended;
+    return _lastShot = ShotReport(
+      round: _round,
+      victim: victim,
+      role: role,
+      backfired: backfired,
+      heartbroken: heartbroken,
+      winner: _winner,
+    );
+  }
+
   /// Qualcuno lascia la città a partita in corso (online: se n'è andato e
   /// non è tornato in tempo). Esce come un morto della notte: la sua carta
   /// resta coperta (la scopre solo il resoconto a fine partita), e si
@@ -1555,7 +1669,7 @@ class GameEngine {
   }
 
   IntentResult _applyNight(Player actor, PlayerIntent intent) {
-    if (intent is DayVote || intent is RevealMayor || intent is Pacify || intent is Fire) {
+    if (intent is DayVote || intent is RevealMayor || intent is Pacify || intent is Fire || intent is Shoot) {
       return const IntentRejected(IntentError.wrongPhase, 'di notte la piazza non vota');
     }
     if (actor == jailedTonight) {
@@ -1625,7 +1739,7 @@ class GameEngine {
     switch (intent) {
       case NightAction() || MafiaVote() || Link():
         return const IntentRejected(IntentError.wrongPhase, 'di giorno non si fanno mosse notturne');
-      case DayVote() || RevealMayor() when truceToday:
+      case DayVote() || RevealMayor() || Shoot() when truceToday:
         return const IntentRejected(IntentError.wrongPhase, 'oggi c\'è la tregua: non si vota');
       case DayVote(target: final seat):
         target = _seat(seat);
@@ -1667,6 +1781,16 @@ class GameEngine {
         }
         fire(actor, hit);
         return const IntentAccepted();
+      case Shoot():
+        if (setup.roleOf(actor) != Role.tiratoreScelto) {
+          return IntentRejected(IntentError.notYourAction, '${actor.id} non è il Tiratore scelto');
+        }
+        if (marksmanShotsLeft <= 0) return const IntentRejected(IntentError.alreadyActed, 'i colpi sono finiti');
+        if (aimed == null) {
+          return IntentRejected(IntentError.targetNotAllowed, '${actor.id} non ha nessuno nel mirino');
+        }
+        shoot(actor);
+        return const IntentAccepted();
     }
     // Il voto si può cambiare: conta l'ultimo, nell'ordine dell'ultimo dato.
     _dayVotes.remove(actor);
@@ -1701,6 +1825,7 @@ class GameEngine {
     pacifist: pacifist,
     pacified: pacified,
     shots: shots,
+    lastShot: _lastShot,
     recap: recap,
   );
 
@@ -1781,7 +1906,12 @@ class GameEngine {
                 if (!conversion.converted) (round: conversion.round, target: conversion.target),
             ]
           : const [],
-      shotsLeft: role == Role.artigliere ? shotsLeft : null,
+      aim: role == Role.tiratoreScelto ? aimed : null,
+      shotsLeft: role == Role.artigliere
+          ? shotsLeft
+          : role == Role.tiratoreScelto
+          ? marksmanShotsLeft
+          : null,
       fireTargets: fireTargets(viewer),
       board: publicView(),
     );
@@ -1818,6 +1948,7 @@ class GameEngine {
           current: _dayVotes[viewer],
           canReveal: setup.roleOf(viewer) == Role.sindaco && !mayorRevealed && !truceToday,
           canPacify: setup.roleOf(viewer) == Role.pacifista && !truceSpent,
+          canShoot: canShoot(viewer),
         );
       case GamePhase.ended:
         return null;
@@ -1841,7 +1972,11 @@ extension NightTaskVisits on NightTaskKind {
   /// La mossa porta qualcuno alla porta del bersaglio: è quello che vede il
   /// Portinaio. Il compito di copertura, il fiammifero e lo scavo no.
   bool get visits => switch (this) {
-    NightTaskKind.decoy || NightTaskKind.ignite || NightTaskKind.dig || NightTaskKind.resurrect => false,
+    NightTaskKind.decoy ||
+    NightTaskKind.ignite ||
+    NightTaskKind.dig ||
+    NightTaskKind.resurrect ||
+    NightTaskKind.aim => false,
     _ => true,
   };
 }

@@ -27,6 +27,7 @@ sealed class PlayerIntent {
       'pacify' => Pacify(seat, json['target'] as String),
       'fire' => Fire(seat, json['target'] as String),
       'link' => Link(seat, json['target'] as String, json['second'] as String),
+      'shoot' => Shoot(seat),
       final type => throw FormatException('intenzione sconosciuta: $type'),
     };
   }
@@ -127,6 +128,16 @@ class Fire extends PlayerIntent {
 
   @override
   Map<String, Object?> toJson() => {'type': 'fire', 'seat': seat, 'target': target};
+}
+
+/// Di giorno, in discussione, il Tiratore scelto spara a chi ha nel mirino
+/// (lo ha scelto di notte): se è uno della Città il colpo torna indietro e
+/// muore lui. Due colpi per partita.
+class Shoot extends PlayerIntent {
+  const Shoot(super.seat);
+
+  @override
+  Map<String, Object?> toJson() => {'type': 'shoot', 'seat': seat};
 }
 
 /// Perché un'intenzione è stata rifiutata.

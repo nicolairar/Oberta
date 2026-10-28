@@ -169,6 +169,12 @@ class NarrationPack {
   /// Il colpo dell'Artigliere, di giorno: il boato, e chi ha colpito ({name}).
   final List<String> cannonShots;
   final String cannonFact;
+  /// Il colpo di giorno del Tiratore scelto: chi cade ({name}), e il colpo
+  /// che torna indietro quando mirava a uno della Città.
+  final List<String> marksmanShots;
+  final String marksmanShotFact;
+  final List<String> backfires;
+  final String backfireFact;
 
   final List<String> citizensWin;
   final String citizensWinFact;
@@ -271,6 +277,10 @@ class NarrationPack {
     required this.sectWinsFact,
     required this.cannonShots,
     required this.cannonFact,
+    required this.marksmanShots,
+    required this.marksmanShotFact,
+    required this.backfires,
+    required this.backfireFact,
     required this.citizensWin,
     required this.citizensWinFact,
     required this.mafiaWins,

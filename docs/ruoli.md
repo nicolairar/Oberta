@@ -18,7 +18,7 @@ Legenda livelli: **L0** nessun potere (o malus), **L1** base, **L2** medio, **L3
 - **Presidente:** ammesso **sia in classificata sia tra amici** (nessuna differenza); tutti sanno chi è dall'inizio; la scorta lo salva dalle prime **due notti di attacco** (più attaccanti nella stessa notte contano come un attacco solo), con un'animazione dedicata; la terza notte in cui lo attaccano muore; se muore il Presidente la Città perde. *Nel codice:* pubblico dalla prima carta, non si vota e il Cecchino non gli spara; `AttackOutcome.escorted` con il film della scorta (`DeathAct.escort`); vale −2 punti, da 10 giocatori, mai con Piromane, Sicario o Capo della setta. Anche in locale, uguale (è tutto pubblico).
 - **Capo della setta:** neutrale; ogni notte converte una persona; vince quando tutti i vivi sono della setta; se muore la setta si scioglie e non succede altro; il Commissario **non** vede i convertiti; solo il Capo vede l'elenco della setta: i convertiti **non** sanno chi è il Capo né chi altro è nella setta (sanno solo di essere stati convertiti e che ora vincono con la setta). *Nel codice:* compito `convert`; la conversione non passa su chi è in cella o protetto (Dottore, Strozzino), né sulla Famiglia, sul Piromane, sul Sicario o sul Presidente («porta chiusa», la vede solo il Capo), né su chi muore quella notte. Niente chat della setta (i convertiti non si conoscono). In locale il convertito legge «Hai visto la luce» al suo turno della notte dopo, il Capo l'elenco e le porte chiuse.
 - **Artigliere:** Città, L3, da 10 giocatori, colpo extra (mai con Cecchino, Tiratore, Piromane, Sicario). *Nel codice:* `Fire` di giorno, solo in discussione, dal secondo giorno, due colpi in tutto, uno al giorno; il colpito muore subito (niente Dottore, Guardaspalle, Reduce: di giorno non ci sono protezioni) e la sua carta si gira come quella di un linciato; al primo colpo anche l'Artigliere diventa pubblico. Non spara al Presidente (è della Città, come il Cecchino: la scorta para solo gli attacchi di notte). La tregua del Pacifista e il silenzio del Sarto non lo fermano; l'innamorato del colpito muore di crepacuore; la taglia colpita scade. Se il colpo chiude la partita, finisce lì. Online: bottone «Fuoco!» in discussione, riga in chat (`cannon`), boato; in locale: bottone «Fuoco dell'Artigliere» in discussione accanto alla tregua (l'Artigliere tocca il suo volto, poi il bersaglio), poi il copione del boato. Build 66.
-- **Cecchino** resta per i tavoli piccoli; **Tiratore scelto** per i tavoli grandi (meccanica in attesa della conferma finale: mira di notte, il giorno dopo spara o cambia mira, 2 colpi, muore se spara a un cittadino della Città, i neutrali non lo uccidono).
+- **Cecchino** resta per i tavoli piccoli; **Tiratore scelto** per i tavoli grandi: mira di notte, il giorno dopo spara o cambia mira, 2 colpi, muore se spara a un cittadino della Città, i neutrali non lo uccidono. *Nel codice* (3.6): enum `tiratoreScelto`, da 9 giocatori; dove può entrare lui il Cecchino non esce (torna solo se al tavolo c'è un telefono troppo vecchio per il Tiratore).
 - **Classificata e stanze degli amici** usano lo stesso roster e le stesse regole dei livelli.
 - **Gioco in locale:** ogni ruolo nuovo deve funzionare anche sul telefono unico (`PlayMode.sharedPhone`). Dove un meccanismo non può (una chat privata), si adatta e si scrive qui (vedi 3.1, 3.2, 3.10).
 
@@ -52,6 +52,7 @@ Legenda livelli: **L0** nessun potere (o malus), **L1** base, **L2** medio, **L3
 | La Prostituta | `prostituta` | Famiglia | Blocca la mossa notturna di una persona; non vota l'agguato (lo vota se resta l'unica che può) | 9 | L2 | Anche in locale. |
 | Il Carceriere | `carceriere` | Città | Chiude in cella: blocca e protegge (anche dal fuoco); chat anonima | 8 | L3 | In locale: domanda e risposta scritte. |
 | Il Pacifista | `pacifista` | Città | Una volta, di giorno: ruolo esatto di uno a tutti, niente voto | 9 | L2 | Anche in locale. |
+| Il Tiratore scelto | `tiratoreScelto` | Città | Di notte mira; di giorno spara (2 colpi); se colpisce la Città muore lui | 9 | L3 | Anche in locale. Prende il posto del Cecchino da 9. |
 
 **Altre incoerenze trovate**
 - `ruoli-analisi.md` dice "cittadini speciali al massimo il 40%", il codice (`maxSpecialCitizensFor`) usa due terzi. Va deciso quale vale.
@@ -104,7 +105,7 @@ Nel codice (`lib/rules/role_assignment.dart`, campo `tier` in `RoleRule`, punti 
 | 5 | Dottore |
 | 7 | Sarto, Compare, Cecchino |
 | 8 | Cronista, Becchino, Fesso, **Carceriere** |
-| 9 | Guardaspalle, Reduce, Sindaco, Portinaio, Cacciatore, **Prostituta, Pacifista** (poi Tiratore, Cupido) |
+| 9 | Guardaspalle, Reduce, Sindaco, Portinaio, Cacciatore, **Prostituta, Pacifista, Tiratore scelto, Cupido** (da qui il Cecchino non esce più) |
 | 10 | Padrino, Pregiudicato, Messia, Strozzino (poi Artigliere, Presidente) |
 | 11 | Piromane (poi Capo della setta) |
 | 12 | Sicario |
@@ -132,6 +133,8 @@ Decisione del proprietario: **stesso roster, stesse regole dei livelli** (2.2) i
 | 12 | 24% | 56% | 20% |
 
 Senza i ruoli nuovi i numeri cambiano di 1–3 punti al massimo (stessa tabella: 4: 50/50, 6: 76/24, 7: 26/74, 8: 39/61, 10: 58/35/7, 11: 51/24/25, 12: 24/54/22), tranne a 11 dove il Capo della setta sposta 4–5 punti dalla Città ai neutrali: i ruoli nuovi non sbilanciano. Nella simulazione l'Artigliere spara un giorno su due dal secondo, col fiuto su uno della Famiglia, se no a caso.
+
+**Con il Tiratore scelto** (dai 9 al posto del Cecchino; 1500 partite per tavolo, con tutti i ruoli nuovi, Capo della setta e Artigliere compresi; il Tiratore di notte mira con lo stesso fiuto a uno della Famiglia, di giorno spara una volta su due): 4: 51/49, 5: 55/45, 6: 76/24, 7: 25/75, 8: 40/60, 9: 50/41/9, 10: 60/34/6, 11: 48/24/28, 12: 23/55/22. Senza nessun ruolo nuovo: 9: 45/43/11, 10: 60/33/7, 11: 52/23/25, 12: 24/57/19. Il Tiratore vince il 57% delle partite in cui c'è (l'Artigliere il 62%, il Cecchino, rimasto ai tavoli da 7 e 8, il 32%): a 9 la Città sale di qualche punto, senza passare il 60%.
 
 **Prima della taratura** (regole del documento originale, stesso fiuto): 5: 67/33, 6: 80/20, 7: 26/74, 10: 61/33, **11: 17/67/16**. La taratura ha sistemato 5 (Città 67% → 56%), 8 (Famiglia 62% → 60%, Carceriere e due L3 da 8), 10 e soprattutto 11 (Famiglia 67% → 22%, due della Famiglia invece di tre).
 
@@ -189,7 +192,10 @@ Differenza con il Cecchino: il Cecchino spara una volta, di notte, in segreto. L
 - **Chi vede cosa:** tutti: chi ha sparato (dal primo colpo), chi è morto e il suo ruolo (come un linciato). Lui: colpi rimasti.
 - **Testi:** «Fuoco!» (bottone) · «Un boato in piazza: l'Artigliere ha colpito Tizio.» · «Ti resta un colpo.» · motto: «Io non sussurro. Io tuono.»
 
-### 3.6 Il Tiratore scelto — `tiratore`
+### 3.6 Il Tiratore scelto — `tiratoreScelto`
+> Meccanica confermata dal proprietario. *Nel codice:* compito notturno `aim` (non è una visita; passare tiene la mira; il Presidente non si mira), intenzione `Shoot` di giorno (il server la accetta solo in discussione, come la tregua), `ShotReport` pubblico in `PublicView.lastShot` (il morto e il suo ruolo; il bersaglio salvato da un colpo tornato indietro non si dice), mira e colpi solo nella vista del Tiratore (`PlayerView.aim`, `shotsLeft`). Un colpo al giorno (la mira si consuma). Nel giorno della tregua non si spara. Il morto finisce tra i `dayVictims` del giro; il colpo può chiudere la partita. Build 66.
+> *Telefono unico:* in discussione il bottone «Colpo del Tiratore» finché restano colpi (resta anche se il Tiratore è morto, sennò il tavolo lo saprebbe); il Tiratore tocca il proprio volto, vede chi ha nel mirino, «Fuoco!»; poi il narratore legge chi è caduto e la sua carta. Al suo turno di notte legge «Nel mirino: Tizio».
+
 - **Squadra:** Città · **Liv.:** L3 · **Da:** 9 · **Categoria:** colpo extra.
 - **Notte:** mette nel mirino una persona (non conta come visita per il Portinaio). Il mirino resta finché non lo cambia.
 - **Giorno, in discussione:** spara al bersaglio nel mirino, oppure non fa niente (lo cambierà la notte). 2 colpi in tutta la partita.
@@ -198,7 +204,7 @@ Differenza con il Cecchino: il Cecchino spara una volta, di notte, in segreto. L
 - **Interazioni:** si sposa con il Commissario (indaga e spara). In cella o bloccato dalla Prostituta: quella notte non cambia mira, ma il giorno dopo può sparare alla mira vecchia. Colpo di giorno: niente protezioni.
 - **Chi vede cosa:** lui: mira attuale, colpi rimasti. Tutti: «Un colpo dal campanile» e il morto col suo ruolo.
 - **Testi:** «Chi tieni nel mirino?» · «Spari a Tizio?» · «Il colpo ti torna indietro: era uno della Città.» · motto: «Un respiro, un colpo, un nome.»
-- **Nota:** decisione del proprietario: il Cecchino resta per i tavoli piccoli, il Tiratore per quelli grandi. Meccanica qui sopra in attesa della conferma finale.
+- **Nota:** decisione del proprietario: il Cecchino resta per i tavoli piccoli, il Tiratore per quelli grandi.
 
 ### 3.7 Cupido — `cupido`
 > Decisione del proprietario (sezione 0): gli innamorati **vincono solo se sono vivi tutti e due a fine partita**, chiunque vinca (e non vincono con la loro squadra se uno dei due è morto); si conoscono e hanno la loro chat. *Nel codice:* intenzione `Link` (due nomi, una volta, non si cambia), crepacuore di notte (`DawnReport.heartbroken`, carta coperta) e sul patibolo (`LynchReport.heartbroken`, `RoundRecord.dayVictims`); il Messia che riporta un innamorato spezza il legame, e così chi lascia la città. Chat `lovers` online di notte, per i due vivi e fuori di cella (migrazione `20261122090000_lovers_chat.sql`).
@@ -287,7 +293,6 @@ Decise il 28 ottobre (sezione 0): Prostituta della Famiglia; cella che ferma il 
 Restano:
 
 1. **Tavoli da 6 e 7** (simulazione, 2.5): a 6 la Città vince il 75%, a 7 la Famiglia il 75%, e nessun bilancio di livelli lo cambia. Strade possibili: (a) accettarlo (i tavoli veri hanno più fiuto dei bot: va visto con le partite vere); (b) a 6 e 7 un solo mafioso più un neutrale che uccide (in simulazione: a 6 Città 28%, Famiglia 28%, Sicario 44%; a 7 con Commissario e Dottore Città 42%, Famiglia 16%, Sicario 42%: nessuna squadra sopra il 60%, ma il Sicario da solo vince troppo); (c) a 7 la Famiglia da 2 con un voto della piazza in più al primo giorno (da progettare).
-2. **Tiratore scelto:** conferma della meccanica (sezione 0).
 3. **Telefono unico:** le risposte all'alba arrivano al turno della notte dopo (vedi 3.1): il Commissario con un Carceriere o una Prostituta al tavolo gioca la piazza senza la risposta della notte. Va bene, o si preferisce un passaggio di telefono privato all'alba?
 4. **Indagini all'alba:** con un Carceriere o una Prostituta nel mazzo il Commissario e il Becchino ricevono la risposta all'alba invece che subito (sennò il blocco non bloccherebbe niente). Va bene così, o la risposta resta immediata e il blocco ferma solo le mosse che si risolvono all'alba?
 5. **Pacifista:** la tregua si chiede solo in discussione (non durante il voto). Va bene?

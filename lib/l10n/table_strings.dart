@@ -80,6 +80,18 @@ class TableStrings {
       _t('Tutti sapranno chi sei, e da oggi il tuo voto vale doppio.', 'Everyone will know who you are, and your vote counts twice from today.');
   String silenced([Gender gender = Gender.unknown]) => _t(agree(gender, m: 'zittito', f: 'zittita'), 'silenced');
 
+  // ---- The Marksman's day shot.
+  String shootTitle(String name) => _t('Spari a $name?', 'Shoot $name?');
+  String shootBody(int left) => _t(
+    'Lo sentono tutti, ma nessuno sa chi ha sparato. Se è della Città, il colpo torna indietro e muori tu. ${left == 1 ? 'È il tuo ultimo colpo.' : 'Ti restano $left colpi.'}',
+    'Everyone hears it, nobody knows who fired. If they are town, the shot comes back and you die. ${left == 1 ? 'It is your last shot.' : 'You have $left shots left.'}',
+  );
+  String shotLine(String name, String role, {required bool backfired}) => backfired
+      ? _t('Il colpo è tornato indietro: $name era $role.', 'The shot came back: $name was the $role.')
+      : _t('Un colpo dal campanile: $name era $role.', 'A shot from the bell tower: $name was the $role.');
+  String aimLine(String name, int left) =>
+      _t('Nel mirino: $name. Colpi: $left.', 'In your sights: $name. Shots: $left.');
+
   // ---- The Pacifist's truce.
   String get truce => _t('Tregua', 'Truce');
   String get truceHint => _t('Tocca chi svelare a tutti.', 'Tap who to reveal to everyone.');

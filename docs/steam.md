@@ -379,7 +379,7 @@ Da creare (catalogo in `lib/online/game/progress.dart`, `achievements`):
   `role_medico`, `role_cecchino`, `role_giornalista`, `role_becchino`, `role_guardaspalle`,
   `role_reduce`, `role_pregiudicato`, `role_messia`, `role_sindaco`, `role_portinaio`, `role_fesso`,
   `role_piromane`, `role_cacciatore`, `role_strozzino`, `role_sicario`, `role_prostituta`, `role_carceriere`,
-  `role_pacifista`, `role_cupido`, `role_presidente`, `role_artigliere` (un ruolo in camelCase diventa snake_case: `capoSetta` → `role_capo_setta`).
+  `role_pacifista`, `role_cupido`, `role_presidente`, `role_artigliere`, `role_tiratore_scelto` (un ruolo in camelCase diventa snake_case: `capoSetta` → `role_capo_setta`).
 
 **Regola**: ogni ruolo nuovo (`enum Role`) porta da solo il suo traguardo `role_<nome>` nel gioco; su
 Steamworks va creato a mano con quell'API Name (e lo stesso su Game Center e Play Games, vedi

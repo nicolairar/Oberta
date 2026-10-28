@@ -160,6 +160,24 @@ CannonShot shotFromJson(Map<String, Object?> json, SeatResolver resolve) => Cann
       heartbroken: optionalSeat(json['heartbroken'], resolve),
     );
 
+Map<String, Object?> marksmanShotToJson(ShotReport shot) => {
+      'round': shot.round,
+      'seat': shot.victim.id,
+      'role': shot.role.name,
+      if (shot.backfired) 'backfired': true,
+      if (shot.heartbroken != null) 'heartbroken': seatOf(shot.heartbroken),
+      'winner': shot.winner?.name,
+    };
+
+ShotReport marksmanShotFromJson(Map<String, Object?> json, SeatResolver resolve) => ShotReport(
+      round: json['round'] as int,
+      victim: resolve(json['seat'] as String),
+      role: Role.values.byName(json['role'] as String),
+      backfired: json['backfired'] as bool? ?? false,
+      heartbroken: optionalSeat(json['heartbroken'], resolve),
+      winner: optionalEnum(Team.values, json['winner']),
+    );
+
 Map<String, Object?> roundToJson(RoundRecord record) => {
       'round': record.round,
       'nightVictims': seatsOf(record.nightVictims),

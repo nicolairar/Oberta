@@ -149,6 +149,11 @@ const englishPack = NarrationPack(
       '“I do not whisper. I thunder.”',
       'Two shots, one a day, from the second day: during the discussion whoever you hit dies on the spot. From your first shot everyone knows who you are. You win with the town.',
     ),
+    Role.tiratoreScelto: RoleText(
+      'Marksman',
+      '“One breath, one shot, one name.”',
+      'By night you draw a bead on someone; by day you may shoot them. Two shots. If they are town, the shot comes back and you die.',
+    ),
     Role.pacifista: RoleText(
       'Pacifist',
       '“Blood calls for blood. I call a truce.”',
@@ -505,6 +510,16 @@ const englishPack = NarrationPack(
     'Fire! The ground shakes, the cups jump on the café tables. Then, silence.',
   ],
   cannonFact: 'A roar in the square: the Gunner hit {name}.',
+  marksmanShots: [
+    'A shot from the bell tower. {name} drops in the middle of the square.',
+    'One sharp crack, from far away. {name} never finishes the sentence.',
+  ],
+  marksmanShotFact: 'A shot from the bell tower: {name} is out of the game.',
+  backfires: [
+    'The shot echoes, but the one who falls is the one who pulled the trigger.',
+    'The rifle jams and bursts. Only silence comes down from the bell tower.',
+  ],
+  backfireFact: 'The shot came back: the Marksman was aiming at the town, and dies instead.',
   citizensWin: [
     '{city} is free. Starting tomorrow, people sleep with the windows open. Roll credits.',
     'On the street, people look each other in the eye again. On screen: “The End.”',
@@ -568,6 +583,7 @@ const englishPack = NarrationPack(
     NightTaskKind.link: 'Who falls in love?',
     NightTaskKind.convert: 'Who do you call to the light tonight?',
     NightTaskKind.block: 'Who do you sing for tonight?',
+    NightTaskKind.aim: 'Who do you keep in your sights?',
   },
   taskHints: {
     NightTaskKind.kill: 'Tap a name: that\'s your vote for who dies. The Family\'s majority decides.',
@@ -588,6 +604,7 @@ const englishPack = NarrationPack(
     NightTaskKind.link: 'Tap two names, yours too: from tonight they love each other. Once only.',
     NightTaskKind.convert: 'Tap a name: if the door opens, from tomorrow they are in the cult.',
     NightTaskKind.block: 'Tap a name: their move tonight is lost. Never the same one two nights running.',
+    NightTaskKind.aim: 'Tap a name: tomorrow you may shoot them. If they are town, you die.',
     NightTaskKind.decoy: 'No move tonight: tap any name, nothing happens. It keeps your role hidden.',
   },
   decoyPrompts: [

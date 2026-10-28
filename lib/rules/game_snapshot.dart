@@ -94,6 +94,10 @@ class GameSnapshot {
   final List<({int round, Player target, bool converted})> conversions;
   /// I colpi dell'Artigliere.
   final List<CannonShot> shots;
+  /// Chi il Tiratore scelto ha nel mirino, i colpi sparati e l'ultimo sparo.
+  final Player? aimed;
+  final int shotsFired;
+  final ShotReport? lastShot;
   final List<GameCommand> log;
 
   const GameSnapshot({
@@ -137,6 +141,9 @@ class GameSnapshot {
     this.sect = const {},
     this.conversions = const [],
     this.shots = const [],
+    this.aimed,
+    this.shotsFired = 0,
+    this.lastShot,
     required this.log,
   });
 
@@ -201,6 +208,9 @@ class GameSnapshot {
         for (final c in conversions) {'round': c.round, 'seat': c.target.id, 'converted': c.converted},
       ],
     if (shots.isNotEmpty) 'shots': [for (final shot in shots) shotToJson(shot)],
+    if (aimed != null) 'aimed': seatOf(aimed),
+    if (shotsFired > 0) 'shotsFired': shotsFired,
+    if (lastShot != null) 'lastShot': marksmanShotToJson(lastShot!),
     if (findings.isNotEmpty)
       'findings': [
         for (final finding in findings)
@@ -288,6 +298,9 @@ class GameSnapshot {
         for (final row in (json['shots'] as List<Object?>? ?? const []).cast<Map<String, Object?>>())
           shotFromJson(row, seat),
       ],
+      aimed: optionalSeat(json['aimed'], seat),
+      shotsFired: json['shotsFired'] as int? ?? 0,
+      lastShot: object('lastShot') == null ? null : marksmanShotFromJson(object('lastShot')!, seat),
       findings: [
         for (final row in (json['findings'] as List<Object?>? ?? const []).cast<Map<String, Object?>>())
           (

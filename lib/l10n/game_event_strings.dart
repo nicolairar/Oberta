@@ -115,6 +115,18 @@ class GameEventStrings {
               'A roar in the square: $name, the Gunner, hit ${d['target']}, who was the ${_role(d['role'])}.',
             ) +
             broken;
+      case 'shot':
+        final brokenShot = d['heartbroken'] == null
+            ? ''
+            : _t(' Il cuore di ${d['heartbroken']} si è spezzato.', ' ${d['heartbroken']} died of a broken heart.');
+        return (d['backfired'] == true
+                ? _t('Un colpo dal campanile torna indietro: $name, ${_role(d['role'])}, mirava a uno della Città.',
+                    'A shot from the bell tower comes back: $name, the ${_role(d['role'])}, was aiming at the town.')
+                : _t('Un colpo dal campanile: $name è a terra. Era ${_role(d['role'])}.',
+                    'A shot from the bell tower: $name is down. The ${_role(d['role'])}.')) +
+            brokenShot;
+      case 'aim':
+        return _t('Hai $name nel mirino.', 'You have $name in your sights.');
       case 'cell':
         return d['self'] == true
             ? _t('Sei in cella. Stanotte non esci.', 'You are in a cell. You are not going out tonight.')

@@ -244,6 +244,33 @@ class NarratorScript {
         ],
       ];
 
+  /// Il colpo di giorno del Tiratore scelto: chi cade e la sua carta; se il
+  /// colpo è tornato indietro, il morto è il Tiratore.
+  List<ScriptLine> marksmanShot(ShotReport report) {
+    final victim = report.victim;
+    final role = report.role;
+    return [
+      report.backfired
+          ? _story(_picker.pick('shot.backfire', pack.backfires))
+          : _story(_picker.pick('shot.hit', pack.marksmanShots), name: victim.name),
+      report.backfired ? _fact(pack.backfireFact) : _fact(pack.marksmanShotFact, name: victim.name),
+      _line([
+        ..._parts(pack.cardTurns, name: victim.name, role: pack.role(role).label),
+        VoicePart.spoken(
+          ' ${switch (role.team) {
+            Team.mafia => pack.wasMafia,
+            Team.citizens => pack.wasCitizen,
+            Team.neutral => pack.wasNeutral,
+          }}',
+        ),
+      ], fact: true),
+      if (report.heartbroken case final broken?) ...[
+        _story(_picker.pick('heartbreak', pack.heartbreaks), name: broken.name),
+        _fact(pack.heartbreakFact, name: broken.name),
+      ],
+    ];
+  }
+
   /// Con [assassin] la città l'ha ripulita il Sicario, non il Piromane; con
   /// [bountyHunter] ha chiuso la partita una taglia pagata in piazza.
   ///

@@ -73,6 +73,7 @@ class RecapStrings {
     NightTaskKind.block => _t('ha passato la notte con $target.', 'spent the night with $target.'),
     NightTaskKind.link => _t('ha fatto innamorare $target.', 'made $target fall in love.'),
     NightTaskKind.convert => _t('ha chiamato alla setta $target.', 'called $target to the cult.'),
+    NightTaskKind.aim => _t('ha messo nel mirino $target.', 'drew a bead on $target.'),
     NightTaskKind.watch => _t(
       'ha sorvegliato la porta di $target: ${visited == true ? 'qualcuno è passato' : 'nessuno è passato'}.',
       'watched $target\'s door: ${visited == true ? 'someone came by' : 'nobody came by'}.',

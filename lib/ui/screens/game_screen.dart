@@ -82,7 +82,7 @@ enum _Stage { script, handoff, task, taskDone, crimeIntro, crime, toNarrator, da
 
 /// I poteri di giorno, davanti a tutti: la tregua del Pacifista, il colpo
 /// dell'Artigliere.
-enum _Power { truce, cannon }
+enum _Power { truce, cannon, marksman }
 
 class _GameScreenState extends State<GameScreen> {
   static const _mafiaRed = Color(0xFFE5606A);
@@ -119,6 +119,9 @@ class _GameScreenState extends State<GameScreen> {
   /// La tregua del Pacifista o il colpo dell'Artigliere: chi lo usa
   /// (verificato), poi su chi.
   _Power _power = _Power.truce;
+
+  /// Il colpo del Tiratore scelto, appena sparato.
+  ShotReport? _marksmanShot;
   Player? _powerUser;
 
   /// L'ultimo colpo dell'Artigliere, e il copione da leggere.
@@ -962,6 +965,9 @@ class _GameScreenState extends State<GameScreen> {
           _lr.inLoveWith(actor == a ? b.name : a.name)
         else
           _lr.linked(a.name, b.name),
+      // Il Tiratore scelto: chi ha nel mirino (se passa, resta quello).
+      if (widget.setup.roleOf(actor) == Role.tiratoreScelto && _engine.marksmanShotsLeft > 0)
+        if (_engine.aimed case final aim?) _lr.aimed(_tag(aim), _engine.marksmanShotsLeft),
     ];
   }
 
@@ -1032,6 +1038,127 @@ class _GameScreenState extends State<GameScreen> {
   /// resta anche se è morto: sennò il tavolo lo saprebbe).
   bool get _hasTruce => widget.setup.roles.values.contains(Role.pacifista) && !_engine.truceSpent;
 
+  /// Il Tiratore scelto c'è nel mazzo e ha ancora colpi (il bottone resta
+  /// anche se è morto). Con la tregua di oggi non si spara.
+  bool get _hasShot =>
+      widget.setup.roles.values.contains(Role.tiratoreScelto) && _engine.marksmanShotsLeft > 0 && !_engine.truceToday;
+
+  /// Il colpo del Tiratore scelto, davanti a tutti: tocca il suo volto, vede
+  /// chi ha nel mirino, spara. Poi il tavolo legge chi è caduto.
+  Widget _marksmanView() {
+    final user = _powerUser;
+    final shot = _marksmanShot;
+    final selected = _selected;
+    if (shot != null) {
+      final lines = _script.marksmanShot(shot);
+      return _tablePage(
+        key: const Key('game.marksmanShot'),
+        voice: lines,
+        table: _publicTable(
+          center: LocalFelt([
+            for (final line in lines.take(2))
+              (text: line.text, key: null, style: LocalFelt.lineStyle(context, color: Saloon.brass, weight: FontWeight.w700)),
+          ]),
+        ),
+        strip: ActionStrip(
+          status: lines.length > 2 ? lines[2].text : lines.last.text,
+          tone: StripTone.done,
+          actions: [
+            NoirAction(
+              key: const Key('game.shotDone'),
+              label: _lr.carryOn,
+              style: NoirButtonStyle.primary,
+              feel: Press.confirm,
+              onPressed: () => _advance(() {
+                final winner = _engine.winner;
+                winner != null ? _enterEnd(winner) : _stage = _Stage.day;
+              }),
+            ),
+          ],
+        ),
+      );
+    }
+    final aim = user == null ? null : _engine.aimed;
+    final status = user == null
+        ? _lr.whoIsMarksman
+        : aim == null
+        ? _lr.noAim
+        : _lr.aimed(_tag(aim), _engine.marksmanShotsLeft);
+    return _tablePage(
+      key: const Key('game.power'),
+      table: _publicTable(
+        holder: user,
+        selected: user == null ? selected : aim,
+        selectable: user == null ? {..._engine.alivePlayers} : const {},
+        onTap: user == null ? (player) => setState(() => _selected = player) : null,
+        center: LocalFelt([
+          (text: status, key: const Key('game.aim'), style: LocalFelt.titleStyle(context)),
+          if (_powerError case final error?)
+            (text: error, key: const Key('game.powerError'), style: LocalFelt.lineStyle(context, color: Saloon.mafia)),
+        ]),
+      ),
+      strip: ActionStrip(
+        status: user == null && selected != null ? _tag(selected) : status,
+        tone: StripTone.act,
+        actions: [
+          NoirAction(
+            label: _lr.cancel,
+            feel: Press.back,
+            onPressed: () => _advance(() => _stage = _Stage.day),
+          ),
+          if (user == null)
+            NoirAction(
+              key: const Key('game.powerConfirm'),
+              label: _lr.confirm,
+              style: NoirButtonStyle.primary,
+              feel: Press.confirm,
+              onPressed: selected == null
+                  ? null
+                  : () {
+                      final ok = widget.setup.roleOf(selected) == Role.tiratoreScelto && _engine.isAlive(selected);
+                      setState(() {
+                        _powerUser = ok ? selected : null;
+                        _powerError = ok ? null : _lr.notMarksman;
+                        _selected = null;
+                      });
+                    },
+            )
+          else
+            NoirAction(
+              key: const Key('game.marksmanFire'),
+              label: _lr.fire,
+              style: NoirButtonStyle.primary,
+              feel: Press.confirm,
+              onPressed: aim == null
+                  ? null
+                  : () => _advance(() {
+                      _dayTimer?.cancel();
+                      _marksmanShot = _engine.shoot(user);
+                    }),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// I bottoni dei poteri di giorno, accanto al cronometro.
+  Widget? _powerButtons() {
+    final buttons = [
+      if (_hasTruce) _powerButton(const Key('game.truce'), _lr.truce, _Power.truce),
+      if (_hasCannon) _powerButton(const Key('game.fire'), _lr.cannon, _Power.cannon),
+      if (_hasShot) _powerButton(const Key('game.marksman'), _lr.marksman, _Power.marksman),
+    ];
+    if (buttons.length < 2) return buttons.firstOrNull;
+    return Row(
+      children: [
+        for (final (i, button) in buttons.indexed) ...[
+          if (i > 0) const SizedBox(width: 8),
+          Expanded(child: button),
+        ],
+      ],
+    );
+  }
+
   /// L'Artigliere c'è nel mazzo, dal secondo giorno, con un colpo in canna e
   /// senza aver già sparato oggi. Finché non ha sparato il bottone resta
   /// anche se è morto (sennò il tavolo lo saprebbe); dopo il primo colpo è
@@ -1047,6 +1174,7 @@ class _GameScreenState extends State<GameScreen> {
         _power = power;
         _powerUser = null;
         _powerError = null;
+        _marksmanShot = null;
         _stage = _Stage.power;
       });
 
@@ -1063,6 +1191,7 @@ class _GameScreenState extends State<GameScreen> {
   /// La tregua: il ruolo esatto va sul tavolo e il voto salta. Il colpo:
   /// il bersaglio muore e la sua carta si gira.
   Widget _powerView() {
+    if (_power == _Power.marksman) return _marksmanView();
     final user = _powerUser;
     final selected = _selected;
     final cannon = _power == _Power.cannon;
@@ -1301,19 +1430,7 @@ class _GameScreenState extends State<GameScreen> {
       strip: ActionStrip(
         status: expired ? _t.timeUp : _ls.discuss,
         tone: expired ? StripTone.wait : StripTone.act,
-        control: _hasTruce && _hasCannon
-            ? Row(
-                children: [
-                  Expanded(child: _powerButton(const Key('game.truce'), _lr.truce, _Power.truce)),
-                  const SizedBox(width: 8),
-                  Expanded(child: _powerButton(const Key('game.fire'), _lr.cannon, _Power.cannon)),
-                ],
-              )
-            : _hasTruce
-            ? _powerButton(const Key('game.truce'), _lr.truce, _Power.truce)
-            : _hasCannon
-            ? _powerButton(const Key('game.fire'), _lr.cannon, _Power.cannon)
-            : null,
+        control: _powerButtons(),
         actions: [
           NoirAction(
             key: const Key('local.moreTime'),

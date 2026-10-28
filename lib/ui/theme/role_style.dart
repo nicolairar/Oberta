@@ -34,6 +34,7 @@ extension RoleStyle on Role {
         Role.presidente => const Color(0xFF2F4A6B),
         Role.capoSetta => const Color(0xFF55704A),
         Role.artigliere => const Color(0xFF5A4632),
+        Role.tiratoreScelto => const Color(0xFF4E5A3C),
       };
 
   /// L'icona disegnata del ruolo (`assets/roles/<ruolo>.png`).
@@ -68,6 +69,7 @@ extension RoleStyle on Role {
         Role.presidente => Icons.workspace_premium,
         Role.capoSetta => Icons.local_fire_department_outlined,
         Role.artigliere => Icons.whatshot,
+        Role.tiratoreScelto => Icons.my_location,
       };
 }
 

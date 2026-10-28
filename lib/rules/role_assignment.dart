@@ -126,7 +126,8 @@ int _categoryCap(RoleCategory category, int count) => switch (category) {
 ///   dentro [cityBudgetFor] (un punto in più con un neutrale L4);
 /// - i neutrali entrano prima, ognuno con probabilità 1/2, al posto di un
 ///   cittadino speciale, almeno [minNeutralsFor], al massimo [maxNeutralsFor]
-///   e dentro [neutralFits]; con un assassino in proprio niente Cecchino;
+///   e dentro [neutralFits]; con un assassino in proprio niente Cecchino (né
+///   Tiratore scelto), e dove entra il Tiratore il Cecchino no;
 /// - si pesca prima un investigatore, poi un protettore, poi il resto a caso;
 /// - il contrappeso: da 7 giocatori, se la Città spende quasi tutto il suo
 ///   bilancio e la Famiglia non ha poteri, un Picciotto ne riceve uno.
@@ -196,6 +197,9 @@ List<Role> rolesForPlayerCount(
     if (!eligible(role)) return false;
     // Il Piromane e il Sicario sono già un colpo in più: niente Cecchino.
     if (rule.category == RoleCategory.extraKill && specials.any((r) => r.isHostileNeutral)) return false;
+    // Il Cecchino resta per i tavoli piccoli: dove può entrare il Tiratore
+    // scelto, il colpo extra è suo.
+    if (role == Role.cecchino && eligible(Role.tiratoreScelto)) return false;
     // Il Presidente mai con chi uccide in proprio: chi vincerebbe, se cade?
     if (role == Role.presidente && specials.any((r) => r.isHostileNeutral)) return false;
     if (specials.where((r) => r == role).length >= (rule.maxCopies ?? count)) return false;

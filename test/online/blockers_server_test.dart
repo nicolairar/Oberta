@@ -87,6 +87,7 @@ Map<String, Object?> pacify(String seat, String target) => {'type': 'pacify', 's
 
 void main() {
   cupidTests();
+  marksmanTests();
   test('la cella: la chat solo per il Carceriere (senza nome) e il prigioniero, niente voce né Famiglia', () {
     final table = Table();
     table.ackAll();
@@ -227,3 +228,58 @@ void cupidTests() {
 extension on GameEngine {
   bool get lastLynchTruce => publicView().lastLynch?.truce ?? false;
 }
+
+const marksmanTable = {
+  's1': Role.mafioso,
+  's2': Role.mafioso,
+  's3': Role.tiratoreScelto,
+  's4': Role.cittadino,
+  's5': Role.cittadino,
+  's6': Role.cittadino,
+  's7': Role.cittadino,
+  's8': Role.cittadino,
+  's9': Role.cittadino,
+};
+
+Map<String, Object?> shoot(String seat) => {'type': 'shoot', 'seat': seat};
+
+void marksmanTests() {
+  test('il Tiratore scelto: la mira la sa solo lui, il colpo solo in discussione, lo sparo lo sentono tutti', () {
+    final table = Table(marksmanTable);
+    table.ackAll();
+    table.send({'s3': shoot('s3')});
+    expect(table.receipt('s3')?['ok'], isFalse, reason: 'di notte non si spara');
+    table.send({'s3': night('s3', 's1')});
+    table.send({for (final seat in marksmanTable.keys.where((s) => s != 's3')) seat: pass(seat)});
+    while (table.game.stage != Stage.discussion) {
+      table.game.stage.acknowledged ? table.ackAll() : table.wait();
+    }
+    // La mira e i colpi: solo nella vista del Tiratore.
+    expect(table.view('s3')['aim'], 's1');
+    expect(table.view('s3')['shotsLeft'], 2);
+    expect((table.view('s3')['action'] as Map)['canShoot'], isTrue);
+    for (final seat in marksmanTable.keys.where((s) => s != 's3')) {
+      expect(table.view(seat).containsKey('aim'), isFalse, reason: seat);
+      expect(table.view(seat)['action'], isNull, reason: seat);
+    }
+    final aims = [for (final e in table.last.events) if (e['kind'] == 'aim') e['to']];
+    expect(aims, anyOf(isEmpty, ['s3']));
+
+    table.send({'s3': shoot('s3')});
+    expect(table.receipt('s3')?['ok'], isTrue);
+    expect(table.game.engine.isAlive(table.game.seating.playerAt('s1')), isFalse);
+    final board = table.last.board['board'] as Map<String, Object?>;
+    expect(board['lastShot'], containsPair('seat', 's1'));
+    final shot = table.last.events.singleWhere((e) => e['kind'] == 'shot');
+    expect(shot['to'], isNull);
+    expect((shot['data'] as Map)['role'], 'mafioso');
+    expect((shot['data'] as Map).containsKey('backfired'), isFalse);
+    for (final seat in marksmanTable.keys.where((s) => s != 's3')) {
+      expect(jsonEncode(table.view(seat)['known']), isNot(contains('tiratoreScelto')), reason: seat);
+    }
+    // Un colpo al giorno: la mira è consumata.
+    expect((table.view('s3')['action'] as Map?)?['canShoot'], isNot(isTrue));
+    expect(table.view('s3')['shotsLeft'], 1);
+  });
+}
+

@@ -1666,6 +1666,51 @@
       "text": "Un boato in piazza: l'Artigliere ha colpito"
     },
     {
+      "key": "69a15fa4340b06ab",
+      "kind": "segment",
+      "text": "Un colpo dal campanile."
+    },
+    {
+      "key": "167a623099e01d9c",
+      "kind": "segment",
+      "text": "cade in mezzo alla piazza."
+    },
+    {
+      "key": "659ce14e468d02ce",
+      "kind": "segment",
+      "text": "Uno sparo secco, da lontano."
+    },
+    {
+      "key": "381f59aaad322c88",
+      "kind": "segment",
+      "text": "non arriva a finire la frase."
+    },
+    {
+      "key": "69a173a4340b28a7",
+      "kind": "segment",
+      "text": "Un colpo dal campanile:"
+    },
+    {
+      "key": "9c7a3117774aaba4",
+      "kind": "segment",
+      "text": "è fuori dal gioco."
+    },
+    {
+      "key": "5c1becfc0d0ba3ff",
+      "kind": "segment",
+      "text": "Lo sparo rimbomba, ma a cadere è chi ha premuto il grilletto."
+    },
+    {
+      "key": "fd781b1602b98491",
+      "kind": "segment",
+      "text": "Il fucile si inceppa e scoppia. Dal campanile scende solo il silenzio."
+    },
+    {
+      "key": "33e0fead45cbed54",
+      "kind": "segment",
+      "text": "Il colpo è tornato indietro: il Tiratore scelto mirava a uno della Città, e muore lui."
+    },
+    {
       "key": "220ae5128f8d4a05",
       "kind": "segment",
       "text": "Chicago è libera. Da domani si dorme con le finestre aperte. Titoli di coda."
@@ -2069,6 +2114,11 @@
       "key": "fd0ae8b98707da95",
       "kind": "role",
       "text": "L'Artigliere"
+    },
+    {
+      "key": "3b7deca8126bf131",
+      "kind": "role",
+      "text": "Il Tiratore scelto"
     },
     {
       "key": "1549e49a260aab2d",
@@ -4133,6 +4183,51 @@
       "text": "A roar in the square: the Gunner hit"
     },
     {
+      "key": "201c6e8e031a0054",
+      "kind": "segment",
+      "text": "A shot from the bell tower."
+    },
+    {
+      "key": "7883d8837bc6084a",
+      "kind": "segment",
+      "text": "drops in the middle of the square."
+    },
+    {
+      "key": "6889bc42cd086da9",
+      "kind": "segment",
+      "text": "One sharp crack, from far away."
+    },
+    {
+      "key": "8f4d18a28c6b0f39",
+      "kind": "segment",
+      "text": "never finishes the sentence."
+    },
+    {
+      "key": "201c5a8e0319de58",
+      "kind": "segment",
+      "text": "A shot from the bell tower:"
+    },
+    {
+      "key": "eb6b10010103616c",
+      "kind": "segment",
+      "text": "is out of the game."
+    },
+    {
+      "key": "407cc51cc0a23cf0",
+      "kind": "segment",
+      "text": "The shot echoes, but the one who falls is the one who pulled the trigger."
+    },
+    {
+      "key": "421e7b8b472fcb0f",
+      "kind": "segment",
+      "text": "The rifle jams and bursts. Only silence comes down from the bell tower."
+    },
+    {
+      "key": "b7e77e30fb6dbbf5",
+      "kind": "segment",
+      "text": "The shot came back: the Marksman was aiming at the town, and dies instead."
+    },
+    {
       "key": "e53f5165bad73c66",
       "kind": "segment",
       "text": "Chicago is free. Starting tomorrow, people sleep with the windows open. Roll credits."
@@ -4531,6 +4626,11 @@
       "key": "4364abae5da17bcd",
       "kind": "role",
       "text": "Gunner"
+    },
+    {
+      "key": "73139efcb1cb178c",
+      "kind": "role",
+      "text": "Marksman"
     },
     {
       "key": "d9ea56dccef88c43",

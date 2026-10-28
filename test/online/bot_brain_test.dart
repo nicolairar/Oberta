@@ -29,7 +29,7 @@ void main() {
         final intent = brain.decide(view)!;
         final target = switch (intent) {
           NightAction(:final target) || MafiaVote(:final target) || DayVote(:final target) => target,
-          Pass() || RevealMayor() || Pacify() || Link() || Fire() => null,
+          Pass() || RevealMayor() || Pacify() || Link() || Fire() || Shoot() => null,
         };
         final avoidable = view.action!.targets.any((p) => !view.teammates.contains(p));
         if (view.team == Team.mafia && target != null && avoidable &&

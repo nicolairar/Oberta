@@ -295,7 +295,7 @@ Deno.test('the cell: only the Jailer and the prisoner read it, and the Jailer ha
   await pg.close();
 });
 
-const newRoles = ['prostituta', 'carceriere', 'pacifista'];
+const newRoles = ['prostituta', 'carceriere', 'pacifista', 'tiratoreScelto'];
 const dealt = (out: StepOutput) => (out.board.board as { deck: { role: string }[] }).deck.map((d) => d.role);
 
 Deno.test('a table with an old build is never dealt a role that build cannot read', () => {

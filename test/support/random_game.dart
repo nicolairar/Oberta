@@ -76,6 +76,8 @@ GameCommand? randomCommand(GameEngine engine, Random random) {
       if (option.canPacify && random.nextInt(4) == 0) {
         return IntentCommand(Pacify(seat, _pick(random, option.targets).id));
       }
+      // Il Tiratore scelto spara a chi ha nel mirino.
+      if (option.canShoot && random.nextInt(3) == 0) return IntentCommand(Shoot(seat));
       if (random.nextInt(6) == 0) return IntentCommand(Pass(seat));
       return IntentCommand(DayVote(seat, _pick(random, option.targets).id));
   }

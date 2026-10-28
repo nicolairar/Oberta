@@ -163,4 +163,33 @@ void main() {
     await tapKey(tester, 'game.afterShot');
     expect(find.byKey(const Key('game.afterShot')), findsNothing);
   });
+
+  testWidgets('il Tiratore scelto mira di notte e spara di giorno, davanti a tutti', (tester) async {
+    await pumpGame(tester, deal: {ada: Role.mafioso, bruno: Role.tiratoreScelto, carla: Role.cittadino, dino: Role.cittadino, elio: Role.cittadino});
+    await tapLabel(tester, 'COMINCIA LA NOTTE');
+    await nightTurn(tester, ada, pick: dino);
+    expect(curtainName(tester), contains('BRUNO'));
+    await tapKey(tester, 'local.itsMe');
+    expect(find.text('Chi tieni nel mirino?'), findsOneWidget);
+    await tapSeat(tester, ada);
+    await tapKey(tester, 'local.confirm');
+    await tapKey(tester, 'local.done');
+    for (final player in [carla, dino, elio]) {
+      await nightTurn(tester, player);
+    }
+    await _toTheDay(tester);
+
+    await tapKey(tester, 'game.marksman');
+    await tapSeat(tester, carla);
+    await tapKey(tester, 'game.powerConfirm');
+    expect(find.text('Solo il Tiratore scelto può sparare.'), findsOneWidget);
+    await tapSeat(tester, bruno);
+    await tapKey(tester, 'game.powerConfirm');
+    expect(find.textContaining('Nel mirino: 1 Ada'), findsWidgets);
+    await tapKey(tester, 'game.marksmanFire');
+    expect(find.byKey(const Key('game.marksmanShot')), findsOneWidget);
+    expect(find.textContaining('Un colpo dal campanile'), findsWidgets);
+    await tapKey(tester, 'game.shotDone');
+    expect(find.textContaining('Vincono gli onesti'), findsWidgets);
+  });
 }

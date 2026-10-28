@@ -147,6 +147,11 @@ const italianPack = NarrationPack(
       '«Io non sussurro. Io tuono.»',
       'Hai due colpi, uno al giorno, dal secondo giorno: in discussione chi colpisci muore subito, davanti a tutti. Dal primo colpo tutti sanno chi sei. Vinci con la Città.',
     ),
+    Role.tiratoreScelto: RoleText(
+      'Il Tiratore scelto',
+      '«Un respiro, un colpo, un nome.»',
+      'Di notte metti qualcuno nel mirino; di giorno puoi sparargli. Due colpi. Se è della Città, il colpo torna indietro e muori tu.',
+    ),
     Role.pacifista: RoleText(
       'Il Pacifista',
       '«Il sangue chiama sangue. Io chiamo la tregua.»',
@@ -501,6 +506,16 @@ const italianPack = NarrationPack(
     'Fuoco! La terra trema, le tazzine saltano sui tavolini del bar. Poi, silenzio.',
   ],
   cannonFact: 'Un boato in piazza: l\'Artigliere ha colpito {name}.',
+  marksmanShots: [
+    'Un colpo dal campanile. {name} cade in mezzo alla piazza.',
+    'Uno sparo secco, da lontano. {name} non arriva a finire la frase.',
+  ],
+  marksmanShotFact: 'Un colpo dal campanile: {name} è fuori dal gioco.',
+  backfires: [
+    'Lo sparo rimbomba, ma a cadere è chi ha premuto il grilletto.',
+    'Il fucile si inceppa e scoppia. Dal campanile scende solo il silenzio.',
+  ],
+  backfireFact: 'Il colpo è tornato indietro: il Tiratore scelto mirava a uno della Città, e muore lui.',
   citizensWin: [
     '{city} è libera. Da domani si dorme con le finestre aperte. Titoli di coda.',
     'In piazza ci si guarda di nuovo in faccia. Sullo schermo: «Fine».',
@@ -564,6 +579,7 @@ const italianPack = NarrationPack(
     NightTaskKind.link: 'Chi fai innamorare?',
     NightTaskKind.convert: 'Chi chiami alla luce stanotte?',
     NightTaskKind.block: 'Per chi canti stanotte?',
+    NightTaskKind.aim: 'Chi tieni nel mirino?',
   },
   taskHints: {
     NightTaskKind.kill: 'Tocca un nome: è il tuo voto per chi muore. Decide la maggioranza della Famiglia.',
@@ -584,6 +600,7 @@ const italianPack = NarrationPack(
     NightTaskKind.link: 'Tocca due nomi, anche il tuo: da stanotte si amano. Una volta sola.',
     NightTaskKind.convert: 'Tocca un nome: se la porta si apre, da domani è della setta.',
     NightTaskKind.block: 'Tocca un nome: stanotte la sua mossa salta. Mai lo stesso due notti di fila.',
+    NightTaskKind.aim: 'Tocca un nome: domani puoi sparargli. Se è della Città, muori tu.',
     NightTaskKind.decoy: 'Non hai mosse: tocca un nome qualsiasi, non succede niente. Serve a non farti scoprire.',
   },
   decoyPrompts: [

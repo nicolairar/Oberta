@@ -533,12 +533,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   Future<void> _send(PlayerIntent intent) async {
     HapticFeedback.selectionClick();
     final key = _window?.key;
-    if (key != null && intent is! RevealMayor && intent is! Pacify && intent is! Link && intent is! Fire) {
+    if (key != null && intent is! RevealMayor && intent is! Pacify && intent is! Link && intent is! Fire && intent is! Shoot) {
       final family = _view.action?.type == ActionType.mafiaVote;
       final hope = switch (intent) {
         DayVote(:final target) || NightAction(:final target) => (target: _seatOf(target), stage: key, family: false),
         MafiaVote(:final target) => (target: _seatOf(target), stage: key, family: true),
-        Pass() || RevealMayor() || Pacify() || Link() || Fire() => (target: null, stage: key, family: family),
+        Pass() || RevealMayor() || Pacify() || Link() || Fire() || Shoot() => (target: null, stage: key, family: family),
       };
       setState(() => _hope = hope);
     }
@@ -2664,6 +2664,13 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     final truce = pacifist == null || pacified == null || shown == null
         ? null
         : _ts.truceLine(_tag(pacifist), _tag(pacified), _lowerFirst(_t.role(shown).label));
+    // Il colpo del Tiratore scelto, oggi: chi è caduto e la sua carta.
+    final marksmanShot = _public.lastShot;
+    final shotLine = marksmanShot == null || marksmanShot.round != _public.round
+        ? null
+        : _ts.shotLine(_tag(marksmanShot.victim), _lowerFirst(_t.role(marksmanShot.role).label), backfired: marksmanShot.backfired);
+    final aim = _view.aim;
+    final canShoot = option != null && option.canShoot && aim != null && _open;
     // L'Artigliere: chi può colpire adesso, e il boato di oggi.
     final fireTargets = _open && _view.alive ? _view.fireTargets : const <Player>[];
     final aiming = fireTargets.isNotEmpty && _aiming && !picking;
@@ -2674,6 +2681,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     final shotsLeft = _view.shotsLeft;
     final felt = [
       if (cannon != null) _feltLine(cannon, key: const Key('online.cannon'), color: Saloon.mafia, weight: FontWeight.w700, maxLines: 4),
+      if (shotLine != null) _feltLine(shotLine, key: const Key('online.shot'), color: Saloon.mafia, weight: FontWeight.w700, maxLines: 4),
       if (truce != null) _feltLine(truce, key: const Key('online.truce'), color: Saloon.brass, weight: FontWeight.w700, maxLines: 4),
       if (cannon != null && shotsLeft != null && _view.alive)
         _feltLine(_ts.shotsLeft(shotsLeft), key: const Key('online.shotsLeft'), color: Saloon.brass, maxLines: 2),
@@ -2717,6 +2725,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
               key: const Key('online.truce'),
               label: _ts.truce,
               onPressed: canPacify ? () => setState(() => _pacifying = !_pacifying) : null,
+            ),
+          if (canShoot)
+            NoirAction(
+              key: const Key('online.shoot'),
+              label: _ts.fire,
+              onPressed: () => _shoot(aim),
             ),
           if (fireTargets.isNotEmpty)
             NoirAction(
@@ -2772,6 +2786,23 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     setState(() => _aiming = false);
     if (!yes || _window?.key != stage || !_open) return;
     await _send(Fire(_view.seat.id, target.id));
+  }
+
+  /// Il colpo non si disfa: prima si chiede, con il nome nel mirino.
+  Future<void> _shoot(Player target) async {
+    final stage = _window?.key;
+    final yes = await confirmNoir(
+      context,
+      key: const Key('online.askShot'),
+      title: _ts.shootTitle(_tag(target)),
+      body: _ts.shootBody(_view.shotsLeft ?? 0),
+      cancel: _ts.cancel,
+      confirm: _ts.fire,
+      cancelKey: const Key('online.cancel'),
+      confirmKey: const Key('online.confirm'),
+    );
+    if (!mounted || !yes || _window?.key != stage || !_open) return;
+    await _send(Shoot(_view.seat.id));
   }
 
   /// Il voto: si tocca chi condannare (il voto parte subito e si cambia

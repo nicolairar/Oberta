@@ -99,6 +99,11 @@ class BotBrain {
           // Il Cecchino senza indizi aspetta: un colpo solo, non va sprecato.
           return Pass(seat);
         }
+        // Il Tiratore scelto mira a chi sa della Famiglia, se ne sa uno.
+        if (kind == NightTaskKind.aim) {
+          final suspects = [for (final p in option.targets) if (knownMafia(p)) p];
+          return NightAction(seat, _pick(suspects.isNotEmpty ? suspects : option.targets).id);
+        }
         if (kind == NightTaskKind.silence || kind == NightTaskKind.guard) {
           return NightAction(seat, _pick(preferred(option.targets)).id);
         }
