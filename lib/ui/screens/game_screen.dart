@@ -38,6 +38,7 @@ import '../press.dart';
 import '../seating.dart';
 import '../widgets/wide_scale.dart';
 import '../widgets/noir_modal.dart';
+import '../widgets/targa.dart';
 
 /// La partita su un solo telefono: il copione si legge ad alta voce, di notte
 /// il telefono fa il giro del tavolo, di giorno resta in mezzo.
@@ -449,10 +450,8 @@ class _GameScreenState extends State<GameScreen> {
         style: skylineFor(_script.city.id),
         rain: _mood == SceneMood.night && _engine.round.isOdd,
         appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.close),
-            tooltip: _t.leaveTooltip,
-            onPressed: pressed(_confirmExit, Press.back),
+          leading: Center(
+            child: TargaIconButton(icon: Icons.close, tooltip: _t.leaveTooltip, size: 40, feel: Press.back, onPressed: _confirmExit),
           ),
           title: Text(_title),
           actions: [

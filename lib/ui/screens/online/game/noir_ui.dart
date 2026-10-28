@@ -217,7 +217,7 @@ class StageHeader extends StatelessWidget {
   }
 }
 
-/// Un pulsante a icona del cartiglio: niente cornice, un bersaglio da 48.
+/// Un pulsante a icona del cartiglio: un medaglione d'ottone, un bersaglio da 48.
 class HeaderIconButton extends StatelessWidget {
   final IconData icon;
   final String tooltip;
@@ -226,12 +226,9 @@ class HeaderIconButton extends StatelessWidget {
   const HeaderIconButton({super.key, required this.icon, required this.tooltip, required this.onPressed});
 
   @override
-  Widget build(BuildContext context) => IconButton(
-    icon: Icon(icon, color: Saloon.brass, size: 24),
-    tooltip: tooltip,
-    constraints: const BoxConstraints.tightFor(width: 48, height: 48),
-    padding: EdgeInsets.zero,
-    onPressed: onPressed,
+  Widget build(BuildContext context) => SizedBox.square(
+    dimension: 48,
+    child: Center(child: TargaIconButton(icon: icon, tooltip: tooltip, size: 40, onPressed: onPressed)),
   );
 }
 

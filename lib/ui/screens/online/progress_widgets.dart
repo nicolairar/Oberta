@@ -6,6 +6,7 @@ import '../../../online/online_services.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/home_account.dart' show CoinPainter;
 import 'game/noir_ui.dart';
+import '../../widgets/targa.dart';
 
 /// The back room the progress screens share: lamp-lit wood, a brass title,
 /// a back arrow, the content in a narrow column.
@@ -34,11 +35,7 @@ class ProgressRoom extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(4, 2, 16, 4),
                   child: Row(
                     children: [
-                      IconButton(
-                        tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-                        onPressed: () => Navigator.of(context).maybePop(),
-                        icon: const Icon(Icons.chevron_left, color: Saloon.brass, size: 30),
-                      ),
+                      const TargaBackButton(),
                       Expanded(
                         child: Text(
                           title.toUpperCase(),

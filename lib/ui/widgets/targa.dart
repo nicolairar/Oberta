@@ -493,3 +493,21 @@ ButtonStyle _style(TargaKind kind, ButtonLayerBuilder background) => ButtonStyle
 
 final _primaryInk = WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.disabled) ? AppColors.textSecondary : Targa.cream);
 final _secondaryInk = WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.disabled) ? AppColors.textSecondary : Targa.brass);
+
+/// The icons of the implicit back and close buttons of every [AppBar],
+/// drawn as Targa medallions (the button around them stays Material's, so
+/// taps, tooltips and semantics are unchanged). Top-level functions: the
+/// theme built twice stays equal.
+Widget targaBackIcon(BuildContext context) => const _MedallionIcon(Icons.arrow_back_ios_new_rounded);
+Widget targaCloseIcon(BuildContext context) => const _MedallionIcon(Icons.close);
+
+class _MedallionIcon extends StatelessWidget {
+  final IconData icon;
+  const _MedallionIcon(this.icon);
+
+  @override
+  Widget build(BuildContext context) => CustomPaint(
+    painter: const TargaPainter(kind: TargaKind.secondary, circle: true),
+    child: SizedBox.square(dimension: 38, child: Icon(icon, size: 17, color: const Color(0xFFF0D590))),
+  );
+}

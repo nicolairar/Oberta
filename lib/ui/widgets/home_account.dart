@@ -7,6 +7,7 @@ import '../avatar/avatar_look.dart';
 import '../press.dart';
 import '../theme/app_theme.dart';
 import 'player_avatar.dart';
+import 'targa.dart';
 
 const _cream = Color(0xFFE9DEC4);
 const _iron = Color(0xFF08080B);
@@ -85,13 +86,13 @@ class _HomeSignInPlateState extends State<HomeSignInPlate> {
                 widget.onLongPress!();
               },
         child: CustomPaint(
-          painter: _SignInPlatePainter(_pressed),
+          painter: TargaPainter(down: _pressed, radius: 12),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 14, 0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const SizedBox(width: 9, height: 14, child: CustomPaint(painter: _KeyholePainter())),
+                const SizedBox(width: 9, height: 14, child: CustomPaint(painter: _KeyholePainter(Targa.brass))),
                 const SizedBox(width: 8),
                 Flexible(
                   child: FittedBox(
@@ -105,7 +106,8 @@ class _HomeSignInPlateState extends State<HomeSignInPlate> {
                         fontSize: 12.5,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 2.2,
-                        color: _cream.withValues(alpha: _pressed ? 0.6 : 0.95),
+                        color: Targa.cream.withValues(alpha: _pressed ? 0.7 : 1),
+                        shadows: const [Shadow(color: Color(0x99000000), offset: Offset(0, 1.5), blurRadius: 1)],
                       ),
                     ),
                   ),
@@ -119,37 +121,13 @@ class _HomeSignInPlateState extends State<HomeSignInPlate> {
   }
 }
 
-class _SignInPlatePainter extends CustomPainter {
-  final bool pressed;
-
-  _SignInPlatePainter(this.pressed);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final shape = RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(size.height * 0.22));
-    _paintEnamel(canvas, shape, pressed: pressed);
-    // Il filetto dorato all'interno, come sulle targhe vere.
-    canvas.drawRRect(
-      shape.deflate(4.5),
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 0.8
-        ..color = AppColors.gold.withValues(alpha: pressed ? 0.25 : 0.55),
-    );
-    _paintScrew(canvas, Offset(7.5, size.height / 2), 1.8);
-    _paintScrew(canvas, Offset(size.width - 7.5, size.height / 2), 1.8);
-  }
-
-  @override
-  bool shouldRepaint(_SignInPlatePainter old) => old.pressed != pressed;
-}
-
 class _KeyholePainter extends CustomPainter {
-  const _KeyholePainter();
+  final Color color;
+  const _KeyholePainter(this.color);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final ink = Paint()..color = AppColors.gold;
+    final ink = Paint()..color = color;
     final r = size.width / 2;
     canvas.drawCircle(Offset(r, r), r, ink);
     canvas.drawPath(
@@ -164,7 +142,7 @@ class _KeyholePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_KeyholePainter old) => false;
+  bool shouldRepaint(_KeyholePainter old) => old.color != color;
 }
 
 /// Una moneta d'oro, col bordo zigrinato: le monete del profilo.
@@ -314,27 +292,36 @@ class _HomeProfileBadgeState extends State<HomeProfileBadge> {
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const SizedBox.square(dimension: 11, child: CustomPaint(painter: CoinPainter())),
+                                      const SizedBox.square(dimension: 13, child: CustomPaint(painter: CoinPainter())),
                                       const SizedBox(width: 4),
                                       Flexible(
                                         child: Text(
-                                          '${profile.coins}',
+                                          CoinPurse.format(profile.coins),
                                           key: const Key('home.coins'),
                                           maxLines: 1,
                                           overflow: TextOverflow.fade,
                                           softWrap: false,
                                           style: const TextStyle(
                                             color: _cream,
-                                            fontSize: 11,
+                                            fontSize: 11.5,
                                             height: 1,
-                                            fontWeight: FontWeight.w700,
-                                            letterSpacing: 0.6,
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: 0.4,
+                                            fontFeatures: [FontFeature.tabularFigures()],
                                           ),
                                         ),
                                       ),
                                       if (widget.onShop != null) ...[
-                                        const SizedBox(width: 3),
-                                        const Icon(Icons.add_circle, size: 13, color: Color(0xFFF3D27A)),
+                                        const SizedBox(width: 4),
+                                        Container(
+                                          width: 14,
+                                          height: 14,
+                                          decoration: const BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: Targa.gold, stops: Targa.goldStops),
+                                          ),
+                                          child: const Icon(Icons.add, size: 11, color: Color(0xFF2A1A06)),
+                                        ),
                                       ],
                                     ],
                                   ),

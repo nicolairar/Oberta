@@ -107,7 +107,9 @@ class ActionStrip extends StatelessWidget {
         ],
       ],
     );
-    return SizedBox(
+    // The strip changes with every tick of the phase: on its own layer.
+    return RepaintBoundary(
+      child: SizedBox(
       height: heightFor(desk: m.desk),
       child: Padding(
         padding: EdgeInsets.only(top: m.gap, bottom: m.desk ? m.gap : 0),
@@ -119,6 +121,7 @@ class ActionStrip extends StatelessWidget {
             if (buttons) _buttons(m),
           ],
         ),
+      ),
       ),
     );
   }

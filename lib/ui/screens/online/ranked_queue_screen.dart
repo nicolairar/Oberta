@@ -26,6 +26,7 @@ import 'leaderboard_screen.dart';
 import 'ranked_lobby.dart';
 import '../../widgets/wide_scale.dart';
 import '../../widgets/content_width.dart';
+import '../../widgets/targa.dart';
 
 /// La classificata: lingua, poi subito la sala d'attesa. Il server fa
 /// sedere chi entra al tavolo di una sala (stessa lingua, livello vicino):
@@ -475,10 +476,7 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
                 padding: const EdgeInsets.fromLTRB(4, 2, 16, 0),
                 child: Row(
                   children: [
-                    IconButton(
-                      onPressed: () => Navigator.of(context).maybePop(),
-                      icon: const Icon(Icons.arrow_back, color: Saloon.brass),
-                    ),
+                    const TargaBackButton(),
                     Expanded(
                       child: Text(
                         t.rankedLobbyTitle.toUpperCase(),

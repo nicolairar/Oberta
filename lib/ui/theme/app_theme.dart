@@ -60,6 +60,7 @@ ThemeData buildAppTheme() {
       titleTextStyle: AppText.display(18, color: AppColors.textPrimary),
     ),
     // Every plain button wears the Targa plate (widgets/targa.dart).
+    actionIconTheme: const ActionIconThemeData(backButtonIconBuilder: targaBackIcon, closeButtonIconBuilder: targaCloseIcon),
     elevatedButtonTheme: ElevatedButtonThemeData(style: targaButtonStyle(TargaKind.primary)),
     outlinedButtonTheme: OutlinedButtonThemeData(style: targaButtonStyle(TargaKind.secondary)),
     snackBarTheme: const SnackBarThemeData(

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../desktop/desktop_canvas.dart';
 import '../press.dart';
+import 'targa.dart';
 
 /// The noir modal kit: one dialog, one bottom sheet, one action menu, the
 /// same buttons everywhere. Phones get a card or a sheet; the desktop canvas
@@ -149,7 +150,7 @@ class _NoirModalButtonState extends State<NoirModalButton> {
     final enabled = a.onPressed != null;
     final lit = enabled && (_hover || _focus);
     final paper = widget.paper;
-    final (List<Color>? fill, Color border, Color ink) = switch (a.style) {
+    var (List<Color>? fill, Color border, Color ink) = switch (a.style) {
       NoirButtonStyle.primary when paper => (
           lit ? const [Color(0xFF3A2A1E), Color(0xFF1C130C)] : const [Color(0xFF2E2117), Color(0xFF140D08)],
           lit ? NoirInk.brassLight : NoirInk.brass,
@@ -185,6 +186,12 @@ class _NoirModalButtonState extends State<NoirModalButton> {
           paper ? NoirInk.paperBody : (lit ? NoirInk.text : NoirInk.muted),
         ),
     };
+    // On the dark cards the plates are Targa: enamel for the main action,
+    // black lacquer for the other. The paper cards and the quiet links keep
+    // their printed look.
+    final plate = !paper && a.style != NoirButtonStyle.quiet;
+    final targa = a.main ? TargaKind.primary : TargaKind.secondary;
+    if (plate) ink = !enabled ? NoirInk.muted : (a.main ? Targa.cream : (lit ? NoirInk.brassLight : Targa.brass));
     final radius = BorderRadius.circular(m.desk ? 14 : 12);
     final label = Text(
       a.label.toUpperCase(),
@@ -218,11 +225,15 @@ class _NoirModalButtonState extends State<NoirModalButton> {
             child: AnimatedScale(
               duration: const Duration(milliseconds: 90),
               scale: _down ? 0.97 : 1,
-              child: AnimatedContainer(
+              child: CustomPaint(
+                painter: plate ? TargaPainter(kind: targa, enabled: enabled, down: _down, lit: lit, radius: m.desk ? 14 : 12) : null,
+                child: AnimatedContainer(
                 duration: const Duration(milliseconds: 140),
                 constraints: BoxConstraints(minHeight: m.button),
                 padding: EdgeInsets.symmetric(horizontal: m.desk ? 28 : 16, vertical: m.desk ? 12 : 8),
-                decoration: BoxDecoration(
+                decoration: plate
+                    ? BoxDecoration(borderRadius: radius, border: _focus ? Border.all(color: NoirInk.brassLight, width: 2) : null)
+                    : BoxDecoration(
                   gradient: fill == null
                       ? null
                       : LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: fill),
@@ -257,6 +268,7 @@ class _NoirModalButtonState extends State<NoirModalButton> {
                   ],
                 ),
               ),
+            ),
             ),
           ),
         ),
@@ -546,41 +558,19 @@ class NoirCloseButton extends StatefulWidget {
 }
 
 class _NoirCloseButtonState extends State<NoirCloseButton> {
-  bool _hover = false;
-
   @override
   Widget build(BuildContext context) {
     final m = NoirMetrics.of(context);
     final size = m.desk ? 48.0 : 44.0;
-    return Tooltip(
-      message: m.desk ? 'Esc' : MaterialLocalizations.of(context).closeButtonTooltip,
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        onEnter: (_) => setState(() => _hover = true),
-        onExit: (_) => setState(() => _hover = false),
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: pressed(() => Navigator.of(context).maybePop(), Press.back),
-          child: Semantics(
-            button: true,
-            label: MaterialLocalizations.of(context).closeButtonLabel,
-            child: SizedBox.square(
-              dimension: size,
-              child: Center(
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 120),
-                  width: size - 12,
-                  height: size - 12,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _hover ? NoirInk.brass.withValues(alpha: 0.16) : Colors.transparent,
-                    border: Border.all(color: NoirInk.brass.withValues(alpha: _hover ? 0.9 : 0.35)),
-                  ),
-                  child: Icon(Icons.close, size: m.desk ? 22 : 18, color: _hover ? NoirInk.brass : NoirInk.muted),
-                ),
-              ),
-            ),
-          ),
+    return SizedBox.square(
+      dimension: size,
+      child: Center(
+        child: TargaIconButton(
+          icon: Icons.close,
+          tooltip: m.desk ? 'Esc' : MaterialLocalizations.of(context).closeButtonTooltip,
+          size: size - 8,
+          feel: Press.back,
+          onPressed: () => Navigator.of(context).maybePop(),
         ),
       ),
     );

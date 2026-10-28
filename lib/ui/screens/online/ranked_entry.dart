@@ -16,6 +16,7 @@ import '../../theme/app_theme.dart';
 import '../../theme/role_style.dart';
 import '../../widgets/noir_modal.dart';
 import 'game/noir_ui.dart';
+import '../../widgets/targa.dart';
 
 /// La stanza sul retro: una lampada sopra il tavolo verde, il fumo, il
 /// proprio grado timbrato, due carte da gioco per la lingua del tavolo e il
@@ -110,15 +111,7 @@ class RankedEntryView extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(4, 2, 16, 0),
                   child: Row(
                     children: [
-                      Semantics(
-                        button: true,
-                        label: MaterialLocalizations.of(context).backButtonTooltip,
-                        child: GestureDetector(
-                          onTap: () => Navigator.of(context).maybePop(),
-                          behavior: HitTestBehavior.opaque,
-                          child: const SizedBox(width: 48, height: 48, child: CustomPaint(painter: _ChevronPainter())),
-                        ),
-                      ),
+                      const SizedBox(width: 48, height: 48, child: Center(child: TargaBackButton(size: 42))),
                       Expanded(
                         child: Text(
                           t.rankedQueueTitle.toUpperCase(),
@@ -964,28 +957,4 @@ class _SuitPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_SuitPainter old) => old.heart != heart || old.color != color;
-}
-
-/// La freccia "indietro" disegnata in ottone, al posto dell'icona.
-class _ChevronPainter extends CustomPainter {
-  const _ChevronPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final c = size.center(Offset.zero);
-    canvas.drawPath(
-      Path()
-        ..moveTo(c.dx + 5, c.dy - 9)
-        ..lineTo(c.dx - 5, c.dy)
-        ..lineTo(c.dx + 5, c.dy + 9),
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.6
-        ..strokeCap = StrokeCap.round
-        ..color = Saloon.brass,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_ChevronPainter old) => false;
 }
