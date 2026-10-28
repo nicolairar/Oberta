@@ -168,6 +168,10 @@ abstract class OnlineStrings {
   String get rankedStrangers;
   String homeQueued(int n);
   String get rankedSit;
+  String get rankedTutorialsTitle;
+  String get rankedTutorialsBody;
+  String rankedTutorialName(String faction);
+  String rankedTutorialPlay(String name);
   String get rankedPickTable;
   String get rankedRules;
   String get rankedYourRank;
@@ -404,6 +408,10 @@ abstract class OnlineStrings {
     'rankedStrangers': rankedStrangers,
     'homeQueued': homeQueued(24),
     'rankedSit': rankedSit,
+    'rankedTutorialsTitle': rankedTutorialsTitle,
+    'rankedTutorialsBody': rankedTutorialsBody,
+    for (final f in ['family', 'town', 'solo']) 'rankedTutorialName.$f': rankedTutorialName(f),
+    'rankedTutorialPlay': rankedTutorialPlay(rankedTutorialName('family')),
     'rankedPickTable': rankedPickTable,
     'rankedRules': rankedRules,
     'rankedYourRank': rankedYourRank,
@@ -483,6 +491,19 @@ final class ItalianOnlineStrings extends OnlineStrings {
   String homeQueued(int n) => '$n in coda per un tavolo';
   @override
   String get rankedSit => 'Siediti al tavolo';
+  @override
+  String get rankedTutorialsTitle => 'Prima, le tre mani di prova';
+  @override
+  String get rankedTutorialsBody =>
+      'In classificata si siede solo chi ha giocato le tre mani di prova: la Famiglia, la Città e chi gioca da solo. Con gli amici, invece, si gioca subito.';
+  @override
+  String rankedTutorialName(String faction) => switch (faction) {
+        'family' => 'la Famiglia',
+        'town' => 'la Città',
+        _ => 'chi gioca da solo',
+      };
+  @override
+  String rankedTutorialPlay(String name) => 'Gioca la mano: $name';
   @override
   String get rankedPickTable => 'SCEGLI IL TAVOLO';
   @override
@@ -908,6 +929,7 @@ final class ItalianOnlineStrings extends OnlineStrings {
         OnlineFailure.cancelled => 'Accesso annullato.',
         OnlineFailure.rankedCooldown => 'Troppi abbandoni: aspetta un po\' prima di rientrare.',
         OnlineFailure.alreadyInGame => 'Sei già in una partita.',
+        OnlineFailure.tutorialsRequired => 'Per la classificata gioca prima le tre mani di prova.',
         OnlineFailure.otherDevice => 'Sei connesso su un altro dispositivo.',
         OnlineFailure.updateRequired => 'Aggiornamento obbligatorio: scarica la nuova versione.',
         OnlineFailure.linkSameAccount => 'Questo account è già collegato.',
@@ -958,6 +980,19 @@ final class EnglishOnlineStrings extends OnlineStrings {
   String homeQueued(int n) => '$n waiting for a table';
   @override
   String get rankedSit => 'Take a seat';
+  @override
+  String get rankedTutorialsTitle => 'First, the three practice hands';
+  @override
+  String get rankedTutorialsBody =>
+      'Only players who have finished the three practice hands sit at a ranked table: the Family, the Town and the lone players. With friends, you can play right away.';
+  @override
+  String rankedTutorialName(String faction) => switch (faction) {
+        'family' => 'the Family',
+        'town' => 'the Town',
+        _ => 'the loner',
+      };
+  @override
+  String rankedTutorialPlay(String name) => 'Play the hand: $name';
   @override
   String get rankedPickTable => 'PICK YOUR TABLE';
   @override
@@ -1381,6 +1416,7 @@ final class EnglishOnlineStrings extends OnlineStrings {
         OnlineFailure.cancelled => 'Sign-in cancelled.',
         OnlineFailure.rankedCooldown => 'Too many games left: wait a little before queueing.',
         OnlineFailure.alreadyInGame => 'You are already in a game.',
+        OnlineFailure.tutorialsRequired => 'Finish the three practice hands to play ranked.',
         OnlineFailure.otherDevice => 'You are connected on another device.',
         OnlineFailure.updateRequired => 'Update required: download the new version.',
         OnlineFailure.linkSameAccount => 'This account is already linked.',

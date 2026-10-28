@@ -80,6 +80,10 @@ class OnlineGameScreen extends StatefulWidget {
   /// L'orologio di questo telefono (per i test).
   final GameClock clock;
 
+  /// Il conto alla rovescia in alto. La mano di prova lo spegne: lì non
+  /// corre nessuno.
+  final bool showClock;
+
   const OnlineGameScreen({
     super.key,
     required this.services,
@@ -87,6 +91,7 @@ class OnlineGameScreen extends StatefulWidget {
     required this.me,
     this.seating,
     this.clock = const SystemGameClock(),
+    this.showClock = true,
   });
 
   @override
@@ -565,7 +570,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         _stage == Stage.night ||
         (_stage == Stage.ended && _public.winner == Team.mafia);
     final left = _client.timeLeft;
-    final showClock = ready && _stage != Stage.ended && !_board.abandoned;
+    final showClock = widget.showClock && ready && _stage != Stage.ended && !_board.abandoned;
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
@@ -687,7 +692,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
           _stage == Stage.night ||
           (_stage == Stage.ended && _public.winner == Team.mafia);
       final left = _client.timeLeft;
-      final showClock = ready && _stage != Stage.ended && !_board.abandoned;
+      final showClock = widget.showClock && ready && _stage != Stage.ended && !_board.abandoned;
       final side = ready && !_board.abandoned;
       page = Scaffold(
         backgroundColor: Saloon.ink,

@@ -22,6 +22,10 @@ class RankedStatus {
   final DateTime? cooldownUntil;
   final bool warning;
 
+  /// Le mani di prova finite per il server ('family', 'town', 'solo'): la
+  /// classificata le chiede tutte e tre.
+  final Set<String> tutorials;
+
   const RankedStatus({
     this.queued = false,
     this.language,
@@ -33,6 +37,7 @@ class RankedStatus {
     this.testMatch = false,
     this.cooldownUntil,
     this.warning = false,
+    this.tutorials = const {},
   });
 
   static DateTime? _ms(Object? v) => v == null ? null : DateTime.fromMillisecondsSinceEpoch((v as num).toInt());
@@ -48,6 +53,7 @@ class RankedStatus {
         testMatch: json['test'] == true,
         cooldownUntil: _ms(json['cooldown_until']),
         warning: json['warning'] == true,
+        tutorials: {...?(json['tutorials'] as List?)?.whereType<String>()},
       );
 }
 
@@ -147,6 +153,10 @@ abstract class RankedRepository {
   Future<RankedStatus> status();
   Future<RankedStatus> enqueue(AppLanguage language);
   Future<void> leave();
+
+  /// Registra una mano di prova finita ([faction]: 'family', 'town', 'solo').
+  /// Ripeterla non cambia nulla. Ritorna quelle registrate.
+  Future<Set<String>> completeTutorial(String faction);
 
   /// Quanti sono in giro (in partita, in sala, in coda) e quanti in coda per
   /// lingua: solo numeri, presi da una cache del server.

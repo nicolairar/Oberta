@@ -216,6 +216,12 @@ class ServerGame {
   /// Private lines written while a phase closed, for this step's events.
   final List<Map<String, Object?>> _closing = [];
 
+  /// La mano di prova: i bot non pensano da soli (le loro mosse arrivano
+  /// come intenzioni, dal copione), e la notte e il voto chiudono appena
+  /// hanno agito tutti, senza aspettare l'orologio. Non si salva: vive solo
+  /// sul telefono, mai sul server.
+  bool scripted = false;
+
   ServerGame._({
     required this.seating,
     required this.language,
@@ -278,6 +284,34 @@ class ServerGame {
       random: random,
       window: StageWindow.open(Stage.reveal, 1, now, pacing.reveal, pacing),
     );
+  }
+
+  /// La mano di prova: carte date a mano, posto per posto, e un dado fisso.
+  factory ServerGame.scripted({
+    required List<SeatPlan> seats,
+    required Map<String, Role> roles,
+    required String language,
+    required DateTime now,
+    required int seed,
+    OnlinePacing pacing = const OnlinePacing(),
+  }) {
+    final seating = Seating([
+      for (final plan in seats) Occupant(seat: plan.seat, name: plan.name, profileId: plan.profileId),
+    ]);
+    final random = Random(seed);
+    final engine = GameEngine(
+      GameSetup.fromRoles({for (final player in seating.players) player: roles[player.id]!}),
+      settings: GameSettings(night: pacing.night, discussion: pacing.discussion, vote: pacing.vote),
+      seed: seed,
+    );
+    return ServerGame._(
+      seating: seating,
+      language: language == 'en' ? 'en' : 'it',
+      narrationSeed: seed,
+      engine: engine,
+      random: random,
+      window: StageWindow.open(Stage.reveal, 1, now, pacing.reveal, pacing),
+    )..scripted = true;
   }
 
   factory ServerGame.fromJson(Map<String, Object?> json, {required Random random}) {
@@ -381,7 +415,10 @@ class ServerGame {
       if (envelope.id <= lastIntent) continue;
       lastIntent = envelope.id;
       changed = true;
-      if (!_isHuman(envelope.seat)) continue;
+      if (!_isHuman(envelope.seat)) {
+        if (scripted && envelope.intent['type'] != 'ack' && _apply(envelope).accepted) _settle(now);
+        continue;
+      }
       _heard = true;
       // Partecipa chi manda qualcosa davvero: anche «passo» e l'astensione,
       // mai lo scadere del tempo.
@@ -629,6 +666,10 @@ class ServerGame {
   /// collegato: senza nessuno si va a tempo).
   bool _everyoneDone(Set<String>? connected) {
     switch (stage) {
+      case Stage.night when scripted:
+        return engine.nightComplete;
+      case Stage.vote when scripted:
+        return seating.occupants.every((o) => !_alive(o.seat) || engine.dayVotes.containsKey(seating.playerAt(o.seat)));
       case Stage.night:
       case Stage.vote:
       case Stage.ended:
@@ -796,7 +837,7 @@ class ServerGame {
 
   bool _botWaiting(String seat) {
     final player = seating.playerAt(seat);
-    if (!engine.isAlive(player)) return false;
+    if (scripted || !engine.isAlive(player)) return false;
     return switch (stage) {
       Stage.night => engine.phase == GamePhase.night && engine.pendingNightPlayers.contains(player),
       Stage.vote => engine.phase == GamePhase.day && !engine.dayVotes.containsKey(player),

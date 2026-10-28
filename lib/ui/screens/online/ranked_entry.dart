@@ -11,7 +11,9 @@ import '../../../online/ranked_models.dart';
 import '../../../l10n/desktop_online_strings.dart';
 import '../../../l10n/desktop_strings.dart';
 import '../../desktop/desktop_canvas.dart';
+import '../../../tutorial/tutorial_story.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/role_style.dart';
 import 'game/noir_ui.dart';
 
 /// La stanza sul retro: una lampada sopra il tavolo verde, il fumo, il
@@ -37,6 +39,21 @@ class RankedEntryView extends StatelessWidget {
   /// Quanti sono in coda per lingua: si mostrano solo da [OnlineCounts.encouraging].
   final Map<AppLanguage, int> queuedCounts;
 
+  /// Le mani di prova finite: senza tutte e tre la classificata è chiusa e
+  /// al posto di «Siediti» c'è la prima mano che manca ([onTutorial]).
+  final Set<TutorialStory> tutorialsDone;
+  final ValueChanged<TutorialStory>? onTutorial;
+
+  bool get _locked => !tutorialsDone.containsAll(TutorialStory.values);
+
+  /// Invio sul PC: «Siediti», o la prima mano di prova che manca.
+  void _enter() {
+    if (queued || cooldown != null) return;
+    if (!_locked) return onStart();
+    final missing = TutorialStory.values.where((s) => !tutorialsDone.contains(s)).firstOrNull;
+    if (missing != null) onTutorial?.call(missing);
+  }
+
   const RankedEntryView({
     super.key,
     required this.language,
@@ -51,6 +68,8 @@ class RankedEntryView extends StatelessWidget {
     this.progress,
     this.queuedCounts = const {},
     this.onLeaderboard,
+    this.tutorialsDone = const {TutorialStory.family, TutorialStory.city, TutorialStory.solo},
+    this.onTutorial,
   });
 
   @override
@@ -181,10 +200,10 @@ class RankedEntryView extends StatelessWidget {
           child: CallbackShortcuts(
             bindings: {
               const SingleActivator(LogicalKeyboardKey.enter): () {
-                if (!queued && cooldown == null) onStart();
+                _enter();
               },
               const SingleActivator(LogicalKeyboardKey.numpadEnter): () {
-                if (!queued && cooldown == null) onStart();
+                _enter();
               },
               const SingleActivator(LogicalKeyboardKey.arrowLeft): () => pick(AppLanguage.it),
               const SingleActivator(LogicalKeyboardKey.arrowRight): () => pick(AppLanguage.en),
@@ -300,6 +319,8 @@ class RankedEntryView extends StatelessWidget {
                                           style: DeskText.text(size: DeskText.lead, color: AppColors.gold),
                                         ),
                                       )
+                                    else if (_locked)
+                                      _TutorialLock(done: tutorialsDone, onPlay: onTutorial, desk: true)
                                     else ...[
                                       NoirButton(
                                         key: const Key('ranked.start'),
@@ -406,6 +427,8 @@ class RankedEntryView extends StatelessWidget {
             decoration: Saloon.scrim(),
             child: Text(cooldown!, textAlign: TextAlign.center, style: AppText.body.copyWith(color: AppColors.gold)),
           )
+        else if (_locked)
+          _TutorialLock(done: tutorialsDone, onPlay: onTutorial, desk: false)
         else
           SizedBox(
             width: double.infinity,
@@ -415,6 +438,110 @@ class RankedEntryView extends StatelessWidget {
 }
 
 /// Il grado timbrato in inchiostro rosso, con la barra verso il prossimo.
+/// La classificata chiusa: le tre mani di prova (rossa, oro, verde), con la
+/// spunta su quelle finite, e il bottone per la prima che manca.
+class _TutorialLock extends StatelessWidget {
+  final Set<TutorialStory> done;
+  final ValueChanged<TutorialStory>? onPlay;
+  final bool desk;
+
+  const _TutorialLock({required this.done, required this.onPlay, required this.desk});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppStrings.of(context).online;
+    final missing = TutorialStory.values.where((s) => !done.contains(s)).firstOrNull;
+    final badge = desk ? 52.0 : 46.0;
+    return Container(
+      key: const Key('ranked.locked'),
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: desk ? 24 : 16, vertical: 14),
+      decoration: Saloon.scrim(),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            t.rankedTutorialsTitle.toUpperCase(),
+            textAlign: TextAlign.center,
+            style: AppText.overline.copyWith(color: Saloon.brass, fontSize: desk ? 15 : 11, letterSpacing: 2.4),
+          ),
+          SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (final story in TutorialStory.values) ...[
+                if (story != TutorialStory.values.first) SizedBox(width: desk ? 22 : 16),
+                Semantics(
+                  label: t.rankedTutorialName(story.id),
+                  checked: done.contains(story),
+                  child: SizedBox(
+                    key: Key('ranked.tutorial.${story.id}.${done.contains(story) ? 'done' : 'todo'}'),
+                    width: badge + 8,
+                    height: badge + 8,
+                    child: Stack(
+                      children: [
+                        Positioned(
+                          left: 0,
+                          top: 0,
+                          child: Opacity(
+                            opacity: done.contains(story) ? 1 : 0.45,
+                            child: Container(
+                              width: badge,
+                              height: badge,
+                              padding: EdgeInsets.all(badge * 0.14),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: story.color.withValues(alpha: 0.16),
+                                border: Border.all(color: story.color, width: 2),
+                              ),
+                              child: RoleIcon(story.role, size: badge * 0.72),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: Container(
+                            width: badge * 0.42,
+                            height: badge * 0.42,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: done.contains(story) ? story.color : const Color(0xFF1A1210),
+                              border: Border.all(color: story.color, width: 1.5),
+                            ),
+                            child: done.contains(story)
+                                ? Icon(Icons.check_rounded, size: badge * 0.3, color: const Color(0xFF140C07))
+                                : null,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          SizedBox(height: 10),
+          Text(
+            t.rankedTutorialsBody,
+            textAlign: TextAlign.center,
+            style: AppText.body.copyWith(fontSize: desk ? 15 : 12.5, height: 1.3, color: Saloon.paper.withValues(alpha: 0.8)),
+          ),
+          if (missing != null) ...[
+            SizedBox(height: 12),
+            NoirButton(
+              key: const Key('ranked.tutorial'),
+              label: t.rankedTutorialPlay(t.rankedTutorialName(missing.id)).toUpperCase(),
+              onPressed: onPlay == null ? null : () => onPlay!(missing),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class _RankBadge extends StatelessWidget {
   final RankTier? tier;
   final double? progress;

@@ -1,48 +1,43 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_strings.dart';
 import '../../l10n/tutorial_strings.dart';
-import '../../rules/player.dart';
-import '../../rules/role.dart';
+import '../../online/fake_online.dart';
+import '../../online/online_services.dart';
 import '../../settings/app_settings.dart';
-import '../../tutorial/tutorial_game.dart';
+import '../../tutorial/tutorial_script.dart';
+import '../../tutorial/tutorial_story.dart';
+import '../../tutorial/tutorial_table.dart';
 import '../theme/app_theme.dart';
-import '../widgets/flip_role_card.dart';
-import '../widgets/noir_modal.dart';
-import '../widgets/player_grid.dart';
+import '../theme/role_style.dart';
+import 'online/online_game_screen.dart';
 
-const _mafiaRed = Color(0xFFE5606A);
-const _cleanGreen = Color(0xFF6FBF9A);
-
-/// Il tutorial: una mano guidata contro cinque bot, sullo stesso telefono (o
-/// sul PC). Il narratore accende una luce sul punto giusto dello schermo e
-/// dice una frase; si può saltare in ogni momento.
+/// La mano di prova: lo schermo della partita online vera, con cinque bot
+/// che recitano un copione. Il narratore accende solo una luce sul pezzo
+/// giusto e dice una frase; il resto lo fai tu, come in partita.
 class TutorialScreen extends StatefulWidget {
+  final TutorialStory story;
   final AppSettings? settings;
 
-  const TutorialScreen({super.key, this.settings});
+  const TutorialScreen({super.key, this.story = TutorialStory.city, this.settings});
 
-  static Future<void> open(BuildContext context, {AppSettings? settings}) => Navigator.of(context)
-      .push(MaterialPageRoute<void>(builder: (_) => TutorialScreen(settings: settings)));
+  /// La scelta delle tre mani.
+  static Future<void> open(BuildContext context, {AppSettings? settings}) =>
+      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => TutorialChooser(settings: settings)));
 
-  /// Al primo avvio: chiede una volta se fare la mano di prova.
-  static Future<void> offer(BuildContext context, {AppSettings? settings}) async {
-    final store = settings ?? AppSettings.instance;
-    if (store.tutorialSeen) return;
-    store.tutorialSeen = true;
-    final s = TutorialStrings.of(context);
-    final play = await confirmNoir(
-      context,
-      title: s.offerTitle,
-      body: s.offerBody,
-      icon: Icons.style_outlined,
-      cancel: s.offerLater,
-      confirm: s.offerStart,
-      cancelKey: const Key('tutorial.later'),
-      confirmKey: const Key('tutorial.start'),
-    );
-    if (play && context.mounted) await open(context, settings: store);
-  }
+  /// Una mano precisa (dalla classificata: quella che manca).
+  /// L'ultimo tavolo aperto: i test lo guardano per sapere dove toccare.
+  @visibleForTesting
+  static TutorialTable? lastTable;
+
+  static Future<void> play(BuildContext context, TutorialStory story, {AppSettings? settings}) => Navigator.of(context)
+      .push(
+        MaterialPageRoute<void>(
+          builder: (_) => TutorialScreen(story: story, settings: settings),
+        ),
+      );
 
   @override
   State<TutorialScreen> createState() => _TutorialScreenState();
@@ -50,348 +45,360 @@ class TutorialScreen extends StatefulWidget {
 
 class _TutorialScreenState extends State<TutorialScreen> {
   final _stack = GlobalKey();
-  final _focus = GlobalKey();
+  final _game = GlobalKey();
   late TutorialStrings _s;
-  late AppStrings _t;
-  TutorialGame? _gameOrNull;
-  TutorialGame get _game => _gameOrNull!;
-  bool _revealed = false;
+  late TutorialScript _script;
+  TutorialTable? _tableOrNull;
+  TutorialTable get _table => _tableOrNull!;
+  late OnlineServices _services;
+  late Room _room;
+  late Profile _me;
+  Timer? _measure;
   Rect? _spot;
+
+  AppSettings get _settings => widget.settings ?? AppSettings.instance;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _s = TutorialStrings.of(context);
-    _t = AppStrings.of(context);
-    _gameOrNull ??= TutorialGame(youName: _s.you);
+    if (_tableOrNull != null) return;
+    final language = AppStrings.of(context).language;
+    _script = TutorialScript.of(widget.story, language);
+    final table = _tableOrNull = TutorialScreen.lastTable = TutorialTable(_script, youName: _s.you, language: language);
+    final fake = FakeOnline(accountId: TutorialTable.youId)..signInReady(handle: _s.you);
+    _services = OnlineServices(
+      auth: fake.auth,
+      profiles: fake.profiles,
+      friends: fake.friends,
+      rooms: fake.rooms,
+      game: table,
+      reactions: table.reactions,
+    );
+    _room = Room(
+      id: TutorialTable.roomId,
+      code: 'OBERTA',
+      hostId: TutorialTable.youId,
+      language: language,
+      status: RoomStatus.playing,
+      maxPlayers: 6,
+      bots: 5,
+    );
+    _me = Profile(id: TutorialTable.youId, handle: _s.you, language: language);
+    table.coach.addListener(_changed);
+    table.replies.addListener(_changed);
+    table.finished.addListener(_finished);
+    _measure = Timer.periodic(const Duration(milliseconds: 250), (_) {
+      _table.tick();
+      _locate();
+    });
   }
 
-  void _finish() {
-    (widget.settings ?? AppSettings.instance).tutorialSeen = true;
-    Navigator.of(context).maybePop();
+  @override
+  void dispose() {
+    _measure?.cancel();
+    _tableOrNull?.dispose();
+    super.dispose();
   }
 
-  void _act(VoidCallback move) => setState(() {
-    move();
-    _spot = null;
-  });
-
-  /// Dove sta il pezzo da illuminare, rispetto all'intera pagina.
-  void _measure() {
+  void _changed() {
     if (!mounted) return;
-    final target = _focus.currentContext?.findRenderObject() as RenderBox?;
-    final stack = _stack.currentContext?.findRenderObject() as RenderBox?;
+    setState(() {});
+    _locate();
+  }
+
+  void _finished() {
+    if (!_table.finished.value) return;
+    _settings
+      ..tutorialSeen = true
+      ..markTutorialDone(widget.story.id);
+    TutorialProgress.onComplete?.call(widget.story);
+    if (!mounted) return;
+    // Quello che la partita ha aperto sopra (il resoconto) si chiude.
+    final route = ModalRoute.of(context);
+    Navigator.of(context).popUntil((r) => r == route || r.isFirst);
+    setState(() {});
+  }
+
+  /// Dove sta, sullo schermo della partita, il pezzo da illuminare.
+  void _locate() {
+    if (!mounted) return;
+    final key = _table.coach.value?.spot;
     Rect? spot;
-    if (target != null && stack != null && target.hasSize && target.attached) {
-      spot = target.localToGlobal(Offset.zero, ancestor: stack) & target.size;
+    final root = _game.currentContext as Element?;
+    final stack = _stack.currentContext?.findRenderObject() as RenderBox?;
+    if (key != null && root != null && stack != null) {
+      Element? found;
+      void visit(Element element) {
+        if (found != null) return;
+        if (element.widget.key == key) {
+          found = element;
+          return;
+        }
+        element.visitChildElements(visit);
+      }
+
+      root.visitChildElements(visit);
+      final box = found?.renderObject;
+      if (box is RenderBox && box.attached && box.hasSize) {
+        spot = box.localToGlobal(Offset.zero, ancestor: stack) & box.size;
+      }
     }
     if (spot != _spot) setState(() => _spot = spot);
   }
 
-  Player get _suspect => _game.suspect;
-
-  String get _caption {
-    final g = _game;
-    return switch (g.beat) {
-      TutorialBeat.welcome => _s.coachWelcome,
-      TutorialBeat.card => _s.coachCard,
-      TutorialBeat.night => _s.coachNight(_suspect.name),
-      TutorialBeat.finding => _s.coachFinding(_suspect.name),
-      TutorialBeat.dawn => g.dawn!.attacks.any((a) => a.isFatal) ? _s.coachDawn : _s.coachSaved,
-      TutorialBeat.talk => _s.coachTalk,
-      TutorialBeat.vote => _s.coachVote(_suspect.name),
-      TutorialBeat.verdict => _s.coachVerdict,
-      TutorialBeat.win => _s.coachWin,
-      TutorialBeat.ready => '',
-    };
-  }
-
-  String get _heading {
-    final g = _game;
-    return switch (g.beat) {
-      TutorialBeat.welcome || TutorialBeat.card => _s.title.toUpperCase(),
-      TutorialBeat.night || TutorialBeat.finding => _s.night(g.round),
-      _ => _s.day(g.dawn?.round ?? g.round),
-    };
-  }
+  void _skip() => Navigator.of(context).pop();
 
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
-    final beat = _game.beat;
-    if (beat == TutorialBeat.ready) return _readyPage();
-    final canNext = _game.passive && (beat != TutorialBeat.card || _revealed);
-    return Scaffold(
-      backgroundColor: const Color(0xFF0B0A0D),
-      body: SafeArea(
-        child: Stack(
-          key: _stack,
-          fit: StackFit.expand,
-          children: [
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 760),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 150),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(_heading, textAlign: TextAlign.center, style: AppText.display(20)),
-                      const SizedBox(height: 12),
-                      Expanded(child: _body(beat)),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            if (_spot case final spot?)
-              IgnorePointer(child: CustomPaint(painter: _CoachScrim(spot.inflate(8)))),
-            Positioned(
-              left: 16,
-              right: 16,
-              bottom: 16,
+    if (_table.finished.value) return _readyPage();
+    final coach = _table.coach.value;
+    final replies = _table.replies.value;
+    final place = _place(MediaQuery.sizeOf(context), MediaQuery.paddingOf(context).top + 88);
+    return Stack(
+      key: _stack,
+      fit: StackFit.expand,
+      children: [
+        OnlineGameScreen(key: _game, services: _services, room: _room, me: _me, clock: _table.clock, showClock: false),
+        if (_spot case final spot?) IgnorePointer(child: CustomPaint(painter: _CoachScrim(spot.inflate(6)))),
+        if (coach != null || replies.isNotEmpty)
+          Positioned(
+            left: 12,
+            right: 12,
+            top: place.top,
+            bottom: place.bottom,
+            // La riga non ferma le dita: si tocca il tavolo anche sotto.
+            child: IgnorePointer(
+              ignoring: replies.isEmpty,
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 520),
                   child: _CoachCard(
                     key: const Key('tutorial.coach'),
-                    caption: _caption,
-                    next: canNext ? _s.next : null,
-                    onNext: () => _act(_game.next),
+                    color: widget.story.color,
+                    caption: coach?.line,
+                    replies: replies,
+                    onReply: (text) => _table.sendChat(TutorialTable.roomId, _table.replyChannel, text),
                   ),
                 ),
               ),
             ),
-            Positioned(
-              top: 4,
-              right: 8,
-              child: TextButton(
-                key: const Key('tutorial.skip'),
-                onPressed: _finish,
-                child: Text(_s.skip, style: const TextStyle(color: AppColors.textSecondary)),
-              ),
-            ),
-          ],
+          ),
+        Positioned(
+          right: 6,
+          top: MediaQuery.paddingOf(context).top + 52,
+          child: TextButton(
+            key: const Key('tutorial.skip'),
+            onPressed: _skip,
+            child: Text(_s.skip, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+          ),
         ),
-      ),
+      ],
     );
   }
 
-  Widget _grid({List<Player>? selectable, ValueChanged<Player>? onSelect, Player? lynched, Key? key}) => PlayerGrid(
-    key: key,
-    players: _game.players,
-    isAlive: _game.engine.isAlive,
-    knowledgeOf: (player) => _game.engine.knowledgeOf(_game.you, player),
-    viewer: _game.you,
-    selectable: selectable,
-    onSelect: onSelect,
-    stamp: _t.accusedStamp,
-    lynched: lynched,
-    lynchedLabel: _t.language.locale.languageCode == 'it' ? 'Linciato' : 'Lynched',
-  );
+  /// Dove mettere la riga: accanto alla luce, sotto se c'è posto, se no
+  /// sopra; con una luce troppo grande, in alto.
+  ({double? top, double? bottom}) _place(Size size, double top) {
+    const room = 140.0;
+    final spot = _spot;
+    if (spot == null) return (top: top, bottom: null);
+    if (spot.bottom + room < size.height) return (top: spot.bottom + 10, bottom: null);
+    if (spot.top - room > top) return (top: null, bottom: size.height - spot.top + 10);
+    return (top: top, bottom: null);
+  }
 
-  Widget _panel({required Widget child, Key? key, Color border = AppColors.gold}) => Container(
-    key: key,
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: AppColors.surface,
-      borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: border.withValues(alpha: 0.7), width: 1.4),
-    ),
-    child: child,
-  );
-
-  Widget _body(TutorialBeat beat) {
-    final g = _game;
-    switch (beat) {
-      case TutorialBeat.welcome:
-        return Center(
-          child: Column(
-            key: _focus,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('OBERTÀ', style: AppText.display(46)),
-              const SizedBox(height: 8),
-              Text(_s.offerBody, textAlign: TextAlign.center, style: AppText.body),
-            ],
-          ),
-        );
-      case TutorialBeat.card:
-        return Center(
-          child: SizedBox(
-            key: _focus,
-            width: 210,
-            child: FlipRoleCard(role: Role.detective, onRevealed: () => setState(() => _revealed = true)),
-          ),
-        );
-      case TutorialBeat.night:
-        return _grid(key: _focus, selectable: [_suspect], onSelect: (p) => _act(() => g.investigate(p)));
-      case TutorialBeat.finding:
-        final finding = g.finding!;
-        final mafia = finding.team == Team.mafia;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(child: _grid()),
-            const SizedBox(height: 12),
-            _panel(
-              key: _focus,
-              border: mafia ? _mafiaRed : _cleanGreen,
+  Widget _readyPage() {
+    final story = widget.story;
+    final missing = TutorialStory.values.where((s) => !_settings.tutorialsDone.contains(s.id)).toList();
+    return Scaffold(
+      backgroundColor: const Color(0xFF0B0A0D),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(_s.investigated(finding.subject.name), style: AppText.overline),
-                  const SizedBox(height: 6),
+                  RoleIcon(story.role, size: 84),
+                  const SizedBox(height: 18),
                   Text(
-                    mafia ? _s.family : _t.role(Role.cittadino).label,
-                    style: AppText.display(26, color: mafia ? _mafiaRed : _cleanGreen),
+                    _s.ready,
+                    textAlign: TextAlign.center,
+                    style: AppText.display(32, color: story.color),
                   ),
-                ],
-              ),
-            ),
-          ],
-        );
-      case TutorialBeat.dawn:
-        final dead = [for (final a in g.dawn!.attacks) if (a.isFatal) a.target];
-        return Center(
-          child: _panel(
-            key: _focus,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(_s.paper, textAlign: TextAlign.center, style: AppText.overline),
-                const Divider(color: AppColors.gold),
-                Text(
-                  dead.isEmpty ? _s.quiet : _s.found(dead.first.name),
-                  textAlign: TextAlign.center,
-                  style: AppText.display(24, color: AppColors.textPrimary),
-                ),
-                const SizedBox(height: 8),
-                Text(dead.isEmpty ? _s.quietSub : _s.foundSub, style: AppText.body),
-              ],
-            ),
-          ),
-        );
-      case TutorialBeat.talk:
-        final lines = _s.chat(g.round);
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: ListView(
-                children: [
-                  for (final (who, line) in lines)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: _panel(
-                        border: AppColors.surfaceHigh,
-                        child: Text.rich(
-                          TextSpan(
-                            children: [
-                              TextSpan(
-                                text: '$who  ',
-                                style: const TextStyle(color: AppColors.gold, fontWeight: FontWeight.w700),
-                              ),
-                              TextSpan(text: line, style: const TextStyle(color: AppColors.textPrimary)),
-                            ],
-                          ),
-                        ),
+                  const SizedBox(height: 12),
+                  Text(_script.winLine, textAlign: TextAlign.center, style: AppText.body),
+                  const SizedBox(height: 28),
+                  ElevatedButton(
+                    key: const Key('tutorial.done'),
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(_s.toTheTable),
+                  ),
+                  if (missing.isNotEmpty)
+                    TextButton(
+                      key: const Key('tutorial.another'),
+                      onPressed: () => Navigator.of(context).pushReplacement(
+                        MaterialPageRoute<void>(builder: (_) => TutorialChooser(settings: widget.settings)),
                       ),
+                      child: Text(_s.nextHand),
                     ),
                 ],
               ),
             ),
-            ElevatedButton(
-              key: _focus,
-              onPressed: () => _act(g.speak),
-              child: Text(_s.accuse(_suspect.name), textAlign: TextAlign.center),
-            ),
-          ],
-        );
-      case TutorialBeat.vote:
-        return _grid(key: _focus, selectable: [_suspect], onSelect: (p) => _act(() => g.vote(p)));
-      case TutorialBeat.verdict:
-        final verdict = g.verdict!;
-        final condemned = verdict.condemned!;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(child: _grid(lynched: condemned)),
-            const SizedBox(height: 8),
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 12,
-              runSpacing: 4,
-              children: [
-                for (final MapEntry(key: voter, value: accused) in g.votes.entries)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(voter.name, style: AppText.body),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 4),
-                        child: Icon(Icons.pan_tool_alt, size: 18, color: AppColors.gold),
-                      ),
-                      Text(accused.name, style: AppText.body.copyWith(color: AppColors.textPrimary)),
-                    ],
-                  ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            _panel(
-              key: _focus,
-              border: _mafiaRed,
-              child: Column(
-                children: [
-                  Text(_s.condemned(condemned.name), style: AppText.overline),
-                  const SizedBox(height: 6),
-                  Text(_t.role(verdict.role!).label, style: AppText.display(24, color: _mafiaRed)),
-                ],
-              ),
-            ),
-          ],
-        );
-      case TutorialBeat.win:
-        return Center(
-          child: Text(
-            _s.cityWins,
-            key: _focus,
-            textAlign: TextAlign.center,
-            style: AppText.display(34, color: _cleanGreen),
-          ),
-        );
-      case TutorialBeat.ready:
-        return const SizedBox.shrink();
-    }
-  }
-
-  Widget _readyPage() => Scaffold(
-    backgroundColor: const Color(0xFF0B0A0D),
-    body: SafeArea(
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 520),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.local_police_outlined, color: AppColors.gold, size: 56),
-                const SizedBox(height: 18),
-                Text(_s.ready, textAlign: TextAlign.center, style: AppText.display(32)),
-                const SizedBox(height: 12),
-                Text(_s.readyBody, textAlign: TextAlign.center, style: AppText.body),
-                const SizedBox(height: 28),
-                ElevatedButton(key: const Key('tutorial.done'), onPressed: _finish, child: Text(_s.toTheTable)),
-              ],
-            ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
-/// Il buio intorno, un cerchio di luce sul punto giusto, il filo d'oro.
+/// «Scegli da che parte imparare»: tre carte, una per colore.
+class TutorialChooser extends StatelessWidget {
+  final AppSettings? settings;
+
+  const TutorialChooser({super.key, this.settings});
+
+  @override
+  Widget build(BuildContext context) {
+    final s = TutorialStrings.of(context);
+    final t = AppStrings.of(context);
+    final done = (settings ?? AppSettings.instance).tutorialsDone;
+    Widget card(TutorialStory story) => _StoryCard(
+      key: Key('tutorial.story.${story.id}'),
+      story: story,
+      faction: s.faction(story),
+      role: t.role(story.role).label,
+      pitch: s.pitch(story),
+      done: done.contains(story.id) ? s.done : null,
+      onTap: () => Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          builder: (_) => TutorialScreen(story: story, settings: settings),
+        ),
+      ),
+    );
+    return Scaffold(
+      backgroundColor: const Color(0xFF0B0A0D),
+      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final wide = constraints.maxWidth >= 720;
+            final stories = TutorialStory.values;
+            return SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: wide ? 980 : 520),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(s.choose, textAlign: TextAlign.center, style: AppText.display(26)),
+                      const SizedBox(height: 6),
+                      Text(s.chooseSub, textAlign: TextAlign.center, style: AppText.body),
+                      const SizedBox(height: 22),
+                      if (wide)
+                        IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              for (final (i, story) in stories.indexed) ...[
+                                if (i > 0) const SizedBox(width: 16),
+                                Expanded(child: card(story)),
+                              ],
+                            ],
+                          ),
+                        )
+                      else
+                        for (final (i, story) in stories.indexed) ...[
+                          if (i > 0) const SizedBox(height: 12),
+                          card(story),
+                        ],
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _StoryCard extends StatelessWidget {
+  final TutorialStory story;
+  final String faction;
+  final String role;
+  final String pitch;
+  final String? done;
+  final VoidCallback onTap;
+
+  const _StoryCard({
+    super.key,
+    required this.story,
+    required this.faction,
+    required this.role,
+    required this.pitch,
+    required this.done,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = story.color;
+    return Material(
+      color: Color.alphaBlend(color.withValues(alpha: 0.10), AppColors.surface),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: color.withValues(alpha: 0.75), width: 1.5),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              RoleIcon(story.role, size: 64),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(faction.toUpperCase(), style: AppText.display(20, color: color)),
+                        ),
+                        if (done case final done?) ...[
+                          const SizedBox(width: 8),
+                          Icon(Icons.check_circle, size: 18, color: color, semanticLabel: done),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      role,
+                      style: AppText.body.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(pitch, style: AppText.body),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Il buio intorno, e un riquadro di luce sul pezzo giusto.
 class _CoachScrim extends CustomPainter {
   final Rect spot;
 
@@ -399,18 +406,18 @@ class _CoachScrim extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final hole = RRect.fromRectAndRadius(spot, const Radius.circular(16));
+    final hole = RRect.fromRectAndRadius(spot, const Radius.circular(14));
     final dark = Path()
       ..fillType = PathFillType.evenOdd
       ..addRect(Offset.zero & size)
       ..addRRect(hole);
-    canvas.drawPath(dark, Paint()..color = const Color(0x99000000));
+    canvas.drawPath(dark, Paint()..color = const Color(0x80000000));
     canvas.drawRRect(
       hole,
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.6
-        ..color = AppColors.gold.withValues(alpha: 0.8),
+        ..color = AppColors.gold.withValues(alpha: 0.85),
     );
   }
 
@@ -418,46 +425,121 @@ class _CoachScrim extends CustomPainter {
   bool shouldRepaint(_CoachScrim old) => old.spot != spot;
 }
 
-/// La didascalia del narratore: una frase, e «Avanti» quando non serve una mossa.
+/// La riga del narratore, piccola, con le risposte già pronte da toccare.
 class _CoachCard extends StatelessWidget {
-  final String caption;
-  final String? next;
-  final VoidCallback onNext;
+  final Color color;
+  final String? caption;
+  final List<String> replies;
+  final ValueChanged<String> onReply;
 
-  const _CoachCard({super.key, required this.caption, required this.next, required this.onNext});
+  const _CoachCard({
+    super.key,
+    required this.color,
+    required this.caption,
+    required this.replies,
+    required this.onReply,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xF0151114),
+      color: const Color(0xEE151114),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: AppColors.gold.withValues(alpha: 0.6)),
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: color.withValues(alpha: 0.7)),
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 14, 10, 10),
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              caption,
-              style: const TextStyle(
-                fontFamily: 'Georgia',
-                fontFamilyFallback: ['serif'],
-                fontStyle: FontStyle.italic,
-                fontSize: 17,
-                height: 1.35,
-                color: AppColors.textPrimary,
+            if (caption case final caption?)
+              Text(
+                caption,
+                style: const TextStyle(
+                  fontFamily: 'Georgia',
+                  fontFamilyFallback: ['serif'],
+                  fontStyle: FontStyle.italic,
+                  fontSize: 15,
+                  height: 1.3,
+                  color: AppColors.textPrimary,
+                ),
               ),
-            ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: next == null
-                  ? const SizedBox(height: 36)
-                  : TextButton(key: const Key('tutorial.next'), onPressed: onNext, child: Text(next!)),
-            ),
+            if (replies.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final (i, reply) in replies.indexed)
+                      ActionChip(
+                        key: Key('tutorial.reply.$i'),
+                        label: Text(reply, style: const TextStyle(fontSize: 12.5)),
+                        onPressed: () => onReply(reply),
+                      ),
+                  ],
+                ),
+              ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Il biglietto sul vicolo, al primo avvio: discreto, si tocca o si butta.
+class TutorialNote extends StatelessWidget {
+  final VoidCallback onOpen;
+  final VoidCallback onDismiss;
+
+  const TutorialNote({super.key, required this.onOpen, required this.onDismiss});
+
+  @override
+  Widget build(BuildContext context) {
+    final s = TutorialStrings.of(context);
+    return Transform.rotate(
+      angle: -0.02,
+      child: Material(
+        key: const Key('tutorial.note'),
+        color: const Color(0xFFF1E6CC),
+        elevation: 3,
+        borderRadius: BorderRadius.circular(3),
+        child: InkWell(
+          onTap: onOpen,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 6, 0, 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Text(
+                    s.hint,
+                    style: const TextStyle(
+                      fontFamily: 'Georgia',
+                      fontFamilyFallback: ['serif'],
+                      fontStyle: FontStyle.italic,
+                      fontSize: 13,
+                      color: Color(0xFF2A1E14),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  s.hintGo,
+                  style: const TextStyle(color: Color(0xFF8E1620), fontWeight: FontWeight.w800, fontSize: 13),
+                ),
+                IconButton(
+                  key: const Key('tutorial.note.dismiss'),
+                  visualDensity: VisualDensity.compact,
+                  iconSize: 16,
+                  onPressed: onDismiss,
+                  icon: const Icon(Icons.close, color: Color(0xFF5A4A3A)),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

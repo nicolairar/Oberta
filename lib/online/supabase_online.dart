@@ -159,6 +159,7 @@ OnlineException _classify(Object error, SignInDoor? door) {
       'invalid_report' => OnlineFailure.notAllowed,
       'silenced' || 'chat_closed' || 'invalid_message' => OnlineFailure.chatClosed,
       'ranked_cooldown' => OnlineFailure.rankedCooldown,
+      'tutorials_required' => OnlineFailure.tutorialsRequired,
       'already_in_game' => OnlineFailure.alreadyInGame,
       'other_device' => OnlineFailure.otherDevice,
       'update_required' => OnlineFailure.updateRequired,
@@ -1131,6 +1132,12 @@ class SupabaseRanked implements RankedRepository {
 
   @override
   Future<void> leave() => _guard(() => _client.rpc<void>('leave_ranked_queue'));
+
+  @override
+  Future<Set<String>> completeTutorial(String faction) => _guard(() async {
+        final done = await _client.rpc<List<dynamic>>('tutorial_complete', params: {'faction': faction});
+        return {...done.whereType<String>()};
+      });
 
   @override
   Future<OnlineCounts> counts() => _guard(() async =>

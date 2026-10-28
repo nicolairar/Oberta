@@ -416,6 +416,9 @@ enum OnlineFailure {
   rankedCooldown,
   alreadyInGame,
 
+  /// La classificata chiede prima le tre mani di prova.
+  tutorialsRequired,
+
   /// L'account gioca su un altro dispositivo: qui non si scrive.
   otherDevice,
 

@@ -11,6 +11,7 @@ import 'online/incoming_links.dart';
 import 'online/online_config.dart';
 import 'online/online_services.dart';
 import 'online/supabase_online.dart';
+import 'online/tutorial_sync.dart';
 import 'roster/device_roster.dart';
 import 'l10n/app_language.dart';
 import 'l10n/app_strings.dart';
@@ -48,6 +49,7 @@ Future<void> main() async {
     appBuild: build,
     appPlatform: platform,
   );
+  if (OnlineServices.instance case final services?) TutorialSync.attach(services);
   if (OnlineServices.instance case OnlineServices(:final auth, sessions: final sessions?)) {
     DeviceSession.instance = DeviceSession(sessions, sessionId: sessionId, deviceLabel: deviceLabelHere())
       ..follow(auth, () => auth.signedIn);

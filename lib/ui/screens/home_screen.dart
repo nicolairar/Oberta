@@ -32,6 +32,7 @@ import 'online/profile_sheet.dart';
 import 'online/sign_in_sheet.dart';
 import 'shop/shop_screen.dart';
 import 'tutorial_screen.dart';
+import '../../settings/app_settings.dart';
 import '../../l10n/tutorial_strings.dart';
 import '../../sound/fx_groups.dart';
 import '../../sound/screen_music.dart';
@@ -160,7 +161,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
     // Un link arrivato prima del vicolo (l'app aperta proprio dal QR).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _linkArrived();
-      if (widget.offerTutorial && mounted) TutorialScreen.offer(context);
       if (_account?.signedIn ?? false) _checkShop();
       _readCounts();
     });
@@ -573,6 +573,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                       ),
                     ),
                   ),
+                  if (widget.offerTutorial && !AppSettings.instance.tutorialSeen)
+                    Positioned(
+                      left: layout.sign.left,
+                      width: layout.sign.width,
+                      top: layout.sign.bottom + 2,
+                      child: Center(
+                        child: TutorialNote(
+                          onOpen: () => TutorialScreen.open(context),
+                          onDismiss: () => setState(() => AppSettings.instance.tutorialSeen = true),
+                        ),
+                      ),
+                    ),
                   if (widget.onSettings case final onSettings? when !canvas)
                     Positioned.fromRect(
                       rect: layout.slot,

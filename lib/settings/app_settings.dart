@@ -17,7 +17,9 @@ class AppSettings extends ChangeNotifier {
   static const resolutionKey = 'resolution';
   static const orientationKey = 'orientation';
   static const tutorialKey = 'tutorialSeen';
+  static const tutorialsDoneKey = 'tutorialsDone';
   static const keys = {
+    tutorialsDoneKey,
     languageKey,
     soundKey,
     musicVolumeKey,
@@ -87,6 +89,17 @@ class AppSettings extends ChangeNotifier {
   /// Il tutorial è già stato proposto (giocato o rimandato): al primo
   /// avvio si offre una volta sola.
   bool get tutorialSeen => _store.getBool(tutorialKey) ?? false;
+
+  /// Le mani di prova finite davvero (non saltate), per id: anche offline.
+  Set<String> get tutorialsDone =>
+      {...?_store.getString(tutorialsDoneKey)?.split(',').where((id) => id.isNotEmpty)};
+
+  void markTutorialDone(String id) {
+    final done = tutorialsDone;
+    if (!done.add(id)) return;
+    _store.setString(tutorialsDoneKey, (done.toList()..sort()).join(','));
+    notifyListeners();
+  }
 
   set tutorialSeen(bool seen) {
     if (seen == tutorialSeen) return;

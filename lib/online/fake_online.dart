@@ -66,6 +66,17 @@ class FakeOnline {
   /// La pausa dopo troppi abbandoni in classificata, per profilo.
   final Map<String, DateTime> cooldowns = {};
 
+  /// Le mani di prova registrate per profilo (come `tutorial_completions`).
+  final Map<String, Set<String>> tutorials = {};
+
+  /// Spento (di base), ognuno conta come se avesse finito le tre mani di
+  /// prova; acceso, la classificata le chiede davvero.
+  bool requireTutorials = false;
+
+  static const tutorialFactions = {'family', 'town', 'solo'};
+
+  Set<String> tutorialsOf(String me) => requireTutorials ? {...?tutorials[me]} : {...tutorialFactions};
+
   /// Quanti posti ha una partita classificata: sempre esattamente tanti.
   int rankedSize = 12;
 
@@ -1504,7 +1515,18 @@ class FakeRanked implements RankedRepository {
       seated: room?.seats.length ?? 0,
       testMatch: room?.room.testMatch ?? false,
       cooldownUntil: cooldown != null && cooldown.isAfter(_online.clock.now()) ? cooldown : null,
+      tutorials: _online.tutorialsOf(me),
     );
+  }
+
+  @override
+  Future<Set<String>> completeTutorial(String faction) async {
+    await _online._network();
+    final me = _me;
+    _online._ready(me);
+    if (!FakeOnline.tutorialFactions.contains(faction)) throw const OnlineException(OnlineFailure.notAllowed);
+    (_online.tutorials[me] ??= {}).add(faction);
+    return _online.tutorialsOf(me);
   }
 
   @override
@@ -1512,6 +1534,9 @@ class FakeRanked implements RankedRepository {
     await _online._network();
     final me = _me;
     _online._ready(me);
+    if (!_online.tutorialsOf(me).containsAll(FakeOnline.tutorialFactions)) {
+      throw const OnlineException(OnlineFailure.tutorialsRequired);
+    }
     if (_online.cooldowns[me]?.isAfter(_online.clock.now()) ?? false) {
       throw const OnlineException(OnlineFailure.rankedCooldown);
     }

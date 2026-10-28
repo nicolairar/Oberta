@@ -19,7 +19,7 @@ function pgliteDb(pg: PGlite): Db {
 
 const ids = Array.from({ length: 12 }, (_, i) => `00000000-0000-0000-0000-${String(i + 1).padStart(12, '0')}`);
 
-async function world(people = 12) {
+async function world(people = 12, practiced = true) {
   const pg = new PGlite();
   await pg.exec(await Deno.readTextFile(new URL('functions/tests/pglite_prelude.sql', root)));
   const migrations = [...Deno.readDirSync(new URL('migrations/', root))].map((e) => e.name).sort();
@@ -41,6 +41,11 @@ async function world(people = 12) {
   const one = async <T = Record<string, unknown>>(text: string, params: unknown[] = []) =>
     (await pg.query(text, params)).rows[0] as T;
   const enqueue = (who: string, lang = 'it') => as(who, `select public.enqueue_ranked($1)`, [lang]);
+  if (practiced) {
+    for (let i = 0; i < people; i++) {
+      for (const f of ['family', 'town', 'solo']) await as(ids[i], `select public.tutorial_complete($1)`, [f]);
+    }
+  }
   const match = async () => (await one<{ n: number }>(`select internal.ranked_match() as n`)).n;
   const queued = async () => (await one<{ n: number }>(`select count(*)::int as n from internal.ranked_queue`)).n;
   return { pg, db: pgliteDb(pg), as, one, enqueue, match, queued };
@@ -66,6 +71,25 @@ Deno.test('the queue: signed in with a handle, one entry per person, a language 
   // Phones read nothing of the queue or the conduct table.
   await assertRejects(() => as(ids[0], `select * from internal.ranked_queue`));
   await assertRejects(() => as(ids[0], `select * from internal.conduct`));
+  await pg.close();
+});
+
+Deno.test('ranked needs the three practice hands, recorded once each', async () => {
+  const { pg, as, enqueue, queued } = await world(1, false);
+  await assertRejects(() => enqueue(ids[0]), Error, 'tutorials_required');
+  await assertRejects(() => as(ids[0], `select public.tutorial_complete('mafia')`), Error, 'invalid_faction');
+  await as(ids[0], `select public.tutorial_complete('family')`);
+  await as(ids[0], `select public.tutorial_complete('family')`);
+  await as(ids[0], `select public.tutorial_complete('town')`);
+  await assertRejects(() => enqueue(ids[0]), Error, 'tutorials_required');
+  const [{ status }] = await as<{ status: { tutorials: string[] } }>(ids[0], `select public.ranked_status() as status`);
+  assertEquals(status.tutorials, ['family', 'town']);
+  await as(ids[0], `select public.tutorial_complete('solo')`);
+  await enqueue(ids[0]);
+  assertEquals(await queued(), 1);
+  const rows = await as(ids[0], `select faction from public.tutorial_completions`);
+  assertEquals(rows.length, 3);
+  await assertRejects(() => as(ids[0], `insert into public.tutorial_completions (profile_id, faction) values ($1, 'solo')`, [ids[0]]));
   await pg.close();
 });
 

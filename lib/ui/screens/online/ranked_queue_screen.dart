@@ -9,6 +9,10 @@ import '../../../sound/sound_stage.dart';
 import '../../../l10n/app_language.dart';
 import '../../../l10n/app_strings.dart';
 import '../../../online/online_services.dart';
+import '../../../online/tutorial_sync.dart';
+import '../../../settings/app_settings.dart';
+import '../../../tutorial/tutorial_story.dart';
+import '../tutorial_screen.dart';
 import '../../../rules/role.dart';
 import '../../desktop/desktop_canvas.dart';
 import '../../theme/app_theme.dart';
@@ -62,6 +66,12 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
   Duration _offset = Duration.zero;
   Duration? _bestTrip;
   bool _entering = false;
+
+  /// Il primo stato è arrivato: prima non si mostra la classificata chiusa.
+  bool _loaded = false;
+
+  /// Le mani di prova del telefono già offerte al server in questa visita.
+  bool _uploaded = false;
 
   /// La sala d'attesa in cui si siede: solo quanti sono, mai chi.
   Room? _lobby;
@@ -137,8 +147,14 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
   Future<void> _refresh() async {
     if (_entering) return;
     try {
-      final status = await _ranked.status();
+      var status = await _ranked.status();
       if (!mounted) return;
+      if (!_uploaded && !status.tutorials.containsAll(TutorialStory.values.map((s) => s.id))) {
+        _uploaded = true;
+        if (await _sync.upload(status.tutorials)) status = await _ranked.status();
+        if (!mounted) return;
+      }
+      _loaded = true;
       final roomId = status.roomId;
       Room? room;
       if (roomId != null) room = await widget.services.rooms.fetch(roomId);
@@ -162,6 +178,17 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
     } catch (_) {
       // La rete torna: il prossimo giro riprova.
     }
+  }
+
+  TutorialSync get _sync => TutorialSync(widget.services);
+
+  /// Una mano di prova, poi si rilegge lo stato (e si manda quella finita).
+  Future<void> _tutorial(TutorialStory story) async {
+    HapticFeedback.selectionClick();
+    await TutorialScreen.play(context, story);
+    if (!mounted) return;
+    _uploaded = false;
+    await _refresh();
   }
 
   Future<void> _start() async {
@@ -380,6 +407,10 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
       tier: tier,
       progress: tier.progress(ordinal),
       queuedCounts: _counts?.queued ?? const {},
+      tutorialsDone: _loaded
+          ? TutorialSync.done(_status.tutorials, AppSettings.instance)
+          : TutorialStory.values.toSet(),
+      onTutorial: _tutorial,
       onLeaderboard: switch (widget.services.progress) {
         final progress? => () => LeaderboardScreen.open(context, progress, _language),
         null => null,
