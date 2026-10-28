@@ -11,75 +11,71 @@ class StatsStrings {
 
   static StatsStrings of(BuildContext context) => StatsStrings(AppStrings.of(context).language);
 
-  bool get _en => language == AppLanguage.en;
-
-  String _t(String it, String en) => _en ? en : it;
+  /// The text under `stats.<key>` in the messages of the language.
+  String _m(String key, [Map<String, Object?> args = const {}]) => language.message('stats.$key', args);
 
   /// The two index tabs of the folder.
-  String get tabFile => _t('SCHEDA', 'FILE');
-  String get tabStats => _t('STATISTICHE', 'STATS');
+  String get tabFile => _m('tabFile');
+  String get tabStats => _m('tabStats');
 
-  String get title => _t('STATISTICHE PERSONALI', 'PERSONAL STATS');
-  String get includeTests => _t('Includi partite di prova', 'Include test matches');
+  String get title => _m('title');
+  String get includeTests => _m('includeTests');
   String includeTestsCount(int n) => '$includeTests ($n)';
 
-  String get games => _t('Partite', 'Games');
-  String get wins => _t('Vinte', 'Won');
-  String get losses => _t('Perse', 'Lost');
-  String get winRate => _t('Vittorie', 'Win rate');
+  String get games => _m('games');
+  String get wins => _m('wins');
+  String get losses => _m('losses');
+  String get winRate => _m('winRate');
 
-  String get atTheTable => _t('AL TAVOLO', 'AT THE TABLE');
-  String get timePlayed => _t('Tempo al tavolo', 'Time at the table');
+  String get atTheTable => _m('atTheTable');
+  String get timePlayed => _m('timePlayed');
   String timeMeasured(int timed, int games) =>
-      _t('misurato su $timed partite di $games', 'measured over $timed of $games games');
-  String get favouriteRole => _t('Ruolo preferito', 'Favourite role');
-  String get longestStreak => _t('Serie di vittorie più lunga', 'Longest win streak');
-  String get survived => _t('Vivo alla fine', 'Alive at the end');
+      _m('timeMeasured', {'timed': timed, 'games': games});
+  String get favouriteRole => _m('favouriteRole');
+  String get longestStreak => _m('longestStreak');
+  String get survived => _m('survived');
 
-  String get byTable => _t('PER TAVOLO', 'BY TABLE');
-  String get friends => _t('Con amici', 'With friends');
-  String get ranked => _t('Classificata', 'Ranked');
+  String get byTable => _m('byTable');
+  String get friends => _m('friends');
+  String get ranked => _m('ranked');
 
-  String get byFaction => _t('PER FAZIONE', 'BY FACTION');
-  String get family => _t('Famiglia', 'Family');
-  String get town => _t('Città', 'Town');
-  String get alone => _t('Da solo', 'On their own');
+  String get byFaction => _m('byFaction');
+  String get family => _m('family');
+  String get town => _m('town');
+  String get alone => _m('alone');
 
-  String get byRole => _t('PER RUOLO', 'BY ROLE');
+  String get byRole => _m('byRole');
   String gamesWins(int games, int wins) =>
-      _t('$games ${games == 1 ? 'partita' : 'partite'} · $wins vinte', '$games ${games == 1 ? 'game' : 'games'} · $wins won');
-  String get neverPlayed => _t('mai giocato', 'never played');
+      _m('gamesWins', {'games': games, 'wins': wins});
+  String get neverPlayed => _m('neverPlayed');
 
-  String get feats => _t('IMPRESE', 'FEATS');
+  String get feats => _m('feats');
   String get featsHint =>
-      _t('Di sempre, solo dalle partite giocate fino in fondo.', 'All time, only from games played to the end.');
+      _m('featsHint');
 
   /// A lifetime counter's label, by metric id; null for those not shown.
   String? counter(String metric) => switch (metric) {
-    'nights' => _t('Notti sopravvissute', 'Nights survived'),
-    'lynch_hits' => _t('Voti giusti al rogo', 'Right lynch votes'),
-    'saves' => _t('Salvataggi del Dottore', 'Doctor saves'),
-    'finds' => _t('Colpevoli scoperti', 'Culprits found'),
-    'snipes' => _t('Colpi del Cecchino', 'Sniper shots'),
-    'kills' => _t('Colpi della Famiglia', 'Family hits'),
-    'framed' => _t('Onesti incastrati', 'Honest framed'),
-    'godfather_lynch' => _t('Padrini al rogo', 'Godfathers lynched'),
-    'wins_alive' => _t('Vinte da vivo', 'Won alive'),
+    'nights' => _m('counter.nights'),
+    'lynch_hits' => _m('counter.lynch_hits'),
+    'saves' => _m('counter.saves'),
+    'finds' => _m('counter.finds'),
+    'snipes' => _m('counter.snipes'),
+    'kills' => _m('counter.kills'),
+    'framed' => _m('counter.framed'),
+    'godfather_lynch' => _m('counter.godfather_lynch'),
+    'wins_alive' => _m('counter.wins_alive'),
     _ => null,
   };
 
-  String get private => _t('SOLO PER TE', 'ONLY FOR YOU');
-  String get privateHint => _t('Nessun altro vede questi numeri.', 'Nobody else sees these numbers.');
-  String get abandoned => _t('Abbandonate', 'Abandoned');
-  String get afk => _t('Da assente', 'Away (AFK)');
-  String get reserved => _t('RISERVATO', 'RESTRICTED');
+  String get private => _m('private');
+  String get privateHint => _m('privateHint');
+  String get abandoned => _m('abandoned');
+  String get afk => _m('afk');
+  String get reserved => _m('reserved');
 
-  String get empty => _t(
-    'Ancora nessuna partita online. Le statistiche si scrivono giocando.',
-    'No online games yet. The stats write themselves as you play.',
-  );
-  String get loadFailed => _t('Non è stato possibile caricare. Riprova.', 'Could not load. Try again.');
-  String get retry => _t('Riprova', 'Retry');
+  String get empty => _m('empty');
+  String get loadFailed => _m('loadFailed');
+  String get retry => _m('retry');
 
   String duration(int seconds) {
     final h = seconds ~/ 3600;
@@ -91,20 +87,14 @@ class StatsStrings {
   String percent(double rate) => '${(rate * 100).round()}%';
 
   // Public profiles: another player's dossier.
-  String get profile => _t('Profilo', 'Profile');
-  String get publicTitle => _t('FASCICOLO PUBBLICO', 'PUBLIC FILE');
-  String get onRecord => _t('AGLI ATTI', 'ON RECORD');
-  String get featured => _t('MEDAGLIE IN VETRINA', 'SHOWCASE MEDALS');
-  String get noMedals => _t('Nessuna medaglia, per ora.', 'No medals yet.');
-  String get topRoles => _t('RUOLI PIÙ GIOCATI', 'MOST PLAYED ROLES');
-  String get closedFile => _t(
-    'Fascicolo riservato: questo giocatore tiene per sé le sue statistiche.',
-    'Restricted file: this player keeps their stats to themselves.',
-  );
-  String get unavailable => _t('Profilo non disponibile.', 'Profile not available.');
-  String get publicSwitch => _t('Profilo pubblico', 'Public profile');
-  String get publicSwitchHint => _t(
-    'Gli altri vedono statistiche, grado e medaglie. Spento: solo nome, livello e ritratto.',
-    'Others see your stats, rank and medals. Off: only your name, level and portrait.',
-  );
+  String get profile => _m('profile');
+  String get publicTitle => _m('publicTitle');
+  String get onRecord => _m('onRecord');
+  String get featured => _m('featured');
+  String get noMedals => _m('noMedals');
+  String get topRoles => _m('topRoles');
+  String get closedFile => _m('closedFile');
+  String get unavailable => _m('unavailable');
+  String get publicSwitch => _m('publicSwitch');
+  String get publicSwitchHint => _m('publicSwitchHint');
 }

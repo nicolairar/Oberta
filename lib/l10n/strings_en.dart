@@ -4,13 +4,16 @@ import '../roster/roster.dart';
 import '../ui/widgets/verdict_scene.dart';
 import 'app_language.dart';
 import 'app_strings.dart';
+import 'messages_en.dart';
 import 'online_strings.dart';
 import 'shop_strings.dart';
 
 /// L'interfaccia in inglese americano. Le stesse regole del copione: mai il
 /// genere di un giocatore ("they"), nessuno chiude gli occhi, le fazioni
 /// sono "the Family" e "the town".
-final class EnglishStrings extends AppStrings {
+/// Not final: the languages translated from English extend it, so whatever
+/// they do not translate yet stays in English.
+class EnglishStrings extends AppStrings {
   const EnglishStrings();
 
   @override
@@ -23,6 +26,8 @@ final class EnglishStrings extends AppStrings {
   OnlineStrings get online => const EnglishOnlineStrings();
   @override
   ShopStrings get shop => const EnglishShopStrings();
+  @override
+  Map<String, String> get messages => englishMessages;
 
   @override
   String get settings => 'Settings';

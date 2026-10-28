@@ -13,41 +13,40 @@ class TutorialStrings {
 
   static TutorialStrings of(BuildContext context) => TutorialStrings(AppStrings.of(context).language);
 
-  bool get _en => language == AppLanguage.en;
+  /// The text under `tutorial.<key>` in the messages of the language.
+  String _m(String key, [Map<String, Object?> args = const {}]) => language.message('tutorial.$key', args);
 
-  String _t(String it, String en) => _en ? en : it;
-
-  String get you => _t('Tu', 'You');
-  String get skip => _t('Salta', 'Skip');
-  String get exit => _t('Esci', 'Leave');
-  String get exitTitle => _t('Lasciare la mano di prova?', 'Leave the practice hand?');
-  String get exitBody => _t('Non conta come fatta: la potrai rifare quando vuoi.', 'It will not count as done: you can play it again any time.');
-  String get stay => _t('Resta', 'Stay');
+  String get you => _m('you');
+  String get skip => _m('skip');
+  String get exit => _m('exit');
+  String get exitTitle => _m('exitTitle');
+  String get exitBody => _m('exitBody');
+  String get stay => _m('stay');
 
   // Il biglietto sul vicolo, e le voci per rifarlo.
-  String get hint => _t('Prima volta? Tre mani di prova, una per colore.', 'First time? Three practice hands, one per colour.');
-  String get hintGo => _t('Prova', 'Try');
-  String get replay => _t('Tutorial', 'Tutorial');
-  String get replayHint => _t('Tre mani di prova contro i bot.', 'Three practice hands against the bots.');
-  String get deskButton => _t('Tutorial', 'Tutorial');
+  String get hint => _m('hint');
+  String get hintGo => _m('hintGo');
+  String get replay => _m('replay');
+  String get replayHint => _m('replayHint');
+  String get deskButton => _m('deskButton');
 
   // La scelta.
-  String get choose => _t('Scegli da che parte imparare', 'Pick a side to learn');
-  String get chooseSub => _t('Una mano contro cinque bot, sul tavolo vero.', 'One hand against five bots, on the real table.');
+  String get choose => _m('choose');
+  String get chooseSub => _m('chooseSub');
   String faction(TutorialStory story) => switch (story) {
-    TutorialStory.family => _t('Famiglia', 'Family'),
-    TutorialStory.city => _t('Città', 'Town'),
-    TutorialStory.solo => _t('Da solo', 'On your own'),
+    TutorialStory.family => _m('faction.family'),
+    TutorialStory.city => _m('faction.city'),
+    TutorialStory.solo => _m('faction.solo'),
   };
   String pitch(TutorialStory story) => switch (story) {
-    TutorialStory.family => _t('Uccidi di notte, menti di giorno.', 'Kill by night, lie by day.'),
-    TutorialStory.city => _t('Indaga e smaschera la Famiglia.', 'Investigate, unmask the Family.'),
-    TutorialStory.solo => _t('Fatti linciare e vinci da solo.', 'Get lynched and win alone.'),
+    TutorialStory.family => _m('pitch.family'),
+    TutorialStory.city => _m('pitch.city'),
+    TutorialStory.solo => _m('pitch.solo'),
   };
-  String get done => _t('Fatto', 'Done');
+  String get done => _m('done');
 
   // La fine.
-  String get ready => _t('Ora sei pronto', 'Now you are ready');
-  String get toTheTable => _t('Al tavolo', 'To the table');
-  String get nextHand => _t('Un\'altra mano', 'Another hand');
+  String get ready => _m('ready');
+  String get toTheTable => _m('toTheTable');
+  String get nextHand => _m('nextHand');
 }

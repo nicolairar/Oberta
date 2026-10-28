@@ -7,29 +7,25 @@ class DesktopGameStrings {
 
   const DesktopGameStrings(this.language);
 
-  bool get _en => language == AppLanguage.en;
+  /// The text under `desktopGame.<key>` in the messages of the language.
+  String _m(String key, [Map<String, Object?> args = const {}]) => language.message('desktopGame.$key', args);
 
-  String _t(String it, String en) => _en ? en : it;
-
-  String get menu => _t('Menu', 'Menu');
-  String get menuTitle => _t('Il tavolo non aspetta', 'The table won\'t wait');
-  String get menuBody => _t(
-    'La partita va avanti anche con il menu aperto: l\'orologio corre per tutti.',
-    'The game goes on while this menu is open: the clock runs for everyone.',
-  );
-  String get resume => _t('Torna al tavolo', 'Back to the table');
-  String get roles => _t('I ruoli in gioco', 'Roles in play');
-  String get settings => _t('Impostazioni', 'Settings');
-  String get leave => _t('Abbandona la partita', 'Leave the game');
-  String get stay => _t('Resta al tavolo', 'Stay at the table');
-  String get leaveConfirm => _t('Abbandona', 'Leave');
+  String get menu => _m('menu');
+  String get menuTitle => _m('menuTitle');
+  String get menuBody => _m('menuBody');
+  String get resume => _m('resume');
+  String get roles => _m('roles');
+  String get settings => _m('settings');
+  String get leave => _m('leave');
+  String get stay => _m('stay');
+  String get leaveConfirm => _m('leaveConfirm');
 
   String get keyEsc => 'Esc';
-  String get keyEnter => _t('Invio', 'Enter');
-  String get chatKeys => _t('INVIO per scrivere', 'ENTER to chat');
+  String get keyEnter => _m('keyEnter');
+  String get chatKeys => _m('chatKeys');
   String get rightClick =>
-      _t('Tasto destro su un giocatore: segnala o blocca', 'Right-click a player: report or block');
-  String get timeLeft => _t('Tempo', 'Time');
-  String get table => _t('Il tavolo', 'The table');
-  String get you => _t('Tu', 'You');
+      _m('rightClick');
+  String get timeLeft => _m('timeLeft');
+  String get table => _m('table');
+  String get you => _m('you');
 }

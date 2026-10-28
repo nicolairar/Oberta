@@ -103,15 +103,15 @@ class TutorialScript {
   static const women = {'s4', 's5'};
 
   factory TutorialScript.of(TutorialStory story, AppLanguage language) {
-    String t(String it, String en) => language == AppLanguage.en ? en : it;
+    String m(String key, [Map<String, Object?> args = const {}]) => language.message('tutorialScript.$key', args);
     const card = Key('online.card');
     const chat = Key('game.chatSlot');
     const table = Key('game.tableSlot');
     const ready = Key('online.ready');
     const verdict = Key('online.verdict');
     Key seat(String s) => Key('seat-$s');
-    final readyLine = TutorialCoach(t('Quando hai letto, «Pronto».', 'When you have read it, «Ready».'), ready);
-    final dawnFilm = TutorialCoach(t('All\'alba si scopre com\'è andata la notte.', 'At dawn you see how the night went.'));
+    final readyLine = TutorialCoach(m('whenYouHave'), ready);
+    final dawnFilm = TutorialCoach(m('atDawnYou'));
 
     switch (story) {
       case TutorialStory.city:
@@ -126,14 +126,11 @@ class TutorialScript {
             's5': Role.medico,
             's6': Role.cittadino,
           },
-          winLine: t(
-            'La città vince quando non resta nessuno della Famiglia. Le prove contano più delle chiacchiere.',
-            'The town wins when no Family is left. Proof beats chatter.',
-          ),
+          winLine: m('theTownWins.city'),
           scenes: {
             'reveal-1': Scene(
               coach: TutorialCoach(
-                t('Sei il Commissario. Tieni premuta la carta, poi «Pronto».', 'You are the Detective. Hold the card, then «Ready».'),
+                m('youAreThe.city'),
                 card,
               ),
             ),
@@ -146,31 +143,31 @@ class TutorialScript {
                 Move(Pass('s6')),
               ],
               expect: {'s2'},
-              coach: TutorialCoach(t('Di notte indaghi. Tocca Vito, il 2, e conferma.', 'At night you investigate. Tap Vito, seat 2, and confirm.'), seat('s2')),
-              acted: TutorialCoach(t('Vito è della Famiglia. Solo tu lo sai, per ora.', 'Vito is Family. Only you know it, for now.'), table),
+              coach: TutorialCoach(m('atNightYou.city'), seat('s2')),
+              acted: TutorialCoach(m('vitoIsFamily.city'), table),
             ),
             'dawnFilms-1': Scene(coach: dawnFilm),
             'dawn-1': Scene(coach: readyLine),
             'discussion-1': Scene(
               opening: [
-                Say('s5', t('Bruno non faceva male a nessuno. Chi lo voleva morto?', 'Bruno never hurt anyone. Who wanted him dead?')),
-                Say('s2', t('Io ero al bar tutta sera. Chiedete al 4.', 'I was at the bar all night. Ask 4.')),
-                Say('s4', t('Confermo. Guardate il 6, piuttosto: troppo calmo.', 'True. Look at 6 instead: far too calm.')),
+                Say('s5', m('brunoNeverHurt.city')),
+                Say('s2', m('iWasAt.city')),
+                Say('s4', m('trueLookAt.city')),
                 const Toss('s4', 's6', TableGesture.eye),
-                Say('s6', t('Io?? Commissario, tu cosa sai?', 'Me?? Detective, what do you know?')),
+                Say('s6', m('meDetectiveWhat.city')),
               ],
               replies: [
-                t('Ho indagato su Vito: è della Famiglia.', 'I checked Vito: Family.'),
-                t('Il 2 mente. L\'ho visto stanotte.', '2 is lying. I saw him tonight.'),
+                m('iCheckedVito.city'),
+                m('isLyingI.city'),
               ],
               answer: [
-                Say('s2', t('Bugiardo! Vuole solo confondervi.', 'Liar! He just wants to confuse you.')),
+                Say('s2', m('liarHeJust.city')),
                 const Toss('s2', 's1', TableGesture.eye),
-                Say('s5', t('Se lo dice il Commissario, io ci sto.', 'If the Detective says so, I am in.')),
-                Say('s6', t('Anche io. Si vota il 2.', 'Me too. We vote 2.')),
+                Say('s5', m('ifTheDetective.city')),
+                Say('s6', m('meTooWe.city')),
               ],
-              coach: TutorialCoach(t('In piazza si parla. Di\' quello che sai su Vito.', 'The square talks. Say what you know about Vito.'), chat),
-              answered: TutorialCoach(t('Ti credono. «Pronto», e si vota.', 'They believe you. «Ready», and we vote.'), ready),
+              coach: TutorialCoach(m('theSquareTalks.city'), chat),
+              answered: TutorialCoach(m('theyBelieveYou.city'), ready),
             ),
             'vote-1': Scene(
               opening: [
@@ -178,55 +175,55 @@ class TutorialScript {
                 const Move(DayVote('s2', 's1')),
                 const Move(DayVote('s6', 's4')),
                 const Move(DayVote('s5', 's2')),
-                Say('s6', t('Ripensandoci... il 2.', 'On second thought... 2.')),
+                Say('s6', m('onSecondThought.city')),
                 const Move(DayVote('s6', 's2')),
               ],
               expect: {'s2'},
-              coach: TutorialCoach(t('Guarda le mani: cambiano idea. Punta il dito su Vito.', 'Watch the hands: minds change. Point at Vito.'), seat('s2')),
+              coach: TutorialCoach(m('watchTheHands.city'), seat('s2')),
             ),
             'verdict-1': Scene(
-              coach: TutorialCoach(t('Il linciato scopre la carta. La piazza ha visto giusto.', 'The lynched shows the card. The square got it right.'), verdict),
+              coach: TutorialCoach(m('theLynchedShows.city'), verdict),
             ),
             'night-2': Scene(
               opening: const [Move(MafiaVote('s4', 's1')), Move(NightAction('s5', 's1')), Move(Pass('s6'))],
               expect: {'s4'},
-              coach: TutorialCoach(t('Un\'altra notte. Indaga su Carmela, la 4.', 'Another night. Check Carmela, seat 4.'), seat('s4')),
-              acted: TutorialCoach(t('Anche Carmela è della Famiglia.', 'Carmela is Family too.'), table),
+              coach: TutorialCoach(m('anotherNightCheck.city'), seat('s4')),
+              acted: TutorialCoach(m('carmelaIsFamily.city'), table),
             ),
-            'dawnFilms-2': Scene(coach: TutorialCoach(t('Stanotte cercavano te...', 'Tonight they came for you...'))),
-            'dawn-2': Scene(coach: TutorialCoach(t('Il Dottore ti ha salvato. Ora tocca a te.', 'The Doctor saved you. Your move now.'), ready)),
+            'dawnFilms-2': Scene(coach: TutorialCoach(m('tonightTheyCame.city'))),
+            'dawn-2': Scene(coach: TutorialCoach(m('theDoctorSaved.city'), ready)),
             'discussion-2': Scene(
               opening: [
-                Say('s5', t('Stanotte ho vegliato sul Commissario. Ci hanno provato.', 'I watched over the Detective tonight. They tried.')),
-                Say('s4', t('Che fortuna... ma Vito agiva da solo.', 'Lucky you... but Vito acted alone.')),
-                Say('s6', t('Commissario, su chi hai indagato stanotte?', 'Detective, who did you check tonight?')),
+                Say('s5', m('iWatchedOver.city')),
+                Say('s4', m('luckyYouBut.city')),
+                Say('s6', m('detectiveWhoDid.city')),
               ],
               replies: [
-                t('Su Carmela: è della Famiglia.', 'Carmela: Family.'),
-                t('La 4 è l\'ultima. Votatela.', '4 is the last one. Vote her.'),
+                m('carmelaFamily.city'),
+                m('isTheLast.city'),
               ],
               answer: [
-                Say('s4', t('Ma figurati! Il 1 delira.', 'Oh please! 1 is raving.')),
-                Say('s5', t('Io ti ho salvato: mi fido.', 'I saved you: I trust you.')),
+                Say('s4', m('ohPleaseIs.city')),
+                Say('s5', m('iSavedYou.city')),
                 const Toss('s5', 's1', TableGesture.toast),
-                Say('s6', t('Votiamo la 4.', 'We vote 4.')),
+                Say('s6', m('weVote.city')),
               ],
-              coach: TutorialCoach(t('Ultima giornata. Di\' alla piazza di Carmela.', 'Last day. Tell the square about Carmela.'), chat),
-              answered: TutorialCoach(t('Bene. «Pronto», e si vota.', 'Good. «Ready», and we vote.'), ready),
+              coach: TutorialCoach(m('lastDayTell.city'), chat),
+              answered: TutorialCoach(m('goodReadyAnd.city'), ready),
             ),
             'vote-2': Scene(
               opening: [
                 const Move(DayVote('s4', 's1')),
                 const Move(DayVote('s5', 's4')),
                 const Move(DayVote('s6', 's5')),
-                Say('s6', t('No, aspetta: la 4.', 'No, wait: 4.')),
+                Say('s6', m('noWait.city')),
                 const Move(DayVote('s6', 's4')),
               ],
               expect: {'s4'},
-              coach: TutorialCoach(t('Vota Carmela.', 'Vote Carmela.'), seat('s4')),
+              coach: TutorialCoach(m('voteCarmela.city'), seat('s4')),
             ),
             'verdict-2': Scene(
-              coach: TutorialCoach(t('Niente più Famiglia: la città ha vinto.', 'No Family left: the town wins.'), verdict),
+              coach: TutorialCoach(m('noFamilyLeft.city'), verdict),
             ),
           },
         );
@@ -243,59 +240,56 @@ class TutorialScript {
             's5': Role.cittadino,
             's6': Role.cittadino,
           },
-          winLine: t(
-            'La Famiglia vince quando è tanta quanto la città. Di giorno, mentite bene.',
-            'The Family wins once it matches the town in number. By day, lie well.',
-          ),
+          winLine: m('theFamilyWins.family'),
           scenes: {
             'reveal-1': Scene(
               coach: TutorialCoach(
-                t('Stavolta sei della Famiglia. Tieni premuta la carta, poi «Pronto».', 'This time you are Family. Hold the card, then «Ready».'),
+                m('thisTimeYou.family'),
                 card,
               ),
             ),
             'night-1': Scene(
               opening: [
-                Say('s2', t('Siamo noi due. Nessuno deve saperlo.', 'Just the two of us. Nobody can know.'), family: true),
-                Say('s2', t('Io dico il 6, Enzo: fa troppe domande. Tu?', 'I say 6, Enzo: too many questions. You?'), family: true),
+                Say('s2', m('justTheTwo.family'), family: true),
+                Say('s2', m('iSayEnzo.family'), family: true),
                 const Move(MafiaVote('s2', 's6')),
                 const Move(NightAction('s4', 's6')),
                 const Move(Pass('s3')),
                 const Move(Pass('s5')),
                 const Move(Pass('s6')),
               ],
-              replies: [t('Ok, il 6.', 'Ok, 6.'), t('Va bene, Enzo stanotte.', 'Fine, Enzo tonight.')],
-              answer: [Say('s2', t('Perfetto. Tocca il 6.', 'Perfect. Tap 6.'), family: true)],
+              replies: [m('ok.family'), m('fineEnzoTonight.family')],
+              answer: [Say('s2', m('perfectTap.family'), family: true)],
               expect: {'s6'},
-              coach: TutorialCoach(t('Di notte la Famiglia parla in segreto. Rispondi a Vito.', 'At night the Family talks in secret. Answer Vito.'), chat),
-              answered: TutorialCoach(t('Ora tocca Enzo, il 6: è il tuo voto.', 'Now tap Enzo, seat 6: that is your vote.'), seat('s6')),
-              acted: TutorialCoach(t('Due voti su Enzo: la Famiglia è d\'accordo.', 'Two votes on Enzo: the Family agrees.'), table),
+              coach: TutorialCoach(m('atNightThe.family'), chat),
+              answered: TutorialCoach(m('nowTapEnzo.family'), seat('s6')),
+              acted: TutorialCoach(m('twoVotesOn.family'), table),
             ),
             'dawnFilms-1': Scene(coach: dawnFilm),
             'dawn-1': Scene(
-              coach: TutorialCoach(t('Enzo è vivo: il Dottore l\'ha salvato. Si riprova.', 'Enzo lives: the Doctor saved him. Try again later.'), ready),
+              coach: TutorialCoach(m('enzoLivesThe.family'), ready),
             ),
             'discussion-1': Scene(
               opening: [
-                Say('s5', t('Stanotte qualcuno è entrato da Enzo.', 'Someone went to Enzo\'s tonight.')),
-                Say('s6', t('Sono vivo per miracolo. Chi è stato?', 'Alive by a miracle. Who was it?')),
-                Say('s3', t('Il 1 ieri sera girava per strada. L\'ho visto io.', '1 was out on the street last night. I saw him.')),
+                Say('s5', m('someoneWentTo.family')),
+                Say('s6', m('aliveByA.family')),
+                Say('s3', m('wasOutOn.family')),
                 const Toss('s3', 's1', TableGesture.eye),
-                Say('s6', t('Allora, 1? Parla.', 'Well, 1? Talk.')),
-                Say('s2', t('Calma, il 1 era al bar con me.', 'Easy, 1 was at the bar with me.')),
+                Say('s6', m('wellTalk.family')),
+                Say('s2', m('easyWasAt.family')),
               ],
               replies: [
-                t('Bruno accusa per primo: chi accusa per primo nasconde qualcosa.', 'Bruno accuses first: whoever accuses first hides something.'),
-                t('Io dormivo. Ma il 3 sa troppe cose, no?', 'I was asleep. But 3 knows a lot, no?'),
+                m('brunoAccusesFirst.family'),
+                m('iWasAsleep.family'),
               ],
               answer: [
-                Say('s4', t('In effetti Bruno ha fretta.', 'Bruno is in a hurry, indeed.')),
-                Say('s2', t('Lo dicevo io. Il 3 è strano.', 'Told you. 3 is weird.')),
+                Say('s4', m('brunoIsIn.family')),
+                Say('s2', m('toldYouIs.family')),
                 const Toss('s2', 's3', TableGesture.cigar),
-                Say('s3', t('Ma che dite?! Sono pulito!', 'What?! I am clean!')),
+                Say('s3', m('whatIAm.family')),
               ],
-              coach: TutorialCoach(t('Ti accusano. Non difenderti: sposta i sospetti su Bruno, il 3.', 'They accuse you. Do not defend: shift it onto Bruno, seat 3.'), chat),
-              answered: TutorialCoach(t('Ha funzionato. «Pronto», e si vota.', 'It worked. «Ready», and we vote.'), ready),
+              coach: TutorialCoach(m('theyAccuseYou.family'), chat),
+              answered: TutorialCoach(m('itWorkedReady.family'), ready),
             ),
             'vote-1': Scene(
               opening: [
@@ -304,33 +298,33 @@ class TutorialScript {
                 const Move(DayVote('s5', 's1')),
                 const Move(DayVote('s2', 's3')),
                 const Move(DayVote('s4', 's3')),
-                Say('s5', t('Ho cambiato idea: il 3.', 'Changed my mind: 3.')),
+                Say('s5', m('changedMyMind.family')),
                 const Move(DayVote('s5', 's3')),
               ],
               expect: {'s3'},
-              coach: TutorialCoach(t('Le mani si muovono. Vota Bruno, il 3, con loro.', 'Hands are moving. Vote Bruno, seat 3, with them.'), seat('s3')),
+              coach: TutorialCoach(m('handsAreMoving.family'), seat('s3')),
             ),
             'verdict-1': Scene(
-              coach: TutorialCoach(t('Bruno era innocente. Tu sei salvo, per oggi.', 'Bruno was innocent. You are safe, for today.'), verdict),
+              coach: TutorialCoach(m('brunoWasInnocent.family'), verdict),
             ),
             'night-2': Scene(
               opening: [
-                Say('s2', t('Il Dottore ha salvato Enzo. Scommetto che è la 4.', 'The Doctor saved Enzo. I bet it is 4.'), family: true),
-                Say('s2', t('Stanotte lei. Ci stai?', 'Her tonight. You in?'), family: true),
+                Say('s2', m('theDoctorSaved.family'), family: true),
+                Say('s2', m('herTonightYou.family'), family: true),
                 const Move(MafiaVote('s2', 's4')),
                 const Move(NightAction('s4', 's5')),
                 const Move(Pass('s5')),
                 const Move(Pass('s6')),
               ],
-              replies: [t('Ci sto: la 4.', 'I am in: 4.'), t('D\'accordo, Carmela.', 'Fine, Carmela.')],
-              answer: [Say('s2', t('Andiamo.', 'Let\'s go.'), family: true)],
+              replies: [m('iAmIn.family'), m('fineCarmela.family')],
+              answer: [Say('s2', m('letSGo.family'), family: true)],
               expect: {'s4'},
-              coach: TutorialCoach(t('Vito ha un\'idea. Rispondigli.', 'Vito has an idea. Answer him.'), chat),
-              answered: TutorialCoach(t('Tocca Carmela, la 4.', 'Tap Carmela, seat 4.'), seat('s4')),
+              coach: TutorialCoach(m('vitoHasAn.family'), chat),
+              answered: TutorialCoach(m('tapCarmelaSeat.family'), seat('s4')),
             ),
             'dawnFilms-2': Scene(coach: dawnFilm),
             'dawn-2': Scene(
-              coach: TutorialCoach(t('Due contro due: la città non può più vincere.', 'Two against two: the town can no longer win.')),
+              coach: TutorialCoach(m('twoAgainstTwo.family')),
             ),
           },
         );
@@ -347,14 +341,11 @@ class TutorialScript {
             's5': Role.detective,
             's6': Role.cittadino,
           },
-          winLine: t(
-            'Chi gioca da solo ha un obiettivo suo: il Fesso vince se lo linciano, e la partita continua senza di lui.',
-            'Solo players have their own goal: the Fool wins if lynched, and the game goes on without him.',
-          ),
+          winLine: m('soloPlayersHave.solo'),
           scenes: {
             'reveal-1': Scene(
               coach: TutorialCoach(
-                t('Giochi da solo: sei il Fesso, vinci se ti linciano. Tieni premuta la carta.', 'You play alone: the Fool wins if lynched. Hold the card.'),
+                m('youPlayAlone.solo'),
                 card,
               ),
             ),
@@ -366,31 +357,31 @@ class TutorialScript {
                 Move(Pass('s3')),
                 Move(Pass('s6')),
               ],
-              coach: TutorialCoach(t('Il Fesso non ha poteri: tocca chi vuoi per far finta.', 'The Fool has no power: tap anyone to pretend.'), table),
-              acted: TutorialCoach(t('Di notte non fai niente. Il tuo lavoro è di giorno.', 'At night you do nothing. Your work is by day.'), table),
+              coach: TutorialCoach(m('theFoolHas.solo'), table),
+              acted: TutorialCoach(m('atNightYou.solo'), table),
             ),
             'dawnFilms-1': Scene(coach: dawnFilm),
-            'dawn-1': Scene(coach: TutorialCoach(t('Bruno non c\'è più. Ora si parla.', 'Bruno is gone. Now we talk.'), ready)),
+            'dawn-1': Scene(coach: TutorialCoach(m('brunoIsGone.solo'), ready)),
             'discussion-1': Scene(
               opening: [
-                Say('s5', t('Bruno è morto. Qualcuno ha visto qualcosa?', 'Bruno is dead. Anyone see anything?')),
-                Say('s2', t('Io dormivo. Il 1 invece stanotte era sveglio.', 'I was asleep. 1 was up all night though.')),
-                Say('s6', t('Già, il 1 non mi convince.', 'Yeah, 1 does not convince me.')),
+                Say('s5', m('brunoIsDead.solo')),
+                Say('s2', m('iWasAsleep.solo')),
+                Say('s6', m('yeahDoesNot.solo')),
                 const Toss('s6', 's1', TableGesture.eye),
-                Say('s4', t('Diamogli una possibilità. Allora, 1?', 'Give him a chance. So, 1?')),
+                Say('s4', m('giveHimA.solo')),
               ],
               replies: [
-                t('Bruno? Uno in meno. Non piangerò.', 'Bruno? One less. I won\'t cry.'),
-                t('Non dico niente. Votatemi, se avete coraggio.', 'I say nothing. Vote me, if you dare.'),
+                m('brunoOneLess.solo'),
+                m('iSayNothing.solo'),
               ],
               answer: [
-                Say('s2', t('Avete sentito? Confessa quasi!', 'You heard that? Nearly a confession!')),
+                Say('s2', m('youHeardThat.solo')),
                 const Toss('s2', 's1', TableGesture.cigar),
-                Say('s5', t('Il 1 è strano forte. Io voto lui.', '1 is seriously weird. I vote him.')),
-                Say('s4', t('Mi dispiace, 1: hai fatto tutto da solo.', 'Sorry, 1: you did it all yourself.')),
+                Say('s5', m('isSeriouslyWeird.solo')),
+                Say('s4', m('sorryYouDid.solo')),
               ],
-              coach: TutorialCoach(t('Fai il sospetto: di\' qualcosa che un innocente non direbbe.', 'Act shady: say something no innocent would.'), chat),
-              answered: TutorialCoach(t('Ci sono cascati. «Pronto», e si vota.', 'They fell for it. «Ready», and we vote.'), ready),
+              coach: TutorialCoach(m('actShadySay.solo'), chat),
+              answered: TutorialCoach(m('theyFellFor.solo'), ready),
             ),
             'vote-1': Scene(
               opening: [
@@ -398,14 +389,14 @@ class TutorialScript {
                 const Move(DayVote('s2', 's6')),
                 const Move(DayVote('s6', 's1')),
                 const Move(DayVote('s4', 's2')),
-                Say('s2', t('Va be\', anch\'io il 1.', 'Fine, me too: 1.')),
+                Say('s2', m('fineMeToo.solo')),
                 const Move(DayVote('s2', 's1')),
                 const Move(DayVote('s4', 's1')),
               ],
-              coach: TutorialCoach(t('Tutti puntano te. Vota chi vuoi: non conta.', 'Everyone points at you. Vote anyone: it does not matter.'), table),
+              coach: TutorialCoach(m('everyonePointsAt.solo'), table),
             ),
             'verdict-1': Scene(
-              coach: TutorialCoach(t('Ti hanno linciato: proprio quello che volevi.', 'They lynched you: exactly what you wanted.'), verdict),
+              coach: TutorialCoach(m('theyLynchedYou.solo'), verdict),
             ),
           },
         );

@@ -26,8 +26,17 @@ void main() {
   });
 
   test('ogni motto tra virgolette della sua lingua, e una spiegazione semplice', () {
-    const quotes = {AppLanguage.it: ('«', '»'), AppLanguage.en: ('“', '”')};
+    const quotes = {
+      AppLanguage.it: ('«', '»'),
+      AppLanguage.en: ('“', '”'),
+      AppLanguage.es: ('«', '»'),
+      AppLanguage.fr: ('« ', ' »'),
+      AppLanguage.de: ('„', '“'),
+      AppLanguage.pt: ('“', '”'),
+    };
     for (final language in AppLanguage.values) {
+      // A language still waiting for its script reads the English one.
+      if (language != AppLanguage.en && identical(language.pack, englishPack)) continue;
       final (open, close) = quotes[language]!;
       for (final role in Role.values) {
         final text = language.pack.role(role);

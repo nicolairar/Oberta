@@ -961,7 +961,7 @@ final class ItalianOnlineStrings extends OnlineStrings {
       };
 }
 
-final class EnglishOnlineStrings extends OnlineStrings {
+class EnglishOnlineStrings extends OnlineStrings {
   @override
   String get rankedQueueTitle => 'RANKED';
   @override

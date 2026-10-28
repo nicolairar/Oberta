@@ -38,6 +38,10 @@ abstract class AppStrings {
   /// I testi della bottega, nella stessa lingua.
   ShopStrings get shop;
 
+  /// The keyed messages of the smaller text classes (settings, table,
+  /// recap...): see [AppLanguage.message].
+  Map<String, String> get messages;
+
   // Il vicolo.
   String get homeTitle => 'OBERTÀ';
   String get settings;

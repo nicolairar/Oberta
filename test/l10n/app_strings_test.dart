@@ -20,8 +20,16 @@ void main() {
       expect(AppLanguage.forDevice(const [Locale('it', 'CH')]), AppLanguage.it);
     });
 
-    test('tutti gli altri giocano in inglese', () {
-      for (final locale in const [Locale('de'), Locale('en', 'US'), Locale('en', 'GB'), Locale('fr', 'FR')]) {
+    test('ogni lingua tradotta gioca nella sua lingua', () {
+      expect(AppLanguage.forDevice(const [Locale('es', 'MX')]), AppLanguage.es);
+      expect(AppLanguage.forDevice(const [Locale('fr', 'CA')]), AppLanguage.fr);
+      expect(AppLanguage.forDevice(const [Locale('de', 'AT')]), AppLanguage.de);
+      expect(AppLanguage.forDevice(const [Locale('pt', 'BR')]), AppLanguage.pt);
+      expect(AppLanguage.forDevice(const [Locale('pt', 'PT')]), AppLanguage.pt);
+    });
+
+    test('le lingue non ancora tradotte giocano in inglese', () {
+      for (final locale in const [Locale('ja'), Locale('en', 'US'), Locale('en', 'GB'), Locale('ar', 'EG'), Locale('zh')]) {
         expect(AppLanguage.forDevice([locale]), AppLanguage.en, reason: '$locale');
       }
       expect(AppLanguage.forDevice(const []), AppLanguage.en);
@@ -29,7 +37,8 @@ void main() {
     });
 
     test('conta la prima lingua scelta sul telefono', () {
-      expect(AppLanguage.forDevice(const [Locale('de'), Locale('it')]), AppLanguage.en);
+      expect(AppLanguage.forDevice(const [Locale('ja'), Locale('it')]), AppLanguage.en);
+      expect(AppLanguage.forDevice(const [Locale('de'), Locale('it')]), AppLanguage.de);
       expect(AppLanguage.forDevice(const [Locale('it'), Locale('en')]), AppLanguage.it);
     });
 

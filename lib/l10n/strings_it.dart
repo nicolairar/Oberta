@@ -4,6 +4,7 @@ import '../roster/roster.dart';
 import '../ui/widgets/verdict_scene.dart';
 import 'app_language.dart';
 import 'app_strings.dart';
+import 'messages_it.dart';
 import 'online_strings.dart';
 import 'shop_strings.dart';
 
@@ -21,6 +22,8 @@ final class ItalianStrings extends AppStrings {
   OnlineStrings get online => const ItalianOnlineStrings();
   @override
   ShopStrings get shop => const ItalianShopStrings();
+  @override
+  Map<String, String> get messages => italianMessages;
 
   @override
   String get settings => 'Impostazioni';

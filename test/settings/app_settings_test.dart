@@ -13,7 +13,8 @@ void main() {
     expect(settings.language, isNull);
     expect(settings.soundOn, isTrue);
     expect(settings.languageFor(const [Locale('it', 'IT')]), AppLanguage.it);
-    expect(settings.languageFor(const [Locale('de', 'DE')]), AppLanguage.en);
+    expect(settings.languageFor(const [Locale('de', 'DE')]), AppLanguage.de);
+    expect(settings.languageFor(const [Locale('ja', 'JP')]), AppLanguage.en, reason: 'non ancora tradotto: inglese');
   });
 
   test('la lingua scelta a mano vince su quella del telefono', () {
