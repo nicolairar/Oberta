@@ -212,19 +212,19 @@ void main() {
     expect(find.text('THE NARRATOR SPEAKS'), findsOneWidget);
   });
 
-  testWidgets('in inglese la sala prove e le sue scene parlano inglese', (tester) async {
+  testWidgets('in inglese la collezione dei ruoli parla inglese', (tester) async {
     _usePhone(tester, speaks: const [Locale('en', 'US')]);
     await tester.pumpWidget(ObertaApp(settings: AppSettings(MemorySettingsStore())));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Settings'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Screening room'));
+    await tester.ensureVisible(find.text('The roles'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Screening room'));
+    await tester.tap(find.text('The roles'));
     await tester.pumpAndSettle();
-    expect(find.text('SCREENING ROOM'), findsOneWidget);
-    expect(find.text('The dagger'), findsOneWidget);
-    expect(find.text('Every scene of the night. Tap one to watch it again.'), findsOneWidget);
+    expect(find.text('THE ROLES'), findsOneWidget);
+    expect(find.text('VILLAGE'), findsOneWidget);
+    expect(find.text('Every card stays face down until you win a game with that role.'), findsOneWidget);
     expect(find.byTooltip('Back'), findsOneWidget, reason: 'anche i pulsanti di sistema sono in inglese');
   });
 }

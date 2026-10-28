@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import 'app_language.dart';
 import 'app_strings.dart';
+import '../online/game/progress.dart' show Achievement;
 
 /// The words of missions, achievements and the leaderboard, in Italian and
 /// English. Missions and achievements are named by their stable ids.
@@ -91,6 +92,9 @@ class ProgressStrings {
         'roles_won_5' => (_t('Mille facce', 'Many faces'), _t('Vinci con 5 ruoli diversi', 'Win with 5 different roles')),
         'roles_won_12' => (_t('Attore consumato', 'Seasoned actor'), _t('Vinci con 12 ruoli diversi', 'Win with 12 different roles')),
         'roles_won_all' => (_t('Trasformista', 'Chameleon'), _t('Vinci con ogni ruolo', 'Win with every role')),
+        'roles_town_all' => (_t('Tutto il villaggio', 'The whole village'), _t('Vinci con ogni ruolo del villaggio', 'Win with every village role')),
+        'roles_mafia_all' => (_t('Tutta la famiglia', 'The whole family'), _t('Vinci con ogni ruolo della mafia', 'Win with every mafia role')),
+        'roles_lone_all' => (_t('Tutti i solitari', 'Every loner'), _t('Vinci con ogni ruolo solitario', 'Win with every loner role')),
         'wins_alive_25' => (_t('Pelle dura', 'Thick skin'), _t('Vinci 25 volte da vivo', 'Win 25 times still alive')),
         'lynch_hits_10' => (_t('Buon fiuto', 'Good nose'), _t('Vota 10 mafiosi condannati', 'Vote 10 condemned mafiosi')),
         'lynch_hits_50' => (_t('Segugio', 'Bloodhound'), _t('Vota 50 mafiosi condannati', 'Vote 50 condemned mafiosi')),
@@ -112,7 +116,13 @@ class ProgressStrings {
         'kills_25' => (_t('Mano pesante', 'Heavy hand'), _t('25 agguati riusciti con la famiglia', '25 successful hits with the family')),
         'framed_5' => (_t('Tragediatore', 'Schemer'), _t('Da mafioso, fai condannare 5 innocenti', 'As a mafioso, get 5 innocents condemned')),
         'fool_win' => (_t('Ride bene chi ride ultimo', 'Last laugh'), _t('Vinci da Fesso', 'Win as the Fool')),
-        _ => (id, ''),
+        _ => switch (Achievement.roleOf(id)) {
+            final role? => (
+                language.strings.role(role).label,
+                _t('Vinci una partita con questo ruolo', 'Win a game with this role'),
+              ),
+            null => (id, ''),
+          },
       };
 
   /// A title from an achievement, as shown in the dossier.

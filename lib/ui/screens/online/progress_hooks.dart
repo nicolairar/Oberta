@@ -1,20 +1,24 @@
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_language.dart';
+import '../../../l10n/collection_strings.dart';
 import '../../../l10n/progress_strings.dart';
 import '../../../online/online_services.dart';
 import 'achievements_screen.dart';
 import 'leaderboard_screen.dart';
 import 'missions_screen.dart';
+import '../roles_screen.dart';
 
-/// The doors to missions, achievements and the leaderboard, for screens that
+/// The doors to missions, achievements, the roles collection and the
+/// leaderboard, for screens that
 /// draw them in their own style (the dossier's plates). Empty without the
 /// progress service.
 List<({Key key, String label, IconData icon, VoidCallback open})> progressLinks(
   BuildContext context,
   ProgressRepository? progress,
-  AppLanguage language,
-) {
+  AppLanguage language, {
+  OnlineServices? services,
+}) {
   if (progress == null) return const [];
   final s = ProgressStrings.of(context);
   return [
@@ -29,6 +33,12 @@ List<({Key key, String label, IconData icon, VoidCallback open})> progressLinks(
       label: s.achievements,
       icon: Icons.military_tech_outlined,
       open: () => AchievementsScreen.open(context, progress),
+    ),
+    (
+      key: const Key('profile.roles'),
+      label: CollectionStrings.of(context).title,
+      icon: Icons.style_outlined,
+      open: () => RolesScreen.open(context, services: services),
     ),
     (
       key: const Key('profile.leaderboard'),

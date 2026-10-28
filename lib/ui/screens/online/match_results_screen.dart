@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'package:flutter/services.dart';
 import '../../../l10n/app_language.dart';
 import '../../../l10n/app_strings.dart';
 import '../../../online/online_services.dart';
+import '../../../platform/achievements.dart';
 import '../../../rules/role.dart';
 import '../../desktop/desktop_canvas.dart';
 import '../../theme/app_theme.dart';
@@ -40,6 +42,8 @@ Future<bool> showMatchResults(BuildContext context, OnlineServices services, {bo
   try {
     unlocks = await services.progress?.unlocksFor(result.gameId) ?? unlocks;
   } catch (_) {}
+  // Confirmed by the server: mirror them to Steam / Game Center / Play Games.
+  unawaited(PlatformAchievements.instance.report(unlocks.achievements));
   if (!context.mounted) return false;
   final again = await Navigator.of(context).push<bool>(
     PageRouteBuilder<bool>(

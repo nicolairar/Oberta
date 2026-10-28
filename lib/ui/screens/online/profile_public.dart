@@ -258,6 +258,13 @@ class _PublicView {
             k: k,
           ),
         _FactLine(key: const Key('public.streak'), label: w.longestStreak, value: '${p.longestStreak}', k: k),
+        if (p.rolesUnlocked case final n?)
+          _FactLine(
+            key: const Key('public.roles'),
+            label: CollectionStrings.of(context).publicCount,
+            value: '$n/${Role.values.length}',
+            k: k,
+          ),
       ],
     );
   }

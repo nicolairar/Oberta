@@ -180,7 +180,7 @@ void main() {
     expect(find.text('CREA STANZA'), findsOneWidget, reason: 'si resta nel vicolo');
   });
 
-  testWidgets('dalla targhetta si aprono le impostazioni, con suoni e sala prove', (tester) async {
+  testWidgets('dalla targhetta si aprono le impostazioni, con suoni e i ruoli', (tester) async {
     _usePhone(tester, const Size(393, 852), top: 47, bottom: 34);
     _reduceAnimations(tester);
     await tester.pumpWidget(const ObertaApp());
@@ -189,10 +189,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('IMPOSTAZIONI'), findsOneWidget);
     expect(find.text('Musica ed effetti'), findsOneWidget);
-    await tester.ensureVisible(find.text('Sala prove'));
+    await tester.ensureVisible(find.byKey(const Key('settings.roles')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Sala prove'));
+    await tester.tap(find.byKey(const Key('settings.roles')));
     await tester.pumpAndSettle();
-    expect(find.text('SALA PROVE'), findsOneWidget);
+    expect(find.text('I RUOLI'), findsOneWidget);
+    expect(find.byKey(const Key('roles.card.detective')), findsOneWidget);
   });
 }

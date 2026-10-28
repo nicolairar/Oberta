@@ -1260,6 +1260,10 @@ class SupabaseProgress implements ProgressRepository {
       PlayerProgress.fromJson((await _client.rpc<Map<String, dynamic>>('my_progress')).cast<String, Object?>()));
 
   @override
+  Future<Map<String, RoleRecord>> roleStats() =>
+      _guard(() async => RoleRecord.listFromJson(await _client.rpc<dynamic>('my_role_stats')));
+
+  @override
   Future<GameUnlocks> unlocksFor(String gameId) => _guard(() async => GameUnlocks.fromJson(
       (await _client.rpc<Map<String, dynamic>>('game_unlocks', params: {'game': gameId})).cast<String, Object?>()));
 

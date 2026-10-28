@@ -64,6 +64,18 @@ abstract final class Metric {
   /// How many different roles won at least once (derived from [roleWin]).
   static const rolesWon = 'roles_won';
 
+  /// The same, per side: every role of the town, the family, the lone ones
+  /// (derived from [roleWin], never stored).
+  static const rolesWonTown = 'roles_won_town';
+  static const rolesWonMafia = 'roles_won_mafia';
+  static const rolesWonLone = 'roles_won_lone';
+
+  static String rolesWonOf(Team team) => switch (team) {
+        Team.citizens => rolesWonTown,
+        Team.mafia => rolesWonMafia,
+        Team.neutral => rolesWonLone,
+      };
+
   static String roleWin(Role role) => 'role_win:${role.name}';
   static const roleWinPrefix = 'role_win:';
 }
@@ -180,11 +192,37 @@ class Achievement {
   });
 
   static Achievement? byId(String id) => achievements.where((a) => a.id == id).firstOrNull;
+
+  /// The role a card achievement unlocks (`role_<name>`), or null.
+  Role? get role => roleOf(id);
+
+  static Role? roleOf(String id) =>
+      id.startsWith(rolePrefix) ? Role.values.where((r) => roleId(r) == id).firstOrNull : null;
+
+  static const rolePrefix = 'role_';
+
+  /// The card of [role] in the roles collection: won once with it. The
+  /// name in snake_case (`capoSetta` -> `role_capo_setta`), as the ids of
+  /// Steam, Game Center and the database want.
+  static String roleId(Role role) => roleIdOf(role.name);
+
+  static String roleIdOf(String roleName) =>
+      '$rolePrefix${roleName.replaceAllMapped(RegExp('[A-Z]'), (m) => '_${m[0]!.toLowerCase()}')}';
 }
 
+/// One card achievement per role, in the order of [Role.values]: a new role
+/// gets its own (and its Steam / Game Center twin, docs/steam.md) for free.
+/// No coins or XP: the reward is the card itself.
+final List<Achievement> roleAchievements = [
+  for (final role in Role.values)
+    Achievement(Achievement.roleId(role), 'role', 1, Metric.roleWin(role), 1, xp: 0, coins: 0),
+];
+
+int _rolesOf(Team team) => Role.values.where((r) => r.team == team).length;
+
 /// The achievements, in display order. Never rename an id: they are the
-/// future Steam ids.
-const achievements = <Achievement>[
+/// Steam, Game Center and Play Games ids too (lib/platform/achievements.dart).
+final List<Achievement> achievements = <Achievement>[
   Achievement('wins_10', 'wins', 1, Metric.wins, 10, xp: 100, coins: 50),
   Achievement('wins_50', 'wins', 2, Metric.wins, 50, xp: 300, coins: 150, title: 'man_of_honor'),
   Achievement('wins_200', 'wins', 3, Metric.wins, 200, xp: 800, coins: 400, title: 'legend', item: 'border.artDeco'),
@@ -201,8 +239,11 @@ const achievements = <Achievement>[
   Achievement('neutral_wins_10', 'neutral_wins', 2, Metric.neutralWins, 10, xp: 300, coins: 150, title: 'lone_wolf'),
   Achievement('roles_won_5', 'roles_won', 1, Metric.rolesWon, 5, xp: 150, coins: 75),
   Achievement('roles_won_12', 'roles_won', 2, Metric.rolesWon, 12, xp: 400, coins: 200),
-  Achievement('roles_won_all', 'roles_won', 3, Metric.rolesWon, 24,
+  Achievement('roles_won_all', 'roles_won', 3, Metric.rolesWon, Role.values.length,
       xp: 1000, coins: 500, title: 'chameleon', item: 'border.flame'),
+  Achievement('roles_town_all', 'roles_side', 2, Metric.rolesWonTown, _rolesOf(Team.citizens), xp: 400, coins: 200),
+  Achievement('roles_mafia_all', 'roles_side', 2, Metric.rolesWonMafia, _rolesOf(Team.mafia), xp: 400, coins: 200),
+  Achievement('roles_lone_all', 'roles_side', 2, Metric.rolesWonLone, _rolesOf(Team.neutral), xp: 400, coins: 200),
   Achievement('wins_alive_25', 'wins_alive', 1, Metric.winsAlive, 25, xp: 300, coins: 150),
   Achievement('lynch_hits_10', 'lynch_hits', 1, Metric.lynchHits, 10, xp: 100, coins: 50),
   Achievement('lynch_hits_50', 'lynch_hits', 2, Metric.lynchHits, 50, xp: 300, coins: 150, title: 'bloodhound'),
@@ -219,6 +260,7 @@ const achievements = <Achievement>[
   Achievement('kills_25', 'kills', 1, Metric.kills, 25, xp: 300, coins: 150),
   Achievement('framed_5', 'framed', 1, Metric.framed, 5, xp: 200, coins: 100, title: 'schemer'),
   Achievement('fool_win', 'fool_win', 1, Metric.foolWin, 1, xp: 150, coins: 75),
+  ...roleAchievements,
 ];
 
 /// What a game moved: missions (only the ones that changed), the ones just
@@ -242,8 +284,22 @@ Map<String, int> mergeStats(Map<String, int> stats, Map<String, int> tally) {
   for (final MapEntry(:key, :value) in tally.entries) {
     out[key] = (out[key] ?? 0) + value;
   }
+  return withRolesWon(out);
+}
+
+/// [stats] with the derived role counters ([Metric.rolesWon] and one per
+/// side) computed from the `role_win:` ones.
+Map<String, int> withRolesWon(Map<String, int> stats) {
+  final out = {...stats};
+  final won = [
+    for (final role in Role.values)
+      if ((out[Metric.roleWin(role)] ?? 0) > 0) role,
+  ];
   out[Metric.rolesWon] =
       out.entries.where((e) => e.key.startsWith(Metric.roleWinPrefix) && e.value > 0).length;
+  for (final team in Team.values) {
+    out[Metric.rolesWonOf(team)] = won.where((r) => r.team == team).length;
+  }
   return out;
 }
 

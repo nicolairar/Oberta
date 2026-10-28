@@ -1785,6 +1785,9 @@ class FakeProgress implements ProgressRepository {
   final Map<String, Map<String, DateTime>> unlocked = {};
   final Map<(String, String), GameUnlocks> _unlocks = {};
 
+  /// The role cards of each profile (`internal.role_stats`).
+  final Map<String, Map<String, RoleRecord>> roles = {};
+
   String get _me => _online.auth.userId ?? (throw const OnlineException(OnlineFailure.notSignedIn));
 
   List<MissionProgress> _missionsOf(String id) => missions[id] ??= [...pool];
@@ -1792,6 +1795,11 @@ class FakeProgress implements ProgressRepository {
   void _record(String id, String gameId, Map<String, Object?> p) {
     final tally = (p['tally'] as Map? ?? const {}).cast<String, int>();
     stats[id] = mergeStats(stats[id] ?? const {}, tally);
+    // The roles collection: only a game that counted.
+    if (p['role'] case final String role when tally.containsKey(Metric.games)) {
+      final cards = roles[id] ??= {};
+      cards[role] = (cards[role] ?? RoleRecord(role: role)).after(won: p['won'] == true, at: _online.clock.now());
+    }
     final moved = {for (final m in (p['missions'] as List? ?? const [])) (m as Map)['id']: m};
     missions[id] = [
       for (final m in _missionsOf(id))
@@ -1822,6 +1830,12 @@ class FakeProgress implements ProgressRepository {
     await _online._network();
     final me = _me;
     return PlayerProgress(missions: _missionsOf(me), stats: {...?stats[me]}, unlocked: {...?unlocked[me]});
+  }
+
+  @override
+  Future<Map<String, RoleRecord>> roleStats() async {
+    await _online._network();
+    return {...?roles[_me]};
   }
 
   @override

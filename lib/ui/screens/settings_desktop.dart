@@ -88,7 +88,7 @@ class _DesktopSettingsState extends State<_DesktopSettings> {
       case _DeskCategory.language:
         return text(settings.language?.nativeName ?? t.languageAutomatic);
       case _DeskCategory.game:
-        return text(t.rehearsal);
+        return text(CollectionStrings.of(context).title);
       case _DeskCategory.account:
         final auth = _host._auth!;
         if (!auth.signedIn) return text(s.notSignedIn);
@@ -350,12 +350,12 @@ class _DesktopSettingsState extends State<_DesktopSettings> {
       case _DeskCategory.game:
         return [
           _DeskRow(
-            icon: Icons.movie_filter,
-            title: t.rehearsal,
-            subtitle: t.rehearsalHint,
+            key: const Key('settings.roles'),
+            icon: Icons.style_outlined,
+            title: CollectionStrings.of(context).title,
+            subtitle: CollectionStrings.of(context).settingsHint,
             chevron: true,
-            onTap: () =>
-                Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const ScreeningRoomScreen())),
+            onTap: () => RolesScreen.open(context, services: _host.widget.online),
           ),
           _DeskRow(
             icon: Icons.school_outlined,

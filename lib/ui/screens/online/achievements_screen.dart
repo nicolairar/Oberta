@@ -1,13 +1,21 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
+import '../../../l10n/collection_strings.dart';
 import '../../../l10n/progress_strings.dart';
+import '../../../online/game/progress.dart' show roleAchievements, withRolesWon;
 import '../../../online/online_services.dart';
+import '../../../platform/achievements.dart';
 import '../../theme/app_theme.dart';
+import '../roles_screen.dart';
 import 'game/noir_ui.dart';
 import 'progress_widgets.dart';
 
 /// The medals: a velvet tray, each medal bright when earned, a dark shape
 /// with its progress when not. Tiers of the same family sit side by side.
+/// The one-per-role card medals fold into a single row that opens the
+/// roles collection.
 class AchievementsScreen extends StatelessWidget {
   final ProgressRepository progress;
 
@@ -24,7 +32,11 @@ class AchievementsScreen extends StatelessWidget {
       child: ProgressLoader<PlayerProgress>(
         load: progress.mine,
         builder: (context, mine, reload) {
+          // Confirmed by the server: mirror them to Steam / Game Center too.
+          unawaited(PlatformAchievements.instance.report(mine.unlocked.keys));
           final earned = achievements.where((a) => mine.unlocked.containsKey(a.id)).length;
+          final stats = withRolesWon(mine.stats);
+          final cards = roleAchievements.where((a) => mine.unlocked.containsKey(a.id)).length;
           return RefreshIndicator(
             color: Saloon.brass,
             onRefresh: reload,
@@ -46,12 +58,74 @@ class AchievementsScreen extends StatelessWidget {
                   ),
                 ],
                 const SizedBox(height: 16),
+                _CardsRow(earned: cards, of: roleAchievements.length),
                 for (final a in achievements)
-                  _Medal(achievement: a, at: mine.unlocked[a.id], value: mine.statOf(a.metric), strings: s),
+                  if (a.role == null)
+                    _Medal(achievement: a, at: mine.unlocked[a.id], value: stats[a.metric] ?? 0, strings: s),
               ],
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+/// The card medals, one per role, as a single row: how many, and the door
+/// to the collection.
+class _CardsRow extends StatelessWidget {
+  final int earned;
+  final int of;
+
+  const _CardsRow({required this.earned, required this.of});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = CollectionStrings.of(context);
+    return GestureDetector(
+      key: const Key('achievement.roles'),
+      behavior: HitTestBehavior.opaque,
+      onTap: () => RolesScreen.open(context),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(colors: [Color(0xFF3A0E14), Color(0xFF1E070A)]),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: earned > 0 ? Saloon.brass : Saloon.brassDeep.withValues(alpha: 0.4)),
+        ),
+        child: Row(
+          children: [
+            const SizedBox(
+              width: 44,
+              height: 44,
+              child: Icon(Icons.style, color: Saloon.brass, size: 30),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    c.title,
+                    style: AppText.body.copyWith(color: Saloon.paper, fontWeight: FontWeight.w900, fontSize: 15),
+                  ),
+                  Text(c.hint, style: AppText.body.copyWith(color: AppColors.textSecondary, fontSize: 12)),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Expanded(child: BrassBar(of == 0 ? 0 : earned / of)),
+                      const SizedBox(width: 8),
+                      Text('$earned/$of', style: AppText.body.copyWith(color: AppColors.textSecondary, fontSize: 11)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(Icons.chevron_right, color: Saloon.brass),
+          ],
+        ),
       ),
     );
   }
@@ -142,8 +216,8 @@ class _Medal extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              CoinAmount(a.coins),
-              Text('+${a.xp} XP', style: AppText.body.copyWith(color: AppColors.textSecondary, fontSize: 11)),
+              if (a.coins > 0) CoinAmount(a.coins),
+              if (a.xp > 0) Text('+${a.xp} XP', style: AppText.body.copyWith(color: AppColors.textSecondary, fontSize: 11)),
             ],
           ),
         ],

@@ -136,16 +136,24 @@ void main() {
           Metric.wins: 9,
           for (final role in [Role.cittadino, Role.detective, Role.mafioso, Role.sarto]) Metric.roleWin(role): 2,
         },
-        achieved: {'neutral_wins_1'},
+        achieved: {
+          'neutral_wins_1',
+          for (final role in [Role.cittadino, Role.detective, Role.mafioso, Role.sarto]) Achievement.roleId(role),
+        },
       );
-      expect([for (final a in update.unlocked) a.id], ['wins_10', 'roles_won_5']);
-      expect(update.achievementCoins, 50 + 75);
+      expect([for (final a in update.unlocked) a.id], ['wins_10', 'roles_won_5', 'role_medico']);
+      expect(update.achievementCoins, 50 + 75, reason: 'the card medals pay nothing');
       final again = applyProgress(tally: {Metric.wins: 1}, stats: {Metric.wins: 10}, achieved: {'wins_10'});
       expect(again.unlocked, isEmpty);
     });
 
-    test('the catalog: about thirty, stable snake_case ids, unique, rewards from the shop', () {
-      expect(achievements.length, inInclusiveRange(28, 40));
+    test('the catalog: about thirty, plus one card per role; stable snake_case ids, unique, rewards from the shop', () {
+      expect(achievements.length - roleAchievements.length, inInclusiveRange(28, 40));
+      expect([for (final a in roleAchievements) a.role], Role.values, reason: 'every role, new ones too');
+      for (final a in roleAchievements) {
+        expect(achievements, contains(a));
+        expect((a.xp, a.coins, a.target), (0, 0, 1));
+      }
       final ids = {for (final a in achievements) a.id};
       expect(ids.length, achievements.length);
       for (final a in achievements) {
@@ -153,6 +161,22 @@ void main() {
         expect(a.item == null || a.item!.startsWith('border.'), isTrue);
       }
       expect(Achievement.byId('roles_won_all')!.target, Role.values.length);
+      for (final (id, team) in [('roles_town_all', Team.citizens), ('roles_mafia_all', Team.mafia), ('roles_lone_all', Team.neutral)]) {
+        expect(Achievement.byId(id)!.target, Role.values.where((r) => r.team == team).length);
+      }
+    });
+
+    test('a side is complete when every role of it won once', () {
+      final mafia = Role.values.where((r) => r.team == Team.mafia).toList();
+      final stats = {for (final r in mafia.skip(1)) Metric.roleWin(r): 1};
+      final update = applyProgress(
+        tally: {Metric.games: 1, Metric.wins: 1, Metric.roleWin(mafia.first): 1},
+        stats: stats,
+        achieved: {for (final r in mafia.skip(1)) Achievement.roleId(r)},
+      );
+      expect([for (final a in update.unlocked) a.id], containsAll([Achievement.roleId(mafia.first), 'roles_mafia_all']));
+      expect(update.unlocked.map((a) => a.id), isNot(contains('roles_town_all')));
+      expect(withRolesWon(stats)[Metric.rolesWonMafia], mafia.length - 1);
     });
   });
 

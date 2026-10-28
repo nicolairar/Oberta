@@ -157,10 +157,75 @@ class Leaderboard {
   }
 }
 
+/// One card of the roles collection ("I ruoli"): the games that counted
+/// with that role and how they went. Written by the server only
+/// (`internal.role_stats`, record_match); the card is unlocked by the first
+/// win.
+class RoleRecord {
+  final String role;
+  final int played;
+  final int wins;
+  final int streak;
+  final int bestStreak;
+  final DateTime? firstWin;
+  final DateTime? lastPlayed;
+
+  const RoleRecord({
+    required this.role,
+    this.played = 0,
+    this.wins = 0,
+    this.streak = 0,
+    this.bestStreak = 0,
+    this.firstWin,
+    this.lastPlayed,
+  });
+
+  bool get unlocked => wins > 0;
+  int get losses => played - wins;
+  double get winRate => played == 0 ? 0 : wins / played;
+
+  /// The record after one more counted game (the fake server's
+  /// record_role).
+  RoleRecord after({required bool won, required DateTime at}) {
+    final run = won ? streak + 1 : 0;
+    return RoleRecord(
+      role: role,
+      played: played + 1,
+      wins: wins + (won ? 1 : 0),
+      streak: run,
+      bestStreak: run > bestStreak ? run : bestStreak,
+      firstWin: firstWin ?? (won ? at : null),
+      lastPlayed: at,
+    );
+  }
+
+  static DateTime? _at(Object? ms) => ms is num ? DateTime.fromMillisecondsSinceEpoch(ms.toInt()) : null;
+
+  factory RoleRecord.fromJson(Map<String, Object?> json) => RoleRecord(
+        role: json['role'] as String,
+        played: (json['played'] as num?)?.toInt() ?? 0,
+        wins: (json['wins'] as num?)?.toInt() ?? 0,
+        streak: (json['streak'] as num?)?.toInt() ?? 0,
+        bestStreak: (json['best_streak'] as num?)?.toInt() ?? 0,
+        firstWin: _at(json['first_win']),
+        lastPlayed: _at(json['last_played']),
+      );
+
+  static Map<String, RoleRecord> listFromJson(Object? json) => {
+        for (final row in (json as List<Object?>? ?? const []))
+          if (row is Map && row['role'] is String)
+            row['role'] as String: RoleRecord.fromJson(row.cast<String, Object?>()),
+      };
+}
+
 /// Missions, achievements and the leaderboard. Read-only: the server moves
 /// everything when it settles a game.
 abstract class ProgressRepository {
   Future<PlayerProgress> mine();
+
+  /// The caller's role cards, by role name (`my_role_stats`). A role with
+  /// no record was never played: locked.
+  Future<Map<String, RoleRecord>> roleStats();
   Future<GameUnlocks> unlocksFor(String gameId);
   Future<Leaderboard> leaderboard(AppLanguage language);
 }
@@ -186,6 +251,9 @@ class PublicProfile {
   /// The five most played roles, most played first.
   final List<({String role, int games, int wins})> roles;
 
+  /// How many role cards are unlocked; null on a closed profile.
+  final int? rolesUnlocked;
+
   const PublicProfile({
     required this.profile,
     this.open = true,
@@ -198,6 +266,7 @@ class PublicProfile {
     this.seconds = 0,
     this.timed = 0,
     this.roles = const [],
+    this.rolesUnlocked,
   });
 
   double get winRate => games == 0 ? 0 : wins / games;
@@ -216,6 +285,7 @@ class PublicProfile {
         longestStreak: _int(json['longest_streak']),
         seconds: _int(json['seconds']),
         timed: _int(json['timed']),
+        rolesUnlocked: (json['roles_unlocked'] as num?)?.toInt(),
         roles: [
           for (final row in (json['roles'] as List<Object?>? ?? const []))
             if (row is Map && row['role'] is String)

@@ -1,8 +1,6 @@
 import '../narration/italian_pack.dart';
 import '../narration/narration_pack.dart';
 import '../roster/roster.dart';
-import '../sound/cue_sounds.dart';
-import '../ui/widgets/death_scene.dart';
 import '../ui/widgets/verdict_scene.dart';
 import 'app_language.dart';
 import 'app_strings.dart';
@@ -67,10 +65,6 @@ final class ItalianStrings extends AppStrings {
   String get languageSetting => 'Lingua';
   @override
   String get languageAutomatic => 'Automatica (telefono)';
-  @override
-  String get rehearsal => 'Sala prove';
-  @override
-  String get rehearsalHint => 'Rivedi le scene della notte, una per una.';
 
   @override
   String get narratorTitle => 'NARRATORE';
@@ -337,79 +331,6 @@ final class ItalianStrings extends AppStrings {
   };
 
   @override
-  String get screeningTitle => 'SALA PROVE';
-  @override
-  String get screeningIntro => 'Tutte le scene della notte. Toccane una per rivederla.';
-  @override
-  String get screeningCaption => 'Esterno, notte. Prova generale.';
-  @override
-  String get screeningSpliced => 'Sopra un agguato a caso';
-  @override
-  String sceneName(DeathAct act) => switch (act) {
-    DeathAct.knife => 'Il pugnale',
-    DeathAct.gun => 'Il silenziatore',
-    DeathAct.burst => 'La custodia da violino',
-    DeathAct.car => 'L\'auto nera',
-    DeathAct.piano => 'Il pianoforte',
-    DeathAct.safe => 'La cassaforte',
-    DeathAct.chandelier => 'Il lampadario',
-    DeathAct.blast => 'Il pacco regalo',
-    DeathAct.poison => 'Il caffè corretto',
-    DeathAct.noose => 'Il cappio',
-    DeathAct.grab => 'Le scarpe di cemento',
-    DeathAct.bat => 'La mazza',
-    DeathAct.lupara => 'La lupara',
-    DeathAct.driveBy => 'La raffica dall\'auto',
-    DeathAct.garrote => 'La garrota',
-    DeathAct.pot => 'Il vaso dal terzo piano',
-    DeathAct.manhole => 'Il tombino',
-    DeathAct.blackout => 'Il buio',
-    DeathAct.kiss => 'Il bacio',
-    DeathAct.bowling => 'La palla da bowling',
-    DeathAct.swordfish => 'Il pesce spada',
-    DeathAct.harpoon => 'L\'arpione',
-    DeathAct.pie => 'La torta alla panna',
-    DeathAct.trombone => 'Il trombone',
-    DeathAct.tango => 'L\'ultimo tango',
-    DeathAct.bouquet => 'Il mazzo di rose',
-    DeathAct.laundry => 'Il furgone della lavanderia',
-    DeathAct.sniper => 'Il Cecchino',
-    DeathAct.rescue => 'Il Dottore arriva in tempo',
-    DeathAct.lucky => 'La fiaschetta',
-    DeathAct.belfry => 'Il Cecchino sul campanile',
-    DeathAct.phoneBooth => 'Il Cecchino e la cabina',
-    DeathAct.carDoor => 'Il Cecchino e la portiera',
-    DeathAct.defibrillator => 'Il Dottore e le piastre',
-    DeathAct.pliers => 'Il Dottore e le pinze',
-    DeathAct.ambulance => 'L\'ambulanza',
-    DeathAct.stitches => 'I punti del Dottore',
-    DeathAct.bible => 'La Bibbia nel taschino',
-    DeathAct.jam => 'La pistola inceppata',
-    DeathAct.banana => 'La buccia di banana',
-    DeathAct.blackCat => 'Il gatto nero',
-  };
-
-  @override
-  String get screeningEffects => 'EFFETTI';
-
-  @override
-  String cueName(Cue cue) => switch (cue) {
-    Cue.click => 'Il tamburo che gira',
-    Cue.bang => 'Lo sparo del sorteggio',
-    Cue.deal => 'Una carta servita',
-    Cue.flip => 'Una carta girata',
-    Cue.nightfall => 'Cala la notte',
-    Cue.dawn => 'L\'alba',
-    Cue.tick => 'Gli ultimi secondi',
-    Cue.timeUp => 'Tempo scaduto',
-    Cue.drumroll => 'Il rullo di tamburi',
-    Cue.caught => 'Era della famiglia',
-    Cue.innocent => 'Era innocente',
-    Cue.townWins => 'Vincono gli onesti',
-    Cue.familyWins => 'Vince la famiglia',
-  };
-
-  @override
   String get lobbyTitle => 'IL TAVOLO';
 
   @override
@@ -561,9 +482,6 @@ final class ItalianStrings extends AppStrings {
 
   @override
   String personRemoveTitle(String name) => 'Via $name?';
-
-  @override
-  String get screeningVerdicts => 'VERDETTI';
 
   @override
   String verdictName(VerdictTake take) => switch (take) {

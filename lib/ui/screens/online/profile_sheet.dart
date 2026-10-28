@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../l10n/collection_strings.dart';
 import '../../../l10n/app_strings.dart';
 import '../../../l10n/settings_strings.dart';
 import '../../../l10n/progress_strings.dart';
@@ -412,7 +413,8 @@ class _DossierState extends State<_Dossier> {
             ),
           },
           const SizedBox(height: 18),
-          for (final link in progressLinks(context, widget.account.services.progress, profile.language))
+          for (final link in progressLinks(context, widget.account.services.progress, profile.language,
+              services: widget.account.services))
             _Plate(key: link.key, label: link.label, icon: Icon(link.icon, color: _brass, size: 22), onTap: link.open),
           _Plate(
             key: const Key('profile.mirror'),

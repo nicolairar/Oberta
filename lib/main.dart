@@ -1,3 +1,4 @@
+import 'platform/achievements.dart';
 import 'dart:async';
 
 import 'online/online_account.dart';
@@ -39,6 +40,9 @@ Future<void> main() async {
   if (DesktopPlatform.isDesktop) await DesktopWindow.open(AppSettings.instance);
   // Steamworks solo nelle build --dart-define=STEAM=true (docs/steam.md).
   await SteamClient.start();
+  // Lo specchio dei traguardi (Steam, Game Center, Play Games): solo quelli
+  // già confermati dal server.
+  await PlatformAchievements.start();
   // L'online c'è solo se l'app è stata compilata con config/supabase.json.
   final sessionId = newDeviceSessionId();
   final package = await _packageInfo();

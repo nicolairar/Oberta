@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- L'id del progetto Play Games (Play Console → Play Games Services →
+         Configurazione). Vuoto finché Android non esce: l'app non chiama mai
+         Play Games senza id dei traguardi (lib/platform/achievements.dart). -->
+    <string name="game_services_project_id" translatable="false">0</string>
+</resources>

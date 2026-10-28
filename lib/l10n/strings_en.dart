@@ -1,8 +1,6 @@
 import '../narration/english_pack.dart';
 import '../narration/narration_pack.dart';
 import '../roster/roster.dart';
-import '../sound/cue_sounds.dart';
-import '../ui/widgets/death_scene.dart';
 import '../ui/widgets/verdict_scene.dart';
 import 'app_language.dart';
 import 'app_strings.dart';
@@ -69,10 +67,6 @@ final class EnglishStrings extends AppStrings {
   String get languageSetting => 'Language';
   @override
   String get languageAutomatic => 'Automatic (phone)';
-  @override
-  String get rehearsal => 'Screening room';
-  @override
-  String get rehearsalHint => 'Rewatch the night\'s scenes, one at a time.';
 
   @override
   String get narratorTitle => 'NARRATOR';
@@ -339,79 +333,6 @@ final class EnglishStrings extends AppStrings {
   };
 
   @override
-  String get screeningTitle => 'SCREENING ROOM';
-  @override
-  String get screeningIntro => 'Every scene of the night. Tap one to watch it again.';
-  @override
-  String get screeningCaption => 'Exterior, night. Dress rehearsal.';
-  @override
-  String get screeningSpliced => 'Over a random ambush';
-  @override
-  String sceneName(DeathAct act) => switch (act) {
-    DeathAct.knife => 'The dagger',
-    DeathAct.gun => 'The silencer',
-    DeathAct.burst => 'The violin case',
-    DeathAct.car => 'The black sedan',
-    DeathAct.piano => 'The grand piano',
-    DeathAct.safe => 'The safe',
-    DeathAct.chandelier => 'The chandelier',
-    DeathAct.blast => 'The gift box',
-    DeathAct.poison => 'The spiked coffee',
-    DeathAct.noose => 'The noose',
-    DeathAct.grab => 'The cement shoes',
-    DeathAct.bat => 'The baseball bat',
-    DeathAct.lupara => 'The sawed-off shotgun',
-    DeathAct.driveBy => 'The drive-by',
-    DeathAct.garrote => 'The garrote',
-    DeathAct.pot => 'The flowerpot from the third floor',
-    DeathAct.manhole => 'The manhole',
-    DeathAct.blackout => 'The blackout',
-    DeathAct.kiss => 'The kiss',
-    DeathAct.bowling => 'The bowling ball',
-    DeathAct.swordfish => 'The swordfish',
-    DeathAct.harpoon => 'The harpoon',
-    DeathAct.pie => 'The cream pie',
-    DeathAct.trombone => 'The trombone',
-    DeathAct.tango => 'The last tango',
-    DeathAct.bouquet => 'The bouquet of roses',
-    DeathAct.laundry => 'The laundry van',
-    DeathAct.sniper => 'The Sniper',
-    DeathAct.rescue => 'The Doc arrives in time',
-    DeathAct.lucky => 'The flask',
-    DeathAct.belfry => 'The Sniper in the bell tower',
-    DeathAct.phoneBooth => 'The Sniper and the phone booth',
-    DeathAct.carDoor => 'The Sniper and the open car door',
-    DeathAct.defibrillator => 'The Doc and the paddles',
-    DeathAct.pliers => 'The Doc and the pliers',
-    DeathAct.ambulance => 'The ambulance',
-    DeathAct.stitches => 'The Doc\'s stitches',
-    DeathAct.bible => 'The pocket Bible',
-    DeathAct.jam => 'The jammed gun',
-    DeathAct.banana => 'The banana peel',
-    DeathAct.blackCat => 'The black cat',
-  };
-
-  @override
-  String get screeningEffects => 'SOUND EFFECTS';
-
-  @override
-  String cueName(Cue cue) => switch (cue) {
-    Cue.click => 'The spinning cylinder',
-    Cue.bang => 'The draw shot',
-    Cue.deal => 'A card dealt',
-    Cue.flip => 'A card turned',
-    Cue.nightfall => 'Night falls',
-    Cue.dawn => 'Dawn',
-    Cue.tick => 'The last seconds',
-    Cue.timeUp => 'Time\'s up',
-    Cue.drumroll => 'The drumroll',
-    Cue.caught => 'One of the Family',
-    Cue.innocent => 'An innocent',
-    Cue.townWins => 'The town wins',
-    Cue.familyWins => 'The Family wins',
-  };
-
-  @override
   String get lobbyTitle => 'THE TABLE';
 
   @override
@@ -560,9 +481,6 @@ final class EnglishStrings extends AppStrings {
 
   @override
   String personRemoveTitle(String name) => 'Remove $name?';
-
-  @override
-  String get screeningVerdicts => 'VERDICTS';
 
   @override
   String verdictName(VerdictTake take) => switch (take) {

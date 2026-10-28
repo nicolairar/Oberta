@@ -3,8 +3,6 @@ import 'package:flutter/widgets.dart';
 
 import '../narration/narration_pack.dart';
 import '../rules/role.dart';
-import '../sound/cue_sounds.dart';
-import '../ui/widgets/death_scene.dart';
 import '../ui/widgets/verdict_scene.dart';
 import 'app_language.dart';
 import 'online_strings.dart';
@@ -63,8 +61,6 @@ abstract class AppStrings {
   String get soundHint;
   String get languageSetting;
   String get languageAutomatic;
-  String get rehearsal;
-  String get rehearsalHint;
 
   // Il narratore.
   String get narratorTitle;
@@ -204,23 +200,12 @@ abstract class AppStrings {
   String get townSign;
   String verdictWord(VerdictWord word);
 
-  // La sala prove.
-  String get screeningTitle;
-  String get screeningIntro;
-  String get screeningCaption;
-  String sceneName(DeathAct act);
-
-  /// Il pulsante che rivede un salvataggio sopra un agguato a caso.
-  String get screeningSpliced;
-  String get screeningEffects;
-  String get screeningVerdicts;
   String get someoneSaved;
   String get musicVolumeLabel;
   String get effectsVolumeLabel;
   String get memeMode;
   String get memeModeHint;
   String verdictName(VerdictTake take);
-  String cueName(Cue cue);
 
   // Il tavolo e la scheda di chi gioca.
   String get lobbyTitle;
@@ -295,8 +280,6 @@ abstract class AppStrings {
     'soundHint': soundHint,
     'languageSetting': languageSetting,
     'languageAutomatic': languageAutomatic,
-    'rehearsal': rehearsal,
-    'rehearsalHint': rehearsalHint,
     'narratorTitle': narratorTitle,
     'whoPullsTheStrings': whoPullsTheStrings,
     'narratorIntro': narratorIntro,
@@ -414,13 +397,6 @@ abstract class AppStrings {
     'acquittalLine': acquittalLine,
     'townSign': townSign,
     for (final word in VerdictWord.values) 'verdictWord.${word.name}': verdictWord(word),
-    'screeningTitle': screeningTitle,
-    'screeningIntro': screeningIntro,
-    'screeningCaption': screeningCaption,
-    for (final act in DeathAct.values) 'sceneName.${act.name}': sceneName(act),
-    'screeningSpliced': screeningSpliced,
-    'screeningEffects': screeningEffects,
-    'screeningVerdicts': screeningVerdicts,
     'someoneSaved': someoneSaved,
     'musicVolumeLabel': musicVolumeLabel,
     'effectsVolumeLabel': effectsVolumeLabel,
@@ -477,7 +453,6 @@ abstract class AppStrings {
     'personBookedSeated': personBookedSeated('Marco'),
     'personBookedWatching': personBookedWatching('Marco'),
     'personRemoveTitle': personRemoveTitle('Marco'),
-    for (final cue in Cue.values) 'cueName.${cue.name}': cueName(cue),
     for (final MapEntry(:key, :value) in online.catalog.entries) 'online.$key': value,
     for (final MapEntry(:key, :value) in shop.catalog.entries) 'shop.$key': value,
   };

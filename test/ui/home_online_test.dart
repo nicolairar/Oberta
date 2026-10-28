@@ -261,6 +261,8 @@ void main() {
       expect(find.text('90'), findsNWidgets(2));
 
       await tester.scrollUntilVisible(find.text('ESCI DALL\'ACCOUNT'), 200);
+      await tester.ensureVisible(find.text('ESCI DALL\'ACCOUNT'));
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('ESCI DALL\'ACCOUNT'));
       await tester.pumpAndSettle();

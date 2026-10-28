@@ -349,3 +349,39 @@ Sempre gratis: niente account partner Steamworks ancora.
    Services ID tra i Client IDs e la **secret key** (oggi manca).
 4. «Collega Google»: accendere il provider Google in Supabase con il client web (id e secret); oggi è spento.
 5. Android: il filtro `oberta://steam-link` è nel manifest; iOS ha già lo schema `oberta`.
+
+## Traguardi Steam: i nomi da creare in Steamworks (28 ottobre 2026)
+
+Il server decide (`internal.player_achievements`, scritto quando chiude la partita); il client li
+specchia su Steam **solo dopo** la conferma del server: quelli che `game_unlocks` restituisce a fine
+partita, a ogni apertura di Medaglie tutti quelli di `my_progress` e a ogni apertura di I ruoli le carte
+scoperte di `my_role_stats` (così arrivano anche i traguardi presi sul telefono o prima di Steam). Codice: `lib/platform/achievements.dart`
+(`SteamAchievements`: `GetAchievement`, poi `SetAchievement` + `StoreStats`, già in `lib/steam/`). Solo
+nelle build `--dart-define=STEAM=true` con Steam aperto; altrimenti non fa niente.
+
+**API Name in Steamworks = il nostro id, identico** (minuscole, `snake_case`). Steamworks → *App Admin* →
+*Stats & Achievements* → *Achievements* → *New Achievement*: API Name, nome e descrizione IT/EN (gli
+stessi testi di `lib/l10n/progress_strings.dart`), icona sbloccata e bloccata, *Set By: Client*. Poi
+**Publish** delle modifiche. Un id che non esiste ancora in Steamworks viene saltato (e ritentato alla
+volta dopo), quindi si possono creare anche più tardi.
+
+Da creare (catalogo in `lib/online/game/progress.dart`, `achievements`):
+
+- Generali: `wins_10`, `wins_50`, `wins_200`, `games_25`, `games_100`, `games_500`, `ranked_wins_10`,
+  `ranked_wins_50`, `friends_wins_25`, `town_wins_25`, `mafia_wins_25`, `neutral_wins_1`,
+  `neutral_wins_10`, `roles_won_5`, `roles_won_12`, `roles_won_all`, `wins_alive_25`, `lynch_hits_10`,
+  `lynch_hits_50`, `lynch_hits_200`, `nights_25`, `nights_100`, `saves_1`, `saves_10`,
+  `doctor_save_survive`, `finds_10`, `godfather_lynch`, `snipes_1`, `kills_25`, `framed_5`, `fool_win`.
+- La collezione dei ruoli: `roles_town_all` (tutti i ruoli del Villaggio), `roles_mafia_all` (tutta la
+  Famiglia), `roles_lone_all` (tutti i Solitari).
+- Un traguardo per ruolo, `role_<ruolo>`, che si sblocca alla prima vittoria con quel ruolo:
+  `role_mafioso`, `role_padrino`, `role_sarto`, `role_compare`, `role_cittadino`, `role_detective`,
+  `role_medico`, `role_cecchino`, `role_giornalista`, `role_becchino`, `role_guardaspalle`,
+  `role_reduce`, `role_pregiudicato`, `role_messia`, `role_sindaco`, `role_portinaio`, `role_fesso`,
+  `role_piromane`, `role_cacciatore`, `role_strozzino`, `role_sicario`, `role_prostituta`, `role_carceriere`,
+  `role_pacifista` (un ruolo in camelCase diventa snake_case: `capoSetta` → `role_capo_setta`).
+
+**Regola**: ogni ruolo nuovo (`enum Role`) porta da solo il suo traguardo `role_<nome>` nel gioco; su
+Steamworks va creato a mano con quell'API Name (e lo stesso su Game Center e Play Games, vedi
+`docs/release.md`). `roles_won_all` e i `roles_*_all` contano i ruoli che ci sono adesso: chi li ha già
+presi li tiene.

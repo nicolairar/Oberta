@@ -30,7 +30,8 @@ import 'online/safety_sheets.dart';
 import 'online/voice/voice_dock.dart';
 import '../../l10n/voice_strings.dart';
 import 'online/game/gesture_picker.dart';
-import 'screening_room_screen.dart';
+import '../../l10n/collection_strings.dart';
+import 'roles_screen.dart';
 import 'tutorial_screen.dart';
 import '../../l10n/tutorial_strings.dart';
 import '../press.dart';
@@ -46,7 +47,7 @@ const privacyPolicyUrl = 'https://oberta.app/privacy';
 const termsUrl = 'https://oberta.app/terms';
 
 /// Le impostazioni, a pagina intera: un ufficio di legno scuro con le
-/// targhette d'ottone. Audio, lingua, sala prove, account, privacy e dati.
+/// targhette d'ottone. Audio, lingua, i ruoli, account, privacy e dati.
 class SettingsScreen extends StatefulWidget {
   final AppSettings settings;
   final OnlineServices? online;
@@ -335,13 +336,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       title: s.game,
                       children: [
                         ListTile(
-                          leading: const Icon(Icons.movie_filter, color: AppColors.gold),
-                          title: Text(t.rehearsal),
-                          subtitle: Text(t.rehearsalHint),
+                          key: const Key('settings.roles'),
+                          leading: const Icon(Icons.style_outlined, color: AppColors.gold),
+                          title: Text(CollectionStrings.of(context).title),
+                          subtitle: Text(CollectionStrings.of(context).settingsHint),
                           trailing: const Icon(Icons.chevron_right),
-                          onTap: () =>
-                              Navigator.of(context)
-                                  .push(MaterialPageRoute<void>(builder: (_) => const ScreeningRoomScreen())),
+                          onTap: () => RolesScreen.open(context, services: widget.online),
                         ),
                         ListTile(
                           key: const Key('settings.tutorial'),

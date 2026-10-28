@@ -135,6 +135,33 @@ git add pubspec.yaml && git commit -m "Bump build to $(sed -n 's/^version: .*+//
    paesi). Se il rilascio graduale va in pausa, il cartello resta: il pulsante porta comunque
    all'App Store, dove l'aggiornamento manuale è sempre disponibile.
 
+## 5.1 Game Center (iOS): i traguardi
+
+Il gioco decide i traguardi sul server; l'iPhone li specchia su Game Center **solo dopo** la conferma
+(`lib/platform/achievements.dart`, plugin `games_services`): a fine partita quelli di `game_unlocks`,
+e tutti quelli già presi quando si aprono Medaglie o I ruoli. All'avvio l'app chiede l'accesso a Game
+Center in sottofondo (il banner o il foglio di Apple, mai un'attesa); senza accesso non manda niente e
+riprova più tardi.
+
+- Capability: Game Center è attivo di default su ogni App ID; l'entitlement
+  `com.apple.developer.game-center` è in `ios/Runner/Runner.entitlements`. Se fastlane/match si lamenta
+  del profilo, rigenerarlo (`bundle exec fastlane match appstore --force`).
+- App Store Connect → App → *Funzionalità* → **Game Center**: attivarlo per l'app e, nella pagina della
+  versione, spuntare **Game Center** prima dell'invio (altrimenti in produzione i traguardi non si vedono).
+- *Traguardi* → **+** per ognuno:
+  - **ID traguardo**: `oberta.<id>`, con `<id>` il nostro id esatto (`oberta.wins_10`,
+    `oberta.role_medico`, `oberta.roles_town_all`, ...). L'elenco completo è in `docs/steam.md`
+    («Traguardi Steam»), lo stesso per tutte le piattaforme. Non si rinomina mai.
+  - **Nome di riferimento**: l'id stesso.
+  - **Punti**: totale massimo 1000 per app. Proposta: 5 per ogni `role_<ruolo>`, 25 per i
+    `roles_*_all`, 10–50 per gli altri secondo il livello (1/2/3).
+  - **Nascosto**: no. **Ottenibile più volte**: no.
+  - **Localizzazioni** Italiano e Inglese: titolo e descrizione da `lib/l10n/progress_strings.dart`
+    (prima e dopo lo sblocco), immagine 512×512 o 1024×1024 PNG.
+- Un ruolo nuovo = un traguardo nuovo `oberta.role_<nome>`; finché non c'è su App Store Connect
+  l'iPhone lo manda e Game Center lo ignora, senza danni.
+- Prova: in TestFlight / Sandbox Game Center i traguardi funzionano già prima della pubblicazione.
+
 ## 6. Desktop (solo Steam)
 
 Il desktop esce **solo su Steam**: niente download pubblici, niente release GitHub. Gli
@@ -167,6 +194,22 @@ server (sezione 9).
 Non c'è ancora. Quando arriverà: `bundle exec fastlane android …` verso la traccia interna di
 Google Play, poi produzione con rilascio graduale; stessa numerazione `+N`; la build minima si alza
 con `set_min_build.sh android <N>`.
+
+### 7.1 Play Games Services: i traguardi
+
+Stesso meccanismo di Game Center (`lib/platform/achievements.dart`), ma Play genera gli id da sé:
+finché `playGamesIds` è vuota Android non chiama mai Play Games.
+
+1. Play Console → *Crescita* → **Play Games Services** → *Configurazione*: crea il progetto, collega il
+   progetto Google Cloud e le credenziali OAuth Android (SHA-1 della chiave di firma di Play).
+2. L'**ID progetto** (solo cifre) va in `android/app/src/main/res/values/games.xml`
+   (`game_services_project_id`, oggi `0`: è il segnaposto letto da
+   `com.google.android.gms.games.APP_ID` nel manifest).
+3. *Traguardi* → crea ognuno con nome e descrizione IT/EN (stessi testi), icona 512×512, punti
+   (totale massimo 1000), non incrementali. Elenco: `docs/steam.md`.
+4. Copia gli id generati (`CgkI...`) nella mappa `playGamesIds` di `lib/platform/achievements.dart`
+   (`'role_medico': 'CgkI...'`). Un id non in mappa non viene mai mandato.
+5. *Tester*: aggiungi gli account di prova, poi **Pubblica** la configurazione di Play Games.
 
 ## 8. Interruttori del server prima di un lancio pubblico
 
