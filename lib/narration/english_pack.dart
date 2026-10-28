@@ -423,7 +423,12 @@ const englishPack = NarrationPack(
     'The crowd is restless. The executioner is limbering up.',
     'Time to vote. Try not to get it wrong. Again.',
   ],
-  voteInstruction: 'Decide out loud who to eliminate. You can also choose to eliminate nobody.',
+  voteInstruction: 'One vote at a time, in the open. You can also choose to eliminate nobody.',
+  passPhone: 'Pass the phone to {name}.',
+  curtainHint: 'Everyone else looks away. Tap only once the phone is in your hands.',
+  cardCurtainHint: 'You are about to see your card: nobody else may look.',
+  putPhoneDown: 'Done. Put the phone down and pass it on.',
+  voterTurn: '{name} votes: tap who to condemn.',
   lynchScenes: [
     '{name} climbs the steps of the scaffold. The guillotine gleams in the sun.',
     '{name} walks to the noose, head held high. Drumroll.',

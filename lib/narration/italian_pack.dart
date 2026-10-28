@@ -419,7 +419,12 @@ const italianPack = NarrationPack(
     'La folla rumoreggia. Il boia si scalda le mani.',
     'Si vota. Cercate di non sbagliare. Di nuovo.',
   ],
-  voteInstruction: 'Decidete a voce chi eliminare. Potete anche non eliminare nessuno.',
+  voteInstruction: 'Si vota uno alla volta, a viso aperto. Potete anche non eliminare nessuno.',
+  passPhone: 'Passa il telefono a {name}.',
+  curtainHint: 'Gli altri guardano altrove. Tocca solo quando hai il telefono in mano.',
+  cardCurtainHint: 'Ora guardi la tua carta: nessun altro deve vederla.',
+  putPhoneDown: 'Fatto. Posa il telefono e passalo.',
+  voterTurn: 'Vota {name}: tocca chi condanni.',
   lynchScenes: [
     '{name} sale i gradini del patibolo. La ghigliottina brilla al sole.',
     '{name} cammina verso il cappio, a testa alta. Rullo di tamburi.',

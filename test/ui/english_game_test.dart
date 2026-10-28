@@ -131,7 +131,7 @@ void main() {
     await tap(tester, 'CALL THE VOTE');
 
     expect(find.textContaining('You can also choose to eliminate nobody.'), findsOneWidget);
-    expect(find.text('1 Ada votes: tap who to condemn.'), findsOneWidget);
+    expect(tester.widget<Text>(find.byKey(const Key('local.voterTurn'))).data, '1 Ada votes: tap who to condemn.');
     await tap(tester, 'I ABSTAIN');
     await tapSeat(tester, ada);
     await tapSeat(tester, ada);

@@ -102,10 +102,11 @@ void main() {
     await tester.tap(find.text('COMINCIA LA NOTTE'));
     await tester.pump();
     expect(ear.stops, greaterThan(0));
-    expect(ear.ducks.last, isFalse, reason: 'la musica torna su');
     final said = ear.said.length;
+    // Poi la tenda: la voce dice a chi passa il telefono, e niente altro.
     await tester.pump(const Duration(seconds: 20));
-    expect(ear.said, hasLength(said), reason: 'la voce non riparte da sola');
+    expect(ear.said.length - said, 2, reason: '«Passa il telefono a…» e «Gli altri guardano altrove»');
+    expect(ear.ducks.last, isFalse, reason: 'a tenda detta la musica torna su');
     expect(find.text('SONO IO'), findsOneWidget);
   });
 
@@ -131,6 +132,7 @@ void main() {
     }
     await tester.tap(find.text('COMINCIA LA NOTTE'));
     await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 20));
     expect(ear.ducks.last, isFalse);
   });
 

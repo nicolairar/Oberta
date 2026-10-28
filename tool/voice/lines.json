@@ -1281,9 +1281,39 @@
       "text": "Si vota. Cercate di non sbagliare. Di nuovo."
     },
     {
-      "key": "2e43ec4be50f80f3",
+      "key": "0ceffaca42cdbe69",
       "kind": "segment",
-      "text": "Decidete a voce chi eliminare. Potete anche non eliminare nessuno."
+      "text": "Si vota uno alla volta, a viso aperto. Potete anche non eliminare nessuno."
+    },
+    {
+      "key": "9c8b538c11a5140c",
+      "kind": "segment",
+      "text": "Passa il telefono a"
+    },
+    {
+      "key": "883691427982e540",
+      "kind": "segment",
+      "text": "Gli altri guardano altrove. Tocca solo quando hai il telefono in mano."
+    },
+    {
+      "key": "b0beae989981426b",
+      "kind": "segment",
+      "text": "Ora guardi la tua carta: nessun altro deve vederla."
+    },
+    {
+      "key": "76938c0dd92189ea",
+      "kind": "segment",
+      "text": "Fatto. Posa il telefono e passalo."
+    },
+    {
+      "key": "16adb6ac80563a94",
+      "kind": "segment",
+      "text": "Vota"
+    },
+    {
+      "key": "6e5649b0b8540b6e",
+      "kind": "segment",
+      "text": ": tocca chi condanni."
     },
     {
       "key": "29f8a1154a2b0539",
@@ -3618,9 +3648,34 @@
       "text": "Time to vote. Try not to get it wrong. Again."
     },
     {
-      "key": "523f62e3f131edac",
+      "key": "206d841676cb85d0",
       "kind": "segment",
-      "text": "Decide out loud who to eliminate. You can also choose to eliminate nobody."
+      "text": "One vote at a time, in the open. You can also choose to eliminate nobody."
+    },
+    {
+      "key": "a799688a978a48f5",
+      "kind": "segment",
+      "text": "Pass the phone to"
+    },
+    {
+      "key": "c4dd5e0bb1635aeb",
+      "kind": "segment",
+      "text": "Everyone else looks away. Tap only once the phone is in your hands."
+    },
+    {
+      "key": "15f6d77360012a39",
+      "kind": "segment",
+      "text": "You are about to see your card: nobody else may look."
+    },
+    {
+      "key": "4fa5a726065e019c",
+      "kind": "segment",
+      "text": "Done. Put the phone down and pass it on."
+    },
+    {
+      "key": "ccad85d80f44628b",
+      "kind": "segment",
+      "text": "votes: tap who to condemn."
     },
     {
       "key": "4ddbb010eaf10756",

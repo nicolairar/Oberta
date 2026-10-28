@@ -122,6 +122,18 @@ class NarrationPack {
   final List<String> voteCalls;
   final String voteInstruction;
 
+  /// Il telefono che passa di mano: chi lo prende ({name}), e che gli altri
+  /// guardino altrove; per la carta, che nessun altro la veda.
+  final String passPhone;
+  final String curtainHint;
+  final String cardCurtainHint;
+
+  /// La mossa della notte è fatta: il telefono va posato.
+  final String putPhoneDown;
+
+  /// Il voto a turno, col telefono in mezzo: tocca a {name}.
+  final String voterTurn;
+
   final List<String> lynchScenes;
   final String cardTurns;
   final String wasMafia;
@@ -220,6 +232,11 @@ class NarrationPack {
     required this.manyMinutes,
     required this.voteCalls,
     required this.voteInstruction,
+    required this.passPhone,
+    required this.curtainHint,
+    required this.cardCurtainHint,
+    required this.putPhoneDown,
+    required this.voterTurn,
     required this.lynchScenes,
     required this.cardTurns,
     required this.wasMafia,

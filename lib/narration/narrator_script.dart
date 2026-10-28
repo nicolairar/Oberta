@@ -161,6 +161,17 @@ class NarratorScript {
     return lines;
   }
 
+  /// Il telefono passa a [name]: chi lo prende, e che gli altri guardino
+  /// altrove (o, per la carta, che nessuno la veda).
+  List<ScriptLine> curtain(String name, {bool card = false}) =>
+      [_story(pack.passPhone, name: name), _fact(card ? pack.cardCurtainHint : pack.curtainHint)];
+
+  /// La mossa della notte è fatta: il telefono si posa.
+  ScriptLine putPhoneDown() => _fact(pack.putPhoneDown);
+
+  /// Il voto a turno: tocca a [name] (col numero di posto, «4 Dario»).
+  ScriptLine voterTurn(String name) => _fact(pack.voterTurn, name: name);
+
   List<ScriptLine> voteCall() => [_story(_picker.pick('vote', pack.voteCalls)), _fact(pack.voteInstruction)];
 
   /// La prima battuta porta il condannato al patibolo; la seconda gira la

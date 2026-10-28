@@ -47,6 +47,7 @@ import '../widgets/city_backdrop.dart';
 import '../widgets/sky_events.dart';
 import '../widgets/scene_scaffold.dart';
 import '../widgets/script_page_view.dart';
+import '../widgets/spoken_lines.dart';
 import '../widgets/spoken_script_card.dart';
 import '../press.dart';
 import '../seating.dart';
@@ -716,9 +717,15 @@ class _GameScreenState extends State<GameScreen> {
 
   /// Una pagina del tavolo: i posti, poi (se c'è) il copione da leggere,
   /// poi la striscia.
-  Widget _tablePage({Key? key, required Widget table, required ActionStrip strip, Widget? script}) {
+  Widget _tablePage({
+    Key? key,
+    required Widget table,
+    required ActionStrip strip,
+    Widget? script,
+    List<ScriptLine> voice = const [],
+  }) {
     final desk = DesktopCanvas.of(context);
-    return LayoutBuilder(
+    final page = LayoutBuilder(
       key: key,
       builder: (context, box) => Column(
         children: [
@@ -740,15 +747,25 @@ class _GameScreenState extends State<GameScreen> {
         ],
       ),
     );
+    return voice.isEmpty ? page : SpokenLines(lines: voice, reader: _narrator?.name, child: page);
+  }
+
+  /// La tenda fra una mano e l'altra; la voce dice a chi passa il telefono.
+  Widget _curtain(Player player, {Key? key, required VoidCallback onReady}) {
+    final lines = _script.curtain(player.name);
+    return SpokenLines(
+      key: key,
+      lines: lines,
+      reader: _narrator?.name,
+      child: LocalCurtain(player: player, number: _numbers[player], hint: lines.last.text, onReady: onReady),
+    );
   }
 
   Widget _stageView() => switch (_stage) {
         _Stage.script => ScriptPageView(page: _page, reader: _narrator?.name, strings: _t),
-        _Stage.handoff => LocalCurtain(
+        _Stage.handoff => _curtain(
+            _queue[_turn],
             key: ValueKey('curtain-$_turn'),
-            player: _queue[_turn],
-            number: _numbers[_queue[_turn]],
-            hint: _ls.curtainHint,
             onReady: () => _advance(() {
               // Chi siede accanto non deve poter leggere il bersaglio dal
               // posto del dito: a ogni mano le facce cambiano posto.
@@ -762,12 +779,7 @@ class _GameScreenState extends State<GameScreen> {
         _Stage.crimeIntro => _crimeIntroView(),
         _Stage.crime => const SizedBox.shrink(),
         _Stage.verdict => _verdictView(),
-        _Stage.toNarrator => LocalCurtain(
-            player: _narrator!,
-            number: _numbers[_narrator!],
-            hint: _ls.curtainHint,
-            onReady: () => _advance(_enterDawn),
-          ),
+        _Stage.toNarrator => _curtain(_narrator!, onReady: () => _advance(_enterDawn)),
         _Stage.day => _dayView(),
         _Stage.power => _powerView(),
         _Stage.vote => _voteView(),
@@ -980,7 +992,7 @@ class _GameScreenState extends State<GameScreen> {
         ]),
       ),
       strip: ActionStrip(
-        status: _ls.putItDown,
+        status: _script.putPhoneDown().text,
         tone: StripTone.done,
         actions: [
           NoirAction(
@@ -1106,6 +1118,7 @@ class _GameScreenState extends State<GameScreen> {
     };
     return _tablePage(
       key: const Key('local.nightDone'),
+      voice: [_script.putPhoneDown()],
       script: prisoner == null
           ? null
           : _cellField(
@@ -1117,7 +1130,7 @@ class _GameScreenState extends State<GameScreen> {
             ),
       table: _secretTable(actor, selected: finding?.subject ?? prisoner, center: LocalFelt(lines)),
       strip: ActionStrip(
-        status: _ls.putItDown,
+        status: _script.putPhoneDown().text,
         tone: StripTone.done,
         actions: [
           NoirAction(
@@ -1224,9 +1237,13 @@ class _GameScreenState extends State<GameScreen> {
     };
     final mayorInPlay = widget.setup.roles.values.contains(Role.sindaco) && !_engine.mayorRevealed;
     final mayor = _engine.mayorRevealed ? _engine.mayor : null;
+    final turn = _script.voterTurn(_tag(voter));
     return _tablePage(
       key: const Key('local.vote'),
-      script: _voter == 0 ? SpokenScriptCard(reader: _narrator?.name, lines: _voteLines) : null,
+      // Al primo votante la voce legge il richiamo e poi il suo turno; agli
+      // altri, solo il turno.
+      script: _voter == 0 ? SpokenScriptCard(reader: _narrator?.name, lines: [..._voteLines, turn]) : null,
+      voice: _voter == 0 ? const [] : [turn],
       table: _publicTable(
         holder: voter,
         selectable: targets,
@@ -1243,7 +1260,7 @@ class _GameScreenState extends State<GameScreen> {
               ]),
       ),
       strip: ActionStrip(
-        status: _ls.voterTurn(_tag(voter)),
+        status: turn.text,
         statusKey: const Key('local.voterTurn'),
         tone: StripTone.act,
         count: '${votes.length}/${_voters.length}',

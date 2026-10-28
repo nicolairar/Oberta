@@ -139,7 +139,7 @@ void main() {
 
     // Il voto: il telefono resta in mezzo, ognuno a turno.
     expect(find.textContaining('Potete anche non eliminare nessuno.'), findsOneWidget);
-    expect(find.text('Vota 1 Ada: tocca chi condanni.'), findsOneWidget);
+    expect(tester.widget<Text>(find.byKey(const Key('local.voterTurn'))).data, 'Vota 1 Ada: tocca chi condanni.');
     expect(table(tester).selectable, {bruno, dino}, reason: 'né se stessi né i morti');
     await tapKey(tester, 'local.abstain');
     expect(find.text('Vota 2 Bruno: tocca chi condanni.'), findsOneWidget);
