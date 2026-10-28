@@ -73,6 +73,10 @@ class RenderBaked extends RenderProxyBox {
 
   ui.Image? _image;
   Size? _imageSize;
+
+  /// L'immagine tenuta da parte, per le prove (null: si disegna dal vivo).
+  @visibleForTesting
+  ui.Image? get debugImage => _image;
   double _imageScale = 0;
 
   /// Dove l'immagine è stata posata nitida l'ultima volta (null: dal vivo, o
@@ -130,25 +134,38 @@ class RenderBaked extends RenderProxyBox {
     super.dispose();
   }
 
+  /// I pixel veri per punto dello schermo. [getTransformTo] si ferma alla
+  /// radice e non conta il suo ingrandimento: senza, sul telefono (3 pixel
+  /// per punto) l'immagine si farebbe a un terzo dei pixel e si sfocherebbe.
+  double get _pixelRatio {
+    final root = owner?.rootNode;
+    return root is RenderView ? root.configuration.devicePixelRatio : 1;
+  }
+
+  /// Il lato più lungo di un'immagine, in pixel: oltre, la scheda video non
+  /// la tiene (e la memoria se ne va).
+  static const _largest = 4096.0;
+
   _Placement? _placement() {
     final m = getTransformTo(null).storage;
     if (m[3] != 0 || m[7] != 0 || m[15] != 1) return null;
+    final ratio = _pixelRatio;
     if (m[1] != 0 || m[4] != 0) {
-      // Girato: un'immagine al doppio dei pixel, posata dove capita. Le
+      // Girato: un'immagine più fitta dei pixel, posata dove capita. Le
       // deformazioni e gli specchi restano dal vivo.
       if (!_tilted) return null;
       final sx = sqrt(m[0] * m[0] + m[1] * m[1]);
       final sy = sqrt(m[4] * m[4] + m[5] * m[5]);
       if (sx <= 0 || !_sameScale(sx, sy) || (m[0] * m[4] + m[1] * m[5]).abs() > sx * sx * 1e-6) return null;
       if (m[0] * m[5] - m[1] * m[4] <= 0) return null;
-      return (scale: sx * 2, dx: -1, dy: -1);
+      return (scale: sx * max(2.0, ratio), dx: -1, dy: -1);
     }
     final sx = m[0];
     if (sx <= 0 || !_sameScale(sx, m[5])) return null;
-    // L'angolo dell'immagine, compreso quello che sborda.
-    final x = m[12] - _overflow.left * sx;
-    final y = m[13] - _overflow.top * sx;
-    return (scale: sx, dx: x - x.floorToDouble(), dy: y - y.floorToDouble());
+    // L'angolo dell'immagine, compreso quello che sborda, in pixel veri.
+    final x = (m[12] - _overflow.left * sx) * ratio;
+    final y = (m[13] - _overflow.top * sx) * ratio;
+    return (scale: sx * ratio, dx: x - x.floorToDouble(), dy: y - y.floorToDouble());
   }
 
   /// A fine fotogramma: se si è spostato di una frazione di pixel o ha
@@ -194,18 +211,21 @@ class RenderBaked extends RenderProxyBox {
       super.paint(context, offset);
       return;
     }
+    // Troppo grande per una sola immagine a pixel pieni: un po' meno fitta.
+    final bounds = _overflow.inflateRect(Offset.zero & size);
+    final want = min(place.scale, _largest / max(bounds.width, bounds.height));
+    final capped = want < place.scale;
     final settled = _seen != null && _sameScale(place.scale, _seen!.scale);
-    if (_image == null || _imageSize != size || (!_sameScale(_imageScale, place.scale) && settled)) {
+    if (_image == null || _imageSize != size || (!_sameScale(_imageScale, want) && settled)) {
       _drop();
-      if (!_bake(place.scale)) {
+      if (!_bake(want)) {
         _unbakeable = true;
         super.paint(context, offset);
         return;
       }
     }
-    final bounds = _overflow.inflateRect(Offset.zero & size);
     final scale = _imageScale;
-    final exact = _sameScale(scale, place.scale);
+    final exact = !capped && _sameScale(scale, place.scale);
     final turned = place.dx < 0;
     // Da fermo l'angolo dell'immagine cade su un pixel intero dello schermo.
     final shift = exact && !turned ? Offset(-place.dx / scale, -place.dy / scale) : Offset.zero;
@@ -213,9 +233,11 @@ class RenderBaked extends RenderProxyBox {
       _image!,
       Rect.fromLTWH(0, 0, bounds.width * scale, bounds.height * scale),
       bounds.shift(offset + shift),
-      Paint()..filterQuality = turned ? FilterQuality.medium : FilterQuality.low,
+      // Pixel per pixel basta il filtro più semplice; ingrandita o
+      // rimpicciolita (uno zoom, un manifesto girato) quello buono.
+      Paint()..filterQuality = exact && !turned ? FilterQuality.low : FilterQuality.medium,
     );
-    if (exact) _crisp = place;
+    if (exact || (capped && _sameScale(scale, want))) _crisp = place;
   }
 
   bool _bake(double scale) {
