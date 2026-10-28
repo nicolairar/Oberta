@@ -1516,6 +1516,31 @@
       "text": "Il Pacifista ha chiesto la tregua: oggi non si vota."
     },
     {
+      "key": "6eb74ab952b3ee2e",
+      "kind": "segment",
+      "text": "Un cuore si ferma senza rumore. Chi amava è già andato."
+    },
+    {
+      "key": "2b68645c2e9fa83d",
+      "kind": "segment",
+      "text": "C'è chi non sa stare al mondo da solo."
+    },
+    {
+      "key": "9363bc5c78a339ec",
+      "kind": "segment",
+      "text": "Il cuore di"
+    },
+    {
+      "key": "ba797638ead35726",
+      "kind": "segment",
+      "text": "si è spezzato: segue chi amava."
+    },
+    {
+      "key": "702ad88ca10c8006",
+      "kind": "segment",
+      "text": "Gli innamorati sono vivi tutti e due: vincono insieme."
+    },
+    {
       "key": "220ae5128f8d4a05",
       "kind": "segment",
       "text": "Chicago è libera. Da domani si dorme con le finestre aperte. Titoli di coda."
@@ -1899,6 +1924,11 @@
       "key": "1ddba76753ba8d78",
       "kind": "role",
       "text": "Il Carceriere"
+    },
+    {
+      "key": "62b996fe73821436",
+      "kind": "role",
+      "text": "Cupido"
     },
     {
       "key": "1549e49a260aab2d",
@@ -3823,6 +3853,26 @@
       "text": "The Pacifist called a truce: no vote today."
     },
     {
+      "key": "5b4703a0435221e5",
+      "kind": "segment",
+      "text": "A heart stops without a sound. The one it loved is already gone."
+    },
+    {
+      "key": "f469e6bc421a05ba",
+      "kind": "segment",
+      "text": "Some people cannot stay in the world alone."
+    },
+    {
+      "key": "8b1796bfd2e1ca6d",
+      "kind": "segment",
+      "text": "died of a broken heart, following the one they loved."
+    },
+    {
+      "key": "a7975cda9b99011e",
+      "kind": "segment",
+      "text": "The lovers are both alive: they win together."
+    },
+    {
       "key": "e53f5165bad73c66",
       "kind": "segment",
       "text": "Chicago is free. Starting tomorrow, people sleep with the windows open. Roll credits."
@@ -4201,6 +4251,11 @@
       "key": "90a94f628a565d79",
       "kind": "role",
       "text": "Jailer"
+    },
+    {
+      "key": "ad9ccb2cacc8b01b",
+      "kind": "role",
+      "text": "Cupid"
     },
     {
       "key": "d9ea56dccef88c43",

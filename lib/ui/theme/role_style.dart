@@ -30,6 +30,7 @@ extension RoleStyle on Role {
         Role.prostituta => const Color(0xFFA3324F),
         Role.carceriere => const Color(0xFF4B5A6E),
         Role.pacifista => const Color(0xFF6E8FA8),
+        Role.cupido => const Color(0xFFB0477A),
       };
 
   /// L'icona disegnata del ruolo (`assets/roles/<ruolo>.png`).
@@ -60,6 +61,7 @@ extension RoleStyle on Role {
         Role.prostituta => Icons.nightlife,
         Role.carceriere => Icons.key,
         Role.pacifista => Icons.flag,
+        Role.cupido => Icons.favorite,
       };
 }
 

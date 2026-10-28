@@ -1028,6 +1028,7 @@ class FakeGame implements GameBackend {
             (game.chatMode == 'night' || (game.chatMode == 'day' && rights['familyDay'] == true)),
         // La cella: il Carceriere e il prigioniero, la notte della cella.
         ChatChannel.jail => game.chatMode == 'night' && rights['jail'] is String,
+        ChatChannel.lovers => game.chatMode == 'night' && rights['lovers'] == true,
         ChatChannel.lobby || ChatChannel.event => false,
       };
       if (!allowed) throw const OnlineException(OnlineFailure.chatClosed);
@@ -1078,12 +1079,14 @@ class FakeGame implements GameBackend {
     final rights = seat == null ? const <String, Object?>{} : game!.rightsOf(seat);
     final family = rights['family'] == true && rights['alive'] != false;
     final jail = rights['jail'] as String?;
+    final lovers = rights['lovers'] == true;
     return [
       for (final m in _online._chat)
         if (m.room == roomId &&
             !_online.blocks.contains((me, m.message.profileId)) &&
             (m.message.channel != ChatChannel.family || (family && m.game == game?.gameId)) &&
-            (m.message.channel != ChatChannel.jail || (jail != null && m.message.thread == jail && m.game == game?.gameId)))
+            (m.message.channel != ChatChannel.jail || (jail != null && m.message.thread == jail && m.game == game?.gameId)) &&
+            (m.message.channel != ChatChannel.lovers || (lovers && m.game == game?.gameId)))
           m.message,
       for (final e in _online._events)
         if (e.room == roomId && e.game == game?.gameId && (e.to == null || e.to == me)) e.message,

@@ -68,6 +68,8 @@ class GameEventStrings {
               agree(PlayerGenders.of(back), m: '$back è tornato tra i vivi.', f: '$back è tornata tra i vivi.', n: '$back torna tra i vivi.'),
               '$back is back among the living.',
             ),
+          for (final broken in (d['heartbroken'] as List<Object?>? ?? const []))
+            _t('Il cuore di $broken si è spezzato.', '$broken died of a broken heart.'),
         ];
         return parts.join(' ');
       case 'scoop':
@@ -92,7 +94,10 @@ class GameEventStrings {
         final hunter = d['bountyHunter'] == null
             ? ''
             : _t(' ${d['bountyHunter']} incassa la taglia.', ' ${d['bountyHunter']} collects the bounty.');
-        return tally.isEmpty ? '$verdict$hunter' : '$verdict$hunter ($tally)';
+        final broken = d['heartbroken'] == null
+            ? ''
+            : _t(' Il cuore di ${d['heartbroken']} si è spezzato.', ' ${d['heartbroken']} died of a broken heart.');
+        return tally.isEmpty ? '$verdict$hunter$broken' : '$verdict$hunter$broken ($tally)';
       case 'mayor':
         return _t('$name si rivela Sindaco: il suo voto vale doppio.', '$name reveals the Mayor: their vote counts twice.');
       case 'truce':
@@ -104,6 +109,11 @@ class GameEventStrings {
         return d['self'] == true
             ? _t('Sei in cella. Stanotte non esci.', 'You are in a cell. You are not going out tonight.')
             : _t('Stanotte $name è in cella.', 'Tonight $name is in a cell.');
+      case 'lovers':
+        final names = [for (final n in (d['names'] as List<Object?>? ?? const [])) '$n'];
+        if (d['self'] != true) return _t('Hai legato ${names.join(' e ')}.', 'You bound ${names.join(' and ')}.');
+        return _t('Il cuore ha scelto: ${names.join(' e ')} si amano. Vincete solo se restate vivi tutti e due.',
+            'The heart has chosen: ${names.join(' and ')} are in love. You win only if both of you live.');
       case 'busy':
         return _t('Stanotte qualcuno ti ha tenuto occupato.', 'Last night someone kept you busy.');
       case 'left':

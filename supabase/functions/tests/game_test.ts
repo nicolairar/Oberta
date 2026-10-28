@@ -377,3 +377,35 @@ Deno.test('two people on build 65 in a friends room: bots fill the table and the
   assert(stages.has('night'), `the game reaches the night: ${[...stages]}`);
   await pg.close();
 });
+
+Deno.test('the lovers: their chat only for the two of them, at night', async () => {
+  const { pg, db, as, room } = await startedGame();
+  const now = Number((await pg.query<{ now: number }>(`select extract(epoch from now()) * 1000 as now`)).rows[0].now);
+  await runDue(db, step, { now, room });
+  const [current] = (await pg.query<{ version: number; view: unknown; state: unknown }>(
+    `select g.version, g.view, s.state from public.game_public g join internal.game_state s using (room_id) where g.room_id = $1`,
+    [room],
+  )).rows;
+  const rights = (extra: Record<string, unknown>) => ({ alive: true, family: false, silenced: false, familyDay: false, ...extra });
+  await pg.query(`select internal.game_commit($1::uuid, $2::jsonb)`, [room, JSON.stringify({
+    changed: true,
+    version: current.version + 1,
+    state: current.state,
+    board: current.view,
+    seatViews: {},
+    chat: { mode: 'night', seats: { s1: rights({ lovers: true }), s2: rights({ lovers: true }), s3: rights({}) } },
+  })]);
+  await as('anna', `select public.send_chat($1, 'lovers', 'ti penso')`, [room]);
+  const read = (who: Who) => as<{ body: string; name: string }>(who, `select body, name from public.game_chat where channel = 'lovers'`);
+  assertEquals((await read('bruno')).map((r) => r.body), ['ti penso']);
+  assertEquals((await read('bruno'))[0].name, 'anna', 'the lovers know each other');
+  assertEquals(await read('carla'), []);
+  let refused = '';
+  try {
+    await as('carla', `select public.send_chat($1, 'lovers', 'e io?')`, [room]);
+  } catch (error) {
+    refused = String(error);
+  }
+  assert(refused.includes('chat_closed'), refused);
+  await pg.close();
+});

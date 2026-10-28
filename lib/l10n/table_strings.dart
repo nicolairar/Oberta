@@ -47,6 +47,17 @@ class TableStrings {
   String mateInCell(String name) => _t('Stanotte $name è in cella.', 'Tonight $name is in a cell.');
   String get jailChat => _t('La cella', 'The cell');
   String get jailer => _t('Il Carceriere', 'The Jailer');
+  // ---- Cupid.
+  String get linkFirst => _t('Tocca il primo innamorato.', 'Tap the first lover.');
+  String linkSecond(String name) => _t('$name e chi? Tocca il secondo.', '$name and who? Tap the second.');
+  String link(String a, String b) => _t('Fai innamorare $a e $b?', 'Make $a and $b fall in love?');
+  String get linkBody => _t(
+    'Si sapranno innamorati all\'alba: vincono solo se restano vivi tutti e due. Poi non puoi cambiare.',
+    'They learn it at dawn and win only if both live. You cannot change it.',
+  );
+  String loversLine(String a, String b) => _t('Innamorati: $a e $b.', 'Lovers: $a and $b.');
+  String inLoveWith(String name) => _t('Il tuo cuore batte per $name.', 'Your heart beats for $name.');
+  String get loversChat => _t('Gli innamorati', 'The lovers');
   String get answerAtDawn =>
       _t('Al tavolo c\'è chi blocca: la risposta arriva all\'alba.', 'Someone at this table blocks: the answer comes at dawn.');
 

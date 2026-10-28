@@ -34,6 +34,13 @@ class LocalRoleStrings {
       _t('Una domanda per il prigioniero (facoltativa)', 'A question for the prisoner (optional)');
   String jailed(String name) => _t('$name è in cella.', '$name is in your cell.');
 
+  // ---- Cupid.
+  String get linkSecond => _t('E chi altro? Tocca il secondo innamorato.', 'And who else? Tap the second lover.');
+  String linked(String a, String b) => _t('Hai legato $a e $b.', 'You bound $a and $b.');
+  String inLoveWith(String name) => _t('Il tuo cuore batte per $name: vincete solo vivi tutti e due.',
+      'Your heart beats for $name: you win only if both of you live.');
+  String fateDay(int round) => _t('Di giorno, giorno $round', 'By day, day $round');
+
   // ---- The day powers, in front of everyone.
   String get truce => _t('Tregua del Pacifista', 'Pacifist\'s truce');
   String get whoAreYou => _t('Il Pacifista tocchi il proprio volto.', 'The Pacifist taps their own face.');

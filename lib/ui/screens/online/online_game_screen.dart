@@ -37,6 +37,7 @@ import '../../widgets/content_width.dart';
 import '../../widgets/roles_panel.dart';
 import '../../widgets/wide_scale.dart';
 import '../../widgets/lynch_mark.dart';
+import '../../../l10n/local_role_strings.dart';
 import '../../../l10n/table_strings.dart';
 import '../../../l10n/player_gender.dart';
 import '../../../l10n/safety_strings.dart';
@@ -174,6 +175,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   /// Di giorno, con un Compare vivo, la famiglia guarda la sua chat.
   bool _familyTab = false;
+
+  /// Di notte, un innamorato della Famiglia guarda la chat degli innamorati.
+  bool _loversTab = false;
+
+  /// Cupido ha toccato il primo innamorato, e aspetta il secondo.
+  Player? _firstLover;
   List<Player> _secret = const [];
   String? _secretTurn;
   bool _cardTurned = false;
@@ -507,12 +514,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   Future<void> _send(PlayerIntent intent) async {
     HapticFeedback.selectionClick();
     final key = _window?.key;
-    if (key != null && intent is! RevealMayor && intent is! Pacify) {
+    if (key != null && intent is! RevealMayor && intent is! Pacify && intent is! Link) {
       final family = _view.action?.type == ActionType.mafiaVote;
       final hope = switch (intent) {
         DayVote(:final target) || NightAction(:final target) => (target: _seatOf(target), stage: key, family: false),
         MafiaVote(:final target) => (target: _seatOf(target), stage: key, family: true),
-        Pass() || RevealMayor() || Pacify() => (target: null, stage: key, family: family),
+        Pass() || RevealMayor() || Pacify() || Link() => (target: null, stage: key, family: family),
       };
       setState(() => _hope = hope);
     }
@@ -1371,9 +1378,32 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     return _stage.chat == 'night' && _view.alive && cell != null && (cell == _view.seat || _view.role == Role.carceriere);
   }
 
+  /// Gli innamorati, per chi li conosce: Cupido vede la coppia, ognuno dei
+  /// due il nome dell'altro.
+  List<String> get _loverNotes {
+    final lovers = _view.lovers;
+    if (lovers.length != 2) return const [];
+    if (lovers.contains(_view.seat)) {
+      return [_ts.inLoveWith(_tag(lovers.firstWhere((p) => p != _view.seat)))];
+    }
+    return [_ts.loversLine(_tag(lovers.first), _tag(lovers.last))];
+  }
+
+  /// Stanotte gli innamorati, vivi tutti e due, si scrivono.
+  bool get _inLoversChat =>
+      _stage.chat == 'night' &&
+      _view.alive &&
+      _view.lovers.contains(_view.seat) &&
+      _view.lovers.every(_public.alive.contains) &&
+      _view.cell != _view.seat;
+
   ChatChannelView _chatView() {
     if (_inJailChat) {
       return ChatChannelView(channel: ChatChannel.jail, title: _ts.jailChat, accent: Saloon.brass);
+    }
+    // Un innamorato della Famiglia sceglie quale chat guardare.
+    if (_inLoversChat && (!_inFamilyChat || _loversTab)) {
+      return ChatChannelView(channel: ChatChannel.lovers, title: _ts.loversChat, accent: const Color(0xFFE58AB0));
     }
     final familyNight = _stage.chat == 'night' && _inFamilyChat;
     // Di giorno, con un Compare vivo, la famiglia sceglie quale chat guardare.
@@ -1705,6 +1735,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   /// famiglia, coi non letti. Di giorno, con un Compare vivo, si sceglie; se
   /// no apre quella della fase e l'altra resta spenta.
   List<ChatTab>? _chatTabs(ChatChannelView view) {
+    // Di notte, un innamorato della Famiglia: la Famiglia o l'innamorato.
+    if (_inLoversChat && _inFamilyChat) return _loversTabs(view);
     if (!_inFamilyChat && !_view.familyChat) return null;
     int count(ChatChannel channel) => _client.chat.where((m) => m.channel == channel).length;
     for (final channel in const [ChatChannel.day, ChatChannel.family]) {
@@ -1731,6 +1763,34 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         active: view.channel == ChatChannel.family,
         unread: unread(ChatChannel.family),
         onTap: swap ? () => setState(() => _familyTab = true) : null,
+      ),
+    ];
+  }
+
+  List<ChatTab> _loversTabs(ChatChannelView view) {
+    int count(ChatChannel channel) => _client.chat.where((m) => m.channel == channel).length;
+    for (final channel in const [ChatChannel.family, ChatChannel.lovers]) {
+      if (channel == view.channel || !_seenChat.containsKey(channel)) _seenChat[channel] = count(channel);
+    }
+    int unread(ChatChannel channel) => max(0, count(channel) - (_seenChat[channel] ?? 0));
+    return [
+      ChatTab(
+        key: const Key('online.chatTab.family'),
+        label: _t.online.chatFamily,
+        accent: Saloon.mafia,
+        icon: Icons.theater_comedy,
+        active: view.channel == ChatChannel.family,
+        unread: unread(ChatChannel.family),
+        onTap: () => setState(() => _loversTab = false),
+      ),
+      ChatTab(
+        key: const Key('online.chatTab.lovers'),
+        label: _ts.loversChat,
+        accent: const Color(0xFFE58AB0),
+        icon: Icons.favorite,
+        active: view.channel == ChatChannel.lovers,
+        unread: unread(ChatChannel.lovers),
+        onTap: () => setState(() => _loversTab = true),
       ),
     ];
   }
@@ -2129,10 +2189,14 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       if (_view.bounty case final mark?) _t.bountyLine.replaceAll('{name}', _tag(mark)),
       if (_view.cell case final mate? when mate != _view.seat && _view.role != Role.carceriere) _ts.mateInCell(_tag(mate)),
       if (_findingsAtDawn && (kind == NightTaskKind.investigate || kind == NightTaskKind.dig)) _ts.answerAtDawn,
+      ..._loverNotes,
     ];
     final String status;
     final StripTone tone;
-    if (!pick.made) {
+    if (kind == NightTaskKind.link && !pick.made) {
+      status = _firstLover == null ? _ts.linkFirst : _ts.linkSecond(_tag(_firstLover!));
+      tone = StripTone.act;
+    } else if (!pick.made) {
       status = script.taskHint(shown);
       tone = StripTone.act;
     } else if (pick.target case final target?) {
@@ -2147,7 +2211,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       table: _table(
         players: _secretTable(),
         selectable: targets.toSet(),
-        selected: pick.target,
+        selected: kind == NightTaskKind.link ? _firstLover : pick.target,
         onTap: open ? (player) => _pickNight(player, kind: kind, family: family) : null,
         votes: familyVotes,
         voteColor: Saloon.mafia,
@@ -2197,6 +2261,31 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   Future<void> _pickNight(Player target, {required NightTaskKind kind, required bool family}) async {
     final pick = _nightPick;
     if (pick.made && pick.target == target) return;
+    // Cupido: il primo tocco sceglie il primo innamorato, il secondo chiede
+    // conferma e lega tutti e due.
+    if (kind == NightTaskKind.link) {
+      final first = _firstLover;
+      if (first == null || first == target) {
+        setState(() => _firstLover = first == target ? null : target);
+        return;
+      }
+      final stage = _window?.key;
+      final yes = await confirmNoir(
+        context,
+        key: const Key('online.askLink'),
+        title: _ts.link(_tag(first), _tag(target)),
+        body: _ts.linkBody,
+        cancel: _ts.cancel,
+        confirm: _t.confirm,
+        cancelKey: const Key('online.cancel'),
+        confirmKey: const Key('online.confirm'),
+      );
+      if (!mounted) return;
+      setState(() => _firstLover = null);
+      if (!yes || _window?.key != stage || !_open) return;
+      await _send(Link(_view.seat.id, first.id, target.id));
+      return;
+    }
     final intent = family ? MafiaVote(_view.seat.id, target.id) : NightAction(_view.seat.id, target.id);
     if (_locks(kind)) {
       final stage = _window?.key;
@@ -2282,6 +2371,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     } else if (cell != null && view.role == Role.carceriere) {
       center = _felt(key: const Key('online.jailer'), [
         _feltTitle(_ts.inYourCell(_tag(cell)), color: Saloon.brass, maxLines: 3),
+      ]);
+    } else if (finding == null && _loverNotes.isNotEmpty) {
+      center = _felt(key: const Key('online.lovers'), [
+        for (final note in _loverNotes) _feltLine(note, color: const Color(0xFFE58AB0), weight: FontWeight.w700, maxLines: 3),
       ]);
     } else if (finding == null) {
       center = _felt(key: const Key('online.waiting'), [
@@ -2699,6 +2792,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     for (final record in _public.history) {
       if (record.nightVictims.contains(player)) return _t.fateNight(record.round);
       if (record.lynched == player) return _t.fateGallows(record.round);
+      if (record.dayVictims.contains(player)) return LocalRoleStrings(_t).fateDay(record.round);
     }
     return _t.stillStanding;
   }

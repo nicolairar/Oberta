@@ -12,7 +12,8 @@
 // Public kinds: night, dawn, scoop, silenced, lynch, mayor, truce, left, end.
 // Private kinds: found, watch, bounty, doused, familyTarget, protected,
 // cell (who is in the cell tonight: the prisoner, or a Family member about
-// one of theirs), busy (the Prostitute kept you busy last night).
+// one of theirs), busy (the Prostitute kept you busy last night), lovers
+// (Cupid's couple: to Cupid, and to the two lovers from the first dawn).
 
 /// What the table has already been told, so that a line is written once.
 /// Kept in the server state between steps.
@@ -144,6 +145,8 @@ List<Map<String, Object?>> tableEvents({
       'dead': [for (final a in attacks) if (a['outcome'] == 'killed') name(a['target'] as String)],
       'saved': attacks.where((a) => a['outcome'] != 'killed').length,
       if (dawn['resurrected'] != null) 'resurrected': name(dawn['resurrected'] as String),
+      if (dawn['heartbroken'] case final List<Object?> broken when broken.isNotEmpty)
+        'heartbroken': [for (final seat in broken) name(seat as String)],
     }));
     final scoop = (dawn['scoop'] as Map?)?.cast<String, Object?>();
     if (scoop != null) {
@@ -175,6 +178,7 @@ List<Map<String, Object?>> tableEvents({
       'role': condemned == null ? null : lynch['role'],
       ...?marks.tally,
       if (lynch['bountyHunter'] case final String hunter) 'bountyHunter': name(hunter),
+      if (lynch['heartbroken'] case final String broken) 'heartbroken': name(broken),
     }));
     marks.tally = null;
   }
@@ -220,6 +224,10 @@ List<Map<String, Object?>> tableEvents({
       events.add(_event('cell', {'name': name(cell), 'self': cell == seat}, to: seat));
     }
     if (now['busy'] == true && then['busy'] != true) events.add(_event('busy', const {}, to: seat));
+    final lovers = [for (final s in (now['lovers'] as List<Object?>? ?? const [])) s as String];
+    if (lovers.isNotEmpty && (then['lovers'] as List?)?.isNotEmpty != true) {
+      events.add(_event('lovers', {'names': [for (final s in lovers) name(s)], 'self': lovers.contains(seat)}, to: seat));
+    }
     final watched = _list(then['watches']).length;
     for (final watch in _list(now['watches']).skip(watched)) {
       events.add(_event('watch', {'name': name(watch['seat'] as String), 'visited': watch['visited'] == true}, to: seat));

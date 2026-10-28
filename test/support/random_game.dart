@@ -45,6 +45,13 @@ GameCommand? randomCommand(GameEngine engine, Random random) {
         return IntentCommand(NightAction(seat, _pick(random, alternatives).id));
       }
       if (option.targets.isEmpty || random.nextInt(5) == 0) return IntentCommand(Pass(seat));
+      // Cupido lega due persone diverse.
+      if (option.kind == NightTaskKind.link) {
+        if (option.targets.length < 2) return IntentCommand(Pass(seat));
+        final first = _pick(random, option.targets);
+        final second = _pick(random, [for (final p in option.targets) if (p != first) p]);
+        return IntentCommand(Link(seat, first.id, second.id));
+      }
       final target = _pick(random, option.targets).id;
       return IntentCommand(option.type == ActionType.mafiaVote ? MafiaVote(seat, target) : NightAction(seat, target));
     case GamePhase.day:

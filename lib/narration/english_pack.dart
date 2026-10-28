@@ -129,6 +129,11 @@ const englishPack = NarrationPack(
       '“In here we talk. Out there you die.”',
       'Each night you lock someone up, never the same one twice running: they cannot act and nobody can kill them. Question them in the chat; they won\'t know you.',
     ),
+    Role.cupido: RoleText(
+      'Cupid',
+      '“Two hearts, one dowry, no way out.”',
+      'On the first night you bind two people, yourself too if you like. They win only if both live; if one dies, the other follows. You win with the town.',
+    ),
     Role.pacifista: RoleText(
       'Pacifist',
       '“Blood calls for blood. I call a truce.”',
@@ -457,6 +462,12 @@ const englishPack = NarrationPack(
     'The square lowers the ropes: a truce, for today.',
   ],
   truceFact: 'The Pacifist called a truce: no vote today.',
+  heartbreaks: [
+    'A heart stops without a sound. The one it loved is already gone.',
+    'Some people cannot stay in the world alone.',
+  ],
+  heartbreakFact: '{name} died of a broken heart, following the one they loved.',
+  loversWinFact: 'The lovers are both alive: they win together.',
   citizensWin: [
     '{city} is free. Starting tomorrow, people sleep with the windows open. Roll credits.',
     'On the street, people look each other in the eye again. On screen: “The End.”',
@@ -517,6 +528,7 @@ const englishPack = NarrationPack(
     NightTaskKind.lend: 'Who do you protect tonight by lending them money?',
     NightTaskKind.stab: 'Who do you eliminate tonight?',
     NightTaskKind.jail: 'Who do you lock up tonight?',
+    NightTaskKind.link: 'Who falls in love?',
     NightTaskKind.block: 'Who do you sing for tonight?',
   },
   taskHints: {
@@ -535,6 +547,7 @@ const englishPack = NarrationPack(
     NightTaskKind.lend: 'Tap a name: they can\'t die tonight. Never the same one twice running.',
     NightTaskKind.stab: 'Tap a name: they die tonight, unless someone protects them.',
     NightTaskKind.jail: 'Tap a name: tonight they can\'t act and nobody can touch them. It shuts at once.',
+    NightTaskKind.link: 'Tap two names, yours too: from tonight they love each other. Once only.',
     NightTaskKind.block: 'Tap a name: their move tonight is lost. Never the same one two nights running.',
     NightTaskKind.decoy: 'No move tonight: tap any name, nothing happens. It keeps your role hidden.',
   },

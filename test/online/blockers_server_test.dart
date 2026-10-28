@@ -24,15 +24,16 @@ const roles = {
 };
 
 class Table {
+  final Map<String, Role> deal;
   final ServerGame game;
   DateTime now = DateTime.utc(2026, 10, 28, 21);
   int _id = 0;
   late ServerStep last;
 
-  Table()
+  Table([this.deal = roles])
     : game = ServerGame.scripted(
-        seats: [for (final seat in roles.keys) SeatPlan(seat: seat, profileId: 'p$seat', name: 'n$seat')],
-        roles: roles,
+        seats: [for (final seat in deal.keys) SeatPlan(seat: seat, profileId: 'p$seat', name: 'n$seat')],
+        roles: deal,
         language: 'it',
         now: DateTime.utc(2026, 10, 28, 21),
         seed: 5,
@@ -55,7 +56,7 @@ class Table {
 
   /// Tutti confermano la fase in corso (carta, alba, discussione...).
   ServerStep ackAll() => send({
-    for (final seat in roles.keys)
+    for (final seat in deal.keys)
       if (game.engine.isAlive(game.seating.playerAt(seat))) seat: {'type': 'ack', 'seat': seat, 'stage': game.window.key},
   });
 
@@ -73,7 +74,7 @@ class Table {
       ((last.seatViews[seat]!['receipt'] as Map?)?['result'] as Map?)?.cast<String, Object?>();
 
   void _noLeaks() {
-    for (final seat in roles.keys) {
+    for (final seat in deal.keys) {
       final json = jsonDecode(jsonEncode(view(seat))) as Map<String, Object?>;
       expect(leaksIn(game.engine, game.seating.playerAt(seat), json), isEmpty, reason: seat);
     }
@@ -85,6 +86,7 @@ Map<String, Object?> pass(String seat) => {'type': 'pass', 'seat': seat};
 Map<String, Object?> pacify(String seat, String target) => {'type': 'pacify', 'seat': seat, 'target': target};
 
 void main() {
+  cupidTests();
   test('la cella: la chat solo per il Carceriere (senza nome) e il prigioniero, niente voce né Famiglia', () {
     final table = Table();
     table.ackAll();
@@ -176,6 +178,49 @@ void main() {
     table.ackAll();
     expect(table.game.stage, Stage.verdictFilm);
     expect(table.game.engine.lastLynchTruce, isTrue);
+  });
+}
+
+const cupidTable = {
+  's1': Role.mafioso,
+  's2': Role.cupido,
+  's3': Role.cittadino,
+  's4': Role.cittadino,
+  's5': Role.cittadino,
+  's6': Role.detective,
+};
+
+void cupidTests() {
+  test('gli innamorati: lo sa Cupido subito, loro all\'alba; di notte la loro chat, solo per loro', () {
+    final table = Table(cupidTable);
+    table.ackAll();
+    table.send({'s2': {'type': 'link', 'seat': 's2', 'target': 's1', 'second': 's3'}});
+    expect(table.game.stage, Stage.night);
+    expect(table.view('s2')['lovers'], ['s1', 's3']);
+    expect(table.view('s1').containsKey('lovers'), isFalse, reason: 'lo sapranno all\'alba');
+    for (final seat in cupidTable.keys) {
+      expect(table.rights(seat)['lovers'], isFalse, reason: '$seat: la chat apre dalla notte dopo');
+    }
+    table.send({for (final seat in ['s1', 's3', 's4', 's5', 's6']) seat: pass(seat)});
+    while (table.game.stage == Stage.night) {
+      table.wait();
+    }
+    while (table.game.stage != Stage.night) {
+      if (table.game.stage == Stage.vote) {
+        table.send({for (final seat in cupidTable.keys) seat: pass(seat)});
+      }
+      table.game.stage.acknowledged ? table.ackAll() : table.wait();
+    }
+    expect(table.view('s1')['lovers'], ['s1', 's3']);
+    expect(table.view('s3')['lovers'], ['s1', 's3']);
+    for (final seat in ['s4', 's5', 's6']) {
+      expect(table.view(seat).containsKey('lovers'), isFalse, reason: seat);
+    }
+    expect(table.rights('s1')['lovers'], isTrue);
+    expect(table.rights('s3')['lovers'], isTrue);
+    for (final seat in ['s2', 's4', 's5', 's6']) {
+      expect(table.rights(seat)['lovers'], isFalse, reason: seat);
+    }
   });
 }
 

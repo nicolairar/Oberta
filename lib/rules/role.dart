@@ -28,6 +28,7 @@ enum Role {
   prostituta,
   carceriere,
   pacifista,
+  cupido,
 }
 
 /// Come si gioca: un telefono passato di mano in mano, o un telefono a testa.
@@ -173,6 +174,8 @@ extension RoleInfo on Role {
     Role.prostituta => const RoleRule(RoleCategory.familyPower, minPlayers: 9, tier: RoleTier.l2),
     Role.carceriere => const RoleRule(RoleCategory.protector, minPlayers: 8, tier: RoleTier.l3),
     Role.pacifista => const RoleRule(RoleCategory.civic, minPlayers: 9, tier: RoleTier.l2),
+    // Cupido lega due innamorati la prima notte, e poi non fa più niente.
+    Role.cupido => const RoleRule(RoleCategory.civic, minPlayers: 9, tier: RoleTier.l1),
   };
 
   /// Ostile alla città, un assassino in proprio (Piromane, Sicario): finché

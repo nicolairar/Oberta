@@ -139,6 +139,13 @@ class NarrationPack {
   final List<String> truces;
   final String truceFact;
 
+  /// Il crepacuore: muore un innamorato, l'altro lo segue ({name}).
+  final List<String> heartbreaks;
+  final String heartbreakFact;
+
+  /// Gli innamorati di Cupido sono vivi tutti e due a fine partita.
+  final String loversWinFact;
+
   final List<String> citizensWin;
   final String citizensWinFact;
   final List<String> mafiaWins;
@@ -225,6 +232,9 @@ class NarrationPack {
     required this.noLynchFact,
     required this.truces,
     required this.truceFact,
+    required this.heartbreaks,
+    required this.heartbreakFact,
+    required this.loversWinFact,
     required this.citizensWin,
     required this.citizensWinFact,
     required this.mafiaWins,

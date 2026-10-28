@@ -288,6 +288,10 @@ class PlayerView {
   /// Oggi: stanotte la Prostituta l'ha tenuto occupato, la sua mossa è
   /// saltata. Lo sa solo lui.
   final bool busy;
+
+  /// Gli innamorati: per Cupido da quando li lega, per loro due dalla prima
+  /// alba (solo il nome dell'altro, non il ruolo). Vuoto per gli altri.
+  final List<Player> lovers;
   final PublicView board;
 
   const PlayerView({
@@ -307,6 +311,7 @@ class PlayerView {
     this.watches = const [],
     this.cell,
     this.busy = false,
+    this.lovers = const [],
     required this.board,
   });
 
@@ -329,6 +334,7 @@ class PlayerView {
     ],
     if (cell != null) 'cell': seatOf(cell),
     if (busy) 'busy': true,
+    if (lovers.isNotEmpty) 'lovers': seatsOf(lovers),
     'board': board.toJson(),
   };
 
@@ -360,6 +366,7 @@ class PlayerView {
       ],
       cell: optionalSeat(json['cell'], resolve),
       busy: json['busy'] as bool? ?? false,
+      lovers: json['lovers'] == null ? const [] : seatsFrom(json['lovers'], resolve),
       board: PublicView.fromJson(json['board'] as Map<String, Object?>, resolve),
     );
   }

@@ -1052,7 +1052,13 @@ void main() {
           final skip = !sew && (pool.isEmpty || random.nextInt(5) == 0);
           final target = skip ? null : pool[random.nextInt(pool.length)];
           if (sew) tasks.add(task.alternative!);
-          final finding = engine.submitNightChoice(player, target, alternative: sew);
+          // Cupido lega due persone diverse.
+          final second = task.kind == NightTaskKind.link && target != null
+              ? pool.firstWhere((p) => p != target, orElse: () => target)
+              : null;
+          final finding = second == target && second != null
+              ? engine.submitNightChoice(player, null)
+              : engine.submitNightChoice(player, target, alternative: sew, second: second);
           if (task.kind == NightTaskKind.dig && target != null && !engine.findingsAtDawn) {
             expect(finding!.role, engine.setup.roleOf(target), reason: 'seed=$seed');
           }

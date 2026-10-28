@@ -646,6 +646,7 @@ class ServerGame {
     final jail = _jailChannel;
     final prisoner = jail == null ? null : engine.jailedTonight?.id;
     final jailer = jail == null ? null : engine.jailerTonight?.id;
+    final lovers = !finished && stage.chat == 'night' ? {for (final p in engine.loversTogether) p.id} : const <String>{};
     return {
       'mode': finished ? 'closed' : stage.chat,
       'seats': {
@@ -663,6 +664,8 @@ class ServerGame {
               'jailed': occupant.seat == prisoner,
               'jail': occupant.seat == prisoner || occupant.seat == jailer ? jail : null,
               'jailer': occupant.seat == jailer,
+              // Gli innamorati, vivi e fuori di cella, hanno la loro chat di notte.
+              'lovers': lovers.contains(occupant.seat) && occupant.seat != prisoner,
             },
       },
     };

@@ -81,6 +81,10 @@ class GameSnapshot {
 
   /// Le risposte arrivate all'alba, notte per notte.
   final List<({Player actor, int round, Exposure exposure})> findings;
+
+  /// Gli innamorati di Cupido, e se lo sanno già.
+  final List<Player> lovers;
+  final bool loversTold;
   final List<GameCommand> log;
 
   const GameSnapshot({
@@ -118,6 +122,8 @@ class GameSnapshot {
     this.truceRound,
     this.truceTarget,
     this.findings = const [],
+    this.lovers = const [],
+    this.loversTold = false,
     required this.log,
   });
 
@@ -173,6 +179,8 @@ class GameSnapshot {
     if (busy != null) 'busy': seatOf(busy),
     if (truceRound != null) 'truceRound': truceRound,
     if (truceTarget != null) 'truceTarget': seatOf(truceTarget),
+    if (lovers.isNotEmpty) 'lovers': seatsOf(lovers),
+    if (loversTold) 'loversTold': true,
     if (findings.isNotEmpty)
       'findings': [
         for (final finding in findings)
@@ -248,6 +256,8 @@ class GameSnapshot {
       busy: optionalSeat(json['busy'], seat),
       truceRound: json['truceRound'] as int?,
       truceTarget: optionalSeat(json['truceTarget'], seat),
+      lovers: json['lovers'] == null ? const [] : seatsFrom(json['lovers'], seat),
+      loversTold: json['loversTold'] as bool? ?? false,
       findings: [
         for (final row in (json['findings'] as List<Object?>? ?? const []).cast<Map<String, Object?>>())
           (

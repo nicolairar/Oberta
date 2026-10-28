@@ -104,6 +104,7 @@ Map<String, Object?> dawnToJson(DawnReport dawn) => {
       'scoop': dawn.scoop == null ? null : exposureToJson(dawn.scoop!),
       'silenced': seatOf(dawn.silenced),
       if (dawn.resurrected != null) 'resurrected': seatOf(dawn.resurrected),
+      if (dawn.heartbroken.isNotEmpty) 'heartbroken': seatsOf(dawn.heartbroken),
       'winner': dawn.winner?.name,
     };
 
@@ -116,6 +117,7 @@ DawnReport dawnFromJson(Map<String, Object?> json, SeatResolver resolve) => Dawn
       scoop: json['scoop'] == null ? null : exposureFromJson(json['scoop'] as Map<String, Object?>, resolve),
       silenced: optionalSeat(json['silenced'], resolve),
       resurrected: optionalSeat(json['resurrected'], resolve),
+      heartbroken: json['heartbroken'] == null ? const [] : seatsFrom(json['heartbroken'], resolve),
       winner: optionalEnum(Team.values, json['winner']),
     );
 
@@ -127,6 +129,7 @@ Map<String, Object?> lynchToJson(LynchReport lynch) => {
       if (lynch.personalWin) 'personalWin': true,
       if (lynch.bountyHunter != null) 'bountyHunter': seatOf(lynch.bountyHunter),
       if (lynch.truce) 'truce': true,
+      if (lynch.heartbroken != null) 'heartbroken': seatOf(lynch.heartbroken),
     };
 
 LynchReport lynchFromJson(Map<String, Object?> json, SeatResolver resolve) => LynchReport(
@@ -137,16 +140,19 @@ LynchReport lynchFromJson(Map<String, Object?> json, SeatResolver resolve) => Ly
       personalWin: json['personalWin'] as bool? ?? false,
       bountyHunter: optionalSeat(json['bountyHunter'], resolve),
       truce: json['truce'] as bool? ?? false,
+      heartbroken: optionalSeat(json['heartbroken'], resolve),
     );
 
 Map<String, Object?> roundToJson(RoundRecord record) => {
       'round': record.round,
       'nightVictims': seatsOf(record.nightVictims),
       'lynched': seatOf(record.lynched),
+      if (record.dayVictims.isNotEmpty) 'dayVictims': seatsOf(record.dayVictims),
     };
 
 RoundRecord roundFromJson(Map<String, Object?> json, SeatResolver resolve) => RoundRecord(
       round: json['round'] as int,
       nightVictims: seatsFrom(json['nightVictims'], resolve),
       lynched: optionalSeat(json['lynched'], resolve),
+      dayVictims: json['dayVictims'] == null ? const [] : seatsFrom(json['dayVictims'], resolve),
     );

@@ -127,6 +127,11 @@ const italianPack = NarrationPack(
       '«Qui dentro si parla. Fuori si muore.»',
       'Ogni notte chiudi in cella una persona, mai la stessa due notti di fila: non agisce e nessuno la uccide. La interroghi in chat, e non sa chi sei.',
     ),
+    Role.cupido: RoleText(
+      'Cupido',
+      '«Due cuori, una dote, nessuna via d\'uscita.»',
+      'La prima notte leghi due persone, anche te stesso. Vincono solo se restano vivi tutti e due; se uno muore, l\'altro lo segue. Tu vinci con la Città.',
+    ),
     Role.pacifista: RoleText(
       'Il Pacifista',
       '«Il sangue chiama sangue. Io chiamo la tregua.»',
@@ -453,6 +458,12 @@ const italianPack = NarrationPack(
     'La piazza abbassa le corde: per oggi, tregua.',
   ],
   truceFact: 'Il Pacifista ha chiesto la tregua: oggi non si vota.',
+  heartbreaks: [
+    'Un cuore si ferma senza rumore. Chi amava è già andato.',
+    'C\'è chi non sa stare al mondo da solo.',
+  ],
+  heartbreakFact: 'Il cuore di {name} si è spezzato: segue chi amava.',
+  loversWinFact: 'Gli innamorati sono vivi tutti e due: vincono insieme.',
   citizensWin: [
     '{city} è libera. Da domani si dorme con le finestre aperte. Titoli di coda.',
     'In piazza ci si guarda di nuovo in faccia. Sullo schermo: «Fine».',
@@ -513,6 +524,7 @@ const italianPack = NarrationPack(
     NightTaskKind.lend: 'Chi proteggi stanotte, prestandogli i soldi?',
     NightTaskKind.stab: 'Chi elimini stanotte?',
     NightTaskKind.jail: 'Chi chiudi in cella stanotte?',
+    NightTaskKind.link: 'Chi fai innamorare?',
     NightTaskKind.block: 'Per chi canti stanotte?',
   },
   taskHints: {
@@ -531,6 +543,7 @@ const italianPack = NarrationPack(
     NightTaskKind.lend: 'Tocca un nome: stanotte non può morire. Mai lo stesso due notti di fila.',
     NightTaskKind.stab: 'Tocca un nome: muore stanotte, a meno che qualcuno lo protegga.',
     NightTaskKind.jail: 'Tocca un nome: stanotte non agisce e nessuno lo tocca. La cella si chiude subito.',
+    NightTaskKind.link: 'Tocca due nomi, anche il tuo: da stanotte si amano. Una volta sola.',
     NightTaskKind.block: 'Tocca un nome: stanotte la sua mossa salta. Mai lo stesso due notti di fila.',
     NightTaskKind.decoy: 'Non hai mosse: tocca un nome qualsiasi, non succede niente. Serve a non farti scoprire.',
   },

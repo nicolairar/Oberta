@@ -108,6 +108,9 @@ class _GameScreenState extends State<GameScreen> {
   final Map<int, String> _questions = {};
   final Map<int, String> _answers = {};
 
+  /// Cupido ha scelto il primo innamorato e cerca il secondo.
+  Player? _firstLover;
+
   /// La tregua del Pacifista: chi la chiede (verificato), poi su chi.
   Player? _powerUser;
   String? _powerError;
@@ -207,14 +210,26 @@ class _GameScreenState extends State<GameScreen> {
   void _submit(Player? target) {
     final actor = _queue[_turn];
     final option = _engine.viewFor(actor.id).action;
+    // Cupido lega in due tocchi: il primo si tiene da parte.
+    if (target != null && option?.kind == NightTaskKind.link && _firstLover == null) {
+      setState(() {
+        _firstLover = target;
+        _selected = null;
+      });
+      return;
+    }
+    final first = _firstLover;
     final family = option?.type == ActionType.mafiaVote && !_alternative;
     final PlayerIntent intent = target == null
         ? Pass(actor.id)
+        : first != null
+        ? Link(actor.id, first.id, target.id)
         : family
         ? MafiaVote(actor.id, target.id)
         : NightAction(actor.id, target.id);
     final result = _engine.apply(intent);
     _advance(() {
+      _firstLover = null;
       _finding = result is IntentAccepted ? result.finding : null;
       _stage = _Stage.taskDone;
     });
@@ -500,6 +515,7 @@ class _GameScreenState extends State<GameScreen> {
         for (final player in _engine.personalWins)
           if (widget.setup.roleOf(player) == Role.strozzino) player,
       ],
+      lovers: _engine.loversWon,
     );
     _stage = _Stage.end;
   }
@@ -838,14 +854,17 @@ class _GameScreenState extends State<GameScreen> {
       key: const Key('local.night'),
       table: _secretTable(
         actor,
-        selectable: task.targets.toSet(),
+        selectable: {
+          for (final player in task.targets)
+            if (player != _firstLover) player,
+        },
         selected: selected,
         onTap: (player) => setState(() => _selected = player),
         // La famiglia vede dove puntano i complici che hanno già scelto.
         votes: family ? view.familyVotes : const [],
         center: LocalFelt([
           (
-            text: _script.taskPrompt(task, _engine.round),
+            text: _firstLover != null ? _lr.linkSecond : _script.taskPrompt(task, _engine.round),
             key: const Key('local.taskPrompt'),
             style: LocalFelt.titleStyle(context, color: family ? const Color(0xFFFFB3B3) : AppColors.textPrimary),
           ),
@@ -909,6 +928,11 @@ class _GameScreenState extends State<GameScreen> {
       if (widget.setup.roleOf(actor) == Role.carceriere)
         if ((_answers[last], _engine.lastJailed) case (final answer?, final prisoner?) when answer.isNotEmpty)
           _lr.prisonerAnswered(prisoner.name, answer),
+      if (_engine.loversFor(actor) case [final a, final b])
+        if (actor == a || actor == b)
+          _lr.inLoveWith(actor == a ? b.name : a.name)
+        else
+          _lr.linked(a.name, b.name),
     ];
   }
 
@@ -1329,6 +1353,7 @@ class _GameScreenState extends State<GameScreen> {
     for (final record in _engine.history) {
       if (record.nightVictims.contains(player)) return _t.fateNight(record.round);
       if (record.lynched == player) return _t.fateGallows(record.round);
+      if (record.dayVictims.contains(player)) return _lr.fateDay(record.round);
     }
     return _t.stillStanding;
   }

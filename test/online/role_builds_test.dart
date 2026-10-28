@@ -15,7 +15,7 @@ void main() {
   });
 
   test('build 65 is never dealt the Prostitute, the Jailer or the Pacifist; build 66 may be', () {
-    expect(rolesTooNewFor(65), {Role.prostituta, Role.carceriere, Role.pacifista});
+    expect(rolesTooNewFor(65), roleSinceBuild.keys.toSet());
     expect(rolesTooNewFor(66), isEmpty);
     expect(rolesTooNewFor(null), isEmpty);
     final seats = [

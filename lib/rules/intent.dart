@@ -25,6 +25,7 @@ sealed class PlayerIntent {
       'pass' => Pass(seat),
       'revealMayor' => RevealMayor(seat),
       'pacify' => Pacify(seat, json['target'] as String),
+      'link' => Link(seat, json['target'] as String, json['second'] as String),
       final type => throw FormatException('intenzione sconosciuta: $type'),
     };
   }
@@ -88,6 +89,18 @@ class RevealMayor extends PlayerIntent {
 
   @override
   Map<String, Object?> toJson() => {'type': 'revealMayor', 'seat': seat};
+}
+
+/// La prima notte Cupido lega due persone ([target] e [second], anche se
+/// stesso): da lì sono innamorati. Una volta sola, e non si cambia.
+class Link extends PlayerIntent {
+  final String target;
+  final String second;
+
+  const Link(super.seat, this.target, this.second);
+
+  @override
+  Map<String, Object?> toJson() => {'type': 'link', 'seat': seat, 'target': target, 'second': second};
 }
 
 /// Di giorno, in discussione, il Pacifista chiede la tregua: svela a tutti

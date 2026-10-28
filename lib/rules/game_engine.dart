@@ -55,6 +55,9 @@ enum NightTaskKind {
 
   /// La Prostituta passa la notte con qualcuno: la sua mossa salta.
   block,
+
+  /// Cupido, la prima notte, lega due innamorati ([Link]).
+  link,
 }
 
 /// Quello che il Portinaio ha visto dalla sua guardiola: se stanotte
@@ -131,6 +134,9 @@ class DawnReport {
   /// Chi il Messia ha riportato in vita stanotte: torna con il suo ruolo,
   /// già noto a tutti. `null` se nessuno, o se il Messia non ha visto l'alba.
   final Player? resurrected;
+
+  /// Chi è morto di crepacuore stanotte: l'innamorato di un morto.
+  final List<Player> heartbroken;
   final Team? winner;
 
   const DawnReport({
@@ -139,16 +145,19 @@ class DawnReport {
     this.scoop,
     this.silenced,
     this.resurrected,
+    this.heartbroken = const [],
     this.winner,
   });
 
   /// Il Piromane ha acceso il fiammifero stanotte (e qualcuno era cosparso).
   bool get ignited => attacks.any((attack) => attack.source == AttackSource.fire);
 
-  /// Morti della notte, in ordine di posto. I loro ruoli restano segreti.
+  /// Morti della notte, in ordine di posto (chi è morto di crepacuore in
+  /// fondo). I loro ruoli restano segreti.
   List<Player> get victims => [
     for (final attack in attacks)
       if (attack.isFatal) attack.target,
+    ...heartbroken,
   ];
 }
 
@@ -171,6 +180,9 @@ class LynchReport {
   /// Oggi il Pacifista ha chiesto la tregua: niente voto, niente condanna.
   final bool truce;
 
+  /// L'innamorato del condannato, morto di crepacuore sul posto.
+  final Player? heartbroken;
+
   const LynchReport({
     required this.round,
     this.condemned,
@@ -179,6 +191,7 @@ class LynchReport {
     this.personalWin = false,
     this.bountyHunter,
     this.truce = false,
+    this.heartbroken,
   });
 }
 
@@ -187,7 +200,10 @@ class RoundRecord {
   final List<Player> nightVictims;
   final Player? lynched;
 
-  const RoundRecord({required this.round, required this.nightVictims, this.lynched});
+  /// Chi è morto di giorno senza il voto: di crepacuore, o colpito.
+  final List<Player> dayVictims;
+
+  const RoundRecord({required this.round, required this.nightVictims, this.lynched, this.dayVictims = const []});
 }
 
 /// La mossa notturna di qualcuno: cosa faceva e su chi (`null`: ha passato).
@@ -267,6 +283,11 @@ class GameEngine {
   /// Il giro in cui il Sindaco si è rivelato: quel giorno il suo voto vale due.
   int? _mayorRound;
   Team? _winner;
+
+  /// Gli innamorati di Cupido (due, o nessuno), e se lo sanno già (dalla
+  /// prima alba). Il legame si spezza se uno torna dai morti o se ne va.
+  final List<Player> _lovers = [];
+  bool _loversTold = false;
 
   /// Chi il Carceriere ha chiuso in cella la notte scorsa: mai due di fila.
   Player? _lastJailed;
@@ -366,6 +387,8 @@ class GameEngine {
     _truceRound = snapshot.truceRound;
     _truceTarget = snapshot.truceTarget;
     _findings.addAll(snapshot.findings);
+    _lovers.addAll(snapshot.lovers);
+    _loversTold = snapshot.loversTold;
   }
 
   /// Rigioca una partita dal principio: stesso tavolo, stesso seme, stessi
@@ -424,6 +447,8 @@ class GameEngine {
       truceRound: _truceRound,
       truceTarget: _truceTarget,
       findings: List.unmodifiable(_findings),
+      lovers: List.unmodifiable(_lovers),
+      loversTold: _loversTold,
       log: List.unmodifiable(_log),
     );
   }
@@ -467,13 +492,47 @@ class GameEngine {
   ///
   /// Il Cacciatore la cui taglia è morta senza passare dalla piazza si mette
   /// con la città: vince se vince lei.
-  bool hasWon(Player player) =>
-      _personalWins.contains(player) ||
-      (_winner != null && _winner != Team.neutral && _teamOf(player) == _winner) ||
-      (_winner == Team.citizens && bountyLapsed(player));
+  ///
+  /// Gli innamorati vincono solo se a fine partita sono vivi tutti e due,
+  /// chiunque vinca (e allora sono tra i [personalWins]).
+  bool hasWon(Player player) {
+    if (_lovers.contains(player)) return _personalWins.contains(player);
+    return _personalWins.contains(player) ||
+        (_winner != null && _winner != Team.neutral && _teamOf(player) == _winner) ||
+        (_winner == Team.citizens && bountyLapsed(player));
+  }
 
-  bool _everDied(Player player) =>
-      _history.any((record) => record.lynched == player || record.nightVictims.contains(player));
+  bool _everDied(Player player) => _history.any(
+    (record) =>
+        record.lynched == player || record.nightVictims.contains(player) || record.dayVictims.contains(player),
+  );
+
+  /// Gli innamorati, per chi li può conoscere: Cupido da quando li ha
+  /// legati, loro due dalla prima alba. Vuoto per tutti gli altri.
+  List<Player> loversFor(Player viewer) {
+    if (_lovers.isEmpty) return const [];
+    if (setup.roleOf(viewer) == Role.cupido || (_loversTold && _lovers.contains(viewer))) {
+      return List.unmodifiable(_lovers);
+    }
+    return const [];
+  }
+
+  /// Gli innamorati hanno vinto: vivi tutti e due a fine partita.
+  bool get loversWon => _lovers.length == 2 && _lovers.every(_personalWins.contains);
+
+  /// Gli innamorati vivi e che si conoscono: online hanno la loro chat.
+  List<Player> get loversTogether =>
+      _loversTold && _lovers.length == 2 && _lovers.every(isAlive) ? List.unmodifiable(_lovers) : const [];
+
+  /// Chi muore di crepacuore se muoiono [dead]: l'innamorato ancora vivo.
+  List<Player> _heartbreak(Iterable<Player> dead) {
+    if (_lovers.length != 2) return const [];
+    final gone = dead.toSet();
+    return [
+      for (final lover in _lovers)
+        if (!gone.contains(lover) && isAlive(lover) && _lovers.any(gone.contains)) lover,
+    ];
+  }
 
   /// La taglia del Cacciatore [hunter], se ce l'ha.
   Player? bountyOf(Player hunter) => _bounties[hunter];
@@ -617,7 +676,8 @@ class GameEngine {
 
   /// La mossa, una volta fatta, non si cambia: la cella si chiude subito,
   /// l'indagine e lo scavo danno subito la risposta (se nessuno blocca).
-  bool _locks(NightTaskKind kind) => kind == NightTaskKind.jail || (kind.immediate && !findingsAtDawn);
+  bool _locks(NightTaskKind kind) =>
+      kind == NightTaskKind.jail || kind == NightTaskKind.link || (kind.immediate && !findingsAtDawn);
 
   /// Ritira la scelta di stanotte di [actor], per sostituirla: anche il
   /// sospetto di una mossa di copertura torna indietro.
@@ -714,6 +774,9 @@ class GameEngine {
                     if (player != _lastBlocked) player,
                 ],
               ),
+      // Cupido, solo la prima notte, lega due persone (anche se stesso).
+      Role.cupido =>
+        _round == 1 && _lovers.isEmpty ? NightTask(NightTaskKind.link, [..._alive]) : NightTask(NightTaskKind.decoy, others),
       Role.cittadino ||
       Role.cacciatore ||
       Role.reduce ||
@@ -738,7 +801,9 @@ class GameEngine {
   ///
   /// Con [alternative] fa il compito alternativo ([NightTask.alternative]):
   /// il Sarto che cuce invece di votare.
-  Exposure? submitNightChoice(Player actor, Player? target, {bool alternative = false}) {
+  ///
+  /// Cupido lega due persone: [target] e [second].
+  Exposure? submitNightChoice(Player actor, Player? target, {bool alternative = false, Player? second}) {
     final task = taskFor(actor);
     if (_choices.containsKey(actor)) throw StateError('${actor.name} ha già scelto');
     final kind = alternative ? task.alternative : task.kind;
@@ -747,11 +812,20 @@ class GameEngine {
       throw ArgumentError.value(target.name, 'target', 'non può essere scelto da ${actor.name}');
     }
     if (alternative && target == null) throw ArgumentError('il compito alternativo vuole un bersaglio');
+    if (kind == NightTaskKind.link && target != null) {
+      if (second == null || second == target || !task.targets.contains(second)) {
+        throw ArgumentError('Cupido lega due persone diverse');
+      }
+      _lovers
+        ..clear()
+        ..addAll([target, second]);
+    }
     _choices[actor] = (kind: kind, target: target);
     _log.add(
       IntentCommand(switch ((kind, target)) {
         (_, null) => Pass(actor.id),
         (NightTaskKind.kill, final target?) => MafiaVote(actor.id, target.id),
+        (NightTaskKind.link, final target?) => Link(actor.id, target.id, second!.id),
         (_, final target?) => NightAction(actor.id, target.id),
       }),
     );
@@ -936,6 +1010,11 @@ class GameEngine {
         if (attack.isFatal) attack.target,
     ];
 
+    // Il crepacuore: l'innamorato di chi muore stanotte muore con lui, e
+    // niente lo ferma.
+    final heartbroken = _heartbreak(victims);
+    victims.addAll(heartbroken);
+
     if (sniperSpent) _sniperSpent = true;
     Exposure? scoop;
     if (scoopSpent) _scoopSpent = true;
@@ -991,8 +1070,11 @@ class GameEngine {
         _alive
           ..add(risen)
           ..sort((a, b) => setup.players.indexOf(a).compareTo(setup.players.indexOf(b)));
+        // Chi torna dai morti torna da solo: il legame degli innamorati si spezza.
+        if (_lovers.contains(risen)) _lovers.clear();
       }
     }
+    if (_lovers.isNotEmpty) _loversTold = true;
     _choices.clear();
     _history.add(RoundRecord(round: _round, nightVictims: victims));
     _phase = _updateWinner() ? GamePhase.ended : GamePhase.day;
@@ -1003,6 +1085,7 @@ class GameEngine {
       scoop: scoop,
       silenced: victims.contains(silenceTarget) ? null : silenceTarget,
       resurrected: resurrected,
+      heartbroken: heartbroken,
       winner: _winner,
     );
   }
@@ -1047,14 +1130,28 @@ class GameEngine {
     final truce = truceToday;
     _dayVotes.clear();
     Role? role;
+    Player? heartbroken;
     if (condemned != null) {
       role = setup.roleOf(condemned);
+      heartbroken = _heartbreak([condemned]).firstOrNull;
       _alive.remove(condemned);
       _doused.remove(condemned);
       _facts.add(Fact(subject: condemned, team: role.team, role: role, visibility: Visibility.public));
+      // Il crepacuore, sul posto: la sua carta resta coperta.
+      if (heartbroken != null) {
+        _alive.remove(heartbroken);
+        _doused.remove(heartbroken);
+      }
     }
     final record = _history.removeLast();
-    _history.add(RoundRecord(round: record.round, nightVictims: record.nightVictims, lynched: condemned));
+    _history.add(
+      RoundRecord(
+        round: record.round,
+        nightVictims: record.nightVictims,
+        lynched: condemned,
+        dayVictims: [...record.dayVictims, ?heartbroken],
+      ),
+    );
 
     // Il Fesso voleva farsi linciare: ha vinto lui, e la partita va avanti.
     final personalWin = role == Role.fesso;
@@ -1077,6 +1174,7 @@ class GameEngine {
       personalWin: personalWin,
       bountyHunter: hunter,
       truce: truce,
+      heartbroken: heartbroken,
     );
     if (_winner != null) {
       _phase = GamePhase.ended;
@@ -1134,6 +1232,8 @@ class GameEngine {
     _log.add(LeaveTownCommand(player.id));
     _alive.remove(player);
     _doused.remove(player);
+    // Chi se ne va non muore: il legame degli innamorati si spezza e basta.
+    if (_lovers.contains(player)) _lovers.clear();
     // Se se ne va il Carceriere, il prigioniero esce e sceglie di nuovo.
     if (_choices[player] case (kind: NightTaskKind.jail, target: final prisoner?)) _choices.remove(prisoner);
     _choices.remove(player);
@@ -1199,10 +1299,16 @@ class GameEngine {
     return Team.neutral;
   }
 
-  /// Lo Strozzino vivo a fine partita incassa, chiunque abbia vinto.
+  /// Lo Strozzino vivo a fine partita incassa, chiunque abbia vinto; e gli
+  /// innamorati vivi tutti e due vincono insieme.
   void _payLoanSharks() {
     for (final player in _alive) {
       if (setup.roleOf(player) == Role.strozzino && !_personalWins.contains(player)) _personalWins.add(player);
+    }
+    if (_lovers.length == 2 && _lovers.every(isAlive)) {
+      for (final lover in _lovers) {
+        if (!_personalWins.contains(lover)) _personalWins.add(lover);
+      }
     }
   }
 
@@ -1261,12 +1367,32 @@ class GameEngine {
     if (actor == jailedTonight) {
       return IntentRejected(IntentError.alreadyActed, '${actor.id} è in cella stanotte');
     }
+    if (intent is Link) {
+      if (nightChoiceLocked(actor)) {
+        return IntentRejected(IntentError.alreadyActed, '${actor.id} ha già legato gli innamorati');
+      }
+      final task = taskFor(actor);
+      final first = _seat(intent.target);
+      final second = _seat(intent.second);
+      if (task.kind != NightTaskKind.link) {
+        return IntentRejected(IntentError.notYourAction, '${actor.id} non è Cupido la prima notte');
+      }
+      if (first == null || second == null || first == second || !task.targets.contains(first) || !task.targets.contains(second)) {
+        return IntentRejected(IntentError.targetNotAllowed, '${actor.id} deve legare due persone diverse');
+      }
+      _retractNightChoice(actor);
+      return IntentAccepted(submitNightChoice(actor, first, second: second));
+    }
     // Si cambia idea fino alla fine della notte, tranne dopo una risposta.
     if (nightChoiceLocked(actor)) {
       return IntentRejected(IntentError.alreadyActed, '${actor.id} ha già fatto la sua mossa stanotte');
     }
     final task = taskFor(actor);
     final killing = task.kind == NightTaskKind.kill;
+    // Cupido lega in due: serve un Link (o si passa).
+    if (task.kind == NightTaskKind.link && intent is! Pass) {
+      return IntentRejected(IntentError.notYourAction, 'stanotte ${actor.id} lega due persone: serve un Link');
+    }
     // Un NightAction da chi vota l'agguato è il compito alternativo (il
     // Sarto che cuce), se ce l'ha.
     final alternative =
@@ -1303,7 +1429,7 @@ class GameEngine {
   IntentResult _applyDay(Player actor, PlayerIntent intent) {
     Player? target;
     switch (intent) {
-      case NightAction() || MafiaVote():
+      case NightAction() || MafiaVote() || Link():
         return const IntentRejected(IntentError.wrongPhase, 'di giorno non si fanno mosse notturne');
       case DayVote() || RevealMayor() when truceToday:
         return const IntentRejected(IntentError.wrongPhase, 'oggi c\'è la tregua: non si vota');
@@ -1430,6 +1556,7 @@ class GameEngine {
       ],
       cell: cell,
       busy: isBusy(viewer),
+      lovers: loversFor(viewer),
       board: publicView(),
     );
   }

@@ -77,6 +77,12 @@ class BotBrain {
           }
         }
         if (option.targets.isEmpty) return Pass(seat);
+        // Cupido lega due persone a caso.
+        if (kind == NightTaskKind.link) {
+          if (option.targets.length < 2) return Pass(seat);
+          final first = _pick(option.targets);
+          return Link(seat, first.id, _pick([for (final p in option.targets) if (p != first) p]).id);
+        }
         if (kind == NightTaskKind.protect && option.targets.contains(view.seat) && random.nextInt(3) == 0) {
           return NightAction(seat, seat);
         }

@@ -128,6 +128,11 @@ class NarratorScript {
       lines.add(_fact(scenes[i].fact, name: name));
     }
 
+    for (final broken in report.heartbroken) {
+      lines.add(_story(_picker.pick('heartbreak', pack.heartbreaks), name: broken.name));
+      lines.add(_fact(pack.heartbreakFact, name: broken.name));
+    }
+
     final resurrected = report.resurrected;
     if (resurrected != null) {
       lines.add(_story(_picker.pick('resurrection', pack.resurrections)));
@@ -199,13 +204,28 @@ class NarratorScript {
       _story(reaction),
       if (report.personalWin) _fact(pack.foolWinsFact, name: condemned.name),
       if (hunter != null) _fact(pack.bountyWinsFact, name: hunter.name),
+      if (report.heartbroken case final broken?) ...[
+        _story(_picker.pick('heartbreak', pack.heartbreaks), name: broken.name),
+        _fact(pack.heartbreakFact, name: broken.name),
+      ],
     ];
   }
 
   /// Con [assassin] la città l'ha ripulita il Sicario, non il Piromane; con
   /// [bountyHunter] ha chiuso la partita una taglia pagata in piazza.
-  List<ScriptLine> ending(Team winner, {bool assassin = false, Player? bountyHunter, List<Player> loanSharks = const []}) {
-    final sharks = [for (final shark in loanSharks) _fact(pack.loanSharkWinsFact, name: shark.name)];
+  ///
+  /// Con [lovers] gli innamorati sono arrivati vivi alla fine: vincono anche loro.
+  List<ScriptLine> ending(
+    Team winner, {
+    bool assassin = false,
+    Player? bountyHunter,
+    List<Player> loanSharks = const [],
+    bool lovers = false,
+  }) {
+    final sharks = [
+      for (final shark in loanSharks) _fact(pack.loanSharkWinsFact, name: shark.name),
+      if (lovers) _fact(pack.loversWinFact),
+    ];
     if (winner == Team.neutral && bountyHunter != null) {
       return [_fact(pack.bountyWinsFact, name: bountyHunter.name), ...sharks];
     }

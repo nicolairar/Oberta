@@ -71,6 +71,7 @@ class RecapStrings {
     NightTaskKind.stab => _t('ha colpito $target.', 'knifed $target.'),
     NightTaskKind.jail => _t('ha chiuso in cella $target.', 'locked $target up.'),
     NightTaskKind.block => _t('ha passato la notte con $target.', 'spent the night with $target.'),
+    NightTaskKind.link => _t('ha fatto innamorare $target.', 'made $target fall in love.'),
     NightTaskKind.watch => _t(
       'ha sorvegliato la porta di $target: ${visited == true ? 'qualcuno è passato' : 'nessuno è passato'}.',
       'watched $target\'s door: ${visited == true ? 'someone came by' : 'nobody came by'}.',

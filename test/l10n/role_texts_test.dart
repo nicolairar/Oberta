@@ -17,7 +17,7 @@ void main() {
 
   test('i nomi di scena: "Il Dottore" in italiano, "Doctor" in inglese', () {
     for (final role in Role.values) {
-      expect(italianPack.role(role).label, matches(RegExp(r"^(Il |Lo |La |L')\p{Lu}", unicode: true)), reason: role.name);
+      expect(italianPack.role(role).label, matches(RegExp(r"^((Il |Lo |La |L')\p{Lu}|Cupido$)", unicode: true)), reason: role.name);
       expect(englishPack.role(role).label, matches(RegExp(r'^\p{Lu}', unicode: true)), reason: role.name);
     }
     expect(englishPack.role(Role.medico).label, 'Doctor');

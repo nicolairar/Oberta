@@ -101,4 +101,34 @@ void main() {
     await tapKey(tester, 'local.itsMe');
     expect(find.text('Ieri notte qualcuno ti ha tenuto occupato: la tua mossa è saltata.'), findsOneWidget);
   });
+
+  testWidgets('Cupido lega due persone in due tocchi; gli innamorati lo leggono al turno dopo', (tester) async {
+    await pumpGame(tester, deal: {ada: Role.mafioso, bruno: Role.cupido, carla: Role.cittadino, dino: Role.cittadino, elio: Role.cittadino});
+    await tapLabel(tester, 'COMINCIA LA NOTTE');
+    await nightTurn(tester, ada);
+    expect(curtainName(tester), contains('BRUNO'));
+    await tapKey(tester, 'local.itsMe');
+    expect(find.text('Chi fai innamorare?'), findsOneWidget);
+    await tapSeat(tester, carla);
+    await tapKey(tester, 'local.confirm');
+    expect(find.text('E chi altro? Tocca il secondo innamorato.'), findsOneWidget);
+    await tapSeat(tester, elio);
+    await tapKey(tester, 'local.confirm');
+    await tapKey(tester, 'local.done');
+    for (final player in [carla, dino, elio]) {
+      await nightTurn(tester, player);
+    }
+    await _toTheDay(tester);
+    await tapKey(tester, 'local.toVote');
+    await openVote(tester, [ada, bruno, carla, dino, elio], const {});
+    await tapKey(tester, 'local.afterVerdict');
+    await tapLabel(tester, 'COMINCIA LA NOTTE');
+    await nightTurn(tester, ada);
+    await tapKey(tester, 'local.itsMe');
+    expect(find.textContaining('Hai legato Carla e Elio.'), findsOneWidget);
+    await tapKey(tester, 'local.pass');
+    await tapKey(tester, 'local.done');
+    await tapKey(tester, 'local.itsMe');
+    expect(find.textContaining('Il tuo cuore batte per Elio'), findsOneWidget);
+  });
 }

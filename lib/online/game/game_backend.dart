@@ -118,7 +118,8 @@ abstract class GameBackend {
 /// read in every chat of the game, never written by a phone.
 /// [jail]: the Jailer and the prisoner, one night only (on the server the
 /// channel is `jail:<round>`, see [ChatMessage.thread]).
-enum ChatChannel { lobby, day, family, event, jail }
+/// [lovers]: Cupid's couple, at night.
+enum ChatChannel { lobby, day, family, event, jail, lovers }
 
 /// A line of the server in the chat: what happened ([kind], with names and
 /// enum names in [data]), for the whole table or, [private], for this phone

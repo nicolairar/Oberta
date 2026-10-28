@@ -4,8 +4,8 @@ import 'package:oberta/rules/role.dart';
 void main() {
   // I nomi, i motti e le spiegazioni stanno nei pacchetti di lingua: vedi
   // test/l10n/role_texts_test.dart.
-  test('i ruoli sono ventiquattro', () {
-    expect(Role.values, hasLength(24));
+  test('i ruoli sono venticinque', () {
+    expect(Role.values, hasLength(25));
   });
 
   test('la famiglia è fatta di Picciotto, Padrino, Sarto, Compare e Prostituta', () {
