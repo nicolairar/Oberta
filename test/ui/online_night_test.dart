@@ -150,7 +150,7 @@ void main() {
     fail('nessuna partita con Bruno Commissario');
   });
 
-  testWidgets('la famiglia vota toccando, e le mani restano sul tavolo tutta la notte', (tester) async {
+  testWidgets('la famiglia vota toccando, e il numero resta sul posto tutta la notte', (tester) async {
     _usePhone(tester);
     for (var seed = 1; seed < 60; seed++) {
       final game = await _toTheNight(tester, seed);
@@ -159,18 +159,19 @@ void main() {
         await tester.pumpWidget(const SizedBox());
         continue;
       }
-      List<SeatHand> hands() => tester.widget<PointingHands>(find.byType(PointingHands)).hands;
-      final before = hands().where((h) => h.mine).length;
-      expect(before, 0);
+      // Bruno è il secondo posto: il suo voto è il numero sul suo ritratto.
+      final mine = find.byKey(const ValueKey('pizzino-s2'));
+      expect(mine, findsNothing);
+      expect(tester.widget<PointingHands>(find.byType(PointingHands)).hands, isEmpty, reason: 'niente mani: bastano i numeri');
       await tester.tap(find.byWidget(_tappable().first.widget));
       await tester.pump();
-      expect(hands().where((h) => h.mine), hasLength(1), reason: 'la mano parte subito');
+      expect(mine, findsOneWidget, reason: 'il numero compare subito');
       // Passa il tempo (i complici bot votano): la mano resta fino alla fine.
       for (var i = 0; i < 6; i++) {
         game.clock.elapse(const Duration(seconds: 3));
         await flush(tester);
         if (find.byKey(const Key('online.night')).evaluate().isEmpty) break;
-        expect(hands().where((h) => h.mine), hasLength(1), reason: 'la mano resta puntata');
+        expect(mine, findsOneWidget, reason: 'il numero resta');
         expect(find.byKey(const Key('online.pass')), findsOneWidget, reason: 'si può ancora cambiare');
       }
       await tester.pumpWidget(const SizedBox());
@@ -198,11 +199,10 @@ void main() {
       for (final decoy in italianPack.decoyPrompts) {
         expect(find.text(decoy), findsNothing, reason: '$role non è un Onesto: niente «$decoy»');
       }
-      // Tocca: la sua mano va sul tavolo con quelle della famiglia.
+      // Tocca: il suo voto va sul suo posto, come quelli della famiglia.
       await tester.tap(find.byWidget(_tappable().first.widget));
       await tester.pump();
-      expect(tester.widget<PointingHands>(find.byType(PointingHands)).hands.where((h) => h.mine), hasLength(1),
-          reason: '$role vede la sua mano tra quelle della famiglia');
+      expect(find.byKey(const ValueKey('pizzino-s2')), findsOneWidget, reason: '$role vede il suo voto tra quelli della famiglia');
       await flush(tester);
       await tester.pumpWidget(const SizedBox());
     }

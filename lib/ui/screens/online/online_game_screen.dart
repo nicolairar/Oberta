@@ -27,7 +27,6 @@ import '../../../rules/role.dart';
 import '../../../sound/cue_sounds.dart';
 import '../../../sound/sound_stage.dart';
 import '../../press.dart';
-import '../../avatar/avatar_look.dart';
 import '../../seating.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/role_style.dart';
@@ -1903,20 +1902,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     ],
   );
 
-  SeatHand _handOf(Player voter, int from, int to, Color accent) {
-    final look = AvatarLook.fallback(voter.name);
-    return (
-      from: from,
-      to: to,
-      sleeve: look.outfit.coat,
-      skin: look.base.skin,
-      mine: voter == _view.seat,
-      accent: accent,
-    );
-  }
-
-  /// Il bollo di chi ha votato: il numero di posto dell'accusato (chi si
-  /// astiene di giorno ha il bollo grigio). Di notte, chi passa non ha bollo.
+  /// Il voto di chi ha votato, sul suo posto: il numero di posto
+  /// dell'accusato (chi si astiene di giorno ha un trattino). Di notte, chi
+  /// passa non ha niente. Niente mani sul tavolo: bastano i numeri.
   String? _pizzinoOf(SeatVote? vote, {required bool day}) => switch (vote?.target) {
     _ when vote == null => null,
     final target? => '${_numberOf(target) ?? target.name}',
@@ -1936,7 +1924,6 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     Animation<double>? arrival,
     Player? lynched,
     Duration lynchedAt = Duration.zero,
-    bool hands = true,
     bool accusing = true,
     bool day = true,
   }) {
@@ -1968,12 +1955,6 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         for (final g in _gestures)
           if (byId[g.fromSeat] case final from?)
             if (byId[g.toSeat] case final to?) (id: g.id, from: from, to: to, gesture: g.gesture),
-      ],
-      hands: [
-        if (hands)
-          for (final vote in votes)
-            if (vote.target != null && index.containsKey(vote.voter) && index.containsKey(vote.target))
-              _handOf(vote.voter, index[vote.voter]!, index[vote.target]!, voteColor),
       ],
       seatBuilder: (context, i, width) {
         final player = seats[i];
@@ -2487,7 +2468,6 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       table: _table(
         players: publicSeating(_public.seats),
         votes: _lastVotes,
-        hands: film,
         accusing: false,
         lynched: condemned,
         lynchedAt: into < Duration.zero ? Duration.zero : into,
