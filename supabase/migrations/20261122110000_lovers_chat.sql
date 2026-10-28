@@ -1,3 +1,6 @@
+-- (Renamed from 20261122090000_lovers_chat.sql, which shared its version with
+-- role_collection. Idempotent: it was already applied once by hand.)
+
 -- Cupid's lovers (docs/ruoli.md 3.7): a private chat for the two of them,
 -- at night, while both are alive and out of the Jailer's cell. The server's
 -- step publishes the right (chat rights `lovers`); game_commit stores it in
