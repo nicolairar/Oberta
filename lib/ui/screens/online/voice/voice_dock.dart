@@ -15,6 +15,7 @@ import '../../../theme/app_theme.dart';
 import '../../../widgets/noir_modal.dart';
 import '../../../widgets/noir_notice.dart';
 import '../game/noir_ui.dart';
+import '../../../widgets/targa.dart';
 
 /// La voce al tavolo, in testa alla chat: un'icona piccola che dice come
 /// va (spenta, si ascolta, si parla) e apre le scelte. Per parlare c'è il
@@ -309,12 +310,11 @@ Future<void> showVoiceSheet(BuildContext context, VoiceController controller, {v
           title: t.settings,
           subtitle: t.settingsHint,
           children: [
-            SegmentedButton<VoiceMode>(
+            TargaSegmented<VoiceMode>(
               key: const Key('voice.mode'),
-              showSelectedIcon: false,
-              segments: [for (final m in VoiceMode.values) ButtonSegment(value: m, label: Text(t.mode(m)))],
-              selected: {c.mode},
-              onSelectionChanged: (picked) => chooseVoiceMode(context, c.settings, picked.first),
+              segments: [for (final m in VoiceMode.values) (m, t.mode(m))],
+              selected: c.mode,
+              onChanged: (picked) => chooseVoiceMode(context, c.settings, picked),
             ),
             if (status != null)
               Padding(

@@ -181,6 +181,9 @@ class TargaButton extends StatefulWidget {
   /// An explicit height, over [compact] and [desk].
   final double? height;
 
+  /// A small spinner where the icon goes, while the work is done.
+  final bool busy;
+
   const TargaButton({
     super.key,
     required this.label,
@@ -193,6 +196,7 @@ class TargaButton extends StatefulWidget {
     this.desk = false,
     this.expand = false,
     this.height,
+    this.busy = false,
   });
 
   @override
@@ -219,7 +223,10 @@ class _TargaButtonState extends State<TargaButton> with _Pressable {
       mainAxisSize: widget.expand ? MainAxisSize.max : MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        if (widget.icon != null) ...[Icon(widget.icon, size: size * 1.15, color: text), SizedBox(width: size * 0.5)],
+        if (widget.busy) ...[
+          SizedBox.square(dimension: size * 1.1, child: CircularProgressIndicator(strokeWidth: 2, color: text)),
+          SizedBox(width: size * 0.5),
+        ] else if (widget.icon != null) ...[Icon(widget.icon, size: size * 1.15, color: text), SizedBox(width: size * 0.5)],
         Flexible(child: FittedBox(fit: BoxFit.scaleDown, child: label)),
         if (widget.price case final price?) ...[
           SizedBox(width: 12 * k),
@@ -510,4 +517,238 @@ class _MedallionIcon extends StatelessWidget {
     painter: const TargaPainter(kind: TargaKind.secondary, circle: true),
     child: SizedBox.square(dimension: 38, child: Icon(icon, size: 17, color: const Color(0xFFF0D590))),
   );
+}
+
+/// A row of choices on one black lacquer plate: the chosen one is set in
+/// oxblood enamel with cream letters, the others in brass. The Targa
+/// answer to a segmented button (Uomo / Donna / Altro).
+class TargaSegmented<T> extends StatelessWidget {
+  final List<(T, String)> segments;
+  final T selected;
+  final ValueChanged<T>? onChanged;
+
+  /// A key for each segment, for tests and finders.
+  final Key Function(T value)? segmentKey;
+
+  /// Sized for the 1080p desk.
+  final bool desk;
+
+  /// An explicit height (44 on the phone, 52 on the desk).
+  final double? height;
+
+  /// Each segment as wide as its words, instead of sharing the width.
+  final bool shrink;
+
+  /// The words in spaced capitals (off for names and sentences).
+  final bool caps;
+
+  const TargaSegmented({
+    super.key,
+    required this.segments,
+    required this.selected,
+    required this.onChanged,
+    this.segmentKey,
+    this.desk = false,
+    this.height,
+    this.shrink = false,
+    this.caps = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final h = height ?? (desk ? 52.0 : 44.0);
+    final enabled = onChanged != null;
+    final radius = h * 0.3;
+    final inset = 4.0;
+    return CustomPaint(
+      painter: TargaPainter(kind: TargaKind.secondary, enabled: enabled, radius: radius),
+      child: SizedBox(
+        height: h,
+        child: Padding(
+          padding: EdgeInsets.all(inset),
+          child: Row(
+            mainAxisSize: shrink ? MainAxisSize.min : MainAxisSize.max,
+            children: [
+              for (final (value, label) in segments)
+                if (shrink)
+                  _segment(value, label, h - inset * 2, radius - inset, enabled)
+                else
+                  Expanded(child: _segment(value, label, h - inset * 2, radius - inset, enabled)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _segment(T value, String label, double h, double radius, bool enabled) => _TargaSegment(
+    key: segmentKey?.call(value),
+    label: label,
+    on: value == selected,
+    height: h,
+    radius: radius,
+    desk: desk,
+    caps: caps,
+    onTap: enabled && value != selected ? () => onChanged!(value) : null,
+    enabled: enabled,
+  );
+}
+
+class _TargaSegment extends StatefulWidget {
+  final String label;
+  final bool on;
+  final bool enabled;
+  final double height;
+  final double radius;
+  final bool desk;
+  final bool caps;
+  final VoidCallback? onTap;
+
+  const _TargaSegment({
+    super.key,
+    required this.label,
+    required this.on,
+    required this.enabled,
+    required this.height,
+    required this.radius,
+    required this.desk,
+    required this.caps,
+    required this.onTap,
+  });
+
+  @override
+  State<_TargaSegment> createState() => _TargaSegmentState();
+}
+
+class _TargaSegmentState extends State<_TargaSegment> with _Pressable {
+  @override
+  Widget build(BuildContext context) {
+    final on = widget.on;
+    final color = !widget.enabled
+        ? AppColors.textSecondary
+        : on
+        ? Targa.cream
+        : (hover ? const Color(0xFFFFE7A8) : Targa.brass.withValues(alpha: 0.78));
+    final size = widget.desk ? 16.0 : 13.0;
+    final text = Padding(
+      padding: EdgeInsets.symmetric(horizontal: widget.desk ? 20 : 8),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          widget.caps ? widget.label.toUpperCase() : widget.label,
+          maxLines: 1,
+          style: Targa.label(size, color).copyWith(
+            letterSpacing: widget.caps ? null : size * 0.03,
+            shadows: on ? const [Shadow(color: Color(0x99000000), offset: Offset(0, 1.5), blurRadius: 1)] : null,
+          ),
+        ),
+      ),
+    );
+    return Semantics(
+      selected: on,
+      inMutuallyExclusiveGroup: true,
+      child: pressable(
+        enabled: widget.onTap != null,
+        label: widget.label,
+        onTap: pressed(widget.onTap, Press.toggle),
+        child: SizedBox(
+          height: widget.height,
+          child: on
+              ? CustomPaint(
+                  painter: TargaPainter(enabled: widget.enabled, down: down, lit: hover, radius: widget.radius),
+                  child: Center(child: text),
+                )
+              : Center(child: text),
+        ),
+      ),
+    );
+  }
+}
+
+/// A small stadium plate: a filter that is on or off («Mostra tutto»), or
+/// a little tool with an icon. On, it turns to oxblood enamel with a check.
+class TargaChip extends StatefulWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback? onPressed;
+  final IconData? icon;
+
+  /// Show a check when [selected] (a filter), not just the enamel.
+  final bool check;
+
+  /// Sized for the 1080p desk.
+  final bool desk;
+
+  /// An explicit height (36 on the phone, 48 on the desk).
+  final double? height;
+
+  /// The words in spaced capitals (off for names and sentences).
+  final bool caps;
+
+  const TargaChip({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    this.selected = false,
+    this.icon,
+    this.check = true,
+    this.desk = false,
+    this.height,
+    this.caps = true,
+  });
+
+  @override
+  State<TargaChip> createState() => _TargaChipState();
+}
+
+class _TargaChipState extends State<TargaChip> with _Pressable {
+  @override
+  Widget build(BuildContext context) {
+    final enabled = widget.onPressed != null;
+    final on = widget.selected;
+    final h = widget.height ?? (widget.desk ? 48.0 : 36.0);
+    final size = widget.desk ? 15.0 : 12.0;
+    final color = !enabled ? AppColors.textSecondary : (on ? Targa.cream : (hover ? const Color(0xFFFFE7A8) : Targa.brass));
+    final icon = on && widget.check ? Icons.check_rounded : widget.icon;
+    return Semantics(
+      selected: on,
+      toggled: widget.check ? on : null,
+      child: pressable(
+        enabled: enabled,
+        label: widget.label,
+        onTap: pressed(widget.onPressed, Press.toggle),
+        child: CustomPaint(
+          painter: TargaPainter(
+            kind: on ? TargaKind.primary : TargaKind.secondary,
+            enabled: enabled,
+            down: down,
+            lit: enabled && hover,
+            radius: h / 2,
+          ),
+          child: SizedBox(
+            height: h,
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: h * 0.42),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (icon != null) ...[Icon(icon, size: size * 1.35, color: color), SizedBox(width: size * 0.45)],
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        widget.caps ? widget.label.toUpperCase() : widget.label,
+                        maxLines: 1,
+                        style: Targa.label(size, color).copyWith(letterSpacing: widget.caps ? null : size * 0.03),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

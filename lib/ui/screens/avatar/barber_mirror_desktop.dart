@@ -25,11 +25,14 @@ extension _DeskMirror on _BarberMirrorScreenState {
     ),
   );
 
-  Widget _deskLater() => TextButton(
+  Widget _deskLater() => TargaButton(
     key: const Key('mirror.skip'),
-    style: TextButton.styleFrom(textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(fontSize: 19)),
+    kind: TargaKind.secondary,
+    desk: true,
+    height: 52,
+    feel: Press.back,
     onPressed: _busy ? null : () => Navigator.of(context).pop(),
-    child: Text(_en ? 'Later' : 'Dopo'),
+    label: _en ? 'Later' : 'Dopo',
   );
 
   /// Il primo passo, sul PC: tre grandi ritratti tra cui scegliere.
@@ -147,23 +150,26 @@ extension _DeskMirror on _BarberMirrorScreenState {
           title: _deskTitle,
           onBack: _busy ? null : () => Navigator.of(context).maybePop(),
           actions: [
-            for (final option in const [Presentation.man, Presentation.woman, Presentation.other])
-              Padding(
-                padding: const EdgeInsets.only(left: 10),
-                child: _DeskToggle(
-                  key: Key('mirror.presentation.${option.name}'),
-                  label: _presentationLabel(option, en),
-                  on: option == p,
-                  onTap: () => _present(option),
-                ),
-              ),
+            TargaSegmented<Presentation>(
+              key: const Key('mirror.presentation'),
+              desk: true,
+              shrink: true,
+              segmentKey: (option) => Key('mirror.presentation.${option.name}'),
+              segments: [
+                for (final option in const [Presentation.man, Presentation.woman, Presentation.other])
+                  (option, _presentationLabel(option, en)),
+              ],
+              selected: p,
+              onChanged: _present,
+            ),
             const SizedBox(width: 28),
-            _DeskToggle(
+            TargaChip(
               key: const Key('mirror.showAll'),
               label: en ? 'Show all' : 'Mostra tutto',
-              on: _all,
-              check: true,
-              onTap: () => _update(() => _all = !_all),
+              selected: _all,
+              desk: true,
+              height: 52,
+              onPressed: () => _update(() => _all = !_all),
             ),
             if (widget.firstTime) ...[const SizedBox(width: 20), _deskLater()],
           ],
@@ -316,9 +322,6 @@ extension _DeskMirror on _BarberMirrorScreenState {
 
   /// Lo specchio grande, sotto la lampada; gli attrezzi e i due bottoni.
   Widget _deskGlass(bool en) {
-    // Il testo dei bottoni nel carattere dell'app, non in quello di sistema.
-    final label = Theme.of(context).textTheme.labelLarge
-        ?.copyWith(fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: 1.5);
     return Column(
       children: [
         Expanded(
@@ -386,29 +389,28 @@ extension _DeskMirror on _BarberMirrorScreenState {
         Row(
           children: [
             Expanded(
-              child: OutlinedButton(
+              child: TargaButton(
                 key: const Key('mirror.cancel'),
-                style: OutlinedButton.styleFrom(minimumSize: const Size(0, 68), textStyle: label),
+                kind: TargaKind.secondary,
+                desk: true,
+                expand: true,
+                feel: Press.back,
                 onPressed: _busy ? null : () => Navigator.of(context).maybePop(),
-                child: Text(en ? 'Cancel' : 'Annulla'),
+                label: en ? 'Cancel' : 'Annulla',
               ),
             ),
             const SizedBox(width: 18),
             Expanded(
               flex: 2,
-              child: ElevatedButton.icon(
+              child: TargaButton(
                 key: const Key('mirror.save'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.gold,
-                  foregroundColor: const Color(0xFF1A120C),
-                  minimumSize: const Size(0, 68),
-                  textStyle: label,
-                ),
+                desk: true,
+                expand: true,
+                feel: Press.confirm,
                 onPressed: _busy ? null : _save,
-                icon: _busy
-                    ? const SizedBox.square(dimension: 22, child: CircularProgressIndicator(strokeWidth: 2.4))
-                    : const Icon(Icons.check),
-                label: Text(en ? 'Save this face' : 'Tengo questa faccia'),
+                busy: _busy,
+                icon: Icons.check,
+                label: en ? 'Save this face' : 'Tengo questa faccia',
               ),
             ),
           ],
@@ -416,53 +418,6 @@ extension _DeskMirror on _BarberMirrorScreenState {
       ],
     );
   }
-}
-
-/// Un interruttore a pillola della barra in alto: Uomo, Donna, Altro, Mostra tutto.
-class _DeskToggle extends StatelessWidget {
-  final String label;
-  final bool on;
-  final bool check;
-  final VoidCallback onTap;
-
-  const _DeskToggle({super.key, required this.label, required this.on, required this.onTap, this.check = false});
-
-  @override
-  Widget build(BuildContext context) => DeskHover(
-    onTap: onTap,
-    builder: (context, hovered) => AnimatedContainer(
-      duration: const Duration(milliseconds: 140),
-      height: 48,
-      padding: const EdgeInsets.symmetric(horizontal: 22),
-      decoration: BoxDecoration(
-        color: on
-            ? AppColors.gold.withValues(alpha: 0.22)
-            : (hovered ? const Color(0x33C9A227) : const Color(0x99000000)),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: on || hovered ? AppColors.gold : AppColors.gold.withValues(alpha: 0.35),
-          width: on ? 1.6 : 1.2,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (check) ...[
-            Text(on ? '☑' : '☐', style: const TextStyle(color: AppColors.gold, fontSize: 20)),
-            const SizedBox(width: 8),
-          ],
-          Text(
-            label,
-            style: TextStyle(
-              color: on || hovered ? AppColors.textPrimary : AppColors.textSecondary,
-              fontSize: 18,
-              fontWeight: on ? FontWeight.w700 : FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
 }
 
 /// Una scheda nella colonna di destra.
@@ -513,33 +468,8 @@ class _DeskTool extends StatelessWidget {
   const _DeskTool({super.key, required this.icon, required this.label, required this.onTap});
 
   @override
-  Widget build(BuildContext context) => Opacity(
-    opacity: onTap == null ? 0.4 : 1,
-    child: DeskHover(
-      onTap: onTap,
-      builder: (context, hovered) => AnimatedContainer(
-        duration: const Duration(milliseconds: 140),
-        height: 52,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        decoration: BoxDecoration(
-          color: hovered ? const Color(0x33C9A227) : const Color(0xB3000000),
-          borderRadius: BorderRadius.circular(26),
-          border: Border.all(color: AppColors.gold.withValues(alpha: hovered ? 0.9 : 0.35)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: AppColors.gold, size: 24),
-            const SizedBox(width: 10),
-            Text(
-              label,
-              style: TextStyle(color: hovered ? AppColors.textPrimary : AppColors.textSecondary, fontSize: 17),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
+  Widget build(BuildContext context) =>
+      TargaChip(label: label, icon: icon, check: false, desk: true, height: 52, onPressed: onTap);
 }
 
 /// Una scelta sul PC: il tondo d'oro se scelta, un alone al passaggio.

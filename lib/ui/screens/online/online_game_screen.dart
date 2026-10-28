@@ -62,6 +62,7 @@ import '../../../l10n/roles_sheet_strings.dart';
 import '../../widgets/roles_sheet.dart';
 import '../../widgets/noir_modal.dart';
 import '../../widgets/noir_notice.dart';
+import '../../widgets/targa.dart';
 
 /// La partita online, vista dal proprio telefono. Tutto segue l'orologio del
 /// server: ogni fase ([Stage]) ha un inizio e una fine pubblicati sul tavolo,
@@ -2166,21 +2167,15 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         control: hasAlternative
             ? SizedBox(
                 height: NoirMetrics(_deskMode).button,
-                child: SegmentedButton<bool>(
+                child: TargaSegmented<bool>(
                   key: const Key('online.alternative'),
-                  style: ButtonStyle(
-                    visualDensity: VisualDensity.standard,
-                    textStyle: WidgetStatePropertyAll(TextStyle(fontSize: _deskMode ? 18 : 14, fontWeight: FontWeight.w600)),
-                  ),
-                  segments: [
-                    ButtonSegment(value: false, label: Text(labels.$1, maxLines: 1, overflow: TextOverflow.ellipsis)),
-                    ButtonSegment(value: true, label: Text(labels.$2, maxLines: 1, overflow: TextOverflow.ellipsis)),
-                  ],
-                  selected: {alternative},
-                  showSelectedIcon: false,
+                  desk: _deskMode,
+                  height: NoirMetrics(_deskMode).button,
+                  segments: [(false, labels.$1), (true, labels.$2)],
+                  selected: alternative,
                   // Cambia solo cosa si tocca: la scelta registrata resta
                   // finché non si tocca un posto.
-                  onSelectionChanged: open ? (choice) => setState(() => _alternative = choice.single) : null,
+                  onChanged: open ? (choice) => setState(() => _alternative = choice) : null,
                 ),
               )
             : null,

@@ -14,6 +14,8 @@ import '../../desktop/desktop_canvas.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/noir_avatar.dart' show AvatarHead;
 import '../../widgets/player_avatar.dart';
+import '../../press.dart' show Press;
+import '../../widgets/targa.dart';
 import '../online/online_widgets.dart';
 
 part 'barber_mirror_desktop.dart';
@@ -292,7 +294,17 @@ class _BarberMirrorScreenState extends State<BarberMirrorScreen> {
         title: en ? "The barber's mirror" : 'Lo specchio del barbiere',
         actions: [
             if (widget.firstTime)
-              TextButton(key: const Key('mirror.skip'), onPressed: () => Navigator.of(context).pop(), child: Text(en ? 'Later' : 'Dopo')),
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: TargaButton(
+                  key: const Key('mirror.skip'),
+                  kind: TargaKind.secondary,
+                  height: 38,
+                  feel: Press.back,
+                  onPressed: () => Navigator.of(context).pop(),
+                  label: en ? 'Later' : 'Dopo',
+                ),
+              ),
         ],
         body: SafeArea(
           child: _PresentationStep(en: en, seed: widget.profile.avatarSeed, look: _look, onPick: _present),
@@ -319,10 +331,16 @@ class _BarberMirrorScreenState extends State<BarberMirrorScreen> {
         title: en ? "The barber's mirror" : 'Lo specchio del barbiere',
         actions: [
             if (widget.firstTime)
-              TextButton(
-                key: const Key('mirror.skip'),
-                onPressed: _busy ? null : () => Navigator.of(context).pop(),
-                child: Text(en ? 'Later' : 'Dopo'),
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: TargaButton(
+                  key: const Key('mirror.skip'),
+                  kind: TargaKind.secondary,
+                  height: 38,
+                  feel: Press.back,
+                  onPressed: _busy ? null : () => Navigator.of(context).pop(),
+                  label: en ? 'Later' : 'Dopo',
+                ),
               ),
         ],
         body: SafeArea(
@@ -343,26 +361,24 @@ class _BarberMirrorScreenState extends State<BarberMirrorScreen> {
                 child: Row(
                   children: [
                     Expanded(
-                      child: SegmentedButton<Presentation>(
+                      child: TargaSegmented<Presentation>(
                         key: const Key('mirror.presentation'),
-                        showSelectedIcon: false,
+                        segmentKey: (option) => Key('mirror.presentation.${option.name}'),
                         segments: [
-                          for (final option in Presentation.values)
-                            ButtonSegment(
-                              value: option,
-                              label: Text(_presentationLabel(option, en), overflow: TextOverflow.ellipsis),
-                            ),
+                          for (final option in const [Presentation.man, Presentation.woman, Presentation.other])
+                            (option, _presentationLabel(option, en)),
                         ],
-                        selected: {p},
-                        onSelectionChanged: (s) => _present(s.first),
+                        selected: p,
+                        onChanged: _present,
                       ),
                     ),
                     const SizedBox(width: 8),
-                    FilterChip(
+                    TargaChip(
                       key: const Key('mirror.showAll'),
-                      label: Text(en ? 'Show all' : 'Mostra tutto'),
+                      label: en ? 'Show all' : 'Mostra tutto',
                       selected: _all,
-                      onSelected: (v) => setState(() => _all = v),
+                      height: 44,
+                      onPressed: () => setState(() => _all = !_all),
                     ),
                   ],
                 ),
@@ -461,13 +477,14 @@ class _BarberMirrorScreenState extends State<BarberMirrorScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
                 child: SizedBox(
                   width: double.infinity,
-                  child: FilledButton.icon(
+                  child: TargaButton(
                     key: const Key('mirror.save'),
+                    expand: true,
+                    feel: Press.confirm,
                     onPressed: _busy ? null : _save,
-                    icon: _busy
-                        ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.check),
-                    label: Text(en ? 'Save this face' : 'Tengo questa faccia'),
+                    busy: _busy,
+                    icon: Icons.check,
+                    label: en ? 'Save this face' : 'Tengo questa faccia',
                   ),
                 ),
               ),
@@ -602,29 +619,29 @@ class _Preview extends StatelessWidget {
       Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          IconButton.filledTonal(
+          TargaIconButton(
             key: const Key('mirror.hat'),
             tooltip: en ? (hatOn ? 'Take the hat off' : 'Put the hat on') : (hatOn ? 'Togli il cappello' : 'Metti il cappello'),
             onPressed: onHat,
-            icon: Icon(hatOn ? Icons.face : Icons.face_retouching_natural),
+            icon: hatOn ? Icons.face : Icons.face_retouching_natural,
           ),
           const SizedBox(height: 8),
-          IconButton.filledTonal(
+          TargaIconButton(
             key: const Key('mirror.undo'),
             tooltip: en ? 'Back to how it was' : 'Com\'era prima',
             onPressed: onUndo,
-            icon: const Icon(Icons.undo),
+            icon: Icons.undo,
           ),
         ],
       ),
       const SizedBox(width: 16),
       PlayerAvatar(seed: 'mirror', look: look, size: 190),
       const SizedBox(width: 16),
-      IconButton.filledTonal(
+      TargaIconButton(
         key: const Key('mirror.random'),
         tooltip: en ? 'Random face' : 'Una faccia a caso',
         onPressed: onRandom,
-        icon: const Icon(Icons.casino_outlined),
+        icon: Icons.casino_outlined,
       ),
     ],
   );

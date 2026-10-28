@@ -14,6 +14,7 @@ import '../theme/app_theme.dart';
 import '../theme/role_style.dart';
 import '../widgets/noir_modal.dart';
 import 'online/online_game_screen.dart';
+import '../widgets/targa.dart';
 
 /// La mano di prova: lo schermo della partita online vera, con cinque bot
 /// che recitano un copione. Il narratore accende solo una luce sul pezzo
@@ -538,9 +539,11 @@ class _CoachCard extends StatelessWidget {
                   runSpacing: 6,
                   children: [
                     for (final (i, reply) in replies.indexed)
-                      ActionChip(
+                      TargaChip(
                         key: Key('tutorial.reply.$i'),
-                        label: Text(reply, style: const TextStyle(fontSize: 12.5)),
+                        label: reply,
+                        caps: false,
+                        check: false,
                         onPressed: () => onReply(reply),
                       ),
                   ],

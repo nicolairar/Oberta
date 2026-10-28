@@ -9,6 +9,7 @@ import '../../widgets/platform_marks.dart';
 import 'game/noir_ui.dart';
 import 'profile_sheet.dart';
 import 'progress_widgets.dart';
+import '../../widgets/targa.dart';
 
 /// The ranked board, chalked on the wall of the back room: the top hundred
 /// of a language, by handle and tier only, and your own place.
@@ -42,20 +43,11 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-            child: SegmentedButton<AppLanguage>(
-              segments: [
-                for (final lang in AppLanguage.values)
-                  ButtonSegment(value: lang, label: Text(lang.nativeName), icon: const SizedBox.shrink()),
-              ],
-              selected: {_language},
-              showSelectedIcon: false,
-              style: SegmentedButton.styleFrom(
-                foregroundColor: Saloon.paper,
-                selectedForegroundColor: Saloon.ink,
-                selectedBackgroundColor: Saloon.brass,
-                side: const BorderSide(color: Saloon.brassDeep),
-              ),
-              onSelectionChanged: (set) => setState(() => _language = set.first),
+            child: TargaSegmented<AppLanguage>(
+              segments: [for (final lang in AppLanguage.values) (lang, lang.nativeName)],
+              selected: _language,
+              caps: false,
+              onChanged: (lang) => setState(() => _language = lang),
             ),
           ),
           Expanded(

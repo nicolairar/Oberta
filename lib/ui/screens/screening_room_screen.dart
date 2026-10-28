@@ -11,6 +11,7 @@ import '../widgets/death_scene.dart';
 import '../widgets/verdict_scene.dart';
 import '../widgets/scene_scaffold.dart';
 import '../press.dart';
+import '../widgets/targa.dart';
 
 /// La sala prove: tutte le scene della notte, da rivedere una per una senza
 /// dover giocare una partita intera. Serve a chi le disegna e a chi vuole
@@ -149,9 +150,11 @@ class _ScreeningRoomScreenState extends State<ScreeningRoomScreen> {
               alignment: WrapAlignment.center,
               children: [
                 for (final cue in Cue.values)
-                  ActionChip(
-                    avatar: const Icon(Icons.volume_up, size: 18, color: AppColors.gold),
-                    label: Text(t.cueName(cue)),
+                  TargaChip(
+                    icon: Icons.volume_up,
+                    check: false,
+                    caps: false,
+                    label: t.cueName(cue),
                     onPressed: () => SoundStage.instance.cue(cue),
                   ),
               ],

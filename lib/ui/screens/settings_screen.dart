@@ -36,6 +36,7 @@ import '../../l10n/tutorial_strings.dart';
 import '../press.dart';
 import '../widgets/noir_modal.dart';
 import '../widgets/noir_notice.dart';
+import '../widgets/targa.dart';
 
 part 'settings_desktop.dart';
 
@@ -175,12 +176,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           runSpacing: 8,
           children: [
             for (final mode in VoiceMode.values)
-              ChoiceChip(
+              TargaChip(
                 key: Key('settings.voice.${mode.name}'),
-                label: Text(v.modeFull(mode)),
+                label: v.modeFull(mode),
                 selected: settings.voiceMode == mode,
-                selectedColor: AppColors.gold.withValues(alpha: 0.3),
-                onSelected: (_) => chooseVoiceMode(context, settings, mode),
+                onPressed: () => chooseVoiceMode(context, settings, mode),
               ),
           ],
         ),
@@ -204,12 +204,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             runSpacing: 8,
             children: [
               for (final value in values)
-                ChoiceChip(
+                TargaChip(
                   key: Key('settings.$key.${label(value)}'),
-                  label: Text(label(value)),
+                  label: label(value),
                   selected: selected == value,
-                  selectedColor: AppColors.gold.withValues(alpha: 0.3),
-                  onSelected: (_) => pick(value),
+                  onPressed: () => pick(value),
                 ),
             ],
           ),
@@ -321,11 +320,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             runSpacing: 8,
                             children: [
                               for (final language in <AppLanguage?>[null, ...AppLanguage.values])
-                                ChoiceChip(
-                                  label: Text(language?.nativeName ?? t.languageAutomatic),
+                                TargaChip(
+                                  label: language?.nativeName ?? t.languageAutomatic,
+                                  caps: false,
                                   selected: settings.language == language,
-                                  selectedColor: AppColors.gold.withValues(alpha: 0.3),
-                                  onSelected: (_) => settings.language = language,
+                                  onPressed: () => settings.language = language,
                                 ),
                             ],
                           ),

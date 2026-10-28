@@ -15,6 +15,7 @@ import '../widgets/noir_avatar.dart';
 import '../widgets/platform_marks.dart';
 import 'desktop_canvas.dart';
 import 'home_modal.dart';
+import '../widgets/targa.dart';
 
 /// Il nome unico sul PC: una finestra al centro del vicolo, il ritratto a
 /// sinistra e il nome grande a destra. INVIO salva. Torna il profilo salvato.
@@ -291,11 +292,12 @@ class _DeskHandlePickerState extends State<DeskHandlePicker> {
                     children: [
                       Text(t.handleSuggestions, style: DeskText.text(color: AppColors.textSecondary)),
                       for (final name in _suggestions)
-                        ActionChip(
+                        TargaChip(
                           key: Key('desk.handleSuggestion.$name'),
-                          label: Text('@$name', style: DeskText.text(color: AppColors.textPrimary)),
-                          backgroundColor: Colors.black.withValues(alpha: 0.35),
-                          side: BorderSide(color: AppColors.gold.withValues(alpha: 0.6)),
+                          label: '@$name',
+                          caps: false,
+                          check: false,
+                          desk: true,
                           onPressed: () => _take(name),
                         ),
                     ],

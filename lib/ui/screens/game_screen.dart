@@ -602,16 +602,12 @@ class _GameScreenState extends State<GameScreen> {
           notes: _privateNotes(actor),
         ),
         if (alternative != null) ...[
-          SegmentedButton<bool>(
+          TargaSegmented<bool>(
             key: const Key('task.alternative'),
-            segments: [
-              ButtonSegment(value: false, label: Text(labels.$1)),
-              ButtonSegment(value: true, label: Text(labels.$2)),
-            ],
-            selected: {_alternative},
-            showSelectedIcon: false,
-            onSelectionChanged: (choice) => setState(() {
-              _alternative = choice.single;
+            segments: [(false, labels.$1), (true, labels.$2)],
+            selected: _alternative,
+            onChanged: (choice) => setState(() {
+              _alternative = choice;
               // Il fiammifero si accende scegliendo se stessi: già scelto.
               _selected = _alternative && alternative == NightTaskKind.ignite ? actor : null;
             }),
