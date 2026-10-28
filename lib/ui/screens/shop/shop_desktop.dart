@@ -96,7 +96,7 @@ extension _Desktop on _ShopScreenState {
               Positioned(
                 right: 28,
                 top: layout.neon.center.dy - 24,
-                child: CoinPurse(key: const Key('shop.coins'), coins: _shop.coins, onAdd: widget.onAddCoins, hint: t.coinsHint, scale: 1.25),
+                child: CoinPurse(key: const Key('shop.coins'), coins: _shop.coins, onAdd: _earnCoins, hint: t.coinsHint, scale: 1.25),
               ),
             ],
           );
@@ -409,6 +409,19 @@ class _DeskCard extends StatelessWidget {
           : _price(shop.bundlePrice(bundle));
     } else if (state == ItemState.forSale) {
       foot = _price(item!.price);
+    } else if (state == ItemState.locked) {
+      foot = Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.lock_outline, size: 14, color: AppColors.gold),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(ProgressStrings.of(context).missionOnly,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.w800)),
+          ),
+        ],
+      );
     } else {
       final worn = state == ItemState.worn;
       foot = Row(

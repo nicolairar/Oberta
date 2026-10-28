@@ -40,10 +40,8 @@ class SettingsStrings {
   String get deleteHint => _t('Per sempre: profilo, amici, armadio e monete.', 'Forever: profile, friends, wardrobe and coins.');
   String get deleteTitle => _t('Eliminare l\'account?', 'Delete your account?');
   String get deleteBody => _t(
-        'Profilo, aspetto, amici, armadio, monete, stanze e messaggi: spariscono tutti, per sempre. '
-            'Degli acquisti veri resta solo una ricevuta anonima, per il fisco.',
-        'Profile, look, friends, wardrobe, coins, rooms and messages: all gone, for good. '
-            'Real-money purchases leave only an anonymous receipt, for tax reasons.',
+        'Profilo, aspetto, amici, armadio, monete, missioni, stanze e messaggi: spariscono tutti, per sempre.',
+        'Profile, look, friends, wardrobe, coins, missions, rooms and messages: all gone, for good.',
       );
   String get deleteContinue => _t('Continua', 'Continue');
   String get cancel => _t('Annulla', 'Cancel');

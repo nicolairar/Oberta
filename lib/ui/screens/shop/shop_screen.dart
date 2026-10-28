@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_language.dart';
 import '../../../l10n/app_strings.dart';
+import '../../../l10n/progress_strings.dart';
 import '../../../l10n/shop_strings.dart';
 import '../../../online/online_account.dart';
 import '../../../online/online_services.dart';
@@ -20,6 +21,7 @@ import '../../widgets/noir_notice.dart';
 import '../../widgets/targa.dart';
 import '../online/game/gesture_picker.dart' show GestureShowcase;
 import '../online/game/table_gestures.dart' show GestureArt;
+import '../online/missions_screen.dart';
 import '../online/online_widgets.dart' show showFailure;
 import 'shop_controller.dart';
 
@@ -39,7 +41,12 @@ Future<void> openShop(
     StreetRoute.push<void>(
       context,
       StreetSection.shop,
-      (_) => ShopScreen(account: account, shop: shop, onChangeFace: onChangeFace),
+      (context) => ShopScreen(
+        account: account,
+        shop: shop,
+        onChangeFace: onChangeFace,
+        progress: account.services.progress,
+      ),
     );
 
 /// I colori delle classi, come le etichette cucite dentro la giacca.
@@ -72,11 +79,11 @@ class ShopScreen extends StatefulWidget {
   /// Apre lo specchio del barbiere (le facce gratuite), se c'è.
   final VoidCallback? onChangeFace;
 
-  /// Dove si comprano altre monete, se c'è: il + del borsellino. Senza, il
-  /// + non c'è.
-  final VoidCallback? onAddCoins;
+  /// Le missioni: il + del borsellino ci porta, perché le monete non si
+  /// comprano, si guadagnano giocando. I pezzi chiusi aprono gli obiettivi.
+  final ProgressRepository? progress;
 
-  const ShopScreen({super.key, required this.account, required this.shop, this.onChangeFace, this.onAddCoins});
+  const ShopScreen({super.key, required this.account, required this.shop, this.onChangeFace, this.progress});
 
   @override
   State<ShopScreen> createState() => _ShopScreenState();
@@ -87,6 +94,12 @@ enum _WindowSection { featured, sets, luxe }
 
 class _ShopScreenState extends State<ShopScreen> {
   late final ShopController _shop = ShopController(shop: widget.shop, account: widget.account)..load();
+
+  ProgressStrings get _progressStrings => ProgressStrings.of(context);
+
+  /// Il + del borsellino: le missioni, dove si guadagnano le monete.
+  VoidCallback? get _earnCoins =>
+      widget.progress == null ? null : () => MissionsScreen.open(context, widget.progress!);
 
   ShopDept _dept = ShopDept.window;
   _WindowSection? _section;
@@ -278,6 +291,12 @@ class _ShopScreenState extends State<ShopScreen> {
     final item = entry.item!;
     final (label, kind, action, price) = switch (_shop.stateOf(item)) {
       ItemState.forSale => (t.buy, TargaKind.primary, () => _buy(item), item.price),
+      ItemState.locked => (
+          _progressStrings.unlocksWith(_progressStrings.mission(item.unlock!)),
+          TargaKind.secondary,
+          widget.progress == null ? null : () => MissionsScreen.open(context, widget.progress!, tab: 2),
+          null,
+        ),
       ItemState.owned when item.isGesture => (t.owned, TargaKind.secondary, null, null),
       ItemState.owned => (t.wear, TargaKind.primary, () => _run(() => _shop.equip(item)), null),
       ItemState.worn => item.free

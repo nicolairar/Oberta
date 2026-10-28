@@ -17,15 +17,35 @@ class ProgressStrings {
 
   String _t(String it, String en) => _en ? en : it;
 
-  String get missions => _t('Incarichi', 'Missions');
+  String get missions => _t('Missioni', 'Missions');
   String get achievements => _t('Medaglie', 'Achievements');
   String get leaderboard => _t('Classifica', 'Leaderboard');
   String get daily => _t('DI GIORNATA', 'DAILY');
   String get weekly => _t('DELLA SETTIMANA', 'WEEKLY');
+  String get goals => _t('OBIETTIVI', 'GOALS');
+  String get tabDaily => _t('OGGI', 'TODAY');
+  String get tabWeekly => _t('SETTIMANA', 'WEEK');
+  String get tabGoals => _t('OBIETTIVI', 'GOALS');
   String get missionsHint => _t(
-        'Si completano giocando: il premio arriva da solo. Non contano le partite abbandonate o giocate da assente.',
-        'They complete as you play: the reward arrives on its own. Abandoned or idle games never count.',
+        'Si completano giocando, poi si riscuotono. Le monete si guadagnano solo così: niente si compra con soldi veri. Non contano le partite abbandonate o giocate da assente.',
+        'They complete as you play, then you claim them. Coins are only earned this way: nothing is bought with real money. Abandoned or idle games never count.',
       );
+  String get goalsHint => _t(
+        'Gli obiettivi restano finché non li prendi. Alcuni regalano pezzi che in bottega non si vendono.',
+        'Goals stay until you reach them. Some give pieces the shop never sells.',
+      );
+  String get claim => _t('RISCUOTI', 'CLAIM');
+  String get claimed => _t('RISCOSSO', 'CLAIMED');
+  String get late => _t('DI IERI', 'EARLIER');
+  String get reputation => _t('RISPETTO', 'RESPECT');
+  String reputationGain(int n) => _t('+$n rispetto', '+$n respect');
+  String claimDone(int coins, int reputation) =>
+      _t('Riscosso: $coins monete, +$reputation rispetto', 'Claimed: $coins coins, +$reputation respect');
+  String itemWon(String name) => _t('In regalo: $name', 'Yours now: $name');
+  String reward(String name) => _t('Premio: $name', 'Reward: $name');
+  String toClaim(int n) => _t(n == 1 ? '1 da riscuotere' : '$n da riscuotere', '$n to claim');
+  String unlocksWith(String mission) => _t('Si sblocca con: $mission', 'Unlocks with: $mission');
+  String get missionOnly => _t('Solo con le missioni', 'Missions only');
   String get done => _t('FATTO', 'DONE');
   String endsIn(Duration d) {
     final h = d.inHours;
@@ -47,7 +67,7 @@ class ProgressStrings {
   String yourPlace(int rank) => _t('Sei al $rank° posto', 'You are #$rank');
   String get notRanked => _t('Gioca una classificata per entrare in classifica.', 'Play a ranked game to get on the board.');
 
-  String missionDone(String name) => _t('Incarico compiuto: $name', 'Mission complete: $name');
+  String missionDone(String name) => _t('Missione compiuta: $name. Riscuotila!', 'Mission complete: $name. Claim it!');
   String achievementDone(String name) => _t('Medaglia: $name', 'Achievement: $name');
 
   /// A mission's text, from its id (with a generic fallback by metric).
@@ -71,6 +91,28 @@ class ProgressStrings {
         'weekly_finds_3' => _t('Smaschera 3 mafiosi da Commissario', 'Unmask 3 mafiosi as the Detective'),
         'weekly_kills_5' => _t('Porta a segno 5 agguati con la famiglia', 'Pull off 5 hits with the family'),
         'weekly_nights_12' => _t('Sopravvivi a 12 notti', 'Survive 12 nights'),
+        'daily_friends_play_2' => _t('Gioca 2 partite con amici', 'Play 2 games with friends'),
+        'daily_win_alive_1' => _t('Vinci e arriva vivo alla fine', 'Win and live to the end'),
+        'daily_survive_2' => _t('Arriva vivo alla fine di 2 partite', 'Be alive at the end of 2 games'),
+        'weekly_play_10' => _t('Gioca 10 partite', 'Play 10 games'),
+        'weekly_wins_4' => _t('Vinci 4 partite', 'Win 4 games'),
+        'weekly_town_wins_3' => _t('Vinci 3 volte con la città', 'Win 3 times with the town'),
+        'weekly_mafia_wins_2' => _t('Vinci 2 volte con la famiglia', 'Win 2 times with the family'),
+        'weekly_detective_win_1' => _t('Vinci una partita da Commissario', 'Win a game as the Detective'),
+        'weekly_doctor_win_1' => _t('Vinci una partita da Dottore', 'Win a game as the Doctor'),
+        'long_nights_10' => _t('Sopravvivi a 10 notti', 'Survive 10 nights'),
+        'long_lynch_hits_3' => _t('Manda al patibolo 3 picciotti', 'Send 3 mobsters to the gallows'),
+        'long_detective_wins_5' => _t('Vinci 5 partite da Commissario', 'Win 5 games as the Detective'),
+        'long_finds_5' => _t('Smaschera 5 mafiosi da Commissario', 'Unmask 5 mafiosi as the Detective'),
+        'long_mafia_wins_10' => _t('Vinci 10 volte con la famiglia', 'Win 10 times with the family'),
+        'long_town_wins_10' => _t('Vinci 10 volte con la città', 'Win 10 times with the town'),
+        'long_wins_50' => _t('Vinci 50 partite', 'Win 50 games'),
+        'long_games_25' => _t('Gioca 25 partite', 'Play 25 games'),
+        'long_friends_games_20' => _t('Gioca 20 partite con amici', 'Play 20 games with friends'),
+        'long_ranked_games_20' => _t('Gioca 20 partite classificate', 'Play 20 ranked games'),
+        'long_saves_5' => _t('Salva 5 vite da Dottore', 'Save 5 lives as the Doctor'),
+        'long_survived_25' => _t('Arriva vivo alla fine di 25 partite', 'Be alive at the end of 25 games'),
+        'long_neutral_wins_3' => _t('Vinci 3 volte da neutrale', 'Win 3 times as a neutral'),
         _ => _t('Obiettivo: $target', 'Goal: $target'),
       };
 

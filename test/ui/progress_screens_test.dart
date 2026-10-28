@@ -27,12 +27,37 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('missions: three a day, three a week, with progress and rewards', (tester) async {
+  testWidgets('missions: today, the week and the goals, with progress and rewards', (tester) async {
     await open(tester, MissionsScreen(progress: online.progress));
-    expect(find.text('DI GIORNATA'), findsOneWidget);
+    expect(find.text('OGGI'), findsOneWidget);
     expect(find.text('Gioca 3 partite'), findsOneWidget);
-    expect(find.text('Vinci da neutrale'), findsOneWidget);
-    expect(find.text('0/3'), findsNWidgets(2));
+    expect(find.text('Vinci una partita'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('missions.tab.weekly')));
+    await tester.pumpAndSettle();
+    expect(find.text('Gioca 10 partite'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('missions.tab.long')));
+    await tester.pumpAndSettle();
+    expect(find.text('Vinci 5 partite da Commissario'), findsOneWidget);
+    expect(find.text('Premio: Berretto da sbirro'), findsOneWidget);
+    expect(find.byKey(const Key('mission.long_detective_wins_5.claim')), findsNothing, reason: 'not done yet');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('claiming: the plate pays coins and respect, stamps the order and gives the piece', (tester) async {
+    online.progress.stats[online.accountId] = {'role_win:detective': 5};
+    final before = (await online.profiles.me()).coins;
+    await open(tester, MissionsScreen(progress: online.progress, tab: 2));
+    expect(find.text('1 da riscuotere'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('mission.long_detective_wins_5.claim')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle(const Duration(milliseconds: 100));
+    expect((await online.profiles.me()).coins, before + 400);
+    expect(online.shop.ownedBy(online.accountId), contains('hat.sbirro'));
+    expect(find.text('RISCOSSO'), findsOneWidget);
+    expect(find.byKey(const Key('mission.long_detective_wins_5.claim')), findsNothing);
+    expect(tester.widget<Text>(find.byKey(const Key('missions.reputation'))).data, '50');
+    await tester.pump(const Duration(seconds: 6));
     expect(tester.takeException(), isNull);
   });
 
@@ -66,7 +91,7 @@ void main() {
     ));
     await tester.pump(const Duration(seconds: 1));
     await tester.pump(const Duration(milliseconds: 700));
-    expect(find.text('Incarico compiuto: Vinci una partita'), findsOneWidget);
+    expect(find.text('Missione compiuta: Vinci una partita. Riscuotila!'), findsOneWidget);
     await tester.pump(const Duration(seconds: 4));
     await tester.pump(const Duration(milliseconds: 700));
     expect(find.text('Medaglia: Fortunato'), findsOneWidget);

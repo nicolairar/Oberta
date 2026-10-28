@@ -190,7 +190,7 @@ class ItalianShopStrings extends ShopStrings {
   @override
   String get greeting => 'Provi pure, lo specchio non mente mai.';
   @override
-  String get coinsHint => 'Le monete arrivano salendo di livello: si sale vincendo.';
+  String get coinsHint => 'Le monete si guadagnano solo giocando: partite, livelli e missioni. Tocca + per le missioni.';
   @override
   String get featured => 'IN VETRINA';
   @override
@@ -245,7 +245,7 @@ class ItalianShopStrings extends ShopStrings {
   @override
   String bought(String item) => 'È tuo: $item.';
   @override
-  String missing(int coins) => 'Ti mancano $coins monete.';
+  String missing(int coins) => 'Ti mancano $coins monete: si guadagnano con partite e missioni.';
   @override
   String get emptyWardrobe => 'Qui c\'è solo quello che hai già.';
   @override
@@ -377,7 +377,7 @@ class EnglishShopStrings extends ShopStrings {
   @override
   String get greeting => 'Go ahead, try it on. The mirror never lies.';
   @override
-  String get coinsHint => 'Coins come with every level, and levels come from winning.';
+  String get coinsHint => 'Coins are only earned by playing: games, levels and missions. Tap + for the missions.';
   @override
   String get featured => 'IN THE WINDOW';
   @override
@@ -432,7 +432,7 @@ class EnglishShopStrings extends ShopStrings {
   @override
   String bought(String item) => 'The $item is yours.';
   @override
-  String missing(int coins) => 'You need $coins more coins.';
+  String missing(int coins) => 'You need $coins more coins: earn them with games and missions.';
   @override
   String get emptyWardrobe => 'Only what you already own hangs here.';
   @override

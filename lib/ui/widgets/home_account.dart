@@ -198,6 +198,12 @@ class HomeProfileBadge extends StatefulWidget {
   final VoidCallback? onMirror;
   final String? mirrorLabel;
 
+  /// Il fascicolo delle missioni, con il bollino rosso di quelle da
+  /// riscuotere ([missionsWaiting]).
+  final VoidCallback? onMissions;
+  final String? missionsLabel;
+  final int missionsWaiting;
+
   const HomeProfileBadge({
     super.key,
     required this.profile,
@@ -208,6 +214,9 @@ class HomeProfileBadge extends StatefulWidget {
     this.onShop,
     this.onMirror,
     this.mirrorLabel,
+    this.onMissions,
+    this.missionsLabel,
+    this.missionsWaiting = 0,
   });
 
   @override
@@ -262,19 +271,33 @@ class _HomeProfileBadgeState extends State<HomeProfileBadge> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontFamily: 'Georgia',
-                          fontFamilyFallback: const ['serif'],
-                          fontSize: 13.5,
-                          height: 1.1,
-                          fontWeight: FontWeight.bold,
-                          fontStyle: complete || profile == null ? FontStyle.normal : FontStyle.italic,
-                          color: complete || profile == null ? _cream : AppColors.gold,
-                        ),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                            name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontFamily: 'Georgia',
+                              fontFamilyFallback: const ['serif'],
+                              fontSize: 13.5,
+                              height: 1.1,
+                              fontWeight: FontWeight.bold,
+                              fontStyle: complete || profile == null ? FontStyle.normal : FontStyle.italic,
+                              color: complete || profile == null ? _cream : AppColors.gold,
+                            ),
+                          ),
+                          ),
+                          if (widget.onMissions != null && profile != null) ...[
+                            const SizedBox(width: 6),
+                            _MissionsTag(
+                              label: widget.missionsLabel ?? '',
+                              waiting: widget.missionsWaiting,
+                              onTap: pressed(widget.onMissions, Press.toggle)!,
+                            ),
+                          ],
+                        ],
                       ),
                       if (profile != null) ...[
                         const SizedBox(height: 3),
@@ -408,6 +431,66 @@ class _HomeProfileBadgeState extends State<HomeProfileBadge> {
       },
     );
   }
+}
+
+/// Il fascicolo delle missioni sul cartellino: una cartellina d'ottone, e
+/// il bollino rosso con quante aspettano di essere riscosse.
+class _MissionsTag extends StatelessWidget {
+  final String label;
+  final int waiting;
+  final VoidCallback onTap;
+
+  const _MissionsTag({required this.label, required this.waiting, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: waiting > 0 ? '$label, $waiting' : label,
+    excludeSemantics: true,
+    child: GestureDetector(
+      key: const Key('home.missions'),
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: SizedBox(
+        width: 20,
+        height: 16,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: Targa.gold, stops: Targa.goldStops),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+                child: const Icon(Icons.assignment, size: 11, color: Color(0xFF2A1A06)),
+              ),
+            ),
+            if (waiting > 0)
+              Positioned(
+                right: -5,
+                top: -6,
+                child: Container(
+                  key: const Key('home.missionsWaiting'),
+                  constraints: const BoxConstraints(minWidth: 13),
+                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE5404C),
+                    borderRadius: BorderRadius.circular(7),
+                    border: Border.all(color: const Color(0xFF0C0907), width: 1),
+                  ),
+                  child: Text(
+                    '$waiting',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.white, fontSize: 9, height: 1.3, fontWeight: FontWeight.w900),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 class _LevelTag extends StatelessWidget {

@@ -1,3 +1,5 @@
+import '../../l10n/progress_strings.dart';
+import 'online/missions_screen.dart';
 import 'dart:async';
 import 'dart:math';
 
@@ -125,6 +127,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
   bool _shopFresh = false;
   bool _shopChecked = false;
 
+  /// Le missioni compiute e non riscosse: il bollino sul cartellino.
+  int _missionsWaiting = 0;
+
   /// La stanza di un link, in attesa che chi l'ha aperto entri e abbia il profilo.
   String? _pendingRoom;
   bool _joining = false;
@@ -183,6 +188,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
     });
     if (account.signedIn) {
       _checkShop();
+      _checkMissions();
       _readCounts();
     } else {
       _shopChecked = false;
@@ -309,6 +315,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
     );
   }
 
+  /// Quante missioni aspettano di essere riscosse.
+  Future<void> _checkMissions() async {
+    final progress = _online?.progress;
+    if (progress == null) return;
+    try {
+      final waiting = (await progress.mine()).claimable;
+      if (mounted && waiting != _missionsWaiting) setState(() => _missionsWaiting = waiting);
+    } catch (_) {}
+  }
+
+  /// Il fascicolo delle missioni: dal cartellino.
+  Future<void> _openMissions() async {
+    final progress = _online?.progress;
+    if (progress == null) return;
+    await MissionsScreen.open(context, progress);
+    _checkMissions();
+  }
+
   /// Una volta per accesso: c'è in vetrina qualcosa messo negli ultimi tre giorni?
   Future<void> _checkShop() async {
     final shop = _online?.shop;
@@ -394,7 +418,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
   /// Di ritorno in primo piano: livello, esperienza e monete di nuovo dal server.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _account?.refresh();
+    if (state == AppLifecycleState.resumed) {
+      _account?.refresh();
+      if (_account?.signedIn ?? false) _checkMissions();
+    }
   }
 
   @override
@@ -682,6 +709,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                         onShop: _online?.shop == null ? null : _openShop,
                         onMirror: _openMirror,
                         mirrorLabel: SettingsStrings.of(context).yourLook,
+                        onMissions: _online?.progress == null ? null : _openMissions,
+                        missionsLabel: ProgressStrings.of(context).missions,
+                        missionsWaiting: _missionsWaiting,
                       ),
                     ),
                   if (!desktop)

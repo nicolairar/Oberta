@@ -8,7 +8,7 @@ extension _Phone on _ShopScreenState {
 
   Widget _phone() {
     final t = _t;
-    final purseWidth = widget.onAddCoins == null ? 104.0 : 130.0;
+    final purseWidth = _earnCoins == null ? 104.0 : 130.0;
     return Scaffold(
       backgroundColor: const Color(0xFF07070B),
       body: StreetBackdrop(
@@ -77,7 +77,7 @@ extension _Phone on _ShopScreenState {
               Positioned(
                 right: 8,
                 top: mid - 19,
-                child: CoinPurse(key: const Key('shop.coins'), coins: _shop.coins, onAdd: widget.onAddCoins, hint: t.coinsHint),
+                child: CoinPurse(key: const Key('shop.coins'), coins: _shop.coins, onAdd: _earnCoins, hint: t.coinsHint),
               ),
             ],
           );
@@ -474,7 +474,7 @@ class _RimThumb extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final owned = entry.item != null ? shop.stateOf(entry.item!) != ItemState.forSale : shop.bundleComplete(entry.bundle!);
+    final owned = entry.item != null ? !{ItemState.forSale, ItemState.locked}.contains(shop.stateOf(entry.item!)) : shop.bundleComplete(entry.bundle!);
     return Stack(
       clipBehavior: Clip.none,
       children: [

@@ -8,7 +8,14 @@ import '../../../online/online_services.dart';
 import '../../avatar/avatar_look.dart';
 
 /// Quello che la bottega sa di un pezzo, per chi la guarda adesso.
-enum ItemState { forSale, owned, worn }
+enum ItemState {
+  forSale,
+  owned,
+  worn,
+
+  /// Non si vende: lo regala solo una missione ([ShopItem.unlock]).
+  locked,
+}
 
 /// I posti del corpo di ogni reparto.
 const deptSlots = <ShopDept, List<String>>{
@@ -118,6 +125,7 @@ class ShopController extends ChangeNotifier {
     final slot = slotOf(item);
     if (slot != null && look.wears(slot, item.lookId) && (item.free || owned.contains(item.id))) return ItemState.worn;
     if (item.free || owned.contains(item.id)) return ItemState.owned;
+    if (item.exclusive) return ItemState.locked;
     return ItemState.forSale;
   }
 
@@ -179,7 +187,7 @@ class ShopController extends ChangeNotifier {
             (filter.collection == null || ShopFilter.collectionOf(item) == filter.collection) &&
             switch (filter.own) {
               ShopOwnership.all => true,
-              ShopOwnership.mine => stateOf(item) != ItemState.forSale,
+              ShopOwnership.mine => stateOf(item) == ItemState.owned || stateOf(item) == ItemState.worn,
               ShopOwnership.toBuy => stateOf(item) == ItemState.forSale,
             } &&
             (words.isEmpty || item.name(language).toLowerCase().contains(words) || (item.brand?.label.toLowerCase().contains(words) ?? false)))

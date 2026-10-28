@@ -153,7 +153,7 @@ void main() {
     expect(find.text('Comprare Il Detective?'), findsOneWidget);
     await tester.tap(find.byKey(const Key('shop.confirm')));
     await tester.pumpAndSettle();
-    expect(coins(tester), '420');
+    expect(coins(tester), '10', reason: '(2900 + 700 + 120 + 120) meno il 35%: 2490');
     expect(find.text('COMPLETO'), findsOneWidget);
     expect(online.shop.ownedBy('me'), containsAll(['outfit.trench_coat', 'accessory.pipe']));
   });
