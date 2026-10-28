@@ -279,7 +279,7 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
     final size = lobby.maxPlayers;
     return Scaffold(
       backgroundColor: const Color(0xFF120C08),
-      body: StreetBackdrop(section: StreetSection.ranked, desk: true, builder: (context, _) => NoirDesk(
+      body: NoirDesk(
         child: DeskTheme(
           child: DeskEscape(
             onEscape: _cancel,
@@ -392,14 +392,21 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
             ),
           ),
         ),
-      )),
+      ),
     );
   }
 
   String _clock(Duration d) => '${d.inMinutes}:${(d.inSeconds % 60).toString().padLeft(2, '0')}';
 
+  /// La sala da gioco vista dalla strada: l'uomo arriva alla porta col
+  /// cordone di velluto, entra, e dentro c'è il tavolo riservato (l'ingresso
+  /// come la sala d'attesa).
   @override
-  Widget build(BuildContext context) => WideScale(child: Builder(builder: _build));
+  Widget build(BuildContext context) => StreetBackdrop(
+        section: StreetSection.ranked,
+        desk: DesktopCanvas.of(context),
+        builder: (context, _) => WideScale(child: Builder(builder: _build)),
+      );
 
   Widget _build(BuildContext context) {
     final t = AppStrings.of(context).online;
@@ -459,7 +466,7 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
     }
     return Scaffold(
       backgroundColor: const Color(0xFF120C08),
-      body: StreetBackdrop(section: StreetSection.ranked, builder: (context, _) => DecoratedBox(
+      body: DecoratedBox(
         decoration: const BoxDecoration(
           gradient: RadialGradient(
             center: Alignment(0, -0.35),
@@ -579,7 +586,7 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
             ],
           ),
         )),
-      )),
+      ),
     );
   }
 }

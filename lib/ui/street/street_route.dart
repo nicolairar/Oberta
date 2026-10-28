@@ -61,8 +61,18 @@ class _Stroll {
 /// scena si riavvolge, con l'uomo girato a sinistra.
 abstract final class StreetTiming {
   static const duration = Duration(milliseconds: 3500);
-  static const back = Duration(milliseconds: 3000);
   static const still = Duration(milliseconds: 220);
+
+  /// Al ritorno la camminata va come prima (quella di 3 secondi), ma uscire
+  /// dal locale (i pannelli che spariscono, la porta, il passo fuori) prende
+  /// il 40% in meno: [backCurve] stringe quel tratto.
+  static const _backWalk = 3000;
+  static const _backExit = 0.6;
+  static final back = Duration(milliseconds: (_backWalk * (arrive + (1 - arrive) * _backExit)).round());
+
+  /// Il ritorno, sul tempo di [back]: fino a [arrive] al passo di sempre,
+  /// dopo (l'uscita dalla porta) più svelto.
+  static final Curve backCurve = _BackCurve(arrive / (arrive + (1 - arrive) * _backExit));
 
   static const _walker = _Stroll(0.16, 0.30);
   static const _camera = _Stroll(0.30, 0.34);
@@ -116,6 +126,22 @@ abstract final class StreetTiming {
 
   /// Esce dalla porta del posto di prima: da 0 (dentro) a 1 (sul marciapiede).
   static double stepOut(double t) => _span(t, 0.08, 0.18);
+}
+
+/// La curva del ritorno: il controller va da 1 a 0 a velocità costante; da
+/// 1 a [knee] percorre l'uscita (da 1 ad [StreetTiming.arrive]), da [knee]
+/// a 0 la camminata. Continua e sempre crescente: il ritorno non salta.
+class _BackCurve extends Curve {
+  final double knee;
+
+  const _BackCurve(this.knee);
+
+  @override
+  double transformInternal(double u) {
+    const arrive = StreetTiming.arrive;
+    if (u <= knee) return u / knee * arrive;
+    return arrive + (u - knee) / (1 - knee) * (1 - arrive);
+  }
 }
 
 /// Le cose davanti al muro del posto che si lascia (l'insegna, i manifesti):
@@ -196,6 +222,12 @@ class StreetRoute<T> extends PageRoute<T> {
 
   @override
   Duration get reverseTransitionDuration => still ? StreetTiming.still : StreetTiming.back;
+
+  /// Al ritorno l'uscita dalla porta va più svelta della camminata
+  /// ([StreetTiming.backCurve]); all'andata e col dito il tempo è lineare.
+  @override
+  Animation<double> createAnimation() =>
+      still ? super.createAnimation() : CurvedAnimation(parent: controller!, curve: Curves.linear, reverseCurve: StreetTiming.backCurve);
 
   @override
   void didChangePrevious(Route<dynamic>? previousRoute) {

@@ -147,6 +147,7 @@ class StreetFacadePainter extends CustomPainter {
         StreetFront.club => const Color(0xFF2E0A12),
         StreetFront.cafe => const Color(0xFF2C1A10),
         StreetFront.office => const Color(0xFF24272D),
+        StreetFront.hall => const Color(0xFF0F2A22),
       };
 
   /// Il legno (o la pietra) che incornicia vetrina e porta.
@@ -257,6 +258,8 @@ class StreetFacadePainter extends CustomPainter {
         );
         canvas.drawRect(Rect.fromLTRB(x - 2, glass.bottom - u * 0.42, x + 2, glass.bottom - u * 0.16), ink);
         canvas.drawRect(Rect.fromLTRB(glass.left, glass.bottom - u * 0.16, glass.right, glass.bottom - u * 0.12), ink);
+      case StreetFront.hall:
+        _hallWindow(canvas, glass, ink);
       case StreetFront.club:
         break;
     }
@@ -304,6 +307,7 @@ class StreetFacadePainter extends CustomPainter {
       StreetFront.club => const Color(0xFF6A1222),
       StreetFront.barber => const Color(0xFF2E4A5A),
       StreetFront.office => const Color(0xFF3A3328),
+      StreetFront.hall => const Color(0xFF173F33),
       _ => _shade(_wood, 1.25),
     };
     canvas.drawRect(leaf, Paint()..color = Color.lerp(leafColor, Colors.black, 0.35 * open)!);
@@ -319,6 +323,29 @@ class StreetFacadePainter extends CustomPainter {
             }
           }
           canvas.drawRect(Rect.fromCenter(center: Offset(leaf.center.dx, leaf.top + leaf.height * 0.2), width: leaf.width * 0.36, height: leaf.height * 0.035), Paint()..color = _ink);
+        case StreetFront.hall:
+          // Due specchiature col filo d'ottone, e la targhetta in alto.
+          final brass = Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = max(1.0, door.width * 0.02)
+            ..color = const Color(0xFFC9A227).withValues(alpha: 0.85);
+          final upper = Rect.fromLTRB(inset.left, inset.top, inset.right, inset.top + inset.height * 0.46);
+          final lower = Rect.fromLTRB(inset.left, upper.bottom + inset.height * 0.06, inset.right, inset.bottom);
+          for (final panel in [upper, lower]) {
+            canvas.drawRect(panel, Paint()..color = Colors.black.withValues(alpha: 0.22));
+            canvas.drawRect(panel, brass);
+          }
+          final tag = Rect.fromCenter(center: Offset(leaf.center.dx, upper.top + upper.height * 0.32), width: leaf.width * 0.5, height: door.height * 0.045);
+          if (tag.width > 8) {
+            canvas.drawRect(tag, Paint()..color = const Color(0xFFC9A227));
+            canvas.drawLine(
+              Offset(tag.left + tag.width * 0.2, tag.center.dy),
+              Offset(tag.right - tag.width * 0.2, tag.center.dy),
+              Paint()
+                ..color = const Color(0xFF5A4510)
+                ..strokeWidth = 1,
+            );
+          }
         case StreetFront.office:
           final frosted = Rect.fromLTRB(inset.left, inset.top, inset.right, inset.top + inset.height * 0.45);
           canvas.drawRect(frosted, Paint()..color = const Color(0xFFB7C2C8).withValues(alpha: 0.8));
@@ -351,6 +378,7 @@ class StreetFacadePainter extends CustomPainter {
       StreetFront.barber => (const Color(0xFF8E1E24), const Color(0xFFD8D4CC)),
       _ => null,
     };
+    if (_front == StreetFront.hall) return _canopy(canvas);
     if (stripes == null) {
       // Il retrobottega ha le lampadine intorno alla porta; l'ufficio la targa d'ottone.
       if (_front == StreetFront.club) {
@@ -402,6 +430,7 @@ class StreetFacadePainter extends CustomPainter {
   }
 
   void _props(Canvas canvas) {
+    if (_front == StreetFront.hall) return _rope(canvas);
     if (_front != StreetFront.barber) return;
     // Il palo del barbiere accanto alla porta: le strisce girano con la porta.
     final d = layout.door;
@@ -427,6 +456,183 @@ class StreetFacadePainter extends CustomPainter {
     canvas.restore();
     for (final y in [pole.top - 5, pole.bottom + 5]) {
       canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: Offset(pole.center.dx, y), width: pole.width * 1.4, height: 8), const Radius.circular(3)), Paint()..color = const Color(0xFFB8902A));
+    }
+  }
+
+  /// Dietro il vetro della sala: il tavolo verde sotto la lampada, due
+  /// giocatori in controluce, la cornice dorata dipinta sul vetro.
+  void _hallWindow(Canvas canvas, Rect glass, Paint ink) {
+    final u = glass.height;
+    final cx = glass.center.dx;
+    final lamp = Offset(cx, glass.top + u * 0.30);
+    canvas.drawLine(
+      Offset(cx, glass.top),
+      lamp,
+      Paint()
+        ..color = ink.color
+        ..strokeWidth = max(1.2, u * 0.012),
+    );
+    final table = Rect.fromCenter(center: Offset(cx, glass.bottom - u * 0.30), width: glass.width * 0.62, height: u * 0.10);
+    // Il cono di luce della lampada fino al panno.
+    canvas.drawPath(
+      Path()
+        ..moveTo(lamp.dx - u * 0.07, lamp.dy)
+        ..lineTo(lamp.dx + u * 0.07, lamp.dy)
+        ..lineTo(table.right, table.center.dy)
+        ..lineTo(table.left, table.center.dy)
+        ..close(),
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [const Color(0xFFFFE6A8).withValues(alpha: 0.45), const Color(0xFFFFE6A8).withValues(alpha: 0.05)],
+        ).createShader(Rect.fromLTRB(table.left, lamp.dy, table.right, table.center.dy)),
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(lamp.dx - u * 0.04, lamp.dy - u * 0.05)
+        ..lineTo(lamp.dx + u * 0.04, lamp.dy - u * 0.05)
+        ..lineTo(lamp.dx + u * 0.08, lamp.dy)
+        ..lineTo(lamp.dx - u * 0.08, lamp.dy)
+        ..close(),
+      Paint()..color = const Color(0xFF1E4A38),
+    );
+    // I giocatori: spalle e cappello, uno per lato.
+    for (final side in [-1.0, 1.0]) {
+      final x = cx + side * table.width * 0.44;
+      final base = table.center.dy;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(Rect.fromCenter(center: Offset(x, base - u * 0.08), width: u * 0.20, height: u * 0.22), Radius.circular(u * 0.07)),
+        ink,
+      );
+      canvas.drawCircle(Offset(x, base - u * 0.24), u * 0.055, ink);
+      canvas.drawOval(Rect.fromCenter(center: Offset(x, base - u * 0.27), width: u * 0.19, height: u * 0.035), ink);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(Rect.fromCenter(center: Offset(x, base - u * 0.30), width: u * 0.10, height: u * 0.07), Radius.circular(u * 0.02)),
+        ink,
+      );
+    }
+    // Il tavolo: il panno verde, il bordo, le gambe.
+    for (final f in [-0.3, 0.3]) {
+      canvas.drawRect(Rect.fromLTRB(cx + table.width * f - 2, table.center.dy, cx + table.width * f + 2, glass.bottom), ink);
+    }
+    canvas.drawOval(table.inflate(u * 0.012), ink);
+    canvas.drawOval(table, Paint()..color = const Color(0xFF2F7A52));
+    canvas.drawOval(table.deflate(u * 0.015), Paint()..color = const Color(0xFF3E9466).withValues(alpha: 0.6));
+    // La cornice d'oro dipinta sul vetro, con un seme di quadri negli angoli.
+    final leaf = glass.deflate(max(5.0, u * 0.05));
+    canvas.drawRect(
+      leaf,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = max(1.0, u * 0.01)
+        ..color = const Color(0xFFE6C77A).withValues(alpha: 0.7),
+    );
+    for (final corner in [leaf.topLeft + Offset(u * 0.07, u * 0.07), leaf.topRight + Offset(-u * 0.07, u * 0.07)]) {
+      final r = u * 0.035;
+      canvas.drawPath(
+        Path()
+          ..moveTo(corner.dx, corner.dy - r)
+          ..lineTo(corner.dx + r * 0.75, corner.dy)
+          ..lineTo(corner.dx, corner.dy + r)
+          ..lineTo(corner.dx - r * 0.75, corner.dy)
+          ..close(),
+        Paint()..color = const Color(0xFFE6C77A).withValues(alpha: 0.8),
+      );
+    }
+  }
+
+  /// La pensilina verde col filo d'ottone sopra porta e vetrina, e due
+  /// lanterne accese ai lati della porta.
+  void _canopy(Canvas canvas) {
+    final a = layout.awning;
+    final d = layout.door;
+    final slab = Rect.fromLTRB(a.left, a.top + a.height * 0.15, a.right, a.bottom);
+    canvas.drawRect(slab.shift(const Offset(0, 4)), Paint()..color = Colors.black.withValues(alpha: 0.45));
+    canvas.drawRect(
+      slab,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF1E4A3A), Color(0xFF0A1E17)],
+        ).createShader(slab),
+    );
+    final brass = Paint()..color = const Color(0xFFC9A227);
+    canvas.drawRect(Rect.fromLTRB(slab.left, slab.bottom - 2.5, slab.right, slab.bottom), brass);
+    canvas.drawRect(Rect.fromLTRB(slab.left, slab.top, slab.right, slab.top + 1.2), Paint()..color = const Color(0xFFE6C77A).withValues(alpha: 0.6));
+    // Le borchie lungo la pensilina.
+    final n = max(6, (slab.width / 26).round());
+    for (var i = 0; i <= n; i++) {
+      canvas.drawCircle(Offset(slab.left + slab.width * i / n, slab.center.dy), max(1.2, slab.height * 0.09), brass);
+    }
+    for (final x in [d.left - d.width * 0.24, d.right + d.width * 0.24]) {
+      final at = Offset(x, d.top + d.height * 0.22);
+      final s = d.width * 0.11;
+      canvas.drawCircle(
+        at,
+        s * 3.2,
+        Paint()
+          ..shader = const RadialGradient(colors: [Color(0x52FFC870), Color(0x00FFC870)]).createShader(Rect.fromCircle(center: at, radius: s * 3.2)),
+      );
+      canvas.drawRect(Rect.fromCenter(center: at.translate(0, -s * 1.3), width: s * 0.3, height: s * 0.9), brass);
+      final lantern = RRect.fromRectAndRadius(Rect.fromCenter(center: at, width: s * 1.1, height: s * 1.6), Radius.circular(s * 0.25));
+      canvas.drawRRect(lantern, Paint()..color = const Color(0xFFFFE6A8));
+      canvas.drawRRect(
+        lantern,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = max(1.0, s * 0.18)
+          ..color = const Color(0xFF8C6A26),
+      );
+      canvas.drawRect(Rect.fromCenter(center: lantern.outerRect.topCenter, width: s * 1.4, height: s * 0.25), brass);
+      canvas.drawRect(Rect.fromCenter(center: lantern.outerRect.bottomCenter, width: s * 0.9, height: s * 0.22), brass);
+    }
+  }
+
+  /// Il cordone di velluto rosso tra due colonnine d'ottone, davanti alla
+  /// vetrina: la porta resta libera.
+  void _rope(Canvas canvas) {
+    final d = layout.door;
+    final win = layout.window;
+    final ground = layout.ground + (layout.curb - layout.ground) * 0.2;
+    final tall = d.height * 0.40;
+    final xs = [win.left + win.width * 0.12, win.right - win.width * 0.06];
+    final pole = max(2.5, d.width * 0.05);
+    final top = ground - tall;
+    final rope = Path()
+      ..moveTo(xs[0], top + pole)
+      ..quadraticBezierTo((xs[0] + xs[1]) / 2, top + pole + tall * 0.6, xs[1], top + pole);
+    canvas.drawPath(
+      rope.shift(const Offset(0, 3)),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = pole * 1.6
+        ..color = Colors.black.withValues(alpha: 0.4),
+    );
+    canvas.drawPath(
+      rope,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = pole * 1.5
+        ..strokeCap = StrokeCap.round
+        ..color = const Color(0xFF8E1022),
+    );
+    canvas.drawPath(
+      rope.shift(Offset(0, -pole * 0.35)),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = pole * 0.35
+        ..color = const Color(0xFFE0485A).withValues(alpha: 0.5),
+    );
+    for (final x in xs) {
+      final brass = Paint()
+        ..shader = const LinearGradient(colors: [Color(0xFF8C6A26), Color(0xFFFFE7A8), Color(0xFF9C7424)])
+            .createShader(Rect.fromLTRB(x - pole * 2.5, 0, x + pole * 2.5, 1));
+      canvas.drawOval(Rect.fromCenter(center: Offset(x, ground), width: pole * 6, height: pole * 1.6), Paint()..color = Colors.black.withValues(alpha: 0.5));
+      canvas.drawOval(Rect.fromCenter(center: Offset(x, ground - pole * 0.4), width: pole * 5, height: pole * 1.5), brass);
+      canvas.drawRect(Rect.fromLTRB(x - pole / 2, top, x + pole / 2, ground), brass);
+      canvas.drawCircle(Offset(x, top - pole * 0.4), pole * 1.1, brass);
     }
   }
 

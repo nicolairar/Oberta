@@ -6,6 +6,7 @@ import '../../../online/online_services.dart';
 import '../../avatar/avatar_look.dart';
 import '../../desktop/desktop_canvas.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/baked.dart';
 import '../../widgets/player_avatar.dart';
 import 'game/noir_ui.dart';
 
@@ -725,4 +726,364 @@ class _CafeTablePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_CafeTablePainter old) => old.table != table;
+}
+
+/// Il quadro grande appeso nella saletta, sopra i pulsanti: la cornice
+/// dorata, e dentro, dipinti a olio, il titolo e gli amici al tavolo
+/// riservato sotto la lampada. È fermo: si disegna una volta sola
+/// ([Baked]) e poi si rimette a ogni fotogramma.
+class CafePainting extends StatelessWidget {
+  /// Il titolo dipinto in alto (anche a capo).
+  final String title;
+
+  const CafePainting({super.key, required this.title});
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        image: true,
+        label: title.replaceAll('\n', ' '),
+        child: DecoratedBox(
+          decoration: const BoxDecoration(
+            boxShadow: [
+              BoxShadow(color: Color(0xAA000000), blurRadius: 30, offset: Offset(0, 4)),
+              BoxShadow(color: Color(0x33FFC870), blurRadius: 40, spreadRadius: -8),
+            ],
+          ),
+          child: Baked(child: CustomPaint(size: Size.infinite, painter: _CafePaintingPainter(title))),
+        ),
+      );
+}
+
+class _CafePaintingPainter extends CustomPainter {
+  final String title;
+
+  const _CafePaintingPainter(this.title);
+
+  static const _gold = [Color(0xFFFFE7A8), Color(0xFFD9B45A), Color(0xFF9C7424), Color(0xFFC9A23E), Color(0xFF7A5A1C)];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final outer = Offset.zero & size;
+    final m = (size.shortestSide * 0.055).clamp(10.0, 30.0);
+    _frame(canvas, outer, m);
+    final c = outer.deflate(m + m * 0.28);
+    canvas.save();
+    canvas.clipRect(c);
+    _scene(canvas, c);
+    canvas.restore();
+    // L'ombra della cornice sulla tela.
+    canvas.drawRect(
+      c,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = m * 0.5
+        ..color = Colors.black.withValues(alpha: 0.35)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, m * 0.3),
+    );
+  }
+
+  /// La cornice: la modanatura dorata smussata, il filo scuro, la battuta
+  /// interna e le rosette agli angoli.
+  void _frame(Canvas canvas, Rect outer, double m) {
+    canvas.drawRect(
+      outer,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: _gold,
+          stops: [0, 0.3, 0.55, 0.8, 1],
+        ).createShader(outer),
+    );
+    // Lo smusso: luce sul bordo esterno in alto a sinistra, ombra in basso a destra.
+    final bevel = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = m * 0.18;
+    canvas.drawPath(
+      Path()
+        ..moveTo(outer.left, outer.bottom)
+        ..lineTo(outer.left, outer.top)
+        ..lineTo(outer.right, outer.top),
+      bevel..color = const Color(0xFFFFF1C8).withValues(alpha: 0.55),
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(outer.right, outer.top)
+        ..lineTo(outer.right, outer.bottom)
+        ..lineTo(outer.left, outer.bottom),
+      bevel..color = const Color(0xFF3A2808).withValues(alpha: 0.7),
+    );
+    // Le gole della modanatura.
+    for (final (k, color, width) in [
+      (0.35, const Color(0xFF5A4510), 0.10),
+      (0.55, const Color(0xFFFFE7A8), 0.06),
+      (0.78, const Color(0xFF5A4510), 0.12),
+    ]) {
+      canvas.drawRect(
+        outer.deflate(m * k),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = m * width
+          ..color = color.withValues(alpha: 0.75),
+      );
+    }
+    // La battuta scura tra cornice e tela.
+    canvas.drawRect(outer.deflate(m), Paint()..color = const Color(0xFF1A1006));
+    canvas.drawRect(
+      outer.deflate(m + m * 0.14),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = m * 0.08
+        ..color = const Color(0xFFC9A23E).withValues(alpha: 0.8),
+    );
+    for (final corner in [outer.topLeft, outer.topRight, outer.bottomLeft, outer.bottomRight]) {
+      final at = Offset(
+        corner.dx + (corner.dx == outer.left ? m / 2 : -m / 2),
+        corner.dy + (corner.dy == outer.top ? m / 2 : -m / 2),
+      );
+      canvas.drawCircle(at, m * 0.42, Paint()..color = const Color(0xFF7A5A1C));
+      canvas.drawCircle(at, m * 0.32, Paint()..shader = const RadialGradient(colors: [Color(0xFFFFF1C8), Color(0xFFC9A23E)]).createShader(Rect.fromCircle(center: at, radius: m * 0.32)));
+      canvas.drawCircle(at, m * 0.1, Paint()..color = const Color(0xFF5A4510));
+    }
+  }
+
+  void _scene(Canvas canvas, Rect c) {
+    final w = c.width, h = c.height;
+    final cx = c.center.dx;
+    final s = (w / 360).clamp(0.5, 3.0);
+    // Il muro vino, più caldo intorno alla lampada.
+    canvas.drawRect(
+      c,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF2A0E12), Color(0xFF1A080B), Color(0xFF080304)],
+          stops: [0, 0.6, 1],
+        ).createShader(c),
+    );
+    final lamp = Offset(cx, c.top + h * 0.40);
+    final warm = Rect.fromCircle(center: lamp.translate(0, h * 0.18), radius: w * 0.75);
+    canvas.drawRect(
+      c,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [const Color(0xFFFFB45A).withValues(alpha: 0.30), const Color(0xFF8A1D2A).withValues(alpha: 0.10), Colors.transparent],
+          stops: const [0, 0.45, 1],
+        ).createShader(warm),
+    );
+    // La tappezzeria a righe e la boiserie.
+    final wainscot = c.top + h * 0.66;
+    final stripe = Paint()
+      ..color = Colors.black.withValues(alpha: 0.14)
+      ..strokeWidth = 3 * s;
+    for (var x = c.left + 14 * s; x < c.right; x += 24 * s) {
+      canvas.drawLine(Offset(x, c.top), Offset(x, wainscot), stripe);
+    }
+    canvas.drawRect(Rect.fromLTRB(c.left, wainscot, c.right, c.bottom), Paint()..color = const Color(0xFF140806).withValues(alpha: 0.6));
+    canvas.drawLine(
+      Offset(c.left, wainscot),
+      Offset(c.right, wainscot),
+      Paint()
+        ..color = Saloon.brassDeep.withValues(alpha: 0.5)
+        ..strokeWidth = 1.5 * s,
+    );
+
+    // La lampada appesa: il filo, la cupola d'ottone, il cono di luce.
+    canvas.drawLine(
+      Offset(cx, c.top),
+      lamp,
+      Paint()
+        ..color = const Color(0xFF0A0505)
+        ..strokeWidth = 2 * s,
+    );
+    final table = Rect.fromCenter(center: Offset(cx, c.top + h * 0.80), width: w * 0.80, height: min(w * 0.24, h * 0.17));
+    canvas.drawPath(
+      Path()
+        ..moveTo(lamp.dx - 22 * s, lamp.dy + 6 * s)
+        ..lineTo(lamp.dx + 22 * s, lamp.dy + 6 * s)
+        ..lineTo(table.right - w * 0.04, table.center.dy)
+        ..lineTo(table.left + w * 0.04, table.center.dy)
+        ..close(),
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [const Color(0xFFFFE2A0).withValues(alpha: 0.30), const Color(0xFFFFE2A0).withValues(alpha: 0.02)],
+        ).createShader(Rect.fromLTRB(table.left, lamp.dy, table.right, table.center.dy)),
+    );
+
+    // Gli amici dietro il tavolo.
+    _friend(canvas, Offset(cx - w * 0.21, table.top + table.height * 0.25), 1.0 * s, lamp, smoke: false);
+    _friend(canvas, Offset(cx + w * 0.20, table.top + table.height * 0.22), 1.05 * s, lamp, smoke: true);
+
+    _tablecloth(canvas, table, light: lamp);
+    // Le carte a ventaglio, la tazzina, il cartellino.
+    for (var i = 0; i < 4; i++) {
+      canvas.save();
+      canvas.translate(table.center.dx - table.width * 0.24, table.center.dy + table.height * 0.08);
+      canvas.rotate(-0.5 + i * 0.28);
+      canvas.scale(s, s * 0.5);
+      final r = RRect.fromRectAndRadius(const Rect.fromLTWH(-9, -30, 18, 26), const Radius.circular(2));
+      canvas.drawRRect(r, Paint()..color = i.isEven ? const Color(0xFF14361F) : const Color(0xFF173E24));
+      canvas.drawRRect(
+        r.deflate(2),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1
+          ..color = Saloon.paper.withValues(alpha: 0.7),
+      );
+      canvas.restore();
+    }
+    final cup = table.center + Offset(table.width * 0.24, table.height * 0.02);
+    canvas.drawOval(Rect.fromCenter(center: cup + Offset(0, 4 * s), width: 30 * s, height: 9 * s), Paint()..color = Cafe.cream.withValues(alpha: 0.9));
+    canvas.drawRRect(
+      RRect.fromRectAndCorners(
+        Rect.fromCenter(center: cup - Offset(0, 3 * s), width: 16 * s, height: 12 * s),
+        bottomLeft: Radius.circular(6 * s),
+        bottomRight: Radius.circular(6 * s),
+      ),
+      Paint()..color = Colors.white.withValues(alpha: 0.92),
+    );
+    _reserved(canvas, table.center + Offset(0, -table.height * 0.05), s * 0.9);
+
+    // Gli amici seduti ai lati, girati verso il tavolo.
+    _friend(canvas, Offset(table.left + w * 0.02, table.center.dy + table.height * 0.15), 1.15 * s, lamp, smoke: false, turned: 1);
+    _friend(canvas, Offset(table.right - w * 0.02, table.center.dy + table.height * 0.18), 1.2 * s, lamp, smoke: false, turned: -1);
+
+    // La lampada sopra tutto: la cupola e la lampadina.
+    canvas.drawCircle(
+      lamp.translate(0, 8 * s),
+      34 * s,
+      Paint()
+        ..color = const Color(0xFFFFE6A8).withValues(alpha: 0.35)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 16 * s),
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(lamp.dx - 24 * s, lamp.dy + 7 * s)
+        ..quadraticBezierTo(lamp.dx - 20 * s, lamp.dy - 12 * s, lamp.dx, lamp.dy - 13 * s)
+        ..quadraticBezierTo(lamp.dx + 20 * s, lamp.dy - 12 * s, lamp.dx + 24 * s, lamp.dy + 7 * s)
+        ..close(),
+      Paint()
+        ..shader = const LinearGradient(colors: [Color(0xFF5A4510), Color(0xFFD9B45A), Color(0xFF7A5A1C)])
+            .createShader(Rect.fromLTRB(lamp.dx - 24 * s, lamp.dy - 13 * s, lamp.dx + 24 * s, lamp.dy + 7 * s)),
+    );
+    canvas.drawOval(Rect.fromCenter(center: lamp.translate(0, 8 * s), width: 18 * s, height: 7 * s), Paint()..color = const Color(0xFFFFF4D6));
+
+    // Il fumo che sale verso la lampada.
+    final haze = Paint()..maskFilter = MaskFilter.blur(BlurStyle.normal, 18 * s);
+    for (final (dx, dy, r, a) in [(0.14, 0.55, 34.0, 0.07), (0.05, 0.47, 42.0, 0.05), (-0.16, 0.52, 30.0, 0.04)]) {
+      haze.color = const Color(0xFFE8DCC4).withValues(alpha: a);
+      canvas.drawCircle(Offset(cx + w * dx, c.top + h * dy), r * s, haze);
+    }
+
+    // Il titolo, dipinto in alto come su un manifesto, col filo d'ottone sotto.
+    final lines = title.split('\n');
+    final size = min(w * 0.115, h * 0.085);
+    var y = c.top + h * 0.06;
+    for (final line in lines) {
+      final text = TextPainter(
+        text: TextSpan(
+          text: line,
+          style: AppText.display(size, color: Cafe.cream).copyWith(
+            letterSpacing: size * 0.12,
+            height: 1.0,
+            shadows: [Shadow(color: Colors.black.withValues(alpha: 0.8), blurRadius: 6 * s, offset: Offset(0, 2 * s))],
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+        textAlign: TextAlign.center,
+      )..layout(maxWidth: w * 0.92);
+      text.paint(canvas, Offset(cx - text.width / 2, y));
+      y += text.height + size * 0.08;
+    }
+    final rule = Paint()
+      ..color = Saloon.brass.withValues(alpha: 0.85)
+      ..strokeWidth = 1.4 * s;
+    y += size * 0.25;
+    canvas.drawLine(Offset(cx - w * 0.22, y), Offset(cx - w * 0.04, y), rule);
+    canvas.drawLine(Offset(cx + w * 0.04, y), Offset(cx + w * 0.22, y), rule);
+    canvas.drawPath(
+      Path()
+        ..moveTo(cx, y - 4 * s)
+        ..lineTo(cx + 4 * s, y)
+        ..lineTo(cx, y + 4 * s)
+        ..lineTo(cx - 4 * s, y)
+        ..close(),
+      Paint()..color = Saloon.brass,
+    );
+
+    // La vernice: i bordi più scuri e qualche pennellata appena visibile.
+    canvas.drawRect(
+      c,
+      Paint()
+        ..shader = RadialGradient(
+          radius: 0.85,
+          colors: [Colors.transparent, Colors.black.withValues(alpha: 0.55)],
+          stops: const [0.55, 1],
+        ).createShader(c),
+    );
+    final random = Random(7);
+    final stroke = Paint()
+      ..strokeWidth = 2.2 * s
+      ..strokeCap = StrokeCap.round;
+    for (var i = 0; i < 90; i++) {
+      final p = Offset(c.left + random.nextDouble() * w, c.top + random.nextDouble() * h);
+      stroke.color = (random.nextBool() ? Colors.white : Colors.black).withValues(alpha: 0.025);
+      canvas.drawLine(p, p + Offset(14 * s, -9 * s) * (0.5 + random.nextDouble()), stroke);
+    }
+  }
+
+  /// Un amico in controluce: spalle, testa, cappello, e il filo di luce
+  /// della lampada sul lato verso di lei. [turned] lo gira di tre quarti.
+  void _friend(Canvas canvas, Offset seat, double s, Offset lamp, {required bool smoke, double turned = 0}) {
+    const ink = Color(0xFF070405);
+    final rim = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.6 * s
+      ..color = const Color(0xFFFFC870).withValues(alpha: 0.55);
+    final toward = (lamp.dx - seat.dx).sign;
+    final body = Path()
+      ..moveTo(seat.dx - 34 * s, seat.dy)
+      ..quadraticBezierTo(seat.dx - 33 * s, seat.dy - 44 * s, seat.dx - 14 * s, seat.dy - 50 * s)
+      ..lineTo(seat.dx + 14 * s, seat.dy - 50 * s)
+      ..quadraticBezierTo(seat.dx + 33 * s, seat.dy - 44 * s, seat.dx + 34 * s, seat.dy)
+      ..close();
+    final head = Offset(seat.dx + turned * 3 * s, seat.dy - 64 * s);
+    final hat = head.translate(turned * 2 * s, 0);
+    final crown = RRect.fromRectAndCorners(
+      Rect.fromCenter(center: hat.translate(0, -17 * s), width: 26 * s, height: 16 * s),
+      topLeft: Radius.circular(8 * s),
+      topRight: Radius.circular(8 * s),
+    );
+    // Una sagoma sola: il filo di luce ne segue il contorno, non le giunture.
+    var figure = Path.combine(PathOperation.union, body, Path()..addOval(Rect.fromCircle(center: head, radius: 13 * s)));
+    figure = Path.combine(PathOperation.union, figure, Path()..addOval(Rect.fromCenter(center: hat.translate(0, -9 * s), width: 44 * s, height: 8 * s)));
+    figure = Path.combine(PathOperation.union, figure, Path()..addRRect(crown));
+    canvas.drawPath(figure, Paint()..color = ink);
+    canvas.drawRect(Rect.fromCenter(center: hat.translate(0, -11 * s), width: 26 * s, height: 3 * s), Paint()..color = const Color(0xFF4A0E1A));
+    // Il filo di luce, dalla parte della lampada.
+    canvas.save();
+    canvas.clipRect(toward > 0 ? Rect.fromLTRB(seat.dx, seat.dy - 120 * s, seat.dx + 60 * s, seat.dy - 3 * s) : Rect.fromLTRB(seat.dx - 60 * s, seat.dy - 120 * s, seat.dx, seat.dy - 3 * s));
+    canvas.drawPath(figure, rim);
+    canvas.restore();
+    if (smoke) {
+      final ember = head.translate(-toward * 14 * s, 8 * s);
+      canvas.drawLine(ember.translate(toward * 6 * s, -1 * s), ember, Paint()
+        ..color = Cafe.cream
+        ..strokeWidth = 2 * s);
+      canvas.drawCircle(ember, 2.2 * s, Paint()..color = const Color(0xFFFF8A3A));
+      canvas.drawCircle(
+        ember,
+        6 * s,
+        Paint()
+          ..color = const Color(0xFFFF8A3A).withValues(alpha: 0.35)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, 4 * s),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_CafePaintingPainter old) => old.title != title;
 }

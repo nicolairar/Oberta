@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -18,6 +19,7 @@ import '../../widgets/noir_avatar.dart';
 import '../../widgets/player_avatar.dart';
 import '../../street/street_scaffold.dart';
 import '../../widgets/scene_scaffold.dart';
+import '../../widgets/targa.dart';
 import 'cafe_room.dart';
 import 'friends_screen.dart';
 import 'game/noir_ui.dart';
@@ -607,65 +609,82 @@ class _HubState extends State<_Hub> {
     final t = AppStrings.of(context).online;
     final profile = widget.profile;
     if (DesktopCanvas.of(context)) return _desk(context, t, profile);
-    // Come l'ingresso della classificata: la saletta in alto, chi sei, e il
-    // pulsante grande; sotto, il codice e gli amici.
+    // Il quadro grande appeso nella saletta, chi sei, e sotto le targhe
+    // larghe: aprire una stanza, entrare con un codice, gli amici.
     return LayoutBuilder(
       builder: (context, box) {
-        final short = box.maxHeight < 600;
+        final short = box.maxHeight < 640;
+        final bottom = 16 + MediaQuery.paddingOf(context).bottom;
+        final plate = short ? 52.0 : 58.0;
+        final gap = short ? 10.0 : 12.0;
+        final rejoin = _current;
+        // Quello che sta sotto il quadro: il cartellino e le targhe.
+        final below = 84 + (short ? 14 : 22) + (plate + 8) + 2 * (gap + plate) + (rejoin == null ? 0 : plate + gap);
+        final painting = (box.maxHeight - bottom - below - (short ? 10 : 18)).clamp(150.0, 520.0);
         return SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(20, 0, 20, 16 + MediaQuery.paddingOf(context).bottom),
+          padding: EdgeInsets.fromLTRB(18, short ? 4 : 10, 18, bottom),
           child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: box.maxHeight - 16),
+            constraints: BoxConstraints(minHeight: box.maxHeight - bottom - (short ? 4 : 10)),
             child: Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 480),
+                constraints: const BoxConstraints(maxWidth: 520),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    SizedBox(height: (box.maxHeight * (short ? 0.3 : 0.38)).clamp(130.0, 320.0), child: const CafeScene()),
-                    SizedBox(height: short ? 8 : 14),
-                    _Card(profile: profile),
-                    SizedBox(height: short ? 16 : 24),
-                    if (_current case final room?) ...[
-                      NoirButton(
-                        key: const Key('online.rejoin'),
-                        icon: Icons.login,
-                        label: '${t.rejoin} · ${room.code}',
-                        onPressed: () => _rejoin(room),
+                    Center(
+                      child: SizedBox(
+                        height: painting,
+                        // Un quadro, non un poster steso: mai più largo che alto.
+                        width: min(box.maxWidth - 36, painting * 1.05),
+                        child: CafePainting(key: const Key('online.painting'), title: t.posterTitle),
                       ),
-                      const SizedBox(height: 12),
-                    ],
-                    NoirButton(
-                      key: const Key('online.create'),
-                      icon: Icons.meeting_room,
-                      label: t.hubCreate,
-                      feel: Press.confirm,
-                      onPressed: _busy ? null : _create,
                     ),
-                    const SizedBox(height: 12),
-                    Row(
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Expanded(
-                          child: NoirButton(
-                            key: const Key('online.join'),
-                            kind: NoirButtonKind.brass,
-                            compact: true,
-                            icon: Icons.dialpad,
-                            label: t.hubJoin,
-                            onPressed: _join,
+                        SizedBox(height: short ? 10 : 18),
+                        _Card(profile: profile),
+                        SizedBox(height: short ? 14 : 22),
+                        if (rejoin != null) ...[
+                          TargaButton(
+                            key: const Key('online.rejoin'),
+                            icon: Icons.login,
+                            label: '${t.rejoin} · ${rejoin.code}',
+                            expand: true,
+                            height: plate,
+                            onPressed: () => _rejoin(rejoin),
                           ),
+                          SizedBox(height: gap),
+                        ],
+                        TargaButton(
+                          key: const Key('online.create'),
+                          icon: Icons.meeting_room,
+                          label: t.hubCreate,
+                          feel: Press.confirm,
+                          expand: true,
+                          height: plate + 8,
+                          onPressed: _busy ? null : _create,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: NoirButton(
-                            key: const Key('online.friends'),
-                            kind: NoirButtonKind.brass,
-                            compact: true,
-                            icon: Icons.people_alt,
-                            label: t.friends,
-                            onPressed: _friends,
-                          ),
+                        SizedBox(height: gap),
+                        TargaButton(
+                          key: const Key('online.join'),
+                          kind: TargaKind.secondary,
+                          icon: Icons.dialpad,
+                          label: t.hubJoin,
+                          expand: true,
+                          height: plate,
+                          onPressed: _join,
+                        ),
+                        SizedBox(height: gap),
+                        TargaButton(
+                          key: const Key('online.friends'),
+                          kind: TargaKind.secondary,
+                          icon: Icons.people_alt,
+                          label: t.friends,
+                          expand: true,
+                          height: plate,
+                          onPressed: _friends,
                         ),
                       ],
                     ),
@@ -698,8 +717,16 @@ class _HubState extends State<_Hub> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Expanded(child: CafeScene()),
-            const SizedBox(width: 56),
+            // Il quadro grande, appeso a sinistra.
+            Expanded(
+              child: Center(
+                child: AspectRatio(
+                  aspectRatio: 0.86,
+                  child: CafePainting(key: const Key('online.painting'), title: t.posterTitle),
+                ),
+              ),
+            ),
+            const SizedBox(width: 72),
             Container(
               width: 700,
               padding: const EdgeInsets.fromLTRB(48, 44, 48, 44),
