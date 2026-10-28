@@ -584,6 +584,14 @@ List<SceneCue> _cuesOf(DeathAct act, {required bool memes}) {
           const SceneCue.fx(0.65, FxGroup.running, 0.4),
           const SceneCue.fx(0.76, FxGroup.cat, 0.35),
         ],
+      DeathAct.escort => [
+          const SceneCue.fx(0.505, FxGroup.cock, 0.5),
+          const SceneCue.fx(_s, FxGroup.revolver, 0.75),
+          // Il piombo sull'acciaio della valigetta.
+          const SceneCue.sample(_s + 0.003, 'metal_medium', 0.8),
+          const SceneCue.fx(0.61, FxGroup.running, 0.45),
+          for (var step = 0; step < 8; step++) SceneCue.sample(0.68 + step * 0.012, 'step_${step % 4 + 1}', 0.5),
+        ],
     },
   ];
   // In modalità meme, ogni tanto il colpo si porta dietro il suo meme.

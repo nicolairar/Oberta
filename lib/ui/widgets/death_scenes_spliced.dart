@@ -107,6 +107,8 @@ const _handoff = 0.645;
 /// [attack], o `null` se le due cose insieme non hanno senso.
 Splice? spliceOf(DeathAct attack, DeathAct save) {
   if (attack.survives) return null;
+  // La scorta ha il suo filmato intero: il killer, le guardie, la valigetta.
+  if (save.escortSave) return Splice.alone;
   if (save.doctorSaves) return _downs.containsKey(attack) ? Splice.doctor : null;
   if (!save.luckyEscape) return null;
   if (attack == DeathAct.gun) return Splice.alone;

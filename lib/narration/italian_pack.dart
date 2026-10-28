@@ -132,6 +132,11 @@ const italianPack = NarrationPack(
       '«Due cuori, una dote, nessuna via d\'uscita.»',
       'La prima notte leghi due persone, anche te stesso. Vincono solo se restano vivi tutti e due; se uno muore, l\'altro lo segue. Tu vinci con la Città.',
     ),
+    Role.presidente: RoleText(
+      'Il Presidente',
+      '«Lo Stato non tratta.»',
+      'Tutti sanno chi sei, e non ti possono votare. La scorta ti salva dalle prime due notti in cui ti attaccano; alla terza muori. Se muori, la Città perde.',
+    ),
     Role.pacifista: RoleText(
       'Il Pacifista',
       '«Il sangue chiama sangue. Io chiamo la tregua.»',
@@ -469,6 +474,12 @@ const italianPack = NarrationPack(
   ],
   heartbreakFact: 'Il cuore di {name} si è spezzato: segue chi amava.',
   loversWinFact: 'Gli innamorati sono vivi tutti e due: vincono insieme.',
+  escorts: [
+    'Un colpo nel buio. Ma davanti al Presidente c\'è già un uomo in nero, con la valigetta alzata.',
+    'Uno sparo, una scintilla, un clangore di metallo. La scorta non dorme mai.',
+  ],
+  escortFact: 'La scorta ha respinto un attentato al Presidente.',
+  presidentFallsFact: 'Il Presidente è caduto. La città è perduta.',
   citizensWin: [
     '{city} è libera. Da domani si dorme con le finestre aperte. Titoli di coda.',
     'In piazza ci si guarda di nuovo in faccia. Sullo schermo: «Fine».',

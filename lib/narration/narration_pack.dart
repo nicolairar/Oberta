@@ -158,6 +158,11 @@ class NarrationPack {
   /// Gli innamorati di Cupido sono vivi tutti e due a fine partita.
   final String loversWinFact;
 
+  /// La scorta del Presidente respinge un attentato; e il Presidente cade.
+  final List<String> escorts;
+  final String escortFact;
+  final String presidentFallsFact;
+
   final List<String> citizensWin;
   final String citizensWinFact;
   final List<String> mafiaWins;
@@ -252,6 +257,9 @@ class NarrationPack {
     required this.heartbreaks,
     required this.heartbreakFact,
     required this.loversWinFact,
+    required this.escorts,
+    required this.escortFact,
+    required this.presidentFallsFact,
     required this.citizensWin,
     required this.citizensWinFact,
     required this.mafiaWins,

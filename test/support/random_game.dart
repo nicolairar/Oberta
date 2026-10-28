@@ -58,7 +58,9 @@ GameCommand? randomCommand(GameEngine engine, Random random) {
       final alive = engine.alivePlayers;
       // Ogni tanto il narratore condanna di persona, come su un telefono solo.
       if (random.nextInt(12) == 0) {
-        return LynchCommand(random.nextBool() || engine.truceToday ? null : _pick(random, alive).id);
+        // Il Presidente non si lincia.
+        final hangable = [for (final p in alive) if (engine.setup.roleOf(p) != Role.presidente) p];
+        return LynchCommand(random.nextBool() || engine.truceToday || hangable.isEmpty ? null : _pick(random, hangable).id);
       }
       if (engine.pendingDayVoters.isEmpty || random.nextInt(alive.length * 2) == 0) {
         return const CloseDayVoteCommand();

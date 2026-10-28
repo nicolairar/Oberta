@@ -85,6 +85,9 @@ class GameSnapshot {
   /// Gli innamorati di Cupido, e se lo sanno già.
   final List<Player> lovers;
   final bool loversTold;
+
+  /// Le notti in cui la scorta del Presidente ha già parato un attacco.
+  final int escortNights;
   final List<GameCommand> log;
 
   const GameSnapshot({
@@ -124,6 +127,7 @@ class GameSnapshot {
     this.findings = const [],
     this.lovers = const [],
     this.loversTold = false,
+    this.escortNights = 0,
     required this.log,
   });
 
@@ -181,6 +185,7 @@ class GameSnapshot {
     if (truceTarget != null) 'truceTarget': seatOf(truceTarget),
     if (lovers.isNotEmpty) 'lovers': seatsOf(lovers),
     if (loversTold) 'loversTold': true,
+    if (escortNights > 0) 'escortNights': escortNights,
     if (findings.isNotEmpty)
       'findings': [
         for (final finding in findings)
@@ -258,6 +263,7 @@ class GameSnapshot {
       truceTarget: optionalSeat(json['truceTarget'], seat),
       lovers: json['lovers'] == null ? const [] : seatsFrom(json['lovers'], seat),
       loversTold: json['loversTold'] as bool? ?? false,
+      escortNights: json['escortNights'] as int? ?? 0,
       findings: [
         for (final row in (json['findings'] as List<Object?>? ?? const []).cast<Map<String, Object?>>())
           (

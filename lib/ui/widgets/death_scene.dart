@@ -71,7 +71,12 @@ enum DeathAct {
   bible,
   jam,
   banana,
-  blackCat;
+  blackCat,
+
+  /// La scorta del Presidente respinge l'attentato: due guardie in giacca
+  /// scura si mettono in mezzo, una valigetta d'acciaio ferma il colpo, e
+  /// lo portano via di peso (death_scenes_saves.dart).
+  escort;
 
   /// Le scene in cui arriva il Dottore e rimette in piedi chi era a terra.
   bool get doctorSaves => switch (this) {
@@ -85,8 +90,11 @@ enum DeathAct {
     _ => false,
   };
 
+  /// La scena della scorta: l'attentato al Presidente va a vuoto.
+  bool get escortSave => this == escort;
+
   /// Le scene da cui chi era stato preso di mira esce sulle sue gambe.
-  bool get survives => doctorSaves || luckyEscape;
+  bool get survives => doctorSaves || luckyEscape || escortSave;
 }
 
 /// La coreografia che mette in scena un'azione del copione. Un'azione senza
@@ -132,6 +140,7 @@ DeathAct deathActFor(String methodId) => switch (methodId) {
   DeathStory.stitchesId => DeathAct.stitches,
   DeathStory.bibleId => DeathAct.bible,
   DeathStory.jamId => DeathAct.jam,
+  DeathStory.escortId => DeathAct.escort,
   DeathStory.bananaId => DeathAct.banana,
   DeathStory.blackCatId => DeathAct.blackCat,
   _ => DeathAct.knife,
@@ -668,6 +677,7 @@ class DeathScenePainter extends CustomPainter {
     DeathAct.ambulance ||
     DeathAct.stitches => 0.36,
     DeathAct.bible || DeathAct.jam || DeathAct.blackCat => 0.36,
+    DeathAct.escort => 0.36,
     DeathAct.banana => 0.20,
     DeathAct.carDoor => 0.40,
     DeathAct.driveBy => 0.43,
@@ -809,6 +819,8 @@ class DeathScenePainter extends CustomPainter {
         _banana(canvas);
       case DeathAct.blackCat:
         _blackCat(canvas);
+      case DeathAct.escort:
+        _escort(canvas);
     }
   }
 
@@ -7064,6 +7076,7 @@ class DeathScenePainter extends CustomPainter {
       DeathAct.jam => ('CLICK!', strike, 0.07),
       DeathAct.banana => ('SLIP!', 0.525, 0.07),
       DeathAct.blackCat => ('MRAOW!', 0.545, 0.08),
+      DeathAct.escort => ('CLANG!', strike, 0.12),
     };
     // In un filmato composto la scritta del colpo è una sola: quella
     // dell'agguato se va a segno, quella della fortuna se va a vuoto.

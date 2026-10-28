@@ -66,6 +66,9 @@ class BotBrain {
           final target = vote.target;
           if (target != null && targets.contains(target)) return MafiaVote(seat, target.id);
         }
+        // Il Presidente lo conoscono tutti: la famiglia ci prova, spesso.
+        final president = [for (final p in targets) if (known[p]?.role == Role.presidente) p];
+        if (president.isNotEmpty && random.nextBool()) return MafiaVote(seat, president.first.id);
         return MafiaVote(seat, _pick(targets).id);
       case ActionType.nightAction:
         final kind = option.kind;

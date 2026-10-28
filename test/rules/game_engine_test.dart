@@ -1076,7 +1076,8 @@ void main() {
         }
         if (engine.phase != GamePhase.day) break;
         final alive = engine.alivePlayers;
-        engine.lynch(alive[random.nextInt(alive.length)]);
+        final hangable = [for (final p in alive) if (engine.setup.roleOf(p) != Role.presidente) p];
+        engine.lynch(hangable.isEmpty ? null : hangable[random.nextInt(hangable.length)]);
       }
       expect(engine.winner, isNotNull, reason: 'seed=$seed');
     }

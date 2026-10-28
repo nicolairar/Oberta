@@ -10,7 +10,7 @@ import 'bot_brain.dart';
 
 /// I ruoli entrati con il primo gruppo di novità (`docs/ruoli.md`, batch 1):
 /// la simulazione li confronta con il mazzo di prima.
-const newRoles = {Role.prostituta, Role.carceriere, Role.pacifista, Role.cupido};
+const newRoles = {Role.prostituta, Role.carceriere, Role.pacifista, Role.cupido, Role.presidente};
 
 /// Le vittorie di tante partite giocate dai bot, per un tavolo di una certa
 /// misura: per squadra e, per ruolo, quante volte chi l'aveva ha vinto.

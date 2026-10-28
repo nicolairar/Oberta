@@ -134,6 +134,11 @@ const englishPack = NarrationPack(
       '“Two hearts, one dowry, no way out.”',
       'On the first night you bind two people, yourself too if you like. They win only if both live; if one dies, the other follows. You win with the town.',
     ),
+    Role.presidente: RoleText(
+      'President',
+      '“The State does not bargain.”',
+      'Everyone knows who you are, and nobody can vote you. Your escort saves you the first two nights you are attacked; the third, you die. If you die, the town loses.',
+    ),
     Role.pacifista: RoleText(
       'Pacifist',
       '“Blood calls for blood. I call a truce.”',
@@ -473,6 +478,12 @@ const englishPack = NarrationPack(
   ],
   heartbreakFact: '{name} died of a broken heart, following the one they loved.',
   loversWinFact: 'The lovers are both alive: they win together.',
+  escorts: [
+    'A shot in the dark. But a man in black is already in front of the President, briefcase raised.',
+    'A shot, a spark, a clang of steel. The escort never sleeps.',
+  ],
+  escortFact: 'The escort fended off an attack on the President.',
+  presidentFallsFact: 'The President has fallen. The town is lost.',
   citizensWin: [
     '{city} is free. Starting tomorrow, people sleep with the windows open. Roll credits.',
     'On the street, people look each other in the eye again. On screen: “The End.”',

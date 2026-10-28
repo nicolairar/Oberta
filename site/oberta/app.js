@@ -80,7 +80,7 @@ const roles = [
   ['becchino', 'Becchino', 'La città', 'citta'], ['guardaspalle', 'Guardaspalle', 'La città', 'citta'], ['strozzino', 'Strozzino', 'Per sé', 'neutrale'],
   ['reduce', 'Reduce', 'La città', 'citta'], ['pregiudicato', 'Pregiudicato', 'La città', 'citta'], ['cacciatore', 'Cacciatore di taglie', 'Per sé', 'neutrale'],
   ['messia', 'Messia', 'La città', 'citta'], ['sindaco', 'Sindaco', 'La città', 'citta'], ['portinaio', 'Portinaio', 'La città', 'citta'],
-  ['prostituta', 'Prostituta', 'La famiglia', 'famiglia'], ['carceriere', 'Carceriere', 'La città', 'citta'], ['pacifista', 'Pacifista', 'La città', 'citta'], ['cupido', 'Cupido', 'La città', 'citta']
+  ['prostituta', 'Prostituta', 'La famiglia', 'famiglia'], ['carceriere', 'Carceriere', 'La città', 'citta'], ['pacifista', 'Pacifista', 'La città', 'citta'], ['cupido', 'Cupido', 'La città', 'citta'], ['presidente', 'Presidente', 'La città', 'citta']
 ];
 const card = document.querySelector('.role-card');
 if (card) {

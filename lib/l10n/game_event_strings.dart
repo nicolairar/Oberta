@@ -61,6 +61,7 @@ class GameEventStrings {
               'Found dead: ${dead.single}.',
             ),
           if (dead.length > 1) _t('Trovati morti: ${_names(dead)}.', 'Found dead: ${_names(dead)}.'),
+          if (d['escorted'] == true) _t('La scorta ha respinto un attentato al Presidente.', 'The escort fended off an attack on the President.'),
           if (saved == 1) _t('Qualcuno è stato salvato.', 'Someone was saved.'),
           if (saved > 1) _t('$saved agguati sventati.', '$saved attacks foiled.'),
           if (d['resurrected'] case final String back)
@@ -121,7 +122,8 @@ class GameEventStrings {
       case 'end':
         if (d['abandoned'] == true) return _t('Partita chiusa: non giocava più nessuno.', 'Game closed: nobody was playing.');
         final alone = _names(d['alone']);
-        return _t('Fine della partita: ${_winner(d['winner'])}.', 'Game over: ${_winner(d['winner'])}.') +
+        final fell = d['presidentFell'] == true ? _t(' Il Presidente è caduto.', ' The President has fallen.') : '';
+        return _t('Fine della partita: ${_winner(d['winner'])}.', 'Game over: ${_winner(d['winner'])}.') + fell +
             (alone.isEmpty ? '' : _t(' Vince da solo: $alone.', ' Won alone: $alone.'));
       case 'found':
         return d['role'] != null

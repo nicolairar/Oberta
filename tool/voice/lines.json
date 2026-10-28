@@ -1571,6 +1571,26 @@
       "text": "Gli innamorati sono vivi tutti e due: vincono insieme."
     },
     {
+      "key": "09fcf0a9e4b42b54",
+      "kind": "segment",
+      "text": "Un colpo nel buio. Ma davanti al Presidente c'è già un uomo in nero, con la valigetta alzata."
+    },
+    {
+      "key": "c30d3ca81e5f3eb7",
+      "kind": "segment",
+      "text": "Uno sparo, una scintilla, un clangore di metallo. La scorta non dorme mai."
+    },
+    {
+      "key": "e0d3c82d49fcb935",
+      "kind": "segment",
+      "text": "La scorta ha respinto un attentato al Presidente."
+    },
+    {
+      "key": "a6af02b5bcdfc827",
+      "kind": "segment",
+      "text": "Il Presidente è caduto. La città è perduta."
+    },
+    {
       "key": "220ae5128f8d4a05",
       "kind": "segment",
       "text": "Chicago è libera. Da domani si dorme con le finestre aperte. Titoli di coda."
@@ -1959,6 +1979,11 @@
       "key": "62b996fe73821436",
       "kind": "role",
       "text": "Cupido"
+    },
+    {
+      "key": "fb08a69213d0a788",
+      "kind": "role",
+      "text": "Il Presidente"
     },
     {
       "key": "1549e49a260aab2d",
@@ -3928,6 +3953,26 @@
       "text": "The lovers are both alive: they win together."
     },
     {
+      "key": "82031820cd5a1385",
+      "kind": "segment",
+      "text": "A shot in the dark. But a man in black is already in front of the President, briefcase raised."
+    },
+    {
+      "key": "f7a4d10abe6ce460",
+      "kind": "segment",
+      "text": "A shot, a spark, a clang of steel. The escort never sleeps."
+    },
+    {
+      "key": "12f7a37816616c8f",
+      "kind": "segment",
+      "text": "The escort fended off an attack on the President."
+    },
+    {
+      "key": "de0a698b1db1012e",
+      "kind": "segment",
+      "text": "The President has fallen. The town is lost."
+    },
+    {
       "key": "e53f5165bad73c66",
       "kind": "segment",
       "text": "Chicago is free. Starting tomorrow, people sleep with the windows open. Roll credits."
@@ -4311,6 +4356,11 @@
       "key": "ad9ccb2cacc8b01b",
       "kind": "role",
       "text": "Cupid"
+    },
+    {
+      "key": "6714c92ea51fbcca",
+      "kind": "role",
+      "text": "President"
     },
     {
       "key": "d9ea56dccef88c43",

@@ -517,6 +517,7 @@ class _GameScreenState extends State<GameScreen> {
           if (widget.setup.roleOf(player) == Role.strozzino) player,
       ],
       lovers: _engine.loversWon,
+      presidentFell: _engine.presidentFallen,
     );
     _stage = _Stage.end;
   }

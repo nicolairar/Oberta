@@ -97,6 +97,7 @@ class RecapStrings {
         '$target, hit $by, was saved.',
       ),
       AttackOutcome.shrugged => _t('$target ha incassato il colpo $by.', '$target took the blow $by and lived.'),
+      AttackOutcome.escorted => _t('La scorta ha respinto l\'attentato $by a $target.', 'The escort fended off the attack $by on $target.'),
     };
   }
 

@@ -86,7 +86,7 @@ void main() {
   test('ogni azione del copione ha la sua coreografia', () {
     final staged = {
       for (final method in italianPack.methods) deathActFor(method.id),
-      for (final id in [...DeathStory.sniperIds, ...DeathStory.rescueIds, ...DeathStory.luckyIds]) deathActFor(id),
+      for (final id in [...DeathStory.sniperIds, ...DeathStory.rescueIds, ...DeathStory.luckyIds, DeathStory.escortId]) deathActFor(id),
     };
     expect(staged, DeathAct.values.toSet(), reason: 'nessuna coreografia resta senza copione');
     expect(deathActFor(DeathStory.sniperId), DeathAct.sniper);
@@ -106,7 +106,7 @@ void main() {
     expect(sniper.any((act) => act.survives), isFalse);
     expect(rescue.every((act) => act.survives && act.doctorSaves && !act.luckyEscape), isTrue);
     expect(lucky.every((act) => act.survives && act.luckyEscape && !act.doctorSaves), isTrue);
-    expect(DeathAct.values.where((act) => act.survives).toSet(), {...rescue, ...lucky},
+    expect(DeathAct.values.where((act) => act.survives).toSet(), {...rescue, ...lucky, DeathAct.escort},
         reason: 'si salva solo chi è in una scena di salvataggio');
     expect(deathActFor('pugnale'), DeathAct.knife);
     expect(deathActFor('violino'), DeathAct.burst);

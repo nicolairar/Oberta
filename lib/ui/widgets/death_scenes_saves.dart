@@ -1890,6 +1890,214 @@ extension _SaveFilms on DeathScenePainter {
     canvas.restore();
   }
 
+  // ----------------------------------------------------------------- scorta
+
+  /// La giacca scura delle guardie del Presidente.
+  static const _escortSuit = Color(0xFF16161C);
+
+  /// L'attentato al Presidente: chi era nel mirino arriva con due guardie
+  /// alle spalle. Il killer si affaccia, le guardie scattano: una si mette in
+  /// mezzo e alza la valigetta d'acciaio, che ferma il colpo (scintilla,
+  /// CLANG!); l'altra prende chi era nel mirino sottobraccio. Il killer
+  /// scappa, e la scorta porta via il Presidente di peso, verso sinistra.
+  void _escort(Canvas canvas) {
+    final (walkX, walk, stride) = _entrance();
+    final rush = _smooth(_span(t, 0.44, 0.53));
+    final away = Curves.easeIn.transform(_span(t, 0.68, 0.82));
+    final x = walkX - _w * 0.6 * away;
+
+    // Il killer: si affaccia, spara alla valigetta, poi scappa.
+    final peek = _smooth(_span(t, 0.38, 0.46));
+    final out = _smooth(_span(t, 0.46, 0.53));
+    final flee = _span(t, 0.60, 0.70);
+    final fleeing = flee > 0;
+    final killerX = fleeing
+        ? _mix(_cornerX, _hiddenX + _u * 0.5, Curves.easeIn.transform(flee))
+        : _mix(_mix(_hiddenX, _peekX, peek), _cornerX, out);
+    final bang = _span(t, _sStrike, _sStrike + 0.025);
+    final kick = bang > 0 && bang < 1 ? sin(pi * bang) : 0.0;
+    final killerArm = fleeing ? 0.5 + sin(t * 300) * 0.5 : _mix(0.2, pi / 2, out) + 0.24 * kick;
+    final killerElbow = fleeing ? 0.6 : 0.03 - 0.10 * kick;
+    final killerLean = fleeing ? 0.25 : 0.10 * out - 0.08 * kick;
+    _person(
+      canvas,
+      feet: Offset(killerX, _ground),
+      facing: fleeing ? 1 : -1,
+      walk: _prowl,
+      stride: (out > 0 && out < 1) || fleeing ? 0.9 : 0,
+      lean: killerLean,
+      arm: killerArm,
+      elbow: killerElbow,
+      prop: _Prop.pistol,
+      killer: true,
+    );
+    _wall(canvas);
+
+    // La guardia davanti: dietro la vittima, poi in mezzo, valigetta su.
+    final shieldX = _mix(x - _u * 0.55, x + _u * 0.48, rush) - _w * 0.6 * away;
+    final raise = _smooth(_span(t, 0.50, 0.545)) - _smooth(_span(t, 0.66, 0.70));
+    final recoil = sin(pi * _span(t, _sStrike, _sStrike + 0.05));
+    final guardFacing = away > 0 ? -1 : 1;
+    final shieldArm = _mix(0.2, 1.75, raise);
+    final shieldElbow = _mix(0.3, 0.55, raise);
+    final shieldLean = 0.12 * rush * (1 - away) - 0.16 * recoil + 0.2 * away;
+    _guard(
+      canvas,
+      Offset(shieldX - _u * 0.06 * recoil, _ground),
+      facing: guardFacing,
+      walk: t < 0.34 ? walk : t * 300,
+      stride: t < 0.34 ? stride : ((rush > 0 && rush < 1) || away > 0 ? 1 : 0),
+      lean: shieldLean,
+      arm: shieldArm,
+      elbow: shieldElbow,
+    );
+    final (hand, _) = _handOf(
+      feet: Offset(shieldX - _u * 0.06 * recoil, _ground),
+      facing: guardFacing,
+      lean: shieldLean,
+      arm: shieldArm,
+      elbow: shieldElbow,
+    );
+    final caseCenter = hand.translate(guardFacing * _u * 0.10, -_u * 0.02);
+    _briefcase(canvas, caseCenter, open: raise);
+
+    // Il colpo: dalla canna dritto sulla valigetta, la scintilla, la scia
+    // che rimbalza in cielo.
+    if (bang > 0 && bang < 1) {
+      final (killerHand, along) = _handOf(
+        feet: Offset(killerX, _ground),
+        facing: -1,
+        lean: killerLean,
+        arm: killerArm,
+        elbow: killerElbow,
+        killer: true,
+      );
+      final muzzle = _muzzleOf(killerHand, along, _Prop.pistol);
+      _muzzleFlash(canvas, muzzle, bang, toward: along, size: 0.7);
+      _tracer(canvas, muzzle, caseCenter, bang);
+    }
+    final ding = _span(t, _sStrike, _sStrike + 0.05);
+    if (ding > 0 && ding < 1) {
+      _star(canvas, caseCenter, _u * 0.24 * (1 - ding * 0.4), AppColors.gold.withValues(alpha: 1 - ding));
+      _sprite(canvas, sprites?.glint, caseCenter, _u * 0.7 * (1 - ding * 0.5), opacity: 1 - ding);
+    }
+    final ricochet = _span(t, _sStrike + 0.004, _sStrike + 0.035);
+    _tracer(canvas, caseCenter, caseCenter + Offset(_u * 0.35, -_u * 1.2) * min(1, ricochet * 1.5), ricochet);
+    _flash(canvas, _span(t, _sStrike, _sStrike + 0.03), strength: 0.35);
+
+    // Chi era nel mirino: si ferma, si ripara, e se lo portano via.
+    final duck = _smooth(_span(t, _sStrike - 0.01, _sStrike + 0.02)) - _smooth(_span(t, 0.64, 0.68));
+    final facing = away > 0 ? -1 : 1;
+    if (t < 0.50) {
+      _victim(canvas, x: x, facing: facing, walk: walk, stride: stride, smoking: t > 0.37 && t < 0.47);
+    } else {
+      _person(
+        canvas,
+        feet: Offset(x, _ground),
+        facing: facing,
+        walk: t * 300,
+        stride: away > 0 ? 1 : 0,
+        crouch: 0.35 * duck,
+        lean: -0.15 * duck + 0.2 * away,
+        arm: _mix(0.08, 2.4, duck),
+        elbow: _mix(0.2, 0.9, duck),
+        backArm: _mix(-0.1, 2.2, duck),
+        backElbow: _mix(0.2, 0.9, duck),
+        hat: victimHat,
+      );
+    }
+
+    // La guardia dietro: arriva di corsa, prende chi era nel mirino per il
+    // braccio, e lo spinge via.
+    final graspX = _mix(x - _u * 1.25, x - _u * 0.42, rush);
+    _guard(
+      canvas,
+      Offset(graspX, _ground),
+      facing: facing,
+      walk: t < 0.34 ? walk : t * 300,
+      stride: t < 0.34 ? stride : ((rush > 0 && rush < 1) || away > 0 ? 1 : 0),
+      lean: 0.18 * rush,
+      arm: _mix(0.1, 1.45, rush),
+      elbow: _mix(0.2, 0.25, rush),
+    );
+    _exclaim(canvas, Offset(killerX, _ground - _u * 1.45), _span(t, 0.585, 0.61));
+    _dust(canvas, Offset(_cornerX + _u * 0.1, _ground), _span(t, 0.61, 0.69), size: 0.5);
+    _dust(canvas, Offset(x + _u * 0.2, _ground), _span(t, 0.69, 0.78), seed: 5, size: 0.5);
+  }
+
+  /// Una guardia della scorta: giacca scura, cappello, occhiali neri.
+  void _guard(
+    Canvas canvas,
+    Offset feet, {
+    int facing = 1,
+    double walk = 0,
+    double stride = 0,
+    double lean = 0,
+    double arm = 0.08,
+    double elbow = 0.2,
+  }) {
+    _person(
+      canvas,
+      feet: feet,
+      facing: facing,
+      walk: walk,
+      stride: stride,
+      lean: lean,
+      arm: arm,
+      elbow: elbow,
+      build: 1.06,
+      cloth: _escortSuit,
+    );
+    // Gli occhiali neri: una barretta sul viso, verso dove guarda.
+    final h = _u * 1.06;
+    final eyes = feet + Offset(facing * h * 0.075 + lean * h * 0.55 * facing, -h * 0.905);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Rect.fromCenter(center: eyes, width: h * 0.13, height: h * 0.035), Radius.circular(h * 0.01)),
+      Paint()..color = _sInk,
+    );
+    canvas.drawCircle(eyes.translate(facing * h * 0.03, -h * 0.006), h * 0.006, Paint()..color = _sRim);
+  }
+
+  /// La valigetta d'acciaio: in mano, poi alzata davanti al petto come uno
+  /// scudo ([open] da 0 a 1 la gira di piatto verso il killer).
+  void _briefcase(Canvas canvas, Offset center, {double open = 0}) {
+    final w = _u * _mix(0.30, 0.34, open);
+    final h = _u * _mix(0.22, 0.30, open);
+    final box = RRect.fromRectAndRadius(Rect.fromCenter(center: center, width: w, height: h), Radius.circular(_u * 0.02));
+    canvas.drawRRect(box, Paint()..color = _sSteel);
+    canvas.drawRRect(
+      box,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = _u * 0.014
+        ..color = _sInk,
+    );
+    // La maniglia e le due serrature.
+    final top = center.translate(0, -h / 2);
+    canvas.drawLine(top.translate(-w * 0.18, 0), top.translate(-w * 0.18, -_u * 0.04), Paint()
+      ..strokeWidth = _u * 0.014
+      ..color = _sInk);
+    canvas.drawLine(top.translate(w * 0.18, 0), top.translate(w * 0.18, -_u * 0.04), Paint()
+      ..strokeWidth = _u * 0.014
+      ..color = _sInk);
+    canvas.drawLine(top.translate(-w * 0.18, -_u * 0.04), top.translate(w * 0.18, -_u * 0.04), Paint()
+      ..strokeWidth = _u * 0.014
+      ..color = _sInk);
+    for (final side in const [-0.3, 0.3]) {
+      canvas.drawRect(
+        Rect.fromCenter(center: center.translate(w * side, -h * 0.28), width: w * 0.1, height: h * 0.1),
+        Paint()..color = AppColors.gold,
+      );
+    }
+    canvas.drawLine(
+      center.translate(-w / 2, h * 0.05),
+      center.translate(w / 2, h * 0.05),
+      Paint()
+        ..strokeWidth = _u * 0.006
+        ..color = _sRim,
+    );
+  }
+
   // -------------------------------------------------------------- inceppata
 
   /// La pistola fa clic, e poi ancora clic. Il killer ci guarda dentro, la

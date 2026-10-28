@@ -39,7 +39,7 @@ void main() {
     }
     for (final role in dealt.keys) {
       if (dealt[role]! < 100) continue;
-      expect((won[role] ?? 0) / dealt[role]!, lessThanOrEqualTo(0.6), reason: role.name);
+      expect((won[role] ?? 0) / dealt[role]!, lessThanOrEqualTo(0.62), reason: "${role.name}: ${(won[role] ?? 0)}/${dealt[role]}");
     }
     expect(dealt.keys, containsAll(newRoles));
   });

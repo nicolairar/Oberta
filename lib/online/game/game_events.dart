@@ -143,7 +143,8 @@ List<Map<String, Object?>> tableEvents({
     events.add(_event('dawn', {
       'round': dawn['round'],
       'dead': [for (final a in attacks) if (a['outcome'] == 'killed') name(a['target'] as String)],
-      'saved': attacks.where((a) => a['outcome'] != 'killed').length,
+      'saved': attacks.where((a) => a['outcome'] != 'killed' && a['outcome'] != 'escorted').length,
+      if (attacks.any((a) => a['outcome'] == 'escorted')) 'escorted': true,
       if (dawn['resurrected'] != null) 'resurrected': name(dawn['resurrected'] as String),
       if (dawn['heartbroken'] case final List<Object?> broken when broken.isNotEmpty)
         'heartbroken': [for (final seat in broken) name(seat as String)],
@@ -200,6 +201,10 @@ List<Map<String, Object?>> tableEvents({
       'winner': view['winner'],
       'abandoned': after['abandoned'] == true,
       'alone': [for (final seat in (view['personalWins'] as List<Object?>? ?? const [])) name(seat as String)],
+      if (_list(view['revealed']).any(
+        (k) => k['role'] == 'presidente' && !(view['alive'] as List<Object?>? ?? const []).contains(k['seat']),
+      ))
+        'presidentFell': true,
     }));
   }
   if (ended) return events;

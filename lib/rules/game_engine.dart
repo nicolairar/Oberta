@@ -101,7 +101,8 @@ enum AttackSource { family, sniper, fire, assassin }
 
 /// Com'è finito un agguato: a segno, fermato in tempo dal Dottore, o
 /// incassato da chi ha la pelle dura.
-enum AttackOutcome { killed, healed, shrugged }
+/// [escorted]: la scorta del Presidente ha respinto l'attentato.
+enum AttackOutcome { killed, healed, shrugged, escorted }
 
 /// Un agguato della notte. All'alba va in scena così com'è andato.
 class NightAttack {
@@ -284,6 +285,13 @@ class GameEngine {
   int? _mayorRound;
   Team? _winner;
 
+  /// Le notti in cui la scorta ha già salvato il Presidente: dopo due, alla
+  /// terza notte che lo attaccano muore.
+  int _escortNights = 0;
+
+  /// Quante notti di attacco la scorta para ancora.
+  static const escortNights = 2;
+
   /// Gli innamorati di Cupido (due, o nessuno), e se lo sanno già (dalla
   /// prima alba). Il legame si spezza se uno torna dai morti o se ne va.
   final List<Player> _lovers = [];
@@ -332,6 +340,12 @@ class GameEngine {
           audience: isMafia ? mafiosi : {player},
         ),
       );
+    }
+    // Il Presidente lo conoscono tutti, dall'inizio.
+    for (final player in _alive) {
+      if (setup.roleOf(player) == Role.presidente) {
+        _facts.add(Fact(subject: player, team: Team.citizens, role: Role.presidente, visibility: Visibility.public));
+      }
     }
     // Ogni Cacciatore di taglie riceve la sua: un cittadino, a sorte.
     for (final hunter in _alive) {
@@ -388,6 +402,7 @@ class GameEngine {
     _truceTarget = snapshot.truceTarget;
     _findings.addAll(snapshot.findings);
     _lovers.addAll(snapshot.lovers);
+    _escortNights = snapshot.escortNights;
     _loversTold = snapshot.loversTold;
   }
 
@@ -448,6 +463,7 @@ class GameEngine {
       truceTarget: _truceTarget,
       findings: List.unmodifiable(_findings),
       lovers: List.unmodifiable(_lovers),
+      escortNights: _escortNights,
       loversTold: _loversTold,
       log: List.unmodifiable(_log),
     );
@@ -725,7 +741,11 @@ class GameEngine {
       Role.detective => NightTask(NightTaskKind.investigate, others),
       // Senza morti da riesumare il Becchino fa finta, come gli altri.
       Role.becchino => graves.isEmpty ? NightTask(NightTaskKind.decoy, others) : NightTask(NightTaskKind.dig, graves),
-      Role.cecchino => NightTask(_sniperSpent ? NightTaskKind.decoy : NightTaskKind.snipe, others),
+      // Il Cecchino è della Città: al Presidente non spara.
+      Role.cecchino => NightTask(_sniperSpent ? NightTaskKind.decoy : NightTaskKind.snipe, [
+        for (final player in others)
+          if (setup.roleOf(player) != Role.presidente) player,
+      ]),
       Role.giornalista => NightTask(_scoopSpent ? NightTaskKind.decoy : NightTaskKind.scoop, others),
       Role.portinaio => NightTask(NightTaskKind.watch, others),
       // Il Messia, una volta per partita, sceglie un morto qualsiasi.
@@ -783,6 +803,7 @@ class GameEngine {
       Role.pregiudicato ||
       Role.sindaco ||
       Role.pacifista ||
+      Role.presidente ||
       Role.fesso => NightTask(NightTaskKind.decoy, others),
     };
   }
@@ -995,6 +1016,15 @@ class GameEngine {
     }
 
     AttackOutcome land(Player target) {
+      // La scorta del Presidente: le prime due notti di attacco (più
+      // attaccanti nella stessa notte contano una volta) non passa nessuno.
+      if (setup.roleOf(target) == Role.presidente && !(protected.contains(target) && !burning.contains(target))) {
+        if (_escortNights < escortNights) {
+          _escortNights++;
+          return AttackOutcome.escorted;
+        }
+        return AttackOutcome.killed;
+      }
       if (burning.contains(target)) return AttackOutcome.killed;
       if (protected.contains(target)) return AttackOutcome.healed;
       final tough = setup.roleOf(target) == Role.reduce && _scarred.add(target);
@@ -1122,6 +1152,9 @@ class GameEngine {
       throw ArgumentError.value(condemned.name, 'condemned', 'non è più in gioco');
     }
     if (condemned != null && truceToday) throw StateError('oggi c\'è la tregua: non si condanna nessuno');
+    if (condemned != null && setup.roleOf(condemned) == Role.presidente) {
+      throw ArgumentError.value(condemned.name, 'condemned', 'il Presidente non si lincia');
+    }
     _log.add(LynchCommand(condemned?.id));
     return _lynch(condemned);
   }
@@ -1312,7 +1345,17 @@ class GameEngine {
     }
   }
 
+  /// Il Presidente è caduto (morto, o se n'è andato): la Città ha perso.
+  bool get presidentFallen => setup.players.any((p) => setup.roleOf(p) == Role.presidente && !isAlive(p));
+
+  /// Le notti di attacco che la scorta para ancora; `null` senza Presidente.
+  int? get escortLeft => setup.roles.values.contains(Role.presidente) ? escortNights - _escortNights : null;
+
   bool _decideWinner() {
+    if (presidentFallen) {
+      _winner = Team.mafia;
+      return true;
+    }
     final arsonists = [
       for (final player in _alive)
         if (setup.roleOf(player).isHostileNeutral) player,
@@ -1435,7 +1478,8 @@ class GameEngine {
         return const IntentRejected(IntentError.wrongPhase, 'oggi c\'è la tregua: non si vota');
       case DayVote(target: final seat):
         target = _seat(seat);
-        if (target == null || !isAlive(target) || target == actor) {
+        // Il Presidente non si vota: non si lincia lo Stato.
+        if (target == null || !isAlive(target) || target == actor || setup.roleOf(target) == Role.presidente) {
           return IntentRejected(IntentError.targetNotAllowed, '${actor.id} non può votare $seat');
         }
       case Pass():
@@ -1488,6 +1532,7 @@ class GameEngine {
     deck: deckOf(setup.roles.values),
     personalWins: personalWins,
     mayor: mayor,
+    escortLeft: escortLeft,
     pacifist: pacifist,
     pacified: pacified,
     recap: recap,
@@ -1587,7 +1632,7 @@ class GameEngine {
           type: ActionType.dayVote,
           targets: [
             for (final player in _alive)
-              if (player != viewer) player,
+              if (player != viewer && setup.roleOf(player) != Role.presidente) player,
           ],
           current: _dayVotes[viewer],
           canReveal: setup.roleOf(viewer) == Role.sindaco && !mayorRevealed && !truceToday,

@@ -96,6 +96,7 @@ class NarratorScript {
           switch (attack.outcome) {
             AttackOutcome.healed => composeRescue(),
             AttackOutcome.shrugged => composeLucky(),
+            AttackOutcome.escorted => DeathStory.escort(_picker, pack, city, attack: _deck.draw(pack.methods)),
         AttackOutcome.killed when attack.source == AttackSource.sniper => DeathStory.sniper(_picker, pack, city),
         AttackOutcome.killed when attack.source == AttackSource.fire => DeathStory.fire(_picker, pack, city),
             AttackOutcome.killed => composeDeath(),
@@ -232,8 +233,10 @@ class NarratorScript {
     Player? bountyHunter,
     List<Player> loanSharks = const [],
     bool lovers = false,
+    bool presidentFell = false,
   }) {
     final sharks = [
+      if (presidentFell) _fact(pack.presidentFallsFact),
       for (final shark in loanSharks) _fact(pack.loanSharkWinsFact, name: shark.name),
       if (lovers) _fact(pack.loversWinFact),
     ];

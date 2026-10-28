@@ -54,7 +54,7 @@ void main() {
     // carta scoperta. Le parole corte ("One") stanno anche nelle frasi comuni.
     final hidden = {
       for (final role in Role.values)
-        if (role != Role.medico && pack.role(role).label.split(' ').last.length > 3)
+        if (role != Role.medico && role != Role.presidente && pack.role(role).label.split(' ').last.length > 3)
           pack.role(role).label.split(' ').last.toLowerCase(),
     };
 

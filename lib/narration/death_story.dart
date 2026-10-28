@@ -36,6 +36,9 @@ class DeathStory {
   static const blackCatId = 'gatto-nero';
   static const luckyIds = [luckyId, bibleId, jamId, bananaId, blackCatId];
 
+  /// La scorta del Presidente respinge l'attentato (il suo filmato).
+  static const escortId = 'scorta';
+
   /// Gli agguati della famiglia che lasciano chi era nel mirino steso sulla
   /// strada, dove il Dottore può inginocchiarsi: chi finisce appeso, sotto
   /// un pianoforte o in un furgone, il Dottore non lo raggiunge.
@@ -152,6 +155,16 @@ class DeathStory {
         fact: pack.shruggedFact,
         attack: attack,
       );
+
+  /// L'attentato al Presidente respinto dalla scorta: si vede l'agguato
+  /// ([attack]), poi la scorta che lo para.
+  factory DeathStory.escort(Picker picker, NarrationPack pack, CitySetting city, {StoryPiece? attack}) => DeathStory(
+    scene: picker.pick('death.scene', city.scenes),
+    method: StoryPiece(escortId, picker.pick('death.escort', pack.escorts)),
+    epilogue: null,
+    fact: pack.escortFact,
+    attack: attack,
+  );
 
   /// Prima si sorteggia la variante (il filmato), poi una delle sue battute:
   /// l'id del pezzo è quello della variante, così film, suoni e racconto

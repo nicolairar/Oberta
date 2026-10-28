@@ -422,6 +422,13 @@ class SceneScore {
         _scuffle(at(0.545), 3);
         _gunshot(hit, size: 0.8);
         _clang(at(0.63), 600, gain: 0.15);
+      case DeathAct.escort:
+        // Il colpo sulla valigetta d'acciaio, poi la scorta che corre via.
+        _gunshot(hit, size: 0.85);
+        _clang(hit + 0.005, 900, gain: 0.5);
+        for (var step = 0; step < 8; step++) {
+          _footstep(at(0.68 + step * 0.012), 0.75);
+        }
     }
   }
 

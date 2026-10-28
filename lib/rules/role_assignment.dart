@@ -196,6 +196,8 @@ List<Role> rolesForPlayerCount(
     if (!eligible(role)) return false;
     // Il Piromane e il Sicario sono già un colpo in più: niente Cecchino.
     if (rule.category == RoleCategory.extraKill && specials.any((r) => r.isHostileNeutral)) return false;
+    // Il Presidente mai con chi uccide in proprio: chi vincerebbe, se cade?
+    if (role == Role.presidente && specials.any((r) => r.isHostileNeutral)) return false;
     if (specials.where((r) => r == role).length >= (rule.maxCopies ?? count)) return false;
     final city = town();
     if (_points([...city, role]) > budget) return false;

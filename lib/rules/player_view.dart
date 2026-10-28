@@ -152,6 +152,10 @@ class PublicView {
   final Player? pacifist;
   final Player? pacified;
 
+  /// Il Presidente al tavolo: le notti di attacco che la sua scorta para
+  /// ancora (2, 1, 0). `null` senza Presidente.
+  final int? escortLeft;
+
   /// Il resoconto completo (tutte le mosse, tutti i ruoli). Solo a partita
   /// finita: fino ad allora `null`, e sul filo non c'è.
   final GameRecap? recap;
@@ -174,6 +178,7 @@ class PublicView {
     this.mayor,
     this.pacifist,
     this.pacified,
+    this.escortLeft,
     this.recap,
   });
 
@@ -204,6 +209,7 @@ class PublicView {
     'mayor': seatOf(mayor),
     if (pacifist != null) 'pacifist': seatOf(pacifist),
     if (pacified != null) 'pacified': seatOf(pacified),
+    if (escortLeft != null) 'escortLeft': escortLeft,
     if (recap != null) 'recap': recap!.toJson(),
   };
 
@@ -230,6 +236,7 @@ class PublicView {
     mayor: optionalSeat(json['mayor'], resolve),
     pacifist: optionalSeat(json['pacifist'], resolve),
     pacified: optionalSeat(json['pacified'], resolve),
+    escortLeft: json['escortLeft'] as int?,
     recap: json['recap'] == null ? null : GameRecap.fromJson(json['recap'] as Map<String, Object?>, resolve),
   );
 }

@@ -29,6 +29,7 @@ enum Role {
   carceriere,
   pacifista,
   cupido,
+  presidente,
 }
 
 /// Come si gioca: un telefono passato di mano in mano, o un telefono a testa.
@@ -139,7 +140,12 @@ extension RoleInfo on Role {
 
   /// I punti del ruolo nel bilancio del mazzo. Il Pregiudicato pesa meno di
   /// zero: è un guaio per la Città.
-  int get points => this == Role.pregiudicato ? -1 : rule.tier.points;
+  /// Il Presidente pesa −2: è un punto debole della Città.
+  int get points => switch (this) {
+    Role.pregiudicato => -1,
+    Role.presidente => -2,
+    _ => rule.tier.points,
+  };
 
   RoleRule get rule => switch (this) {
     Role.mafioso => const RoleRule(RoleCategory.family, maxCopies: null),
@@ -176,6 +182,9 @@ extension RoleInfo on Role {
     Role.pacifista => const RoleRule(RoleCategory.civic, minPlayers: 9, tier: RoleTier.l2),
     // Cupido lega due innamorati la prima notte, e poi non fa più niente.
     Role.cupido => const RoleRule(RoleCategory.civic, minPlayers: 9, tier: RoleTier.l1),
+    // Il Presidente: pubblico dall'inizio, con la scorta; se muore la Città
+    // perde. Mai con un neutrale che uccide in proprio.
+    Role.presidente => const RoleRule(RoleCategory.passive, minPlayers: 10),
   };
 
   /// Ostile alla città, un assassino in proprio (Piromane, Sicario): finché
