@@ -23,6 +23,9 @@ class ChatPanel extends StatefulWidget {
   final Future<void> Function(String body) onSend;
   final Color accent;
 
+  /// Il fondo del riquadro (senza: il foglio scuro col filo d'oro).
+  final BoxDecoration? decoration;
+
   /// Tenendo premuto il messaggio di un altro (segnalarlo, bloccarlo).
   final void Function(ChatMessage message)? onHold;
 
@@ -37,6 +40,7 @@ class ChatPanel extends StatefulWidget {
     required this.sendLabel,
     required this.onSend,
     this.accent = AppColors.gold,
+    this.decoration,
     this.onHold,
   });
 
@@ -81,11 +85,12 @@ class _ChatPanelState extends State<ChatPanel> {
     final text = desk ? DeskText.body : 15.0;
     final small = desk ? DeskText.label : 13.0;
     return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: widget.accent.withValues(alpha: 0.35)),
-      ),
+      decoration: widget.decoration ??
+          BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: widget.accent.withValues(alpha: 0.35)),
+          ),
       child: Padding(
         padding: desk ? const EdgeInsets.fromLTRB(22, 18, 14, 12) : const EdgeInsets.fromLTRB(12, 8, 12, 8),
         child: Column(

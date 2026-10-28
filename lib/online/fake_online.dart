@@ -142,6 +142,11 @@ class FakeOnline {
   /// Se vero, ogni chiamata aspetta un giro come la rete vera.
   bool slow = true;
 
+  /// Il periodo di prova del server (`friends_test_bots`): due persone
+  /// bastano e i bot riempiono i posti vuoti, fino a [friendsTestSize].
+  bool friendsTestBots = false;
+  int? friendsTestSize;
+
   Future<void> _network() => slow ? Future<void>.delayed(Duration.zero) : Future<void>.value();
 
   void _notifyGame(String roomId) {
@@ -814,7 +819,8 @@ class FakeGame implements GameBackend {
   String? _seatOf(_FakeGameRoom game, String profile) =>
       game.seats.values.where((plan) => plan.profileId == profile).firstOrNull?.seat;
 
-  @override
+  /// Solo per i test: mette i bot in una stanza come se ci fossero già.
+  /// Il server vero non lo lascia fare a nessun telefono.
   Future<void> setBots(String roomId, int count) async {
     await _online._network();
     final room = _room(roomId);
@@ -837,7 +843,15 @@ class FakeGame implements GameBackend {
     if (room.room.hostId != me) throw const OnlineException(OnlineFailure.notAllowed);
     if (room.room.status != RoomStatus.lobby) throw const OnlineException(OnlineFailure.roomClosed);
     if (room.room.ranked || room.room.testMatch) throw const OnlineException(OnlineFailure.notAllowed);
-    final total = room.seats.length + room.room.bots;
+    final people = room.seats.length;
+    // Come il server nel periodo di prova: bastano due persone, i posti
+    // vuoti li prendono i bot.
+    if (_online.friendsTestBots) {
+      if (people < 2) throw const OnlineException(OnlineFailure.notAllowed);
+      final size = min(room.room.maxPlayers, _online.friendsTestSize ?? room.room.maxPlayers);
+      room.room = room.room.copyWith(bots: max(0, size - people));
+    }
+    final total = people + room.room.bots;
     if (total < 4 || total > room.room.maxPlayers) throw const OnlineException(OnlineFailure.notAllowed);
     _begin(roomId);
   }

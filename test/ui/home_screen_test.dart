@@ -108,7 +108,7 @@ void main() {
     expect(find.text('NON DISPONIBILE'), findsOneWidget);
     expect(find.textContaining('Un telefono per tutti funziona come sempre'), findsOneWidget);
 
-    await tester.tap(find.byType(BackButton));
+    await tester.tap(find.byKey(const Key('cafe.back')));
     await tester.pumpAndSettle();
     expect(find.text('CREA STANZA'), findsOneWidget);
   });

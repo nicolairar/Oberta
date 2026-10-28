@@ -8,13 +8,15 @@ import '../../../online/online_services.dart';
 import '../../../l10n/desktop_online_strings.dart';
 import '../../desktop/desktop_canvas.dart';
 import '../../theme/app_theme.dart';
-import '../../widgets/scene_scaffold.dart';
+import 'cafe_room.dart';
+import 'game/noir_ui.dart';
 import 'online_desktop.dart';
 import 'online_widgets.dart';
 import 'profile_sheet.dart';
 
-/// Gli amici: cercare qualcuno per nome unico, rispondere alle richieste,
-/// vedere chi aspetta una risposta e chi è già amico.
+/// Gli amici, nella saletta riservata: cercare qualcuno per nome unico,
+/// rispondere alle richieste, vedere chi aspetta una risposta e chi è già
+/// amico.
 class FriendsScreen extends StatefulWidget {
   final OnlineServices services;
 
@@ -109,10 +111,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
       return _desk(context, incoming: incoming, outgoing: outgoing, friends: friends, linked: linked);
     }
 
-    return SceneScaffold(
+    return CafeScaffold(
       resizeForKeyboard: false,
-      appBar: AppBar(title: Text(t.friends)),
-      body: OnlineBody(
+      title: t.friends,
+      child: OnlineBody(
         children: [
           TextField(
             key: const Key('online.search'),
@@ -124,13 +126,20 @@ class _FriendsScreenState extends State<FriendsScreen> {
               prefixIcon: const Icon(Icons.search, color: AppColors.gold),
               hintText: t.searchHint,
               filled: true,
-              fillColor: AppColors.surface.withValues(alpha: 0.92),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+              fillColor: Saloon.ink.withValues(alpha: 0.86),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: Saloon.brassDeep.withValues(alpha: 0.7)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Saloon.brass, width: 1.6),
+              ),
             ),
           ),
           if (_results case final results?) ...[
             const SizedBox(height: 8),
-            OnlinePanel(
+            CafePanel(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               child: results.isEmpty
                   ? Padding(
@@ -151,8 +160,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
             ),
           ],
           if (incoming.isNotEmpty) ...[
-            OnlineSection(t.requests),
-            OnlinePanel(
+            _Section(t.requests),
+            CafePanel(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               child: Column(
                 children: [
@@ -182,8 +191,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
               ),
             ),
           ],
-          OnlineSection(t.yourFriends),
-          OnlinePanel(
+          _Section(t.yourFriends),
+          CafePanel(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             child: _loading
                 ? const Padding(
@@ -211,8 +220,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
                       ),
           ),
           if (outgoing.isNotEmpty) ...[
-            OnlineSection(t.waiting),
-            OnlinePanel(
+            _Section(t.waiting),
+            CafePanel(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               child: Column(
                 children: [
@@ -255,14 +264,15 @@ class _FriendsScreenState extends State<FriendsScreen> {
     Widget count(int n) => n == 0 ? const SizedBox.shrink() : DeskBadge('$n');
 
     final results = _results;
-    return DeskOnlineScene(
+    return CafeDesk(
       title: t.friends,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
             flex: 5,
-            child: DeskPanel(
+            child: CafePanel(
+              expand: true,
               title: d.search,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -321,7 +331,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
           const SizedBox(width: DeskSize.gap),
           Expanded(
             flex: 6,
-            child: DeskPanel(
+            child: CafePanel(
+              expand: true,
               title: t.yourFriends,
               trailing: count(friends.length),
               child: _loading
@@ -355,7 +366,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
-                  child: DeskPanel(
+                  child: CafePanel(
+              expand: true,
                     title: t.requests,
                     trailing: count(incoming.length),
                     child: list(
@@ -387,7 +399,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
                 ),
                 const SizedBox(height: DeskSize.gap),
                 Expanded(
-                  child: DeskPanel(
+                  child: CafePanel(
+              expand: true,
                     title: t.waiting,
                     trailing: count(outgoing.length),
                     child: list(
@@ -414,4 +427,17 @@ class _FriendsScreenState extends State<FriendsScreen> {
       ),
     );
   }
+}
+
+/// Il titoletto d'ottone sopra un riquadro.
+class _Section extends StatelessWidget {
+  final String label;
+
+  const _Section(this.label);
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.fromLTRB(4, 20, 4, 8),
+        child: Text(label, style: AppText.overline.copyWith(color: Saloon.brass, fontSize: 11, letterSpacing: 3.2)),
+      );
 }

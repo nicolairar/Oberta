@@ -66,11 +66,11 @@ class IntentEnvelope {
 /// non conosce i ruoli degli altri, nemmeno quello del padrone di casa.
 /// Ogni chiamata agisce per l'account che è entrato su questo telefono.
 abstract class GameBackend {
-  /// Il padrone di casa mette (o toglie) i bot di prova nella stanza.
-  Future<void> setBots(String roomId, int count);
-
   /// Il padrone di casa apre la partita. I posti li decide il server (le
   /// persone nell'ordine della stanza, poi i bot), e le carte le dà lui.
+  /// I bot non li sceglie nessun telefono: nel periodo di prova (la voce
+  /// `friends_test_bots` del server) bastano due persone e il server
+  /// riempie da solo i posti vuoti.
   Future<void> startGame(String roomId);
 
   /// Il tavolo pubblico e la propria vista, ogni volta che cambiano; subito

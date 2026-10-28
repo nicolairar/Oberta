@@ -693,10 +693,6 @@ class SupabaseGame implements GameBackend {
   SupabaseGame(this._client);
 
   @override
-  Future<void> setBots(String roomId, int count) =>
-      _guard(() => _client.rpc<void>('set_room_bots', params: {'room': roomId, 'count': count}));
-
-  @override
   Future<void> startGame(String roomId) => _guard(() => _client.rpc<void>('start_game', params: {'room': roomId}));
 
   /// Un canale Realtime su [tables] della stanza: a ogni cambio (e a ogni

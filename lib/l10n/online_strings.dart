@@ -91,9 +91,8 @@ abstract class OnlineStrings {
   String get stay;
   String get chooseHostTitle;
   String get chooseHostBody;
-  String get addBot;
-  String get removeBot;
   String get botBadge;
+  String get testBotsNote;
   String get startGame;
   String startNeeds(int players);
   String get waitingForHost;
@@ -324,9 +323,8 @@ abstract class OnlineStrings {
     'stay': stay,
     'chooseHostTitle': chooseHostTitle,
     'chooseHostBody': chooseHostBody,
-    'addBot': addBot,
-    'removeBot': removeBot,
     'botBadge': botBadge,
+    'testBotsNote': testBotsNote,
     'startGame': startGame,
     'startNeeds': startNeeds(4),
     'waitingForHost': waitingForHost,
@@ -737,15 +735,13 @@ final class ItalianOnlineStrings extends OnlineStrings {
   @override
   String get chooseHostBody => 'Sei il padrone di casa: scegli chi prende il tuo posto, poi esci.';
   @override
-  String get addBot => '+ BOT';
-  @override
-  String get removeBot => 'Togli il bot';
-  @override
   String get botBadge => 'BOT DI PROVA';
+  @override
+  String get testBotsNote => 'In prova: i posti vuoti li prendono i bot.';
   @override
   String get startGame => 'INIZIA LA PARTITA';
   @override
-  String startNeeds(int players) => 'Servono almeno $players al tavolo: fai entrare qualcuno o aggiungi un bot.';
+  String startNeeds(int players) => 'Servono almeno $players persone al tavolo: fai entrare qualcuno.';
   @override
   String get waitingForHost => 'Aspettiamo che il padrone di casa dia le carte.';
   @override
@@ -1224,15 +1220,13 @@ final class EnglishOnlineStrings extends OnlineStrings {
   @override
   String get chooseHostBody => 'You are the host: pick who takes your place, then leave.';
   @override
-  String get addBot => '+ BOT';
-  @override
-  String get removeBot => 'Remove the bot';
-  @override
   String get botBadge => 'TEST BOT';
+  @override
+  String get testBotsNote => 'Testing: bots take the empty seats.';
   @override
   String get startGame => 'START THE GAME';
   @override
-  String startNeeds(int players) => 'At least $players at the table: let someone in or add a bot.';
+  String startNeeds(int players) => 'At least $players people at the table: let someone in.';
   @override
   String get waitingForHost => 'Waiting for the host to deal the cards.';
   @override

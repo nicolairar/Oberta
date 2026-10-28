@@ -139,20 +139,17 @@ void main() {
     _usePhone(tester);
     final host = FakeOnline(accountId: 'anna', clock: ManualClock())
       ..signInReady(handle: 'anna')
-      ..addPlayer('bruno', handle: 'bruno');
+      ..addPlayer('bruno', handle: 'bruno')
+      // Il periodo di prova: in due si parte, i bot li mette il server.
+      ..friendsTestBots = true
+      ..friendsTestSize = 4;
     final mine = host.openRoomAs('anna', AppLanguage.it);
     host.joinAs('bruno', mine.code);
     final me = await host.services.profiles.me();
     await tester.pumpWidget(_app(OnlineRoomScreen(services: host.services, room: mine, me: me)));
     await tester.pumpAndSettle();
 
-    await tester.scrollUntilVisible(find.byKey(const Key('online.addBot')), 100, scrollable: find.byType(Scrollable).first);
-    await tester.tap(find.byKey(const Key('online.addBot')));
-    await flush(tester);
-    await tester.tap(find.byKey(const Key('online.addBot')));
-    await flush(tester);
-    await tester.pumpAndSettle();
-    expect(host.roomOf(mine.id)!.bots, 2);
+    expect(find.byKey(const Key('online.addBot')), findsNothing, reason: 'nessuno sceglie i bot');
     await tester.ensureVisible(find.byKey(const Key('online.start')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('online.start')));
@@ -162,6 +159,7 @@ void main() {
     expect(find.byType(OnlineGameScreen), findsOneWidget);
     expect(find.byKey(const Key('online.card')), findsOneWidget);
     expect(host.roomOf(mine.id)!.status, RoomStatus.playing);
+    expect(host.roomOf(mine.id)!.bots, 2, reason: 'il server ha riempito i posti vuoti');
     expect(host.published, greaterThan(0), reason: 'il server ha dato le carte');
     await tester.pumpWidget(const SizedBox());
   });

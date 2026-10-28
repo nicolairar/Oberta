@@ -13,23 +13,24 @@ import '../../../sound/sound_stage.dart';
 import '../../../l10n/desktop_online_strings.dart';
 import '../../desktop/desktop_canvas.dart';
 import '../../theme/app_theme.dart';
-import '../../widgets/scene_scaffold.dart';
+import 'cafe_room.dart';
 import 'chat_panel.dart';
+import 'game/noir_ui.dart';
 import 'online_game_screen.dart';
 import 'match_results_screen.dart' show showMatchResults;
-import 'online_desktop.dart';
 import 'online_widgets.dart';
+import 'profile_sheet.dart';
 import 'safety_sheets.dart';
-import '../../../l10n/safety_strings.dart';
 import '../../widgets/noir_modal.dart';
 
-/// La stanza online prima della partita: il codice grande e il QR per chi
-/// deve ancora entrare, e la fila di chi è già seduto, aggiornata dal vivo.
-/// Da qui si chiede l'amicizia a chi siede al tavolo. Il padrone di casa
-/// mette i bot di prova e dà le carte; a chi aspetta, la partita si apre da
-/// sola quando comincia.
-///
-/// Sotto, la chat della stanza.
+
+/// La stanza online prima della partita, nella saletta riservata del caffè:
+/// il tavolo con chi è già seduto (volti e nomi, dal vivo), il codice grande
+/// e il QR per chi deve ancora entrare, la chat. Toccando qualcuno al tavolo
+/// si apre il suo fascicolo (profilo, segnalazione, blocco); il «+» gli
+/// chiede l'amicizia. Il padrone di casa dà le carte; a chi aspetta, la
+/// partita si apre da sola quando comincia. I bot non li sceglie nessuno:
+/// nel periodo di prova li mette il server.
 ///
 /// Uscendo dalla schermata si esce anche dalla stanza.
 class OnlineRoomScreen extends StatefulWidget {
@@ -71,8 +72,10 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> with ScreenMusic {
   /// non ci si risiede da soli, si rientra col pulsante.
   bool _stayedOut = false;
 
-  /// Meno di così non si danno le carte.
-  static const minPlayers = 4;
+  /// Meno persone di così non si danno le carte. Nel periodo di prova ne
+  /// bastano due: i posti vuoti li riempie il server con i bot (il server
+  /// decide, qui si mostra solo il pulsante acceso).
+  static const minPlayers = botsEnabled ? 2 : 4;
 
   @override
   void initState() {
@@ -123,21 +126,6 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> with ScreenMusic {
   }
 
   bool get _isHost => _room.hostId == widget.me.id;
-
-  Future<void> _setBots(int count) async {
-    if (_busy) return;
-    HapticFeedback.selectionClick();
-    setState(() => _busy = true);
-    try {
-      await widget.services.game.setBots(_room.id, count);
-      final room = await widget.services.rooms.fetch(_room.id);
-      if (room != null && mounted) setState(() => _room = room);
-    } catch (error) {
-      if (mounted) showFailure(context, error);
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
 
   /// Il padrone di casa apre la partita: le carte le dà il server, e da lì
   /// in poi il suo telefono è uno come gli altri.
@@ -268,418 +256,343 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> with ScreenMusic {
     }
   }
 
+  /// Chi siede, nell'ordine della stanza, poi i bot (solo a partita aperta:
+  /// li mette il server quando si danno le carte).
+  List<CafeGuest> _guests() => [
+        for (final member in _members)
+          CafeGuest(
+            profile: member.profile,
+            host: member.profile.id == _room.hostId,
+            me: member.profile.id == widget.me.id,
+            canBefriend: member.profile.id != widget.me.id && !_linked.contains(member.profile.id),
+          ),
+        for (var i = 0; i < _room.bots; i++) CafeGuest(profile: Profile(id: 'bot-$i', handle: botName(i)), bot: true),
+      ];
+
+  void _guestActions(CafeGuest guest) {
+    HapticFeedback.selectionClick();
+    if (widget.services.safety == null) {
+      showPublicProfile(context, services: widget.services, target: guest.profile.id);
+      return;
+    }
+    showPlayerActions(
+      context,
+      services: widget.services,
+      profileId: guest.profile.id,
+      name: guest.profile.name,
+      myId: widget.me.id,
+    );
+  }
+
+  Widget _table() => CafeTable(
+        key: const Key('online.table'),
+        guests: _guests(),
+        size: _room.maxPlayers,
+        befriendLabel: AppStrings.of(context).online.addFriend,
+        onGuest: _guestActions,
+        onBefriend: (guest) => _addFriend(guest.profile),
+      );
+
+  String? get _hostName {
+    for (final member in _members) {
+      if (member.profile.id == _room.hostId) return member.profile.name;
+    }
+    return null;
+  }
+
+  /// Il QR su carta crema.
+  Widget _qr(double size) => DecoratedBox(
+        decoration: BoxDecoration(
+          color: Cafe.cream,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Saloon.brassDeep, width: 1.5),
+          boxShadow: [BoxShadow(color: Saloon.brass.withValues(alpha: 0.18), blurRadius: 24)],
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(size * 0.06),
+          child: QrImageView(
+            data: JoinCode.qrPayload(_room.code),
+            size: size,
+            padding: EdgeInsets.zero,
+            backgroundColor: Cafe.cream,
+            eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: Saloon.paperInk),
+            dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: Saloon.paperInk),
+            semanticsLabel: _room.code,
+          ),
+        ),
+      );
+
+  /// L'invito: il QR, il codice grande d'ottone e come si usa.
+  Widget _invite({required bool desk}) {
+    final t = AppStrings.of(context).online;
+    final d = DesktopOnlineStrings.of(context);
+    return CafePanel(
+      title: desk ? d.invite : null,
+      child: Row(
+        children: [
+          _qr(desk ? 176 : 96),
+          SizedBox(width: desk ? 32 : 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  t.codeLabel.toUpperCase(),
+                  style: desk
+                      ? DeskText.overline(color: AppColors.textSecondary)
+                      : AppText.overline.copyWith(color: AppColors.textSecondary, fontSize: 10, letterSpacing: 2.4),
+                ),
+                SizedBox(height: desk ? 8 : 2),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: SelectableText(
+                    _room.code,
+                    key: const Key('online.roomCode'),
+                    style: AppText.display(desk ? 68 : 38, color: Saloon.brass)
+                        .copyWith(letterSpacing: desk ? 12 : 6, shadows: const [Shadow(color: Colors.black, blurRadius: 8)]),
+                  ),
+                ),
+                SizedBox(height: desk ? 10 : 4),
+                Text(
+                  t.roomShareHint,
+                  style: desk
+                      ? DeskText.text(size: DeskText.label, color: AppColors.textSecondary)
+                      : AppText.body.copyWith(fontSize: 12, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Quanti siedono, chi tiene la stanza e cosa si aspetta.
+  Widget _status({required bool desk}) {
+    final t = AppStrings.of(context).online;
+    final people = _members.length;
+    final host = _hostName;
+    final lobby = _room.status == RoomStatus.lobby;
+    final String line;
+    final bool lit;
+    if (!lobby) {
+      line = t.rejoin;
+      lit = true;
+    } else if (!_isHost) {
+      line = t.waitingForHost;
+      lit = false;
+    } else if (people < minPlayers) {
+      line = t.startNeeds(minPlayers);
+      lit = false;
+    } else {
+      line = botsEnabled ? t.testBotsNote : t.startGame;
+      lit = !botsEnabled;
+    }
+    final secondary = desk ? DeskText.text(size: DeskText.label, color: AppColors.textSecondary) : AppText.body.copyWith(fontSize: 12, color: AppColors.textSecondary);
+    return Column(
+      crossAxisAlignment: desk ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+      children: [
+        Semantics(
+          liveRegion: true,
+          child: Text(
+            t.roomSeated(people + _room.bots, _room.maxPlayers),
+            key: const Key('online.seats'),
+            textAlign: desk ? TextAlign.start : TextAlign.center,
+            style: desk ? DeskText.display(DeskText.heading, color: Saloon.paper) : AppText.overline.copyWith(color: Saloon.paper, fontSize: 12),
+          ),
+        ),
+        SizedBox(height: desk ? 10 : 2),
+        if (host != null)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.vpn_key, size: desk ? 20 : 13, color: Saloon.brass),
+              SizedBox(width: desk ? 8 : 5),
+              Text(
+                t.hostBadge,
+                style: desk
+                    ? DeskText.overline(color: Saloon.brass)
+                    : AppText.overline.copyWith(color: Saloon.brass, fontSize: 10, letterSpacing: 2),
+              ),
+              SizedBox(width: desk ? 10 : 6),
+              Flexible(
+                child: Text(host, maxLines: 1, overflow: TextOverflow.ellipsis, style: secondary.copyWith(color: Saloon.paper)),
+              ),
+            ],
+          ),
+        SizedBox(height: desk ? 10 : 4),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 250),
+          child: Text(
+            line,
+            key: lobby && !_isHost ? const Key('online.waitingForHost') : ValueKey(line),
+            textAlign: desk ? TextAlign.start : TextAlign.center,
+            style: (desk ? DeskText.text(size: DeskText.lead) : AppText.body.copyWith(fontSize: 13)).copyWith(
+              color: lit ? Saloon.brass : AppColors.textSecondary,
+              fontWeight: lit ? FontWeight.w700 : null,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Il grande pulsante: dare le carte (il padrone di casa) o tornare al
+  /// tavolo. Chi aspetta non ha pulsante.
+  Widget? _cta({required bool desk}) {
+    final t = AppStrings.of(context).online;
+    if (_room.status == RoomStatus.playing && !_inGame) {
+      return NoirButton(
+        key: const Key('online.rejoinTable'),
+        icon: Icons.login,
+        label: t.rejoin,
+        onPressed: _joinGame,
+      );
+    }
+    if (!_isHost || _room.status != RoomStatus.lobby) return null;
+    return NoirButton(
+      key: const Key('online.start'),
+      icon: Icons.style,
+      label: t.startGame,
+      feel: Press.confirm,
+      onPressed: _busy || _members.length < minPlayers ? null : _start,
+    );
+  }
+
+  Widget _chatBox({required bool desk}) {
+    final t = AppStrings.of(context).online;
+    return ChatPanel(
+      key: const Key('online.lobbyChat'),
+      title: t.chatLobby,
+      messages: _chat,
+      myId: widget.me.id,
+      accent: Saloon.brass,
+      decoration: Saloon.scrim(radius: desk ? DeskSize.radius : 14),
+      note: _room.status == RoomStatus.lobby ? null : t.chatNightClosed,
+      hint: t.chatHint,
+      empty: t.chatEmpty,
+      sendLabel: t.chatSend,
+      onSend: (body) => widget.services.game.sendChat(_room.id, ChatChannel.lobby, body),
+      onHold: (message) => showPlayerActions(
+        context,
+        services: widget.services,
+        profileId: message.profileId,
+        name: message.name,
+        myId: widget.me.id,
+        message: message,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final strings = AppStrings.of(context);
-    final t = strings.online;
     return PopScope(
       canPop: _left,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _askToLeave();
       },
-      child: DesktopCanvas.of(context) ? _desk(context) : SceneScaffold(
-        appBar: AppBar(title: Text(t.roomTitle)),
-        body: OnlineBody(
-          children: [
-            OnlinePanel(
+      child: DesktopCanvas.of(context) ? _desk(context) : _phone(context),
+    );
+  }
+
+  /// Sul telefono, come la sala d'attesa della classificata: il tavolo
+  /// riservato in alto, sotto quanti siedono, l'invito, il pulsante grande,
+  /// la chat e l'uscita. Tutto scorre se lo schermo è basso.
+  Widget _phone(BuildContext context) {
+    final t = AppStrings.of(context).online;
+    final cta = _cta(desk: false);
+    return CafeScaffold(
+      title: t.roomTitle,
+      onBack: _askToLeave,
+      child: LayoutBuilder(
+        builder: (context, box) => SingleChildScrollView(
+          padding: EdgeInsets.only(bottom: 16 + MediaQuery.paddingOf(context).bottom),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 560),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(t.codeLabel.toUpperCase(), style: AppText.overline),
-                  const SizedBox(height: 6),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: SelectableText(
-                      _room.code,
-                      key: const Key('online.roomCode'),
-                      style: AppText.display(46, color: AppColors.gold).copyWith(letterSpacing: 10),
+                  SizedBox(
+                    height: (box.maxHeight * 0.5).clamp(300.0, 460.0),
+                    child: Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: _table()),
+                  ),
+                  Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: _status(desk: false)),
+                  const SizedBox(height: 14),
+                  Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: _invite(desk: false)),
+                  if (cta != null) ...[
+                    const SizedBox(height: 14),
+                    Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: cta),
+                  ],
+                  const SizedBox(height: 14),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: SizedBox(height: 220, child: _chatBox(desk: false)),
+                  ),
+                  const SizedBox(height: 14),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: NoirButton(
+                      key: const Key('online.leave'),
+                      kind: NoirButtonKind.brass,
+                      compact: true,
+                      icon: Icons.door_back_door_outlined,
+                      label: t.leaveRoom,
+                      onPressed: _askToLeave,
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  DecoratedBox(
-                    decoration: BoxDecoration(color: const Color(0xFFEDE2C8), borderRadius: BorderRadius.circular(12)),
-                    child: Padding(
-                      padding: const EdgeInsets.all(10),
-                      child: QrImageView(
-                        data: JoinCode.qrPayload(_room.code),
-                        size: 180,
-                        backgroundColor: const Color(0xFFEDE2C8),
-                        eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: Color(0xFF14110F)),
-                        dataModuleStyle: const QrDataModuleStyle(
-                          dataModuleShape: QrDataModuleShape.square,
-                          color: Color(0xFF14110F),
-                        ),
-                        semanticsLabel: _room.code,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(t.roomShareHint, textAlign: TextAlign.center, style: AppText.body),
                 ],
               ),
             ),
-            OnlineSection(t.roomSeated(_members.length, _room.maxPlayers)),
-            OnlinePanel(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              child: Column(
-                children: [
-                  for (final member in _members)
-                    ProfileRow(
-                      key: ValueKey(member.profile.id),
-                      profile: member.profile,
-                      badges: [
-                        if (member.profile.id == _room.hostId) OnlineBadge(t.hostBadge),
-                        if (member.profile.id == widget.me.id)
-                          OnlineBadge(strings.youBadge, color: AppColors.textSecondary),
-                      ],
-                      trailing: member.profile.id == widget.me.id
-                          ? null
-                          : Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (!_linked.contains(member.profile.id))
-                                  IconButton(
-                                    tooltip: t.addFriend,
-                                    icon: const Icon(Icons.person_add_alt_1, color: AppColors.gold),
-                                    onPressed: () => _addFriend(member.profile),
-                                  ),
-                                if (widget.services.safety != null)
-                                  IconButton(
-                                    key: Key('online.memberActions.${member.profile.id}'),
-                                    tooltip: SafetyStrings.of(context).report,
-                                    icon: const Icon(Icons.more_vert, color: AppColors.textSecondary),
-                                    onPressed: () => showPlayerActions(
-                                      context,
-                                      services: widget.services,
-                                      profileId: member.profile.id,
-                                      name: member.profile.name,
-                                      myId: widget.me.id,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                    ),
-                  for (var i = 0; i < _room.bots; i++)
-                    ProfileRow(
-                      key: ValueKey('bot-$i'),
-                      profile: Profile(id: 'bot-$i', handle: botName(i)),
-                      badges: [OnlineBadge(t.botBadge, color: AppColors.textSecondary)],
-                      trailing: _isHost && _room.status == RoomStatus.lobby
-                          ? IconButton(
-                              key: Key('online.removeBot.$i'),
-                              tooltip: t.removeBot,
-                              icon: const Icon(Icons.remove_circle_outline, color: AppColors.textSecondary),
-                              onPressed: _busy ? null : () => _setBots(_room.bots - 1),
-                            )
-                          : null,
-                    ),
-                ],
-              ),
-            ),
-            if (_isHost && botsEnabled && _room.status == RoomStatus.lobby) ...[
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                key: const Key('online.addBot'),
-                onPressed: _busy || _members.length + _room.bots >= _room.maxPlayers || _room.bots >= maxBots
-                    ? null
-                    : () => _setBots(_room.bots + 1),
-                icon: const Icon(Icons.smart_toy_outlined),
-                label: Text(t.addBot),
-              ),
-            ],
-            const SizedBox(height: 24),
-            if (_room.status == RoomStatus.playing && !_inGame)
-              ElevatedButton.icon(
-                key: const Key('online.rejoinTable'),
-                onPressed: _joinGame,
-                icon: const Icon(Icons.login),
-                label: Text(t.rejoin),
-              )
-            else if (_isHost) ...[
-              ElevatedButton(
-                key: const Key('online.start'),
-                onPressed: _busy || _members.length + _room.bots < minPlayers ? null : _start,
-                child: Text(t.startGame),
-              ),
-              if (_members.length + _room.bots < minPlayers) ...[
-                const SizedBox(height: 8),
-                Text(t.startNeeds(minPlayers), textAlign: TextAlign.center, style: AppText.body),
-              ],
-            ] else
-              Text(t.waitingForHost, key: const Key('online.waitingForHost'), textAlign: TextAlign.center, style: AppText.body),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 220,
-              child: ChatPanel(
-                key: const Key('online.lobbyChat'),
-                title: t.chatLobby,
-                messages: _chat,
-                myId: widget.me.id,
-                note: _room.status == RoomStatus.lobby ? null : t.chatNightClosed,
-                hint: t.chatHint,
-                empty: t.chatEmpty,
-                sendLabel: t.chatSend,
-                onSend: (body) => widget.services.game.sendChat(_room.id, ChatChannel.lobby, body),
-                onHold: (message) => showPlayerActions(
-                  context,
-                  services: widget.services,
-                  profileId: message.profileId,
-                  name: message.name,
-                  myId: widget.me.id,
-                  message: message,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton(onPressed: _askToLeave, child: Text(t.leaveRoom)),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  /// Sul PC, tre colonne: a sinistra l'invito (codice e QR grandi), al
-  /// centro chi è seduto e il pulsante per dare le carte, a destra la chat.
+  /// Sul PC, come la sala d'attesa della classificata: il tavolo grande a
+  /// sinistra; a destra l'invito, chi siede, la chat e il pulsante grande.
   Widget _desk(BuildContext context) {
-    final strings = AppStrings.of(context);
-    final t = strings.online;
-    final d = DesktopOnlineStrings.of(context);
-    final seated = _members.length + _room.bots;
-    final lobby = _room.status == RoomStatus.lobby;
-    final rows = <Widget>[
-      for (final member in _members)
-        DeskProfileRow(
-          key: ValueKey(member.profile.id),
-          profile: member.profile,
-          badges: [
-            if (member.profile.id == _room.hostId) DeskBadge(t.hostBadge),
-            if (member.profile.id == widget.me.id) DeskBadge(strings.youBadge, color: AppColors.textSecondary),
-          ],
-          actions: member.profile.id == widget.me.id
-              ? const []
-              : [
-                  if (!_linked.contains(member.profile.id))
-                    DeskIconAction(
-                      icon: Icons.person_add_alt_1,
-                      tooltip: t.addFriend,
-                      onTap: () => _addFriend(member.profile),
-                    ),
-                  if (widget.services.safety != null)
-                    DeskIconAction(
-                      key: Key('online.memberActions.${member.profile.id}'),
-                      icon: Icons.more_horiz,
-                      tooltip: SafetyStrings.of(context).report,
-                      color: AppColors.textSecondary,
-                      onTap: () => showPlayerActions(
-                        context,
-                        services: widget.services,
-                        profileId: member.profile.id,
-                        name: member.profile.name,
-                        myId: widget.me.id,
-                      ),
-                    ),
-                ],
-        ),
-      for (var i = 0; i < _room.bots; i++)
-        DeskProfileRow(
-          key: ValueKey('bot-$i'),
-          profile: Profile(id: 'bot-$i', handle: botName(i)),
-          badges: [DeskBadge(t.botBadge, color: AppColors.textSecondary)],
-          actions: [
-            if (_isHost && lobby)
-              DeskIconAction(
-                key: Key('online.removeBot.$i'),
-                icon: Icons.remove_circle_outline,
-                tooltip: t.removeBot,
-                color: AppColors.textSecondary,
-                onTap: _busy ? null : () => _setBots(_room.bots - 1),
-              ),
-          ],
-        ),
-    ];
-
-    final Widget go;
-    if (_room.status == RoomStatus.playing && !_inGame) {
-      go = ElevatedButton.icon(
-        key: const Key('online.rejoinTable'),
-        onPressed: _joinGame,
-        icon: const Icon(Icons.login),
-        label: Text(t.rejoin),
-      );
-    } else if (_isHost) {
-      go = ElevatedButton.icon(
-        key: const Key('online.start'),
-        onPressed: _busy || seated < minPlayers ? null : _start,
-        icon: const Icon(Icons.style),
-        label: Text(t.startGame),
-      );
-    } else {
-      go = Center(
-        child: Text(
-          t.waitingForHost,
-          key: const Key('online.waitingForHost'),
-          style: DeskText.text(size: DeskText.lead, color: AppColors.textSecondary),
-        ),
-      );
-    }
-
-    return DeskOnlineScene(
+    final t = AppStrings.of(context).online;
+    final cta = _cta(desk: true);
+    return CafeDesk(
       title: t.roomTitle,
+      onBack: _askToLeave,
       actions: [
-        OutlinedButton.icon(
-          onPressed: _askToLeave,
-          icon: const Icon(Icons.door_back_door_outlined),
-          label: Text(t.leaveRoom),
+        SizedBox(
+          width: 360,
+          child: NoirButton(
+            key: const Key('online.leave'),
+            kind: NoirButtonKind.brass,
+            compact: true,
+            icon: Icons.door_back_door_outlined,
+            label: t.leaveRoom,
+            onPressed: _askToLeave,
+          ),
         ),
       ],
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Expanded(child: _table()),
+          const SizedBox(width: 48),
           SizedBox(
-            width: 480,
-            child: DeskPanel(
-              title: d.invite,
-              child: Column(
-                children: [
-                  const Spacer(),
-                  Text(t.codeLabel.toUpperCase(), style: DeskText.overline()),
-                  const SizedBox(height: 12),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: SelectableText(
-                      _room.code,
-                      key: const Key('online.roomCode'),
-                      style: DeskText.display(88).copyWith(letterSpacing: 14),
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEDE2C8),
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [BoxShadow(color: AppColors.gold.withValues(alpha: 0.18), blurRadius: 40)],
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(18),
-                      child: QrImageView(
-                        data: JoinCode.qrPayload(_room.code),
-                        size: 260,
-                        padding: EdgeInsets.zero,
-                        backgroundColor: const Color(0xFFEDE2C8),
-                        eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: Color(0xFF14110F)),
-                        dataModuleStyle: const QrDataModuleStyle(
-                          dataModuleShape: QrDataModuleShape.square,
-                          color: Color(0xFF14110F),
-                        ),
-                        semanticsLabel: _room.code,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-                  Text(t.roomShareHint, textAlign: TextAlign.center, style: DeskText.text(color: AppColors.textSecondary)),
-                  const Spacer(),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: DeskSize.gap),
-          Expanded(
-            child: DeskPanel(
-              title: t.roomSeated(_members.length, _room.maxPlayers),
-              trailing: _isHost && botsEnabled && lobby
-                  ? TextButton.icon(
-                      key: const Key('online.addBot'),
-                      onPressed: _busy || seated >= _room.maxPlayers || _room.bots >= maxBots
-                          ? null
-                          : () => _setBots(_room.bots + 1),
-                      icon: const Icon(Icons.smart_toy_outlined, size: 22),
-                      label: Text(t.addBot),
-                    )
-                  : null,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _SeatMeter(seated: seated, max: _room.maxPlayers, needed: minPlayers),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: ListView.separated(
-                      padding: EdgeInsets.zero,
-                      itemCount: rows.length,
-                      separatorBuilder: (_, _) => Divider(height: 1, color: AppColors.gold.withValues(alpha: 0.1)),
-                      itemBuilder: (_, i) => rows[i],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(height: DeskSize.button + 16, child: go),
-                  if (_isHost && lobby && seated < minPlayers) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      t.startNeeds(minPlayers),
-                      textAlign: TextAlign.center,
-                      style: DeskText.text(size: DeskText.label, color: AppColors.textSecondary),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: DeskSize.gap),
-          SizedBox(
-            width: 560,
-            child: ChatPanel(
-              key: const Key('online.lobbyChat'),
-              title: t.chatLobby,
-              messages: _chat,
-              myId: widget.me.id,
-              note: lobby ? null : t.chatNightClosed,
-              hint: t.chatHint,
-              empty: t.chatEmpty,
-              sendLabel: t.chatSend,
-              onSend: (body) => widget.services.game.sendChat(_room.id, ChatChannel.lobby, body),
-              onHold: (message) => showPlayerActions(
-                context,
-                services: widget.services,
-                profileId: message.profileId,
-                name: message.name,
-                myId: widget.me.id,
-                message: message,
-              ),
+            width: 660,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _invite(desk: true),
+                const SizedBox(height: DeskSize.gap),
+                CafePanel(child: _status(desk: true)),
+                const SizedBox(height: DeskSize.gap),
+                Expanded(child: _chatBox(desk: true)),
+                if (cta != null) ...[const SizedBox(height: DeskSize.gap), cta],
+              ],
             ),
           ),
         ],
       ),
     );
   }
-}
-
-/// I posti del tavolo come tacche: piene quelle occupate, accese in oro
-/// fino al minimo per giocare.
-class _SeatMeter extends StatelessWidget {
-  final int seated;
-  final int max;
-  final int needed;
-
-  const _SeatMeter({required this.seated, required this.max, required this.needed});
-
-  @override
-  Widget build(BuildContext context) => Row(
-        children: [
-          for (var i = 0; i < max; i++) ...[
-            if (i > 0) const SizedBox(width: 6),
-            Expanded(
-              child: Container(
-                height: 10,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(3),
-                  color: i < seated
-                      ? (seated >= needed ? AppColors.gold : AppColors.gold.withValues(alpha: 0.55))
-                      : Colors.white.withValues(alpha: 0.06),
-                  border: Border.all(
-                    color: i == needed - 1 ? AppColors.gold.withValues(alpha: 0.7) : Colors.transparent,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ],
-      );
 }

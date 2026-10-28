@@ -4,6 +4,7 @@ import 'package:oberta/l10n/app_language.dart';
 import 'package:oberta/online/fake_online.dart';
 import 'package:oberta/online/online_models.dart';
 import 'package:oberta/ui/screens/online/friends_screen.dart';
+import 'package:oberta/ui/screens/online/game/noir_ui.dart';
 import 'package:oberta/ui/screens/online/join_room_screen.dart';
 import 'package:oberta/ui/screens/online/online_screen.dart';
 import 'package:oberta/ui/screens/settings_screen.dart';
@@ -106,6 +107,9 @@ void main() {
     expect(find.text('1 su 16 al tavolo'), findsOneWidget);
     expect(find.text('PADRONE DI CASA'), findsOneWidget);
     expect(find.byTooltip('Chiedi l\'amicizia'), findsNothing, reason: 'non a sé stessi');
+    expect(tester.widget<NoirButton>(find.byKey(const Key('online.start'))).onPressed, isNull,
+        reason: 'da soli non si gioca');
+    expect(find.textContaining('Servono almeno 2'), findsOneWidget);
 
     online.joinAs('bruno', code);
     await tester.pumpAndSettle();
@@ -118,22 +122,13 @@ void main() {
     expect(find.text('Richiesta mandata a bruno.'), findsOneWidget);
     expect(find.byTooltip('Chiedi l\'amicizia'), findsNothing);
 
-    // In due non si gioca: servono almeno quattro, bot compresi.
-    ElevatedButton start() => tester.widget<ElevatedButton>(find.byKey(const Key('online.start')));
+    // Nessuno sceglie i bot: nel periodo di prova in due si parte, i posti
+    // vuoti li riempie il server.
+    expect(find.byKey(const Key('online.addBot')), findsNothing);
+    NoirButton start() => tester.widget<NoirButton>(find.byKey(const Key('online.start')));
     await tester.scrollUntilVisible(find.byKey(const Key('online.start')), 100, scrollable: find.byType(Scrollable).first);
-    expect(start().onPressed, isNull);
-    expect(find.textContaining('Servono almeno 4'), findsOneWidget);
-    for (var i = 0; i < 3; i++) {
-      await tester.tap(find.byKey(const Key('online.addBot')));
-      await tester.pumpAndSettle();
-    }
-    expect(find.text('bot.alfa'), findsOneWidget);
-    expect(find.text('bot.charlie'), findsOneWidget);
-    expect(online.roomByCode(code)!.bots, 3);
-    await tester.tap(find.byKey(const Key('online.removeBot.2')));
-    await tester.pumpAndSettle();
-    expect(find.text('bot.charlie'), findsNothing);
-    expect(start().onPressed, isNotNull, reason: 'due persone e due bot fanno quattro');
+    expect(start().onPressed, isNotNull, reason: 'due persone bastano');
+    expect(find.text('In prova: i posti vuoti li prendono i bot.'), findsOneWidget);
     tester.state<ScaffoldMessengerState>(find.byType(ScaffoldMessenger)).removeCurrentSnackBar();
     await tester.pumpAndSettle();
 
@@ -192,7 +187,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Nessuna stanza con questo codice.'), findsOneWidget);
 
-    await tester.tap(find.text('Inquadra il QR'));
+    await tester.tap(find.byKey(const Key('online.scan')));
     await tester.pumpAndSettle();
     expect(find.text('LA STANZA'), findsOneWidget);
     expect(find.text('2 su 16 al tavolo'), findsOneWidget);

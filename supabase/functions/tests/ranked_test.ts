@@ -117,7 +117,7 @@ Deno.test('the matcher: eight at once, six to ten after a minute, never bots, ne
 
   // Bots can never be added, by the host or by anyone.
   await assertRejects(() => pg.query(`update public.rooms set bots = 2 where id = $1`, [room.id]), Error, 'rooms_ranked_without_bots');
-  await assertRejects(() => as(ids[0], `select public.set_room_bots($1, 2)`, [room.id]), Error, 'not_allowed');
+  await assertRejects(() => as(ids[0], `select public.set_room_bots($1, 2)`, [room.id]), Error, 'permission denied');
   await assertRejects(
     () => pg.query(`insert into public.game_seats (room_id, seat, profile_id, name) values ($1, 's9', null, 'bot.x')`, [room.id]),
     Error,

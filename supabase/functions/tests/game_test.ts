@@ -116,7 +116,11 @@ async function startedGame() {
   const [{ id: room, code }] = await as<{ id: string; code: string }>('anna', `select id, code from public.create_room('it')`);
   await as('bruno', `select public.join_room($1)`, [code]);
   await as('carla', `select public.join_room($1)`, [code]);
-  await as('anna', `select public.set_room_bots($1, 3)`, [room]);
+  // The test period: the server fills the table with bots up to six seats.
+  await pg.query(
+    `insert into internal.config (key, value) values ('friends_test_bots', '1'), ('friends_test_size', '6')
+     on conflict (key) do update set value = excluded.value`,
+  );
   await as('anna', `select public.start_game($1)`, [room]);
   return { pg, db, as, room };
 }

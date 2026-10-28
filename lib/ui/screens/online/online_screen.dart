@@ -13,9 +13,13 @@ import '../../../l10n/desktop_online_strings.dart';
 import '../../../l10n/desktop_strings.dart';
 import '../../desktop/desktop_canvas.dart';
 import '../../theme/app_theme.dart';
+import '../../avatar/avatar_look.dart';
 import '../../widgets/noir_avatar.dart';
+import '../../widgets/player_avatar.dart';
 import '../../widgets/scene_scaffold.dart';
+import 'cafe_room.dart';
 import 'friends_screen.dart';
+import 'game/noir_ui.dart';
 import 'join_room_screen.dart';
 import 'online_room_screen.dart';
 import '../avatar/barber_mirror_screen.dart';
@@ -109,12 +113,8 @@ class _OnlineScreenState extends State<OnlineScreen> with ScreenMusic {
         ),
       _ => (t.hubTitle, _Hub(services: online, profile: _profile!)),
     };
-    if (DesktopCanvas.of(context)) return DeskOnlineScene(title: title, child: body);
-    return SceneScaffold(
-      resizeForKeyboard: false,
-      appBar: AppBar(title: Text(title)),
-      body: body,
-    );
+    if (DesktopCanvas.of(context)) return CafeDesk(title: title, child: body);
+    return CafeScaffold(resizeForKeyboard: false, title: title, child: body);
   }
 }
 
@@ -529,7 +529,8 @@ class _ProfileSetupState extends State<ProfileSetup> {
               );
 }
 
-/// La sala: chi sei, e le tre porte.
+/// La saletta riservata: chi sei, il pulsante per aprire una stanza, il
+/// codice per entrare in quella di un altro, gli amici.
 class _Hub extends StatefulWidget {
   final OnlineServices services;
   final Profile profile;
@@ -590,149 +591,282 @@ class _HubState extends State<_Hub> {
 
   void _open(Widget screen) => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => screen));
 
+  void _join() => _open(JoinRoomScreen(services: widget.services, me: widget.profile));
+
+  void _friends() => _open(FriendsScreen(services: widget.services));
+
   @override
   Widget build(BuildContext context) {
     final t = AppStrings.of(context).online;
     final profile = widget.profile;
     if (DesktopCanvas.of(context)) return _desk(context, t, profile);
-    return OnlineBody(
-      children: [
-        const SizedBox(height: 12),
-        OnlinePanel(
-          child: ProfileRow(profile: profile, badges: [OnlineBadge(t.signedInAs(profile.name))]),
-        ),
-        const SizedBox(height: 24),
-        if (_current case final room?) ...[
-          ElevatedButton.icon(
-            key: const Key('online.rejoin'),
-            onPressed: () => _rejoin(room),
-            icon: const Icon(Icons.login),
-            label: Text('${t.rejoin} · ${room.code}'),
-          ),
-          const SizedBox(height: 12),
-        ],
-        ElevatedButton.icon(
-          onPressed: _busy ? null : _create,
-          icon: const Icon(Icons.meeting_room),
-          label: Text(t.hubCreate),
-        ),
-        const SizedBox(height: 12),
-        OutlinedButton.icon(
-          onPressed: () => _open(JoinRoomScreen(services: widget.services, me: profile)),
-          icon: const Icon(Icons.qr_code_scanner),
-          label: Text(t.hubJoin),
-        ),
-        const SizedBox(height: 12),
-        OutlinedButton.icon(
-          onPressed: () => _open(FriendsScreen(services: widget.services)),
-          icon: const Icon(Icons.people_alt),
-          label: Text(t.friends),
-        ),
-      ],
-    );
-  }
-
-  /// Sul PC: chi sei a sinistra, le tre porte grandi a destra.
-  Widget _desk(BuildContext context, OnlineStrings t, Profile profile) {
-    final d = DesktopOnlineStrings.of(context);
-    final current = _current;
-    final hub = Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SizedBox(
-          width: 460,
-          child: DeskPanel(
-            title: d.profile,
-            padding: const EdgeInsets.all(40),
-            child: Column(
-              children: [
-                const Spacer(),
-                NoirAvatar.drawn(seed: profile.avatarSeed, size: 200),
-                const SizedBox(height: 32),
-                Text(
-                  profile.name,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: DeskText.display(DeskText.heading, color: AppColors.textPrimary),
-                ),
-                const SizedBox(height: 16),
-                DeskBadge(t.levelShort(profile.level)),
-                const SizedBox(height: 20),
-                Text(
-                  t.signedInAs(profile.name),
-                  textAlign: TextAlign.center,
-                  style: DeskText.text(color: AppColors.textSecondary),
-                ),
-                const Spacer(flex: 2),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(width: 40),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(left: 4, bottom: 20),
-                child: Text(d.hubDoors.toUpperCase(), style: DeskText.overline(color: AppColors.gold)),
-              ),
-              if (current != null) ...[
-                SizedBox(
-                  height: DeskSize.button + 12,
-                  child: ElevatedButton.icon(
-                    key: const Key('online.rejoin'),
-                    onPressed: () => _rejoin(current),
-                    icon: const Icon(Icons.login),
-                    label: Text('${t.rejoin} · ${current.code}'),
-                  ),
-                ),
-                const SizedBox(height: 28),
-              ],
-              Expanded(
-                child: Row(
+    // Come l'ingresso della classificata: la saletta in alto, chi sei, e il
+    // pulsante grande; sotto, il codice e gli amici.
+    return LayoutBuilder(
+      builder: (context, box) {
+        final short = box.maxHeight < 600;
+        return SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(20, 0, 20, 16 + MediaQuery.paddingOf(context).bottom),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: box.maxHeight - 16),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Expanded(
-                      child: DeskDoor(
-                        key: const Key('online.desk.create'),
-                        primary: true,
-                        icon: Icons.meeting_room,
-                        title: t.hubCreate,
-                        body: d.hubCreateBody,
-                        onTap: _busy ? null : _create,
+                    SizedBox(height: (box.maxHeight * (short ? 0.3 : 0.38)).clamp(130.0, 320.0), child: const CafeScene()),
+                    SizedBox(height: short ? 8 : 14),
+                    _Card(profile: profile),
+                    SizedBox(height: short ? 16 : 24),
+                    if (_current case final room?) ...[
+                      NoirButton(
+                        key: const Key('online.rejoin'),
+                        icon: Icons.login,
+                        label: '${t.rejoin} · ${room.code}',
+                        onPressed: () => _rejoin(room),
                       ),
+                      const SizedBox(height: 12),
+                    ],
+                    NoirButton(
+                      key: const Key('online.create'),
+                      icon: Icons.meeting_room,
+                      label: t.hubCreate,
+                      feel: Press.confirm,
+                      onPressed: _busy ? null : _create,
                     ),
-                    const SizedBox(width: 32),
-                    Expanded(
-                      child: DeskDoor(
-                        key: const Key('online.desk.join'),
-                        icon: Icons.dialpad,
-                        title: t.hubJoin,
-                        body: d.hubJoinBody,
-                        onTap: () => _open(JoinRoomScreen(services: widget.services, me: profile)),
-                      ),
-                    ),
-                    const SizedBox(width: 32),
-                    Expanded(
-                      child: DeskDoor(
-                        key: const Key('online.desk.friends'),
-                        icon: Icons.people_alt,
-                        title: t.friends,
-                        body: d.hubFriendsBody,
-                        onTap: () => _open(FriendsScreen(services: widget.services)),
-                      ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: NoirButton(
+                            key: const Key('online.join'),
+                            kind: NoirButtonKind.brass,
+                            compact: true,
+                            icon: Icons.dialpad,
+                            label: t.hubJoin,
+                            onPressed: _join,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: NoirButton(
+                            key: const Key('online.friends'),
+                            kind: NoirButtonKind.brass,
+                            compact: true,
+                            icon: Icons.people_alt,
+                            label: t.friends,
+                            onPressed: _friends,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Sul PC, come l'ingresso della classificata: la saletta grande a
+  /// sinistra; a destra chi sei, le porte e il pulsante grande (INVIO).
+  Widget _desk(BuildContext context, OnlineStrings t, Profile profile) {
+    final d = DesktopOnlineStrings.of(context);
+    final current = _current;
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.enter): () {
+          if (!_busy) _create();
+        },
+        const SingleActivator(LogicalKeyboardKey.numpadEnter): () {
+          if (!_busy) _create();
+        },
+      },
+      child: Focus(
+        autofocus: true,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Expanded(child: CafeScene()),
+            const SizedBox(width: 56),
+            Container(
+              width: 700,
+              padding: const EdgeInsets.fromLTRB(48, 44, 48, 44),
+              decoration: Saloon.scrim(radius: DeskSize.radius),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _Card(profile: profile),
+                  const SizedBox(height: 44),
+                  Text(d.hubDoors.toUpperCase(), style: DeskText.overline(color: Saloon.brass)),
+                  const SizedBox(height: 16),
+                  _DoorRow(
+                    key: const Key('online.desk.join'),
+                    icon: Icons.dialpad,
+                    title: t.hubJoin,
+                    body: d.hubJoinBody,
+                    onTap: _join,
+                  ),
+                  const SizedBox(height: 12),
+                  _DoorRow(
+                    key: const Key('online.desk.friends'),
+                    icon: Icons.people_alt,
+                    title: t.friends,
+                    body: d.hubFriendsBody,
+                    onTap: _friends,
+                  ),
+                  const Spacer(),
+                  if (current != null) ...[
+                    NoirButton(
+                      key: const Key('online.rejoin'),
+                      kind: NoirButtonKind.brass,
+                      icon: Icons.login,
+                      label: '${t.rejoin} · ${current.code}',
+                      onPressed: () => _rejoin(current),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  Text(
+                    d.hubCreateBody,
+                    textAlign: TextAlign.center,
+                    style: DeskText.text(color: Saloon.paper.withValues(alpha: 0.82)).copyWith(height: 1.45),
+                  ),
+                  const SizedBox(height: 20),
+                  NoirButton(
+                    key: const Key('online.desk.create'),
+                    icon: Icons.meeting_room,
+                    label: t.hubCreate,
+                    feel: Press.confirm,
+                    onPressed: _busy ? null : _create,
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    DesktopStrings.of(context).enterHint,
+                    textAlign: TextAlign.center,
+                    style: DeskText.overline(color: AppColors.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Chi sei: la faccia, il nome, il livello, come il grado nella classificata.
+class _Card extends StatelessWidget {
+  final Profile profile;
+
+  const _Card({required this.profile});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppStrings.of(context).online;
+    final desk = DesktopCanvas.of(context);
+    final face = desk ? 120.0 : 56.0;
+    return Container(
+      padding: desk ? EdgeInsets.zero : const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: desk ? null : Saloon.scrim(),
+      child: Row(
+        children: [
+          DecoratedBox(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [BoxShadow(color: Saloon.brass.withValues(alpha: 0.4), blurRadius: 14)],
+            ),
+            child: PlayerAvatar(seed: profile.avatarSeed, look: profile.look, picture: profile.pictureUrl, size: face),
+          ),
+          SizedBox(width: desk ? 32 : 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  profile.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppText.display(desk ? DeskText.heading : 20, color: Saloon.paper),
+                ),
+                SizedBox(height: desk ? 10 : 4),
+                Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: desk ? 10 : 6, vertical: desk ? 3 : 1),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(colors: [Saloon.brass, Saloon.brassDeep]),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                      child: Text(
+                        t.levelShort(profile.level),
+                        style: AppText.body.copyWith(fontSize: desk ? 15 : 10, fontWeight: FontWeight.w700, color: Saloon.paperInk),
+                      ),
+                    ),
+                    SizedBox(width: desk ? 12 : 8),
+                    Flexible(
+                      child: Text(
+                        t.signedInAs(profile.name),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: desk
+                            ? DeskText.text(size: DeskText.label, color: AppColors.textSecondary)
+                            : AppText.body.copyWith(fontSize: 12, color: AppColors.textSecondary),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Una porta nel banco del PC: icona, titolo, due righe; si accende sotto
+/// il mouse.
+class _DoorRow extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String body;
+  final VoidCallback onTap;
+
+  const _DoorRow({super.key, required this.icon, required this.title, required this.body, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => DeskHover(
+        onTap: onTap,
+        builder: (context, hovered) => AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          padding: const EdgeInsets.fromLTRB(24, 20, 20, 20),
+          decoration: BoxDecoration(
+            color: hovered ? Saloon.brass.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.25),
+            borderRadius: BorderRadius.circular(DeskSize.radius),
+            border: Border.all(color: Saloon.brass.withValues(alpha: hovered ? 0.8 : 0.25)),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: Saloon.brass, size: 34),
+              const SizedBox(width: 22),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: AppText.display(DeskText.title, color: Saloon.paper)),
+                    const SizedBox(height: 4),
+                    Text(body, maxLines: 2, overflow: TextOverflow.ellipsis, style: DeskText.text(size: DeskText.label, color: AppColors.textSecondary)),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, color: Saloon.brass.withValues(alpha: hovered ? 1 : 0.5), size: 32),
             ],
           ),
         ),
-      ],
-    );
-    // Le porte non si stirano fino in fondo: un blocco al centro della scena.
-    return Center(child: SizedBox(height: current == null ? 700 : 800, child: hub));
-  }
+      );
 }

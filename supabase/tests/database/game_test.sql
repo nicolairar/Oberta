@@ -33,19 +33,24 @@ select throws_ok($$ select public.send_chat((select id from r), 'lobby', 'ciao')
   'outsiders do not write in the room');
 select is((select count(*)::int from public.game_chat), 0, 'nor read it');
 
--- Bots in the lobby.
+-- Bots in the lobby: nobody adds them by hand; in the test period the server
+-- fills the table up to friends_test_size when the host deals.
 set local request.jwt.claims to '{"sub": "22222222-2222-2222-2222-222222222222", "role": "authenticated"}';
-select throws_ok($$ select public.set_room_bots((select id from r), 2) $$, 'P0001', 'not_allowed', 'only the host adds bots');
+select throws_ok($$ select public.set_room_bots((select id from r), 2) $$, '42501', null, 'a guest cannot add bots');
 set local request.jwt.claims to '{"sub": "11111111-1111-1111-1111-111111111111", "role": "authenticated"}';
-select throws_ok($$ select public.set_room_bots((select id from r), 14) $$, 'P0001', 'room_full', 'bots and people fit the table');
-select lives_ok($$ select public.set_room_bots((select id from r), 2) $$, 'the host adds two bots');
-select is((select bots from public.rooms where id = (select id from r)), 2::smallint, 'everyone in the room sees the bots');
+select throws_ok($$ select public.set_room_bots((select id from r), 2) $$, '42501', null, 'nor can the host');
+select is((select bots from public.rooms where id = (select id from r)), 0::smallint, 'no bots before the deal');
+reset role;
+insert into internal.config (key, value) values ('friends_test_bots', '1'), ('friends_test_size', '5')
+on conflict (key) do update set value = excluded.value;
+select ok(true, 'the test period is on');
+set local role authenticated;
 
 -- Starting.
 set local request.jwt.claims to '{"sub": "22222222-2222-2222-2222-222222222222", "role": "authenticated"}';
 select throws_ok($$ select public.start_game((select id from r)) $$, 'P0001', 'not_allowed', 'only the host starts');
 set local request.jwt.claims to '{"sub": "11111111-1111-1111-1111-111111111111", "role": "authenticated"}';
-select lives_ok($$ select public.start_game((select id from r)) $$, 'the host starts with three players and two bots');
+select lives_ok($$ select public.start_game((select id from r)) $$, 'the host starts with three players; the server adds two bots');
 select is((select status from public.rooms where id = (select id from r)), 'playing', 'the room is playing');
 select throws_ok('select * from public.game_seats', '42501', null, 'seats are read by functions only');
 select throws_ok($$ select public.start_game((select id from r)) $$, 'P0001', 'room_closed', 'one game at a time');

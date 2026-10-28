@@ -271,9 +271,6 @@ class TutorialTable implements GameBackend {
   // Il tubo, come lo vede lo schermo della partita.
 
   @override
-  Future<void> setBots(String roomId, int count) async {}
-
-  @override
   Future<void> startGame(String roomId) async {}
 
   @override
