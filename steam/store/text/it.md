@@ -30,7 +30,7 @@ Poi torna la notte, finché la città non ha ripulito le strade o la famiglia no
 In classificata si gioca sempre in dodici. Scegli il tavolo per lingua, italiano o inglese, e aspetti in una sala dove nessuno ha ancora un nome: chi siede con te lo scopri solo quando si gioca. Ogni partita sposta il tuo grado, da Picciotto a Don. Chi abbandona o resta fermo non prende niente, nemmeno se la sua squadra vince.
 
 [h2]Stanze con gli amici[/h2]
-Apri una stanza e condividi il codice: gli amici entrano dal loro computer o telefono e prendono posto. Si chiacchiera nella sala, si riempiono i posti vuoti con i bot se si è in pochi, si parte quando ci sono tutti. Da 4 a 16 giocatori.
+Apri una stanza e condividi il codice: gli amici entrano dal loro computer o telefono e prendono posto. Si chiacchiera nella sala, si riempiono i posti vuoti con i bot se si è in pochi, si parte quando ci sono tutti. Da 4 a 12 giocatori.
 
 [h2]Ventuno ruoli, tre fazioni[/h2]
 [list]

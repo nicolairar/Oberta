@@ -39,7 +39,7 @@ Wolvesville ma più curata (animazioni, morti, avatar):
 ## Bot per provare (17 ottobre 2026)
 
 La partita online va costruita insieme ai bot: il proprietario ha due
-telefoni, e per provare una partita da 8–16 servono giocatori finti. Nelle
+telefoni, e per provare una partita da 8–12 servono giocatori finti. Nelle
 build di prova la stanza ha "+ BOT"; ogni bot riceve solo la sua `PlayerView`
 e manda `PlayerIntent` validate dal motore come quelle dei giocatori veri (si
 parte da `test/support/random_game.dart`, che già sceglie le mosse dalla vista
@@ -187,4 +187,4 @@ salvato una partita si può rigiocare e verificare.
 Eventi speciali di un paio di giorni con tavoli diversi dalla classificata, per esempio partite da 8 o da 20 giocatori.
 - Coda e premi separati, così non toccano il grado della classificata da 12.
 - Decisi dal server (inizio, fine, numero di giocatori), senza aggiornare l'app.
-- Da 20 serve alzare il limite del motore, oggi fermo a 16, e bilanciare il mazzo.
+- Da 20 serve alzare il limite del motore, oggi fermo a 12, e bilanciare il mazzo.

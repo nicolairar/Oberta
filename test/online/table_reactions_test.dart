@@ -61,7 +61,8 @@ void main() {
     });
   });
 
-  testWidgets('di giorno, tenendo premuto un posto, il gesto vola sul tavolo', (tester) async {
+  /// Bruno al tavolo con Anna e tre bot, fino alla prima piazza da vivo.
+  Future<Finder> toTheSquare(WidgetTester tester) async {
     tester.view.physicalSize = const Size(1179, 2556);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -94,8 +95,28 @@ void main() {
       await flush(tester);
     }
     expect(day, isTrue, reason: 'Bruno arriva vivo alla piazza');
+    return livingOther();
+  }
 
-    await tester.longPress(livingOther().first);
+  testWidgets('di giorno, tenendo premuto un posto, il gesto vola sul tavolo', (tester) async {
+    final livingOther = await toTheSquare(tester);
+    await tester.longPress(livingOther.first);
+    await flush(tester);
+    expect(find.byKey(const Key('gestures.picker')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('gestures.cigar')));
+    await flush(tester);
+    final layer = tester.widget<GestureLayer>(find.byType(GestureLayer).first);
+    expect(layer.flights.map((f) => f.gesture), [TableGesture.cigar]);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('di giorno il bottone «Gesti» resta in vista: prima a chi, poi quale gesto', (tester) async {
+    await toTheSquare(tester);
+    await tester.tap(find.byKey(const Key('gestures.button')));
+    await flush(tester);
+    expect(find.byKey(const Key('gestures.targets')), findsOneWidget);
+    final target = find.byWidgetPredicate((w) => w.key is ValueKey<String> && (w.key! as ValueKey<String>).value.startsWith('gestures.target-'));
+    await tester.tap(target.first);
     await flush(tester);
     expect(find.byKey(const Key('gestures.picker')), findsOneWidget);
     await tester.tap(find.byKey(const Key('gestures.cigar')));

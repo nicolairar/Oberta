@@ -1,10 +1,12 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../l10n/app_language.dart';
 import '../../../../l10n/app_strings.dart';
 import '../../../../online/reactions.dart';
+import '../../../theme/app_theme.dart';
 import '../../../widgets/noir_modal.dart';
 import '../voice/voice_dock.dart';
 import 'noir_ui.dart';
@@ -26,6 +28,170 @@ class GestureStrings {
   String get settingTitle => it ? 'Gesti al tavolo' : 'Table gestures';
   String get settingHint =>
       it ? 'Spenti, nessuno può lanciarti sigari, rose o pesci.' : 'Off, nobody can throw cigars, roses or fish at you.';
+  String get button => it ? 'Gesti' : 'Gestures';
+  String get pickTarget => it ? 'A chi lanci un gesto?' : 'Who gets a gesture?';
+  String get pickHint => it ? 'Anche tenendo premuto un posto.' : 'Or hold down on a seat.';
+  String get firstHint => it ? 'Lancia un gesto a qualcuno: tocca «Gesti».' : 'Throw a gesture at someone: tap «Gestures».';
+}
+
+/// Il suggerimento dei gesti, una volta sola per telefono.
+abstract final class GestureHint {
+  static const _key = 'gestures.hintShown';
+  static bool _asked = false;
+
+  /// true solo la prima volta in assoluto (e da lì in poi lo ricorda). Senza
+  /// la memoria del telefono (nei test) non suggerisce niente.
+  static Future<bool> claim() async {
+    if (_asked) return false;
+    _asked = true;
+    try {
+      final prefs = SharedPreferencesAsync();
+      if (await prefs.getBool(_key) ?? false) return false;
+      await prefs.setBool(_key, true);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+}
+
+/// Il bottone sempre in vista dei gesti, accanto alla chat di giorno: un
+/// sigaro nel cerchio d'ottone e, sul PC, la parola «Gesti».
+class GestureButton extends StatelessWidget {
+  final bool italian;
+  final bool desk;
+  final VoidCallback onTap;
+
+  const GestureButton({super.key, required this.italian, required this.desk, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final s = GestureStrings(italian);
+    final art = desk ? 30.0 : 24.0;
+    final icon = SizedBox.square(
+      dimension: art,
+      child: const CustomPaint(painter: GestureArt(TableGesture.cigar, t: 0.35)),
+    );
+    return Tooltip(
+      message: s.button,
+      child: Semantics(
+        button: true,
+        label: s.button,
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            key: const Key('gestures.button'),
+            customBorder: const StadiumBorder(),
+            onTap: onTap,
+            child: Container(
+              height: desk ? 44 : 38,
+              constraints: BoxConstraints(minWidth: desk ? 44 : 38),
+              padding: EdgeInsets.symmetric(horizontal: desk ? 12 : 6),
+              decoration: ShapeDecoration(
+                shape: const StadiumBorder(side: BorderSide(color: Saloon.brass)),
+                color: const Color(0xFF1A130E),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  icon,
+                  if (desk) ...[
+                    const SizedBox(width: 8),
+                    Text(
+                      s.button.toUpperCase(),
+                      style: AppText.display(16, color: Saloon.brass).copyWith(letterSpacing: 1.6),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Prima del cassetto, dal bottone: a chi va il gesto. Un cartellino per
+/// ogni posto ([targets], col numero del posto), o null.
+Future<T?> showGestureTargetPicker<T>(
+  BuildContext context, {
+  required bool italian,
+  required List<({T player, int number, String name})> targets,
+}) {
+  final s = GestureStrings(italian);
+  return showNoirSheet<T>(
+    context,
+    builder: (context) => NoirSheet(
+      key: const Key('gestures.targets'),
+      title: s.pickTarget,
+      subtitle: s.pickHint,
+      children: [
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final target in targets)
+              _TargetTag(
+                key: Key('gestures.target-${target.number}'),
+                number: target.number,
+                name: target.name,
+                onTap: () => Navigator.of(context).pop(target.player),
+              ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
+/// Un posto nella scelta del bersaglio: il numero d'ottone e il nome.
+class _TargetTag extends StatelessWidget {
+  final int number;
+  final String name;
+  final VoidCallback onTap;
+
+  const _TargetTag({super.key, required this.number, required this.name, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            width: 132,
+            height: 48,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(
+              color: Saloon.ink.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Saloon.brass.withValues(alpha: 0.8)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 26,
+                  height: 26,
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(shape: BoxShape.circle, color: Saloon.brass),
+                  child: Text('$number',
+                      style: const TextStyle(color: Saloon.paperInk, fontSize: 13, fontWeight: FontWeight.w800)),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Saloon.paper, fontSize: 14, fontWeight: FontWeight.w600)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
 }
 
 /// Il cassetto dei gesti, aperto tenendo premuto (o col tasto destro) il

@@ -123,10 +123,10 @@ extension RoleInfo on Role {
     Role.sindaco => const RoleRule(RoleCategory.civic, minPlayers: 9),
     Role.portinaio => const RoleRule(RoleCategory.investigator, minPlayers: 9),
     Role.fesso => const RoleRule(RoleCategory.neutral, minPlayers: 8),
-    Role.piromane => const RoleRule(RoleCategory.neutral, minPlayers: 13),
+    Role.piromane => const RoleRule(RoleCategory.neutral, minPlayers: 11),
     Role.cacciatore => const RoleRule(RoleCategory.neutral, minPlayers: 9),
     Role.strozzino => const RoleRule(RoleCategory.neutral, minPlayers: 10),
-    Role.sicario => const RoleRule(RoleCategory.neutral, minPlayers: 14),
+    Role.sicario => const RoleRule(RoleCategory.neutral, minPlayers: 12),
       };
 
   /// Ostile alla città, un assassino in proprio (Piromane, Sicario): finché

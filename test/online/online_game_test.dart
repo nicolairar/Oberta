@@ -142,11 +142,11 @@ void main() {
       anna.client.dispose();
     });
 
-    test('tre persone e dieci bot', () async {
-      await startWith(joiners: ['bruno', 'carla'], bots: 10);
+    test('tre persone e nove bot', () async {
+      await startWith(joiners: ['bruno', 'carla'], bots: 9);
       final humans = [for (final id in ['anna', 'bruno', 'carla']) _Human(id, clientOf(id), Random(id.hashCode))];
       await playToTheEnd(humans);
-      expect(humans.first.client.board!.seating.occupants, hasLength(13));
+      expect(humans.first.client.board!.seating.occupants, hasLength(12));
       for (final h in humans) {
         h.client.dispose();
       }

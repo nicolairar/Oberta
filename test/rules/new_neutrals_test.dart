@@ -233,7 +233,7 @@ void main() {
     final wins = <String, int>{};
     var games = 0;
     for (var game = 0; game < 300; game++) {
-      final count = 9 + random.nextInt(8);
+      final count = 9 + random.nextInt(4);
       final players = [for (var i = 1; i <= count; i++) _p('s$i')];
       final deck = rolesForPlayerCount(count, random: random, mode: PlayMode.online)..shuffle(random);
       final engine = GameEngine(GameSetup.fromRoles(Map.fromIterables(players, deck)), seed: random.nextInt(1 << 32));

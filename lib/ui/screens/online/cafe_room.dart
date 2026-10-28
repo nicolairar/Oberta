@@ -628,7 +628,7 @@ class _Chip extends StatelessWidget {
       );
 }
 
-/// Il cartellino «RISERVATO» e, sotto, il contatore d'ottone «3/16».
+/// Il cartellino «RISERVATO» e, sotto, il contatore d'ottone «3/12».
 class _Placard extends StatelessWidget {
   final int seated;
   final int size;

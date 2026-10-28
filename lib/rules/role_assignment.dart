@@ -7,17 +7,15 @@ import 'role.dart';
 const minRolePlayers = 3;
 
 /// Numero massimo di giocatori con un ruolo: oltre, il tavolo non si regge.
-const maxRolePlayers = 16;
+const maxRolePlayers = 12;
 
 /// Quanti della famiglia per [count] giocatori: 1 fino a 6, 2 fino a 10,
-/// 3 fino a 14, 4 a 15 e 16.
+/// 3 a 11 e 12.
 int mafiaCountFor(int count) => count <= 6
     ? 1
     : count <= 10
         ? 2
-        : count <= 14
-            ? 3
-            : 4;
+        : 3;
 
 /// Quanti ruoli di famiglia con un potere (Padrino, Sarto, Compare) al
 /// massimo: uno sotto gli 11 giocatori, due da 11. Mai tutti e tre.
@@ -34,13 +32,12 @@ int maxSpecialCitizensFor(int citizens) => (citizens * 2) ~/ 3;
 /// Quanti neutrali almeno: nessuno sotto gli 8 giocatori, uno da 8, due da 11.
 int minNeutralsFor(int count) => count < 8 ? 0 : count < 11 ? 1 : 2;
 
-/// Quanti neutrali al massimo, in assoluto: tre, e solo da 14 giocatori.
-const maxNeutrals = 3;
+/// Quanti neutrali al massimo, in assoluto: due (si gioca al massimo in 12).
+const maxNeutrals = 2;
 
-/// Quanti neutrali al massimo per [count] giocatori: due fino a 13, tre da 14
-/// (come Wolvesville a 16: un assassino in proprio, uno che vince col voto,
-/// uno che cambia le carte). Il Fesso non sta mai con più di un altro neutrale.
-int maxNeutralsFor(int count) => count < 14 ? 2 : maxNeutrals;
+/// Quanti neutrali al massimo per [count] giocatori: sempre [maxNeutrals].
+/// Il Fesso non sta mai con più di un altro neutrale.
+int maxNeutralsFor(int count) => maxNeutrals;
 
 /// [role] può entrare tra i neutrali già pescati ([neutrals])? Al massimo un
 /// assassino in proprio, al massimo uno che vince col linciaggio, e con il

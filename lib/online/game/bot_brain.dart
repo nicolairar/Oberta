@@ -18,7 +18,7 @@ const _nato = [
   'india', 'juliett', 'kilo', 'lima', 'mike', 'november', 'oscar',
 ];
 
-const maxBots = 15;
+const maxBots = 11;
 
 String botName(int index) => HandleRules.botHandle(_nato[index % _nato.length]);
 

@@ -176,7 +176,7 @@ void main() {
     test('codice sbagliato, stanza piena, stanza chiusa', () async {
       await expectLater(online.rooms.join('ZZZZZZ'), _fails(OnlineFailure.roomNotFound));
       final room = await online.rooms.create(AppLanguage.it);
-      for (var i = 0; i < 15; i++) {
+      for (var i = 0; i < 11; i++) {
         online
           ..addPlayer('p$i', handle: 'player${String.fromCharCode(97 + i)}')
           ..joinAs('p$i', room.code);

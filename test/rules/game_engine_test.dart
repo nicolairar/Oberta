@@ -1001,13 +1001,13 @@ void main() {
     });
   });
 
-  test('partite casuali, a ogni tavolo da 3 a 16, finiscono sempre con un vincitore', () {
+  test('partite casuali, a ogni tavolo da 3 a 12, finiscono sempre con un vincitore', () {
     final played = <Role>{};
     final tasks = <NightTaskKind>{};
     final outcomes = <AttackOutcome>{};
     for (var seed = 0; seed < 420; seed++) {
       final random = Random(seed);
-      final lobby = [for (var i = 0; i < 3 + seed % 14; i++) Player(id: 'p$i', name: 'P$i')];
+      final lobby = [for (var i = 0; i < 3 + seed % 10; i++) Player(id: 'p$i', name: 'P$i')];
       final engine = GameEngine(
         GameSetup.deal(lobby: lobby, random: random),
         settings: GameSettings(mafiaTieBreak: TieBreak.values[seed % TieBreak.values.length]),

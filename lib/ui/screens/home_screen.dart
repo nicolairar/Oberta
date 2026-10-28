@@ -19,7 +19,7 @@ import '../widgets/home_caption.dart';
 import '../widgets/home_neon_sign.dart';
 import '../widgets/home_posters.dart';
 import '../widgets/home_settings_plate.dart';
-import '../widgets/home_tutorial_flyer.dart';
+import '../widgets/home_tutorial_sign.dart';
 import '../street/street_route.dart';
 import '../street/street_section.dart';
 import '../street/street_stage.dart';
@@ -734,15 +734,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                       ),
                     ),
                   ),
-                  // Il tutorial si trova sempre: il volantino sul palo del lampione.
-                  if (!canvas && layout.tutorial != null)
+                  // Il tutorial si trova sempre: il cartello sul palo del lampione.
+                  if (layout.tutorial case final sign?)
                     _posted(
-                      rect: layout.tutorial!,
-                      tilt: 0,
+                      rect: sign,
+                      tilt: -0.02,
                       at: 2.45,
-                      child: HomeTutorialFlyer(
+                      child: HomeTutorialSign(
                         key: const Key('home.tutorial'),
                         label: TutorialStrings.of(context).deskButton,
+                        pole: layout.lampFoot.dx - sign.left,
                         onTap: () {
                           SoundStage.instance.press(Press.tap);
                           TutorialScreen.open(context);
@@ -784,7 +785,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                           settingsLabel: t.settings,
                           onSettings: widget.onSettings,
                           tutorialLabel: TutorialStrings.of(context).deskButton,
-                          onTutorial: () => TutorialScreen.open(context),
+                          // Il cartello sul palo fa già da tutorial.
+                          onTutorial: layout.tutorial != null ? null : () => TutorialScreen.open(context),
                           onQuit: () => confirmDeskQuit(context),
                         ),
                       ),

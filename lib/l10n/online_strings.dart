@@ -316,7 +316,7 @@ abstract class OnlineStrings {
     'scanDenied': scanDenied,
     'roomTitle': roomTitle,
     'roomShareHint': roomShareHint,
-    'roomSeated': roomSeated(3, 16),
+    'roomSeated': roomSeated(3, 12),
     'hostBadge': hostBadge,
     'addFriend': addFriend,
     'friendRequestSent': friendRequestSent('Sara'),

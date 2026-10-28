@@ -104,7 +104,7 @@ void main() {
     final code = tester.widget<SelectableText>(find.byKey(const Key('online.roomCode'))).data!;
     expect(code, hasLength(6));
     expect(find.byType(QrImageView), findsOneWidget);
-    expect(find.text('1 su 16 al tavolo'), findsOneWidget);
+    expect(find.text('1 su 12 al tavolo'), findsOneWidget);
     expect(find.text('PADRONE DI CASA'), findsOneWidget);
     expect(find.byTooltip('Chiedi l\'amicizia'), findsNothing, reason: 'non a sé stessi');
     expect(tester.widget<NoirButton>(find.byKey(const Key('online.start'))).onPressed, isNull,
@@ -113,7 +113,7 @@ void main() {
 
     online.joinAs('bruno', code);
     await tester.pumpAndSettle();
-    expect(find.text('2 su 16 al tavolo'), findsOneWidget);
+    expect(find.text('2 su 12 al tavolo'), findsOneWidget);
     expect(find.text('bruno'), findsOneWidget);
 
     await tester.scrollUntilVisible(find.byTooltip('Chiedi l\'amicizia'), 100, scrollable: find.byType(Scrollable).first);
@@ -190,7 +190,7 @@ void main() {
     await tester.tap(find.byKey(const Key('online.scan')));
     await tester.pumpAndSettle();
     expect(find.text('LA STANZA'), findsOneWidget);
-    expect(find.text('2 su 16 al tavolo'), findsOneWidget);
+    expect(find.text('2 su 12 al tavolo'), findsOneWidget);
   });
 
   testWidgets('gli amici: cercare, chiedere, rispondere', (tester) async {

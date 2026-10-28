@@ -19,7 +19,7 @@ La modalità **un telefono** si gioca dall'inizio alla fine: stanza, lobby,
 scelta del narratore, ruota dei ruoli, carta con flip 3D, poi notte, alba,
 discussione, voto e verdetto finché una fazione vince.
 
-- **Dodici ruoli, da 3 a 16 giocatori**: vedi [I dodici ruoli](#i-dodici-ruoli).
+- **Dodici ruoli, da 3 a 12 giocatori**: vedi [I dodici ruoli](#i-dodici-ruoli).
 - **Notte con compiti di copertura**: tutti prendono il telefono e toccano
   qualcuno sulla stessa griglia. Solo alcune mosse sono vere.
 - **Griglia personale**: ognuno vede i segni di ruolo solo dove ha diritto.
@@ -89,7 +89,7 @@ Android è già scaffoldato ma non verrà testato finché non lo decidiamo insie
 
 ## I dodici ruoli
 
-Si gioca da 3 a 16, narratore escluso. Circa uno su quattro sta con la
+Si gioca da 3 a 12, narratore escluso. Circa uno su quattro sta con la
 famiglia; gli altri ruoli entrano man mano che il tavolo cresce, e a ogni
 tavolo resta almeno un Onesto. Di notte ognuno fa **una sola mossa**: chi
 non ne ha una vera riceve un compito di copertura.
@@ -133,10 +133,6 @@ la fossa e il patibolo dicono sempre la verità.
 | 10 | Padrino, Sarto | + Guardaspalle | 1 |
 | 11 | Padrino, Sarto | + Pregiudicato (ci sono tutti e otto) | 1 |
 | 12 | Padrino, Sarto, Picciotto | tutti e otto | 1 |
-| 13 | Padrino, Sarto, Picciotto | tutti e otto | 2 |
-| 14 | Padrino, Sarto, Picciotto | tutti e otto | 3 |
-| 15 | Padrino, Sarto, Picciotto | tutti e otto | 4 |
-| 16 | Padrino, Sarto, 2 Picciotti | tutti e otto | 4 |
 
 **Come si chiude una notte.** Le mosse si risolvono tutte insieme, quindi
 chi muore ha comunque fatto in tempo ad agire. Nell'ordine:
@@ -212,7 +208,7 @@ dei ruoli (eccetto il narratore umano, che già li conosce).
 0. ✅ Setup ambiente (Flutter, Xcode, Simulator iOS)
 1. ✅ Preparazione: stanza con codice, lobby, narratore, ruota, carta ruolo
 2. ✅ Partita completa su un telefono: notte, alba, giorno, voto, vittoria,
-   dodici ruoli e tavoli fino a 16, con test sulle regole e sul copione
+   dodici ruoli e tavoli fino a 12, con test sulle regole e sul copione
 3. ✅ Grafica, animazioni e suoni: fondali, menu, ritratti e foto, scene
    della notte, musica ed effetti (le voci ⏳: servono registrazioni vere)
 4. Un telefono a testa in rete locale

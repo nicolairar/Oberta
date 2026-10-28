@@ -10,7 +10,7 @@ List<Player> _players(int count) => [for (var i = 0; i < count; i++) Player(id: 
 int _count(Iterable<Role> roles, Role role) => roles.where((r) => r == role).length;
 
 
-const _sizes = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+const _sizes = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
 void main() {
   group('rolesForPlayerCount', () {
@@ -19,7 +19,7 @@ void main() {
     });
 
     test('rifiuta tavoli troppo grandi', () {
-      expect(maxRolePlayers, 16);
+      expect(maxRolePlayers, 12);
       expect(rolesForPlayerCount(maxRolePlayers), hasLength(maxRolePlayers));
       expect(() => rolesForPlayerCount(maxRolePlayers + 1), throwsArgumentError);
       expect(() => rolesForPlayerCount(20), throwsArgumentError);
@@ -33,8 +33,8 @@ void main() {
       }
     });
 
-    test('la famiglia è proporzionale: 1 fino a 6, 2 fino a 10, 3 fino a 14, 4 oltre', () {
-      const expected = {3: 1, 4: 1, 6: 1, 7: 2, 10: 2, 11: 3, 14: 3, 15: 4, 16: 4};
+    test('la famiglia è proporzionale: 1 fino a 6, 2 fino a 10, 3 a 11 e 12', () {
+      const expected = {3: 1, 4: 1, 6: 1, 7: 2, 10: 2, 11: 3, 12: 3};
       expected.forEach((n, family) {
         for (var seed = 0; seed < 20; seed++) {
           final deck = rolesForPlayerCount(n, random: Random(seed));
@@ -96,9 +96,9 @@ void main() {
           }
         }
         // La pesca è davvero a caso: ai tavoli grandi escono ruoli diversi.
-        expect(seen[16]!.length, greaterThan(8));
+        expect(seen[12]!.length, greaterThan(8));
         if (mode == PlayMode.online) {
-          expect(seen[16], contains(Role.compare));
+          expect(seen[12], contains(Role.compare));
         } else {
           for (final roles in seen.values) {
             expect(roles, isNot(contains(Role.compare)));

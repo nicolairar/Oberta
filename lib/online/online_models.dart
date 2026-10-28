@@ -308,7 +308,7 @@ class Room {
     required this.hostId,
     required this.language,
     this.status = RoomStatus.lobby,
-    this.maxPlayers = 16,
+    this.maxPlayers = 12,
     this.bots = 0,
     this.ranked = false,
     this.testMatch = false,

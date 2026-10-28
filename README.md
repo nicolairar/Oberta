@@ -27,7 +27,7 @@ Vince la Città se stana gli assassini, vince la Famiglia se resta in piedi. E q
 
 ## Come si gioca
 
-- **Un telefono per tutti** — vi passate il telefono attorno al tavolo e un narratore racconta la notte con la sua voce. Da 4 a 16 giocatori, anche senza rete.
+- **Un telefono per tutti** — vi passate il telefono attorno al tavolo e un narratore racconta la notte con la sua voce. Da 4 a 12 giocatori, anche senza rete.
 - **Gioca con amici** — una stanza privata con codice o QR: ognuno dal suo telefono o dal PC, chat in piazza di giorno e chat segreta della Famiglia di notte.
 - **Classificata** — dodici sconosciuti, un tavolo, il tuo grado in gioco. La sala d'attesa è anonima e chi abbandona non prende niente.
 

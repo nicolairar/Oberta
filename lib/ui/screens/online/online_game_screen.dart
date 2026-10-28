@@ -57,6 +57,7 @@ import 'voice/voice_dock.dart';
 import '../../../l10n/roles_sheet_strings.dart';
 import '../../widgets/roles_sheet.dart';
 import '../../widgets/noir_modal.dart';
+import '../../widgets/noir_notice.dart';
 
 /// La partita online, vista dal proprio telefono. Tutto segue l'orologio del
 /// server: ogni fase ([Stage]) ha un inizio e una fine pubblicati sul tavolo,
@@ -233,6 +234,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       report();
       return;
     }
+    _throwGesture(player, onReport: widget.services.safety == null ? null : report);
+  }
+
+  void _throwGesture(Player player, {VoidCallback? onReport}) {
     final wait = _nextGesture.difference(DateTime.now());
     showGesturePicker(
       context,
@@ -240,8 +245,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       italian: _italian,
       owned: _ownedGestures,
       wait: wait.isNegative ? Duration.zero : wait,
-      onReport: widget.services.safety == null ? null : report,
-      voice: voice,
+      onReport: onReport,
+      voice: voiceMuteFor(context, _voice, player.id),
     ).then((gesture) async {
       if (gesture == null || !mounted) return;
       HapticFeedback.selectionClick();
@@ -251,6 +256,35 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       } catch (error) {
         if (mounted) showFailure(context, error);
       }
+    });
+  }
+
+  /// Di giorno, da vivi: il bottone dei gesti accanto alla chat.
+  bool get _gesturesOpen =>
+      widget.services.reactions != null && (_stage == Stage.discussion || _stage == Stage.vote) && _isAlive(_view.seat);
+
+  Widget? _gestureButton() =>
+      _gesturesOpen ? GestureButton(italian: _italian, desk: _deskMode, onTap: _pickGestureTarget) : null;
+
+  /// Dal bottone: prima a chi, poi quale gesto.
+  Future<void> _pickGestureTarget() async {
+    final seats = _public.seats;
+    final targets = [
+      for (var i = 0; i < seats.length; i++)
+        if (_canGesture(seats[i])) (player: seats[i], number: i + 1, name: seats[i].name),
+    ];
+    if (targets.isEmpty) return;
+    final player = await showGestureTargetPicker<Player>(context, italian: _italian, targets: targets);
+    if (player == null || !mounted || !_canGesture(player)) return;
+    _throwGesture(player);
+  }
+
+  /// Il primo giorno in assoluto, un suggerimento discreto sui gesti.
+  void _hintGestures() {
+    if (!_gesturesOpen) return;
+    final overlay = Overlay.maybeOf(context, rootOverlay: true);
+    GestureHint.claim().then((first) {
+      if (first && overlay != null) showNoticeIn(overlay, GestureStrings(_italian).firstHint);
     });
   }
 
@@ -355,6 +389,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       case Stage.discussion || Stage.vote:
         stage.music(MusicMood.day);
         stage.ambience(null);
+        _hintGestures();
       case Stage.ended:
         final winner = _public.winner;
         if (winner != null) {
@@ -1326,16 +1361,32 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       read: _chatNow,
       seats: _chatSeats,
       onHold: _holdMessage,
-      trailing: _voice == null ? null : VoiceDock(controller: _voice, onPerson: _voicePerson),
+      trailing: _dockTrailing(),
     );
+  }
+
+  /// Nella striscia della chat: i gesti di giorno, e la voce.
+  Widget? _dockTrailing() {
+    final gestures = _gestureButton();
+    final voice = _voice;
+    final dock = voice == null ? null : VoiceDock(controller: voice, onPerson: _voicePerson);
+    if (gestures == null) return dock;
+    return Row(mainAxisSize: MainAxisSize.min, children: [?dock, Padding(padding: const EdgeInsets.only(left: 4), child: gestures)]);
   }
 
   /// In testa alla chat: la voce, e di giorno con un Compare la scelta della chat.
   Widget? _chatTrailing() {
     final swap = _stage.chat == 'day' && _view.familyChat ? _chatSwitch() : null;
+    final gestures = _gestureButton();
     final voice = _voice;
-    if (voice == null) return swap;
-    return Row(mainAxisSize: MainAxisSize.min, children: [VoiceDock(controller: voice, onPerson: _voicePerson), ?swap]);
+    final items = [
+      if (voice != null) VoiceDock(controller: voice, onPerson: _voicePerson),
+      if (gestures != null) Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: gestures),
+      ?swap,
+    ];
+    if (items.isEmpty) return null;
+    if (items.length == 1) return items.single;
+    return Row(mainAxisSize: MainAxisSize.min, children: items);
   }
 
   /// Il messaggio di un altro, tenuto premuto: segnalarlo o bloccarlo.

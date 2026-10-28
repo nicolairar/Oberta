@@ -128,17 +128,19 @@ class HomeAlleyLayout {
 
     caption = Rect.fromLTRB(20, curb + 2, w - 20, h - safe.bottom - 2);
 
-    // Il volantino del tutorial, attaccato al palo del lampione tra la
-    // lanterna e il cappello dell'uomo.
-    final flyerTop = lampHead.dy + smoker * 0.34;
-    final flyerBottom = min(flyerTop + 104, smokerFeet.dy - smoker * 1.12 - 8);
-    final flyerRight = min(column - 4, 8 + 84.0);
-    tutorial = flyerBottom - flyerTop >= 64 && flyerRight - 6 >= 60
-        ? Rect.fromLTRB(6, flyerTop, flyerRight, flyerBottom)
+    // Il cartello del tutorial, fissato al palo del lampione tra la lanterna
+    // e il cappello dell'uomo, che punta verso i manifesti.
+    final roomTop = lampHead.dy + smoker * 0.30;
+    final roomBottom = smokerFeet.dy - smoker * 1.12 - 6;
+    final plate = (smoker * 0.20).clamp(30.0, 56.0);
+    final signLeft = max(4.0, lampFoot.dx - plate * 0.7);
+    final signRight = min(column - 4, lampFoot.dx + plate * 3.7);
+    tutorial = roomBottom - roomTop >= plate + 8 && signRight - signLeft >= plate * 2.6
+        ? Rect.fromLTWH(signLeft, (roomTop + roomBottom - plate) / 2, signRight - signLeft, plate)
         : null;
   }
 
-  /// Il volantino del tutorial sul palo (null dove non ci sta).
+  /// Il cartello del tutorial sul palo (null dove non ci sta).
   late final Rect? tutorial;
 
   late final StreetWall wall;

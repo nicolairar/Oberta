@@ -27,7 +27,7 @@ Then night falls again, until the Town has cleared the streets or the Family run
 Ranked games are always twelve players. Pick your table by language, Italian or English, and wait in a room where nobody has a name yet: you only find out who you are sitting with when the game starts. Every game moves your rank, from Picciotto to Don. Quitting or going idle earns nothing, not even when your side wins.
 
 [h2]Rooms with friends[/h2]
-Open a room and share the code: friends join from their own computer or phone and take a seat. Chat in the lobby, fill empty seats with bots if you are short, start when everyone is in. From 4 to 16 players.
+Open a room and share the code: friends join from their own computer or phone and take a seat. Chat in the lobby, fill empty seats with bots if you are short, start when everyone is in. From 4 to 12 players.
 
 [h2]Twenty-one roles, three factions[/h2]
 [list]

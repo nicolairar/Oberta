@@ -226,11 +226,11 @@ void main() {
     expect(store.roster.members, hasLength(4));
   });
 
-  testWidgets('al tavolo più di sedici non ci stanno', (tester) async {
+  testWidgets('al tavolo più di dodici non ci stanno', (tester) async {
     usePhone(tester);
     await seatPeople([for (var i = 1; i <= maxTablePlayers; i++) 'Persona $i']);
     await openLobby(tester);
-    expect(find.text('16 AL TAVOLO'), findsOneWidget);
+    expect(find.text('12 AL TAVOLO'), findsOneWidget);
     expect(find.textContaining('Tavolo pieno'), findsOneWidget);
     expect(canStart(tester), isTrue);
 
@@ -239,7 +239,7 @@ void main() {
     await tap(tester, 'AGGIUNGI AL TAVOLO');
     expect(find.text('Il tavolo è pieno: Ultimo per ora guarda.'), findsOneWidget);
     await tap(tester, 'ABBIAMO FINITO');
-    expect(find.text('16 AL TAVOLO'), findsOneWidget);
+    expect(find.text('12 AL TAVOLO'), findsOneWidget);
 
     await tap(tester, 'Ultimo');
     expect(find.textContaining('Il tavolo è pieno'), findsOneWidget);
@@ -249,7 +249,7 @@ void main() {
     await tap(tester, 'Persona 1');
     await tap(tester, 'Ultimo');
     expect(store.roster.members.last.seated, isTrue, reason: 'liberato un posto, si siede');
-    expect(find.text('16 AL TAVOLO'), findsOneWidget);
+    expect(find.text('12 AL TAVOLO'), findsOneWidget);
   });
 
   testWidgets('si riparte dal tavolo dell\'ultima volta, e giocano solo i seduti', (tester) async {
@@ -369,7 +369,7 @@ void main() {
       await openLobby(tester);
       await loadPhotos(tester, store);
       expect(tester.takeException(), isNull, reason: 'tavolo, $size');
-      expect(find.text('16 AL TAVOLO'), findsOneWidget);
+      expect(find.text('12 AL TAVOLO'), findsOneWidget);
 
       await tester.longPress(find.text('Ugo 1'));
       await tester.pumpAndSettle();

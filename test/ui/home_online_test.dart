@@ -331,7 +331,7 @@ void main() {
       IncomingLinks.instance.deliver(Uri.parse('oberta://room/${room.code}'));
       await tester.pumpAndSettle();
       expect(find.text('LA STANZA'), findsOneWidget);
-      expect(find.text('2 su 16 al tavolo'), findsOneWidget);
+      expect(find.text('2 su 12 al tavolo'), findsOneWidget);
     });
 
     testWidgets('il link d\'avvio aspetta il vicolo', (tester) async {
@@ -352,7 +352,7 @@ void main() {
       await tester.pumpAndSettle();
       await fillProfile(tester);
       expect(find.text('LA STANZA'), findsOneWidget);
-      expect(find.text('2 su 16 al tavolo'), findsOneWidget);
+      expect(find.text('2 su 12 al tavolo'), findsOneWidget);
     });
 
     testWidgets('chi chiude l\'accesso resta nel vicolo, e il link si dimentica', (tester) async {
