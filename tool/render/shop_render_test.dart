@@ -113,42 +113,24 @@ void main() {
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 50));
     }
-    Future<void> tab(String name) async {
-      await tester.ensureVisible(find.byKey(Key('shop.tab.$name')));
-      await tester.pump(const Duration(milliseconds: 300));
-      await tester.tap(find.byKey(Key('shop.tab.$name')));
-      await tester.pump(const Duration(milliseconds: 300));
+    Future<void> dept(String name) async {
+      await tester.tap(find.byKey(Key('shop.dept.$name')));
+      await tester.pump(const Duration(milliseconds: 500));
     }
 
     await _shot(tester, '00_window');
-    await tester.tap(find.byKey(const Key('shop.item.outfit.vaugirard_travel')));
-    await tester.pump(const Duration(milliseconds: 500));
-    await _shot(tester, '01_try_trench');
     await tester.tap(find.byKey(const Key('shop.action')));
-    await _shot(tester, '02_receipt');
+    await _shot(tester, '01_receipt');
     await tester.tap(find.byKey(const Key('shop.confirm')));
-    await _shot(tester, '03_bought');
-    await tester.tap(find.byKey(const Key('shop.tryOn.back')));
     await tester.pump(const Duration(milliseconds: 500));
-    await tab('hats');
-    await _shot(tester, '04_hats');
-    await tab('accessories');
-    await _shot(tester, '05_accessories');
-    await tab('brands');
-    await _shot(tester, '06_brands');
-    await tester.tap(find.byKey(const Key('shop.brand.chanterelle')));
-    await _shot(tester, '07_brand_open');
-    await tab('oddities');
-    await _shot(tester, '08_oddities');
-    await tab('wardrobe');
-    await _shot(tester, '09_wardrobe');
-    await tab('frames');
-    await _shot(tester, '10_frames');
-    await tester.tap(find.byKey(const Key('shop.item.border.flame')));
+    await _shot(tester, '02_bought');
+    await tester.tap(find.byKey(const Key('shop.section.sets')));
     await tester.pump(const Duration(milliseconds: 500));
-    await _shot(tester, '11_try_flame');
-    await tester.tap(find.byKey(const Key('shop.tryOn.back')));
-    await tester.pump(const Duration(milliseconds: 500));
+    await _shot(tester, '03_sets');
+    for (final (i, name) in ['hats', 'face', 'outfit', 'vice', 'frames'].indexed) {
+      await dept(name);
+      await _shot(tester, '${(i + 4).toString().padLeft(2, '0')}_$name');
+    }
     if (Platform.environment['SHEET'] == null) return;
 
     // I pezzi della seconda consegna (e quelli ritoccati), uno per moneta.

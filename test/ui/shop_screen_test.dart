@@ -27,36 +27,48 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Future<void> tab(WidgetTester tester, String name) async {
-    await tester.ensureVisible(find.byKey(Key('shop.tab.$name')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(Key('shop.tab.$name')));
-  }
-
-  Future<void> show(WidgetTester tester, String key) async {
-    await tester.scrollUntilVisible(
-      find.byKey(Key(key)),
-      300,
-      scrollable: find.descendant(of: find.byKey(const Key('shop.grid')), matching: find.byType(Scrollable)).first,
-    );
+  Future<void> dept(WidgetTester tester, String name) async {
+    await tester.tap(find.byKey(Key('shop.dept.$name')));
     await tester.pumpAndSettle();
   }
 
-  String coins(WidgetTester tester) => tester.widget<Text>(find.byKey(const Key('shop.coins'))).data!;
+  /// Turns the dial until [key] is on the rim and on screen, then taps it.
+  Future<void> pick(WidgetTester tester, String key, {double step = -90}) async {
+    for (var i = 0; i < 80; i++) {
+      if (find.byKey(Key(key)).hitTestable().evaluate().isNotEmpty) {
+        await tester.tap(find.byKey(Key(key)).hitTestable());
+        await tester.pumpAndSettle();
+        return;
+      }
+      await tester.drag(find.byKey(const Key('shop.dial')), Offset(step, 0));
+      await tester.pumpAndSettle();
+    }
+    fail('$key never came round on the dial');
+  }
 
-  testWidgets('si prova davanti allo specchio, si compra, si indossa', (tester) async {
+  String tagName(WidgetTester tester) => tester
+      .widgetList<Text>(find.descendant(of: find.byKey(const Key('shop.tag')), matching: find.byType(Text)))
+      .first
+      .data!;
+
+  String coins(WidgetTester tester) => tester.widget<Text>(find.byKey(const Key('purse.coins'))).data!;
+
+  testWidgets('un reparto dai medaglioni, la ruota, si compra, si indossa', (tester) async {
     online.award('me', coins: 1000);
     await open(tester);
     expect(find.text('LA BOTTEGA'), findsOneWidget);
-    expect(find.text('IN VETRINA'), findsOneWidget);
-    expect(coins(tester), '1000');
+    expect(find.byKey(const Key('shop.dept.window')), findsOneWidget);
+    expect(coins(tester), '1.000');
 
-    await tab(tester, 'hats');
+    await dept(tester, 'hats');
+    // Turning the dial puts another piece under the notch, and on the bust.
+    final before = tagName(tester);
+    await tester.drag(find.byKey(const Key('shop.dial')), const Offset(-120, 0));
     await tester.pumpAndSettle();
-    await show(tester, 'shop.item.hat.borsalino');
-    await tester.tap(find.byKey(const Key('shop.item.hat.borsalino')));
-    await tester.pumpAndSettle();
-    expect(find.text('Borsalino · Raro'), findsOneWidget);
+    expect(tagName(tester), isNot(before));
+
+    await pick(tester, 'shop.item.hat.borsalino');
+    expect(tagName(tester), 'Borsalino');
     expect(find.text('COMPRA'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('shop.action')));
@@ -75,94 +87,64 @@ void main() {
     await tester.pumpAndSettle();
     expect(online.profileOf('me')!.avatar['hat'], 'borsalino');
     expect(find.text('TOGLI'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('shop.tryOn.back')));
-    await tester.pumpAndSettle();
-    expect(find.text('INDOSSATO'), findsWidgets, reason: 'sulla fascia del pezzo, nello scaffale');
   });
 
   testWidgets('senza monete il padrone non fa credito', (tester) async {
     online.award('me', coins: 300);
     await open(tester);
-    await tab(tester, 'hats');
-    await tester.pumpAndSettle();
-    await show(tester, 'shop.item.hat.topHat');
-    await tester.tap(find.byKey(const Key('shop.item.hat.topHat')));
-    await tester.pumpAndSettle();
+    await dept(tester, 'hats');
+    await pick(tester, 'shop.item.hat.topHat');
     await tester.tap(find.byKey(const Key('shop.action')));
     await tester.pumpAndSettle();
-    expect(find.text('Ti mancano 400 monete.'), findsOneWidget);
+    expect(find.textContaining('Ti mancano'), findsOneWidget);
     expect(find.byKey(const Key('shop.confirm')), findsNothing);
     expect(coins(tester), '300');
   });
 
-  testWidgets('nel guardaroba c\'è solo quello che si possiede', (tester) async {
+  testWidgets('«Miei» lascia sulla ruota solo quello che si possiede', (tester) async {
     online.award('me', coins: 1100);
     await online.shop.buy('outfit.grey_flannel');
     await open(tester);
-    await tab(tester, 'wardrobe');
+    await dept(tester, 'outfit');
+    await tester.tap(find.byKey(const Key('shop.filter.mine')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('shop.slot.outfit')));
-    await tester.pumpAndSettle();
-    await show(tester, 'shop.item.outfit.grey_flannel');
-    expect(find.byKey(const Key('shop.item.outfit.grey_flannel')), findsOneWidget);
-    expect(find.byKey(const Key('shop.item.outfit.white_dinner')), findsNothing);
-    await show(tester, 'shop.item.outfit.charcoal_pinstripe');
-    expect(find.byKey(const Key('shop.item.outfit.charcoal_pinstripe')), findsOneWidget, reason: 'la base è di tutti');
-    await show(tester, 'shop.item.outfit.grey_flannel');
-
-    await tester.tap(find.byKey(const Key('shop.item.outfit.grey_flannel')));
-    await tester.pumpAndSettle();
+    await pick(tester, 'shop.item.outfit.grey_flannel', step: 90);
     await tester.tap(find.byKey(const Key('shop.action')));
     await tester.pumpAndSettle();
     expect(online.profileOf('me')!.avatar['outfit'], 'grey_flannel');
+    // Nothing for sale comes round: every piece left is owned or the house's.
+    for (var i = 0; i < 6; i++) {
+      expect(find.text('COMPRA'), findsNothing);
+      await tester.drag(find.byKey(const Key('shop.dial')), const Offset(-100, 0));
+      await tester.pumpAndSettle();
+    }
   });
 
-  testWidgets('le firme sono insegne grandi: si apre una casa e si torna indietro', (tester) async {
+  testWidgets('il foglio dei filtri: la classe', (tester) async {
     await open(tester);
-    await tab(tester, 'brands');
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('shop.brand.vaugirard')), findsOneWidget);
-    await tester.tap(find.byKey(const Key('shop.brand.vaugirard')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('shop.item.outfit.vaugirard_travel')), findsOneWidget);
-    await tester.tap(find.byKey(const Key('shop.opened.back')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('shop.brand.arminio')), findsOneWidget);
-  });
-
-  testWidgets('i filtri: la classe e il portafoglio', (tester) async {
-    online.award('me', coins: 400);
-    await open(tester);
-    await tab(tester, 'hats');
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byKey(const Key('shop.affordable')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('shop.affordable')));
-    await tester.pumpAndSettle();
-    expect(find.text('RARO'), findsNothing);
-    expect(find.text('COMUNE'), findsWidgets);
-    await tester.tap(find.byKey(const Key('shop.affordable')));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byKey(const Key('shop.rarity.raro')));
+    await dept(tester, 'hats');
+    final all = tester.widget<Text>(find.byKey(const Key('shop.count'))).data!;
+    await tester.tap(find.byKey(const Key('shop.filters')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('shop.rarity.raro')));
     await tester.pumpAndSettle();
-    expect(find.text('COMUNE'), findsNothing);
-    expect(find.byKey(const Key('shop.item.hat.borsalino')), findsOneWidget);
+    await tester.tapAt(const Offset(20, 80));
+    await tester.pumpAndSettle();
+    expect(tester.widget<Text>(find.byKey(const Key('shop.count'))).data, isNot(all));
+    expect(find.text('RARO'), findsOneWidget, reason: 'il pezzo sotto la tacca è raro');
+    await pick(tester, 'shop.item.hat.borsalino');
+    expect(tagName(tester), 'Borsalino');
   });
 
-  testWidgets('i pacchetti: lo sconto, i pezzi uno per uno, si compra tutto', (tester) async {
+  testWidgets('la vetrina: i completi, lo sconto, si compra tutto', (tester) async {
     online.award('me', coins: 2500);
     await open(tester);
-    expect(find.byKey(const Key('shop.bundle.pirata')), findsOneWidget, reason: 'in vetrina, il completo che conviene');
-    await tab(tester, 'bundles');
+    expect(find.byKey(const Key('shop.section.featured')), findsOneWidget, reason: 'i pezzi a tempo, con la data del server');
+    await tester.tap(find.byKey(const Key('shop.section.sets')));
     await tester.pumpAndSettle();
-    expect(find.text('RISPARMI IL 35%'), findsWidgets);
-    await tester.tap(find.byKey(const Key('shop.bundle.detective')));
-    await tester.pumpAndSettle();
-    expect(find.text('Il Detective'), findsOneWidget);
-    expect(find.text('3200'), findsOneWidget, reason: 'la somma dei pezzi, barrata');
-    expect(find.text('1800'), findsOneWidget, reason: 'ogni pezzo col suo prezzo da solo');
+    await pick(tester, 'shop.bundle.detective');
+    expect(tagName(tester), 'Il Detective');
+    expect(find.text('RISPARMI IL 35%'), findsOneWidget);
     await tester.tap(find.byKey(const Key('shop.bundle.buy')));
     await tester.pumpAndSettle();
     expect(find.text('Comprare Il Detective?'), findsOneWidget);

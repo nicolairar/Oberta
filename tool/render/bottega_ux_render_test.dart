@@ -119,16 +119,15 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
     }
     await _shot(tester, 'iphone_window', 2);
-    await tester.ensureVisible(find.byKey(const Key('shop.tab.tailoring')));
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.tap(find.byKey(const Key('shop.tab.tailoring')));
-    await tester.pump(const Duration(milliseconds: 300));
-    await _shot(tester, 'iphone_tailoring', 2);
-    await tester.tap(
-      find.byWidgetPredicate((w) => w.key is ValueKey<String> && (w.key! as ValueKey<String>).value.startsWith('shop.item.')).first,
-    );
+    await tester.tap(find.byKey(const Key('shop.section.sets')));
     await tester.pump(const Duration(milliseconds: 600));
-    await _shot(tester, 'iphone_try_on', 2);
+    await _shot(tester, 'iphone_sets', 2);
+    await tester.tap(find.byKey(const Key('shop.dept.hats')));
+    await tester.pump(const Duration(milliseconds: 600));
+    await _shot(tester, 'iphone_hats', 2);
+    await tester.drag(find.byKey(const Key('shop.dial')), const Offset(-200, 0));
+    await tester.pump(const Duration(milliseconds: 600));
+    await _shot(tester, 'iphone_hats_turned', 2);
   });
 
   testWidgets('bottega desktop', (tester) async {
@@ -146,5 +145,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
     }
     await _shot(tester, 'desktop_window', 1);
+    await tester.tap(find.byKey(const Key('shop.dept.hats')));
+    await tester.pump(const Duration(milliseconds: 600));
+    await _shot(tester, 'desktop_hats', 1);
   });
 }

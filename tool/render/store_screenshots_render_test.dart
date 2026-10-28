@@ -333,11 +333,9 @@ Future<void> _still(WidgetTester tester, String device, AppLanguage language) as
   for (var i = 0; i < 10; i++) {
     await tester.pump(const Duration(milliseconds: 50));
   }
-  final bundles = find.byKey(const Key('shop.tab.bundles'));
-  if (bundles.evaluate().isNotEmpty) {
-    await tester.ensureVisible(bundles);
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.tap(bundles);
+  final hats = find.byKey(const Key('shop.dept.hats'));
+  if (hats.evaluate().isNotEmpty) {
+    await tester.tap(hats);
     await tester.pump(const Duration(milliseconds: 500));
   }
   await _shot(tester, device, language, 'shop');

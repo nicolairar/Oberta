@@ -1,7 +1,13 @@
+import 'dart:math';
+
 import '../online/shop_models.dart';
 
-/// I reparti della bottega, nell'ordine delle linguette.
-enum ShopTab { window, bundles, tailoring, hats, accessories, brands, oddities, calcio, frames, gestures, wardrobe }
+/// I reparti della bottega, i medaglioni in fila: la vetrina, poi un posto
+/// del corpo per medaglione.
+enum ShopDept { window, hats, face, outfit, vice, frames, gestures }
+
+/// Chi possiede che cosa, per il filtro: tutto, solo il mio, da comprare.
+enum ShopOwnership { all, mine, toBuy }
 
 /// I testi della bottega: il bancone, lo specchio e il guardaroba. Come
 /// [OnlineStrings], ogni lingua dice tutto e ogni testo finisce nel [catalog].
@@ -46,8 +52,20 @@ abstract class ShopStrings {
   String get calcioHint;
   String brandTagline(ShopBrand brand);
 
-  /// Le linguette della bottega, una per reparto.
-  String tab(ShopTab tab);
+  /// Il nome di un reparto, sotto il suo medaglione.
+  String dept(ShopDept dept);
+
+  /// I filtri e la ricerca.
+  String ownership(ShopOwnership ownership);
+  String get filters;
+  String get rarityFilter;
+  String get collectionFilter;
+  String get clearFilters;
+  String get search;
+  String count(int shown, int total);
+
+  /// Il tempo che resta a un pezzo in vetrina: 2g 14h, 5h, 40m.
+  String timeLeft(Duration left);
 
   /// L'insegna appesa nel vicolo, e il cartellino della vetrina nuova.
   String get homeSign;
@@ -112,7 +130,15 @@ abstract class ShopStrings {
     'oddities': oddities,
     'calcioHint': calcioHint,
     for (final b in ShopBrand.values) 'brand.${b.name}': brandTagline(b),
-    for (final tab in ShopTab.values) 'tab.${tab.name}': this.tab(tab),
+    for (final d in ShopDept.values) 'dept.${d.name}': dept(d),
+    for (final o in ShopOwnership.values) 'ownership.${o.name}': ownership(o),
+    'filters': filters,
+    'rarityFilter': rarityFilter,
+    'collectionFilter': collectionFilter,
+    'clearFilters': clearFilters,
+    'search': search,
+    'count': count(5, 48),
+    'timeLeft': timeLeft(const Duration(days: 2, hours: 14)),
     'homeSign': homeSign,
     'fresh': fresh,
     'allRarities': allRarities,
@@ -231,19 +257,40 @@ class ItalianShopStrings extends ShopStrings {
     ShopBrand.adelphi => 'Atletica dei due fratelli',
   };
   @override
-  String tab(ShopTab tab) => switch (tab) {
-    ShopTab.window => 'Vetrina',
-    ShopTab.bundles => 'Pacchetti',
-    ShopTab.tailoring => 'Sartoria',
-    ShopTab.hats => 'Cappelleria',
-    ShopTab.accessories => 'Accessori',
-    ShopTab.brands => 'Firme',
-    ShopTab.oddities => 'Stramberie',
-    ShopTab.calcio => 'Calcio',
-    ShopTab.frames => 'Cornici & nomi',
-    ShopTab.gestures => 'Gesti',
-    ShopTab.wardrobe => 'Armadio',
+  String dept(ShopDept dept) => switch (dept) {
+    ShopDept.window => 'Vetrina',
+    ShopDept.hats => 'Cappello',
+    ShopDept.face => 'Volto',
+    ShopDept.outfit => 'Abito',
+    ShopDept.vice => 'Vizio',
+    ShopDept.frames => 'Cornice',
+    ShopDept.gestures => 'Gesti',
   };
+  @override
+  String ownership(ShopOwnership ownership) => switch (ownership) {
+    ShopOwnership.all => 'Tutti',
+    ShopOwnership.mine => 'Miei',
+    ShopOwnership.toBuy => 'Da comprare',
+  };
+  @override
+  String get filters => 'Filtri';
+  @override
+  String get rarityFilter => 'Classe';
+  @override
+  String get collectionFilter => 'Collezione';
+  @override
+  String get clearFilters => 'Azzera';
+  @override
+  String get search => 'Cerca un pezzo';
+  @override
+  String count(int shown, int total) => shown == total ? pieces(total) : '$shown di $total';
+  @override
+  String timeLeft(Duration left) => left.inDays >= 1
+      ? '${left.inDays}g ${left.inHours % 24}h'
+      : left.inHours >= 1
+      ? '${left.inHours}h'
+      : '${max(1, left.inMinutes)}m';
+
   @override
   String get homeSign => 'BOTTEGA';
   @override
@@ -388,19 +435,40 @@ class EnglishShopStrings extends ShopStrings {
     ShopBrand.adelphi => 'Athletics of two brothers',
   };
   @override
-  String tab(ShopTab tab) => switch (tab) {
-    ShopTab.window => 'Window',
-    ShopTab.bundles => 'Bundles',
-    ShopTab.tailoring => 'Tailoring',
-    ShopTab.hats => 'Hats',
-    ShopTab.accessories => 'Accessories',
-    ShopTab.brands => 'Labels',
-    ShopTab.oddities => 'Oddities',
-    ShopTab.calcio => 'Football',
-    ShopTab.frames => 'Frames & names',
-    ShopTab.gestures => 'Gestures',
-    ShopTab.wardrobe => 'Wardrobe',
+  String dept(ShopDept dept) => switch (dept) {
+    ShopDept.window => 'Window',
+    ShopDept.hats => 'Hats',
+    ShopDept.face => 'Face',
+    ShopDept.outfit => 'Suits',
+    ShopDept.vice => 'Vices',
+    ShopDept.frames => 'Frames',
+    ShopDept.gestures => 'Gestures',
   };
+  @override
+  String ownership(ShopOwnership ownership) => switch (ownership) {
+    ShopOwnership.all => 'All',
+    ShopOwnership.mine => 'Mine',
+    ShopOwnership.toBuy => 'To buy',
+  };
+  @override
+  String get filters => 'Filters';
+  @override
+  String get rarityFilter => 'Class';
+  @override
+  String get collectionFilter => 'Collection';
+  @override
+  String get clearFilters => 'Clear';
+  @override
+  String get search => 'Search a piece';
+  @override
+  String count(int shown, int total) => shown == total ? pieces(total) : '$shown of $total';
+  @override
+  String timeLeft(Duration left) => left.inDays >= 1
+      ? '${left.inDays}d ${left.inHours % 24}h'
+      : left.inHours >= 1
+      ? '${left.inHours}h'
+      : '${max(1, left.inMinutes)}m';
+
   @override
   String get homeSign => 'TAILOR';
   @override

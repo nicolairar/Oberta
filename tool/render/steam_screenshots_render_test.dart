@@ -259,7 +259,8 @@ Future<void> _menus(WidgetTester tester, AppLanguage language) async {
   final account = OnlineAccount(online.services);
   await tester.pumpWidget(_app(ShopScreen(account: account, shop: online.shop), language));
   await _frames(tester, 20);
-  await tester.tap(find.byKey(const Key('shop.tab.bundles')));
+  final sets = find.byKey(const Key('shop.section.sets'));
+  if (sets.evaluate().isNotEmpty) await tester.tap(sets);
   await _frames(tester, 6);
   final bundle = find.byKey(const Key('shop.bundle.padrino'));
   if (bundle.evaluate().isNotEmpty) {

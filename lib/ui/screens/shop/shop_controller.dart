@@ -1,11 +1,49 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../l10n/app_language.dart';
+import '../../../l10n/shop_strings.dart';
+
 import '../../../online/online_account.dart';
 import '../../../online/online_services.dart';
 import '../../avatar/avatar_look.dart';
 
 /// Quello che la bottega sa di un pezzo, per chi la guarda adesso.
 enum ItemState { forSale, owned, worn }
+
+/// I posti del corpo di ogni reparto.
+const deptSlots = <ShopDept, List<String>>{
+  ShopDept.window: [],
+  ShopDept.hats: ['hat', 'hairdo'],
+  ShopDept.face: ['face', 'glasses', 'tattoo'],
+  ShopDept.outfit: ['outfit'],
+  ShopDept.vice: ['accessory'],
+  ShopDept.frames: ['border', 'nameStyle'],
+  ShopDept.gestures: ['gesture'],
+};
+
+/// Come si stringe uno scaffale: chi possiede, la classe, la casa o la
+/// collezione ([ShopBrand] o [ShopCollection]), e le parole cercate.
+@immutable
+class ShopFilter {
+  final ShopOwnership own;
+  final ShopRarity? rarity;
+  final Object? collection;
+  final String query;
+
+  const ShopFilter({this.own = ShopOwnership.all, this.rarity, this.collection, this.query = ''});
+
+  /// Quanti filtri del foglio sono accesi (la classe e la collezione).
+  int get extra => (rarity == null ? 0 : 1) + (collection == null ? 0 : 1);
+
+  ShopFilter copyWith({ShopOwnership? own, ShopRarity? Function()? rarity, Object? Function()? collection, String? query}) => ShopFilter(
+    own: own ?? this.own,
+    rarity: rarity == null ? this.rarity : rarity(),
+    collection: collection == null ? this.collection : collection(),
+    query: query ?? this.query,
+  );
+
+  static Object? collectionOf(ShopItem item) => item.brand ?? item.collection;
+}
 
 /// La bottega aperta: il catalogo, la vetrina, quello che si possiede, e il
 /// pezzo in prova davanti allo specchio. Comprare e indossare chiedono al
@@ -102,6 +140,55 @@ class ShopController extends ChangeNotifier {
       for (final item in catalog)
         if (item.slot == slot && item.free == free && drawable(item) && (free || owned.contains(item.id))) item,
   ];
+
+  /// I pezzi di un reparto che si sanno disegnare, di casa compresi.
+  List<ShopItem> deptItems(ShopDept dept) => [
+    for (final item in catalog)
+      if (deptSlots[dept]!.contains(item.slot) && drawable(item)) item,
+  ];
+
+  /// Il pezzo comprato che si porta adesso in un reparto, o null.
+  ShopItem? wornIn(ShopDept dept) =>
+      deptItems(dept).where((item) => !item.free && !item.isGesture && stateOf(item) == ItemState.worn).firstOrNull;
+
+  /// Le case e le collezioni che hanno pezzi in [items], in ordine.
+  static List<Object> collectionsIn(List<ShopItem> items) => [
+    for (final brand in ShopBrand.values)
+      if (items.any((item) => item.brand == brand)) brand,
+    for (final collection in ShopCollection.values)
+      if (items.any((item) => item.collection == collection)) collection,
+  ];
+
+  /// [items] stretti da [filter].
+  List<ShopItem> filtered(List<ShopItem> items, ShopFilter filter, AppLanguage language) {
+    final words = filter.query.trim().toLowerCase();
+    return [
+      for (final item in items)
+        if ((filter.rarity == null || item.rarity == filter.rarity) &&
+            (filter.collection == null || ShopFilter.collectionOf(item) == filter.collection) &&
+            switch (filter.own) {
+              ShopOwnership.all => true,
+              ShopOwnership.mine => stateOf(item) != ItemState.forSale,
+              ShopOwnership.toBuy => stateOf(item) == ItemState.forSale,
+            } &&
+            (words.isEmpty || item.name(language).toLowerCase().contains(words) || (item.brand?.label.toLowerCase().contains(words) ?? false)))
+          item,
+    ];
+  }
+
+  /// I pezzi in vetrina che non sono ancora scaduti, e quando scade il primo.
+  List<(ShopItem, ShopFeature)> liveWindow(DateTime now) => [
+    for (final entry in window)
+      if (now.isBefore(entry.$2.endsAt)) entry,
+  ];
+
+  DateTime? windowEnds(DateTime now) {
+    DateTime? first;
+    for (final (_, feature) in liveWindow(now)) {
+      if (first == null || feature.endsAt.isBefore(first)) first = feature.endsAt;
+    }
+    return first;
+  }
 
   /// La vetrina di adesso, solo i pezzi che si sanno disegnare.
   List<(ShopItem, ShopFeature)> get window => [

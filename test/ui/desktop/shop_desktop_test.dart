@@ -18,36 +18,26 @@ void main() {
         final account = OnlineAccount(online.services);
         await shootDesktopPage(tester, 'shop_$label', (_) => ShopScreen(account: account, shop: online.shop));
 
-        // Un reparto: la griglia a sinistra, lo specchio grande a destra.
-        await tester.tap(find.byKey(const Key('shop.tab.hats')));
+        // Un reparto dalla colonna di sinistra; la ricerca stringe la vetrinetta.
+        await tester.tap(find.byKey(const Key('shop.dept.hats')));
         await desktopFrames(tester, 6);
-        await tester.scrollUntilVisible(
-          find.byKey(const Key('shop.item.hat.borsalino')),
-          300,
-          scrollable: find.descendant(of: find.byKey(const Key('shop.grid')), matching: find.byType(Scrollable)).first,
-        );
-        await tester.ensureVisible(find.byKey(const Key('shop.item.hat.borsalino')));
-        await desktopFrames(tester, 4);
+        await tester.enterText(find.byKey(const Key('shop.search')), 'borsa');
+        await desktopFrames(tester, 6);
+        expect(find.byKey(const Key('shop.item.hat.panama')), findsNothing);
         await tester.tap(find.byKey(const Key('shop.item.hat.borsalino')));
         await desktopFrames(tester, 6);
         expect(find.byKey(const Key('shop.action')), findsOneWidget);
         await saveDesktopShot(tester, 'shop_hats_$label');
 
-        // I pacchetti.
-        await tester.tap(find.byKey(const Key('shop.tab.bundles')));
+        // La vetrina: i completi, e un pacchetto sul manichino.
+        await tester.tap(find.byKey(const Key('shop.dept.window')));
         await desktopFrames(tester, 6);
-        await saveDesktopShot(tester, 'shop_bundles_$label');
-
-        // Un pacchetto cliccato va nello specchio del bancone.
+        await tester.tap(find.byKey(const Key('shop.section.sets')));
+        await desktopFrames(tester, 6);
         await tester.tap(find.byKey(const Key('shop.bundle.padrino')));
         await desktopFrames(tester, 6);
         expect(find.byKey(const Key('shop.bundle.buy')), findsOneWidget);
         await saveDesktopShot(tester, 'shop_bundle_open_$label');
-
-        // Le firme.
-        await tester.tap(find.byKey(const Key('shop.tab.brands')));
-        await desktopFrames(tester, 6);
-        await saveDesktopShot(tester, 'shop_brands_$label');
         await tester.pumpWidget(const SizedBox());
       });
 
