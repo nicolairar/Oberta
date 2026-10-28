@@ -1,10 +1,24 @@
 # Ruoli: roster, livelli di potere, ruoli nuovi (28 ottobre 2026)
 
-Documento di progetto, nessun codice cambiato. Base: `lib/rules/role.dart`, `lib/rules/role_assignment.dart`, `lib/rules/game_engine.dart`, `lib/narration/italian_pack.dart`, `docs/ruoli-analisi.md` (regole di risoluzione già fissate). I numeri di bilanciamento sono valori iniziali, da tarare con la simulazione (`test/rules/new_neutrals_test.dart`).
+Documento di progetto. Le **decisioni del proprietario** (28 ottobre 2026) sono nella sezione 0 e valgono su tutto il resto; il batch 1 è già nel codice (sezione 5). Base: `lib/rules/role.dart`, `lib/rules/role_assignment.dart`, `lib/rules/game_engine.dart`, `lib/narration/italian_pack.dart`, `docs/ruoli-analisi.md` (regole di risoluzione già fissate). I numeri di bilanciamento sono valori iniziali, da tarare con la simulazione (`test/rules/new_neutrals_test.dart`).
 
 Nomi dei ruoli nuovi: quelli che i giocatori conoscono dal genere (regola del proprietario, 28 ottobre 2026); l'ambientazione anni Quaranta passa solo per illustrazioni e motti.
 
 Legenda livelli: **L0** nessun potere (o malus), **L1** base, **L2** medio, **L3** forte, **L4** super. Punti: L0 = 0, L1 = 1, L2 = 2, L3 = 3, L4 = 5 (il salto da 3 a 5 è voluto: un L4 pesa per due).
+
+---
+
+## 0. Decisioni del proprietario (finali, 28 ottobre 2026)
+
+- **Sicario:** neutrale, uccide una persona ogni notte, vince **solo se resta l'ultimo vivo** (non più "con una persona" né "con la Famiglia"). *Nel codice.*
+- **Prostituta:** della **Famiglia**; di notte passa la notte con una persona e ne blocca la mossa. *Nel codice.*
+- **Carceriere:** Città; ogni notte chiude in cella una persona: ne blocca la mossa e la protegge (anche dal fuoco); **niente esecuzione**; può interrogarla in una chat privata per quella notte (il prigioniero non sa chi è il Carceriere); mai la stessa persona due notti di fila; il prigioniero quella notte non usa la voce. *Nel codice.*
+- **Pacifista:** Città; una volta per partita, di giorno, svela a tutti il **ruolo esatto** di una persona e annulla il voto di quel giorno. *Nel codice.*
+- **Cupido:** la prima notte lega due persone, qualunque ruolo abbiano; gli innamorati vincono solo se sono **vivi tutti e due a fine partita** (qualunque squadra vinca); se uno muore l'altro muore subito. Si conoscono (e hanno una chat privata). *Batch successivo.*
+- **Presidente:** ammesso **sia in classificata sia tra amici** (nessuna differenza); tutti sanno chi è dall'inizio; la scorta lo salva dalle prime **due notti di attacco** (più attaccanti nella stessa notte contano come un attacco solo), con un'animazione dedicata; la terza notte in cui lo attaccano muore; se muore il Presidente la Città perde. *Batch successivo.*
+- **Capo della setta:** neutrale; ogni notte converte una persona; vince quando tutti i vivi sono della setta; se muore la setta si scioglie e non succede altro; il Commissario **non** vede i convertiti; solo il Capo vede l'elenco della setta: i convertiti **non** sanno chi è il Capo né chi altro è nella setta (sanno solo di essere stati convertiti e che ora vincono con la setta). *Batch successivo.*
+- **Cecchino** resta per i tavoli piccoli; **Tiratore scelto** per i tavoli grandi (meccanica in attesa della conferma finale: mira di notte, il giorno dopo spara o cambia mira, 2 colpi, muore se spara a un cittadino della Città, i neutrali non lo uccidono).
+- **Classificata e stanze degli amici** usano lo stesso roster e le stesse regole dei livelli.
 
 ---
 
@@ -32,7 +46,10 @@ Legenda livelli: **L0** nessun potere (o malus), **L1** base, **L2** medio, **L3
 | Il Piromane | `piromane` | Neutrale ostile | Cosparge o accende; fuoco inarrestabile | 11 | L4 | Dal 20 ottobre nessuno lo ferma: unico contrasto è il linciaggio. La cella del Carceriere (nuovo) sarebbe il primo contrasto notturno. |
 | Il Cacciatore di taglie | `cacciatore` | Neutrale | Vince se la sua taglia viene linciata; se muore altrimenti passa con la Città | 9 | L2 | **È già il "Cacciatore di teste" chiesto.** Unica differenza: dopo la taglia scaduta la carta dovrebbe mostrare "Ora sei un Onesto" (oggi passa con la Città senza dirlo chiaro). |
 | Lo Strozzino | `strozzino` | Neutrale | Ogni notte protegge uno; vince se vivo a fine partita | 10 | L1 | È un secondo Dottore che non sceglie parte: aiuta chi protegge, quindi ok. |
-| Il Sicario | `sicario` | Neutrale ostile | Uccide ogni notte; risulta della Famiglia | 12 | L3 | Ok, fermabile da protezioni. |
+| Il Sicario | `sicario` | Neutrale ostile | Uccide ogni notte; risulta della Famiglia; vince solo se resta l'ultimo vivo | 12 | L3 | Ok, fermabile da protezioni e dalla cella. |
+| La Prostituta | `prostituta` | Famiglia | Blocca la mossa notturna di una persona; non vota l'agguato (lo vota se resta l'unica che può) | 9 | L2 | Solo online. |
+| Il Carceriere | `carceriere` | Città | Chiude in cella: blocca e protegge (anche dal fuoco); chat anonima | 8 | L3 | Solo online. |
+| Il Pacifista | `pacifista` | Città | Una volta, di giorno: ruolo esatto di uno a tutti, niente voto | 9 | L2 | Solo online. |
 
 **Altre incoerenze trovate**
 - `ruoli-analisi.md` dice "cittadini speciali al massimo il 40%", il codice (`maxSpecialCitizensFor`) usa due terzi. Va deciso quale vale.
@@ -46,50 +63,79 @@ Legenda livelli: **L0** nessun potere (o malus), **L1** base, **L2** medio, **L3
 
 | Liv. | Città | Famiglia (poteri) | Neutrali |
 |---|---|---|---|
-| L0 | Onesto (0), Pregiudicato (−1), Presidente (−2, variante) | Picciotto (base) | — |
+| L0 | Onesto (0), Pregiudicato (−1), Presidente (−2) | Picciotto (base) | — |
 | L1 | Becchino, Reduce, Sindaco, Portinaio, Cupido | Compare | Fesso, Strozzino |
 | L2 | Dottore, Cecchino, Cronista, Guardaspalle, Messia, Pacifista | Padrino, Sarto, Prostituta | Cacciatore di taglie |
 | L3 | Commissario, Carceriere, Artigliere, Tiratore scelto | — | Sicario |
 | L4 | — | — | Piromane, Capo della setta |
 
-### 2.2 Regole del mazzo (classificata e mazzo automatico)
+### 2.2 Regole del mazzo (classificata e stanze degli amici, uguali)
 
-Restano tutte quelle di oggi (`mafiaCountFor`, `maxFamilyPowersFor`, tetti per categoria, `neutralFits`, Compare solo online). Si aggiungono:
+Nel codice (`lib/rules/role_assignment.dart`, campo `tier` in `RoleRule`, punti in `RoleInfo.points`). Restano quelle di prima (`maxFamilyPowersFor`, tetti per categoria, `neutralFits`, Compare e ruoli nuovi solo online). In più, con i valori tarati dalla simulazione (2.5):
 
-1. **Bilancio della Città** `V(n)`: somma dei punti dei cittadini speciali ≤ `V(n)`. Con un neutrale L4 al tavolo, `V(n)` +1.
-2. **Bilancio della Famiglia** `F(n)`: punti dei poteri di Famiglia ≤ `F(n)`.
-3. **Bilancio neutrali** `N(n)`: punti dei neutrali ≤ `N(n)`.
-4. **Al massimo un L4 per tavolo**, e solo da 11 giocatori.
-5. **L3 della Città:** al massimo uno sotto i 9 giocatori, due da 9.
-6. **Colpo extra** (Cecchino, Artigliere, Tiratore): uno solo, e mai con Piromane o Sicario (come oggi).
-7. **Contrappeso:** da 7 giocatori, se la Città usa almeno `V(n) − 1` punti, la Famiglia riceve almeno un potere (se ce n'è uno ammesso).
-8. **Sempre qualcuno che uccide** nella Famiglia: Compare e Prostituta non votano l'agguato.
+1. **Famiglia** (`mafiaCountFor`): 1 fino a 6 giocatori, 2 da 7 a **11** (prima 3 a 11: la Famiglia vinceva due partite su tre), 3 a 12.
+2. **Bilancio della Città** `V(n)` (`cityBudgetFor`): somma dei punti dei cittadini speciali ≤ `V(n)`; con un neutrale L4 al tavolo, +1.
+3. **Bilancio della Famiglia** `F(n)` (`familyBudgetFor`): punti dei poteri di Famiglia ≤ `F(n)`.
+4. **Bilancio neutrali** `N(n)` (`neutralBudgetFor`): punti dei neutrali ≤ `N(n)`, e al massimo un neutrale L3/L4.
+5. **Al massimo un L4 per tavolo**, e solo da 11 giocatori.
+6. **L3 della Città** (`maxStrongCitizensFor`): al massimo uno sotto gli 8 giocatori, due da 8.
+7. **Colpo extra** (Cecchino, poi Artigliere e Tiratore): uno solo, mai con Piromane o Sicario.
+8. **Contrappeso:** da 7 giocatori, se la Città usa almeno `V(n) − 1` punti e la Famiglia non ha poteri, un Picciotto ne riceve uno (se ce n'è uno ammesso dentro `F(n)`).
+9. **Sempre qualcuno che vota l'agguato** nella Famiglia: la Prostituta non lo vota (finché c'è un altro della Famiglia che può).
+10. **Neutrali** almeno uno da 9 giocatori (prima da 8), due da 11.
 
-### 2.3 Tabella per numero di giocatori (con i ruoli nuovi)
+| n | Famiglia | F(n) | N(n) | V(n) | L3 città max |
+|---|---|---|---|---|---|
+| 4–6 | 1 | 0 | 0 | 3 | 1 |
+| 7 | 2 | 0 | 0 | 8 | 1 |
+| 8 | 2 | 0 | 2 | 8 | 2 |
+| 9 | 2 | 2 | 2 | 8 | 2 |
+| 10 | 2 | 2 | 2 | 7 | 2 |
+| 11 | 2 | 2 | 7 | 9 | 2 |
+| 12 | 3 | 4 | 7 | 10 | 2 |
 
-| n | Famiglia | Poteri fam. (F) | Neutrali (N) | Speciali città max | V(n) | Ruoli che entrano da qui | Mazzo d'esempio |
-|---|---|---|---|---|---|---|---|
-| 4 | 1 | 0 | 0 | 2 | 3 | Commissario | Picciotto · Commissario · 2 Onesti |
-| 5 | 1 | 0 | 0 | 2 | 5 | Dottore | Picciotto · Commissario, Dottore · 2 Onesti |
-| 6 | 1 | 0 | 0 | 3 | 5 | — | Picciotto · Commissario, Dottore · 3 Onesti |
-| 7 | 2 | 2 | 0 | 3 | 5 | Sarto, Compare, Cecchino | Picciotto, Sarto · Commissario, Dottore · 3 Onesti |
-| 8 | 2 | 2 | 1 (≤2) | 4 | 6 | Cronista, Becchino, Fesso, **Carceriere** | 2 Picciotti · Fesso · Carceriere, Dottore, Becchino · 2 Onesti |
-| 9 | 2 | 2 | 1 (≤2) | 4 | 7 | Guardaspalle, Reduce, Sindaco, Portinaio, Cacciatore, **Prostituta, Pacifista, Tiratore, Cupido** | Picciotto, Prostituta · Cacciatore · Commissario, Guardaspalle, Pacifista · 3 Onesti |
-| 10 | 2 | 2 | 1 (≤2) | 5 | 8 | Padrino, Pregiudicato, Messia, Strozzino, **Artigliere, Presidente (variante)** | Padrino, Picciotto · Strozzino · Carceriere, Dottore, Reduce, Sindaco · 3 Onesti |
-| 11 | 3 | 4 | 2 (≤7, un solo L3/L4) | 5 | 9 | Piromane, **Capo della setta** | Picciotto ×2, Sarto · Capo della setta, Fesso · Commissario, Dottore, Tiratore · 3 Onesti |
-| 12 | 3 | 4 | 2 (≤7, un solo L3/L4) | 6 | 10 | Sicario | Picciotto, Padrino, Prostituta · Sicario, Strozzino · Carceriere, Commissario, Guardaspalle, Portinaio · 3 Onesti |
+### 2.3 Chi entra da quanti giocatori
 
-Nota: a 11–12 con un L4 il bilancio città sale a 10/11. "Speciali città max" include i neutrali (come oggi `maxSpecialCitizensFor`).
+| n | Ruoli che entrano da qui |
+|---|---|
+| 4 | Commissario |
+| 5 | Dottore |
+| 7 | Sarto, Compare, Cecchino |
+| 8 | Cronista, Becchino, Fesso, **Carceriere** |
+| 9 | Guardaspalle, Reduce, Sindaco, Portinaio, Cacciatore, **Prostituta, Pacifista** (poi Tiratore, Cupido) |
+| 10 | Padrino, Pregiudicato, Messia, Strozzino (poi Artigliere, Presidente) |
+| 11 | Piromane (poi Capo della setta) |
+| 12 | Sicario |
 
-### 2.4 Classificata contro stanze degli amici
+### 2.4 Classificata e stanze degli amici
 
-| | Classificata | Stanza degli amici |
-|---|---|---|
-| Mazzo | Sempre automatico, con seme, regole 2.2 tutte rigide | Tre modi: **automatico**; **scegli i ruoli** (l'host spegne/accende ruoli, il generatore pesca solo da quelli rispettando i bilanci); **a mano** (l'host compone il mazzo esatto) |
-| Ruoli ammessi | Solo ruoli "collaudati" (vedi batch); niente varianti (Presidente) | Tutti, varianti comprese |
-| Regole rigide anche a mano | — | Famiglia tra 1 e meno della metà del tavolo; almeno un killer in Famiglia; al massimo un L4; al massimo uno che vince col linciaggio; Compare (e chat di cella, innamorati, setta) solo online |
-| Bilanci | Rigidi | Solo avviso: barra "Città 9/8 · Famiglia 2/2" e la scritta *«Mazzo sbilanciato: la Città è favorita.»* L'host può giocare lo stesso |
-| Punteggio | OpenSkill per lingua | Solo XP e monete (come oggi) |
+Decisione del proprietario: **stesso roster, stesse regole dei livelli** (2.2) in classificata e tra amici, Presidente compreso. Restano diversi solo il punteggio (OpenSkill per lingua in classificata; XP e monete in tutte e due) e, più avanti, i modi "scegli i ruoli" e "a mano" delle stanze degli amici, che devono comunque rispettare le regole rigide (Famiglia tra 1 e meno della metà del tavolo, sempre un killer, al massimo un L4, al massimo uno che vince col linciaggio, ruoli con chat solo online).
+
+### 2.5 Simulazione del bilanciamento
+
+`tool/balance/simulate.dart` (3000 partite per tavolo; `lib/online/game/deck_balance.dart`): mazzo automatico online, tutti bot del server (`BotBrain`). I bot da soli votano quasi a caso mentre la Famiglia si conosce, e così la Famiglia vince qualunque mazzo; per simulare un tavolo vero al voto ogni non-mafioso, con probabilità 0,3 (il "fiuto"), punta qualcuno della Famiglia. Con questo fiuto il tavolo più semplice (4 giocatori: Picciotto, Commissario, due Onesti) sta alla pari. `test/online/deck_balance_test.dart` rifà una versione corta a ogni `flutter test`.
+
+**Con le regole di 2.2 (ruoli nuovi compresi):**
+
+| n | Città | Famiglia | Neutrali |
+|---|---|---|---|
+| 4 | 53% | 47% | 0% |
+| 5 | 56% | 44% | 0% |
+| 6 | **75%** | 25% | 0% |
+| 7 | 25% | **75%** | 0% |
+| 8 | 40% | 60% | 0% |
+| 9 | 45% | 44% | 10% |
+| 10 | 59% | 33% | 8% |
+| 11 | 52% | 22% | 26% |
+| 12 | 26% | 52% | 22% |
+
+Senza i tre ruoli nuovi i numeri cambiano di 1–3 punti al massimo (stessa tabella: 4: 52/48, 6: 76/24, 7: 25/75, 8: 39/61, 10: 60/33/7, 12: 24/55/20): i ruoli nuovi non sbilanciano.
+
+**Prima della taratura** (regole del documento originale, stesso fiuto): 5: 67/33, 6: 80/20, 7: 26/74, 10: 61/33, **11: 17/67/16**. La taratura ha sistemato 5 (Città 67% → 56%), 8 (Famiglia 62% → 60%, Carceriere e due L3 da 8), 10 e soprattutto 11 (Famiglia 67% → 22%, due della Famiglia invece di tre).
+
+**Vittorie per ruolo** (chi aveva quella carta ha vinto), su tutti i tavoli: Picciotto 49%, Padrino 40%, Sarto 40%, Compare 41%, **Prostituta 40%**, Onesto 50%, Commissario 50%, Dottore 37%, Cecchino 38%, Cronista 46%, Becchino 39%, Guardaspalle 42%, Reduce 50%, Pregiudicato 47%, Messia 48%, Sindaco 45%, Portinaio 43%, **Carceriere 44%**, **Pacifista 45%**, Fesso 17%, Piromane 22%, Cacciatore 39%, Strozzino 39%, Sicario 19%. Nessun ruolo domina.
+
+**Il limite che resta: 6 e 7 giocatori.** Nella simulazione conta quasi solo quanti uccidono di notte: un mafioso su 6 perde tre volte su quattro, due su 7 vincono tre volte su quattro, qualunque potere abbia la Città (a 6 anche senza nessun ruolo speciale la Città vince il 71%; a 7 col mazzo cittadino più forte possibile, Commissario + Dottore + Cecchino, vince il 26%). Bilanci e livelli non bastano: serve una decisione sul tavolo (sezione 6).
 
 ---
 
@@ -109,15 +155,17 @@ Ordine del **giorno**: discussione (Pacifista, Artigliere, Tiratore possono agir
 - **Squadra:** Città · **Liv.:** L3 · **Da:** 8 giocatori · **Categoria:** protettore (conta nel tetto protettori).
 - **Notte:** chiude in cella una persona (non sé, mai la stessa due notti di fila). Il prigioniero: azione della notte annullata; nessuna morte lo raggiunge (agguato, Cecchino, Sicario, **fuoco compreso**: la cella è l'unica cosa che ferma il fuoco; resta cosparso). Indagini, scavo e silenzio del Sarto passano: la cella ferma le azioni *del* prigioniero e le morti *su* di lui.
 - **Nessuna esecuzione** (resta L3; un'esecuzione lo porterebbe a L4).
-- **Interrogatorio:** chat privata `cella` tra Carceriere e prigioniero per tutta la notte. Il prigioniero vede solo "Il Carceriere", mai il nome. Solo testo, niente voce (la voce lo tradirebbe).
+- **Interrogatorio:** chat privata tra Carceriere e prigioniero per quella notte (canale `jail:<notte>`, uno nuovo ogni notte). Il prigioniero vede solo "Il Carceriere", mai il nome: le righe del Carceriere non hanno profilo, posto né nome (chi le ha scritte resta in `internal.jail_authors`, per la moderazione). Solo testo: il prigioniero quella notte non ha voce (nemmeno quella della Famiglia).
+- **Quando:** la cella si chiude appena il Carceriere sceglie, e non si cambia: la mossa già fatta dal prigioniero salta e non ne può fare altre.
+- **Con chi blocca al tavolo** (Carceriere o Prostituta nel mazzo, che è pubblico) l'indagine del Commissario e lo scavo del Becchino non rispondono più subito: rispondono all'alba, e solo se chi li ha fatti non è stato fermato.
 - **Interazioni:** Picciotto/Padrino/Sarto in cella non votano l'agguato e non vedono la chat della Famiglia quella notte; se il prigioniero è l'unico killer, niente agguato. Messia, Piromane, Sicario, Capo della setta, Strozzino, Prostituta in cella: azione annullata. Dottore o Guardaspalle sul prigioniero: inutili (nessun colpo da assorbire). La Prostituta che blocca il Carceriere non libera il prigioniero (la cella viene prima). Conta come visita per il Portinaio.
-- **Telefono unico:** cella senza chat (blocca e protegge, basta).
+- **Solo online** (per ora): sul telefono unico non c'è la chat, e le risposte all'alba non si possono dare in privato.
 - **Chi vede cosa:** Carceriere: nome del prigioniero e chat. Prigioniero: *«Sei in cella.»* e la chat anonima. Famiglia (se il prigioniero è dei loro): *«Stanotte Tizio è in cella.»* Gli altri: niente; all'alba nessun annuncio.
 - **Testi:** «Chi chiudi in cella stanotte?» · «Sei in cella. Stanotte non esci.» · «Il Carceriere vuole parlarti.» · motto: «Qui dentro si parla. Fuori si muore.»
 
 ### 3.2 Il Pacifista — `pacifista`
 - **Squadra:** Città · **Liv.:** L2 · **Da:** 9 · **Categoria:** civico.
-- **Giorno, una volta per partita, solo in discussione:** sceglie una persona (non sé). Tutti vedono il **ruolo esatto** di quella persona e la carta del Pacifista diventa pubblica. Il voto di quel giorno è annullato.
+- **Giorno, una volta per partita, solo in discussione:** sceglie una persona (non sé). Tutti vedono il **ruolo esatto** di quella persona e la carta del Pacifista diventa pubblica. Il voto di quel giorno è annullato: finita la discussione si salta al verdetto («Tregua: oggi non si impicca nessuno.»). Solo online.
 - **Interazioni:** batte il Padrino (ruolo esatto, non fazione apparente) e il Pregiudicato. Il Fesso svelato quel giorno non può essere linciato. Il Sindaco non può rivelarsi quel giorno (non c'è voto). Il Sarto non lo ferma (il silenzio toglie la chat, non i bottoni). Il Pacifista rivelato diventa un bersaglio della Famiglia: il prezzo del potere.
 - **Chi vede cosa:** tutti: nome del Pacifista, nome e ruolo dello svelato. Nessun dato privato.
 - **Voce/chat:** nessun canale nuovo.
@@ -146,9 +194,11 @@ Differenza con il Cecchino: il Cecchino spara una volta, di notte, in segreto. L
 - **Interazioni:** si sposa con il Commissario (indaga e spara). In cella o bloccato dalla Prostituta: quella notte non cambia mira, ma il giorno dopo può sparare alla mira vecchia. Colpo di giorno: niente protezioni.
 - **Chi vede cosa:** lui: mira attuale, colpi rimasti. Tutti: «Un colpo dal campanile» e il morto col suo ruolo.
 - **Testi:** «Chi tieni nel mirino?» · «Spari a Tizio?» · «Il colpo ti torna indietro: era uno della Città.» · motto: «Un respiro, un colpo, un nome.»
-- **Nota:** con Artigliere e Tiratore il Cecchino diventa il colpo extra "da tavolo piccolo" (7–8 giocatori).
+- **Nota:** decisione del proprietario: il Cecchino resta per i tavoli piccoli, il Tiratore per quelli grandi. Meccanica qui sopra in attesa della conferma finale.
 
 ### 3.7 Cupido — `cupido`
+> Decisione del proprietario (sezione 0): gli innamorati **vincono solo se sono vivi tutti e due a fine partita**, chiunque vinca; si conoscono e hanno la loro chat. Il resto sotto resta la proposta.
+
 - **Squadra:** Città · **Liv.:** L1 · **Da:** 9 · **Categoria:** civico.
 - **Prima notte (sola azione):** lega due persone (può includere se stesso). Non bloccabile, non è una visita.
 - **Innamorati:** ognuno sa il **nome** dell'altro, non il ruolo. Tengono la loro squadra e in più hanno una vittoria personale: vincono se sono **vivi tutti e due a fine partita**, chiunque vinca (come lo Strozzino). Se uno muore (notte, linciaggio, colpo di giorno) l'altro muore subito di crepacuore: niente lo ferma, e il crepacuore viene prima del controllo dei vincitori.
@@ -158,6 +208,8 @@ Differenza con il Cecchino: il Cecchino spara una volta, di notte, in segreto. L
 - **Testi:** «Chi fai sposare?» · «Il cuore ha scelto: sei innamorato di Tizio.» · motto: «Due cuori, una dote, nessuna via d'uscita.»
 
 ### 3.8 Il Presidente — `presidente`
+> Decisione del proprietario (sezione 0): ammesso **in classificata e tra amici**; la scorta lo salva dalle prime **due notti** di attacco (più attaccanti nella stessa notte = un attacco), con un'animazione sua; alla terza notte attaccato muore, e la Città perde. Dove il testo sotto dice "variante" o "agguati", vale questo.
+
 Diverso dal Sindaco: il Sindaco è segreto e si rivela per un voto doppio; il Presidente è pubblico da subito ed è un punto debole della Città.
 - **Squadra:** Città · **Liv.:** L0 (−2: è una debolezza per la Città) · **Da:** 10 · **Solo variante** (stanze degli amici, mai in classificata).
 - **Pubblico dall'inizio:** tutti sanno chi è. Non si può votare (non si lincia lo Stato).
@@ -167,6 +219,8 @@ Diverso dal Sindaco: il Sindaco è segreto e si rivela per un voto doppio; il Pr
 - **Testi:** motto: «Lo Stato non tratta.» · «Il Presidente è caduto. La città è perduta.»
 
 ### 3.9 Il Capo della setta — `capoSetta`
+> Decisione del proprietario (sezione 0): se muore, la setta si scioglie e basta; il Commissario **non** vede i convertiti; solo il Capo vede l'elenco: i convertiti **non** sanno chi è il Capo né chi altro c'è (sanno solo che ora vincono con la setta). Dove il testo sotto dice altro (i nomi degli altri convertiti, la chat `setta`), vale questo.
+
 - **Squadra:** Neutrale ostile (conta come Piromane e Sicario: uno solo, finché è vivo la Città non vince) · **Liv.:** L4 · **Da:** 11 (massimo del tavolo 12) · **Mai** con Piromane o Sicario.
 - **Notte:** converte una persona alla setta. I convertiti tengono ruolo e poteri ma vincono solo con la setta. **Vince da solo** (con tutti i convertiti) quando tutti i vivi sono della setta.
 - **Chi non si converte:** la Famiglia (tutta), Piromane, Sicario, Presidente. Su di loro la conversione fallisce e il Capo della setta legge *«Porta chiusa.»* (scopre che è uno "non convertibile", ma non chi è). Quindi la setta vince solo se la Famiglia è morta: il Capo della setta vive dei linciaggi della Città.
@@ -177,13 +231,13 @@ Diverso dal Sindaco: il Sindaco è segreto e si rivela per un voto doppio; il Pr
 - **Testi:** «Chi chiami alla luce stanotte?» · «Hai visto la luce. Ora sei della setta.» · motto: «Non vi chiedo di credere. Vi chiedo di seguirmi.»
 
 ### 3.10 La Prostituta — `prostituta`
-Proposta: **della Famiglia**, perché la Città ha già il Carceriere come bloccatore e la Famiglia ha pochi poteri contro i ruoli nuovi.
+Decisione del proprietario: **della Famiglia**. Solo online.
 - **Squadra:** Famiglia · **Liv.:** L2 · **Da:** 9 · **Categoria:** potere di Famiglia (conta in `maxFamilyPowersFor`).
-- **Notte:** passa la notte con una persona (mai la stessa due notti di fila): l'azione di quella persona è annullata. Non vota l'agguato (come il Compare: ci vuole un altro killer).
+- **Notte:** passa la notte con una persona (mai la stessa due notti di fila): l'azione di quella persona è annullata (una mossa da una volta sola, come lo scoop, è spesa lo stesso). Non vota l'agguato finché nella Famiglia c'è un altro che lo vota; se resta l'unica, vota l'agguato e può ancora, al suo posto, passare la notte fuori.
 - **Interazioni:** blocca Commissario, Dottore, Guardaspalle, Becchino, Portinaio, Cronista (lo scoop è speso), Messia (spesa), Tiratore (mira), Piromane, Sicario, Capo della setta, Strozzino. Non blocca Cupido (prima notte) né i poteri di giorno. Non sblocca la cella. Conta come visita per il Portinaio. In cella non agisce.
 - **Chi vede cosa:** Prostituta: il nome scelto. Famiglia: chi ha scelto (nella chat). Bloccato, all'alba: *«Stanotte qualcuno ti ha tenuto occupato.»*
 - **Voce/chat:** chat e voce della Famiglia, come gli altri.
-- **Testi:** «Per chi canti stanotte?» · «Stanotte qualcuno ti ha tenuto occupato.» · motto: «Una canzone, un bicchiere, e la notte è passata.»
+- **Testi:** «Per chi canti stanotte?» · «Stanotte qualcuno ti ha tenuto occupato.» · motto: «Una canzone, un bicchiere, e la notte vola.»
 
 ### 3.11 Esclusi dal proprietario
 Setacciatore (cacciatore di setta), Hacker.
@@ -195,8 +249,8 @@ Setacciatore (cacciatore di setta), Hacker.
 | Canale | Chi scrive | Chi parla (push-to-talk) | Quando | Note |
 |---|---|---|---|---|
 | Piazza (`day`) | Vivi, tranne il silenziato dal Sarto | Vivi, tranne il silenziato | Giorno | Il silenzio deve spegnere anche la voce |
-| Famiglia (`family`) | Famiglia viva, tranne chi è in cella | Idem | Notte (e giorno con il Compare) | Anche la Prostituta |
-| Cella (`jail`, nuovo) | Carceriere (anonimo) e prigioniero | Nessuno | Notte | Solo online |
+| Famiglia (`family`) | Famiglia viva, tranne chi è in cella | Idem | Notte (e giorno con il Compare) | Anche la Prostituta. *Nel codice.* |
+| Cella (`jail:<notte>`) | Carceriere (anonimo) e prigioniero | Nessuno (il prigioniero perde anche la voce della Famiglia) | Notte | Solo online. *Nel codice.* |
 | Innamorati (`lovers`, nuovo) | I due innamorati | Nessuno | Notte | Solo online |
 | Setta (`sect`, nuovo) | Capo della setta e convertiti | Nessuno | Notte | Solo online |
 | Eventi (`event`) | Server | — | Sempre | Righe private per seggio dove serve |
@@ -209,9 +263,9 @@ Setacciatore (cacciatore di setta), Hacker.
 
 | Batch | Contenuto | Perché prima |
 |---|---|---|
-| 1 | Campo `tier` in `RoleRule`, bilanci V/F/N in `rolesForPlayerCount`; correzione testi Compare, Messia, Sindaco; Cacciatore "ora sei un Onesto"; regola unica Guardaspalle/fuoco; silenzio anche sulla voce | Nessun ruolo nuovo, solo ordine |
-| 2 | **Prostituta + Carceriere**: passo di blocco e cella nella notte, canale `jail` | Stessa infrastruttura (azione annullata); si contrastano a vicenda |
-| 3 | **Pacifista + Artigliere**: azioni di giorno in discussione | Stessa infrastruttura (bottone di giorno, effetto pubblico) |
+| 1 (fatto) | Livelli `tier` e bilanci V/F/N nel mazzo, tarati con la simulazione; Sicario "ultimo vivo"; **Prostituta**, **Carceriere** (cella, chat anonima, voce tolta), **Pacifista** (tregua) | Richiesta del proprietario |
+| 2 | Correzione testi Compare, Messia, Sindaco; Cacciatore "ora sei un Onesto"; regola unica Guardaspalle/fuoco | Solo ordine |
+| 3 | **Artigliere** (se confermato) | Usa il bottone di giorno del Pacifista |
 | 4 | **Tiratore scelto** | Usa mira di notte + colpo di giorno (batch 2 e 3) |
 | 5 | **Cupido**: legame, crepacuore, canale `lovers` | Tocca il controllo dei vincitori |
 | 6 | **Capo della setta**: conversione, setta, canale `sect`, scioglimento | Il più complesso; serve simulazione dedicata |
@@ -222,18 +276,18 @@ Per ogni batch: testi IT/EN in `italian_pack.dart`/`english_pack.dart`, voci di 
 
 ---
 
-## 6. Domande aperte per il proprietario
+## 6. Domande ancora aperte
 
-1. **Prostituta:** della Famiglia (proposta) o della Città?
-2. **Carceriere:** la cella ferma anche il fuoco (proposta: sì)? Deve poter giustiziare il prigioniero (diventerebbe L4)?
-3. **Pacifista:** svela il ruolo esatto (proposta) o solo la fazione?
-4. **Artigliere:** di giorno (proposta) o di notte? Primo colpo dal secondo giorno ok?
-5. **Tiratore:** sparare a un neutrale è "giusto" (proposta: sì, solo i cittadini lo fanno morire)?
-6. **Cupido:** gli innamorati tengono la loro squadra più una vittoria personale (proposta), o diventano una squadra a parte che vince solo se restano gli ultimi due?
-7. **Presidente:** ok come variante solo tra amici, con la scorta da due agguati e non linciabile?
-8. **Capo della setta:** il linciaggio scioglie la setta senza morti (proposta) o la setta muore con lui? Il Commissario deve vedere i convertiti?
-9. **Cecchino:** resta per i tavoli piccoli o lo sostituiamo con il Tiratore?
-10. **Cittadini speciali:** vale il 40% del documento o i due terzi del codice?
-11. **Sindaco:** voto doppio solo quel giorno (motore) o da lì in poi (testo)? (domanda già aperta)
-12. **Guardaspalle e fuoco:** muore lui al posto del cosparso o il fuoco non si ferma?
-13. **Stanze degli amici:** il mazzo "a mano" può infrangere i bilanci con solo un avviso (proposta)?
+Decise il 28 ottobre (sezione 0): Prostituta della Famiglia; cella che ferma il fuoco e senza esecuzione; Pacifista col ruolo esatto; Cupido con la vittoria a due; Presidente in classificata e tra amici con la scorta da due notti; setta sciolta alla morte del Capo e invisibile al Commissario; Cecchino per i tavoli piccoli e Tiratore per i grandi.
+
+Restano:
+
+1. **Tavoli da 6 e 7** (simulazione, 2.5): a 6 la Città vince il 75%, a 7 la Famiglia il 75%, e nessun bilancio di livelli lo cambia. Strade possibili: (a) accettarlo (i tavoli veri hanno più fiuto dei bot: va visto con le partite vere); (b) a 6 e 7 un solo mafioso più un neutrale che uccide (in simulazione: a 6 Città 28%, Famiglia 28%, Sicario 44%; a 7 con Commissario e Dottore Città 42%, Famiglia 16%, Sicario 42%: nessuna squadra sopra il 60%, ma il Sicario da solo vince troppo); (c) a 7 la Famiglia da 2 con un voto della piazza in più al primo giorno (da progettare).
+2. **Tiratore scelto:** conferma della meccanica (sezione 0).
+3. **Carceriere e Prostituta sul telefono unico:** per ora solo online (la chat della cella e le risposte all'alba hanno bisogno di un telefono a testa). Si vuole una versione da telefono unico (cella senza chat, risposte delle indagini lette dal narratore all'alba)?
+4. **Indagini all'alba:** con un Carceriere o una Prostituta nel mazzo il Commissario e il Becchino ricevono la risposta all'alba invece che subito (sennò il blocco non bloccherebbe niente). Va bene così, o la risposta resta immediata e il blocco ferma solo le mosse che si risolvono all'alba?
+5. **Pacifista:** la tregua si chiede solo in discussione (non durante il voto). Va bene?
+6. **Cittadini speciali:** vale il 40% del documento o i due terzi del codice? (il codice resta ai due terzi)
+7. **Sindaco:** voto doppio solo quel giorno (motore) o da lì in poi (testo)?
+8. **Guardaspalle e fuoco:** muore lui al posto del cosparso o il fuoco non si ferma?
+9. **Stanze degli amici:** il mazzo "a mano" può infrangere i bilanci con solo un avviso?
