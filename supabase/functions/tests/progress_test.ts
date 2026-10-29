@@ -116,7 +116,7 @@ Deno.test('the leaderboard: handles, tiers and platform marks only, and your pla
   assertEquals(b.me, { rank: 2, tier: 'picciotto' });
   const [{ e }] = await as<{ e: { top: unknown[]; me: unknown } }>(anna, `select public.leaderboard('en') as e`);
   assertEquals(e, { top: [], me: null });
-  await assertRejects(() => as(anna, `select public.leaderboard('fr')`), Error, 'bad_language');
+  await assertRejects(() => as(anna, `select public.leaderboard('zz')`), Error, 'bad_language');
   await assertRejects(() => as(anna, `select * from internal.player_stats`), Error);
   await assertRejects(() => as(anna, `select internal.record_progress($1, $2, '{}'::jsonb)`, [anna, game]), Error);
 });

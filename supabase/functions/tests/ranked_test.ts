@@ -55,7 +55,7 @@ Deno.test('the queue: signed in with a handle, one entry per person, a language 
   const { pg, as, enqueue, queued, one } = await world(2);
   await pg.query(`insert into auth.users (id) values ('99999999-9999-9999-9999-999999999999')`);
   await assertRejects(() => enqueue('99999999-9999-9999-9999-999999999999'), Error, 'profile_incomplete');
-  await assertRejects(() => enqueue(ids[0], 'fr'), Error, 'invalid_language');
+  await assertRejects(() => enqueue(ids[0], 'zz'), Error, 'invalid_language');
   await enqueue(ids[0]);
   await enqueue(ids[0]);
   assertEquals(await queued(), 1, 'no double queue');
