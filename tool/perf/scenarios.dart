@@ -252,7 +252,9 @@ Future<void> gameScenario(WidgetTester tester, Screen s) async {
     reactions: base.reactions,
     voice: _Tokens(),
   );
-  await tester.pumpWidget(_app(s, OnlineGameScreen(services: services, room: room, me: me, clock: clock)));
+  // Di notte i posti si rimescolano: sempre allo stesso modo, così i
+  // fotogrammi fermi di due prove si confrontano pixel per pixel.
+  await tester.pumpWidget(_app(s, OnlineGameScreen(services: services, room: room, me: me, clock: clock, seating: Random(16))));
   await _flush(tester);
   await tester.pump(const Duration(milliseconds: 900));
   await tester.pump(const Duration(milliseconds: 1800));
@@ -360,7 +362,7 @@ Future<void> endScenario(WidgetTester tester, Screen s) async {
   await _settled(tester, online.gameAs('anna').setBots(room.id, 6));
   await _settled(tester, online.gameAs('anna').startGame(room.id));
   final me = (await _settled(tester, online.services.profiles.me()))!;
-  await tester.pumpWidget(_app(s, OnlineGameScreen(services: online.services, room: room, me: me, clock: clock)));
+  await tester.pumpWidget(_app(s, OnlineGameScreen(services: online.services, room: room, me: me, clock: clock, seating: Random(16))));
   await _flush(tester);
   await tester.pump(const Duration(milliseconds: 900));
   await tester.pump(const Duration(milliseconds: 1800));
