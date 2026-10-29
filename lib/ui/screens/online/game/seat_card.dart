@@ -6,6 +6,7 @@ import '../../../avatar/avatar_look.dart';
 import '../../../widgets/cosmetics/aura_backdrop.dart';
 import '../../../widgets/cosmetics/seat_frame.dart';
 import '../../../widgets/cosmetics/styled_name.dart';
+import '../../../widgets/baked.dart';
 
 import '../../../../l10n/roles_sheet_strings.dart';
 import '../../../../rules/role.dart';
@@ -159,7 +160,7 @@ class SeatCard extends StatelessWidget {
               ),
               child: ClipRRect(
                 borderRadius: arch,
-                child: Opacity(
+                child: PlainOpacity(
                   opacity: offline ? 0.5 : 1,
                   child: Stack(
                     fit: StackFit.expand,
@@ -342,29 +343,90 @@ class SeatCard extends StatelessWidget {
           ),
       ],
     );
-    return AnimatedScale(
-      duration: const Duration(milliseconds: 200),
-      scale: selected ? 1.06 : (hover ? 1.04 : 1),
-      child: Opacity(
-        opacity: dimmed
-            ? 0.45
-            : fallen
-            ? 0.8
-            : 1,
-        child: Material(
-          type: MaterialType.transparency,
-          child: InkWell(
-            onTap: onTap,
-            onLongPress: onLongPress,
-            // Col mouse: il tasto destro apre il foglio del giocatore.
-            onSecondaryTap: onLongPress,
-            hoverColor: Colors.transparent,
-            customBorder: RoundedRectangleBorder(borderRadius: arch),
-            splashColor: Saloon.brass.withValues(alpha: 0.2),
-            child: SizedBox(width: width, height: height, child: card),
+    final scale = selected ? 1.06 : (hover ? 1.04 : 1.0);
+    // Il posto fermo è un'immagine sola, al punto esatto: le ombre sfocate,
+    // le trasparenze, il ritratto e la targhetta non si ridisegnano a ogni
+    // fotogramma del tavolo (dodici volte). Quando qualcosa cambia (un voto,
+    // il posto scelto che si ingrandisce) si disegna dal vivo, poi si rifà.
+    return Baked(
+      exact: true,
+      overflow: _spill(height: height, plateHeight: plateHeight, glow: glow, scale: scale),
+      child: AnimatedScale(
+        duration: const Duration(milliseconds: 200),
+        scale: scale,
+        child: PlainOpacity(
+          opacity: dimmed
+              ? 0.45
+              : fallen
+              ? 0.8
+              : 1,
+          child: Material(
+            type: MaterialType.transparency,
+            child: InkWell(
+              onTap: onTap,
+              onLongPress: onLongPress,
+              // Col mouse: il tasto destro apre il foglio del giocatore.
+              onSecondaryTap: onLongPress,
+              hoverColor: Colors.transparent,
+              customBorder: RoundedRectangleBorder(borderRadius: arch),
+              splashColor: Saloon.brass.withValues(alpha: 0.2),
+              child: SizedBox(width: width, height: height, child: card),
+            ),
           ),
         ),
       ),
+    );
+  }
+
+  /// Quanto il posto esce dalla sua carta, ombre comprese: le ombre
+  /// dell'arco, la targhetta e il gettone che sbordano, il nastro e la nota,
+  /// i bagliori della cornice e del nome, l'ingrandimento del posto scelto.
+  /// Tutto deve stare nell'immagine del posto.
+  EdgeInsets _spill({required double height, required double plateHeight, required List<BoxShadow> glow, required double scale}) {
+    final box = Offset.zero & Size(width, height);
+    var area = box;
+    void spill(Rect rect, [List<BoxShadow> shadows = const []]) {
+      area = area.expandToInclude(rect);
+      for (final s in shadows) {
+        area = area.expandToInclude(rect.shift(s.offset).inflate(s.blurSigma * 3 + s.spreadRadius + 1));
+      }
+    }
+
+    final arch = Rect.fromLTRB(0, 0, width, height - plateHeight * 0.45);
+    spill(arch, glow);
+    final look = AvatarLook.of(name);
+    if (look.border != SeatBorder.none) spill(arch.inflate(SeatFrame.thicknessFor(width) * 5 + 4));
+    final plate = Rect.fromLTRB(-width * 0.08, height - plateHeight, width * 1.08, height);
+    spill(plate, const [BoxShadow(blurRadius: 6, offset: Offset(0, 2))]);
+    // I bagliori del nome (un neon), intorno alla targhetta.
+    for (final s in StyledName.shadowsOf(look.nameStyle, plateHeight * 0.64)) {
+      spill(plate.shift(s.offset).inflate(s.blurSigma * 3 + 1));
+    }
+    final number = max(20.0, width * 0.32);
+    spill(Rect.fromLTWH(-width * 0.08, -width * 0.04, number, number), const [BoxShadow(blurRadius: 4, offset: Offset(0, 1))]);
+    spill(Rect.fromLTWH(-width * 0.06, 0, 1, 1).inflate(2));
+    final mark = max(22.0, width * 0.3);
+    spill(Rect.fromCenter(center: Offset(width / 2, height * 0.05 + mark / 2), width: mark * 1.8, height: mark), const [
+      BoxShadow(blurRadius: 6, offset: Offset(0, 2)),
+    ]);
+    if (accused) {
+      final bottom = height - plateHeight * 0.92;
+      spill(Rect.fromLTRB(-width * 0.06, bottom - width * 0.3, width * 1.06, bottom), const [BoxShadow(blurRadius: 6, spreadRadius: 4)]);
+    }
+    if (note != null) {
+      final bottom = height - plateHeight * 0.95;
+      spill(Rect.fromLTRB(-width * 0.05, bottom - 24, width * 1.05, bottom), const [BoxShadow(blurRadius: 16, offset: Offset(0, 6))]);
+    }
+    // Il posto scelto si ingrandisce intorno al centro.
+    final c = box.center;
+    Offset grow(Offset p) => c + (p - c) * scale;
+    final a = grow(area.topLeft);
+    final b = grow(area.bottomRight);
+    return EdgeInsets.fromLTRB(
+      max(0, -a.dx).ceilToDouble(),
+      max(0, -a.dy).ceilToDouble(),
+      max(0, b.dx - width).ceilToDouble(),
+      max(0, b.dy - height).ceilToDouble(),
     );
   }
 }
@@ -385,10 +447,10 @@ class _SeatHoverState extends State<_SeatHover> {
 
   @override
   Widget build(BuildContext context) => MouseRegion(
-        onEnter: (_) => setState(() => _hover = true),
-        onExit: (_) => setState(() => _hover = false),
-        child: widget.builder(_hover && widget.enabled),
-      );
+    onEnter: (_) => setState(() => _hover = true),
+    onExit: (_) => setState(() => _hover = false),
+    child: widget.builder(_hover && widget.enabled),
+  );
 }
 
 /// Il nome sulla targhetta: grande; se non ci sta si stringe fino a due
@@ -422,7 +484,10 @@ class _PlateName extends StatelessWidget {
       // the most a handle has) is narrowed instead, never cut. Measured
       // again at its size: the letter spacing does not shrink with it.
       final fitted = TextPainter(
-        text: TextSpan(text: label, style: style.copyWith(fontSize: style.fontSize! * fit)),
+        text: TextSpan(
+          text: label,
+          style: style.copyWith(fontSize: style.fontSize! * fit),
+        ),
         textDirection: TextDirection.ltr,
         maxLines: 1,
         textScaler: MediaQuery.textScalerOf(context),

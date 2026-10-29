@@ -12,6 +12,7 @@ import '../../../../settings/app_settings.dart';
 import '../../../desktop/desktop_platform.dart';
 import '../../../press.dart';
 import '../../../theme/app_theme.dart';
+import '../../../widgets/baked.dart';
 import '../../../widgets/noir_modal.dart';
 import '../../../widgets/noir_notice.dart';
 import '../game/noir_ui.dart';
@@ -478,6 +479,8 @@ Future<void> checkVoiceMic(BuildContext context, AppSettings settings) async {
 /// piccolo su chi si è silenziato. Chi parla lo dice l'identità firmata dal
 /// server (il posto), mai un nome mandato dal telefono.
 class VoiceRing extends StatelessWidget {
+  static final _ringGlow = BoxShadow(color: Saloon.brass.withValues(alpha: 0.28), blurRadius: 9);
+
   final VoiceController? controller;
   final String identity;
   final double width;
@@ -513,11 +516,17 @@ class VoiceRing extends StatelessWidget {
                   key: Key('voice.ring.$identity'),
                   opacity: on ? 1 : 0,
                   duration: const Duration(milliseconds: 160),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      borderRadius: arch,
-                      border: Border.all(color: Saloon.brass.withValues(alpha: 0.75), width: 1.4),
-                      boxShadow: [BoxShadow(color: Saloon.brass.withValues(alpha: 0.28), blurRadius: 9)],
+                  // L'alone sfocato intorno all'arco è un'immagine: chi parla
+                  // per un minuto non lo fa ridisegnare a ogni fotogramma.
+                  child: Baked(
+                    exact: true,
+                    overflow: EdgeInsets.all(_ringGlow.blurSigma * 3 + 1),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: arch,
+                        border: Border.all(color: Saloon.brass.withValues(alpha: 0.75), width: 1.4),
+                        boxShadow: [_ringGlow],
+                      ),
                     ),
                   ),
                 ),

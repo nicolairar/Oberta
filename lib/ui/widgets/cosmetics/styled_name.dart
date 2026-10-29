@@ -79,6 +79,24 @@ class StyledName extends StatefulWidget {
         _ => null,
       };
 
+  /// Le ombre dell'inchiostro [style] su lettere di [size] punti: il
+  /// bagliore dei neon e dei fuochi, o un filo d'ombra scura.
+  static List<Shadow> shadowsOf(NameStyle style, double size) => switch (style) {
+        NameStyle.plain => const [],
+        NameStyle.neonGlow => [
+            Shadow(color: const Color(0xFFFF3FB0), blurRadius: size * 0.35),
+            Shadow(color: const Color(0xFFFF3FB0), blurRadius: size * 0.9),
+            Shadow(color: const Color(0xAAFF1F9A), blurRadius: size * 1.6),
+          ],
+        _ when solid(style) != null => [
+            Shadow(color: Colors.black.withValues(alpha: 0.7), blurRadius: 2, offset: const Offset(0, 1)),
+          ],
+        NameStyle.inferno => [Shadow(color: const Color(0xCCFF4A10), blurRadius: size * 0.7)],
+        NameStyle.shimmer => [Shadow(color: const Color(0x88FFD36A), blurRadius: size * 0.5)],
+        NameStyle.moonlight => [Shadow(color: const Color(0x887FA8FF), blurRadius: size * 0.45)],
+        _ => [Shadow(color: Colors.black.withValues(alpha: 0.75), blurRadius: 2, offset: const Offset(0, 1))],
+      };
+
   @override
   State<StyledName> createState() => _StyledNameState();
 }
@@ -155,26 +173,11 @@ class _StyledNameState extends State<StyledName> with SingleTickerProviderStateM
     final size = base.fontSize ?? 14;
     if (style == NameStyle.plain) return _text(base);
     if (StyledName.solid(style) case final color?) {
-      final glow = style == NameStyle.neonGlow;
-      return _text(base.copyWith(
-        color: color,
-        shadows: glow
-            ? [
-                Shadow(color: const Color(0xFFFF3FB0), blurRadius: size * 0.35),
-                Shadow(color: const Color(0xFFFF3FB0), blurRadius: size * 0.9),
-                Shadow(color: const Color(0xAAFF1F9A), blurRadius: size * 1.6),
-              ]
-            : [Shadow(color: Colors.black.withValues(alpha: 0.7), blurRadius: 2, offset: const Offset(0, 1))],
-      ));
+      return _text(base.copyWith(color: color, shadows: StyledName.shadowsOf(style, size)));
     }
     final colors = StyledName.gradient(style)!;
     // Il testo bianco fa da stampo; l'ombra resta fuori dalla maschera.
-    final shadow = switch (style) {
-      NameStyle.inferno => [Shadow(color: const Color(0xCCFF4A10), blurRadius: size * 0.7)],
-      NameStyle.shimmer => [Shadow(color: const Color(0x88FFD36A), blurRadius: size * 0.5)],
-      NameStyle.moonlight => [Shadow(color: const Color(0x887FA8FF), blurRadius: size * 0.45)],
-      _ => [Shadow(color: Colors.black.withValues(alpha: 0.75), blurRadius: 2, offset: const Offset(0, 1))],
-    };
+    final shadow = StyledName.shadowsOf(style, size);
     Widget masked(double t) => Stack(
           children: [
             _text(base.copyWith(color: Colors.transparent, shadows: shadow)),
