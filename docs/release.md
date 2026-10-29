@@ -330,9 +330,8 @@ Senza segreti l'iscrizione si salva lo stesso e la mail si salta (log «Brevo se
 default `charliemobile.dev`, `www.charliemobile.dev`, `oberta.pages.dev` e le sue anteprime).
 
 **La mail di benvenuto**: `supabase/functions/waitlist/templates/welcome.ts` (IT/EN secondo la lingua
-dell'iscrizione), immagini in `site/oberta/email/` (`python3 tool/site/email_assets.py`, che le copia anche in
-`templates/images.ts`: la mail le prende da `…/functions/v1/waitlist/img/<nome>`, perché il sito è dietro la
-verifica anti-bot di Cloudflare e i proxy delle immagini di Gmail/Apple non la passano), anteprime
+dell'iscrizione), **senza immagini** (Outlook e molti client le bloccano: insegna in testo, cornici con
+tabelle e `bgcolor`, ornamenti unicode, pulsante con VML), anteprime
 `site/oberta/email/benvenuto-*.html` (`deno run -A supabase/functions/waitlist/templates/preview.ts`;
 `waitlist_test.ts` fallisce se non sono aggiornate). Test: `deno test -A
 supabase/functions/tests/waitlist_test.ts` e `supabase/tests/waitlist.sql` (`begin; … rollback;`).

@@ -202,10 +202,13 @@ Deno.test('one-click unsubscribe from the mail client needs no origin', async ()
   assert(!w.list.has('zz@example.com'));
 });
 
-Deno.test('the function serves the email images, and the email points at them', async () => {
+Deno.test('the email has no images at all; the old image endpoint still answers', async () => {
   const w = world();
   await call(w.deps, join('zz@example.com'));
-  assertStringIncludes(String(w.mails[0].body.htmlContent), 'https://ref.supabase.co/functions/v1/waitlist/img/oberta-neon.jpg');
+  const html = String(w.mails[0].body.htmlContent);
+  assert(!/<img|background=|url\(/i.test(html), 'no images, no CSS backgrounds');
+  assertStringIncludes(html, 'OBERT&Agrave;');
+  assertStringIncludes(html, 'v:roundrect');
   for (const name of ['oberta-neon.jpg', 'brick.jpg', 'deco-tl.png', 'role-padrino.png']) {
     const res = await handleWaitlist(new Request(`https://ref.supabase.co/functions/v1/waitlist/img/${name}`), w.deps);
     assertEquals(res.status, 200, name);
@@ -221,10 +224,9 @@ Deno.test('the email escapes what it is given and has a plain-text twin', () => 
     ctaUrl: 'https://x.example/c?t=1&"<b>',
     unsubscribeUrl: 'https://x.example/u',
     privacyUrl: 'https://x.example/p',
-    assetBase: 'https://x.example/email/',
   });
   assert(!mail.html.includes('"<b>'));
-  assertStringIncludes(mail.html, 'https://x.example/email/oberta-neon.jpg');
+  assertStringIncludes(mail.html, 'https://x.example/u');
   assertStringIncludes(mail.text, 'https://x.example/u');
   assert(!/<[a-z]/i.test(preview('it').text) && !/<[a-z]/i.test(preview('en').text));
 });
