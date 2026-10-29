@@ -295,6 +295,45 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  // QA P3-2: losing the network showed nothing until 12 s after the deadline.
+  testWidgets('senza rete, «Connessione persa, riprovo…» arriva in pochi secondi, e se ne va da sola', (tester) async {
+    _usePhone(tester);
+    final clock = ManualClock();
+    final online = FakeOnline(accountId: 'bruno', clock: clock)
+      ..signInReady(handle: 'bruno')
+      ..addPlayer('anna', handle: 'anna');
+    final room = online.openRoomAs('anna', LobbyLanguage.it);
+    online.joinAs('bruno', room.code);
+    await settled(tester, online.gameAs('anna').setBots(room.id, 3));
+    await settled(tester, online.gameAs('anna').startGame(room.id));
+    final me = await settled(tester, online.services.profiles.me());
+    await tester.pumpWidget(_app(OnlineGameScreen(services: online.services, room: room, me: me, clock: clock)));
+    await flush(tester);
+    final lost = find.byKey(const Key('online.syncLost'));
+    Future<void> step(Duration by) async {
+      clock.elapse(by);
+      await flush(tester);
+    }
+
+    online.unreachable.add('bruno');
+    await step(const Duration(seconds: 5));
+    expect(lost, findsNothing, reason: 'one lost ping is not news');
+    for (var i = 0; i < 16 && lost.evaluate().isEmpty; i++) {
+      await step(const Duration(milliseconds: 250));
+    }
+    expect(lost, findsOneWidget);
+    expect(find.text('Connessione persa, riprovo…'), findsOneWidget);
+    expect(find.byKey(const Key('online.reconnect')), findsNothing, reason: 'it retries by itself: nothing to tap');
+
+    online.unreachable.remove('bruno');
+    for (var i = 0; i < 16 && lost.evaluate().isNotEmpty; i++) {
+      await step(const Duration(milliseconds: 250));
+    }
+    expect(lost, findsNothing);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('chi esce dalla partita in corso ci rientra col pulsante, non da solo', (tester) async {
     _usePhone(tester);
     final online = FakeOnline(accountId: 'bruno', clock: ManualClock())

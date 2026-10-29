@@ -1253,6 +1253,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     } else if (_client.error != null) {
       text = _t.online.connectionLost;
       key = const Key('online.connectionLost');
+    } else if (_client.syncLost) {
+      return _syncLostNote();
     } else if (_serverSilent) {
       text = _t.online.serverSilent;
       key = const Key('online.serverSilent');
@@ -1264,9 +1266,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     }
     final m = NoirMetrics(_deskMode);
     return Container(
-      margin: _deskMode
-          ? const EdgeInsets.fromLTRB(DeskSize.gutter, 0, DeskSize.gutter + _deskSideWidth + 36, 10)
-          : const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      margin: _bannerMargin,
       padding: _deskMode ? const EdgeInsets.fromLTRB(24, 8, 8, 8) : const EdgeInsets.fromLTRB(16, 8, 8, 8),
       decoration: Saloon.scrim(radius: 12, border: Saloon.blood),
       child: Row(
@@ -1288,6 +1288,44 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  EdgeInsets get _bannerMargin => _deskMode
+      ? const EdgeInsets.fromLTRB(DeskSize.gutter, 0, DeskSize.gutter + _deskSideWidth + 36, 10)
+      : const EdgeInsets.fromLTRB(16, 0, 16, 8);
+
+  /// I ping falliscono da qualche secondo: un biglietto discreto, senza
+  /// pulsanti, perché il telefono riprova da solo e se ne va appena la rete
+  /// torna. Se il server non risponde davvero arriva poi il cartello vero.
+  Widget _syncLostNote() {
+    final m = NoirMetrics(_deskMode);
+    return Padding(
+      padding: _bannerMargin,
+      child: Center(
+        child: DecoratedBox(
+          decoration: Saloon.scrim(radius: 999),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: m.gap * 1.75, vertical: m.gap * 0.75),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.wifi_off_rounded, size: m.small * 1.3, color: Saloon.brass),
+                SizedBox(width: m.gap),
+                Flexible(
+                  child: Text(
+                    _t.online.syncLost,
+                    key: const Key('online.syncLost'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: m.small, height: 1.2),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

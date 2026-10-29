@@ -117,6 +117,9 @@ abstract class OnlineStrings {
   String closesIn(String time);
   String get rejected;
   String get serverSilent;
+
+  /// I ping falliscono da qualche secondo: si riprova da soli.
+  String get syncLost;
   String get backToRoom;
   String timeLeft(String time);
   String get startingSoon;
@@ -353,6 +356,7 @@ abstract class OnlineStrings {
     'closesIn': closesIn('1:30'),
     'rejected': rejected,
     'serverSilent': serverSilent,
+    'syncLost': syncLost,
     'backToRoom': backToRoom,
     'timeLeft': timeLeft('0:30'),
     'startingSoon': startingSoon,
@@ -804,6 +808,8 @@ final class ItalianOnlineStrings extends OnlineStrings {
   String get rejected => 'Mossa non valida: riprova.';
   @override
   String get serverSilent => 'Il server non risponde: controlla la connessione.';
+  @override
+  String get syncLost => 'Connessione persa, riprovo…';
   @override
   String get backToRoom => 'TORNA ALLA STANZA';
   @override
@@ -1301,6 +1307,8 @@ class EnglishOnlineStrings extends OnlineStrings {
   String get rejected => 'That move is not allowed: try again.';
   @override
   String get serverSilent => 'The server is not answering: check your connection.';
+  @override
+  String get syncLost => 'Connection lost, retrying…';
   @override
   String get backToRoom => 'BACK TO THE ROOM';
   @override

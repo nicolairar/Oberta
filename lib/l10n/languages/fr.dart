@@ -881,6 +881,8 @@ final class FrenchOnlineStrings extends EnglishOnlineStrings {
   @override
   String get serverSilent => 'Le serveur ne répond pas : vérifie ta connexion.';
   @override
+  String get syncLost => 'Connexion perdue, nouvel essai…';
+  @override
   String get backToRoom => 'RETOUR À LA SALLE';
   @override
   String timeLeft(String time) => 'Encore $time';

@@ -877,6 +877,8 @@ final class PortugueseOnlineStrings extends EnglishOnlineStrings {
   @override
   String get serverSilent => 'O servidor não responde: verifique sua conexão.';
   @override
+  String get syncLost => 'Conexão perdida, tentando de novo…';
+  @override
   String get backToRoom => 'DE VOLTA À SALA';
   @override
   String timeLeft(String time) => 'faltam $time';

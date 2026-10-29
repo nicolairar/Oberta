@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
@@ -53,6 +54,46 @@ class _Human {
     }
     return false;
   }
+}
+
+/// The fake server's game, with pings that can hang forever (a network that
+/// swallows requests instead of refusing them).
+class _SilentPings implements GameBackend {
+  final GameBackend inner;
+  bool hang = false;
+  int pings = 0;
+
+  _SilentPings(this.inner);
+
+  @override
+  Future<int> ping(String roomId) {
+    pings++;
+    return hang ? Completer<int>().future : inner.ping(roomId);
+  }
+
+  @override
+  Stream<GameFeed> watchGame(String roomId) => inner.watchGame(roomId);
+
+  @override
+  Future<void> leaveGame(String roomId) => inner.leaveGame(roomId);
+
+  @override
+  Future<void> startGame(String roomId) => inner.startGame(roomId);
+
+  @override
+  Future<String> sendIntent(String roomId, PlayerIntent intent) => inner.sendIntent(roomId, intent);
+
+  @override
+  Future<void> sendAck(String roomId, String seat, String stage) => inner.sendAck(roomId, seat, stage);
+
+  @override
+  Future<void> resume() => inner.resume();
+
+  @override
+  Future<String> sendChat(String roomId, ChatChannel channel, String body) => inner.sendChat(roomId, channel, body);
+
+  @override
+  Stream<List<ChatMessage>> watchChat(String roomId) => inner.watchChat(roomId);
 }
 
 void main() {
@@ -391,6 +432,78 @@ void main() {
       await settle();
       expect(bruno.reconnecting, isFalse);
       expect(bruno.ready, isTrue);
+      bruno.dispose();
+    });
+  });
+
+  // QA P3-2: without the network nothing showed until 12 s after the phase
+  // deadline. Now a phone says so about 3 s after its syncs start failing,
+  // and a single lost ping never does.
+  group('la rete che manca', () {
+    Future<void> step(Duration by) async {
+      clock.elapse(by);
+      await settle();
+    }
+
+    test('un ping perso solo non allarma; tre secondi di ping falliti sì, e la rete tornata lo toglie', () async {
+      await startWith(joiners: ['bruno'], bots: 3);
+      final bruno = clientOf('bruno');
+      await settle();
+      var alarms = 0;
+      bruno.addListener(() {
+        if (bruno.syncLost) alarms++;
+      });
+
+      // A blip: the heartbeat's ping fails, the retry a second later passes.
+      online.unreachable.add('bruno');
+      await step(bruno.heartbeat);
+      online.unreachable.remove('bruno');
+      await step(const Duration(seconds: 1));
+      await step(const Duration(seconds: 6));
+      expect(bruno.syncLost, isFalse);
+      expect(alarms, 0, reason: 'a brief blip is not news');
+
+      // Really offline: the first failed ping, then about three seconds.
+      online.unreachable.add('bruno');
+      await step(bruno.heartbeat);
+      final firstFailure = clock.now();
+      await step(const Duration(seconds: 2));
+      expect(bruno.syncLost, isFalse, reason: 'two seconds are still a blip');
+      for (var i = 0; i < 20 && !bruno.syncLost; i++) {
+        await step(const Duration(milliseconds: 250));
+      }
+      expect(bruno.syncLost, isTrue);
+      expect(clock.now().difference(firstFailure), lessThanOrEqualTo(const Duration(milliseconds: 3500)));
+
+      // The network is back: the next retry clears it, within a few seconds.
+      online.unreachable.remove('bruno');
+      for (var i = 0; i < 20 && bruno.syncLost; i++) {
+        await step(const Duration(milliseconds: 250));
+      }
+      expect(bruno.syncLost, isFalse);
+      bruno.dispose();
+    });
+
+    test('un ping che non torna mai conta come perso, e il battito non si ferma', () async {
+      await startWith(joiners: ['bruno'], bots: 3);
+      final silent = _SilentPings(online.gameAs('bruno'));
+      final bruno = GameClient(backend: silent, roomId: room.id, clock: clock);
+      await settle();
+      expect(bruno.ready, isTrue);
+      silent.hang = true;
+      await step(bruno.heartbeat);
+      final sent = silent.pings;
+      for (var i = 0; i < 20 && !bruno.syncLost; i++) {
+        await step(const Duration(milliseconds: 250));
+      }
+      expect(bruno.syncLost, isTrue);
+      await step(const Duration(seconds: 3));
+      expect(silent.pings, greaterThan(sent), reason: 'a hung ping does not stop the next ones');
+      silent.hang = false;
+      for (var i = 0; i < 40 && bruno.syncLost; i++) {
+        await step(const Duration(milliseconds: 250));
+      }
+      expect(bruno.syncLost, isFalse);
       bruno.dispose();
     });
   });

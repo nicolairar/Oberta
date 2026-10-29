@@ -151,10 +151,40 @@ class GameClient extends ChangeNotifier {
     return rejected;
   }
 
+  /// Un ping senza risposta da tanto è perso: il prossimo parte lo stesso.
+  static const pingTimeout = Duration(seconds: 3);
+
+  /// Dopo un ping perso si riprova presto, finché la rete non torna.
+  static const retry = Duration(seconds: 1);
+
+  /// Da quanto i ping devono fallire prima di dirlo: un buco breve (un ping
+  /// perso, il prossimo che passa) non è una notizia.
+  static const lostAfter = Duration(seconds: 3);
+
+  int _pings = 0;
+  DateTime? _failingSince;
+  bool _syncLost = false;
+
+  /// Vero quando il server non risponde ai ping da [lostAfter]: lo schermo
+  /// lo dice, e intanto si riprova da soli. Molto prima di [heartbeat] più
+  /// la tolleranza del server, che senza rete non può dire «sembri offline».
+  bool get syncLost => _syncLost;
+
   Future<void> _ping() async {
     if (_disposed) return;
+    final attempt = ++_pings;
+    final sent = clock.now();
+    var answered = false;
+    _beat?.cancel();
+    // Una rete che inghiotte le richieste non ferma il battito. Si guarda
+    // dopo un giro del ciclo degli eventi: una risposta già arrivata vince.
+    _beat = clock.schedule(pingTimeout, () => Timer.run(() {
+      if (_disposed || answered || attempt != _pings) return;
+      _missed(sent);
+      _ping();
+    }));
+    var ok = false;
     try {
-      final sent = clock.now();
       final server = await backend.ping(roomId);
       final back = clock.now();
       final trip = back.difference(sent);
@@ -163,12 +193,37 @@ class GameClient extends ChangeNotifier {
         final middle = sent.add(trip ~/ 2);
         _offset = DateTime.fromMillisecondsSinceEpoch(server).difference(middle);
       }
+      ok = true;
     } catch (_) {
-      // Un ping perso non conta: il server aspetta prima di dire «offline».
+      // Un ping perso da solo non conta: il server aspetta prima di dire
+      // «offline», e qui si riprova presto.
     }
+    answered = true;
     if (_disposed) return;
+    // Una risposta, anche in ritardo, dice che la rete c'è.
+    if (ok) {
+      _heard();
+    } else if (attempt == _pings) {
+      _missed(sent);
+    }
+    // Un ping più nuovo è già partito: il battito è suo.
+    if (attempt != _pings) return;
     _beat?.cancel();
-    _beat = clock.schedule(heartbeat, _ping);
+    _beat = clock.schedule(ok ? heartbeat : retry, _ping);
+  }
+
+  void _missed(DateTime sent) {
+    final since = _failingSince ??= sent;
+    if (_syncLost || clock.now().isBefore(since.add(lostAfter))) return;
+    _syncLost = true;
+    notifyListeners();
+  }
+
+  void _heard() {
+    _failingSince = null;
+    if (!_syncLost) return;
+    _syncLost = false;
+    notifyListeners();
   }
 
   PublicFrame? _pendingBoard;
