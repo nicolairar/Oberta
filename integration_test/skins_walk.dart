@@ -147,10 +147,9 @@ Future<void> _back(WidgetTester tester) async {
   } else {
     await tester.state<NavigatorState>(find.byType(Navigator).first).maybePop();
   }
-  await _wait(tester, 2500);
-  // A tap skips the walk back.
-  await tester.tapAt(tester.getCenter(find.byType(ObertaApp)));
-  await _wait(tester, 800);
+  // The walk back to the street, whole: a tap to skip it would land on a
+  // poster once the walk is over, and open a screen.
+  await _wait(tester, 6000);
 }
 
 /// The whole walk, as [who] (vito, nadia or rosalinda), with the
@@ -164,11 +163,12 @@ Future<void> skinsWalk(
   required String out,
   required Future<T?> Function<T>(Future<T> Function() work) io,
   GameClock? clock,
+  bool shop = true,
 }) async {
   _io = io;
   _n = 0;
     _out = Directory(out)..createSync(recursive: true);
-    for (final f in _out.listSync()) {
+    for (final f in _out.listSync().whereType<File>()) {
       f.deleteSync();
     }
     // ignore: avoid_print
@@ -177,32 +177,42 @@ Future<void> skinsWalk(
     final online = FakeOnline(clock: clock)..signInReady(handle: _player(who).$1, coins: 999999, level: 30);
     OnlineServices.instance = online.services;
     await online.services.profiles.saveFace(_player(who).$2.toJson(), tone: _player(who).$3);
+    // Without the shop part ([shop] false): straight to the barber, wearing
+    // what the shop part buys.
+    if (!shop) {
+      for (final id in _buy) {
+        online.shop.gift('me', id);
+        await online.shop.equip(id);
+      }
+    }
 
     await tester.pumpWidget(RepaintBoundary(key: _screen, child: const ObertaApp()));
     await _wait(tester, 4000);
     await _shot(tester, 'street');
 
-    // Into the Bottega.
-    await tester.tap(find.byKey(const Key('home.shopSign')));
-    await _wait(tester, 6000);
-    await _shot(tester, 'shop');
-    for (final dept in ['hats', 'face']) {
-      final medal = find.byKey(Key('shop.dept.$dept'));
-      await tester.ensureVisible(medal);
-      await _wait(tester, 300);
-      await tester.tap(medal);
-      await _wait(tester, 900);
-      await tester.tap(find.byKey(const Key('shop.view.bust')));
-      await _wait(tester, 400);
-      await _walkDial(tester, dept, right: true, view: 'bust');
-      // And back, as the table sees it.
-      await tester.tap(find.byKey(const Key('shop.view.card')));
-      await _wait(tester, 600);
-      await _walkDial(tester, dept, right: false, view: 'card');
-      await tester.tap(find.byKey(const Key('shop.view.bust')));
-      await _wait(tester, 400);
+    if (shop) {
+      // Into the Bottega.
+      await tester.tap(find.byKey(const Key('home.shopSign')));
+      await _wait(tester, 6000);
+      await _shot(tester, 'shop');
+      for (final dept in ['hats', 'face']) {
+        final medal = find.byKey(Key('shop.dept.$dept'));
+        await tester.ensureVisible(medal);
+        await _wait(tester, 300);
+        await tester.tap(medal);
+        await _wait(tester, 900);
+        await tester.tap(find.byKey(const Key('shop.view.bust')));
+        await _wait(tester, 400);
+        await _walkDial(tester, dept, right: true, view: 'bust');
+        // And back, as the table sees it.
+        await tester.tap(find.byKey(const Key('shop.view.card')));
+        await _wait(tester, 600);
+        await _walkDial(tester, dept, right: false, view: 'card');
+        await tester.tap(find.byKey(const Key('shop.view.bust')));
+        await _wait(tester, 400);
+      }
+      await _back(tester);
     }
-    await _back(tester);
     await _shot(tester, 'street_dressed');
 
     // The barber: every tab, every option.

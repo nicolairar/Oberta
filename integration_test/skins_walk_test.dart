@@ -17,11 +17,15 @@ const _who = String.fromEnvironment('WALK_LOOK', defaultValue: 'nadia');
 /// (WALK_OUT), on a phone the app's tmp.
 const _outDir = String.fromEnvironment('WALK_OUT');
 
+/// WALK_SHOP=false: only the barber and the table, wearing what the shop
+/// part buys.
+const _shop = bool.fromEnvironment('WALK_SHOP', defaultValue: true);
+
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   binding.framePolicy = LiveTestWidgetsFlutterBindingFramePolicy.fullyLive;
 
   testWidgets('a player walks the Cappello and Volto departments, the barber and a table', (tester) async {
-    await skinsWalk(tester, who: _who, out: _outDir.isNotEmpty ? '$_outDir/$_who' : '${Directory.systemTemp.path}/skins_walk_$_who', io: <T>(work) => work());
+    await skinsWalk(tester, who: _who, out: _outDir.isNotEmpty ? '$_outDir/$_who' : '${Directory.systemTemp.path}/skins_walk_$_who', io: <T>(work) => work(), shop: _shop);
   }, timeout: const Timeout(Duration(minutes: 40)));
 }

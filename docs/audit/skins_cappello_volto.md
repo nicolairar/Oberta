@@ -28,7 +28,9 @@ The audit was done in two passes:
    - Headless, at 393×852 and dpr 3 with the notch and the home bar, for iterating: `WALK_LOOK=nadia flutter test tool/audit/skins_walk_headless_test.dart`. It writes to `build/audit/walk/<who>/`.
    - `python3 tool/audit/walk_sheets.py build/audit/walk/<who>` makes contact sheets of the steps.
 
-   Each run takes about 480 screenshots.
+   - `WALK_SHOP=false` (a `--dart-define` on the simulator) skips the shop and goes straight to the barber and the table, already wearing the five pieces.
+
+   Each full run takes about 480 screenshots. Three runs were made headless, one for each player (Vito, Nadia and Rosalinda). Two were made on the iOS 18.6 simulator as Nadia: the shop pass took 337 screenshots, and the barber and table pass took 149.
 
 ## Findings from the walk through the app
 

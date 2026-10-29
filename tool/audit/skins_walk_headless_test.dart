@@ -3,6 +3,8 @@
 //
 //   WALK_LOOK=nadia flutter test tool/audit/skins_walk_headless_test.dart
 //
+// (WALK_SHOP=false: only the barber and the table)
+//
 // writes build/audit/walk/<who>/NNN_<step>.png. The same walk runs on a
 // device with integration_test/skins_walk_test.dart.
 import 'dart:io';
@@ -53,7 +55,7 @@ void main() {
     tester.view.devicePixelRatio = 3;
     tester.view.padding = const FakeViewPadding(top: 59 * 3, bottom: 34 * 3);
     addTearDown(tester.view.reset);
-    await skinsWalk(tester, who: who, out: 'build/audit/walk/$who', io: <T>(work) => tester.runAsync(work), clock: ManualClock());
+    await skinsWalk(tester, who: who, out: 'build/audit/walk/$who', io: <T>(work) => tester.runAsync(work), clock: ManualClock(), shop: Platform.environment['WALK_SHOP'] != 'false');
     await tester.pumpWidget(const SizedBox());
   }, timeout: const Timeout(Duration(minutes: 30)));
 }
