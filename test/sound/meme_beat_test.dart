@@ -61,6 +61,10 @@ void main() {
     expect(beat.hit(MemeMoment.victory), Meme.auraFarming);
   });
 
+  test('a broken heart plays the lovers rizz', () {
+    expect(beat.hit(MemeMoment.lovers), Meme.rizzLove);
+  });
+
   test('long memes stay rare', () {
     var longs = 0;
     for (var i = 0; i < 60; i++) {

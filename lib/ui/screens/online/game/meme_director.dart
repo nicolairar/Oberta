@@ -28,10 +28,16 @@ class MemeSnapshot {
   final bool silenced;
   final bool scoopMafia;
 
+  /// All'alba qualcuno è morto di crepacuore: ora tutti sanno degli innamorati.
+  final bool dawnHeartbreak;
+
   /// Il verdetto di questo giro: condannato e se era della famiglia.
   final int? lynchRound;
   final String? condemned;
   final bool condemnedMafia;
+
+  /// Col condannato se n'è andato anche chi lo amava.
+  final bool lynchHeartbreak;
   final Team? winner;
 
   /// Se a vincere è stato chi tiene questo telefono.
@@ -51,9 +57,11 @@ class MemeSnapshot {
     this.saves = 0,
     this.silenced = false,
     this.scoopMafia = false,
+    this.dawnHeartbreak = false,
     this.lynchRound,
     this.condemned,
     this.condemnedMafia = false,
+    this.lynchHeartbreak = false,
     this.winner,
     this.iWon = false,
     this.dayChat = const [],
@@ -77,9 +85,11 @@ class MemeSnapshot {
       saves: dawn?.attacks.where((attack) => attack.outcome != AttackOutcome.killed).length ?? 0,
       silenced: dawn?.silenced != null,
       scoopMafia: dawn?.scoop?.team == Team.mafia,
+      dawnHeartbreak: dawn?.heartbroken.isNotEmpty ?? false,
       lynchRound: lynch?.round,
       condemned: lynch?.condemned?.id,
       condemnedMafia: lynch?.role?.team == Team.mafia,
+      lynchHeartbreak: lynch?.heartbroken != null,
       winner: view.winner,
       iWon: view.winner != null && client.seat != null && view.won(client.seat!.view.seat),
       dayChat: [
@@ -176,6 +186,7 @@ class MemeDirector {
         if (now.saves > 0) beat.hit(MemeMoment.save, after: const Duration(milliseconds: 1800));
         if (now.scoopMafia) beat.hit(MemeMoment.scoop, after: const Duration(seconds: 3));
         if (now.silenced) beat.hit(MemeMoment.silenced, after: const Duration(seconds: 5));
+        if (now.dawnHeartbreak) beat.hit(MemeMoment.lovers, after: const Duration(seconds: 4));
       case Stage.vote:
         _leader = null;
         beat.hit(MemeMoment.voteCall);
@@ -183,6 +194,7 @@ class MemeDirector {
         // La carta stessa ha già la sua battuta (mafioso o innocente):
         // qui resta solo la piazza che non condanna nessuno.
         if (now.condemned == null) beat.hit(MemeMoment.noConviction, after: const Duration(milliseconds: 600));
+        if (now.lynchHeartbreak) beat.hit(MemeMoment.lovers, after: const Duration(seconds: 4));
       case Stage.ended:
         if (now.winner != null) {
           beat.hit(

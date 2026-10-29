@@ -25,7 +25,8 @@ enum Meme {
   error,
   knocked,
   auraFarming,
-  fridayDamn;
+  fridayDamn,
+  rizzLove;
 
   /// Quanto dura, in millisecondi: quelli lunghi (le canzoncine, la risata)
   /// zittiscono la musica finché non finiscono.
@@ -47,6 +48,7 @@ enum Meme {
         knocked => 650,
         auraFarming => 12420,
         fridayDamn => 3740,
+        rizzLove => 1930,
       };
 
   /// Una canzoncina o una risata lunga: sopra la tarantella non si capisce
@@ -64,6 +66,7 @@ enum Meme {
         applePay => 'applepay',
         auraFarming => 'aura_farming',
         fridayDamn => 'friday_damn',
+        rizzLove => 'rizz_love',
         _ => name,
       }}.m4a';
 }

@@ -27,6 +27,9 @@ enum MemeMoment {
   mafiaWins([Meme.catLaugh, Meme.hellNah], big: true),
   townWins([Meme.rizz, Meme.applePay, Meme.lutador], big: true),
 
+  /// Tutti scoprono che due erano innamorati: uno muore di crepacuore.
+  lovers([Meme.rizzLove], big: true),
+
   /// Hai vinto tu: la canzone della vittoria, sempre, anche se è lunga.
   victory([Meme.auraFarming], big: true);
 

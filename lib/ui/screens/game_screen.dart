@@ -294,6 +294,8 @@ class _GameScreenState extends State<GameScreen> {
     if (report.victims.isEmpty) beat(MemeMoment.nobodyDied, after: const Duration(milliseconds: 1200));
     // Il Sarto ha cucito una bocca: lo vedono tutti sulla griglia.
     if (report.silenced != null) beat(MemeMoment.silenced, after: const Duration(seconds: 4));
+    // Uno è morto di crepacuore: ora tutti sanno chi si amava.
+    if (report.heartbroken.isNotEmpty) beat(MemeMoment.lovers, after: const Duration(seconds: 4));
     _title = _t.dawnTitle;
     _mood = SceneMood.dawn;
     _stage = _Stage.script;
@@ -407,6 +409,7 @@ class _GameScreenState extends State<GameScreen> {
     if (report.role != null) SoundStage.instance.cue(report.role!.team == Team.mafia ? Cue.caught : Cue.drumroll);
     // Nessuna condanna: il silenzio imbarazzato della battuta che non ride nessuno.
     if (condemned == null) beat(MemeMoment.noConviction, after: const Duration(milliseconds: 600));
+    if (report.heartbroken != null) beat(MemeMoment.lovers, after: const Duration(seconds: 4));
     _verdictLines = _script.lynch(report);
     _title = _t.verdictTitle;
     _mood = SceneMood.dusk;
