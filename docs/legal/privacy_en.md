@@ -1,6 +1,6 @@
 # Obertà Privacy Policy
 
-Last updated: 28 October 2026
+Last updated: 29 October 2026
 
 Obertà is a party game. This policy explains what data we process, why, for how long, and what your rights are (EU Regulation 2016/679, "GDPR").
 
@@ -11,6 +11,23 @@ Nicolai Tana — privacy contact: niko.tana@outlook.com — certified email (PEC
 ## Playing without an account
 
 You can play on a single phone without an account. In that case no personal data leaves the device: settings (sound, language) stay on the phone only.
+
+## The "Notify me at launch" list (website)
+
+If you leave your email in the form on charliemobile.dev/oberta:
+
+- **What we keep**: the email address, the language (to write to you in Italian or English), the date and time of the sign-up, of the confirmation email and of the confirmation, and the version of the consent text you accepted, as proof of consent. We do not store your IP address with the email: to stop abuse we keep, for one hour at most, only a fingerprint of the IP hashed with a secret key, then delete it.
+- **Why**: only to tell you when Obertà comes out and, rarely, for news about Obertà. No other use, no profiling, no selling or sharing with third parties.
+- **Legal basis**: your consent (art. 6.1.a GDPR), given by ticking the box, which is never pre-ticked. You can withdraw it at any time, with no consequences; withdrawal does not affect what was done before.
+- **Double opt-in**: after signing up you get a single email with a "Confirm your email" button. Until you confirm we send nothing else, and launch emails go only to confirmed addresses. If the address was already on the list we send nothing.
+- **Age**: you must be at least 14 (art. 2-quinquies of the Italian Privacy Code).
+- **How long**: until you unsubscribe, and in any case no longer than 12 months after the game comes out; then we delete the whole list.
+- **Unsubscribing**: every email has a one-click unsubscribe link that deletes your address immediately. For access, rectification, erasure or withdrawal of consent you can also write to niko.tana@outlook.com.
+- **Who processes it for us**: Supabase (database, European Union, Ireland) and Brevo by Sendinblue SAS (sending the emails, France, servers in the European Union).
+
+### Website cookies
+
+The website uses no profiling, advertising or analytics cookies and loads no third-party tracking services, which is why there is no cookie banner. Cloudflare, which serves the site, may use strictly necessary technical security cookies to protect it from attacks.
 
 ## What we process with an online account
 
@@ -36,11 +53,13 @@ We do not process location, contacts, photos or health data. The microphone is u
 - No tracking across other apps or websites.
 - No selling or sharing of data.
 - No cookies in the app.
+- No profiling or analytics cookies on the website, hence no cookie banner.
 - No recording, transcription or analysis of voice.
 
 ## Why, and on what legal basis
 
 - Providing online play, the account, friends, rooms, table voice chat and cosmetics: performance of a contract (art. 6.1.b).
+- The website's "Notify me at launch" list: consent (art. 6.1.a), which you can withdraw at any time.
 - Chat moderation, abandon penalties, cheat and abuse prevention, server security: legitimate interest in a fair and safe game (art. 6.1.f).
 
 ## How long
@@ -56,6 +75,8 @@ We do not process location, contacts, photos or health data. The microphone is u
 
 - Supabase Inc. — hosting and database, with servers in the European Union (Ireland, region eu-west-1). Any transfers outside the EU are covered by Standard Contractual Clauses.
 - LiveKit, Inc. — live transmission of table voice chat (LiveKit Cloud, servers in the European Union). No recording, transcription or storage of audio. Any transfers outside the EU are covered by Standard Contractual Clauses.
+- Sendinblue SAS (Brevo) — sending the emails of the "Notify me at launch" list (France, servers in the European Union).
+- Cloudflare, Inc. — serving and protecting the website. Any transfers outside the EU are covered by Standard Contractual Clauses and the EU-US Data Privacy Framework.
 - Apple Inc. — Sign in with Apple and in-app payments. For payments Apple acts as an independent controller under its own policy.
 - Google LLC — only if you choose to sign in with Google.
 - Valve Corporation (Steam) — only if you sign in with Steam: it confirms the sign-in and provides your public Steam profile. Valve acts as an independent controller under its own privacy policy.
@@ -69,6 +90,7 @@ Online play includes text and voice chat with other players: you must be at leas
 - Access and portability: download all your data as JSON from Settings → Privacy & data → "Download my data".
 - Rectification: change your name, look and profile picture in the app. Your Steam name and picture update from Steam.
 - Erasure: on your phone, delete your account from Settings → Account → "Delete account"; from PC (Steam), write to niko.tana@outlook.com and we delete it within 30 days.
+- Withdrawing consent to the website list: the "Remove me from the list" link in every email, or write to niko.tana@outlook.com.
 - Objection and restriction: write to niko.tana@outlook.com.
 - Complaint to the supervisory authority: Garante per la protezione dei dati personali (www.garanteprivacy.it), or the authority of your EU country.
 

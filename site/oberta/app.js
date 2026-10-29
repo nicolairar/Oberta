@@ -90,3 +90,92 @@ if ('IntersectionObserver' in window && !reduceMotion) {
   }, { rootMargin: '0px 0px -10% 0px' });
   for (const el of targets) observer.observe(el);
 }
+
+// Avvisami quando esce: la lista d'attesa (funzione `waitlist` su Supabase).
+// La risposta è la stessa per un indirizzo nuovo e per uno già in lista.
+const WAITLIST_URL = 'https://iklohzudrdwjzqgesakq.supabase.co/functions/v1/waitlist';
+const waitlist = (body) => fetch(WAITLIST_URL, {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify(body),
+}).then((res) => res.json()).catch(() => ({ ok: false, error: 'network' }));
+
+const notify = document.querySelector('#avvisami');
+if (notify) {
+  const email = notify.querySelector('input[name="email"]');
+  const consent = notify.querySelector('input[name="consent"]');
+  const consentLabel = notify.querySelector('.notify__consent');
+  const button = notify.querySelector('button[type="submit"]');
+  const status = notify.querySelector('.notify__status');
+  const say = (text, kind) => {
+    status.textContent = text;
+    status.className = `notify__status${kind ? ` is-${kind}` : ''}`;
+  };
+  const errors = {
+    invalid_email: 'Questa email non sembra giusta.',
+    consent_required: 'Spunta la casella per continuare.',
+    rate_limited: 'Troppi tentativi. Riprova tra qualche minuto.',
+  };
+  email.addEventListener('input', () => email.removeAttribute('aria-invalid'));
+  consent.addEventListener('change', () => consentLabel.classList.remove('is-missing'));
+  notify.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (notify.classList.contains('is-done') || button.disabled) return;
+    const address = email.value.trim();
+    if (!address || !email.checkValidity()) {
+      email.setAttribute('aria-invalid', 'true');
+      email.focus();
+      say(errors.invalid_email, 'error');
+      return;
+    }
+    if (!consent.checked) {
+      consentLabel.classList.add('is-missing');
+      consent.focus();
+      say(errors.consent_required, 'error');
+      return;
+    }
+    button.disabled = true;
+    say('Un attimo…');
+    const lang = (navigator.language || 'it').slice(0, 2).toLowerCase() === 'it' ? 'it' : 'en';
+    const result = await waitlist({
+      action: 'join',
+      email: address,
+      lang,
+      consent: notify.dataset.consent,
+      website: notify.elements.website.value,
+    });
+    if (result.ok) {
+      notify.classList.add('is-done');
+      email.readOnly = true;
+      consent.disabled = true;
+      button.textContent = 'Fatto';
+      say('Ci sei. Se l’indirizzo è nuovo, ti arriva una mail: conferma con un clic.', 'ok');
+      return;
+    }
+    button.disabled = false;
+    if (result.error === 'invalid_email') email.setAttribute('aria-invalid', 'true');
+    say(errors[result.error] || 'Qualcosa non va. Riprova tra poco.', 'error');
+  });
+}
+
+// conferma.html e disiscriviti.html: il token arriva nel link della mail (?t=).
+const tokenPage = document.querySelector('[data-waitlist-action]');
+if (tokenPage) {
+  const token = new URLSearchParams(location.search).get('t') || '';
+  const show = (state) => {
+    for (const el of tokenPage.querySelectorAll('[data-state]')) el.hidden = el.dataset.state !== state;
+  };
+  const run = async () => {
+    show('working');
+    const result = await waitlist({ action: tokenPage.dataset.waitlistAction, token });
+    show(result.ok ? 'done' : 'error');
+  };
+  if (!/^[0-9a-f-]{36}$/i.test(token)) {
+    show('invalid');
+  } else {
+    // Serve un clic: i controlli automatici dei link nelle caselle di posta
+    // non confermano e non cancellano nessuno.
+    show('ask');
+    tokenPage.querySelector('[data-waitlist-go]')?.addEventListener('click', run, { once: true });
+  }
+}

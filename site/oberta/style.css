@@ -175,6 +175,85 @@ button { color: inherit; font: inherit; }
   font-style: italic;
 }
 
+/* ---------- Avvisami: la lista d'attesa nell'apertura ---------- */
+.visually-hidden {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.notify { max-width: 460px; margin: 26px 0 0; }
+.notify__row { display: flex; gap: 10px; }
+.notify__email {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 52px;
+  padding: 0 16px;
+  border: 1.5px solid rgba(230, 199, 122, .55);
+  border-radius: 14px;
+  background: rgba(12, 9, 7, .72);
+  color: var(--white);
+  font: 600 16px/1 var(--sans); /* 16px: Safari su iPhone non ingrandisce */
+  -webkit-appearance: none;
+  appearance: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+.notify__email::placeholder { color: #9c8f7b; }
+.notify__email:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(214, 173, 72, .28); }
+.notify__email[aria-invalid="true"] { border-color: var(--red-light); }
+/* La targa del gioco: cornice d'ottone, smalto rosso, lettere graziate spaziate. */
+.targa {
+  flex: 0 0 auto;
+  height: 52px;
+  padding: 0 22px;
+  border: 2.2px solid transparent;
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, #b3242e 0%, #7e111a 55%, #4a070d 100%) padding-box,
+    linear-gradient(180deg, #ffe7a8 0%, #d9b45a 42%, #9c7424 78%, #c9a23e 100%) border-box;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, .6), 0 0 14px rgba(255, 180, 67, .16), inset 0 1px 0 rgba(255, 255, 255, .18);
+  color: #fff1d6;
+  font: 700 15px/1 var(--serif);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 120ms ease, box-shadow 160ms ease, filter 160ms ease;
+}
+.targa:hover { filter: brightness(1.12); box-shadow: 0 4px 10px rgba(0, 0, 0, .6), 0 0 18px rgba(255, 180, 67, .33), inset 0 1px 0 rgba(255, 255, 255, .2); }
+.targa:active { transform: translateY(2px); box-shadow: 0 1px 3px rgba(0, 0, 0, .6), inset 0 2px 6px rgba(0, 0, 0, .35); }
+.targa:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+.targa[disabled] { cursor: default; filter: saturate(.6) brightness(.85); }
+.notify__hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.notify__consent {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+  cursor: pointer;
+}
+.notify__consent input {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--gold);
+  cursor: pointer;
+}
+.notify__consent a { color: var(--gold); text-underline-offset: 2px; }
+.notify__consent.is-missing span { color: var(--white); }
+.notify__consent.is-missing input { outline: 2px solid var(--red-light); outline-offset: 2px; }
+/* La riga di stato ha sempre la sua altezza: niente salti quando compare. */
+.notify__status { min-height: 1.4em; margin: 8px 0 0; color: var(--muted); font-size: 14px; font-weight: 700; line-height: 1.4; }
+.notify__status.is-ok { color: var(--gold); }
+.notify__status.is-error { color: #ff8a80; }
+.notify.is-done .notify__email, .notify.is-done .notify__consent { opacity: .55; }
+
 /* ---------- Le sezioni: un titolo, una riga, una cosa da guardare ---------- */
 .beat {
   display: grid;
@@ -301,7 +380,7 @@ button { color: inherit; font: inherit; }
 .js .is-in { opacity: 1; translate: none; }
 .hero h1 .line { animation: line-rise 900ms var(--ease) both; }
 .hero h1 .line--gold { animation-delay: 110ms; }
-.hero__sub, .hero .stores, .hero .stores__soon { animation: fade-up 700ms var(--ease) 260ms both; }
+.hero__sub, .hero .stores, .hero .stores__soon, .hero .notify { animation: fade-up 700ms var(--ease) 260ms both; }
 .phone--hero { animation: phone-in 1100ms var(--ease) 120ms both; }
 @keyframes line-rise { from { opacity: 0; transform: translateY(40%); } }
 @keyframes fade-up { from { opacity: 0; transform: translateY(16px); } }
@@ -346,6 +425,7 @@ button { color: inherit; font: inherit; }
   .hero__sub { margin: 18px 0 22px; font-size: 19px; }
   .stores img { height: 38px; }
   .stores__steam img { height: 26px; }
+  .notify { margin-top: 18px; }
   .beat { grid-template-columns: 1fr; gap: 40px; padding: 72px 16px 84px; }
   .beat:nth-of-type(odd) .beat__copy { order: 0; }
   .beat h2 { font-size: clamp(44px, 12.5vw, 76px); }
@@ -364,6 +444,7 @@ button { color: inherit; font: inherit; }
   .hero .stores { gap: 10px 12px; }
   .hero .stores img { height: 34px; }
   .hero .stores__steam img { height: 24px; }
+  .targa { padding: 0 16px; font-size: 14px; letter-spacing: .12em; }
 }
 @media (max-width: 380px) {
   .site-header nav a[href="#amici"], .site-header nav a[href="./#amici"] { display: none; }
@@ -371,7 +452,7 @@ button { color: inherit; font: inherit; }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .hero h1 .line, .hero__sub, .hero .stores, .hero .stores__soon, .phone--hero { animation: none !important; }
+  .hero h1 .line, .hero__sub, .hero .stores, .hero .stores__soon, .hero .notify, .phone--hero { animation: none !important; }
   .phone video { transition: none; }
   .role-card__inner { transition: none; }
 }

@@ -44,6 +44,23 @@
             <li><img src="img/badges/google-play-it.svg" alt="Google Play" width="239" height="71"></li>
             <li class="stores__steam"><img src="img/badges/steam-logo-white.png" alt="Steam" width="900" height="272"></li>
           </ul>
+          <!-- La lista d'attesa: funzione `waitlist` (supabase/functions/waitlist), app.js. Il testo del consenso
+               è la versione data-consent salvata in internal.waitlist_consents: se cambia, nuova versione. -->
+          <form class="notify" id="avvisami" action="#" method="post" novalidate data-consent="2026-10-v1">
+            <div class="notify__row">
+              <label class="visually-hidden" for="notify-email">La tua email</label>
+              <input class="notify__email" id="notify-email" name="email" type="email" inputmode="email" autocomplete="email" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="254" placeholder="La tua email" required>
+              <button class="targa" type="submit">Avvisami</button>
+            </div>
+            <div class="notify__hp" aria-hidden="true">
+              <label>Sito web <input name="website" type="text" tabindex="-1" autocomplete="off"></label>
+            </div>
+            <label class="notify__consent">
+              <input name="consent" type="checkbox" required>
+              <span>Ho almeno 14 anni e voglio ricevere una mail quando esce Obertà. Niente spam, cancellazione in un clic. <a href="privacy.html#lista">Informativa privacy</a></span>
+            </label>
+            <p class="notify__status" role="status" aria-live="polite"></p>
+          </form>
         </div>
       </section>
 

@@ -35,3 +35,7 @@ SKIP_SHOTS=1 tool/site/refresh_media.sh # solo i video
 - Niente da installare: solo Flutter, `sips` e Swift di macOS.
 
 I video partono solo quando sono in vista (`app.js`); con «riduci movimento» o il risparmio dati si vede solo la locandina e il video non si scarica. Il numero dei ruoli nel titolo della sezione «ruoli» lo scrive `dart run tool/site/roles_page.dart`.
+
+## Lista d'attesa
+
+Il modulo «Avvisami» nell'apertura, `conferma.html` e `disiscriviti.html` parlano con la Edge Function `waitlist` (indirizzo in `app.js`). `email/` contiene le immagini e le anteprime della mail di conferma. Tutto in `docs/release.md`, sezione 12.

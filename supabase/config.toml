@@ -427,3 +427,10 @@ entrypoint = "./functions/steam-auth/index.ts"
 enabled = true
 verify_jwt = true
 entrypoint = "./functions/voice-token/index.ts"
+
+# The launch waitlist, called by the landing page without a JWT. CORS and an
+# origin check in the function let only the site's origins in.
+[functions.waitlist]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/waitlist/index.ts"

@@ -304,3 +304,72 @@ quando esiste, vedi `docs/steam.md`).
 3. `docs/stato.md`: data, versione e build, cosa è uscito, cosa resta.
 4. Tra una e due ore: crash e feedback in App Store Connect / TestFlight, log delle Edge Function
    in Supabase, partite online che partono.
+
+## 12. Lista d'attesa «Avvisami quando esce»
+
+Il modulo nell'apertura della landing chiama la Edge Function `waitlist`
+(`supabase/functions/waitlist/`), che salva l'indirizzo in `internal.waitlist` (migrazione
+`20261125090000_waitlist.sql`, non leggibile dall'API) e, **solo per un indirizzo nuovo**, manda con
+Brevo la mail di conferma (doppio opt-in). Un indirizzo già in lista, confermato o no, non riceve
+niente e il sito risponde uguale. Informativa: `privacy.html#lista` e `docs/legal/privacy_*.md`.
+
+**Segreti Brevo** (Edge Function secrets; mai nel repository, mai stampati):
+
+```sh
+supabase secrets set --project-ref <ref> BREVO_API_KEY=... BREVO_SENDER_EMAIL=oberta@charliemobile.dev BREVO_SENDER_NAME=Obertà
+```
+
+Senza segreti l'iscrizione si salva lo stesso e la mail si salta (log «Brevo secrets missing»);
+`confirm_sent_at` resta vuoto. Facoltativi: `WAITLIST_SITE_URL` (default
+`https://charliemobile.dev/oberta`) e `WAITLIST_ORIGINS` (origini ammesse, separate da virgola;
+default `charliemobile.dev`, `www.charliemobile.dev`, `oberta.pages.dev` e le sue anteprime).
+
+**La mail di conferma**: `supabase/functions/waitlist/templates/confirm.ts` (IT/EN secondo la lingua
+dell'iscrizione), immagini in `site/oberta/email/` (`python3 tool/site/email_assets.py`), anteprime
+`site/oberta/email/conferma-*.html` (`deno run -A supabase/functions/waitlist/templates/preview.ts`;
+`waitlist_test.ts` fallisce se non sono aggiornate). Test: `deno test -A
+supabase/functions/tests/waitlist_test.ts` e `supabase/tests/waitlist.sql` (`begin; … rollback;`).
+
+**Link**:
+
+- conferma: `https://charliemobile.dev/oberta/conferma.html?t=<confirm_token>`
+- cancellazione: `https://charliemobile.dev/oberta/disiscriviti.html?t=<unsubscribe_token>`
+  (cancella la riga); one-click per i client di posta:
+  `POST https://<ref>.supabase.co/functions/v1/waitlist?unsubscribe=<unsubscribe_token>`
+
+**Regole per ogni invio** (GDPR e Garante):
+
+1. Solo agli indirizzi con `confirmed = true`.
+2. Solo notizie su Obertà (l'uscita, poi di rado novità): è la finalità del consenso.
+3. In ogni mail il link di cancellazione personale e gli header `List-Unsubscribe` /
+   `List-Unsubscribe-Post: List-Unsubscribe=One-Click`.
+4. Chi si iscrive prima che Brevo fosse configurato (`confirm_sent_at is null`) riceve prima, una
+   volta sola, la mail di conferma; non la mail di lancio.
+5. 12 mesi dopo l'uscita si cancella tutta la lista: `delete from internal.waitlist;`.
+6. Un nuovo testo del consenso nel modulo = una nuova riga in `internal.waitlist_consents` e una nuova
+   `data-consent` in `index.html` (le vecchie restano come prova).
+
+**Esportare la lista** (CSV, Management API, `SUPABASE_ACCESS_TOKEN` di `fastlane/.env` e ref da
+`config/supabase.json`, senza stamparli):
+
+```sh
+python3 - <<'PY' > waitlist.csv
+import csv, json, pathlib, re, sys, urllib.request
+root = pathlib.Path('/Users/nicolai/code/Lupus')
+token = next(l.split('=', 1)[1].strip().strip('"') for l in (root / 'fastlane/.env').read_text().splitlines() if l.startswith('SUPABASE_ACCESS_TOKEN='))
+ref = re.match(r'https://([a-z0-9]+)\.', json.loads((root / 'config/supabase.json').read_text())['SUPABASE_URL']).group(1)
+sql = """select email, lang, 'https://charliemobile.dev/oberta/disiscriviti.html?t=' || unsubscribe_token as unsubscribe_url
+         from internal.waitlist where confirmed order by created_at"""
+req = urllib.request.Request(f'https://api.supabase.com/v1/projects/{ref}/database/query', data=json.dumps({'query': sql}).encode(),
+                             headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json', 'User-Agent': 'oberta-waitlist'})
+rows = json.loads(urllib.request.urlopen(req).read())
+w = csv.DictWriter(sys.stdout, fieldnames=['email', 'lang', 'unsubscribe_url']); w.writeheader(); w.writerows(rows)
+PY
+```
+
+Il CSV va in Brevo (Contatti → Importa, una lista «Obertà lancio», attributi `LANG` e
+`UNSUBSCRIBE_URL`); nella campagna il link di cancellazione è `{{ contact.UNSUBSCRIBE_URL }}` (oltre a
+quello di Brevo). Chi si cancella da Brevo va tolto anche qui (`delete from internal.waitlist where
+email = '...'`). Il CSV contiene dati personali: non nel repository, cancellalo dopo l'import.
+In alternativa gratuita, qualunque strumento di mailing con link personali (es. un piccolo script
+che chiama l'API transazionale di Brevo, 300 mail al giorno gratis) va bene, con le stesse regole.

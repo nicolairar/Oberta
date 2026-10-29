@@ -105,7 +105,7 @@ ruoli (carte e traguardi `role_*` scritti solo da `record_match`, ognuno legge s
 pubblico mostra solo quante); in PGlite `deno test -A supabase/functions/tests/role_stats_test.ts`.
 `supabase/tests/lobby_languages.sql` fa lo stesso per le lingue dei tavoli (solo codici ISO 639-1, ognuno cambia solo il suo profilo). `supabase/tests/missions.sql` fa lo stesso per missioni e monete: nessuno completa o riscuote da sé
 una missione, la riscuote due volte, compra un pezzo delle missioni o si accredita monete, e non
-esiste più un motivo da soldi veri; in PGlite `deno test -A supabase/functions/tests/missions_test.ts`. I test pgTAP in `supabase/tests/database/` restano per `supabase test db`.
+esiste più un motivo da soldi veri; in PGlite `deno test -A supabase/functions/tests/missions_test.ts`. `supabase/tests/waitlist.sql` fa lo stesso per la lista d'attesa del sito: l'API non legge né scrive la lista, niente iscrizione senza consenso, un indirizzo già in lista risponde uguale, limite di iscrizioni per IP (impronta salata, tenuta un'ora) e in tutto, conferma e cancellazione solo col proprio token; la Edge Function in `deno test -A supabase/functions/tests/waitlist_test.ts`. I test pgTAP in `supabase/tests/database/` restano per `supabase test db`.
 
 ## Esito dell'audit (ottobre 2026)
 
