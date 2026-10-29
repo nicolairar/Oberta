@@ -1,6 +1,7 @@
 // Turns build/promo/frames/f_####.png (from promo_render_test.dart) into
-// build/promo/oberta_short_15s.mp4: H.264 1080×1920 at 60 fps, with the
-// music, the narrator and the hits mixed in AAC. Only AVFoundation:
+// build/promo/oberta_short_pov.mp4: H.264 1080×1920 at 60 fps, with the
+// music and the hits mixed in AAC. No narrator: subtitles only.
+// Only AVFoundation:
 //   swift tool/promo/encode.swift
 // The cue times follow the edit in promo_render_test.dart (136.4 bpm).
 import AVFoundation
@@ -9,42 +10,52 @@ import Foundation
 import ImageIO
 
 let fps: Int32 = 60
-let length = 15.0
-let width = 1080, height = 1920
-let framesDir = "build/promo/frames"
-let output = URL(fileURLWithPath: "build/promo/oberta_short_15s.mp4")
 let beat = 60.0 / 136.4
 func B(_ n: Double) -> Double { n * beat }
+let length = B(58)
+let width = 1080, height = 1920
+let framesDir = "build/promo/frames"
+let output = URL(fileURLWithPath: "build/promo/oberta_short_pov.mp4")
 
 // ── the sound: (file, at seconds, volume, max length) ────────────────────
 struct Cue { let file: String; let at: Double; let volume: Float; var max: Double = 99 }
-let voice = "assets/voice/it/"
+let sounds = "assets/sounds/", sfx = "assets/sfx/", meme = "assets/meme/"
+let voteSounds = ["chips_1.wav", "chips_2.wav", "chips_3.wav", "chips_1.wav", "chips_2.wav", "chips_3.wav"]
 let cues: [Cue] = [
-  Cue(file: "assets/sounds/punch.wav", at: B(2), volume: 1.0),
-  Cue(file: "assets/sfx/fx_swish_1.m4a", at: B(4) - 0.06, volume: 0.6),
-  Cue(file: voice + "27a0a00222e3ccdc.m4a", at: 1.95, volume: 1.0), // «Quando cala la notte»
-  Cue(file: "assets/sfx/fx_impact_1.m4a", at: B(6), volume: 0.45),
-  Cue(file: voice + "871b23e163499753.m4a", at: B(8) + 0.08, volume: 1.0), // «Tu! Dov'eri stanotte?»
-  Cue(file: "assets/sfx/fx_gavel_1.m4a", at: B(14), volume: 0.8),
-  Cue(file: "assets/meme/faaah.m4a", at: B(15) + 0.15, volume: 0.85, max: 1.55),
-  Cue(file: "assets/sfx/fx_splash_1.m4a", at: B(17.6), volume: 0.35, max: 0.7),
-  Cue(file: "assets/meme/vine_boom.m4a", at: B(19), volume: 1.0),
-  Cue(file: voice + "8f3fc9e46c9b87b3.m4a", at: B(19) + 0.55, volume: 1.0), // «Il Picciotto»
-  Cue(file: "assets/sfx/fx_cashreg_1.m4a", at: B(22), volume: 0.55, max: 0.8),
-  Cue(file: "assets/meme/hee_hee.m4a", at: B(24), volume: 0.7, max: 0.9),
-  Cue(file: "assets/sfx/fx_whoosh_1.m4a", at: B(26) - 0.1, volume: 0.35, max: 0.5),
-  Cue(file: "assets/sounds/wood_heavy.wav", at: B(27), volume: 0.75),
-  Cue(file: "assets/sounds/wood_heavy_2.wav", at: B(28), volume: 0.75),
-  Cue(file: "assets/sounds/wood_heavy.wav", at: B(29), volume: 0.75),
-  Cue(file: "assets/sfx/fx_bulb_1.m4a", at: B(30) + 0.05, volume: 0.5, max: 0.8),
-  Cue(file: "assets/sfx/fx_spark_1.m4a", at: length - 0.30, volume: 0.6, max: 0.3),
+  // 1 · POV: the hit on «MAFIOSO.»
+  Cue(file: sounds + "punch.wav", at: B(2.6), volume: 1.0),
+  // 2 · the table: a whoosh in, a tap for every bubble
+  Cue(file: sfx + "fx_swish_1.m4a", at: B(6) - 0.06, volume: 0.55, max: 0.5),
+  Cue(file: sounds + "pizzi_07.wav", at: B(7.5), volume: 0.7),
+  Cue(file: sounds + "pizzi_07.wav", at: B(9), volume: 0.7),
+  Cue(file: sounds + "pizzi_07.wav", at: B(10.5), volume: 0.7),
+  // 3 · the votes: one tick per vote, then the stamp
+  Cue(file: sfx + "fx_swish_2.m4a", at: B(13) - 0.06, volume: 0.45, max: 0.5),
+] + (0..<6).map { Cue(file: sounds + voteSounds[$0], at: B(16 + Double($0)), volume: 0.6 + Float($0) * 0.06) } + [
+  Cue(file: sfx + "fx_impact_2.m4a", at: B(22), volume: 0.9, max: 0.9),
+  // 4 · lynched: the gavel on the word, faaah on the push, the splash
+  Cue(file: sfx + "fx_gavel_1.m4a", at: B(26), volume: 0.8, max: 0.8),
+  Cue(file: meme + "faaah.m4a", at: 13.05, volume: 0.9, max: 1.45),
+  Cue(file: sfx + "fx_splash_1.m4a", at: 14.0, volume: 0.55, max: 0.5),
+  // 5 · black, silence; the card turns, vine boom
+  Cue(file: sfx + "fx_swish_3.m4a", at: B(35) - 0.04, volume: 0.5, max: 0.5),
+  Cue(file: sounds + "flip.wav", at: B(35.2), volume: 0.9),
+  Cue(file: meme + "vine_boom.m4a", at: B(36), volume: 1.0),
+  // 6 · the payoff: the zoom hit on the last word
+  Cue(file: sounds + "punch_2.wav", at: B(45), volume: 0.8),
+  Cue(file: meme + "hee_hee.m4a", at: B(45) + 0.12, volume: 0.75, max: 0.9),
+  // 7 · the neon: the strike, and the short before the loop
+  Cue(file: sfx + "fx_bulb_1.m4a", at: B(49) + 0.05, volume: 0.5, max: 0.8),
+  Cue(file: sfx + "fx_spark_1.m4a", at: length - 0.32, volume: 0.6, max: 0.3),
 ]
-// The music sits under the voice and the meme hits.
+// The music sits under the meme hits, and drops out for the beat of black.
 let music = "assets/music/day.m4a"
 let musicFrom = 49.92 // the fullest stretch, starting on a beat
 let musicLevel: Float = 0.8
-let ducks: [(Double, Double)] = [(1.9, 5.2), (B(15) + 0.1, B(19) + 1.7), (B(24), B(24) + 0.9)]
 let duckLevel: Float = 0.38
+let ducks: [(Double, Double)] = [(13.0, B(33))] // faaah, then straight into the silence
+let silence = (B(33), B(36)) // black → back on the vine boom
+let hee = (B(45), B(45) + 0.9)
 
 func time(_ s: Double) -> CMTime { CMTime(seconds: s, preferredTimescale: 48000) }
 
@@ -65,12 +76,15 @@ func add(_ path: String, at: Double, from: Double = 0, duration: Double) async t
 let musicTrack = try await add(music, at: 0, from: musicFrom, duration: length)
 let musicParams = AVMutableAudioMixInputParameters(track: musicTrack)
 musicParams.setVolume(musicLevel, at: .zero)
-let ramp = 0.12
-for (a, b) in ducks {
-  musicParams.setVolumeRamp(fromStartVolume: musicLevel, toEndVolume: duckLevel, timeRange: CMTimeRange(start: time(a - ramp), duration: time(ramp)))
-  musicParams.setVolumeRamp(fromStartVolume: duckLevel, toEndVolume: musicLevel, timeRange: CMTimeRange(start: time(b), duration: time(ramp * 2)))
+func ramp(_ from: Float, _ to: Float, _ at: Double, _ d: Double) {
+  musicParams.setVolumeRamp(fromStartVolume: from, toEndVolume: to, timeRange: CMTimeRange(start: time(at), duration: time(d)))
 }
-musicParams.setVolumeRamp(fromStartVolume: musicLevel, toEndVolume: 0, timeRange: CMTimeRange(start: time(length - 0.7), duration: time(0.7)))
+for (a, _) in ducks { ramp(musicLevel, duckLevel, a - 0.12, 0.12) }
+ramp(duckLevel, 0, silence.0 - 0.08, 0.08)
+ramp(0, musicLevel, silence.1, 0.03)
+ramp(musicLevel, duckLevel, hee.0, 0.08)
+ramp(duckLevel, musicLevel, hee.1, 0.25)
+ramp(musicLevel, 0, length - 0.7, 0.7)
 params.append(musicParams)
 
 for cue in cues {
@@ -141,7 +155,7 @@ writer.startWriting()
 writer.startSession(atSourceTime: .zero)
 
 let frames = (try FileManager.default.contentsOfDirectory(atPath: framesDir)).filter { $0.hasSuffix(".png") }.sorted()
-guard frames.count == Int(length * Double(fps)) else { fatalError("expected \(Int(length * Double(fps))) frames, found \(frames.count)") }
+guard frames.count == Int((length * Double(fps)).rounded()) else { fatalError("expected \(Int((length * Double(fps)).rounded())) frames, found \(frames.count)") }
 let space = CGColorSpace(name: CGColorSpace.sRGB)!
 
 func pixelBuffer(_ path: String) -> CVPixelBuffer {

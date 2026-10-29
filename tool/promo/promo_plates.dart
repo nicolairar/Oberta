@@ -17,7 +17,8 @@ import 'package:oberta/ui/screens/online/game/noir_role_card.dart';
 import 'package:oberta/ui/screens/online/online_game_screen.dart';
 import 'package:oberta/ui/theme/app_theme.dart';
 import 'package:oberta/ui/widgets/city_backdrop.dart';
-import 'package:oberta/ui/widgets/targa.dart';
+import 'package:oberta/rules/role.dart';
+import 'package:oberta/ui/widgets/flip_role_card.dart';
 
 import '../../test/support/manual_clock.dart';
 
@@ -71,6 +72,9 @@ ThemeData _theme() {
 }
 
 final _key = GlobalKey();
+
+/// How many frames of the card flip, after the face-down one.
+const flipFrames = 14;
 
 Widget _app(Widget home) => RepaintBoundary(
   key: _key,
@@ -137,7 +141,8 @@ void setView(WidgetTester tester) {
 
 /// The plates by name: `night` (the family chat), `day` (the table with the
 /// seat numbers), `vote` (the same table once the votes are in), `verdictSky`
-/// (the dusk city the verdict film plays over) and the three mode plates.
+/// (the dusk city the verdict film plays over) and `flip_00`…`flip_14`, the
+/// role card turning over.
 Future<Map<String, ui.Image>> shootPlates(WidgetTester tester) async {
   final plates = <String, ui.Image>{};
   final seed = int.tryParse(Platform.environment['SEED'] ?? '') ?? 16;
@@ -182,9 +187,10 @@ Future<Map<String, ui.Image>> shootPlates(WidgetTester tester) async {
         await _flush(tester);
         plates['night'] = await grab(tester);
       } else {
+        // The table before anyone votes, then again once the bots have.
+        plates['day'] = await grab(tester);
         clock.elapse(const Duration(seconds: 10));
         await _flush(tester);
-        plates['day'] = await grab(tester);
         final seats = find.descendant(of: find.byKey(key), matching: find.byType(InkWell));
         final target = [for (final e in seats.evaluate()) if ((e.widget as InkWell).onTap != null) e].firstOrNull;
         if (target != null) {
@@ -211,45 +217,36 @@ Future<Map<String, ui.Image>> shootPlates(WidgetTester tester) async {
   await tester.pump(const Duration(milliseconds: 100));
   plates['verdictSky'] = await grab(tester);
 
-  // The three mode plates, the game's own Targa buttons.
-  final keys = {for (final m in ['amici', 'classificata', 'telefono']) m: GlobalKey()};
-  const labels = {'amici': 'CON GLI AMICI', 'classificata': 'CLASSIFICATA', 'telefono': 'UN TELEFONO'};
-  const icons = {'amici': Icons.groups, 'classificata': Icons.emoji_events, 'telefono': Icons.smartphone};
+  // The game's own role card, turning over: one frame every 40 ms of its
+  // 520 ms flip, while a finger holds it down.
+  final card = GlobalKey();
   await tester.pumpWidget(
     _app(
-      Scaffold(
-        backgroundColor: Colors.transparent,
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (final m in keys.keys)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  child: RepaintBoundary(
-                    key: keys[m],
-                    child: SizedBox(
-                      width: 300,
-                      child: TargaButton(
-                        label: labels[m]!,
-                        icon: icons[m],
-                        onPressed: () {},
-                        kind: m == 'classificata' ? TargaKind.primary : TargaKind.secondary,
-                        height: 64,
-                        expand: true,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
+      Center(
+        child: RepaintBoundary(
+          key: card,
+          child: SizedBox(
+            width: 380,
+            height: 520,
+            child: Center(
+              child: Material(
+                type: MaterialType.transparency,
+                child: SizedBox(width: 300, child: FlipRoleCard(role: Role.mafioso)),
+              ),
+            ),
           ),
         ),
       ),
     ),
   );
   await tester.pump(const Duration(milliseconds: 100));
-  for (final MapEntry(key: m, value: k) in keys.entries) {
-    plates['targa_$m'] = await grab(tester, key: k, pixelRatio: ratio * 1.5);
+  plates['flip_00'] = await grab(tester, key: card);
+  final finger = await tester.startGesture(tester.getCenter(find.byType(FlipRoleCard)));
+  for (var i = 1; i <= flipFrames; i++) {
+    await tester.pump(const Duration(milliseconds: 40));
+    plates['flip_${i.toString().padLeft(2, '0')}'] = await grab(tester, key: card);
   }
+  await finger.up();
+  await tester.pump(const Duration(seconds: 1));
   return plates;
 }
