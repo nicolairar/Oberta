@@ -100,15 +100,22 @@ OnlineFailure? _authFailure(AuthException error, SignInDoor? door) {
       _ => OnlineFailure.appleDisabled,
     };
   }
-  if (error is AuthWeakPasswordException || code == 'weak_password') return OnlineFailure.weakPassword;
-  if (code == 'invalid_credentials' || message.contains('invalid login credentials')) {
-    return OnlineFailure.wrongPassword;
-  }
-  if (code == 'user_already_exists' || code == 'email_exists') return OnlineFailure.wrongPassword;
   if (code == 'email_address_invalid' || message.contains('unable to validate email')) {
     return OnlineFailure.invalidEmail;
   }
-  if (code == 'email_not_confirmed') return OnlineFailure.emailNotConfirmed;
+  // «Entra con email»: il server non distingue un codice sbagliato da uno
+  // scaduto (`otp_expired` per tutti e due); lo decide verifyEmailCode.
+  if (code == 'otp_expired' || message.contains('token has expired or is invalid')) {
+    return OnlineFailure.emailCodeWrong;
+  }
+  if (door == SignInDoor.email) {
+    if (code == 'over_email_send_rate_limit' || code == 'over_request_rate_limit' || error.statusCode == '429') {
+      return OnlineFailure.emailRateLimited;
+    }
+    // La mail la manda la funzione `auth-email` (Send Email Hook): se non
+    // risponde o Brevo la rifiuta, Supabase dice «Error sending ... email».
+    if (code.startsWith('hook_') || message.contains('error sending')) return OnlineFailure.emailNotSent;
+  }
   if (error is AuthRetryableFetchException) return OnlineFailure.network;
   return null;
 }
@@ -228,7 +235,25 @@ class SupabaseAuth extends OnlineAuth {
   String? _googleNonce;
 
   SupabaseAuth(this._client, this._config) {
-    _changes = _client.auth.onAuthStateChange.listen((_) => notifyListeners());
+    // Un link della mail che non va (scaduto, già usato, aperto su un altro
+    // dispositivo) arriva qui come errore: lo dice il foglio dell'accesso.
+    _changes = _client.auth.onAuthStateChange.listen(
+      (_) => notifyListeners(),
+      onError: (Object error) {
+        final failure = _translate(error, SignInDoor.email);
+        _emailLinkFailure = OnlineException(OnlineFailure.emailLinkExpired, failure.cause, failure.reason);
+        notifyListeners();
+      },
+    );
+  }
+
+  OnlineException? _emailLinkFailure;
+
+  @override
+  OnlineException? takeEmailLinkFailure() {
+    final failure = _emailLinkFailure;
+    _emailLinkFailure = null;
+    return failure;
   }
 
   @override
@@ -243,7 +268,7 @@ class SupabaseAuth extends OnlineAuth {
   static const _macAppleSignIn = bool.fromEnvironment('MAC_APPLE_SIGN_IN');
 
   @override
-  bool get googleAvailable => _config.hasGoogle && !kIsWeb && Platform.isIOS;
+  bool get googleAvailable => !kIsWeb && (Platform.isIOS ? _config.hasGoogle : Platform.isAndroid && _config.hasGoogleAndroid);
 
   @override
   String? get suggestedName => _suggestedName;
@@ -328,8 +353,10 @@ class SupabaseAuth extends OnlineAuth {
         var rawNonce = _googleNonce;
         if (rawNonce == null) {
           rawNonce = _rawNonce();
+          // Android non ha un clientId: l'app la riconosce Google dal
+          // pacchetto e dalla SHA-1 della firma.
           await google.initialize(
-            clientId: _config.googleIosClientId,
+            clientId: Platform.isIOS ? _config.googleIosClientId : null,
             serverClientId: _config.googleWebClientId,
             nonce: _sha256(rawNonce),
           );
@@ -354,26 +381,51 @@ class SupabaseAuth extends OnlineAuth {
         );
       }, SignInDoor.google);
 
+  /// Dove torna il link della mail: `oberta://` lo conoscono l'iPhone
+  /// (Info.plist) e Android (AndroidManifest); è nella lista dei ritorni
+  /// ammessi di Supabase (`oberta://**`). supabase_flutter lo riceve da
+  /// app_links e scambia il `code` (PKCE) con la sessione da solo.
+  static const emailRedirect = 'oberta://login-callback';
+
   @override
-  Future<void> signInWithTestAccount({required String email, required String password}) => _guard(() async {
-        final address = email.trim();
-        try {
-          await _client.auth.signInWithPassword(email: address, password: password);
-          return;
-        } on AuthException catch (error) {
-          // Credenziali sbagliate vuol dire anche «account che non c'è»:
-          // si prova a crearlo, e se c'era già era la password.
-          if (_authFailure(error, SignInDoor.email) != OnlineFailure.wrongPassword) rethrow;
-        }
-        final created = await _client.auth.signUp(email: address, password: password);
-        if (created.session == null) {
-          throw const OnlineException(
-            OnlineFailure.emailNotConfirmed,
-            null,
-            'signUp returned no session: turn off "Confirm email" in Supabase',
-          );
-        }
+  bool get emailAvailable => true;
+
+  @override
+  bool get emailLinkOpensApp => !kIsWeb && (Platform.isIOS || Platform.isAndroid);
+
+  /// Quando è partita l'ultima mail per ogni indirizzo: per dire «scaduto».
+  final _emailSentAt = <String, DateTime>{};
+
+  static String _address(String email) => email.trim().toLowerCase();
+
+  @override
+  Future<void> sendEmailCode(String email, {String? language}) => _guard(() async {
+        final address = _address(email);
+        await _client.auth.signInWithOtp(
+          email: address,
+          // Solo per chi entra la prima volta: la lingua delle sue mail.
+          data: {'lang': ?language},
+          // Sul computer niente link: la mail porta solo il codice (la
+          // funzione auth-email mette il pulsante solo per `oberta://`).
+          emailRedirectTo: emailLinkOpensApp ? emailRedirect : null,
+        );
+        _emailSentAt[address] = DateTime.now();
       }, SignInDoor.email);
+
+  @override
+  Future<void> verifyEmailCode({required String email, required String code}) async {
+    final address = _address(email);
+    try {
+      await _guard(() => _client.auth.verifyOTP(type: OtpType.email, email: address, token: code.trim()), SignInDoor.email);
+    } on OnlineException catch (error) {
+      final sent = _emailSentAt[address];
+      final old = sent != null && DateTime.now().difference(sent) > OnlineAuth.emailCodeLifetime;
+      if (error.failure == OnlineFailure.emailCodeWrong && old) {
+        throw OnlineException(OnlineFailure.emailCodeExpired, error.cause, error.reason);
+      }
+      rethrow;
+    }
+  }
 
   @override
   Future<void> signOut() => _guard(() async {
