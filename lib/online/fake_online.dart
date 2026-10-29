@@ -1203,6 +1203,12 @@ extension on FakeOnline {
       _notifyGame(roomId);
     }
     final due = out['nextDue'] as int?;
+    // Un appuntamento nel passato è un errore del server (QA P1-1: il 1970):
+    // qui diventerebbe un giro a vuoto senza fine, e nei test un blocco al
+    // 100% di CPU (il tempo finto rifà subito il timer a zero). Meglio dirlo.
+    if (due != null && !game.finished && due < now.millisecondsSinceEpoch) {
+      throw StateError('the game server asked to be woken in the past: $due < ${now.millisecondsSinceEpoch}');
+    }
     if (due != null && !game.finished) {
       final wait = DateTime.fromMillisecondsSinceEpoch(due).difference(clock.now());
       game.timer = clock.schedule(wait.isNegative ? Duration.zero : wait, () => _serve(roomId));

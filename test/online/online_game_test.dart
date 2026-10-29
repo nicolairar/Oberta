@@ -508,6 +508,33 @@ void main() {
     });
   });
 
+  // QA P1-1 / P3-4: a bot Sindaco who revealed himself left the fake server
+  // waking itself in 1970: with a manual clock fireNext fired the same timer
+  // forever, and under the widget tests' fake time pump never returned.
+  test('dodici al tavolo coi bot finiscono la partita sul server finto, anche se un bot Sindaco si rivela', () async {
+    var mayors = 0;
+    for (var seed = 1; seed <= 30 && mayors == 0; seed++) {
+      clock = ManualClock();
+      online = FakeOnline(accountId: 'anna', clock: clock, random: Random(seed))..signInReady(handle: 'anna');
+      room = online.openRoomAs('anna', LobbyLanguage.it);
+      await startWith(joiners: const [], bots: 11);
+      final anna = _Human('anna', clientOf('anna'), Random(seed));
+      String? revealed;
+      void watch() {
+        final mayor = anna.client.board?.view.mayor;
+        if (mayor != null && mayor.id != 's1' && mayor.id != revealed) {
+          revealed = mayor.id;
+          mayors++;
+        }
+      }
+
+      anna.client.addListener(watch);
+      await playToTheEnd([anna]);
+      anna.client.dispose();
+    }
+    expect(mayors, greaterThan(0), reason: 'no bot Sindaco revealed himself: the test proves nothing');
+  });
+
   group('la chat', () {
     test('stanza prima, piazza di giorno per i vivi, famiglia di notte solo per la famiglia', () async {
       online.joinAs('bruno', room.code);
