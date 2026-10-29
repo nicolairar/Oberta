@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/l10n/app_language.dart';
+import 'package:oberta/l10n/lobby_language.dart';
 import 'package:oberta/online/fake_online.dart';
 import 'package:oberta/online/online_models.dart';
 import 'package:oberta/ui/screens/online/friends_screen.dart';
@@ -173,7 +174,7 @@ void main() {
 
   testWidgets('entrare con un codice, scritto o letto dal QR', (tester) async {
     online.signInReady(handle: 'anna');
-    final room = online.openRoomAs('bruno', AppLanguage.it);
+    final room = online.openRoomAs('bruno', LobbyLanguage.it);
 
     final me = online.profileOf('me')!;
     await open(tester, JoinRoomScreen(services: online.services, me: me, scanner: (_) async => room.code));

@@ -1,7 +1,7 @@
 
 import 'package:flutter/foundation.dart';
 
-import '../l10n/app_language.dart';
+import '../l10n/lobby_language.dart';
 import 'game/match_rewards.dart';
 import 'handle_rules.dart';
 
@@ -120,7 +120,7 @@ class Profile {
   /// stanza, al tavolo e tra gli amici, così nessuno si spaccia per un altro.
   /// Regole in [HandleRules]. Vuoto finché la persona non l'ha scelto.
   final String? handle;
-  final AppLanguage language;
+  final LobbyLanguage language;
 
   /// L'aspetto indossato, per id di catalogo: `{base, hat, glasses, ...}`.
   final Map<String, String> avatar;
@@ -155,7 +155,7 @@ class Profile {
   const Profile({
     required this.id,
     this.handle,
-    this.language = AppLanguage.it,
+    this.language = LobbyLanguage.it,
     this.avatar = const {},
     this.level = 1,
     this.xp = 0,
@@ -188,7 +188,7 @@ class Profile {
 
   Profile copyWith({
     String? handle,
-    AppLanguage? language,
+    LobbyLanguage? language,
     Map<String, String>? avatar,
     int? level,
     int? xp,
@@ -237,7 +237,7 @@ class Profile {
   factory Profile._fromJson(Map<String, dynamic> json) => Profile(
         id: json['id'] as String,
         handle: json['handle'] as String?,
-        language: json['language'] == 'en' ? AppLanguage.en : AppLanguage.it,
+        language: LobbyLanguage.parse(json['language']),
         avatar: {
           for (final MapEntry(:key, :value) in ((json['avatar'] as Map?) ?? const {}).entries)
             if (value is String) key as String: value,
@@ -283,7 +283,7 @@ class Room {
   /// Sei caratteri, senza 0/O e 1/I/L: si legge ad alta voce senza equivoci.
   final String code;
   final String hostId;
-  final AppLanguage language;
+  final LobbyLanguage language;
   final RoomStatus status;
   final int maxPlayers;
 
@@ -321,7 +321,7 @@ class Room {
         code: json['code'] as String,
         // La sala d'attesa della classificata non ha padrone di casa.
         hostId: json['host'] as String? ?? '',
-        language: json['language'] == 'en' ? AppLanguage.en : AppLanguage.it,
+        language: LobbyLanguage.parse(json['language']),
         status: RoomStatus.values.byName(json['status'] as String),
         maxPlayers: (json['max_players'] as num).toInt(),
         bots: (json['bots'] as num?)?.toInt() ?? 0,

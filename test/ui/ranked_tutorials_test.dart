@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/l10n/app_language.dart';
+import 'package:oberta/l10n/lobby_language.dart';
 import 'package:oberta/online/fake_online.dart';
 import 'package:oberta/online/online_services.dart';
 import 'package:oberta/online/tutorial_sync.dart';
@@ -47,13 +48,13 @@ void main() {
     final online = world();
     final ranked = online.services.ranked!;
     await expectLater(
-      ranked.enqueue(AppLanguage.it),
+      ranked.enqueue(LobbyLanguage.it),
       throwsA(isA<OnlineException>().having((e) => e.failure, 'failure', OnlineFailure.tutorialsRequired)),
     );
     for (final story in TutorialStory.values) {
       await ranked.completeTutorial(story.id);
     }
-    expect((await ranked.enqueue(AppLanguage.it)).queued, isTrue);
+    expect((await ranked.enqueue(LobbyLanguage.it)).queued, isTrue);
   });
 
   test('quelle finite sul telefono vanno al server', () async {
@@ -108,7 +109,7 @@ void main() {
       await tester.pumpWidget(
         desktopApp(
           RankedEntryView(
-            language: AppLanguage.en,
+            language: LobbyLanguage.en,
             onLanguage: (_) {},
             queued: false,
             sweep: sweep,
@@ -149,7 +150,7 @@ void main() {
     expect(await ranked.skipTutorials(), {'family', 'skip'});
     expect(await ranked.skipTutorials(), {'family', 'skip'});
     expect((await ranked.status()).tutorialsSkipped, isTrue);
-    expect((await ranked.enqueue(AppLanguage.it)).queued, isTrue);
+    expect((await ranked.enqueue(LobbyLanguage.it)).queued, isTrue);
   });
 
   testWidgets('«Conosco già il gioco» chiede «Sicuro?» e solo alla conferma apre la classificata', (tester) async {
@@ -205,7 +206,7 @@ void main() {
       await tester.pumpWidget(
         desktopApp(
           RankedEntryView(
-            language: AppLanguage.en,
+            language: LobbyLanguage.en,
             onLanguage: (_) {},
             queued: false,
             sweep: sweep,

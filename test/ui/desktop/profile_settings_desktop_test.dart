@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oberta/l10n/app_language.dart';
+import 'package:oberta/l10n/lobby_language.dart';
 import 'package:oberta/online/fake_online.dart';
 import 'package:oberta/online/online_account.dart';
 import 'package:oberta/online/online_models.dart';
@@ -29,7 +29,7 @@ FakeOnline _online() {
       levelAfter: 6,
     ),
   ];
-  online.ratings[('me', AppLanguage.it)] = const Rating(30, 2);
+  online.ratings[('me', LobbyLanguage.it)] = const Rating(30, 2);
   return online;
 }
 

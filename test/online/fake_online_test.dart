@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/l10n/app_language.dart';
+import 'package:oberta/l10n/lobby_language.dart';
 import 'package:oberta/online/fake_online.dart';
 import 'package:oberta/online/join_code.dart';
 import 'package:oberta/online/online_services.dart';
@@ -38,7 +39,7 @@ void main() {
       await online.auth.signInWithApple();
       await expectLater(online.profiles.update(handle: 'bruno'), _fails(OnlineFailure.handleTaken));
       await expectLater(online.profiles.update(handle: 'No!'), _fails(OnlineFailure.invalidHandle));
-      final profile = await online.profiles.update(handle: 'anna', language: AppLanguage.en);
+      final profile = await online.profiles.update(handle: 'anna', language: LobbyLanguage.en);
       expect(profile.isComplete, isTrue);
       expect(profile.language, AppLanguage.en);
       expect([for (final p in await online.profiles.search('b')) p.handle], ['bruno']);
@@ -146,11 +147,11 @@ void main() {
     test('senza profilo finito non si apre niente', () async {
       final fresh = FakeOnline();
       await fresh.auth.signInWithApple();
-      await expectLater(fresh.rooms.create(AppLanguage.it), _fails(OnlineFailure.profileIncomplete));
+      await expectLater(fresh.rooms.create(LobbyLanguage.it), _fails(OnlineFailure.profileIncomplete));
     });
 
     test('chi apre la stanza ha un codice valido e il primo posto', () async {
-      final room = await online.rooms.create(AppLanguage.it);
+      final room = await online.rooms.create(LobbyLanguage.it);
       expect(JoinCode.normalize(room.code), room.code);
       expect(room.hostId, 'me');
       final members = await online.rooms.watchMembers(room.id).first;
@@ -158,7 +159,7 @@ void main() {
     });
 
     test('chi entra col codice si vede arrivare dal vivo', () async {
-      final room = await online.rooms.create(AppLanguage.it);
+      final room = await online.rooms.create(LobbyLanguage.it);
       final seen = <List<String>>[];
       final watch = online.rooms.watchMembers(room.id).listen((m) => seen.add([for (final x in m) x.profile.id]));
       await pumpEventQueue();
@@ -175,7 +176,7 @@ void main() {
 
     test('codice sbagliato, stanza piena, stanza chiusa', () async {
       await expectLater(online.rooms.join('ZZZZZZ'), _fails(OnlineFailure.roomNotFound));
-      final room = await online.rooms.create(AppLanguage.it);
+      final room = await online.rooms.create(LobbyLanguage.it);
       for (var i = 0; i < 11; i++) {
         online
           ..addPlayer('p$i', handle: 'player${String.fromCharCode(97 + i)}')
@@ -185,7 +186,7 @@ void main() {
     });
 
     test('il padrone di casa sceglie a chi lasciare la stanza; l\'ultimo la cancella', () async {
-      final room = await online.rooms.create(AppLanguage.it);
+      final room = await online.rooms.create(LobbyLanguage.it);
       online.joinAs('bruno', room.code);
       await expectLater(online.rooms.leave(room.id), _fails(OnlineFailure.hostMustChoose));
       await online.rooms.leave(room.id, newHostId: 'bruno');

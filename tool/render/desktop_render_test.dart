@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/l10n/app_language.dart';
+import 'package:oberta/l10n/lobby_language.dart';
 import 'package:oberta/l10n/app_strings.dart';
 import 'package:oberta/online/fake_online.dart';
 import 'package:oberta/online/online_services.dart';
@@ -203,9 +204,9 @@ void main() {
     await tester.runAsync(_loadFonts);
     final clock = ManualClock();
     final online = FakeOnline(accountId: 'bruno', clock: clock)..signInReady(handle: 'bruno');
-    online.ratings[('bruno', AppLanguage.it)] = const Rating(33, 5);
+    online.ratings[('bruno', LobbyLanguage.it)] = const Rating(33, 5);
     for (var i = 0; i < 24; i++) {
-      online.rankedQueue['q$i'] = (AppLanguage.it, clock.now());
+      online.rankedQueue['q$i'] = (LobbyLanguage.it, clock.now());
     }
     await _app(tester, const Size(1920, 1080), RankedQueueScreen(services: online.services));
     await _shot(tester, '06_ranked_entry_1920x1080');
@@ -224,7 +225,7 @@ void main() {
       final online = FakeOnline(accountId: 'bruno', clock: clock)
         ..signInReady(handle: 'bruno')
         ..addPlayer('anna', handle: 'anna');
-      final room = online.openRoomAs('anna', AppLanguage.it);
+      final room = online.openRoomAs('anna', LobbyLanguage.it);
       online.joinAs('bruno', room.code);
       await _settled(tester, online.gameAs('anna').setBots(room.id, 10));
       await _settled(tester, online.gameAs('anna').startGame(room.id));

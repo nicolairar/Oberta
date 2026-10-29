@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-import '../l10n/app_language.dart';
+import '../l10n/lobby_language.dart';
 import 'app_update.dart';
 import 'device_session.dart';
 import 'game/game_backend.dart';
@@ -69,7 +69,7 @@ abstract class ProfileRepository {
   /// acquisti, regali). Sola lettura: il client non scrive mai i saldi.
   Stream<Wallet> watchWallet();
 
-  Future<Profile> update({required String handle, AppLanguage? language});
+  Future<Profile> update({required String handle, LobbyLanguage? language});
 
   /// Salva i lineamenti gratuiti dello specchio del barbiere ([face], con le
   /// chiavi di `FaceFeatures.keys`) e la pelle [tone]. I pezzi della bottega
@@ -115,7 +115,7 @@ abstract class FriendsRepository {
 }
 
 abstract class RoomRepository {
-  Future<Room> create(AppLanguage language);
+  Future<Room> create(LobbyLanguage language);
 
   Future<Room> join(String code);
 

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oberta/l10n/app_language.dart';
+import 'package:oberta/l10n/lobby_language.dart';
 import 'package:oberta/online/fake_online.dart';
 import 'package:oberta/online/online_services.dart';
 
@@ -28,7 +28,7 @@ void main() {
     });
 
     test('il messaggio segnalato resta in copia sul server', () async {
-      final room = online.openRoomAs('anna', AppLanguage.it);
+      final room = online.openRoomAs('anna', LobbyLanguage.it);
       online.joinAs('bruno', room.code);
       final id = await online.gameAs('bruno').sendChat(room.id, ChatChannel.lobby, 'ciao a tutti');
       await online.safety.report('bruno', ReportReason.language, messageId: id);
@@ -70,7 +70,7 @@ void main() {
     });
 
     test('i suoi messaggi non arrivano a chi l\'ha bloccato', () async {
-      final room = online.openRoomAs('anna', AppLanguage.it);
+      final room = online.openRoomAs('anna', LobbyLanguage.it);
       online.joinAs('bruno', room.code);
       online.joinAs('carla', room.code);
       await online.gameAs('bruno').sendChat(room.id, ChatChannel.lobby, 'uffa');
@@ -83,7 +83,7 @@ void main() {
     });
 
     test('non entra nelle stanze di chi l\'ha bloccato; sbloccato sì', () async {
-      final room = online.openRoomAs('anna', AppLanguage.it);
+      final room = online.openRoomAs('anna', LobbyLanguage.it);
       await online.safety.block('bruno');
       expect(() => online.joinAs('bruno', room.code), _fails(OnlineFailure.notAllowed));
       await online.safety.unblock('bruno');

@@ -1,4 +1,4 @@
-import '../../l10n/app_language.dart';
+import '../../l10n/lobby_language.dart';
 import '../../rules/game_settings.dart';
 import '../../rules/intent.dart';
 import '../../rules/player_view.dart';
@@ -13,7 +13,7 @@ class OnlineBoard {
   final PublicView view;
   final Seating seating;
   final int narrationSeed;
-  final AppLanguage language;
+  final LobbyLanguage language;
   final GameSettings settings;
   final DateTime? deadline;
 
@@ -49,7 +49,7 @@ class OnlineBoard {
       view: PublicView.fromJson(json['board'] as Map<String, Object?>, resolverFor(seating)),
       seating: seating,
       narrationSeed: json['narrationSeed'] as int,
-      language: json['language'] == 'en' ? AppLanguage.en : AppLanguage.it,
+      language: LobbyLanguage.parse(json['language']),
       settings: settingsFromJson(json['settings'] as Map<String, Object?>),
       deadline: deadline == null ? null : DateTime.fromMillisecondsSinceEpoch(deadline),
       abandoned: json['abandoned'] == true,

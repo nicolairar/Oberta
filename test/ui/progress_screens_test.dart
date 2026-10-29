@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/l10n/app_language.dart';
+import 'package:oberta/l10n/lobby_language.dart';
 import 'package:oberta/online/fake_online.dart';
 import 'package:oberta/online/online_services.dart';
 import 'package:oberta/ui/screens/online/achievements_screen.dart';
@@ -71,9 +72,9 @@ void main() {
   });
 
   testWidgets('the leaderboard shows only handles and tiers, and your place', (tester) async {
-    online.ratings[(online.accountId, AppLanguage.it)] = const Rating(40, 2);
-    online.ratings[('bruno', AppLanguage.it)] = Rating.initial;
-    await open(tester, LeaderboardScreen(progress: online.progress, language: AppLanguage.it));
+    online.ratings[(online.accountId, LobbyLanguage.it)] = const Rating(40, 2);
+    online.ratings[('bruno', LobbyLanguage.it)] = Rating.initial;
+    await open(tester, LeaderboardScreen(progress: online.progress, language: LobbyLanguage.it));
     expect(find.text('@anna'), findsOneWidget);
     expect(find.text('@bruno'), findsOneWidget);
     expect(find.textContaining('Sei al 1° posto'), findsOneWidget);

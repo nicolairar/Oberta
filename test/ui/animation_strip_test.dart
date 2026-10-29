@@ -6,6 +6,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/l10n/app_language.dart';
+import 'package:oberta/l10n/lobby_language.dart';
 import 'package:oberta/online/fake_online.dart';
 import 'package:oberta/online/online_services.dart';
 import 'package:oberta/rules/role.dart';
@@ -236,7 +237,7 @@ void main() {
     for (final who in ['anna', 'carla', 'dario']) {
       online.addPlayer(who, handle: who);
     }
-    final room = online.openRoomAs('anna', AppLanguage.it);
+    final room = online.openRoomAs('anna', LobbyLanguage.it);
     for (final who in ['bruno', 'carla', 'dario']) {
       online.joinAs(who, room.code);
     }

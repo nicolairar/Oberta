@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oberta/l10n/app_language.dart';
+import 'package:oberta/l10n/lobby_language.dart';
 import 'package:oberta/online/fake_online.dart';
 import 'package:oberta/online/online_services.dart';
 import 'package:oberta/ui/screens/online/friends_screen.dart';
@@ -42,7 +42,7 @@ void main() {
     testWidgets('entrare con un codice su desktop $label', (tester) async {
       await useDesktop(tester, size);
       final online = world();
-      final room = online.openRoomAs('bruno', AppLanguage.it);
+      final room = online.openRoomAs('bruno', LobbyLanguage.it);
       late final Profile me;
       await settle(tester, () async => me = await online.services.profiles.me());
       await shootDesktopPage(tester, 'join_room_$label', (_) => JoinRoomScreen(services: online.services, me: me));
@@ -74,7 +74,7 @@ void main() {
     testWidgets('la stanza degli amici su desktop $label', (tester) async {
       await useDesktop(tester, size);
       final online = world();
-      final room = online.openRoomAs('anna', AppLanguage.it);
+      final room = online.openRoomAs('anna', LobbyLanguage.it);
       for (final name in ['bruno', 'carla', 'dario']) {
         online.joinAs(name, room.code);
       }

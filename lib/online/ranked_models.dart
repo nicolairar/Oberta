@@ -1,4 +1,4 @@
-import '../l10n/app_language.dart';
+import '../l10n/lobby_language.dart';
 import 'game/match_rewards.dart';
 
 export 'game/match_rewards.dart' show RankTier, Rating, Progression;
@@ -8,7 +8,7 @@ export 'game/match_rewards.dart' show RankTier, Rating, Progression;
 /// abbandoni (solo la fine, mai il conteggio) e un avviso generico.
 class RankedStatus {
   final bool queued;
-  final AppLanguage? language;
+  final LobbyLanguage? language;
   final DateTime? since;
   final int waiting;
   final Duration? estimate;
@@ -50,7 +50,7 @@ class RankedStatus {
 
   factory RankedStatus.fromJson(Map<String, Object?> json) => RankedStatus(
         queued: json['queued'] == true,
-        language: switch (json['language']) { 'it' => AppLanguage.it, 'en' => AppLanguage.en, _ => null },
+        language: LobbyLanguage.tryParse(json['language'] as String?),
         since: _ms(json['since']),
         waiting: (json['waiting'] as num?)?.toInt() ?? 0,
         estimate: json['estimate'] == null ? null : Duration(seconds: (json['estimate'] as num).toInt()),
@@ -134,7 +134,7 @@ class MatchResult {
 /// Quanti giocatori ci sono adesso, per la locandina della home.
 class OnlineCounts {
   final int online;
-  final Map<AppLanguage, int> queued;
+  final Map<LobbyLanguage, int> queued;
 
   const OnlineCounts({this.online = 0, this.queued = const {}});
 
@@ -147,8 +147,8 @@ class OnlineCounts {
     return OnlineCounts(
       online: (json['online'] as num?)?.toInt() ?? 0,
       queued: {
-        for (final language in AppLanguage.values)
-          if (queued[language.name] case final num n) language: n.toInt(),
+        for (final MapEntry(:key, :value) in queued.entries)
+          if ((LobbyLanguage.tryParse(key), value) case (final language?, final num n)) language: n.toInt(),
       },
     );
   }
@@ -157,7 +157,7 @@ class OnlineCounts {
 /// La coda della classificata e i risultati. Il server decide tutto.
 abstract class RankedRepository {
   Future<RankedStatus> status();
-  Future<RankedStatus> enqueue(AppLanguage language);
+  Future<RankedStatus> enqueue(LobbyLanguage language);
   Future<void> leave();
 
   /// Registra una mano di prova finita ([faction]: 'family', 'town', 'solo').
@@ -173,7 +173,7 @@ abstract class RankedRepository {
   Future<OnlineCounts> counts();
 
   /// Il proprio rating per lingua (solo per il grado: il numero non si mostra).
-  Future<Map<AppLanguage, Rating>> ratings();
+  Future<Map<LobbyLanguage, Rating>> ratings();
 
   /// L'ultima partita giocata, se c'è.
   /// L'ultima partita registrata; con [since], solo se registrata da allora

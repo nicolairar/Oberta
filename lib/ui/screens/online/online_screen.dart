@@ -4,6 +4,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../settings/app_settings.dart';
+import '../../../l10n/lobby_language.dart';
 import '../../../sound/screen_music.dart';
 import '../../../sound/sound_stage.dart';
 import '../../../l10n/app_strings.dart';
@@ -381,7 +383,7 @@ class _ProfileSetupState extends State<ProfileSetup> {
     if (_handleError != null) return;
     setState(() => _busy = true);
     try {
-      final profile = await widget.services.profiles.update(handle: handle, language: t.language);
+      final profile = await widget.services.profiles.update(handle: handle, language: AppSettings.instance.lobbyLanguage);
       widget.onSaved(profile);
     } on OnlineException catch (error) {
       if (!mounted) return;
@@ -588,7 +590,7 @@ class _HubState extends State<_Hub> {
     final language = AppStrings.of(context).language;
     setState(() => _busy = true);
     try {
-      final room = await widget.services.rooms.create(language);
+      final room = await widget.services.rooms.create(LobbyLanguage.of(language));
       await navigator.push(MaterialPageRoute<void>(
         builder: (_) => OnlineRoomScreen(services: widget.services, room: room, me: widget.profile),
       ));

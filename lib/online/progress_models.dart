@@ -1,4 +1,4 @@
-import '../l10n/app_language.dart';
+import '../l10n/lobby_language.dart';
 import 'game/match_rewards.dart' show RankTier;
 import 'game/progress.dart';
 import 'online_models.dart' show PlayerMarks, Profile;
@@ -309,7 +309,7 @@ abstract class ProgressRepository {
   /// no record was never played: locked.
   Future<Map<String, RoleRecord>> roleStats();
   Future<GameUnlocks> unlocksFor(String gameId);
-  Future<Leaderboard> leaderboard(AppLanguage language);
+  Future<Leaderboard> leaderboard(LobbyLanguage language);
 }
 
 /// Another player's public dossier (`public_stats`): account-level numbers

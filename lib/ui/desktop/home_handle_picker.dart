@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../settings/app_settings.dart';
 import '../../l10n/app_strings.dart';
 import '../../l10n/desktop_strings.dart';
 import '../../l10n/online_strings.dart';
@@ -145,7 +146,7 @@ class _DeskHandlePickerState extends State<DeskHandlePicker> {
     if (_error != null) return;
     setState(() => _busy = true);
     try {
-      final profile = await widget.services.profiles.update(handle: handle, language: t.language);
+      final profile = await widget.services.profiles.update(handle: handle, language: AppSettings.instance.lobbyLanguage);
       widget.onSaved(profile);
     } on OnlineException catch (error) {
       if (!mounted) return;

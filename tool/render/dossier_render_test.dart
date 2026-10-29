@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/l10n/app_language.dart';
+import 'package:oberta/l10n/lobby_language.dart';
 import 'package:oberta/l10n/app_strings.dart';
 import 'package:oberta/online/fake_online.dart';
 import 'package:oberta/online/online_services.dart';
@@ -119,7 +120,7 @@ void main() {
         online
           ..signInReady(handle: 'nicolai')
           ..award('me', level: 7, xp: 210, coins: 1250)
-          ..ratings[('me', AppLanguage.it)] = const Rating(40, 4);
+          ..ratings[('me', LobbyLanguage.it)] = const Rating(40, 4);
         await _pump(tester, size, top, bottom, online.services, lang == 'en' ? AppLanguage.en : AppLanguage.it);
         await _shot(tester, '${phone}_${lang}_1_home');
 

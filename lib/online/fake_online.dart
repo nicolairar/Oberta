@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import '../l10n/app_language.dart';
+import '../l10n/lobby_language.dart';
 import '../rules/intent.dart';
 import '../ui/avatar/avatar_look.dart' show AvatarLook, FaceExtra, HeldItem;
 import '../ui/avatar/face_features.dart' show FaceFeatures;
@@ -59,10 +60,10 @@ class FakeOnline {
   final Map<String, List<MatchResult>> history = {};
 
   /// Il rating per profilo e lingua (come `ratings`).
-  final Map<(String, AppLanguage), Rating> ratings = {};
+  final Map<(String, LobbyLanguage), Rating> ratings = {};
 
   /// La coda della classificata: profilo → (lingua, da quando).
-  final Map<String, (AppLanguage, DateTime)> rankedQueue = {};
+  final Map<String, (LobbyLanguage, DateTime)> rankedQueue = {};
 
   /// La pausa dopo troppi abbandoni in classificata, per profilo.
   final Map<String, DateTime> cooldowns = {};
@@ -244,7 +245,9 @@ class FakeOnline {
   }
 
   /// [playerId] apre una stanza dal suo telefono.
-  Room openRoomAs(String playerId, AppLanguage language) => _create(playerId, language);
+  /// [language]: a [LobbyLanguage], or an [AppLanguage] for its own lobby.
+  Room openRoomAs(String playerId, Object language) =>
+      _create(playerId, language is AppLanguage ? LobbyLanguage.of(language) : language as LobbyLanguage);
 
   /// [playerId] entra nella stanza col codice, dal suo telefono.
   Room joinAs(String playerId, String code) => _join(playerId, code);
@@ -271,7 +274,7 @@ class FakeOnline {
     return null;
   }
 
-  Room _create(String id, AppLanguage language) {
+  Room _create(String id, LobbyLanguage language) {
     _ready(id);
     _leaveAll(id);
     String code;
@@ -488,7 +491,7 @@ class FakeProfiles implements ProfileRepository {
   Future<bool> refreshSteam() async => false;
 
   @override
-  Future<Profile> update({required String handle, AppLanguage? language}) async {
+  Future<Profile> update({required String handle, LobbyLanguage? language}) async {
     final me = _online._me;
     handle = Profile.normalizeHandle(handle);
     // Come il database: la forma è un vincolo (23514), le parole e i nomi
@@ -722,7 +725,7 @@ class FakeRooms implements RoomRepository {
   FakeRooms._(this._online);
 
   @override
-  Future<Room> create(AppLanguage language) async => _online._create(_online._me, language);
+  Future<Room> create(LobbyLanguage language) async => _online._create(_online._me, language);
 
   @override
   Future<Room> join(String code) async => _online._join(_online._me, code);
@@ -1626,7 +1629,7 @@ class FakeRanked implements RankedRepository {
   }
 
   @override
-  Future<RankedStatus> enqueue(AppLanguage language) async {
+  Future<RankedStatus> enqueue(LobbyLanguage language) async {
     await _online._network();
     final me = _me;
     _online._ready(me);
@@ -1664,14 +1667,14 @@ class FakeRanked implements RankedRepository {
     return OnlineCounts(
       online: _online.extraOnline + {...seated, ..._online.rankedQueue.keys}.length,
       queued: {
-        for (final language in AppLanguage.values)
+        for (final language in {for (final q in _online.rankedQueue.values) q.$1})
           language: _online.rankedQueue.values.where((q) => q.$1 == language).length,
       },
     );
   }
 
   @override
-  Future<Map<AppLanguage, Rating>> ratings() async => {
+  Future<Map<LobbyLanguage, Rating>> ratings() async => {
         for (final MapEntry(:key, :value) in _online.ratings.entries)
           if (key.$1 == _me) key.$2: value,
       };
@@ -1882,7 +1885,7 @@ class FakeProgress implements ProgressRepository {
   }
 
   @override
-  Future<Leaderboard> leaderboard(AppLanguage language) async {
+  Future<Leaderboard> leaderboard(LobbyLanguage language) async {
     await _online._network();
     final rows = [
       for (final MapEntry(:key, :value) in _online.ratings.entries)

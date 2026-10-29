@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oberta/l10n/app_language.dart';
+import 'package:oberta/l10n/lobby_language.dart';
 import 'package:oberta/online/fake_online.dart';
 import 'package:oberta/online/game/bot_brain.dart';
 import 'package:oberta/online/game/game_client.dart';
@@ -69,7 +69,7 @@ void main() {
 
   setUp(() {
     online = fresh();
-    room = online.openRoomAs('anna', AppLanguage.it);
+    room = online.openRoomAs('anna', LobbyLanguage.it);
   });
 
   GameClient clientOf(String id) => GameClient(backend: online.gameAs(id), roomId: room.id, clock: clock);
@@ -102,7 +102,7 @@ void main() {
     test('due persone e tre bot giocano fino alla fine, e ognuno riceve solo il suo posto', () async {
       for (var seed = 1; seed <= 4; seed++) {
         online = fresh();
-        room = online.openRoomAs('anna', AppLanguage.it);
+        room = online.openRoomAs('anna', LobbyLanguage.it);
         await startWith(joiners: ['bruno'], bots: 3);
         final anna = _Human('anna', clientOf('anna'), Random(seed));
         final bruno = _Human('bruno', clientOf('bruno'), Random(seed + 50));
@@ -475,24 +475,24 @@ void main() {
         online.addPlayer(id, handle: id);
       }
       online.auth.debugSignIn('anna');
-      var status = await online.ranked.enqueue(AppLanguage.it);
+      var status = await online.ranked.enqueue(LobbyLanguage.it);
       final lobby = status.roomId!;
       expect(online.roomOf(lobby)!.status, RoomStatus.lobby, reason: 'subito in sala, non un caricamento');
       for (final id in ids.skip(1).take(10)) {
         online.auth.debugSignIn(id);
-        status = await online.ranked.enqueue(AppLanguage.it);
+        status = await online.ranked.enqueue(LobbyLanguage.it);
         expect(status.roomId, lobby);
       }
       expect(online.roomOf(lobby)!.startsAt, isNull, reason: '11/12: si aspetta');
       online.auth.debugSignIn('p8');
-      await online.ranked.enqueue(AppLanguage.it);
+      await online.ranked.enqueue(LobbyLanguage.it);
       expect(online.roomOf(lobby)!.startsAt, isNotNull, reason: '12/12: conto alla rovescia');
 
       // Uno esce: il conto si ferma, senza penalità; un altro rientra.
       await online.ranked.leave();
       expect(online.roomOf(lobby)!.startsAt, isNull);
       expect(online.cooldowns, isEmpty);
-      await online.ranked.enqueue(AppLanguage.it);
+      await online.ranked.enqueue(LobbyLanguage.it);
       expect(online.roomOf(lobby)!.startsAt, isNotNull);
 
       online.tickRanked();
@@ -501,7 +501,7 @@ void main() {
       online.tickRanked();
       expect(online.rankedQueue, isEmpty, reason: 'il tavolo è fatto');
       await expectLater(
-        online.ranked.enqueue(AppLanguage.it),
+        online.ranked.enqueue(LobbyLanguage.it),
         throwsA(isA<OnlineException>().having((e) => e.failure, 'failure', OnlineFailure.alreadyInGame)),
       );
       room = online.roomOf(lobby)!;
@@ -512,7 +512,7 @@ void main() {
       for (final id in ids) {
         final match = online.history[id]!.single;
         expect(match.ranked, isTrue);
-        final rating = online.ratings[(id, AppLanguage.it)]!;
+        final rating = online.ratings[(id, LobbyLanguage.it)]!;
         expect(rating.sigma, lessThan(Rating.initial.sigma));
         expect(rating.mu, match.won ? greaterThan(25) : lessThan(25));
       }
@@ -521,9 +521,9 @@ void main() {
     test('SOLO PROVA: col flag due persone bastano, con i bot fino al tavolo intero, e la partita non è classificata', () async {
       online = fresh()..rankedTestHumans = 2;
       online.auth.debugSignIn('anna');
-      await online.ranked.enqueue(AppLanguage.en);
+      await online.ranked.enqueue(LobbyLanguage.en);
       online.auth.debugSignIn('bruno');
-      final status = await online.ranked.enqueue(AppLanguage.en);
+      final status = await online.ranked.enqueue(LobbyLanguage.en);
       expect(online.roomOf(status.roomId!)!.startsAt, isNotNull);
       clock.elapse(online.rankedCountdown);
       online.tickRanked();
@@ -535,7 +535,7 @@ void main() {
     test('in pausa per abbandoni non si entra in coda', () async {
       online.cooldowns['anna'] = clock.now().add(const Duration(minutes: 5));
       await expectLater(
-        online.ranked.enqueue(AppLanguage.it),
+        online.ranked.enqueue(LobbyLanguage.it),
         throwsA(isA<OnlineException>().having((e) => e.failure, 'failure', OnlineFailure.rankedCooldown)),
       );
     });

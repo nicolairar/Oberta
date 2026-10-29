@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/l10n/app_language.dart';
+import 'package:oberta/l10n/lobby_language.dart';
 import 'package:oberta/l10n/app_strings.dart';
 import 'package:oberta/online/fake_online.dart';
 import 'package:oberta/online/online_services.dart';
@@ -100,7 +101,7 @@ void main() {
     void arrive(int from, int to) {
       for (var i = from; i < to; i++) {
         online.addPlayer('p$i', handle: names[i]);
-        online.rankedQueue['p$i'] = (AppLanguage.it, clock.now());
+        online.rankedQueue['p$i'] = (LobbyLanguage.it, clock.now());
       }
       online.tickRanked();
     }
@@ -151,10 +152,10 @@ void main() {
       tester.view.padding = const FakeViewPadding(top: 47 * 3, bottom: 34 * 3);
       final clock = ManualClock();
       final online = FakeOnline(accountId: 'bruno', clock: clock)..signInReady(handle: 'bruno');
-      online.ratings[('bruno', AppLanguage.it)] = const Rating(33, 5);
+      online.ratings[('bruno', LobbyLanguage.it)] = const Rating(33, 5);
       if (crowd) {
         for (var i = 0; i < 24; i++) {
-          online.rankedQueue['q$i'] = (AppLanguage.it, clock.now());
+          online.rankedQueue['q$i'] = (LobbyLanguage.it, clock.now());
         }
       }
       await tester.pumpWidget(RepaintBoundary(

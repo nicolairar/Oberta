@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../l10n/app_language.dart';
+import '../../../l10n/lobby_language.dart';
 import '../../../l10n/collection_strings.dart';
 import '../../../l10n/progress_strings.dart';
 import '../../../online/online_services.dart';
@@ -16,7 +16,7 @@ import '../roles_screen.dart';
 List<({Key key, String label, IconData icon, VoidCallback open})> progressLinks(
   BuildContext context,
   ProgressRepository? progress,
-  AppLanguage language, {
+  LobbyLanguage language, {
   OnlineServices? services,
 }) {
   if (progress == null) return const [];

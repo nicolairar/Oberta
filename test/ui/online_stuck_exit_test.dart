@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/l10n/app_language.dart';
+import 'package:oberta/l10n/lobby_language.dart';
 import 'package:oberta/online/fake_online.dart';
 import 'package:oberta/online/online_services.dart';
 import 'package:oberta/online/supabase_online.dart' show signOutOrLocal;
@@ -84,7 +85,7 @@ void main() {
     final online = FakeOnline(accountId: 'bruno', clock: clock)
       ..signInReady(handle: 'bruno')
       ..addPlayer('anna', handle: 'anna');
-    final room = online.openRoomAs('anna', AppLanguage.it);
+    final room = online.openRoomAs('anna', LobbyLanguage.it);
     online.joinAs('bruno', room.code);
     await tester.runAsync(() => online.gameAs('anna').setBots(room.id, 3));
     await tester.runAsync(() => online.gameAs('anna').startGame(room.id));

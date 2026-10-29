@@ -10,7 +10,7 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../l10n/app_language.dart';
+import '../l10n/lobby_language.dart';
 import '../rules/intent.dart';
 import 'incoming_links.dart';
 import 'online_config.dart';
@@ -447,7 +447,7 @@ class SupabaseProfiles implements ProfileRepository {
       });
 
   @override
-  Future<Profile> update({required String handle, AppLanguage? language}) => _guard(() async {
+  Future<Profile> update({required String handle, LobbyLanguage? language}) => _guard(() async {
         await _client.from('profiles').update({
           'handle': Profile.normalizeHandle(handle),
           if (language != null) 'language': language.name,
@@ -621,7 +621,7 @@ class SupabaseRooms implements RoomRepository {
   SupabaseRooms(this._client);
 
   @override
-  Future<Room> create(AppLanguage language) => _guard(() async {
+  Future<Room> create(LobbyLanguage language) => _guard(() async {
         final row = await _client.rpc<Map<String, dynamic>>('create_room', params: {'room_language': language.name});
         return Room.fromJson(row);
       });
@@ -1139,7 +1139,7 @@ class SupabaseRanked implements RankedRepository {
       RankedStatus.fromJson((await _client.rpc<Map<String, dynamic>>('ranked_status')).cast<String, Object?>()));
 
   @override
-  Future<RankedStatus> enqueue(AppLanguage language) => _guard(() async {
+  Future<RankedStatus> enqueue(LobbyLanguage language) => _guard(() async {
     // Se un tavolo si riempie o si blocca proprio mentre ci si siede, il
     // server annulla l'ingresso: si riprova, e il server sceglie un altro
     // tavolo (quelli occupati li salta).
@@ -1177,11 +1177,11 @@ class SupabaseRanked implements RankedRepository {
       OnlineCounts.fromJson((await _client.rpc<Map<String, dynamic>>('online_counts')).cast<String, Object?>()));
 
   @override
-  Future<Map<AppLanguage, Rating>> ratings() => _guard(() async {
+  Future<Map<LobbyLanguage, Rating>> ratings() => _guard(() async {
         final rows = await _client.from('ratings').select('language, mu, sigma');
         return {
           for (final row in rows)
-            (row['language'] == 'en' ? AppLanguage.en : AppLanguage.it):
+            (LobbyLanguage.parse(row['language'])):
                 Rating((row['mu'] as num).toDouble(), (row['sigma'] as num).toDouble()),
         };
       });
@@ -1274,7 +1274,7 @@ class SupabaseProgress implements ProgressRepository {
       (await _client.rpc<Map<String, dynamic>>('game_unlocks', params: {'game': gameId})).cast<String, Object?>()));
 
   @override
-  Future<Leaderboard> leaderboard(AppLanguage language) => _guard(() async => Leaderboard.fromJson(
+  Future<Leaderboard> leaderboard(LobbyLanguage language) => _guard(() async => Leaderboard.fromJson(
       (await _client.rpc<Map<String, dynamic>>('leaderboard', params: {'board_language': language.name}))
           .cast<String, Object?>()));
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../l10n/app_language.dart';
+import '../l10n/lobby_language.dart';
 import '../online/voice/voice_models.dart';
 import '../sound/sound_stage.dart';
 import 'display_settings.dart';
@@ -168,6 +169,16 @@ class AppSettings extends ChangeNotifier {
 
   /// La lingua in cui si gioca: quella scelta, o quella del telefono.
   AppLanguage languageFor(List<Locale>? device) => _language ?? AppLanguage.forDevice(device);
+
+  /// The third lobby this player sees besides Italian and English: the
+  /// language picked here, or the phone's own even when the app is not
+  /// translated into it yet (a Japanese phone plays in English but still
+  /// finds the Japanese tables).
+  LobbyLanguage lobbyLanguageFor(List<Locale>? device) =>
+      _language == null ? LobbyLanguage.forDevice(device) : LobbyLanguage.of(_language!);
+
+  /// [lobbyLanguageFor] with the phone's languages.
+  LobbyLanguage get lobbyLanguage => lobbyLanguageFor(WidgetsBinding.instance.platformDispatcher.locales);
 
   /// Il volume della musica di sottofondo, da 0 a 1.
   double get musicVolume => _musicVolume;

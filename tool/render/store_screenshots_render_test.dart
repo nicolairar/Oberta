@@ -13,6 +13,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/l10n/app_language.dart';
+import 'package:oberta/l10n/lobby_language.dart';
 import 'package:oberta/l10n/app_strings.dart';
 import 'package:oberta/online/fake_online.dart';
 import 'package:oberta/online/online_account.dart';
@@ -386,7 +387,7 @@ Future<void> _game(WidgetTester tester, String device, AppLanguage language) asy
   final online = FakeOnline(accountId: 'bruno', clock: clock, random: Random(seed))
     ..signInReady(handle: 'bruno')
     ..addPlayer('anna', handle: 'anna');
-  final room = online.openRoomAs('anna', language);
+  final room = online.openRoomAs('anna', LobbyLanguage.of(language));
   online.joinAs('bruno', room.code);
   await _settled(tester, online.gameAs('anna').setBots(room.id, 6));
   await _settled(tester, online.gameAs('anna').startGame(room.id));

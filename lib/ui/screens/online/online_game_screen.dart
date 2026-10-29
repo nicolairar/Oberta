@@ -149,7 +149,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   /// Su PC: il menu di Esc è aperto (la partita intanto va avanti).
   bool _paused = false;
-  late final DesktopGameStrings _dt = DesktopGameStrings(widget.room.language);
+  late final DesktopGameStrings _dt = DesktopGameStrings(widget.room.language.app);
   final FocusNode _chatFocus = FocusNode(debugLabel: 'online.chat');
 
   /// Questo build è sulla tela desktop coricata.
@@ -158,7 +158,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   /// Quanto crescono le parole sul panno e nella striscia sul desktop.
   double get _k => _deskMode ? 1.55 : 1.0;
 
-  late final TableStrings _ts = TableStrings(widget.room.language);
+  late final TableStrings _ts = TableStrings(widget.room.language.app);
 
   /// La mossa appena fatta, mostrata subito (mano, pizzino) mentre viaggia:
   /// il server poi la conferma (resta) o la rifiuta (la mano torna indietro).
@@ -2756,7 +2756,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     );
   }
 
-  String _lowerFirst(String text) => _italian && text.isNotEmpty ? text[0].toLowerCase() + text.substring(1) : text;
+  String _lowerFirst(String text) => !_t.language.capitalizesRoles && text.isNotEmpty ? text[0].toLowerCase() + text.substring(1) : text;
 
   /// La tregua non si disfa: prima si chiede, con il nome scelto.
   Future<void> _pacify(Player target) async {

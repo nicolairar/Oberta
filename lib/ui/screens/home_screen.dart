@@ -159,7 +159,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
   String? _countsLine(AppStrings t) {
     final counts = _counts;
     if (counts == null) return null;
-    final queued = counts.queued[t.language] ?? 0;
+    final queued = counts.queued[AppSettings.instance.lobbyLanguage] ?? 0;
     if (queued >= OnlineCounts.encouraging) return t.online.homeQueued(queued);
     if (counts.online >= OnlineCounts.encouraging) return t.online.homeOnline(counts.online);
     return null;

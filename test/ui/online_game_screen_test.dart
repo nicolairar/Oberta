@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/ui/screens/online/game/seat_card.dart';
 import 'package:oberta/l10n/app_language.dart';
+import 'package:oberta/l10n/lobby_language.dart';
 import 'package:oberta/online/fake_online.dart';
 import 'package:oberta/online/game/game_schedule.dart';
 import 'package:oberta/online/online_services.dart';
@@ -78,7 +79,7 @@ void main() {
     final online = FakeOnline(accountId: 'bruno', clock: clock)
       ..signInReady(handle: 'bruno')
       ..addPlayer('anna', handle: 'anna');
-    final room = online.openRoomAs('anna', AppLanguage.it);
+    final room = online.openRoomAs('anna', LobbyLanguage.it);
     online.joinAs('bruno', room.code);
     await settled(tester, online.gameAs('anna').setBots(room.id, 3));
     await settled(tester, online.gameAs('anna').startGame(room.id));
@@ -132,7 +133,7 @@ void main() {
     final online = FakeOnline(accountId: 'bruno', clock: ManualClock())
       ..signInReady(handle: 'bruno')
       ..addPlayer('anna', handle: 'anna');
-    final room = online.openRoomAs('anna', AppLanguage.it);
+    final room = online.openRoomAs('anna', LobbyLanguage.it);
     online.joinAs('bruno', room.code);
     final me = await online.services.profiles.me();
     await tester.pumpWidget(_app(OnlineRoomScreen(services: online.services, room: room, me: me)));
@@ -159,7 +160,7 @@ void main() {
       // Il periodo di prova: in due si parte, i bot li mette il server.
       ..friendsTestBots = true
       ..friendsTestSize = 4;
-    final mine = host.openRoomAs('anna', AppLanguage.it);
+    final mine = host.openRoomAs('anna', LobbyLanguage.it);
     host.joinAs('bruno', mine.code);
     final me = await host.services.profiles.me();
     await tester.pumpWidget(_app(OnlineRoomScreen(services: host.services, room: mine, me: me)));
@@ -186,7 +187,7 @@ void main() {
     final online = FakeOnline(accountId: 'bruno', clock: clock, random: Random(1))
       ..signInReady(handle: 'bruno')
       ..addPlayer('anna', handle: 'anna');
-    final room = online.openRoomAs('anna', AppLanguage.it);
+    final room = online.openRoomAs('anna', LobbyLanguage.it);
     online.joinAs('bruno', room.code);
     await settled(tester, online.gameAs('anna').setBots(room.id, 3));
     await settled(tester, online.gameAs('anna').startGame(room.id));
@@ -237,7 +238,7 @@ void main() {
       ..signInReady(handle: 'bruno')
       ..addPlayer('anna', handle: 'anna')
       ..trackPresence = true;
-    final room = online.openRoomAs('anna', AppLanguage.it);
+    final room = online.openRoomAs('anna', LobbyLanguage.it);
     online.joinAs('bruno', room.code);
     await settled(tester, online.gameAs('anna').setBots(room.id, 3));
     await settled(tester, online.gameAs('anna').startGame(room.id));
@@ -268,7 +269,7 @@ void main() {
     final online = FakeOnline(accountId: 'bruno', clock: ManualClock())
       ..signInReady(handle: 'bruno')
       ..addPlayer('anna', handle: 'anna');
-    final room = online.openRoomAs('anna', AppLanguage.it);
+    final room = online.openRoomAs('anna', LobbyLanguage.it);
     online.joinAs('bruno', room.code);
     await settled(tester, online.gameAs('anna').setBots(room.id, 3));
     await settled(tester, online.gameAs('anna').startGame(room.id));

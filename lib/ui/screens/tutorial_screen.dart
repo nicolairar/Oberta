@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../l10n/lobby_language.dart';
 import '../../l10n/app_strings.dart';
 import '../../l10n/tutorial_strings.dart';
 import '../../online/fake_online.dart';
@@ -82,12 +83,12 @@ class _TutorialScreenState extends State<TutorialScreen> {
       id: TutorialTable.roomId,
       code: 'OBERTA',
       hostId: TutorialTable.youId,
-      language: language,
+      language: LobbyLanguage.of(language),
       status: RoomStatus.playing,
       maxPlayers: 6,
       bots: 5,
     );
-    _me = Profile(id: TutorialTable.youId, handle: _s.you, language: language);
+    _me = Profile(id: TutorialTable.youId, handle: _s.you, language: LobbyLanguage.of(language));
     table.coach.addListener(_changed);
     table.replies.addListener(_changed);
     table.finished.addListener(_finished);

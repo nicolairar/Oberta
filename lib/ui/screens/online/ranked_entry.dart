@@ -3,8 +3,9 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../l10n/app_language.dart';
+import '../../../l10n/lobby_language.dart';
 import '../../../l10n/app_strings.dart';
+import '../../widgets/language_flag.dart';
 import '../../../l10n/online_strings.dart';
 import '../../../l10n/progress_strings.dart';
 import '../../../online/ranked_models.dart';
@@ -22,8 +23,12 @@ import '../../widgets/targa.dart';
 /// proprio grado timbrato, due carte da gioco per la lingua del tavolo e il
 /// grande "Siediti al tavolo". Mentre si cerca, la lampada respira.
 class RankedEntryView extends StatelessWidget {
-  final AppLanguage language;
-  final ValueChanged<AppLanguage> onLanguage;
+  final LobbyLanguage language;
+  final ValueChanged<LobbyLanguage> onLanguage;
+
+  /// The tables on offer: Italian, English, and the player's own language
+  /// when it is a third one (see [LobbyLanguage.offered]).
+  final List<LobbyLanguage> lobbies;
   final bool queued;
   final Animation<double> sweep;
   final String? cooldown;
@@ -39,7 +44,7 @@ class RankedEntryView extends StatelessWidget {
   final double? progress;
 
   /// Quanti sono in coda per lingua: si mostrano solo da [OnlineCounts.encouraging].
-  final Map<AppLanguage, int> queuedCounts;
+  final Map<LobbyLanguage, int> queuedCounts;
 
   /// Le mani di prova finite: senza tutte e tre la classificata è chiusa e
   /// al posto di «Siediti» c'è la prima mano che manca ([onTutorial]).
@@ -52,6 +57,14 @@ class RankedEntryView extends StatelessWidget {
 
   /// Salta le mani di prova, dopo la conferma nel dialogo (null: niente link).
   final VoidCallback? onSkipTutorials;
+
+  static const _suits = ['♠', '♥', '♦'];
+
+  /// The table next to the chosen one, for the arrow keys.
+  LobbyLanguage _step(int by) {
+    final i = lobbies.indexOf(language);
+    return lobbies[((i < 0 ? 0 : i) + by).clamp(0, lobbies.length - 1)];
+  }
 
   bool get _locked => !tutorialsSkipped && !tutorialsDone.containsAll(TutorialStory.values);
 
@@ -67,6 +80,7 @@ class RankedEntryView extends StatelessWidget {
     super.key,
     required this.language,
     required this.onLanguage,
+    this.lobbies = LobbyLanguage.shared,
     required this.queued,
     required this.sweep,
     required this.cooldown,
@@ -158,7 +172,7 @@ class RankedEntryView extends StatelessWidget {
                                       ),
                                     ),
                                   SizedBox(height: short ? 14 : 22),
-                                  if (queued) ..._searching(t) else ..._choose(t),
+                                  if (queued) ..._searching(t) else ..._choose(context, t),
                                   if (warning) ...[
                                     const SizedBox(height: 12),
                                     Text(
@@ -190,7 +204,7 @@ class RankedEntryView extends StatelessWidget {
   /// la lingua, INVIO per sedersi, Esc per tornare.
   Widget _desk(BuildContext context, OnlineStrings t) {
     final d = DesktopOnlineStrings.of(context);
-    void pick(AppLanguage lang) {
+    void pick(LobbyLanguage lang) {
       if (queued || lang == language) return;
       HapticFeedback.selectionClick();
       onLanguage(lang);
@@ -208,8 +222,8 @@ class RankedEntryView extends StatelessWidget {
               const SingleActivator(LogicalKeyboardKey.numpadEnter): () {
                 _enter();
               },
-              const SingleActivator(LogicalKeyboardKey.arrowLeft): () => pick(AppLanguage.it),
-              const SingleActivator(LogicalKeyboardKey.arrowRight): () => pick(AppLanguage.en),
+              const SingleActivator(LogicalKeyboardKey.arrowLeft): () => pick(_step(-1)),
+              const SingleActivator(LogicalKeyboardKey.arrowRight): () => pick(_step(1)),
             },
             child: DeskEscape(
               onEscape: () => queued ? onCancel() : Navigator.of(context).maybePop(),
@@ -265,18 +279,20 @@ class RankedEntryView extends StatelessWidget {
                                       child: Row(
                                         crossAxisAlignment: CrossAxisAlignment.stretch,
                                         children: [
-                                          for (final (lang, label, sub, suit) in [
-                                            (AppLanguage.it, 'Italiano', t.rankedTableIt, '♠'),
-                                            (AppLanguage.en, 'English', t.rankedTableEn, '♥'),
-                                          ]) ...[
-                                            if (lang == AppLanguage.en) const SizedBox(width: 24),
+                                          for (final (i, lang) in lobbies.indexed) ...[
+                                            if (i > 0) const SizedBox(width: 24),
                                             Expanded(
                                               child: _TableCard(
-                                                key: Key('ranked.lang.${lang.name}'),
-                                                label: label,
-                                                corner: lang.name.toUpperCase(),
-                                                suit: suit,
-                                                sub: sub,
+                                                key: Key('ranked.lang.${lang.code}'),
+                                                language: lang,
+                                                label: lang.nativeName,
+                                                corner: lang.code.toUpperCase(),
+                                                suit: _suits[i % _suits.length],
+                                                sub: switch (lang.code) {
+                                                  'it' => t.rankedTableIt,
+                                                  'en' => t.rankedTableEn,
+                                                  _ => AppStrings.of(context).language.message('ranked.yourTable'),
+                                                },
                                                 queued: switch (queuedCounts[lang]) {
                                                   final n? when n >= OnlineCounts.encouraging => t.rankedTableQueued(n),
                                                   _ => null,
@@ -378,7 +394,7 @@ class RankedEntryView extends StatelessWidget {
         ),
       ];
 
-  List<Widget> _choose(OnlineStrings t) => [
+  List<Widget> _choose(BuildContext context, OnlineStrings t) => [
         Text(
           t.rankedPickTable,
           style: AppText.overline.copyWith(color: Saloon.brass, fontSize: 11, letterSpacing: 3.2),
@@ -388,18 +404,20 @@ class RankedEntryView extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              for (final (lang, label, sub, suit) in [
-                (AppLanguage.it, 'Italiano', t.rankedTableIt, '♠'),
-                (AppLanguage.en, 'English', t.rankedTableEn, '♥'),
-              ]) ...[
-                if (lang == AppLanguage.en) const SizedBox(width: 14),
+              for (final (i, lang) in lobbies.indexed) ...[
+                if (i > 0) const SizedBox(width: 14),
                 Expanded(
                   child: _TableCard(
-                    key: Key('ranked.lang.${lang.name}'),
-                    label: label,
-                    corner: lang.name.toUpperCase(),
-                    suit: suit,
-                    sub: sub,
+                    key: Key('ranked.lang.${lang.code}'),
+                    language: lang,
+                    label: lang.nativeName,
+                    corner: lang.code.toUpperCase(),
+                    suit: _suits[i % _suits.length],
+                    sub: switch (lang.code) {
+                      'it' => t.rankedTableIt,
+                      'en' => t.rankedTableEn,
+                      _ => AppStrings.of(context).language.message('ranked.yourTable'),
+                    },
                     queued: switch (queuedCounts[lang]) {
                       final n? when n >= OnlineCounts.encouraging => t.rankedTableQueued(n),
                       _ => null,
@@ -674,6 +692,7 @@ class _RankBadge extends StatelessWidget {
 /// Una carta da gioco grande: indici negli angoli, il nome della lingua al
 /// centro. Quella scelta è d'avorio con il filo d'oro, l'altra è girata a metà nell'ombra.
 class _TableCard extends StatelessWidget {
+  final LobbyLanguage language;
   final String label;
   final String corner;
   final String suit;
@@ -684,6 +703,7 @@ class _TableCard extends StatelessWidget {
 
   const _TableCard({
     super.key,
+    required this.language,
     required this.label,
     required this.corner,
     required this.suit,
@@ -699,7 +719,7 @@ class _TableCard extends StatelessWidget {
     final k = desk ? 1.6 : 1.0;
     final ink = selected ? Saloon.paperInk : Saloon.paper.withValues(alpha: 0.82);
     final red = selected ? Saloon.enamel : Saloon.blood.withValues(alpha: 0.85);
-    final suitColor = suit == '♥' ? red : ink;
+    final suitColor = suit == '♠' ? ink : red;
     Widget index(bool flip) => Transform.rotate(
           angle: flip ? pi : 0,
           child: Column(
@@ -707,7 +727,7 @@ class _TableCard extends StatelessWidget {
             children: [
               Text(corner, style: AppText.display(13 * k, color: ink).copyWith(letterSpacing: 0.5, height: 1)),
               const SizedBox(height: 3),
-              CustomPaint(size: Size(11 * k, 11 * k), painter: _SuitPainter(heart: suit == '♥', color: suitColor)),
+              CustomPaint(size: Size(11 * k, 11 * k), painter: _SuitPainter(suit: suit, color: suitColor)),
             ],
           ),
         );
@@ -765,6 +785,8 @@ class _TableCard extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      LanguageFlag(language.code, height: 14 * k),
+                      SizedBox(height: 6 * k),
                       FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Text(label, style: AppText.display(24 * k, color: ink).copyWith(letterSpacing: 0.6)),
@@ -918,15 +940,27 @@ class _RoomPainter extends CustomPainter {
 
 /// Picche o cuori, disegnati: nessun carattere da cercare nei font.
 class _SuitPainter extends CustomPainter {
-  final bool heart;
+  final String suit;
   final Color color;
-  const _SuitPainter({required this.heart, required this.color});
+  const _SuitPainter({required this.suit, required this.color});
+
+  bool get heart => suit == '♥';
 
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width, h = size.height;
     final paint = Paint()..color = color;
-    if (heart) {
+    if (suit == '♦') {
+      canvas.drawPath(
+        Path()
+          ..moveTo(w / 2, 0)
+          ..lineTo(w * 0.9, h / 2)
+          ..lineTo(w / 2, h)
+          ..lineTo(w * 0.1, h / 2)
+          ..close(),
+        paint,
+      );
+    } else if (heart) {
       canvas.drawPath(
         Path()
           ..moveTo(w / 2, h)
@@ -956,5 +990,5 @@ class _SuitPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_SuitPainter old) => old.heart != heart || old.color != color;
+  bool shouldRepaint(_SuitPainter old) => old.suit != suit || old.color != color;
 }

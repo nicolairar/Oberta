@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../l10n/app_language.dart';
+import '../../../settings/app_settings.dart';
+import '../../../l10n/lobby_language.dart';
 import '../../../l10n/app_strings.dart';
 import '../../../l10n/progress_strings.dart';
 import '../../../online/online_services.dart';
@@ -15,11 +16,11 @@ import '../../widgets/targa.dart';
 /// of a language, by handle and tier only, and your own place.
 class LeaderboardScreen extends StatefulWidget {
   final ProgressRepository progress;
-  final AppLanguage language;
+  final LobbyLanguage language;
 
   const LeaderboardScreen({super.key, required this.progress, required this.language});
 
-  static Future<void> open(BuildContext context, ProgressRepository progress, AppLanguage language) =>
+  static Future<void> open(BuildContext context, ProgressRepository progress, LobbyLanguage language) =>
       Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (_) => LeaderboardScreen(progress: progress, language: language),
@@ -31,7 +32,7 @@ class LeaderboardScreen extends StatefulWidget {
 }
 
 class _LeaderboardScreenState extends State<LeaderboardScreen> {
-  late AppLanguage _language = widget.language;
+  late LobbyLanguage _language = widget.language;
 
   @override
   Widget build(BuildContext context) {
@@ -43,8 +44,11 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-            child: TargaSegmented<AppLanguage>(
-              segments: [for (final lang in AppLanguage.values) (lang, lang.nativeName)],
+            child: TargaSegmented<LobbyLanguage>(
+              segments: [
+                for (final lang in {...LobbyLanguage.offered(AppSettings.instance.lobbyLanguage), widget.language})
+                  (lang, lang.nativeName),
+              ],
               selected: _language,
               caps: false,
               onChanged: (lang) => setState(() => _language = lang),

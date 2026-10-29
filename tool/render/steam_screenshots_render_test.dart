@@ -12,6 +12,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/l10n/app_language.dart';
+import 'package:oberta/l10n/lobby_language.dart';
 import 'package:oberta/l10n/app_strings.dart';
 import 'package:oberta/online/fake_online.dart';
 import 'package:oberta/online/game/bot_brain.dart';
@@ -184,7 +185,7 @@ Future<void> _menus(WidgetTester tester, AppLanguage language) async {
   // 02 La stanza degli amici, col codice e la chat.
   online = await _me(tester);
   OnlineServices.instance = online.services;
-  final room = online.openRoomAs('bruno', language);
+  final room = online.openRoomAs('bruno', LobbyLanguage.of(language));
   for (final name in _others.take(7)) {
     online.joinAs(name, room.code);
   }
@@ -209,10 +210,10 @@ Future<void> _menus(WidgetTester tester, AppLanguage language) async {
   online = await _me(tester, clock: clock);
   OnlineServices.instance = online.services;
   for (final lang in AppLanguage.values) {
-    online.ratings[('bruno', lang)] = const Rating(25, 3);
+    online.ratings[('bruno', LobbyLanguage.of(lang))] = const Rating(25, 3);
   }
   for (var i = 0; i < 37; i++) {
-    online.rankedQueue['q$i'] = (language, clock.now());
+    online.rankedQueue['q$i'] = (LobbyLanguage.of(language), clock.now());
   }
   await tester.pumpWidget(_app(RankedQueueScreen(services: online.services), language));
   await _frames(tester, 20);
@@ -296,7 +297,7 @@ Future<void> _game(WidgetTester tester, AppLanguage language) async {
     final clock = ManualClock();
     final online = await _me(tester, clock: clock, random: Random(seed));
     OnlineServices.instance = online.services;
-    final room = online.openRoomAs('anna', language);
+    final room = online.openRoomAs('anna', LobbyLanguage.of(language));
     online.joinAs('bruno', room.code);
     for (final name in _others.skip(1)) {
       online.joinAs(name, room.code);

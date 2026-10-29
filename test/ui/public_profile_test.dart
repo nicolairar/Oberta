@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/l10n/app_language.dart';
+import 'package:oberta/l10n/lobby_language.dart';
 import 'package:oberta/online/fake_online.dart';
 import 'package:oberta/online/online_services.dart';
 import 'package:oberta/ui/screens/online/online_room_screen.dart';
@@ -19,7 +20,7 @@ void main() {
       ..signInReady(handle: 'anna')
       ..addPlayer('bruno', handle: 'bruno');
     online.slow = false;
-    room = online.openRoomAs('anna', AppLanguage.it);
+    room = online.openRoomAs('anna', LobbyLanguage.it);
     online.joinAs('bruno', room.code);
     message = await online.gameAs('bruno').sendChat(room.id, ChatChannel.lobby, 'ciao');
     me = await online.services.profiles.me();

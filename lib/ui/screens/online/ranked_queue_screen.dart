@@ -4,10 +4,10 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../l10n/lobby_language.dart';
 import '../../street/street_scaffold.dart';
 import '../../../sound/screen_music.dart';
 import '../../../sound/sound_stage.dart';
-import '../../../l10n/app_language.dart';
 import '../../../l10n/app_strings.dart';
 import '../../../online/online_services.dart';
 import '../../../online/tutorial_sync.dart';
@@ -56,7 +56,8 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
   bool get musicHeld => _entering;
 
   late final AnimationController _sweep = AnimationController(vsync: this, duration: const Duration(seconds: 3))..repeat();
-  AppLanguage _language = AppLanguage.it;
+  /// The table chosen: the player's own lobby first.
+  LobbyLanguage _language = AppSettings.instance.lobbyLanguage;
   RankedStatus _status = const RankedStatus();
   Timer? _timer;
   Timer? _second;
@@ -81,7 +82,7 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
   Profile? _me;
 
   /// Il proprio rating per lingua e quanti sono in coda (per le carte).
-  Map<AppLanguage, Rating> _ratings = const {};
+  Map<LobbyLanguage, Rating> _ratings = const {};
   OnlineCounts? _counts;
 
   RankedRepository get _ranked => widget.services.ranked!;
@@ -417,6 +418,7 @@ class _RankedQueueScreenState extends State<RankedQueueScreen> with SingleTicker
     final tier = RankTier.of(ordinal);
     return RankedEntryView(
       language: _language,
+      lobbies: LobbyLanguage.offered(AppSettings.instance.lobbyLanguage),
       onLanguage: (language) => setState(() => _language = language),
       queued: _status.queued,
       sweep: _sweep,

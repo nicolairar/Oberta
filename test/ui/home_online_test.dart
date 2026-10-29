@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/ui/screens/avatar/barber_mirror_screen.dart';
-import 'package:oberta/l10n/app_language.dart';
+import 'package:oberta/l10n/lobby_language.dart';
 import 'package:oberta/main.dart';
 import 'package:oberta/online/fake_online.dart';
 import 'package:oberta/online/incoming_links.dart';
@@ -328,7 +328,7 @@ void main() {
   group('il QR di una stanza, aperto dalla fotocamera', () {
     testWidgets('chi è entrato va dritto al tavolo', (tester) async {
       online.signInReady(handle: 'anna');
-      final room = online.openRoomAs('bruno', AppLanguage.it);
+      final room = online.openRoomAs('bruno', LobbyLanguage.it);
       await openAlley(tester);
       IncomingLinks.instance.deliver(Uri.parse('oberta://room/${room.code}'));
       await tester.pumpAndSettle();
@@ -338,14 +338,14 @@ void main() {
 
     testWidgets('il link d\'avvio aspetta il vicolo', (tester) async {
       online.signInReady(handle: 'anna');
-      final room = online.openRoomAs('bruno', AppLanguage.it);
+      final room = online.openRoomAs('bruno', LobbyLanguage.it);
       IncomingLinks.instance.deliver(Uri.parse('oberta://room/${room.code}'));
       await openAlley(tester);
       expect(find.text('LA STANZA'), findsOneWidget);
     });
 
     testWidgets('chi non è entrato prima entra e si fa il profilo, poi siede', (tester) async {
-      final room = online.openRoomAs('bruno', AppLanguage.it);
+      final room = online.openRoomAs('bruno', LobbyLanguage.it);
       await openAlley(tester);
       IncomingLinks.instance.deliver(Uri.parse('oberta://room/${room.code.toLowerCase()}'));
       await tester.pumpAndSettle();
@@ -358,7 +358,7 @@ void main() {
     });
 
     testWidgets('chi chiude l\'accesso resta nel vicolo, e il link si dimentica', (tester) async {
-      final room = online.openRoomAs('bruno', AppLanguage.it);
+      final room = online.openRoomAs('bruno', LobbyLanguage.it);
       await openAlley(tester);
       IncomingLinks.instance.deliver(Uri.parse('oberta://room/${room.code}'));
       await tester.pumpAndSettle();
@@ -377,7 +377,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Questo link non porta a nessuna stanza.'), findsOneWidget);
 
-      final room = online.openRoomAs('bruno', AppLanguage.it);
+      final room = online.openRoomAs('bruno', LobbyLanguage.it);
       online.leaveAs('bruno', room.id);
       IncomingLinks.instance.deliver(Uri.parse('oberta://room/${room.code}'));
       await tester.pumpAndSettle();

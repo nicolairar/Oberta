@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/l10n/app_strings.dart';
 import 'package:oberta/ui/screens/online/game/seat_card.dart';
 import 'package:oberta/l10n/app_language.dart';
+import 'package:oberta/l10n/lobby_language.dart';
 import 'package:oberta/online/fake_online.dart';
 import 'package:oberta/online/online_services.dart';
 import 'package:oberta/narration/italian_pack.dart';
@@ -32,7 +33,7 @@ Future<({FakeOnline online, Room room, ManualClock clock})?> _toTheNight(WidgetT
   final online = FakeOnline(accountId: 'bruno', clock: clock, random: Random(seed))
     ..signInReady(handle: 'bruno')
     ..addPlayer('anna', handle: 'anna');
-  final room = online.openRoomAs('anna', AppLanguage.it);
+  final room = online.openRoomAs('anna', LobbyLanguage.it);
   online.joinAs('bruno', room.code);
   await settled(tester, online.gameAs('anna').setBots(room.id, bots));
   await settled(tester, online.gameAs('anna').startGame(room.id));
