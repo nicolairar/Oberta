@@ -240,7 +240,12 @@ class RenderBaked extends RenderProxyBox {
     if (exact || (capped && _sameScale(scale, want))) _crisp = place;
   }
 
+  /// Quante immagini si sono fatte finora, in tutta l'app: le prove delle
+  /// prestazioni guardano che da fermi non se ne facciano.
+  static int debugBakes = 0;
+
   bool _bake(double scale) {
+    debugBakes++;
     final bounds = _overflow.inflateRect(Offset.zero & size);
     final layer = OffsetLayer();
     final inner = PaintingContext(layer, bounds);
