@@ -24,7 +24,8 @@ enum Meme {
   applePay,
   error,
   knocked,
-  auraFarming;
+  auraFarming,
+  fridayDamn;
 
   /// Quanto dura, in millisecondi: quelli lunghi (le canzoncine, la risata)
   /// zittiscono la musica finché non finiscono.
@@ -45,6 +46,7 @@ enum Meme {
         error => 790,
         knocked => 650,
         auraFarming => 12420,
+        fridayDamn => 3740,
       };
 
   /// Una canzoncina o una risata lunga: sopra la tarantella non si capisce
@@ -61,6 +63,7 @@ enum Meme {
         englishSpanish => 'english_spanish',
         applePay => 'applepay',
         auraFarming => 'aura_farming',
+        fridayDamn => 'friday_damn',
         _ => name,
       }}.m4a';
 }
@@ -84,7 +87,8 @@ Meme? reactionMeme(DeathAct act) => switch (act) {
       DeathAct.manhole => Meme.lutador,
       DeathAct.rescue || DeathAct.lucky => null,
       _ when act.survives => null,
-      _ => _dice.nextDouble() < 0.9 ? Meme.faaah : null,
+      // Qualcuno è morto davvero: o il «faaah», o il «damn».
+      _ => _dice.nextDouble() < 0.9 ? _one(const [Meme.faaah, Meme.fridayDamn]) : null,
     };
 
 /// I meme brevi e stupidi, quelli che si possono buttare ovunque.
