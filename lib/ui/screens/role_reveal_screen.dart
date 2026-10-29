@@ -4,7 +4,6 @@ import '../../sound/memes.dart';
 import '../../sound/sound_stage.dart';
 import '../../l10n/app_strings.dart';
 import '../../rules/game_setup.dart';
-import '../../narration/narrator_script.dart';
 import '../../l10n/table_strings.dart';
 import '../desktop/desktop_canvas.dart';
 import '../widgets/content_width.dart';
@@ -35,9 +34,6 @@ class _RoleRevealScreenState extends State<RoleRevealScreen> {
     SoundStage.instance.meme(Meme.englishSpanish);
   }
 
-  /// Solo per le parole della tenda: la città non conta.
-  late final NarratorScript _script = NarratorScript(pack: AppStrings.of(context).pack);
-
   int _index = 0;
   bool _holdingPhone = false;
   bool _seen = false;
@@ -64,7 +60,6 @@ class _RoleRevealScreenState extends State<RoleRevealScreen> {
     final player = players[_index];
     final t = AppStrings.of(context);
     final ts = TableStrings(t.language);
-    final curtain = _script.curtain(player.name, card: true);
     final desk = DesktopCanvas.of(context);
     final tag = '${_index + 1} ${player.name}';
     return PopScope(
@@ -107,7 +102,7 @@ class _RoleRevealScreenState extends State<RoleRevealScreen> {
                                       child: ConstrainedBox(
                                         constraints: const BoxConstraints(maxWidth: 560),
                                         child: ActionStrip(
-                                          status: _seen ? _script.putPhoneDown().text : ts.holdTheCard,
+                                          status: _seen ? t.personBookedPass : ts.holdTheCard,
                                           tone: _seen ? StripTone.done : StripTone.act,
                                           actions: [
                                             NoirAction(
@@ -124,13 +119,10 @@ class _RoleRevealScreenState extends State<RoleRevealScreen> {
                                   ),
                                 ],
                               )
-                            // La voce tace a ogni mano: «passa il telefono»
-                            // e «guarda la tua carta» stanno sulla tenda.
                             : LocalCurtain(
                                 key: ValueKey('handoff-$_index'),
                                 player: player,
                                 number: _index + 1,
-                                hint: curtain.last.text,
                                 onReady: () => setState(() => _holdingPhone = true),
                               ),
                       ),

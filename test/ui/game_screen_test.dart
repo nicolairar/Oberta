@@ -369,7 +369,7 @@ void main() {
     expect(find.textContaining('domani non potrà parlare'), findsOneWidget);
     await tapSeat(tester, elio);
     await tapKey(tester, 'local.confirm');
-    expect(find.text('Fatto.'), findsOneWidget);
+    expect(find.text('Nessuno saprà cosa hai scelto.'), findsOneWidget);
     await tapKey(tester, 'local.done');
 
     await tapKey(tester, 'local.itsMe');

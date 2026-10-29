@@ -219,14 +219,12 @@ class LocalFelt extends StatelessWidget {
 class LocalCurtain extends StatelessWidget {
   final Player player;
   final int? number;
-  final String hint;
   final VoidCallback onReady;
 
   const LocalCurtain({
     super.key,
     required this.player,
     required this.number,
-    required this.hint,
     required this.onReady,
   });
 
@@ -267,12 +265,6 @@ class LocalCurtain extends StatelessWidget {
               FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text(tag.toUpperCase(), key: const Key('local.curtainName'), style: Saloon.plate(desk ? 56 : 36)),
-              ),
-              SizedBox(height: desk ? 18 : 12),
-              Text(
-                hint,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.textSecondary, fontSize: desk ? 20 : 15, height: 1.35),
               ),
               const Spacer(),
               SizedBox(

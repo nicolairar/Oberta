@@ -85,8 +85,8 @@ void main() {
     await tap(tester, 'START THE NIGHT');
 
     await nightTurn(tester, ada, pick: carla);
-    expect(find.text('Done.'), findsOneWidget);
     expect(find.text('Nobody will know what you chose.'), findsOneWidget);
+    expect(find.text('Pass the phone to the next one.'), findsOneWidget);
     await tap(tester, 'DONE');
 
     await nightTurn(tester, bruno, pick: ada);

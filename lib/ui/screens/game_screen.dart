@@ -769,13 +769,10 @@ class _GameScreenState extends State<GameScreen> {
     return voice.isEmpty ? page : SpokenLines(lines: voice, reader: _narrator?.name, child: page);
   }
 
-  /// La tenda fra una mano e l'altra. La voce tace: come si passa il
-  /// telefono lo dice una volta sola all'inizio della notte, e il nome di
-  /// chi tocca si legge sulla tenda.
-  Widget _curtain(Player player, {Key? key, required VoidCallback onReady}) {
-    final lines = _script.curtain(player.name);
-    return LocalCurtain(key: key, player: player, number: _numbers[player], hint: lines.last.text, onReady: onReady);
-  }
+  /// La tenda fra una mano e l'altra: a chi passa il telefono, e basta.
+  /// Come si fa lo dice una volta sola il narratore all'inizio della notte.
+  Widget _curtain(Player player, {Key? key, required VoidCallback onReady}) =>
+      LocalCurtain(key: key, player: player, number: _numbers[player], onReady: onReady);
 
   Widget _stageView() => switch (_stage) {
         _Stage.script => ScriptPageView(page: _page, reader: _narrator?.name, strings: _t),
@@ -1017,7 +1014,7 @@ class _GameScreenState extends State<GameScreen> {
         ]),
       ),
       strip: ActionStrip(
-        status: _script.putPhoneDown().text,
+        status: _t.personBookedPass,
         tone: StripTone.done,
         actions: [
           NoirAction(
@@ -1326,10 +1323,7 @@ class _GameScreenState extends State<GameScreen> {
     final isMafia = finding?.team == Team.mafia;
     final title = LocalFelt.titleStyle(context);
     final List<FeltLine> lines = finding == null
-        ? [
-            (text: _t.doneTitle, key: null, style: title),
-            (text: _t.nobodyWillKnow, key: null, style: LocalFelt.lineStyle(context, style: FontStyle.italic)),
-          ]
+        ? [(text: _t.nobodyWillKnow, key: null, style: LocalFelt.lineStyle(context, style: FontStyle.italic))]
         : [
             (
               text: found == null ? _t.yourInvestigation : _t.inTheGrave,
@@ -1358,8 +1352,6 @@ class _GameScreenState extends State<GameScreen> {
       (kind: NightTaskKind.jail, target: final prisoner?) => prisoner,
       _ => null,
     };
-    // «Posa il telefono e passalo» si legge sulla striscia: detto a voce a
-    // ogni mano, notte dopo notte, è solo rumore.
     return _tablePage(
       key: const Key('local.nightDone'),
       script: prisoner == null
@@ -1373,7 +1365,7 @@ class _GameScreenState extends State<GameScreen> {
             ),
       table: _secretTable(actor, selected: finding?.subject ?? prisoner, center: LocalFelt(lines)),
       strip: ActionStrip(
-        status: _script.putPhoneDown().text,
+        status: _t.personBookedPass,
         tone: StripTone.done,
         actions: [
           NoirAction(
