@@ -100,6 +100,7 @@ export async function sendWelcome(
     ctaUrl: `${site}/ruoli.html`,
     unsubscribeUrl,
     privacyUrl: `${site}/privacy.html#lista`,
+    assetBase: deps.env('WAITLIST_ASSET_BASE') ?? `${functionUrl}/img`,
   });
   try {
     const res = await deps.fetch(brevoUrl, {

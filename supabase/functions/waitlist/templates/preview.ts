@@ -14,6 +14,7 @@ export function preview(lang: Lang) {
     ctaUrl: `${sampleSite}/ruoli.html`,
     unsubscribeUrl: `${sampleSite}/disiscriviti.html?t=${sampleToken}`,
     privacyUrl: `${sampleSite}/privacy.html#lista`,
+    assetBase: '.', // the previews sit next to the images in site/oberta/email/
   });
 }
 

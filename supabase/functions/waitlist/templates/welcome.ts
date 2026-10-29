@@ -1,10 +1,9 @@
-// The welcome email (single opt-in: the sign-up is already done), as a 1940s
-// telegram from the Famiglia, with NO images at all (Outlook and many clients
-// block remote images): the OBERTÀ wordmark is letter-spaced serif text with a
-// glow where supported, the brass double frame is nested table cells with
-// bgcolor, the art-deco touches are unicode ornaments (◆ ✦ ❖ ─), the roles are
-// small bordered cells. Every colour is a bgcolor attribute as well as CSS,
-// the button is a padded table cell with a VML twin for Outlook.
+// The welcome email (single opt-in: the sign-up is already done), as a 1940s telegram from the Famiglia: a dark
+// brick wall, a card with a brass double rule and art-deco corners, the neon
+// sign, a telegram slip, a Targa button to the roles page, four role medallions
+// and the Padrino's signature. Tables and inline styles only, 560 px wide and
+// fluid below, a VML button for Outlook, bgcolor fallbacks under every image.
+// The images live on the site (site/oberta/email/, tool/site/email_assets.py).
 // Previews with sample links: site/oberta/email/benvenuto-*.html (preview.ts).
 
 export type Lang = 'it' | 'en';
@@ -14,6 +13,8 @@ export interface Links {
   ctaUrl: string;
   unsubscribeUrl: string;
   privacyUrl: string;
+  /** Where the images live: the site's email/ folder, absolute. */
+  assetBase: string;
 }
 
 export interface Email {
@@ -39,7 +40,8 @@ const copy = {
     why: 'Ricevi questa mail perché hai lasciato il tuo indirizzo su charliemobile.dev/oberta.',
     unsubscribe: 'Cancellami dalla lista',
     privacy: 'Informativa privacy',
-    roles: [['♛', 'Il Padrino'], ['✦', 'Il Commissario'], ['✚', 'Il Dottore'], ['♠', 'Il Picciotto']],
+    alt: 'OBERTÀ, insegna al neon',
+    roles: ['Il Padrino', 'Il Commissario', 'Il Dottore', 'Il Picciotto'],
   },
   en: {
     subject: 'You are one of us',
@@ -57,7 +59,8 @@ const copy = {
     why: 'You get this email because you left your address on charliemobile.dev/oberta.',
     unsubscribe: 'Remove me from the list',
     privacy: 'Privacy policy',
-    roles: [['♛', 'The Godfather'], ['✦', 'The Inspector'], ['✚', 'The Doctor'], ['♠', 'The Henchman']],
+    alt: 'OBERTÀ, neon sign',
+    roles: ['The Godfather', 'The Inspector', 'The Doctor', 'The Henchman'],
   },
 } as const;
 
@@ -67,31 +70,19 @@ const esc = (s: string) =>
 const serif = "Georgia, 'Times New Roman', Times, serif";
 const sans = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";
 const mono = "'Courier New', Courier, monospace";
-const GOLD = '#C9A227';
-const BRASS = '#9C7424';
-const INK = '#0C0907';
-const CARD = '#140F0B';
-const PAPER = '#E9D7AC';
-const CREAM = '#EFDFB9';
-const MUTED = '#C9BBA3';
-const DIM = '#9C8F7B';
-const ENAMEL = '#8A1520';
+const roleFiles = ['padrino', 'detective', 'medico', 'mafioso'];
 
 export function welcomeEmail(lang: Lang, links: Links): Email {
   const t = copy[lang] ?? copy.it;
   const cta = esc(links.ctaUrl);
   const unsubscribe = esc(links.unsubscribeUrl);
   const privacy = esc(links.privacyUrl);
-  const ornament = (size: number, colour = GOLD) =>
-    `<p style="margin:0;font-family:${serif};font-size:${size}px;line-height:1;letter-spacing:6px;color:${colour};">&#9472;&#9472;&#9472;&#9472;&nbsp;&#9670;&nbsp;&#10022;&nbsp;&#9670;&nbsp;&#9472;&#9472;&#9472;&#9472;</p>`;
-  const medallions = t.roles
-    .map(([symbol, name]) =>
-      `<td align="center" valign="top" width="25%" style="padding:0 4px;">
-                  <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center"><tr>
-                    <td align="center" valign="middle" width="46" height="46" bgcolor="${ENAMEL}" style="width:46px;height:46px;border:2px solid ${GOLD};border-radius:25px;background-color:${ENAMEL};font-family:${serif};font-size:22px;line-height:46px;color:${CREAM};">${symbol}</td>
-                  </tr></table>
-                  <p style="margin:8px 0 0;font-family:${sans};font-size:11px;line-height:1.3;font-weight:bold;letter-spacing:.5px;color:${MUTED};">${esc(name)}</p>
-                </td>`
+  const base = esc(links.assetBase.replace(/\/$/, ''));
+  const corner = (name: string, align: string) =>
+    `<td width="48" valign="top" align="${align}" style="width:48px;padding:0;font-size:0;line-height:0;"><img src="${base}/deco-${name}.png" width="48" height="48" alt="" style="display:block;width:48px;height:48px;border:0;"></td>`;
+  const medallions = roleFiles
+    .map((file, i) =>
+      `<td align="center" style="padding:0 7px;"><img src="${base}/role-${file}.png" width="56" height="56" alt="${esc(t.roles[i])}" title="${esc(t.roles[i])}" style="display:block;width:56px;height:56px;border:0;border-radius:28px;color:#c9bba3;font-family:${sans};font-size:10px;"></td>`
     )
     .join('');
 
@@ -107,133 +98,120 @@ export function welcomeEmail(lang: Lang, links: Links): Email {
 <title>${esc(t.subject)}</title>
 <!--[if mso]><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml><![endif]-->
 <style>
-  body { margin: 0 !important; padding: 0 !important; background: ${INK}; }
-  a { color: ${GOLD}; }
+  body { margin: 0 !important; padding: 0 !important; background: #0c0907; }
+  a { color: #e6c77a; }
   :root { color-scheme: dark only; }
   @media (max-width: 600px) {
     .card { width: 100% !important; }
     .pad { padding-left: 20px !important; padding-right: 20px !important; }
     .title { font-size: 31px !important; }
-    .mark { font-size: 44px !important; letter-spacing: 8px !important; }
     .slip { font-size: 12px !important; letter-spacing: 1px !important; }
   }
 </style>
 </head>
-<body bgcolor="${INK}" style="margin:0;padding:0;background-color:${INK};">
-<div style="display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;mso-hide:all;color:${INK};">${esc(t.preheader)}&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${INK}" style="background-color:${INK};">
+<body style="margin:0;padding:0;background:#0c0907;">
+<div style="display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;mso-hide:all;color:#0c0907;">${esc(t.preheader)}&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#0c0907" background="${base}/brick.jpg" style="background-color:#0c0907;background-image:url('${base}/brick.jpg');background-repeat:repeat;">
   <tr>
-    <td align="center" style="padding:28px 10px 34px;">
+    <td align="center" style="padding:30px 10px 34px;">
       <!--[if mso]><table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" align="center"><tr><td><![endif]-->
-      <!-- Brass double frame: gold, a dark gap, gold again, then the card. -->
-      <table role="presentation" class="card" width="560" cellpadding="0" cellspacing="0" border="0" bgcolor="${GOLD}" style="width:560px;max-width:560px;background-color:${GOLD};">
-        <tr><td style="padding:2px;" bgcolor="${GOLD}">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${INK}" style="background-color:${INK};">
-            <tr><td style="padding:4px;" bgcolor="${INK}">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${BRASS}" style="background-color:${BRASS};">
-                <tr><td style="padding:1px;" bgcolor="${BRASS}">
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${CARD}" style="background-color:${CARD};">
+      <table role="presentation" class="card" width="560" cellpadding="0" cellspacing="0" border="0" bgcolor="#130e0b" style="width:560px;max-width:560px;background-color:#130e0b;border:5px double #c9a23e;border-radius:6px;box-shadow:0 18px 50px rgba(0,0,0,.7);">
+        <tr>
+          <td style="padding:6px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>${corner('tl', 'left')}<td style="font-size:0;line-height:0;">&nbsp;</td>${corner('tr', 'right')}</tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td class="pad" align="center" style="padding:0 44px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr><td align="center" style="border-top:1px solid #9c7424;border-bottom:1px solid #9c7424;padding:7px 0;font-family:${mono};font-size:11px;font-weight:bold;letter-spacing:3px;text-transform:uppercase;color:#d6ad48;">${esc(t.wire)}</td></tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td align="center" style="padding:18px 24px 0;">
+            <img src="${base}/oberta-neon.jpg" width="460" alt="${esc(t.alt)}" style="display:block;width:100%;max-width:460px;height:auto;border:0;color:#ff5a4a;font-family:${serif};font-size:44px;font-weight:bold;letter-spacing:8px;text-align:center;">
+          </td>
+        </tr>
+        <tr>
+          <td class="pad" align="center" style="padding:6px 44px 0;">
+            <p style="margin:0;font-family:${serif};font-size:16px;font-style:italic;color:#d6ad48;">${esc(t.thanks)}</p>
+            <h1 class="title" style="margin:10px 0 0;font-family:${serif};font-size:36px;line-height:1.08;font-weight:900;letter-spacing:-0.5px;color:#efdfb9;">${esc(t.title)}</h1>
+            <p style="margin:16px 0 0;font-family:${sans};font-size:16px;line-height:1.55;color:#c9bba3;">${esc(t.lead)}</p>
+          </td>
+        </tr>
+        <tr>
+          <td class="pad" align="center" style="padding:22px 44px 0;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#e9d7ac" style="background-color:#e9d7ac;border-radius:2px;">
+              <tr><td class="slip" align="center" style="padding:12px 14px;font-family:${mono};font-size:13px;line-height:1.5;font-weight:bold;letter-spacing:1.5px;color:#1a1210;">${esc(t.slip)}</td></tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td align="center" style="padding:26px 24px 0;">
+            <!--[if mso]><v:roundrect href="${cta}" style="height:60px;v-text-anchor:middle;width:300px;" arcsize="24%" strokecolor="#d9b45a" strokeweight="2.5pt" fillcolor="#8a1520"><center style="color:#fff1d6;font-family:Georgia,serif;font-size:20px;font-weight:bold;letter-spacing:5px;">${esc(t.button.toUpperCase())}</center></v:roundrect><![endif]-->
+            <!--[if !mso]><!-- -->
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td align="center" bgcolor="#d9b45a" style="border-radius:16px;background-color:#d9b45a;background-image:linear-gradient(180deg,#ffe7a8 0%,#d9b45a 42%,#9c7424 78%,#c9a23e 100%);padding:3px;box-shadow:0 0 22px rgba(255,180,67,.30),0 6px 14px rgba(0,0,0,.6);">
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                     <tr>
-                      <td class="pad" align="center" bgcolor="${CARD}" style="padding:22px 40px 0;background-color:${CARD};">
-                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                          <tr>
-                            <td align="left" style="font-family:${serif};font-size:16px;line-height:1;color:${GOLD};">&#10070;</td>
-                            <td align="center" style="font-family:${mono};font-size:11px;font-weight:bold;letter-spacing:3px;text-transform:uppercase;color:${GOLD};">${esc(t.wire)}</td>
-                            <td align="right" style="font-family:${serif};font-size:16px;line-height:1;color:${GOLD};">&#10070;</td>
-                          </tr>
-                        </table>
-                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:12px;">
-                          <tr><td height="1" bgcolor="${BRASS}" style="height:1px;font-size:0;line-height:0;background-color:${BRASS};">&nbsp;</td></tr>
-                          <tr><td height="3" style="height:3px;font-size:0;line-height:0;">&nbsp;</td></tr>
-                          <tr><td height="1" bgcolor="${BRASS}" style="height:1px;font-size:0;line-height:0;background-color:${BRASS};">&nbsp;</td></tr>
-                        </table>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td align="center" bgcolor="${CARD}" style="padding:34px 16px 6px;background-color:${CARD};">
-                        <p class="mark" style="margin:0;font-family:${serif};font-size:58px;line-height:1;font-weight:bold;letter-spacing:12px;color:${GOLD};text-shadow:0 0 6px rgba(255,190,80,.55),0 0 22px rgba(201,162,39,.45),0 0 40px rgba(165,29,37,.5);">OBERT&Agrave;</p>
-                        <div style="height:18px;line-height:18px;font-size:18px;">&nbsp;</div>
-                        ${ornament(12)}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td class="pad" align="center" bgcolor="${CARD}" style="padding:22px 40px 0;background-color:${CARD};">
-                        <p style="margin:0;font-family:${serif};font-size:16px;font-style:italic;color:${GOLD};">${esc(t.thanks)}</p>
-                        <h1 class="title" style="margin:10px 0 0;font-family:${serif};font-size:36px;line-height:1.08;font-weight:900;color:${CREAM};">${esc(t.title)}</h1>
-                        <p style="margin:16px 0 0;font-family:${sans};font-size:16px;line-height:1.55;color:${MUTED};">${esc(t.lead)}</p>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td class="pad" align="center" bgcolor="${CARD}" style="padding:22px 40px 0;background-color:${CARD};">
-                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${PAPER}" style="background-color:${PAPER};">
-                          <tr><td class="slip" align="center" bgcolor="${PAPER}" style="padding:12px 14px;background-color:${PAPER};border-top:2px dashed ${BRASS};border-bottom:2px dashed ${BRASS};font-family:${mono};font-size:13px;line-height:1.5;font-weight:bold;letter-spacing:1.5px;color:#1A1210;">${esc(t.slip)}</td></tr>
-                        </table>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td align="center" bgcolor="${CARD}" style="padding:28px 24px 0;background-color:${CARD};">
-                        <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${cta}" style="height:58px;v-text-anchor:middle;width:300px;" arcsize="20%" strokecolor="${GOLD}" strokeweight="2.5pt" fillcolor="${ENAMEL}"><center style="color:#FFF1D6;font-family:Georgia,serif;font-size:18px;font-weight:bold;letter-spacing:4px;">${esc(t.button.toUpperCase())}</center></v:roundrect><![endif]-->
-                        <!--[if !mso]><!-- -->
-                        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-                          <tr>
-                            <td align="center" bgcolor="${GOLD}" style="padding:3px;border-radius:16px;background-color:${GOLD};">
-                              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-                                <tr>
-                                  <td align="center" bgcolor="${ENAMEL}" style="border-radius:13px;background-color:${ENAMEL};">
-                                    <a href="${cta}" target="_blank" style="display:inline-block;min-width:230px;padding:18px 32px;font-family:${serif};font-size:18px;line-height:20px;font-weight:bold;letter-spacing:4px;text-transform:uppercase;text-align:center;color:#FFF1D6;text-decoration:none;border-radius:13px;">${esc(t.button)}</a>
-                                  </td>
-                                </tr>
-                              </table>
-                            </td>
-                          </tr>
-                        </table>
-                        <!--<![endif]-->
-                      </td>
-                    </tr>
-                    <tr>
-                      <td class="pad" align="center" bgcolor="${CARD}" style="padding:20px 40px 0;background-color:${CARD};">
-                        <p style="margin:0;font-family:${sans};font-size:14px;font-weight:bold;letter-spacing:.3px;color:${GOLD};">${esc(t.release)}</p>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td class="pad" align="center" bgcolor="${CARD}" style="padding:24px 28px 0;background-color:${CARD};">
-                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>${medallions}</tr></table>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td class="pad" align="right" bgcolor="${CARD}" style="padding:22px 48px 0;background-color:${CARD};">
-                        <p style="margin:0;font-family:${serif};font-size:22px;font-style:italic;color:${CREAM};">${esc(t.sign)}</p>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td class="pad" bgcolor="${CARD}" style="padding:22px 40px 0;background-color:${CARD};">
-                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                          <tr><td height="1" bgcolor="${BRASS}" style="height:1px;font-size:0;line-height:0;background-color:${BRASS};">&nbsp;</td></tr>
-                          <tr><td height="3" style="height:3px;font-size:0;line-height:0;">&nbsp;</td></tr>
-                          <tr><td height="1" bgcolor="${BRASS}" style="height:1px;font-size:0;line-height:0;background-color:${BRASS};">&nbsp;</td></tr>
-                        </table>
-                        <p style="margin:14px 0 0;font-family:${sans};font-size:13px;line-height:1.5;color:${DIM};">${esc(t.ignore)}</p>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td align="center" bgcolor="${CARD}" style="padding:18px 24px 24px;background-color:${CARD};">
-                        <p style="margin:0 0 12px;font-family:${serif};font-size:15px;font-style:italic;color:${GOLD};">${esc(t.motto)}</p>
-                        ${ornament(10, BRASS)}
+                      <td align="center" bgcolor="#8a1520" style="border-radius:13px;background-color:#8a1520;background-image:linear-gradient(180deg,#b3242e 0%,#7e111a 55%,#4a070d 100%);">
+                        <a href="${cta}" target="_blank" style="display:inline-block;min-width:230px;padding:19px 34px;font-family:${serif};font-size:20px;line-height:20px;font-weight:bold;letter-spacing:5px;text-transform:uppercase;text-align:center;color:#fff1d6;text-decoration:none;border-radius:13px;">${esc(t.button)}</a>
                       </td>
                     </tr>
                   </table>
-                </td></tr>
-              </table>
-            </td></tr>
-          </table>
-        </td></tr>
+                </td>
+              </tr>
+            </table>
+            <!--<![endif]-->
+          </td>
+        </tr>
+        <tr>
+          <td class="pad" align="center" style="padding:20px 44px 0;">
+            <p style="margin:0;font-family:${sans};font-size:14px;font-weight:bold;letter-spacing:.3px;color:#e6c77a;">${esc(t.release)}</p>
+          </td>
+        </tr>
+        <tr>
+          <td align="center" style="padding:22px 24px 0;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>${medallions}</tr></table>
+          </td>
+        </tr>
+        <tr>
+          <td class="pad" align="right" style="padding:20px 52px 0;">
+            <p style="margin:0;font-family:${serif};font-size:22px;font-style:italic;color:#efdfb9;">${esc(t.sign)}</p>
+          </td>
+        </tr>
+        <tr>
+          <td class="pad" style="padding:22px 44px 0;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr><td style="border-top:1px solid #9c7424;font-size:0;line-height:0;height:3px;">&nbsp;</td></tr>
+              <tr><td style="border-top:1px solid #9c7424;font-size:0;line-height:0;">&nbsp;</td></tr>
+            </table>
+            <p style="margin:12px 0 0;font-family:${sans};font-size:13px;line-height:1.5;color:#9c8f7b;">${esc(t.ignore)}</p>
+          </td>
+        </tr>
+        <tr>
+          <td align="center" style="padding:18px 24px 0;">
+            <p style="margin:0;font-family:${serif};font-size:15px;font-style:italic;color:#d6ad48;">${esc(t.motto)}</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:6px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>${corner('bl', 'left').replace('valign="top"', 'valign="bottom"')}<td style="font-size:0;line-height:0;">&nbsp;</td>${corner('br', 'right').replace('valign="top"', 'valign="bottom"')}</tr>
+            </table>
+          </td>
+        </tr>
       </table>
       <table role="presentation" class="card" width="560" cellpadding="0" cellspacing="0" border="0" style="width:560px;max-width:560px;">
         <tr>
-          <td class="pad" align="center" bgcolor="${INK}" style="padding:20px 40px 0;background-color:${INK};font-family:${sans};font-size:12px;line-height:1.7;color:#A89A84;">
+          <td class="pad" align="center" style="padding:20px 40px 0;font-family:${sans};font-size:12px;line-height:1.7;color:#a89a84;">
             ${esc(t.why)}<br>
-            <a href="${unsubscribe}" style="color:${GOLD};">${esc(t.unsubscribe)}</a> &nbsp;&middot;&nbsp; <a href="${privacy}" style="color:${GOLD};">${esc(t.privacy)}</a><br>
-            Obert&agrave; &middot; Charlie Mobile &middot; Nicolai Tana &middot; <a href="mailto:oberta@charliemobile.dev" style="color:#A89A84;">oberta@charliemobile.dev</a>
+            <a href="${unsubscribe}" style="color:#e6c77a;">${esc(t.unsubscribe)}</a> &nbsp;·&nbsp; <a href="${privacy}" style="color:#e6c77a;">${esc(t.privacy)}</a><br>
+            Obertà · Charlie Mobile · Nicolai Tana · <a href="mailto:oberta@charliemobile.dev" style="color:#a89a84;">oberta@charliemobile.dev</a>
           </td>
         </tr>
       </table>
