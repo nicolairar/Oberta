@@ -289,6 +289,35 @@ class _ShopScreenState extends State<ShopScreen> {
       );
     }
     final item = entry.item!;
+    // Un pezzo delle missioni non si compra: al posto del bottone, una riga
+    // di testo piccola che va a capo e non esce mai dal cartellino.
+    if (_shop.stateOf(item) == ItemState.locked) {
+      final open = widget.progress == null ? null : () => MissionsScreen.open(context, widget.progress!, tab: 2);
+      return GestureDetector(
+        key: const Key('shop.action'),
+        behavior: HitTestBehavior.opaque,
+        onTap: open,
+        child: SizedBox(
+          height: height,
+          child: Center(
+            child: Text(
+              _progressStrings.unlocksWith(_progressStrings.mission(item.unlock!)),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: AppText.body.copyWith(
+                fontSize: desk ? 14 : 12,
+                height: 1.25,
+                color: AppColors.gold,
+                fontStyle: FontStyle.italic,
+                decoration: open == null ? null : TextDecoration.underline,
+                decorationColor: AppColors.gold.withValues(alpha: 0.5),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     final (label, kind, action, price) = switch (_shop.stateOf(item)) {
       ItemState.forSale => (t.buy, TargaKind.primary, () => _buy(item), item.price),
       ItemState.locked => (
