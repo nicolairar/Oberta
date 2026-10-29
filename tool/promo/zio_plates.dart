@@ -24,6 +24,10 @@ import 'package:oberta/ui/widgets/noir_avatar.dart' show AvatarHead;
 
 import '../../test/support/manual_clock.dart';
 import 'promo_plates.dart' show flipFrames, grab, logical;
+import 'zio_scenes.dart' show en, tr;
+
+/// The game's language for the plates: Italian, or English with PROMO_LANG=en.
+AppLanguage get lang => en ? AppLanguage.en : AppLanguage.it;
 
 /// The family at the table, in seat order. Seed 26 deals: io the Doctor,
 /// vito and zia the family.
@@ -97,7 +101,7 @@ Widget _app(Widget home) => RepaintBoundary(
   child: MaterialApp(
     debugShowCheckedModeBanner: false,
     theme: _theme(),
-    locale: AppLanguage.it.locale,
+    locale: lang.locale,
     supportedLocales: AppLanguage.locales,
     localizationsDelegates: const [
       AppStrings.delegate,
@@ -160,7 +164,7 @@ Future<(Map<String, ui.Image>, Map<String, Seats>)> shootZioPlates(WidgetTester 
     WornLooks.remember(Profile(id: p, handle: p, avatar: looks[p]!.toJson()));
   }
   OnlineServices.instance = online.services;
-  final room = online.openRoomAs('io', AppLanguage.it);
+  final room = online.openRoomAs('io', lang);
   for (final p in family.skip(1)) {
     online.joinAs(p, room.code);
   }
@@ -215,7 +219,7 @@ Future<(Map<String, ui.Image>, Map<String, Seats>)> shootZioPlates(WidgetTester 
   if (!await until('online.night')) throw StateError('no night for vito');
   clock.elapse(const Duration(seconds: 3));
   await _flush(tester);
-  for (final (who, text) in [('vito', 'Stanotte la nonna.'), ('zia', 'La nonna?! Sei sicuro?'), ('vito', 'Fidati.')]) {
+  for (final (who, text) in [('vito', tr('Stanotte la nonna.', 'Grandma, tonight.')), ('zia', tr('La nonna?! Sei sicuro?', 'Grandma?! Are you sure?')), ('vito', tr('Fidati.', 'Trust me.'))]) {
     online.auth.debugSignIn(who);
     await _settled(tester, online.services.game.sendChat(room.id, ChatChannel.family, text));
   }

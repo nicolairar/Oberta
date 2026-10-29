@@ -5,7 +5,8 @@
 // Before it: `swift tool/promo/badges.swift` (the store badges); after it:
 // `swift tool/promo/zio_encode.swift` (the MP4 with the sound).
 // FRAMES=0,90,500 renders only those frames and build/promo/zio_contact.png;
-// PLATES=1 also saves the plates. The script: docs/promo/short_zio.md.
+// PLATES=1 also saves the plates; PROMO_LANG=en makes the English cut
+// (build/promo/zio_frames_en/); STRIDE=2 renders every other frame (30 fps). The script: docs/promo/short_zio.md.
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
@@ -44,7 +45,7 @@ void main() {
         for (final name in ['app-store-it', 'google-play-it', 'steam-logo-white'])
           name: await _decode(File('$out/badges/$name.png').readAsBytesSync()),
       };
-      final dir = Directory('$out/zio_frames')..createSync(recursive: true);
+      final dir = Directory(zio.en ? '$out/zio_frames_en' : '$out/zio_frames')..createSync(recursive: true);
       if (only == null) {
         for (final f in dir.listSync()) {
           f.deleteSync();
@@ -59,11 +60,13 @@ void main() {
       }
       final W = zio.W, H = zio.H;
       final total = (zio.length * zio.fps).round();
+      // STRIDE=2: only every other frame, for a 30 fps encode.
+      final stride = int.tryParse(Platform.environment['STRIDE'] ?? '') ?? 1;
       final watch = Stopwatch()..start();
       final sheet = ui.PictureRecorder();
       final sheetCanvas = Canvas(sheet);
       var n = 0;
-      for (final i in only ?? [for (var i = 0; i < total; i++) i]) {
+      for (final i in only ?? [for (var i = 0; i < total; i += stride) i]) {
         final image = await zio.zioFrame(i / zio.fps);
         if (only != null) {
           sheetCanvas.drawImageRect(image, Rect.fromLTWH(0, 0, W, H), Rect.fromLTWH(n % 5 * W / 4, n ~/ 5 * H / 4, W / 4, H / 4), Paint()..filterQuality = FilterQuality.medium);
@@ -71,7 +74,7 @@ void main() {
         }
         final png = await image.toByteData(format: ui.ImageByteFormat.png);
         File('${dir.path}/f_${i.toString().padLeft(4, '0')}.png').writeAsBytesSync(png!.buffer.asUint8List());
-        if (i == (1.2 * zio.fps).round()) File('$out/oberta_short_zio_poster.png').writeAsBytesSync(png.buffer.asUint8List());
+        if (i == (1.2 * zio.fps).round()) File(zio.en ? '$out/oberta_short_zio_en_poster.png' : '$out/oberta_short_zio_poster.png').writeAsBytesSync(png.buffer.asUint8List());
         image.dispose();
         if (i % 240 == 0) debugPrint('frame $i/$total  ${watch.elapsed.inSeconds}s');
       }

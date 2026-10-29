@@ -3,6 +3,7 @@
 // the plates (zio_plates.dart) and calls [zioFrame] for every frame;
 // zio_encode.swift mixes the sound on the same beat numbers.
 // The script, scene by scene: docs/promo/short_zio.md.
+import 'dart:io' show Platform;
 import 'dart:math';
 import 'dart:ui' as ui;
 
@@ -20,6 +21,10 @@ import 'package:oberta/ui/widgets/verdict_scene.dart';
 import 'neon_end.dart';
 import 'promo_plates.dart' show flipFrames, logical;
 import 'zio_plates.dart' show Seats, looks, nonna, vito;
+
+/// PROMO_LANG=en: the English cut, same edit, English captions and game.
+final en = Platform.environment['PROMO_LANG'] == 'en';
+String tr(String it, String english) => en ? english : it;
 
 const fps = 60;
 const W = 1080.0, H = 1920.0;
@@ -206,8 +211,9 @@ double hitAt(double u, double at, [double amount = 0.08]) => u < at ? 0 : amount
 Offset _face(String plate, String name) => seats[plate]![name]! - const Offset(0, 0.052);
 
 // ── word-by-word captions: bold, thick outline, safe area ────────────────
-const _cx = W * 0.47;
-const _maxW = W * 0.82;
+// Centred, with at least 10% of margin each side: TikTok crops the edges.
+const _cx = W * 0.5;
+const _maxW = W * 0.8;
 const yellow = Color(0xFFFFD54A);
 const red = Color(0xFFFF3B30);
 const pink = Color(0xFFFF6FA8);
@@ -524,9 +530,9 @@ void _hook(Canvas c, double u) {
   _diningRoom(c);
   _portrait(c, u, crack: clamp01((u - hit) / 0.12));
   c.restore();
-  words(c, say('QUESTO GIOCO', 0, step: 0.14), top1, u, size: 120);
-  words(c, say('HA ROVINATO', 0.3, step: 0.16, keys: {'ROVINATO': red}), top2, u, size: 120);
-  words(c, [('LA', Colors.white, 0.62), ('MIA', Colors.white, 0.74), ('FAMIGLIA.', yellow, hit)], top3, u, size: 124, tilt: -0.02);
+  words(c, say(tr('QUESTO GIOCO', 'THIS GAME'), 0, step: 0.14), top1, u, size: 120);
+  words(c, en ? [('RUINED', red, 0.36)] : say('HA ROVINATO', 0.3, step: 0.16, keys: {'ROVINATO': red}), top2, u, size: 120);
+  words(c, en ? [('MY', Colors.white, 0.68), ('FAMILY.', yellow, hit)] : [('LA', Colors.white, 0.62), ('MIA', Colors.white, 0.74), ('FAMIGLIA.', yellow, hit)], top3, u, size: 124, tilt: -0.02);
 }
 
 // ── 2 · sundays used to be about football: scarves, kits, cheering ──────
@@ -575,8 +581,8 @@ void _calcio(Canvas c, double u) {
   final hop = -sin(clamp01(local / B(step)) * pi) * 30;
   _bust(c, look, Offset(W / 2, H * 0.55 + hop), W * 0.86, local, tilt: (i.isEven ? 1 : -1) * 0.03);
   _nameplate(c, name.toUpperCase(), const Offset(W / 2, H * 0.755), local - 0.05);
-  words(c, say('PRIMA LA DOMENICA', 0.05, step: 0.14), top1, u);
-  words(c, say('SI PARLAVA DI CALCIO.', 0.6, step: 0.14, keys: {'CALCIO.': yellow}), top2, u);
+  words(c, say(tr('PRIMA LA DOMENICA', 'SUNDAYS USED TO BE'), 0.05, step: 0.14), top1, u);
+  words(c, say(tr('SI PARLAVA DI CALCIO.', 'ALL ABOUT FOOTBALL.'), 0.6, step: 0.14, keys: {'CALCIO.': yellow, 'FOOTBALL.': yellow}), top2, u);
 }
 
 AvatarHead _cap(CalcioTeam team) => AvatarHead.values.firstWhere((h) => h.name == team.capId, orElse: () => AvatarHead.fedora);
@@ -589,10 +595,10 @@ void _vitoScene(Canvas c, double u) {
   final zoom = lerp(1.25, 1.0, outCubic(u / 0.35)) + hitAt(u, second, 0.12) + u * 0.02;
   final lamp = Color.lerp(const Color(0x4DFFD27A), const Color(0x66FF3B30), clamp01((u - second) / 0.1))!;
   _character(c, vito, u, zoom: zoom, lamp: lamp, blur: u < 0.25 || (u > second && u < second + 0.15));
-  _nameplate(c, 'ZIO VITO', const Offset(W / 2, H * 0.70), u - 0.3);
-  words(c, say('ZIO VITO', 0.05, step: 0.14, keys: {'VITO': yellow}), top1, u);
-  words(c, say('ERA DELLA FAMIGLIA…', 0.35, step: 0.15), top2, u);
-  words(c, [('QUELLA', Colors.white, second - 0.2), ('SBAGLIATA.', red, second)], top3, u, size: 116, tilt: -0.025);
+  _nameplate(c, tr('ZIO VITO', 'UNCLE VITO'), const Offset(W / 2, H * 0.70), u - 0.3);
+  words(c, say(tr('ZIO VITO', 'UNCLE VITO'), 0.05, step: 0.14, keys: {'VITO': yellow}), top1, u);
+  words(c, say(tr('ERA DELLA FAMIGLIA…', 'WAS IN THE FAMILY…'), 0.35, step: 0.15), top2, u);
+  words(c, en ? [('THE', Colors.white, second - 0.3), ('WRONG', red, second), ('ONE.', red, second + 0.12)] : [('QUELLA', Colors.white, second - 0.2), ('SBAGLIATA.', red, second)], top3, u, size: 116, tilt: -0.025);
 }
 
 // ── 4 · the first night he tried to take out Nonna: the family's sights ─
@@ -645,9 +651,9 @@ void _nonna(Canvas c, double u) {
   });
   c.drawRect(const Rect.fromLTWH(0, 0, W, H), Paint()..color = const Color(0x33000820));
   _band(c, bottom: false);
-  words(c, say('LA PRIMA NOTTE', 0.05, step: 0.13), top1, u);
-  words(c, say('HA PROVATO A FAR FUORI', 0.5, step: 0.12), top2, u);
-  words(c, [('LA', Colors.white, pick - 0.15), ('NONNA.', yellow, pick)], top3, u, size: 120, tilt: -0.02);
+  words(c, say(tr('LA PRIMA NOTTE', 'NIGHT ONE,'), 0.05, step: 0.13), top1, u);
+  words(c, say(tr('HA PROVATO A FAR FUORI', 'HE TRIED TO WHACK'), 0.5, step: 0.12), top2, u);
+  words(c, en ? [('GRANDMA.', yellow, pick)] : [('LA', Colors.white, pick - 0.15), ('NONNA.', yellow, pick)], top3, u, size: 120, tilt: -0.02);
 }
 
 // ── the three role moments: the role's card, the one it touched, its icon ─
@@ -688,8 +694,8 @@ void _dottore(Canvas c, double u) {
   }
   _bust(c, look, at, W * 0.62, saved ? u - save : 0, tilt: 0.05);
   _icon(c, icons['medico']!, const Offset(W * 0.28, H * 0.34), W * 0.28, u - B(1));
-  words(c, say('IL DOTTORE', 0.05, step: 0.15), top1, u);
-  words(c, [("L'HA", Colors.white, 0.45), ('SALVATA.', yellow, save)], top2, u, size: 116, tilt: -0.02);
+  words(c, say(tr('IL DOTTORE', 'THE DOCTOR'), 0.05, step: 0.15), top1, u);
+  words(c, [(tr("L'HA", 'SAVED'), Colors.white, 0.45), (tr('SALVATA.', 'HER.'), yellow, save)], top2, u, size: 116, tilt: -0.02);
 }
 
 // ── 6 · the second night he killed nobody ────────────────────────────────
@@ -697,9 +703,9 @@ void _notte2(Canvas c, double u) {
   final zoom = lerp(1.2, 1.0, outCubic(u / 0.35)) + u * 0.03;
   final look = vito.copyWith(features: vito.features.copyWith(mouth: MouthShape.grin));
   _character(c, look, u, zoom: zoom, lamp: const Color(0x553C6AFF), blur: u < 0.2);
-  words(c, say('LA SECONDA NOTTE', 0.05, step: 0.13), top1, u);
-  words(c, say('NON HA UCCISO', 0.5, step: 0.13), top2, u);
-  words(c, [('NESSUNO.', yellow, B(2.2))], top3, u, size: 124, tilt: -0.025);
+  words(c, say(tr('LA SECONDA NOTTE', 'NIGHT TWO,'), 0.05, step: 0.13), top1, u);
+  words(c, say(tr('NON HA UCCISO', 'HE KILLED'), 0.5, step: 0.13), top2, u);
+  words(c, [(tr('NESSUNO.', 'NO ONE.'), yellow, B(2.2))], top3, u, size: 124, tilt: -0.025);
 }
 
 // ── 7 · he was with the Prostituta ───────────────────────────────────────
@@ -715,8 +721,8 @@ void _prostituta(Canvas c, double u) {
   final look = vito.marked(FaceExtra.lipstickKiss).marked(FaceExtra.blush).copyWith(eyeShine: EyeShine.heart);
   _bust(c, look, const Offset(W * 0.32, H * 0.56), W * 0.62, 0, tilt: -0.06);
   _icon(c, icons['prostituta']!, const Offset(W * 0.72, H * 0.34), W * 0.28, u - B(1));
-  words(c, say('ERA CON', 0.05, step: 0.14), top1, u);
-  words(c, [('LA', Colors.white, 0.4), ('PROSTITUTA.', pink, B(1))], top2, u, size: 116, tilt: -0.03);
+  words(c, say(tr('ERA CON', 'HE WAS WITH'), 0.05, step: 0.14), top1, u);
+  words(c, [(tr('LA', 'THE'), Colors.white, 0.4), (tr('PROSTITUTA.', 'PROSTITUTE.'), pink, B(1))], top2, u, size: 116, tilt: -0.03);
 }
 
 // ── 8 · the Jailer locked him up: bars over the whole frame ──────────────
@@ -755,11 +761,11 @@ void _cella(Canvas c, double u) {
   _card(c, plates['card_carceriere']!, const Offset(W * 0.27, H * 0.50), W * 0.46, u - B(3), fromRight: false, tilt: -0.1);
   _icon(c, icons['carceriere']!, const Offset(W * 0.27, H * 0.34), W * 0.26, u - B(3.5));
   c.drawRect(const Rect.fromLTWH(0, H * 0.55, W, H * 0.25), Paint()..shader = ui.Gradient.linear(const Offset(0, H * 0.55), const Offset(0, H * 0.8), [Colors.black.withValues(alpha: 0), Colors.black.withValues(alpha: 0.7 * clamp01((u - B(4)) / 0.2))]));
-  _bubble(c, const Offset(W * 0.58, H * 0.715), const Offset(W * 0.66, H * 0.47), 'VITO', 'Io? Ero a messa.', u - messa, size: 66);
-  _bubble(c, const Offset(W * 0.52, H * 0.615), const Offset(W * 0.3, H * 0.5), 'CARCERIERE', "Dov'eri ieri notte?", u - B(4), size: 66);
+  _bubble(c, const Offset(W * 0.58, H * 0.715), const Offset(W * 0.66, H * 0.47), 'VITO', tr('Io? Ero a messa.', 'Me? I was at Mass.'), u - messa, size: 66);
+  _bubble(c, const Offset(W * 0.52, H * 0.615), const Offset(W * 0.3, H * 0.5), tr('CARCERIERE', 'JAILER'), tr("Dov'eri ieri notte?", 'Where were you last night?'), u - B(4), size: 66);
   _band(c, bottom: false);
-  words(c, say('IL CARCERIERE', 0.05, step: 0.15), top1, u);
-  words(c, [("L'HA", Colors.white, 0.45), ('CHIUSO', Colors.white, 0.57), ('IN', Colors.white, slam - 0.12), ('CELLA.', red, slam)], top2, u);
+  words(c, say(tr('IL CARCERIERE', 'THE JAILER'), 0.05, step: 0.15), top1, u);
+  words(c, en ? [('LOCKED', Colors.white, 0.45), ('HIM', Colors.white, slam - 0.12), ('UP.', red, slam)] : [("L'HA", Colors.white, 0.45), ('CHIUSO', Colors.white, 0.57), ('IN', Colors.white, slam - 0.12), ('CELLA.', red, slam)], top2, u);
 }
 
 // ── 9 · after every failure: Vito, furious ───────────────────────────────
@@ -828,9 +834,9 @@ void _urla(Canvas c, double u) {
   });
   _band(c, bottom: false);
   _talkButton(c, const Offset(W * 0.5, H * 0.62), u);
-  words(c, [(micWord, red, 0.05), ('DI', Colors.white, 0.12), ('GIORNO', Colors.white, 0.24)], top1, u);
-  words(c, [('URLAVA', red, word)], top2, u, size: 140, tilt: -0.03);
-  words(c, say('PIÙ DI TUTTI.', word + 0.35, step: 0.13), top3, u);
+  words(c, en ? [(micWord, red, 0.05), ('BY', Colors.white, 0.12), ('DAY', Colors.white, 0.22), ('HE', Colors.white, 0.32)] : [(micWord, red, 0.05), ('DI', Colors.white, 0.12), ('GIORNO', Colors.white, 0.24)], top1, u);
+  words(c, [(tr('URLAVA', 'YELLED'), red, word)], top2, u, size: 140, tilt: -0.03);
+  words(c, say(tr('PIÙ DI TUTTI.', 'LOUDER THAN ANYONE.'), word + 0.35, step: 0.13), top3, u);
 }
 
 /// The game's push-to-talk button, held down by a thumb, with the live tag.
@@ -873,7 +879,7 @@ void _talkButton(Canvas c, Offset at, double u) {
   c.drawParagraph(thumb, Offset(r * 0.25, r * 0.15 + down));
   // The live tag, as the voice dock says it.
   if (held) {
-    final label = _sans('●  TI SENTONO', Colors.white, 40, bold: true);
+    final label = _sans(tr('●  TI SENTONO', '●  THEY CAN HEAR YOU'), Colors.white, 40, bold: true);
     final box = Rect.fromCenter(center: Offset(0, -r - 70), width: label.width + 56, height: label.height + 22);
     final rr = RRect.fromRectAndRadius(box, const Radius.circular(40));
     c.drawRRect(rr, Paint()..color = const Color(0xFFC62828));
@@ -892,11 +898,11 @@ void _credeva(Canvas c, double u) {
   final pw = img.width.toDouble(), ph = img.height.toDouble();
   _plate(c, img, (u) => (focus: const Offset(0.5, 0.36), zoom: 1.18 * punch(u, 0.2) + u * 0.03, angle: 0), u, overlay: (c) {
     final mamma = _face('day', 'mamma'), nonna = _face('day', 'nonna');
-    _bubble(c, Offset(pw * 0.6, ph * 0.255), nonna.scale(pw, ph), 'NONNA', 'Zio Vito è un santo.', u - B(2.5), size: 80);
-    _bubble(c, Offset(pw * 0.58, ph * 0.355), mamma.scale(pw, ph), 'MAMMA', 'Lo zio? Ma dai!', u - B(1), size: 80);
+    _bubble(c, Offset(pw * 0.6, ph * 0.255), nonna.scale(pw, ph), 'NONNA', tr('Zio Vito è un santo.', 'Uncle Vito is a saint.'), u - B(2.5), size: 80);
+    _bubble(c, Offset(pw * 0.58, ph * 0.355), mamma.scale(pw, ph), 'MAMMA', tr('Lo zio? Ma dai!', 'Uncle? No way!'), u - B(1), size: 80);
   });
   _band(c, bottom: true);
-  words(c, say('NESSUNO MI CREDEVA.', 0.05, step: 0.15, keys: {'NESSUNO': red}), low2, u);
+  words(c, say(tr('NESSUNO MI CREDEVA.', 'NOBODY BELIEVED ME.'), 0.05, step: 0.15, keys: {'NESSUNO': red, 'NOBODY': red}), low2, u);
 }
 
 // ── 12 · I convinced everyone: the votes pile up on Vito ─────────────────
@@ -941,7 +947,7 @@ void _voti(Canvas c, double u) {
       c.translate(centre.dx, centre.dy + 110);
       c.rotate(-0.07);
       c.scale(s);
-      final label = _para('ACCUSATO', Colors.white, 54);
+      final label = _para(tr('ACCUSATO', 'ACCUSED'), Colors.white, 54);
       final box = Rect.fromCenter(center: Offset.zero, width: label.width + 50, height: label.height + 18);
       c.drawRRect(RRect.fromRectAndRadius(box, const Radius.circular(10)), Paint()..color = const Color(0xFFC62828));
       c.drawRRect(RRect.fromRectAndRadius(box, const Radius.circular(10)), Paint()
@@ -953,8 +959,8 @@ void _voti(Canvas c, double u) {
     }
   });
   _band(c, bottom: false);
-  words(c, say('HO CONVINTO', 0.05, step: 0.18), top1, u);
-  words(c, [('TUTTI.', yellow, B(1))], top2, u, size: 130, tilt: -0.025);
+  words(c, say(tr('HO CONVINTO', 'I CONVINCED'), 0.05, step: 0.18), top1, u);
+  words(c, [(tr('TUTTI.', 'EVERYONE.'), yellow, B(1))], top2, u, size: 130, tilt: -0.025);
 }
 
 // ── 13 · we threw him in the river: the game's pier film ─────────────────
@@ -987,10 +993,10 @@ void _fiume(Canvas c, double u) {
   c.translate(-W / 2, -H * 0.70);
   c.drawImageRect(sky, Rect.fromLTWH(0, 0, sky.width.toDouble(), sky.height.toDouble()), const Rect.fromLTWH(0, 0, W, H), Paint()..filterQuality = FilterQuality.medium);
   c.scale(W / logical.width);
-  VerdictScenePainter(t: film(u), take: VerdictTake.molo, strings: AppLanguage.it.strings, hat: AvatarHead.fedora, town: 'Palermo', sprites: sprites).paint(c, logical);
+  VerdictScenePainter(t: film(u), take: VerdictTake.molo, strings: (en ? AppLanguage.en : AppLanguage.it).strings, hat: AvatarHead.fedora, town: 'Palermo', sprites: sprites).paint(c, logical);
   c.restore();
-  words(c, say('LO ABBIAMO BUTTATO', 0.05, step: 0.15), top1, u);
-  words(c, [('NEL', Colors.white, 0.6), ('FIUME.', const Color(0xFF6FC3FF), B(3))], top2, u, size: 130, tilt: -0.03);
+  words(c, say(tr('LO ABBIAMO BUTTATO', 'WE THREW HIM'), 0.05, step: 0.15), top1, u);
+  words(c, en ? [('IN', Colors.white, 0.5), ('THE', Colors.white, 0.62), ('RIVER.', const Color(0xFF6FC3FF), B(3))] : [('NEL', Colors.white, 0.6), ('FIUME.', const Color(0xFF6FC3FF), B(3))], top2, u, size: 130, tilt: -0.03);
 }
 
 // ── 14 · he really was a mafioso: the card turns, no pause ───────────────
@@ -1035,8 +1041,8 @@ void _carta(Canvas c, double u) {
     final y = H * lerp(0.50, 0.335, outCubic(since / 0.28));
     _icon(c, icons['mafioso']!, Offset(W / 2, y), W * 0.33, since);
   }
-  words(c, say('ERA DAVVERO', 0.1, step: 0.16), top1, u);
-  words(c, [('UN', Colors.white, face - 0.1), ('MAFIOSO.', red, face)], top2, u, size: 124, tilt: -0.025);
+  words(c, say(tr('ERA DAVVERO', 'HE REALLY WAS'), 0.1, step: 0.16), top1, u);
+  words(c, [(tr('UN', 'A'), Colors.white, face - 0.1), ('MAFIOSO.', red, face)], top2, u, size: 124, tilt: -0.025);
 }
 
 // ── 15 · it was worth it ─────────────────────────────────────────────────
@@ -1046,8 +1052,8 @@ void _pena(Canvas c, double u) {
   final last = B(2);
   final zoom = lerp(1.15, 1.0, outCubic(u / 0.3)) + hitAt(u, last, 0.14) + u * 0.02;
   _character(c, _ghost, u, zoom: zoom, lamp: const Color(0x55FF3B30), blur: u < 0.2 || (u > last && u < last + 0.15));
-  words(c, say('NE È VALSA', 0.08, step: 0.15), top1, u);
-  words(c, [('LA', Colors.white, last - 0.2), ('PENA.', yellow, last)], top2, u, size: 140, tilt: -0.03);
+  words(c, say(tr('NE È VALSA', 'TOTALLY'), 0.08, step: 0.15), top1, u);
+  words(c, [(tr('LA', 'WORTH'), Colors.white, last - 0.2), (tr('PENA.', 'IT.'), yellow, last)], top2, u, size: 140, tilt: -0.03);
 }
 
 // ── 16 · and at least now he dresses better ──────────────────────────────
@@ -1070,8 +1076,8 @@ void _vestiti(Canvas c, double u) {
     Paint()..shader = ui.Gradient.radial(const Offset(W / 2, H * 0.52), H * 0.6, [Color(hue), const Color(0xFF0C0806)]),
   );
   _bust(c, look, const Offset(W / 2, H * 0.56), W * 0.84, local, tilt: (i.isEven ? 1 : -1) * 0.02);
-  words(c, say('E ALMENO ORA', 0.05, step: 0.14), top1, u);
-  words(c, say('SI VESTE MEGLIO.', 0.55, step: 0.15, keys: {'MEGLIO.': yellow}), top2, u, size: 116);
+  words(c, say(tr('E ALMENO ORA', 'AND AT LEAST NOW'), 0.05, step: 0.14), top1, u);
+  words(c, say(tr('SI VESTE MEGLIO.', 'HE DRESSES BETTER.'), 0.55, step: 0.15, keys: {'MEGLIO.': yellow, 'BETTER.': yellow}), top2, u, size: 116);
 }
 
 // ── 17 · the neon sign, coming soon, the store badges; dark for the loop ─
@@ -1093,8 +1099,8 @@ void _end(Canvas c, double u) {
   c.restore();
   final fade = 1 - clamp01((u - (d - 0.3)) / 0.25);
   c.saveLayer(const Rect.fromLTWH(0, 0, W, H), Paint()..color = Colors.white.withValues(alpha: fade));
-  words(c, say('GIOCA GRATIS', 0.3, step: 0.15, keys: {'GRATIS': yellow}), H * 0.41, u, size: 116);
-  words(c, say('CON GLI AMICI', 0.65, step: 0.13), H * 0.48, u, size: 100);
+  words(c, say(tr('GIOCA GRATIS', 'PLAY FREE'), 0.3, step: 0.15, keys: {'GRATIS': yellow, 'FREE': yellow}), H * 0.41, u, size: 116);
+  words(c, say(tr('CON GLI AMICI', 'WITH FRIENDS'), 0.65, step: 0.13), H * 0.48, u, size: 100);
   final band = clamp01((u - B(2.5)) / 0.2);
   c.drawRect(
     const Rect.fromLTWH(0, H * 0.535, W, H * 0.255),
@@ -1106,7 +1112,7 @@ void _end(Canvas c, double u) {
         Colors.black.withValues(alpha: 0),
       ], const [0, 0.18, 0.82, 1]),
   );
-  final soon = _sans('PRESTO DISPONIBILE', cream.withValues(alpha: band), 44, bold: true);
+  final soon = _sans(tr('PRESTO DISPONIBILE', 'COMING SOON'), cream.withValues(alpha: band), 44, bold: true);
   c.drawParagraph(soon, Offset(_cx - soon.width / 2, H * 0.575 - soon.height / 2));
   _badge(c, badges['app-store-it']!, Offset(_cx - 215, H * 0.645), 116, u - B(3));
   _badge(c, badges['google-play-it']!, Offset(_cx + 205, H * 0.645), 130, u - B(3.5));

@@ -14,7 +14,8 @@ racconta come lo zio Vito, della Famiglia, ha rovinato le domeniche.
   leggerla una volta.
 - **Sottotitoli**: parola per parola, Georgia Bold maiuscolo, bianco con
   contorno nero spesso, la parola chiave colorata. Sempre fra il 12% e il
-  74% dell'altezza, un po' a sinistra del centro; fascia scura dietro quando
+  74% dell'altezza, centrati, con almeno il 10% di margine per lato
+  (TikTok taglia i bordi); fascia scura dietro quando
   sotto c'è l'interfaccia del gioco.
 - **Il tavolo vero**: una partita della famiglia sul backend finto, con i
   nomi e i look di tutti (`tool/promo/zio_plates.dart`): VITO (fedora,
@@ -67,3 +68,40 @@ swift tool/promo/zio_encode.swift
 `FRAMES=0,90,500` nel test rende solo quei fotogrammi e un foglio di
 provini (`build/promo/zio_contact.png`); `PLATES=1` salva anche le schermate
 del gioco in `build/promo/zio_plates/`.
+
+## La versione inglese
+
+Identica (scene, tempi, tagli, zoom, suoni, musica, insegna), cambiano solo
+i testi: `PROMO_LANG=en` sia nel test sia nel mix. Le schermate del gioco
+sono girate in inglese (notte, chat, carte dei ruoli, tag della voce,
+timbro), i nomi ai posti restano italiani. Esce
+`build/promo/oberta_short_zio_en.mp4` (fotogrammi in
+`build/promo/zio_frames_en/`).
+
+| # | Testo |
+|---|---|
+| 1 | THIS GAME / RUINED / MY FAMILY. |
+| 2 | SUNDAYS USED TO BE / ALL ABOUT FOOTBALL. |
+| 3 | UNCLE VITO / WAS IN THE FAMILY… / THE WRONG ONE. |
+| 4 | NIGHT ONE, / HE TRIED TO WHACK / GRANDMA. |
+| 5 | THE DOCTOR / SAVED HER. |
+| 6 | NIGHT TWO, / HE KILLED / NO ONE. |
+| 7 | HE WAS WITH / THE PROSTITUTE. |
+| 8 | THE JAILER / LOCKED HIM UP. («Where were you last night?» / «Me? I was at Mass.») |
+| 10 | BY DAY HE / YELLED / LOUDER THAN ANYONE. |
+| 11 | NOBODY BELIEVED ME. («Uncle? No way!» / «Uncle Vito is a saint.») |
+| 12 | I CONVINCED / EVERYONE. |
+| 13 | WE THREW HIM / IN THE RIVER. |
+| 14 | HE REALLY WAS / A MAFIOSO. |
+| 15 | TOTALLY / WORTH IT. |
+| 16 | AND AT LEAST NOW / HE DRESSES BETTER. |
+| 17 | PLAY FREE / WITH FRIENDS · COMING SOON |
+
+Per TikTok si fa a 30 fps e bitrate alto (10 Mbit/s): si rende un
+fotogramma ogni due e si mixa a 30 fps, ed esce
+`build/promo/oberta_short_zio_en_30fps.mp4`.
+
+```sh
+PROMO_LANG=en STRIDE=2 flutter test tool/promo/zio_render_test.dart
+PROMO_LANG=en FPS=30 swift tool/promo/zio_encode.swift
+```

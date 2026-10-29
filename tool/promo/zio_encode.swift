@@ -9,15 +9,19 @@ import CoreGraphics
 import Foundation
 import ImageIO
 
-let fps: Int32 = 60
+// FPS=30: every other frame, at a high bitrate (TikTok).
+let fps: Int32 = Int32(ProcessInfo.processInfo.environment["FPS"] ?? "60")!
+let step = 60 / Int(fps)
 let beat = 60.0 / 139.5
 func B(_ n: Double) -> Double { n * beat }
 let length = B(105)
 // PREVIEW=1: a light 720×1280 copy for phones.
 let preview = ProcessInfo.processInfo.environment["PREVIEW"] != nil
 let width = preview ? 720 : 1080, height = preview ? 1280 : 1920
-let framesDir = "build/promo/zio_frames"
-let output = URL(fileURLWithPath: preview ? "build/promo/oberta_short_zio_720p.mp4" : "build/promo/oberta_short_zio.mp4")
+// PROMO_LANG=en: the English cut, from build/promo/zio_frames_en.
+let english = ProcessInfo.processInfo.environment["PROMO_LANG"] == "en"
+let framesDir = english ? "build/promo/zio_frames_en" : "build/promo/zio_frames"
+let output = URL(fileURLWithPath: "build/promo/oberta_short_zio\(english ? "_en" : "")\(preview ? "_720p" : "")\(fps == 30 ? "_30fps" : "").mp4")
 
 // ── the sound: (file, at seconds, volume, max length) ────────────────────
 // The scenes, in beats, as in zio_scenes.dart; at(scene, beats) is a time.
@@ -181,7 +185,7 @@ let videoInput = AVAssetWriterInput(mediaType: .video, outputSettings: [
   AVVideoWidthKey: width,
   AVVideoHeightKey: height,
   AVVideoCompressionPropertiesKey: [
-    AVVideoAverageBitRateKey: preview ? 3_000_000 : 4_700_000,
+    AVVideoAverageBitRateKey: preview ? 3_000_000 : (fps == 30 ? 10_000_000 : 4_700_000),
     AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel,
     AVVideoExpectedSourceFrameRateKey: fps,
     AVVideoMaxKeyFrameIntervalKey: fps,
@@ -228,6 +232,7 @@ writer.startWriting()
 writer.startSession(atSourceTime: .zero)
 
 let frames = (try FileManager.default.contentsOfDirectory(atPath: framesDir)).filter { $0.hasSuffix(".png") }.sorted()
+  .filter { Int($0.dropFirst(2).dropLast(4))! % step == 0 }
 guard frames.count == Int((length * Double(fps)).rounded()) else { fatalError("expected \(Int((length * Double(fps)).rounded())) frames, found \(frames.count)") }
 let space = CGColorSpace(name: CGColorSpace.sRGB)!
 
