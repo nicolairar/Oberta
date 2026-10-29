@@ -59,6 +59,7 @@ extension _FamilyFilms on DeathScenePainter {
       text: TextSpan(
         text: word,
         style: TextStyle(
+          fontFamily: DeathScenePainter.debugComicFont,
           fontSize: size,
           fontWeight: FontWeight.w900,
           fontStyle: FontStyle.italic,
@@ -70,6 +71,7 @@ extension _FamilyFilms on DeathScenePainter {
     )..layout();
     canvas.save();
     canvas.translate(at.dx, at.dy);
+    _readable(canvas);
     canvas.rotate(0.12);
     canvas.scale(0.45 + 0.55 * pop);
     final edge = letters(

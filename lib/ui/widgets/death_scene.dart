@@ -20,6 +20,7 @@ import '../theme/script_fonts.dart';
 part 'death_scenes_saves.dart';
 part 'death_scenes_family.dart';
 part 'death_scenes_spliced.dart';
+part 'death_scenes_staging.dart';
 
 /// Le coreografie disponibili per quello che succede di notte.
 enum DeathAct {
@@ -230,6 +231,11 @@ class DeathScene extends StatefulWidget {
   /// pulsante per andare avanti, e [onFinished] scatta da solo alla fine.
   final Duration? startAt;
 
+  /// Come si gira il filmato: da che parte arriva il killer, cosa fa la
+  /// vittima, dove sta la cinepresa ([stagingFor] la sceglie da una
+  /// storia). I tempi restano quelli di [act].
+  final Staging staging;
+
   const DeathScene({
     super.key,
     required this.act,
@@ -240,6 +246,7 @@ class DeathScene extends StatefulWidget {
     this.epilogue = '',
     this.style = SkylineStyle.metropolis,
     this.startAt,
+    this.staging = Staging.classic,
   });
 
   @override
@@ -393,6 +400,7 @@ class _DeathSceneState extends State<DeathScene>
                 victimHat: hat,
                 epilogue: widget.epilogue,
                 sprites: snapshot.data,
+                staging: widget.staging,
               ),
             ),
           ),
@@ -574,6 +582,10 @@ class DeathScenePainter extends CustomPainter {
   /// agguato: chi le porta.
   final DeathAct? _armedWith;
 
+  /// La regia: quello che [act] ne sa girare (death_scenes_staging.dart).
+  /// I filmati composti, per ora, restano classici.
+  final Staging staging;
+
   DeathScenePainter({
     required this.t,
     required this.act,
@@ -581,9 +593,11 @@ class DeathScenePainter extends CustomPainter {
     this.victimHat = AvatarHead.fedora,
     this.epilogue = '',
     this.sprites,
+    Staging staging = Staging.classic,
   }) : _cut = _Cut.whole,
        _handover = null,
-       _armedWith = null;
+       _armedWith = null,
+       staging = save == null ? staging.forAct(act) : Staging.classic;
 
   DeathScenePainter._part(
     this._cut, {
@@ -594,10 +608,17 @@ class DeathScenePainter extends CustomPainter {
     this._armedWith,
     this.victimHat = AvatarHead.fedora,
     this.sprites,
-  }) : epilogue = '';
+  }) : epilogue = '',
+       staging = Staging.classic;
 
   /// Il momento del colpo, uguale per tutte le coreografie.
   static const strike = 0.56;
+
+  /// Il carattere delle scritte da fumetto (ZAC!, BANG!...). Sul telefono
+  /// è quello di sistema; i test non ne hanno uno vero e disegnano ogni
+  /// lettera come un rettangolo pieno, così chi fa i provini ne indica uno.
+  /// Solo per i provini e i test.
+  static String? debugComicFont;
 
   static const _ink = Color(0xFF050506);
   static const _rim = Color(0xFF6A5632);
@@ -613,8 +634,16 @@ class DeathScenePainter extends CustomPainter {
   late double _victimX;
   late double _cornerX;
 
-  double get _hiddenX => _cornerX + _u * 0.75;
-  double get _peekX => _cornerX + _u * 0.17;
+  /// Quanto stringe la cinepresa in questo fotogramma.
+  double _zoom = 1;
+
+  /// Dove ha i piedi il killer, e verso dove guarda, appena disegnato: il
+  /// nascondiglio che gli sta davanti lo sa così.
+  Offset? _killerAt;
+  int _killerFacing = -1;
+
+  double get _hiddenX => _coverHidden;
+  double get _peekX => _coverPeek;
 
   bool get _hasWall => switch (act) {
     DeathAct.car || DeathAct.belfry || DeathAct.carDoor => false,
@@ -708,10 +737,13 @@ class DeathScenePainter extends CustomPainter {
     _frame(size);
     if (save != null) return _paintSpliced(canvas, size);
     canvas.save();
+    _mirror(canvas);
     _camera(canvas);
     _quake(canvas);
     _street(canvas);
+    _businessAftermath(canvas, landed: true);
     _stage(canvas);
+    _businessAftermath(canvas, landed: false);
     if (!act.survives) _aftermath(canvas);
     _sfx(canvas);
     canvas.restore();
@@ -859,8 +891,9 @@ class DeathScenePainter extends CustomPainter {
   }
 
   /// La cinepresa: parte larga, stringe piano mentre cresce la tensione, e
-  /// dopo il colpo si sistema su quello che resta.
-  void _camera(Canvas canvas) => _shoot(canvas, _lens);
+  /// dopo il colpo si sistema su quello che resta. La regia può metterla
+  /// altrove ([_stagedCamera]).
+  void _camera(Canvas canvas) => _stagedCamera(canvas);
 
   /// Punta la cinepresa: [lens] è quanto stringe, e su che punto.
   void _shoot(Canvas canvas, (double, double) lens) {
@@ -909,6 +942,7 @@ class DeathScenePainter extends CustomPainter {
     final lampTop = _ground - _u * 1.42;
     final head = Offset(lampX + _u * 0.24, lampTop + _u * 0.04);
 
+    _setBehind(canvas);
     canvas.drawRect(
       Rect.fromLTRB(-_w, _ground, _w * 2, _h * 1.3),
       Paint()
@@ -923,6 +957,9 @@ class DeathScenePainter extends CustomPainter {
       Rect.fromLTRB(-_w, _ground, _w * 2, _ground + _u * 0.022),
       Paint()..color = const Color(0xFF23242C),
     );
+    _setSpill(canvas);
+    // Davanti alla vetrina accesa il lampione non serve.
+    if (staging.light != Light.lamp) return;
 
     // Il cono di luce del lampione, e la pozza di luce sull'asfalto bagnato.
     final flicker = (0.92 + 0.08 * sin(t * 140)) * _lampPower;
@@ -1000,6 +1037,7 @@ class DeathScenePainter extends CustomPainter {
   /// che lo si vede spuntare dall'angolo.
   void _wall(Canvas canvas) {
     if (!_hasWall || _cut == _Cut.rescue) return;
+    if (staging.cover != Cover.corner) return _cover(canvas);
     final wall = Rect.fromLTRB(_cornerX, -_h, _w * 2, _ground);
     canvas.drawRect(wall, Paint()..color = const Color(0xFF0A0A0D));
     final mortar = Paint()
@@ -1153,6 +1191,10 @@ class DeathScenePainter extends CustomPainter {
     Color? cloth,
   }) {
     if (killer && _spared) _handover!.killer = feet;
+    if (killer) {
+      _killerAt = feet;
+      _killerFacing = facing;
+    }
     final h = (killer ? _u * 1.08 : _u) * build;
     canvas.save();
     canvas.translate(feet.dx, feet.dy);
@@ -1951,6 +1993,18 @@ class DeathScenePainter extends CustomPainter {
     }
     if (fall >= 1) return _corpse(canvas, x, fallTo);
     if (fall <= 0) {
+      if (_busyVictim(
+        canvas,
+        x: x,
+        facing: facing,
+        walk: walk,
+        stride: stride,
+        lean: lean,
+        waiting: smoking,
+        prop: prop,
+      )) {
+        return;
+      }
       // Il tempo di accendersela: la mano sale al viso, il fiammifero fa luce.
       final lighting = smoking ? sin(pi * _span(t, 0.37, 0.42)) : 0.0;
       if (lighting > 0) {
@@ -1978,6 +2032,7 @@ class DeathScenePainter extends CustomPainter {
     }
     final buckle = Curves.easeOut.transform(min(1, fall * 1.6));
     final topple = Curves.easeIn.transform(fall);
+    facing = _faced(facing);
     _person(
       canvas,
       feet: Offset(x, _ground),
@@ -2806,19 +2861,31 @@ class DeathScenePainter extends CustomPainter {
       final alarm = _span(t, 0.46, 0.50);
       final freeze = _span(t, 0.50, 0.53);
       final shiver = t > 0.50 ? sin(t * 420) * 0.05 : 0.0;
+      // Fino ai fari, quello che la regia gli fa fare mentre aspetta.
+      final idle = _businessPose(waiting: t > 0.37, stride: stride, walk: walk);
+      final feet = Offset(walkX, _ground);
+      final facing = t < 0.43 ? 1 : -1;
       _person(
         canvas,
-        feet: Offset(walkX, _ground),
-        facing: t < 0.43 ? 1 : -1,
+        feet: feet,
+        facing: facing,
         walk: walk,
         stride: stride,
-        lean: -0.14 * alarm - 0.06 * freeze,
-        crouch: 0.22 * freeze,
-        arm: _mix(0.08, 2.15, alarm) + shiver,
-        elbow: _mix(0.2, 0.95, alarm),
-        backArm: _mix(-0.10, 2.0, freeze) - shiver,
-        backElbow: _mix(0.2, 1.1, freeze),
+        lean: _mix(idle.lean, -0.14, alarm) - 0.06 * freeze,
+        crouch: _mix(idle.crouch, 0, alarm) + 0.22 * freeze,
+        arm: _mix(idle.arm, 2.15, alarm) + shiver,
+        elbow: _mix(idle.elbow, 0.95, alarm),
+        backArm: _mix(_mix(idle.backArm, -0.10, alarm), 2.0, freeze) - shiver,
+        backElbow: _mix(_mix(idle.backElbow, 0.2, alarm), 1.1, freeze),
         hat: victimHat,
+      );
+      _businessProp(
+        canvas,
+        feet: feet,
+        facing: facing,
+        pose: idle,
+        lean: idle.lean,
+        waiting: t > 0.37,
       );
       _exclaim(
         canvas,
@@ -4320,6 +4387,7 @@ class DeathScenePainter extends CustomPainter {
     )..layout();
     canvas.save();
     canvas.translate(at.dx, at.dy);
+    _readable(canvas);
     canvas.scale(pop);
     mark.paint(canvas, Offset(-mark.width / 2, -mark.height / 2));
     canvas.restore();
@@ -5502,7 +5570,7 @@ class DeathScenePainter extends CustomPainter {
       _person(
         canvas,
         feet: Offset(_victimX - drift, _ground - _u * 0.28 * lift),
-        facing: -1,
+        facing: _faced(-1),
         tilt: -Curves.easeIn.transform(blown) * pi * 0.47,
         crouch: 0.4 * lift,
         arm: _mix(2.6, 2.9, blown),
@@ -7116,6 +7184,7 @@ class DeathScenePainter extends CustomPainter {
       text: TextSpan(
         text: word,
         style: TextStyle(
+          fontFamily: debugComicFont,
           fontSize: size,
           fontWeight: FontWeight.w900,
           fontStyle: FontStyle.italic,
@@ -7127,10 +7196,17 @@ class DeathScenePainter extends CustomPainter {
       textDirection: TextDirection.ltr,
     )..layout();
 
+    // Nel primo piano della regia la scritta scende sul colpo e si fa più
+    // piccola: deve restare in campo senza coprire tutto.
+    final close = _zoom > 1.5;
     canvas.save();
-    canvas.translate(_victimX + _u * 0.05, _ground - _u * 1.62);
+    canvas.translate(
+      close ? _hitPoint.dx : _victimX + _u * 0.05,
+      _ground - _u * (close ? 1.10 : 1.62),
+    );
+    _readable(canvas);
     canvas.rotate(-0.13);
-    canvas.scale(0.45 + 0.55 * pop + 0.10 * life);
+    canvas.scale((0.45 + 0.55 * pop + 0.10 * life) * (close ? 1.25 / _zoom : 1));
     final edge = letters(
       outline: Paint()
         ..style = PaintingStyle.stroke
@@ -7183,7 +7259,11 @@ class DeathScenePainter extends CustomPainter {
       ),
       textDirection: TextDirection.ltr,
     )..layout();
-    mark.paint(canvas, at.translate(-mark.width / 2, -mark.height / 2));
+    canvas.save();
+    canvas.translate(at.dx, at.dy);
+    _readable(canvas);
+    mark.paint(canvas, Offset(-mark.width / 2, -mark.height / 2));
+    canvas.restore();
   }
 
   /// La borsa del Dottore, con la croce verde che la fa riconoscere.
