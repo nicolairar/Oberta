@@ -1801,7 +1801,9 @@ class FakeProgress implements ProgressRepository {
   final Map<String, List<MissionProgress>> missions = {};
   final Map<String, Map<String, int>> stats = {};
   final Map<String, Map<String, DateTime>> unlocked = {};
-  final Map<(String, String), GameUnlocks> _unlocks = {};
+  /// What each game completed for each profile (profile, game): the banners
+  /// on the results.
+  final Map<(String, String), GameUnlocks> gameUnlocks = {};
 
   /// The role cards of each profile (`internal.role_stats`).
   final Map<String, Map<String, RoleRecord>> roles = {};
@@ -1831,7 +1833,7 @@ class FakeProgress implements ProgressRepository {
     for (final a in ids) {
       (unlocked[id] ??= {})[a] = now;
     }
-    _unlocks[(id, gameId)] = GameUnlocks(
+    gameUnlocks[(id, gameId)] = GameUnlocks(
       missions: [
         for (final m in moved.values)
           if (m['completed'] == true) (id: m['id'] as String, coins: m['coins'] as int, xp: m['xp'] as int),
@@ -1888,7 +1890,7 @@ class FakeProgress implements ProgressRepository {
   @override
   Future<GameUnlocks> unlocksFor(String gameId) async {
     await _online._network();
-    return _unlocks[(_me, gameId)] ?? const GameUnlocks();
+    return gameUnlocks[(_me, gameId)] ?? const GameUnlocks();
   }
 
   @override

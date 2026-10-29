@@ -151,7 +151,10 @@ class BrassBar extends StatelessWidget {
 }
 
 /// The banners after a game: one enamel plate per mission completed and
-/// achievement unlocked, sliding in one after the other at the top.
+/// achievement unlocked, one after the other. They live in their own band,
+/// as tall as the tallest plate from the first to the last, so they never
+/// cover what is under them (the results' headline) and nothing moves when
+/// they come and go.
 class ProgressToasts extends StatefulWidget {
   final GameUnlocks unlocks;
 
@@ -163,6 +166,8 @@ class ProgressToasts extends StatefulWidget {
 
 class _ProgressToastsState extends State<ProgressToasts> with SingleTickerProviderStateMixin {
   late final AnimationController _show = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+  late final Animation<Offset> _slide = Tween(begin: const Offset(0, -0.25), end: Offset.zero)
+      .animate(CurvedAnimation(parent: _show, curve: Curves.easeOutCubic));
   int _index = 0;
 
   int get _count => widget.unlocks.missions.length + widget.unlocks.achievements.length;
@@ -194,59 +199,66 @@ class _ProgressToastsState extends State<ProgressToasts> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
-    if (_index >= _count) return const SizedBox.shrink();
+    if (_count == 0) return const SizedBox.shrink();
+    return Stack(
+      alignment: Alignment.topCenter,
+      children: [
+        // Every plate, unseen: the band keeps the height of the tallest.
+        for (var i = 0; i < _count; i++)
+          ExcludeSemantics(child: Visibility.maintain(visible: false, child: _plate(context, i))),
+        if (_index < _count)
+          FadeTransition(
+            opacity: _show,
+            child: SlideTransition(position: _slide, child: _plate(context, _index, key: const Key('progress.toast'))),
+          ),
+      ],
+    );
+  }
+
+  Widget _plate(BuildContext context, int index, {Key? key}) {
     final s = ProgressStrings.of(context);
     final missions = widget.unlocks.missions;
     final String text;
     final int? coins;
     final IconData icon;
-    if (_index < missions.length) {
-      final m = missions[_index];
+    if (index < missions.length) {
+      final m = missions[index];
       text = s.missionDone(s.mission(m.id));
       coins = m.coins;
       icon = Icons.task_alt;
     } else {
-      final id = widget.unlocks.achievements[_index - missions.length];
+      final id = widget.unlocks.achievements[index - missions.length];
       text = s.achievementDone(s.achievement(id).$1);
       coins = Achievement.byId(id)?.coins;
       icon = Icons.military_tech;
     }
-    return SafeArea(
-      child: Align(
-        alignment: Alignment.topCenter,
-        child: SlideTransition(
-          position: Tween(begin: const Offset(0, -1.4), end: Offset.zero)
-              .animate(CurvedAnimation(parent: _show, curve: Curves.easeOutBack)),
-          child: Container(
-            key: const Key('progress.toast'),
-            margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            constraints: const BoxConstraints(maxWidth: 460),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [Saloon.enamel, Saloon.enamelDeep]),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Saloon.brass, width: 1.4),
-              boxShadow: const [BoxShadow(color: Color(0xAA000000), blurRadius: 12, offset: Offset(0, 4))],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, color: Saloon.brass),
-                const SizedBox(width: 10),
-                Flexible(
-                  child: Text(
-                    text,
-                    style: AppText.body.copyWith(color: Saloon.paper, fontWeight: FontWeight.w800, fontSize: 14),
-                  ),
-                ),
-                if (coins case final c? when c > 0) ...[
-                  const SizedBox(width: 10),
-                  CoinAmount(c, color: Saloon.paper),
-                ],
-              ],
+    return Container(
+      key: key,
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      constraints: const BoxConstraints(maxWidth: 460),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Saloon.enamel, Saloon.enamelDeep]),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Saloon.brass, width: 1.4),
+        boxShadow: const [BoxShadow(color: Color(0xAA000000), blurRadius: 12, offset: Offset(0, 4))],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Saloon.brass),
+          const SizedBox(width: 10),
+          Flexible(
+            child: Text(
+              text,
+              style: AppText.body.copyWith(color: Saloon.paper, fontWeight: FontWeight.w800, fontSize: 14),
             ),
           ),
-        ),
+          if (coins case final c? when c > 0) ...[
+            const SizedBox(width: 10),
+            CoinAmount(c, color: Saloon.paper),
+          ],
+        ],
       ),
     );
   }

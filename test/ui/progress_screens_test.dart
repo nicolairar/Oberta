@@ -6,9 +6,11 @@ import 'package:oberta/online/fake_online.dart';
 import 'package:oberta/online/online_services.dart';
 import 'package:oberta/ui/screens/online/achievements_screen.dart';
 import 'package:oberta/ui/screens/online/leaderboard_screen.dart';
+import 'package:oberta/ui/screens/online/match_results_screen.dart';
 import 'package:oberta/ui/screens/online/missions_screen.dart';
 import 'package:oberta/ui/screens/online/progress_widgets.dart';
 
+import '../support/desktop_shots.dart' show loadRealFonts;
 import '../support/languages.dart';
 
 void main() {
@@ -81,6 +83,55 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  // QA P2-3: at 393x852 "Missione compiuta: Vinci una partita. Riscuotila!"
+  // sat right on the VITTORIA headline of the results.
+  for (final (size, top) in [(const Size(393, 852), 59.0), (const Size(375, 667), 20.0), (const Size(820, 1180), 24.0)]) {
+    testWidgets('on the results at ${size.width.round()}x${size.height.round()}, the banners never cover the headline', (tester) async {
+      await tester.runAsync(loadRealFonts);
+      tester.view.physicalSize = size * 3;
+      tester.view.devicePixelRatio = 3;
+      tester.view.padding = FakeViewPadding(top: top * 3, bottom: 34 * 3);
+      addTearDown(tester.view.reset);
+      final me = online.accountId;
+      online.history[me] = [
+        const MatchResult(gameId: 'g1', won: true, role: 'detective', xpGained: 200, levelBefore: 1, levelAfter: 2, coinsGained: 40),
+      ];
+      online.progress.gameUnlocks[(me, 'g1')] = const GameUnlocks(
+        missions: [(id: 'daily_win_1', coins: 40, xp: 80), (id: 'daily_play_3', coins: 30, xp: 60)],
+        achievements: ['wins_10'],
+      );
+      await tester.pumpWidget(appIn(
+        AppLanguage.it,
+        Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: TextButton(
+                key: const Key('open'),
+                onPressed: () => showMatchResults(context, online.services),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      ));
+      await tester.tap(find.byKey(const Key('open')));
+      var seen = 0;
+      for (var i = 0; i < 140; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+        final toast = find.byKey(const Key('progress.toast'));
+        final title = find.byKey(const Key('results.title'));
+        if (toast.evaluate().isEmpty || title.evaluate().isEmpty) continue;
+        final plate = tester.getRect(toast);
+        if (plate.bottom <= 0) continue;
+        seen++;
+        final headline = tester.getRect(title);
+        expect(plate.overlaps(headline), isFalse, reason: 'the banner $plate covers the headline $headline');
+      }
+      expect(seen, greaterThan(10), reason: 'the banners were shown');
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('a banner for every mission and achievement a game completed', (tester) async {
     await tester.pumpWidget(appIn(
       AppLanguage.it,
@@ -92,10 +143,11 @@ void main() {
     ));
     await tester.pump(const Duration(seconds: 1));
     await tester.pump(const Duration(milliseconds: 700));
-    expect(find.text('Missione compiuta: Vinci una partita. Riscuotila!'), findsOneWidget);
+    Finder shown(String text) => find.descendant(of: find.byKey(const Key('progress.toast')), matching: find.text(text));
+    expect(shown('Missione compiuta: Vinci una partita. Riscuotila!'), findsOneWidget);
     await tester.pump(const Duration(seconds: 4));
     await tester.pump(const Duration(milliseconds: 700));
-    expect(find.text('Medaglia: Fortunato'), findsOneWidget);
+    expect(shown('Medaglia: Fortunato'), findsOneWidget);
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(seconds: 1));
     }

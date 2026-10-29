@@ -18,7 +18,9 @@ const desktopSizes = {'1080p': Size(1920, 1080), '720p': Size(1280, 720)};
 
 const _shot = Key('desktop.shot');
 
-Future<void> _fonts() async {
+/// The fonts of the real app (Georgia, from macOS) instead of the test boxes,
+/// for real measures and pictures. Nothing when the file is not there.
+Future<void> loadRealFonts() async {
   const file = '/System/Library/Fonts/Supplemental/Georgia.ttf';
   if (!File(file).existsSync()) return;
   final bytes = File(file).readAsBytesSync();
@@ -30,7 +32,7 @@ Future<void> _fonts() async {
 
 /// Finge il desktop, con una finestra di [size] pixel.
 Future<void> useDesktop(WidgetTester tester, Size size) async {
-  await tester.runAsync(_fonts);
+  await tester.runAsync(loadRealFonts);
   DesktopPlatform.debugOverride = true;
   addTearDown(() => DesktopPlatform.debugOverride = null);
   tester.view.physicalSize = size;

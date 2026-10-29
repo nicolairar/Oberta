@@ -48,13 +48,7 @@ Future<bool> showMatchResults(BuildContext context, OnlineServices services, {bo
     PageRouteBuilder<bool>(
       opaque: true,
       transitionDuration: const Duration(milliseconds: 450),
-      pageBuilder: (_, _, _) => Stack(
-        children: [
-          MatchResultsScreen(result: result!, xpNow: xpNow, offerReplay: offerReplay),
-          if (!unlocks.isEmpty)
-            Material(type: MaterialType.transparency, child: ProgressToasts(unlocks: unlocks)),
-        ],
-      ),
+      pageBuilder: (_, _, _) => MatchResultsScreen(result: result!, xpNow: xpNow, offerReplay: offerReplay, unlocks: unlocks),
       transitionsBuilder: (_, animation, _, child) => FadeTransition(opacity: animation, child: child),
     ),
   );
@@ -68,7 +62,17 @@ class MatchResultsScreen extends StatefulWidget {
   final int? xpNow;
   final bool offerReplay;
 
-  const MatchResultsScreen({super.key, required this.result, this.xpNow, this.offerReplay = false});
+  /// Le missioni e le medaglie della partita: le loro targhe nella fascia in
+  /// alto, sopra il titolo e mai su di esso.
+  final GameUnlocks unlocks;
+
+  const MatchResultsScreen({
+    super.key,
+    required this.result,
+    this.xpNow,
+    this.offerReplay = false,
+    this.unlocks = const GameUnlocks(),
+  });
 
   @override
   State<MatchResultsScreen> createState() => _MatchResultsScreenState();
@@ -199,7 +203,7 @@ class _MatchResultsScreenState extends State<MatchResultsScreen> with SingleTick
                         ],
                       ),
                     ),
-                    child: Center(
+                    child: _underToasts(top: 16, Center(
                       child: SizedBox(
                         width: 1500,
                         height: 860,
@@ -379,7 +383,7 @@ class _MatchResultsScreenState extends State<MatchResultsScreen> with SingleTick
                           ],
                         ),
                       ),
-                    ),
+                    )),
                   );
                 },
               ),
@@ -389,6 +393,21 @@ class _MatchResultsScreenState extends State<MatchResultsScreen> with SingleTick
       ),
     );
   }
+
+  /// Le targhe delle missioni e delle medaglie: una sola, che non riparte
+  /// a ogni fotogramma dello spettacolo.
+  late final Widget _toasts = ProgressToasts(unlocks: widget.unlocks);
+
+  /// I risultati sotto la fascia delle targhe: il titolo resta sempre
+  /// libero, e niente si sposta quando le targhe vanno e vengono.
+  Widget _underToasts(Widget results, {double top = 0}) => widget.unlocks.isEmpty
+      ? results
+      : Column(
+          children: [
+            Padding(padding: EdgeInsets.only(top: top), child: _toasts),
+            Expanded(child: results),
+          ],
+        );
 
   Widget _build(BuildContext context) {
     final strings = AppStrings.of(context);
@@ -440,7 +459,7 @@ class _MatchResultsScreenState extends State<MatchResultsScreen> with SingleTick
               ),
             ),
             child: ContentWidth(maxWidth: 680, child: SafeArea(
-              child: LayoutBuilder(
+              child: _underToasts(LayoutBuilder(
                 builder: (context, box) => SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   child: ConstrainedBox(
@@ -559,7 +578,7 @@ class _MatchResultsScreenState extends State<MatchResultsScreen> with SingleTick
                     ),
                   ),
                 ),
-              ),
+              )),
             )),
           );
         },
