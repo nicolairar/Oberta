@@ -278,6 +278,22 @@ Principio di sicurezza: ogni telefono manda solo **intenzioni** ("voto Marco") e
 riceve solo la **vista personalizzata** che gli spetta — mai l'elenco completo
 dei ruoli (eccetto il narratore umano, che già li conosce).
 
+## L'accesso online
+
+Si entra con Apple (iPhone), Google (iPhone e Android, se l'app ha i client id), Steam (desktop) o
+con **un indirizzo email, senza password**: Supabase manda un codice di 6 cifre che vale 15 minuti,
+e sui telefoni nella stessa mail un link che riapre l'app già dentro (`oberta://login-callback`,
+scambiato da supabase_flutter). Niente password da nessuna parte, quindi niente «password
+dimenticata».
+
+- App: `SignInPanel` in `lib/ui/screens/online/sign_in_sheet.dart` (i passi: modi d'accesso →
+  indirizzo → codice), le sei caselle in `email_code_field.dart`, le chiamate in
+  `SupabaseAuth.sendEmailCode` / `verifyEmailCode` (`lib/online/supabase_online.dart`).
+- Server: il Send Email Hook di Supabase Auth chiama la Edge Function `auth-email`, che manda la
+  mail con Brevo. Il modello della mail è `supabase/functions/auth-email/templates/code.ts`, le
+  anteprime `site/oberta/email/accesso*.html`.
+- Impostazioni, segreti, prove e limiti: `docs/release.md`, sezione 13.
+
 ## Roadmap (vedi anche il brief di progetto)
 
 0. ✅ Setup ambiente (Flutter, Xcode, Simulator iOS)
@@ -320,6 +336,57 @@ flutter run               # lancia sul device selezionato (o te lo chiede)
 flutter test
 ```
 
+## Il suono dei film
+
+I film della notte e del verdetto non hanno una colonna sonora unica: ogni
+passo, sparo, tonfo o urlo è una registrazione a sé, agganciata al momento
+del film in cui succede (`lib/sound/scene_cues.dart`). Perché si senta sul
+fotogramma giusto e non dopo:
+
+- **Il silenzio in testa ai file si salta.** Molte registrazioni si aprono
+  con un po' di vuoto: lo scricchiolio del cappio dopo 160 ms, certi urli
+  dopo 200, la carta posata dopo 370. `tool/sound/onsets.py` misura dove
+  comincia davvero ogni file (e quanto dura) e scrive
+  `lib/sound/sound_onsets.dart`; i lettori partono da lì. Va rigenerato
+  quando si aggiunge o si cambia un suono: un test se ne accorge.
+- **I lettori sono pronti prima.** Quando una scena comincia
+  (`SoundStage.arm`), ogni suono va su un lettore suo, già caricato e già al
+  punto giusto; li carica uno alla volta, nell'ordine in cui serviranno, e un
+  lettore si ricarica col suono dopo solo quando il suo è finito (il piano è
+  `planDeck` in `lib/sound/cue_deck.dart`). Al fotogramma resta solo il play.
+  Prima ogni suono fermava un lettore, caricava il file, aspettava che fosse
+  pronto e solo allora partiva. Quello che non fa in tempo a essere pronto
+  parte come prima, a freddo.
+- **Il ritardo che resta si anticipa.** Anche col lettore pronto, dal play al
+  suono vero passa tempo (sul Mac 85–90 ms; con le cuffie bluetooth molto di
+  più). Il palco lo misura a ogni suono dalla posizione del lettore
+  (`LeadMeter`: mediana delle ultime nove misure, meno un fotogramma, mai più
+  di 150 ms) e le scene fanno partire ogni suono con quell'anticipo
+  (`CueSheet.due`). All'avvio qualche passo a volume zero lo misura già, così
+  anche la prima scena della sera è a tempo dal primo passo.
+- I lettori non chiedono più a che punto sono a ogni fotogramma: di serie
+  `audioplayers` lo fa finché suonano, e con la musica sempre accesa teneva
+  l'app a disegnare fotogrammi senza sosta.
+
+Si misura nell'app vera, in profile sul Mac:
+
+```bash
+lockf -t 0 /tmp/oberta_app.lock flutter run --profile -d macos -t tool/audio_sync/main.dart
+```
+
+Dieci film (otto della notte, due verdetti), per ogni suono il ritardo tra
+il fotogramma in cui si vede la cosa e il suono che si sente, compreso il
+silenzio in testa al file (passi esclusi, per confrontare gli stessi 66
+suoni). Prima: 109 ms di mediana, 241 al 90°, 289 il peggiore; gli spari e
+i colpi 105–269 ms. Adesso: 19 ms di mediana, 31 al 90°, 37 il peggiore,
+nessun suono a freddo (con i passi, 139 suoni: 16 ms di mediana). Il
+fotogramma arriva sullo schermo un giro dopo il build (16 ms a 60 Hz):
+suono e immagine ora arrivano insieme. La posizione del lettore comprende il
+ritardo dell'uscita audio che il sistema conosce; un altoparlante che mente
+sul suo ritardo resta fuori dalla misura.
+
+I gesti del tavolo non hanno ancora un suono.
+
 ## Prestazioni
 
 Obiettivo: 120 Hz su ProMotion, cioè 8,3 ms per fotogramma sia per il
@@ -334,7 +401,8 @@ lavoro del framework (build, layout, paint) sia per il raster.
   sulla CPU, widget ricostruiti, oggetti ridipinti, immagini registrate di
   nuovo, `Baked` rifatti, strati e filtri. `DIG=1` dice chi ridipinge, chi
   chiede il paint e quali immagini costano; `PERF_SHOTS=dir PERF_STILL=1`
-  salva i fotogrammi fermi per il confronto pixel per pixel.
+  salva i fotogrammi fermi per il confronto pixel per pixel (la notte
+  rimescola i posti sempre allo stesso modo, così si confronta anche lei).
 - `flutter drive --profile -d macos --driver=test_driver/perf_driver.dart
   --target=integration_test/perf_test.dart` — l'app vera in profile
   (Impeller/Metal), con le tracce di `traceAction`: build e raster medi e al
@@ -398,15 +466,79 @@ Nel motore dei test (per fotogramma): vicolo fermo 144 → 3 oggetti
 ridipinti e 6 → 1 immagini registrate; camminata 170 → 31; giorno fermo
 17 → 0,3 widget ricostruiti; bottega ferma 887 → 49 ms di raster CPU.
 
+### Il tavolo a dodici, posto per posto
+
+Impeller non tiene niente da parte: a ogni fotogramma in cui qualcosa si
+muove (un messaggio, l'anello di chi parla, un voto) ridisegna da capo tutti
+e dodici i posti. E ogni posto costava: l'ombra sfocata dell'arco (gli
+angoli in alto e in basso sono diversi, e allora il motore la fa in uno
+strato fuori schermo, con la sfocatura), le ombre della targhetta e del
+gettone, e due strati di trasparenza, perché in Flutter `Opacity` è sempre
+uno strato suo, anche a 1.
+
+- Ogni posto fermo adesso è un'immagine sola: `Baked(exact: true)` intorno a
+  `SeatCard`. «Al punto esatto»: l'immagine si fa col posto dove cade
+  davvero sullo schermo, frazioni di pixel comprese, così è uguale al
+  disegno dal vivo, e i ritratti già tenuti da parte lì dentro cadono sui
+  pixel interi (posati di traverso si sfocherebbero). Quanto il posto
+  sborda (ombre, targhetta, gettone, nastro, bagliori della cornice e del
+  nome, il posto scelto che si ingrandisce) lo calcola `SeatCard`.
+- Quando un posto cambia (un voto, il nastro dell'accusato, il posto scelto
+  che si ingrandisce) si disegna dal vivo finché si muove, poi l'immagine si
+  rifà; gli altri undici restano immagini. Un `Baked` dentro un altro (il
+  ritratto, la cornice ferma) avvisa quello fuori quando cambia.
+- Dentro il posto c'è `PlainOpacity` invece di `Opacity`: la stessa
+  trasparenza, senza strato suo, così finisce nell'immagine.
+- Anche l'alone di chi parla (`VoiceRing`) è un'immagine.
+- Restano dal vivo i posti con dentro qualcosa che si muove da sé: le
+  cornici leggendarie, i nomi che luccicano, il riflesso dei ritratti d'oro.
+
+Pixel (motore dei test, fotogrammi fermi): notte, giorno, voto, verdetto e
+anelli della voce cambiano di 1–6 livelli su 255 (quasi tutti 1–2) sul
+2–5% dei pixel, nelle ombre: è l'arrotondamento dell'immagine. Fine
+partita: una manciata di pixel a 13 livelli dove lo scorrimento taglia i
+gettoni. Vicolo, regole e bottega uguali (a parte la didascalia a caso e i
+conti alla rovescia della bottega, che vanno con l'ora).
+
+Numeri (app in profile sul Mac, ms per fotogramma, media di tre coppie di
+prove prima → dopo, prese alternate, col Mac più o meno carico). Già prima
+erano più bassi della tabella sopra (lì 10–12 ms, oggi 3,5–5,5 per gli
+stessi scenari): si confrontano le due colonne di ogni riga, non le
+tabelle.
+
+| scenario | build | raster | raster al 90° |
+|---|---|---|---|
+| telefono, notte | 0,17 → 0,36 | 3,8 → 2,0 | 4,5 → 2,3 |
+| telefono, giorno fermo | 0,21 → 0,34 | 4,3 → 2,1 | 5,4 → 2,5 |
+| telefono, giorno, chat che arriva | 0,17 → 0,35 | 5,3 → 3,0 | 6,6 → 3,4 |
+| telefono, giorno, anelli della voce | 0,22 → 0,43 | 4,5 → 2,7 | 5,5 → 3,3 |
+| telefono, voto fermo | 0,15 → 0,33 | 4,6 → 2,6 | 5,5 → 3,1 |
+| telefono, voti che cambiano | 0,66 → 0,98 | 4,3 → 2,5 | 5,9 → 3,4 |
+| telefono, verdetto | 0,14 → 0,34 | 4,2 → 2,6 | 4,8 → 3,2 |
+| desktop, notte | 0,24 → 0,42 | 4,2 → 1,9 | 6,0 → 2,1 |
+| desktop, giorno, chat che arriva | 0,21 → 0,40 | 4,4 → 3,0 | 5,0 → 3,3 |
+| desktop, giorno, anelli della voce | 0,30 → 0,55 | 4,0 → 2,7 | 4,7 → 3,4 |
+| desktop, voto fermo | 0,20 → 0,38 | 4,2 → 2,5 | 4,8 → 3,1 |
+| desktop, voti che cambiano | 1,08 → 1,29 | 4,3 → 2,4 | 5,6 → 4,2 |
+| desktop, verdetto | 0,17 → 0,44 | 3,6 → 2,8 | 4,6 → 3,1 |
+
+Nel motore dei test: strati per fotogramma 142 → 82 (telefono, notte),
+strati di trasparenza e filtri 2 → 1; da fermi nessun posto si rifà, quando
+cambiano i voti 0,9 immagini per fotogramma.
+
 ### Cosa resta
 
-- **Il raster del tavolo a dodici**: 9–12 ms per fotogramma sul Mac, appena
-  sopra gli 8,3 ms, a ogni fotogramma in cui qualcosa si muove (chat, voce,
-  voti). Sono soprattutto le ombre sfocate dei posti (bagliore, targhetta,
-  numero) e gli strati di trasparenza: dodici volte. Il prossimo passo è
-  tenere da parte la parte ferma di ogni posto, senza fermare le cornici e i
-  nomi animati.
-- I voti che cambiano ricostruiscono tutto il tavolo (giusto, ma 2–3 ms).
+- **Il build del tavolo** è salito di 0,1–0,3 ms per fotogramma: a fine
+  fotogramma ogni `Baked` guarda se si è spostato (`getTransformTo` fino
+  alla radice), e adesso sono una trentina (posti, ritratti, aloni). Poco
+  contro gli 8,3 ms, ma si potrebbe guardare una volta sola per tutto il
+  tavolo.
+- I posti con le cornici leggendarie, i nomi che luccicano e i ritratti
+  d'oro restano dal vivo: un tavolo pieno di quelli torna verso i numeri di
+  prima. Si potrebbero tenere due immagini, sotto e sopra la cornice che si
+  muove.
+- I voti che cambiano ricostruiscono tutto il tavolo (giusto, ma 1–2 ms) e
+  rifanno l'immagine dei posti toccati.
 - La ruota della bottega ricostruisce la pagina intera a ogni trascinamento
   (2,5 ms di build): da isolare in un widget suo.
 - `VerdictScene` (il film del verdetto) non si vede più nell'app: il

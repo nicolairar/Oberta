@@ -116,7 +116,7 @@ void main() {
     final photo = (await tester.runAsync(fakePhoto))!;
     await store.add('Sara', photo: photo);
     await tester.pumpWidget(MaterialApp(
-      home: Scaffold(body: LocalCurtain(player: const Player(id: 'sara', name: 'Sara'), number: 1, hint: '', onReady: () {})),
+      home: Scaffold(body: LocalCurtain(player: const Player(id: 'sara', name: 'Sara'), number: 1, onReady: () {})),
     ));
     await tester.pumpAndSettle();
     await loadPhotos(tester, store);

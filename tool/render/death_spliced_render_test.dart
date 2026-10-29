@@ -8,6 +8,8 @@ import 'package:oberta/ui/widgets/city_backdrop.dart';
 import 'package:oberta/ui/widgets/death_scene.dart';
 import 'package:oberta/ui/widgets/particle_sprites.dart';
 
+import 'comic_font.dart';
+
 /// Renders the key frames of night films where an ambush fails: a Family
 /// attack, then the Doctor or a stroke of luck. `OUT` is the output folder;
 /// `FILMS` an optional comma list of `attack+save` act names (or a single
@@ -60,6 +62,7 @@ Future<void> capture(WidgetTester tester, GlobalKey key, String name) async {
 
 void main() {
   testWidgets('night films where the ambush fails: key frames', (tester) async {
+    await tester.runAsync(loadComicFont);
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);

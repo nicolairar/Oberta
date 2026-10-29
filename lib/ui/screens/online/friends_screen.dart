@@ -86,6 +86,13 @@ class _FriendsScreenState extends State<FriendsScreen> {
     await _reload();
   }
 
+  /// Il fascicolo pubblico, con «Blocca» e «Segnala» in fondo. Al ritorno
+  /// la lista si rilegge: un blocco toglie l'amicizia e le richieste.
+  Future<void> _openProfile(Profile other) async {
+    await showPublicProfile(context, services: widget.services, target: other.id);
+    if (mounted) await _reload();
+  }
+
   Future<void> _request(Profile other) async {
     final t = AppStrings.of(context).online;
     HapticFeedback.selectionClick();
@@ -151,6 +158,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                         for (final profile in results)
                           ProfileRow(
                             profile: profile,
+                            onTap: () => _openProfile(profile),
                             trailing: linked.contains(profile.id)
                                 ? null
                                 : TextButton(onPressed: () => _request(profile), child: Text(t.add)),
@@ -167,7 +175,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
                 children: [
                   for (final link in incoming)
                     ProfileRow(
+                      key: Key('friends.request.${link.other.id}'),
                       profile: link.other,
+                      onTap: () => _openProfile(link.other),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -210,7 +220,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                             ProfileRow(
                               key: Key('friends.row.${link.other.id}'),
                               profile: link.other,
-                              onTap: () => showPublicProfile(context, services: widget.services, target: link.other.id),
+                              onTap: () => _openProfile(link.other),
                               trailing: TextButton(
                                 onPressed: () => _act(() => _friends.remove(link.other.id)),
                                 child: Text(t.remove),
@@ -311,6 +321,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                               for (final profile in results)
                                 DeskProfileRow(
                                   profile: profile,
+                                  onTap: () => _openProfile(profile),
                                   actions: [
                                     if (!linked.contains(profile.id))
                                       OutlinedButton.icon(
@@ -342,7 +353,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                         for (final link in friends)
                           DeskProfileRow(
                             profile: link.other,
-                            onTap: () => showPublicProfile(context, services: widget.services, target: link.other.id),
+                            onTap: () => _openProfile(link.other),
                             subtitle: t.levelShort(link.other.level),
                             actions: [
                               DeskIconAction(
@@ -375,6 +386,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                         for (final link in incoming)
                           DeskProfileRow(
                             profile: link.other,
+                            onTap: () => _openProfile(link.other),
                             actions: [
                               DeskIconAction(
                                 icon: Icons.close,

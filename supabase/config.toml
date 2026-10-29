@@ -434,3 +434,12 @@ entrypoint = "./functions/voice-token/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/waitlist/index.ts"
+
+# Supabase Auth's Send Email Hook (supabase/functions/auth-email): every auth
+# email ("Entra con email", a 6-digit code and the magic link) goes out through
+# Brevo. Auth signs each call with SEND_EMAIL_HOOK_SECRET (standard-webhooks),
+# so there is no JWT; the email's images are public GETs of the same function.
+[functions.auth-email]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/auth-email/index.ts"

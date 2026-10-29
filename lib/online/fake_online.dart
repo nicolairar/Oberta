@@ -178,8 +178,8 @@ class FakeOnline {
   OnlineServices get services =>
       OnlineServices(auth: auth, profiles: profiles, friends: friends, rooms: rooms, game: game, shop: shop, account: account, ranked: ranked, safety: safety, sessions: sessions, links: links, progress: progress, reactions: reactions);
 
-  /// Gli account di prova: email → (password, id dell'account).
-  final Map<String, (String, String)> _testAccounts = {};
+  /// Gli account entrati con l'email: indirizzo → id dell'account.
+  final Map<String, String> _emailAccounts = {};
 
   /// Se falso, il server finge di avere il provider Email spento.
   bool emailEnabled = true;
@@ -433,30 +433,89 @@ class FakeAuth extends OnlineAuth {
   @override
   Future<void> signInWithSteam() => _provider();
 
-  /// Le stesse regole del server: password di almeno sei caratteri, email
-  /// con la chiocciola, e chi c'era già deve azzeccare la password.
   @override
-  Future<void> signInWithTestAccount({required String email, required String password}) async {
+  bool emailAvailable = true;
+
+  @override
+  bool emailLinkOpensApp = true;
+
+  /// Le mail mandate, come le legge chi le riceve: indirizzo → l'ultimo
+  /// codice (vale solo quello). I test copiano il codice da qui.
+  final Map<String, String> emailCodes = {};
+
+  /// La lingua chiesta per le mail di ogni indirizzo (solo per i nuovi).
+  final Map<String, String?> emailLanguages = {};
+
+  /// Gli indirizzi i cui codici sono scaduti (dopo [expireEmailCodes]).
+  final Set<String> _expiredCodes = {};
+  OnlineException? _linkFailure;
+
+  static String _address(String email) => email.trim().toLowerCase();
+
+  /// Le stesse regole del server: un indirizzo con la chiocciola, un codice
+  /// di sei cifre che vale una volta sola, e una mail nuova che annulla la
+  /// vecchia. [failNext] fa fallire la prossima mail (troppe di fila, non
+  /// partita).
+  @override
+  Future<void> sendEmailCode(String email, {String? language}) async {
     await Future<void>.delayed(Duration.zero);
-    final address = email.trim().toLowerCase();
+    final address = _address(email);
+    if (failNext case final failure?) {
+      failNext = null;
+      throw failure;
+    }
     if (!_online.emailEnabled) {
       throw const OnlineException(OnlineFailure.emailDisabled, null, 'email_provider_disabled · 400');
     }
     if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(address)) {
       throw const OnlineException(OnlineFailure.invalidEmail, null, 'email_address_invalid · 400');
     }
-    final existing = _online._testAccounts[address];
-    if (existing != null) {
-      if (existing.$1 != password) {
-        throw const OnlineException(OnlineFailure.wrongPassword, null, 'invalid_credentials · 400');
-      }
-      _signIn(existing.$2);
+    _emailsSent++;
+    emailCodes[address] = (123456 + 111111 * (_emailsSent - 1)).toString().padLeft(6, '0').substring(0, 6);
+    emailLanguages.putIfAbsent(address, () => language);
+    _expiredCodes.remove(address);
+  }
+
+  int _emailsSent = 0;
+
+  @override
+  Future<void> verifyEmailCode({required String email, required String code}) async {
+    await Future<void>.delayed(Duration.zero);
+    final address = _address(email);
+    if (_expiredCodes.contains(address)) {
+      throw const OnlineException(OnlineFailure.emailCodeExpired, null, 'otp_expired · 403 · Token has expired or is invalid');
+    }
+    if (emailCodes[address] != code.trim()) {
+      throw const OnlineException(OnlineFailure.emailCodeWrong, null, 'otp_expired · 403 · Token has expired or is invalid');
+    }
+    emailCodes.remove(address);
+    _signInByEmail(address);
+  }
+
+  void _signInByEmail(String address) =>
+      _signIn(_online._emailAccounts.putIfAbsent(address, () => 'email-${_online._emailAccounts.length + 1}'));
+
+  /// Per i test: i codici mandati finora scadono.
+  void expireEmailCodes() => _expiredCodes.addAll(emailCodes.keys);
+
+  /// Per i test: si tocca il link dell'ultima mail mandata a [email]. Entra,
+  /// o (link scaduto o già usato) lo dice al foglio dell'accesso.
+  void openEmailLink(String email) {
+    final address = _address(email);
+    if (emailCodes.containsKey(address) && !_expiredCodes.contains(address)) {
+      emailCodes.remove(address);
+      _signInByEmail(address);
       return;
     }
-    if (password.length < 6) throw const OnlineException(OnlineFailure.weakPassword, null, 'weak_password · 422');
-    final id = 'test-${_online._testAccounts.length + 1}';
-    _online._testAccounts[address] = (password, id);
-    _signIn(id);
+    _linkFailure = const OnlineException(OnlineFailure.emailLinkExpired, null, 'otp_expired · Email link is invalid or has expired');
+    notifyListeners();
+  }
+
+  @override
+  OnlineException? takeEmailLinkFailure() {
+    final failure = _linkFailure;
+    _linkFailure = null;
+    return failure;
   }
 
   @override

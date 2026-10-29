@@ -79,11 +79,16 @@ void main() {
     expect(online.profileOf('me')!.handle, 'anna_r2');
   });
 
-  testWidgets('senza Apple né Google sul telefono lo dice', (tester) async {
+  testWidgets('senza Apple né Google resta l\'email; senza niente lo dice', (tester) async {
     online.auth
       ..appleAvailable = false
       ..googleAvailable = false;
     await open(tester, OnlineScreen(services: online.services));
+    expect(find.text('Entra con email'), findsOneWidget);
+    expect(find.text('Su questo telefono non c\'è ancora un modo per entrare.'), findsNothing);
+
+    online.auth.emailAvailable = false;
+    await open(tester, OnlineScreen(key: UniqueKey(), services: online.services));
     expect(find.text('Su questo telefono non c\'è ancora un modo per entrare.'), findsOneWidget);
   });
 

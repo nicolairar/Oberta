@@ -2,7 +2,7 @@ Thanks for testing Obertà!
 
 Please try:
 - One phone for everyone: a game with 4 to 12 players, the phone passed around, the narrator all the way to the verdict. No account needed.
-- Play with friends: sign in with Apple, open a room, let others join with the code or QR, play a full match.
+- Play with friends: sign in with Apple or with email (a 6-digit code by email, no password), open a room, let others join with the code or QR, play a full match.
 - Chat: the open square by day, the Family chat at night.
 - Barber and shop: change your face, buy and wear something with the coins you won.
 - Settings: language, sound, account deletion.

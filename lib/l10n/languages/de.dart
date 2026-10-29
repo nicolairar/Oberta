@@ -729,16 +729,39 @@ final class GermanOnlineStrings extends EnglishOnlineStrings {
   String xpProgress(int xp, int next) => '$xp von $next Erfahrungspunkten';
 
   @override
-  String get testAccount => 'Testkonto';
+  String get loginEmail => 'Mit E-Mail anmelden';
   @override
-  String get testAccountBody =>
-      'Nur zum Ausprobieren auf einem anderen Handy: mit E-Mail und Passwort anmelden oder das Konto anlegen, falls es fehlt.';
+  String get emailBody =>
+      'Wir schicken dir eine E-Mail mit einem 6-stelligen Code und einem Anmeldelink. Kein Passwort.';
+  @override
+  String get emailBodyCodeOnly =>
+      'Wir schicken dir eine E-Mail mit einem 6-stelligen Code, den du hier eingibst. Kein Passwort.';
   @override
   String get emailLabel => 'E-Mail-Adresse';
   @override
-  String get passwordLabel => 'Passwort (mindestens 6 Zeichen)';
+  String get emailSend => 'SCHICK MIR DEN CODE';
   @override
-  String get testAccountSubmit => 'ANMELDEN ODER ANLEGEN';
+  String emailSentTo(String address) =>
+      'Wir haben an $address geschrieben. Gib den Code aus der E-Mail ein oder tippe auf den Link: Die App öffnet sich angemeldet.';
+  @override
+  String emailSentToCodeOnly(String address) =>
+      'Wir haben an $address geschrieben. Gib hier den Code aus der E-Mail ein.';
+  @override
+  String get emailCodeLabel => '6-stelliger Code';
+  @override
+  String get emailVerify => 'ANMELDEN';
+  @override
+  String get emailResend => 'Code erneut senden';
+  @override
+  String emailResendIn(int seconds) => 'Erneut senden in $seconds s';
+  @override
+  String get emailResent => 'Neuer Code unterwegs: Nur der letzte gilt.';
+  @override
+  String get emailChange => 'Andere Adresse';
+  @override
+  String get emailOtherWays => 'Andere Anmeldearten';
+  @override
+  String get emailSpam => 'Noch nichts da? Schau im Spam-Ordner nach.';
 
   @override
   String get setupTitle => 'DEIN PROFIL';
@@ -994,10 +1017,12 @@ final class GermanOnlineStrings extends EnglishOnlineStrings {
         OnlineFailure.appleDisabled => 'Die Anmeldung mit Apple ist auf dem Server nicht aktiviert.',
         OnlineFailure.googleDisabled => 'Die Anmeldung mit Google ist auf dem Server nicht aktiviert.',
         OnlineFailure.emailDisabled => 'Die Anmeldung per E-Mail ist auf dem Server nicht aktiviert.',
-        OnlineFailure.wrongPassword => 'Falsches Passwort für diese E-Mail.',
-        OnlineFailure.weakPassword => 'Passwort zu schwach: mindestens 6 Zeichen.',
         OnlineFailure.invalidEmail => 'Diese E-Mail sieht nicht gültig aus.',
-        OnlineFailure.emailNotConfirmed => 'Der Server will eine bestätigte E-Mail: Schalte das zum Testen ab.',
+        OnlineFailure.emailCodeWrong => 'Falscher Code: Schau in die letzte E-Mail, die wir dir geschickt haben.',
+        OnlineFailure.emailCodeExpired => 'Der Code ist abgelaufen: Fordere einen neuen an.',
+        OnlineFailure.emailLinkExpired => 'Der Link ist abgelaufen oder wurde schon benutzt: Gib den Code aus der E-Mail ein oder fordere einen neuen an.',
+        OnlineFailure.emailRateLimited => 'Zu viele E-Mails hintereinander: Warte eine Minute und versuch es noch mal.',
+        OnlineFailure.emailNotSent => 'Die E-Mail ging nicht raus: Versuch es gleich noch mal.',
         OnlineFailure.profileIncomplete => 'Vervollständige zuerst dein Profil.',
         OnlineFailure.handleTaken => 'Dieser Handle ist schon vergeben.',
         OnlineFailure.invalidHandle => 'Ungültiger Name.',

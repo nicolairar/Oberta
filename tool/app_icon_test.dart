@@ -5,25 +5,46 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+/// Quale parte dell'icona si disegna: tutta (iOS, Play Store, Android
+/// vecchio) o uno dei due livelli dell'icona adattiva di Android.
+enum IconLayer { full, background, foreground }
+
 /// L'icona dell'app: un volto col cappello davanti a una luna d'oro.
 ///
 /// Come tutto il resto è disegnata in codice. Per rigenerare i file che
 /// vanno negli store: `tool/make_app_icons.sh`.
 class IconPainter extends CustomPainter {
+  /// I livelli di Android sono di 108 dp e il launcher ne mostra i 72 centrali
+  /// (cerchio, goccia o quadrato): l'icona intera sta in quei 72, lo sfondo
+  /// continua fino al bordo per gli effetti di movimento.
+  final IconLayer layer;
+
+  const IconPainter([this.layer = IconLayer.full]);
+
   @override
   void paint(Canvas canvas, Size size) {
-    final s = size.width;
-    final rect = Offset.zero & size;
-    canvas.drawRect(
-      rect,
-      Paint()
-        ..shader = const RadialGradient(
-          center: Alignment(0, -0.25),
-          radius: 0.95,
-          colors: [Color(0xFF2A1B2E), Color(0xFF120D18), Color(0xFF050407)],
-          stops: [0, 0.55, 1],
-        ).createShader(rect),
-    );
+    final inset = layer == IconLayer.full ? 0.0 : size.width / 6;
+    final s = size.width - 2 * inset;
+    if (layer != IconLayer.foreground) {
+      canvas.drawRect(
+        Offset.zero & size,
+        Paint()
+          ..shader = const RadialGradient(
+            center: Alignment(0, -0.25),
+            radius: 0.95,
+            colors: [Color(0xFF2A1B2E), Color(0xFF120D18), Color(0xFF050407)],
+            stops: [0, 0.55, 1],
+          ).createShader(Rect.fromLTWH(inset, inset, s, s)),
+      );
+    }
+    if (layer == IconLayer.background) return;
+    canvas.save();
+    canvas.translate(inset, inset);
+    _figure(canvas, s);
+    canvas.restore();
+  }
+
+  void _figure(Canvas canvas, double s) {
     // La luna d'oro, con il suo alone.
     final moon = Offset(s * 0.5, s * 0.44);
     canvas.drawCircle(
@@ -125,23 +146,38 @@ class IconPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
+/// Disegna [painter] su un quadrato di [size] pixel e lo salva in [path].
+Future<void> _render(WidgetTester tester, IconPainter painter, double size, String path) async {
+  tester.view.physicalSize = Size(size, size);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+  final key = GlobalKey();
+  await tester.pumpWidget(
+    RepaintBoundary(
+      key: key,
+      child: CustomPaint(size: Size(size, size), painter: painter),
+    ),
+  );
+  await tester.runAsync(() async {
+    final boundary = key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+    final image = await boundary.toImage();
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+    File(path)
+      ..createSync(recursive: true)
+      ..writeAsBytesSync(bytes!.buffer.asUint8List());
+  });
+}
+
 void main() {
   testWidgets('disegna l\'icona a 1024 punti', (tester) async {
-    tester.view.physicalSize = const Size(1024, 1024);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    final key = GlobalKey();
-    await tester.pumpWidget(RepaintBoundary(
-      key: key,
-      child: CustomPaint(size: const Size(1024, 1024), painter: IconPainter()),
-    ));
-    await tester.runAsync(() async {
-      final boundary = key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
-      final image = await boundary.toImage();
-      final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-      File(Platform.environment['ICON_OUT'] ?? 'build/app_icon.png')
-        ..createSync(recursive: true)
-        ..writeAsBytesSync(bytes!.buffer.asUint8List());
-    });
+    await _render(tester, const IconPainter(), 1024, Platform.environment['ICON_OUT'] ?? 'build/app_icon.png');
+  });
+
+  // I due livelli dell'icona adattiva di Android, a 432 pixel (108 dp in
+  // xxxhdpi): tool/make_app_icons.sh li taglia per le altre densità.
+  testWidgets('disegna i livelli dell\'icona Android', (tester) async {
+    final dir = Platform.environment['ANDROID_ICON_DIR'] ?? 'build/android_icon';
+    await _render(tester, const IconPainter(IconLayer.background), 432, '$dir/background.png');
+    await _render(tester, const IconPainter(IconLayer.foreground), 432, '$dir/foreground.png');
   });
 }

@@ -23,7 +23,6 @@ class HomeDeskTopBar extends StatelessWidget {
   final Profile? profile;
   final String signInLabel;
   final VoidCallback onSignIn;
-  final VoidCallback? onSignInTest;
   final VoidCallback onProfile;
   final String pickHandle;
   final String Function(int level) levelLabel;
@@ -46,7 +45,6 @@ class HomeDeskTopBar extends StatelessWidget {
     required this.profile,
     required this.signInLabel,
     required this.onSignIn,
-    this.onSignInTest,
     required this.onProfile,
     required this.pickHandle,
     required this.levelLabel,
@@ -90,7 +88,7 @@ class HomeDeskTopBar extends StatelessWidget {
                 onCoins: onShop,
               )
             else if (signedIn == false)
-              _SignInButton(label: signInLabel, onTap: onSignIn, onLongPress: onSignInTest),
+              _SignInButton(label: signInLabel, onTap: onSignIn),
             const Spacer(),
             if (signedIn == true && onShop != null) ...[
               _BarButton(
@@ -229,9 +227,8 @@ class _BarButton extends StatelessWidget {
 class _SignInButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
-  final VoidCallback? onLongPress;
 
-  const _SignInButton({required this.label, required this.onTap, this.onLongPress});
+  const _SignInButton({required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -240,7 +237,6 @@ class _SignInButton extends StatelessWidget {
       label: label,
       excludeSemantics: true,
       child: GestureDetector(
-        onLongPress: onLongPress,
         child: DeskHover(
           key: const Key('home.signIn'),
           onTap: onTap,

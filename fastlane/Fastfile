@@ -41,9 +41,10 @@ platform :ios do
            "-authenticationKeyPath #{File.expand_path(ENV.fetch('ASC_KEY_PATH'), '..')} " \
            "-authenticationKeyID #{ENV.fetch('ASC_KEY_ID')} " \
            "-authenticationKeyIssuerID #{ENV.fetch('ASC_ISSUER_ID')}"
-    # RANKED_DEBUG=1 bundle exec fastlane ios beta: build di prova con la
-    # classificata sbloccata (di norma resta chiusa dalla home).
-    online += " --dart-define=RANKED_DEBUG=true" if ENV["RANKED_DEBUG"] == "1"
+    # RANKED_DEBUG=1 bundle exec fastlane ios beta: build di prova
+    # (lib/build_flags.dart): classificata sbloccata, accesso con email,
+    # due persone bastano coi bot. Senza, la build è quella da negozio.
+    online += " --dart-define=OBERTA_TEST=true" if ENV["RANKED_DEBUG"] == "1"
     # Flutter lancia CocoaPods: fuori dal bundle di fastlane, che non lo contiene.
     Bundler.with_unbundled_env { sh("cd .. && flutter build ios --release --config-only#{online}") }
     sh("rm -rf ../build/ios/archive/Runner.xcarchive")
@@ -129,6 +130,79 @@ platform :ios do
       beta_app_feedback_email: beta_info[:contact_email],
       beta_app_review_info: beta_info,
       submit_beta_review: true,
+    )
+  end
+end
+
+platform :android do
+  PACKAGE_NAME = "com.obertagame.oberta"
+  AAB = "build/app/outputs/bundle/release/app-release.aab"
+
+  # Il JSON del service account di Google Play (docs/release.md, sezione 7.4):
+  # il percorso sta in fastlane/.env, il file resta sul Mac.
+  def play_json_key
+    path = ENV["PLAY_JSON_KEY"].to_s.strip
+    if path.empty?
+      UI.user_error!("PLAY_JSON_KEY mancante in fastlane/.env: il percorso (dalla radice del repo) del JSON " \
+                     "del service account di Google Play. Come crearlo: docs/release.md, sezione 7.4.")
+    end
+    full = File.expand_path(path, "..")
+    UI.user_error!("PLAY_JSON_KEY punta a #{path}, che non c'è: scaricalo da Google Cloud (docs/release.md, sezione 7.4).") unless File.file?(full)
+    full
+  end
+
+  desc "Compila l'AAB firmato con la chiave di caricamento e lo carica come bozza sulla traccia interna di Google Play"
+  lane :internal do
+    json_key = play_json_key # prima di tutto: senza chiave non si compila per niente
+    unless File.file?("../android/key.properties")
+      UI.user_error!("android/key.properties mancante: senza la chiave di caricamento l'AAB sarebbe firmato " \
+                     "con quella di debug e Play lo rifiuterebbe (docs/release.md, sezione 7.1).")
+    end
+    build = ensure_build_number_bumped
+
+    sh("rm -rf ../build/app/outputs/bundle/release")
+    online = File.exist?("../config/supabase.json") ? " --dart-define-from-file=config/supabase.json" : ""
+    UI.important("config/supabase.json mancante: build senza online") if online.empty?
+    # RANKED_DEBUG=1 bundle exec fastlane android internal: build di prova
+    # (lib/build_flags.dart), solo per i tester. Senza, è quella da negozio.
+    online += " --dart-define=OBERTA_TEST=true" if ENV["RANKED_DEBUG"] == "1"
+    sh("cd .. && flutter build appbundle --release#{online}")
+    UI.user_error!("Nessun AAB in #{AAB}") unless File.file?("../#{AAB}")
+
+    # Mai caricare un AAB firmato con la chiave di debug.
+    signer = sh("cd .. && keytool -printcert -jarfile #{AAB}", log: false)
+    UI.user_error!("L'AAB è firmato con la chiave di debug") if signer.include?("CN=Android Debug")
+
+    upload_to_play_store(
+      package_name: PACKAGE_NAME,
+      json_key: json_key,
+      aab: AAB,
+      track: "internal",
+      # Finché l'app non è pubblicata Play accetta solo bozze; poi la si
+      # manda ai tester da Play Console (Test interno → Modifica release).
+      release_status: "draft",
+      metadata_path: "./fastlane/metadata/android",
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      skip_upload_changelogs: false, # changelogs/default.txt come «Novità»
+    )
+
+    UI.success "Build #{build} caricata come bozza sulla traccia interna di Google Play"
+  end
+
+  desc "Carica solo testi e immagini della scheda Google Play (niente build)"
+  lane :metadata do
+    upload_to_play_store(
+      package_name: PACKAGE_NAME,
+      json_key: play_json_key,
+      metadata_path: "./fastlane/metadata/android",
+      skip_upload_apk: true,
+      skip_upload_aab: true,
+      skip_upload_changelogs: true,
+      skip_upload_metadata: false,
+      skip_upload_images: false,
+      skip_upload_screenshots: false,
     )
   end
 end

@@ -366,12 +366,15 @@ enum OnlineFailure {
   googleDisabled,
   emailDisabled,
 
-  /// L'account di prova: password sbagliata, troppo debole, email storta,
-  /// o il server vuole la conferma via email.
-  wrongPassword,
-  weakPassword,
+  /// «Entra con email», senza password: l'indirizzo storto, il codice
+  /// sbagliato o scaduto, il link della mail scaduto o già usato, troppe
+  /// mail di fila, o la mail che non è partita.
   invalidEmail,
-  emailNotConfirmed,
+  emailCodeWrong,
+  emailCodeExpired,
+  emailLinkExpired,
+  emailRateLimited,
+  emailNotSent,
   profileIncomplete,
   handleTaken,
   invalidHandle,

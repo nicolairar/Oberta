@@ -731,16 +731,36 @@ final class PortugueseOnlineStrings extends EnglishOnlineStrings {
   String xpProgress(int xp, int next) => '$xp de $next pontos de experiência';
 
   @override
-  String get testAccount => 'Conta de teste';
+  String get loginEmail => 'Entrar com e-mail';
   @override
-  String get testAccountBody =>
-      'Só para testar o app em outro celular: entre com e-mail e senha, ou crie a conta se não existir.';
+  String get emailBody => 'Enviamos um e-mail com um código de 6 dígitos e um link para entrar. Sem senha.';
+  @override
+  String get emailBodyCodeOnly => 'Enviamos um e-mail com um código de 6 dígitos para digitar aqui. Sem senha.';
   @override
   String get emailLabel => 'Endereço de e-mail';
   @override
-  String get passwordLabel => 'Senha (pelo menos 6 caracteres)';
+  String get emailSend => 'ME MANDE O CÓDIGO';
   @override
-  String get testAccountSubmit => 'ENTRAR OU CRIAR';
+  String emailSentTo(String address) =>
+      'Escrevemos para $address. Digite o código do e-mail ou toque no link: o app abre já conectado.';
+  @override
+  String emailSentToCodeOnly(String address) => 'Escrevemos para $address. Digite aqui o código do e-mail.';
+  @override
+  String get emailCodeLabel => 'Código de 6 dígitos';
+  @override
+  String get emailVerify => 'ENTRAR';
+  @override
+  String get emailResend => 'Reenviar o código';
+  @override
+  String emailResendIn(int seconds) => 'Reenviar em $seconds s';
+  @override
+  String get emailResent => 'Código novo a caminho: só vale o último.';
+  @override
+  String get emailChange => 'Usar outro endereço';
+  @override
+  String get emailOtherWays => 'Outras formas de entrar';
+  @override
+  String get emailSpam => 'Não chegou? Olhe na caixa de spam.';
 
   @override
   String get setupTitle => 'SEU PERFIL';
@@ -996,10 +1016,12 @@ final class PortugueseOnlineStrings extends EnglishOnlineStrings {
         OnlineFailure.appleDisabled => 'O login com a Apple não está ativado no servidor.',
         OnlineFailure.googleDisabled => 'O login com o Google não está ativado no servidor.',
         OnlineFailure.emailDisabled => 'O login por e-mail não está ativado no servidor.',
-        OnlineFailure.wrongPassword => 'Senha errada para este e-mail.',
-        OnlineFailure.weakPassword => 'Senha fraca demais: pelo menos 6 caracteres.',
         OnlineFailure.invalidEmail => 'Esse e-mail não parece válido.',
-        OnlineFailure.emailNotConfirmed => 'O servidor quer o e-mail confirmado: desative isso para os testes.',
+        OnlineFailure.emailCodeWrong => 'Código errado: confira o último e-mail que enviamos.',
+        OnlineFailure.emailCodeExpired => 'O código expirou: peça um novo.',
+        OnlineFailure.emailLinkExpired => 'O link expirou ou já foi usado: digite o código do e-mail ou peça um novo.',
+        OnlineFailure.emailRateLimited => 'E-mails demais seguidos: espere um minuto e tente de novo.',
+        OnlineFailure.emailNotSent => 'O e-mail não saiu: tente de novo daqui a pouco.',
         OnlineFailure.profileIncomplete => 'Termine seu perfil primeiro.',
         OnlineFailure.handleTaken => 'Esse apelido já tem dono.',
         OnlineFailure.invalidHandle => 'Nome inválido.',

@@ -1,12 +1,20 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- The table voice chat (LiveKit): the microphone, only when the player
-         turns it on; audio routing and Bluetooth headsets. -->
+    <!-- Online play (Supabase), voice (LiveKit), store and update checks.
+         Debug builds get it from src/debug too; release needs it here. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- The table voice chat (LiveKit): the microphone, asked only when the
+         player picks «Microfono» (push-to-talk); audio routing and Bluetooth
+         headsets. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <!-- Voice is optional (one can always just listen): the permissions above
+         must not hide the app on Play from devices without a mic or Bluetooth. -->
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+    <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
     <application
         android:label="Obertà"
         android:name="${applicationName}"
@@ -39,9 +47,17 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="oberta" android:host="steam-link"/>
             </intent-filter>
+            <!-- «Entra con email»: il link della mail torna qui da Supabase
+                 (oberta://login-callback?code=...) e l'app entra da sola. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="oberta" android:host="login-callback"/>
+            </intent-filter>
         </activity>
         <!-- Play Games Services (games_services): l'id del progetto della Play Console.
-             Segnaposto finché Android non esce; vedi docs/release.md, sezione 7. -->
+             Segnaposto finché Android non esce; vedi docs/release.md, sezione 7.9. -->
         <meta-data
             android:name="com.google.android.gms.games.APP_ID"
             android:value="@string/game_services_project_id" />

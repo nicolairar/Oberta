@@ -125,12 +125,24 @@ void main() {
       await tester.pumpAndSettle();
       await _shot(tester, '${phone}_4_sign_in_error');
 
-      await tester.longPress(find.byKey(const Key('online.signInTitle')));
+      await tester.tap(find.byKey(const Key('online.signInEmail')));
       await tester.pumpAndSettle();
-      await _shot(tester, '${phone}_5_test_account');
-
-      await tester.longPress(find.byKey(const Key('online.signInTitle')));
+      await tester.enterText(find.byKey(const Key('online.email')), 'anna@example.com');
       await tester.pumpAndSettle();
+      await _shot(tester, '${phone}_5a_email');
+      await tester.tap(find.byKey(const Key('online.emailSend')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('online.emailCodeInput')), '123');
+      await tester.pump(const Duration(seconds: 18));
+      await _shot(tester, '${phone}_5b_email_code');
+      await tester.enterText(find.byKey(const Key('online.emailCodeInput')), '999999');
+      await tester.pumpAndSettle();
+      await _shot(tester, '${phone}_5c_email_wrong');
+      await tester.tap(find.byKey(const Key('online.emailChange')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('online.emailBack')));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 61));
       await tester.tap(find.text('Entra con Apple'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byKey(const Key('online.handle')), 'Bruno');
@@ -144,6 +156,11 @@ void main() {
       online.award('me', level: 7, xp: 420, coins: 1250);
       await tester.tap(find.text('SALVA'));
       await tester.pumpAndSettle();
+      // Poi lo specchio del barbiere: la faccia si fa dopo.
+      if (find.byKey(const Key('mirror.skip')).evaluate().isNotEmpty) {
+        await tester.tap(find.byKey(const Key('mirror.skip')));
+        await tester.pumpAndSettle();
+      }
       await _shot(tester, '${phone}_8_signed_in');
 
       await tester.tap(find.byKey(const Key('home.badge')));

@@ -8,6 +8,8 @@ import 'package:oberta/ui/widgets/city_backdrop.dart';
 import 'package:oberta/ui/widgets/death_scene.dart';
 import 'package:oberta/ui/widgets/particle_sprites.dart';
 
+import 'comic_font.dart';
+
 /// Renders the key frames of a group of night films, for contact sheets.
 /// `OUT` is the output folder, `ACTS` an optional comma list of act names.
 final out = Platform.environment['OUT'] ?? 'build/render';
@@ -30,6 +32,7 @@ Future<void> capture(WidgetTester tester, GlobalKey key, String name) async {
 
 void main() {
   testWidgets('night films, saves and sniper variants: key frames', (tester) async {
+    await tester.runAsync(loadComicFont);
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);

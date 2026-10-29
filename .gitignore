@@ -52,6 +52,8 @@ app.*.map.json
 
 # fastlane: chiavi e rapporti restano sul Mac
 fastlane/AuthKey_*.p8
+# Google Play: il JSON del service account (docs/release.md, sezione 7.4)
+fastlane/play-service-account.json
 fastlane/.env
 fastlane/report.xml
 fastlane/README.md
@@ -77,3 +79,6 @@ steam_api64.lib
 libsteam_api.so
 libsteam_api.dylib
 steam_appid.txt
+
+# Demo renders for the owner, not part of the app
+/docs/demo/

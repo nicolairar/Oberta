@@ -1,3 +1,4 @@
+import '../build_flags.dart';
 import '../l10n/lobby_language.dart';
 import 'game/match_rewards.dart';
 
@@ -358,6 +359,6 @@ class PlayerStats {
   );
 }
 
-/// La classificata è pronta ma chiusa in questa build: la coda si apre solo
-/// con `--dart-define=RANKED_DEBUG=true`.
-const rankedDebug = bool.fromEnvironment('RANKED_DEBUG');
+/// La classificata è pronta ma chiusa: la coda si apre solo in una build di
+/// prova ([BuildFlags.testBuild]), mai in una da negozio.
+const rankedDebug = BuildFlags.testBuild;

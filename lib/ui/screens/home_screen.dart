@@ -26,6 +26,7 @@ import '../street/street_route.dart';
 import '../street/street_section.dart';
 import '../street/street_stage.dart';
 import '../street/street_wall.dart';
+import '../season/season.dart';
 import 'avatar/barber_mirror_screen.dart';
 import 'lobby_screen.dart';
 import 'online/online_room_screen.dart';
@@ -93,6 +94,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
   /// Un momento tranquillo del giro, per chi vuole la scena ferma: nessuna
   /// lettera in corto, nessun gatto, la sigaretta accesa.
   static const _quietMoment = 0.105;
+
+  /// L'altezza del biglietto del tutorial: due righe di testo, o la x per
+  /// buttarlo, col suo margine.
+  static const _noteRoom = 54.0;
 
   late final AnimationController _ambient = AnimationController(
     vsync: this,
@@ -293,10 +298,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
     _continue();
   }
 
-  /// Il foglio dell'accesso; con [test], l'account di prova.
-  Future<void> _signIn({bool test = false}) async {
+  /// Il foglio dell'accesso: Apple, Google, Steam o l'email con il codice.
+  Future<void> _signIn() async {
     if (_coach) setState(() => _coach = false);
-    final signedIn = await showSignInSheet(context, services: _online!, test: test);
+    final signedIn = await showSignInSheet(context, services: _online!);
     if (signedIn) _continue();
   }
 
@@ -565,13 +570,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
       body: MediaQuery.withNoTextScaling(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final layout = HomeAlleyLayout(constraints.biggest, MediaQuery.paddingOf(context));
-            // La strada dei menu parte da qui: l'uomo sotto il lampione.
-            StreetStage.report(context, StreetSpot(layout.smokerFeet, layout.smoker));
-            StreetStage.place(context, StreetPlace(0, layout.lights));
+            // Al primo avvio, sotto l'insegna, il biglietto del tutorial: i
+            // manifesti gli fanno posto.
+            final note = widget.offerTutorial && !AppSettings.instance.tutorialSeen;
+            final layout = HomeAlleyLayout(constraints.biggest, MediaQuery.paddingOf(context), note: note ? _noteRoom : 0);
             // Su desktop non c'è «Un telefono per tutti»: restano gli amici
             // e la classificata, alti quanto tutta la zona dei manifesti.
             final desktop = DesktopPlatform.isDesktop;
+            // La festa del giorno, se ce n'è una accesa: la neve, le zucche...
+            final season = SeasonAlley.of(context, layout, desktop: desktop, canvas: canvas, signedIn: signedIn);
+            final lights = season?.lights ?? layout.lights;
+            // La strada dei menu parte da qui: l'uomo sotto il lampione.
+            StreetStage.report(context, StreetSpot(layout.smokerFeet, layout.smoker));
+            StreetStage.place(context, StreetPlace(0, lights));
             final friendsPoster = desktop
                 ? Rect.fromLTRB(
                     layout.leftPoster.left,
@@ -603,7 +614,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                   // si avvia scorre via con gli stessi mattoni e la stessa luce
                   // della facciata che arriva. Si dipinge una volta, poi è
                   // un'immagine.
-                  StreetWallLayer(wall: layout.wall, index: 0, fixed: layout.lights),
+                  StreetWallLayer(wall: layout.wall, index: 0, fixed: lights),
                   Baked(
                     child: CustomPaint(
                       painter: HomeWallPainter(
@@ -613,6 +624,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                       ),
                     ),
                   ),
+                  ?season?.wall,
                   // L'insegna, appesa più avanti del muro, se ne va un po' più
                   // in fretta di lui (senza sfumare: è grande quanto lo schermo).
                   // Cambia solo quando una lettera sfarfalla: in mezzo è
@@ -626,6 +638,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                       ),
                     ),
                   ),
+                  ?season?.letters,
                   // Il titolo vero: i tubi li disegna il pittore, ma chi usa
                   // VoiceOver deve poterlo leggere. E chi tocca l'insegna la
                   // manda in corto.
@@ -643,15 +656,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                       ),
                     ),
                   ),
-                  if (widget.offerTutorial && !AppSettings.instance.tutorialSeen)
-                    Positioned(
-                      left: layout.sign.left,
-                      width: layout.sign.width,
-                      top: layout.sign.bottom + 2,
+                  if (layout.noteSlot case final slot?)
+                    Positioned.fromRect(
+                      rect: slot,
+                      // Sta sempre tutto nel suo posto: se il testo va a capo
+                      // più del solito (una lingua lunga) si stringe un poco.
                       child: Center(
-                        child: TutorialNote(
-                          onOpen: () => TutorialScreen.open(context),
-                          onDismiss: () => setState(() => AppSettings.instance.tutorialSeen = true),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(maxWidth: slot.width),
+                            child: TutorialNote(
+                              onOpen: () => TutorialScreen.open(context),
+                              onDismiss: () => setState(() => AppSettings.instance.tutorialSeen = true),
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -673,7 +692,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                         key: const Key('home.signIn'),
                         label: t.online.signIn,
                         onTap: _signIn,
-                        onLongPress: () => _signIn(test: true),
                       ),
                     ),
                   // Dopo l'accesso, al posto della targa ACCEDI c'è l'insegna
@@ -774,10 +792,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                       ),
                     ),
                   ),
+                  ?season?.posters,
+                  ?season?.front,
                   IgnorePointer(
                     child: RepaintBoundary(
                       child: CustomPaint(
-                        painter: HomeStreetPainter(layout: layout, ambient: _ambient, intro: _intro, neon: _neon),
+                        painter: HomeStreetPainter(layout: layout, ambient: _ambient, intro: _intro, neon: _neon, rain: season?.rain ?? true),
                       ),
                     ),
                   ),
@@ -810,6 +830,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                         onTap: _openRules,
                       ),
                     ),
+                  ?season?.top(_intro),
                   Positioned.fromRect(
                     rect: layout.caption,
                     child: IgnorePointer(
@@ -832,7 +853,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                           profile: account?.profile,
                           signInLabel: t.online.signIn,
                           onSignIn: _signIn,
-                          onSignInTest: () => _signIn(test: true),
                           onProfile: _openProfile,
                           pickHandle: t.online.pickHandle,
                           levelLabel: t.online.levelShort,

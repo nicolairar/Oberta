@@ -1,0 +1,22 @@
+OBERTÀ — TELEGRAM · CONFIDENTIAL · AT THE DOOR
+
+Somebody is knocking at the door.
+Say the word.
+
+To sign in to Obertà with this address, type the code below in the app. On your phone you can also tap the button: the app opens signed in.
+
+Your code: 428913
+
+Open Obertà: https://ref.supabase.co/auth/v1/verify?token=pkce_0000&type=magiclink&redirect_to=oberta%3A%2F%2Flogin-callback
+
+The code and the button work for 15 minutes, once.
+
+— The Doorman
+
+Not you? Then someone typed the wrong address: ignore this email. Without the code nobody gets in.
+Who knows, keeps quiet.
+
+--
+You get this email because a sign-in to Obertà was requested with this address.
+Privacy policy: https://charliemobile.dev/oberta/privacy-en.html
+Obertà · Charlie Mobile · Nicolai Tana · oberta@charliemobile.dev

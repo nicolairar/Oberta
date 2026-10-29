@@ -8,6 +8,7 @@ import '../../../l10n/collection_strings.dart';
 import '../../../l10n/app_strings.dart';
 import '../../../l10n/settings_strings.dart';
 import '../../../l10n/progress_strings.dart';
+import '../../../l10n/safety_strings.dart';
 import '../../../l10n/stats_strings.dart';
 import '../../../online/online_account.dart';
 import '../../../online/online_services.dart';
@@ -22,6 +23,7 @@ import '../../widgets/player_avatar.dart';
 import '../avatar/barber_mirror_screen.dart';
 import 'online_widgets.dart';
 import 'progress_hooks.dart';
+import 'safety_sheets.dart';
 import '../../widgets/noir_modal.dart';
 import '../../theme/script_fonts.dart';
 

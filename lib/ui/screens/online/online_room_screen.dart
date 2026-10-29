@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../../../build_flags.dart';
 import '../../../l10n/app_strings.dart';
 import '../../../l10n/safety_strings.dart';
 import '../../../online/game/bot_brain.dart';
@@ -90,10 +91,11 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> with ScreenMusic {
   /// non ci si risiede da soli, si rientra col pulsante.
   bool _stayedOut = false;
 
-  /// Meno persone di così non si danno le carte. Nel periodo di prova ne
-  /// bastano due: i posti vuoti li riempie il server con i bot (il server
-  /// decide, qui si mostra solo il pulsante acceso).
-  static const minPlayers = botsEnabled ? 2 : 4;
+  /// Meno persone di così non si danno le carte. Nelle build di prova ne
+  /// bastano due: i posti vuoti li riempie il server con i bot, se il periodo
+  /// di prova è acceso (`friends_test_bots`; il server decide, qui si mostra
+  /// solo il pulsante acceso). Nella build da negozio, quattro.
+  static const minPlayers = BuildFlags.testTools ? 2 : 4;
 
   @override
   void initState() {
@@ -438,8 +440,8 @@ class _OnlineRoomScreenState extends State<OnlineRoomScreen> with ScreenMusic {
       line = t.startNeeds(minPlayers);
       lit = false;
     } else {
-      line = botsEnabled ? t.testBotsNote : t.startGame;
-      lit = !botsEnabled;
+      line = BuildFlags.testTools ? t.testBotsNote : t.startGame;
+      lit = !BuildFlags.testTools;
     }
     final secondary = desk ? DeskText.text(size: DeskText.label, color: AppColors.textSecondary) : AppText.body.copyWith(fontSize: 12, color: AppColors.textSecondary);
     return Column(

@@ -166,10 +166,10 @@ Future<Map<String, ui.Image>> shootPlates(WidgetTester tester) async {
   // from what the app remembers he wears (WornLooks), and so does the promo.
   WornLooks.remember((await _settled(tester, online.services.profiles.me()))!);
   brotherLook = AvatarLook.of('tony');
-  // Then the phone is yours: Bruno, on a test account of the fake backend.
+  // Then the phone is yours: Bruno, on a second account of the fake backend.
   online.addPlayer('test-1', handle: 'bruno');
   await _settled(tester, online.services.auth.signOut());
-  await _settled(tester, online.services.auth.signInWithTestAccount(email: 'bruno@promo.test', password: 'promo-only'));
+  online.auth.debugSignIn('test-1');
   OnlineServices.instance = online.services;
   final room = online.openRoomAs('tony', AppLanguage.it);
   online.joinAs('test-1', room.code);

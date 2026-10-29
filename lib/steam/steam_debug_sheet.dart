@@ -6,7 +6,8 @@ import 'steam.dart';
 import '../ui/widgets/noir_modal.dart';
 
 /// Il menu nascosto per provare l'idraulica Steam con l'App ID 480: solo
-/// nelle build `--dart-define=STEAM=true`, si apre dalle Impostazioni del
+/// nelle build `--dart-define=STEAM=true` di prova (`BuildFlags.testTools`,
+/// mai in quella che va su Steam), si apre dalle Impostazioni del
 /// desktop con Ctrl+Shift+S (⌘⇧S sul Mac). Non è roba per i giocatori:
 /// testi in inglese, nessuna traduzione.
 class SteamDebugSheet extends StatefulWidget {

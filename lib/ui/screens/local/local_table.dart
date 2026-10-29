@@ -224,8 +224,11 @@ class LocalFelt extends StatelessWidget {
 class LocalCurtain extends StatelessWidget {
   final Player player;
   final int? number;
-  final String hint;
   final VoidCallback onReady;
+
+  /// One line under the name, only where the hand-off needs saying (the
+  /// day powers); the night and the cards show just the name.
+  final String? hint;
 
   /// A way back, for a face tapped by mistake (the day powers): the same
   /// for everyone, so it says nothing about who has what.
@@ -236,8 +239,8 @@ class LocalCurtain extends StatelessWidget {
     super.key,
     required this.player,
     required this.number,
-    required this.hint,
     required this.onReady,
+    this.hint,
     this.onBack,
     this.backLabel,
   });
@@ -280,12 +283,14 @@ class LocalCurtain extends StatelessWidget {
                 fit: BoxFit.scaleDown,
                 child: Text(tag.toUpperCase(), key: const Key('local.curtainName'), style: Saloon.plate(desk ? 56 : 36)),
               ),
-              SizedBox(height: desk ? 18 : 12),
-              Text(
-                hint,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.textSecondary, fontSize: desk ? 20 : 15, height: 1.35),
-              ),
+              if (hint case final hint?) ...[
+                SizedBox(height: desk ? 18 : 12),
+                Text(
+                  hint,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: desk ? 20 : 15, height: 1.35),
+                ),
+              ],
               const Spacer(),
               SizedBox(
                 width: double.infinity,

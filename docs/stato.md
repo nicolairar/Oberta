@@ -42,7 +42,7 @@
 - Collega Google e Collega Apple dal PC: configurare i provider su Supabase.
 
 **Pubblicazione**
-- iPhone: fascia d'età, privacy e prezzo su App Store Connect; poi build finale senza debug, bot spenti (`ranked_test_humans`, `friends_test_bots`), build con `OBERTA_BOTS=false`.
+- iPhone: fascia d'età, privacy e prezzo su App Store Connect; poi build finale senza `RANKED_DEBUG` (la build da negozio, `lib/build_flags.dart`), bot spenti con `supabase/scripts/prelaunch.sql` (`ranked_test_humans`, `friends_test_bots`).
 - Steam: verifica fiscale in corso → App ID → chiave Web API e depot in `fastlane/.env` → login automatico, SteamPipe, obiettivi, pagina dello store (kit pronto in `steam/store/`).
 - LiveKit: verificare nel pannello che registrazioni, egress, agenti e trascrizioni siano spenti.
 - Landing: aggiornare schermate e testi dopo la direzione artistica.

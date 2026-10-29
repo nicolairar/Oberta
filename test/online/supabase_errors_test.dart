@@ -21,29 +21,30 @@ void main() {
         OnlineFailure.googleDisabled);
   });
 
-  test('l\'account di prova: email spenta, password sbagliata, password debole', () {
+  test('l\'accesso con email: spento, indirizzo storto, codice, troppe mail, mail non partita', () {
+    OnlineFailure email(AuthException error) => translate(error, SignInDoor.email).failure;
+    expect(email(const AuthApiException('Email logins are disabled', code: 'email_provider_disabled')),
+        OnlineFailure.emailDisabled);
+    expect(email(const AuthApiException('Unable to validate email address: invalid format')), OnlineFailure.invalidEmail);
     expect(
-      translate(const AuthApiException('Email logins are disabled', code: 'email_provider_disabled'), SignInDoor.email)
-          .failure,
-      OnlineFailure.emailDisabled,
+      email(const AuthApiException('Token has expired or is invalid', statusCode: '403', code: 'otp_expired')),
+      OnlineFailure.emailCodeWrong,
     );
     expect(
-      translate(const AuthApiException('Invalid login credentials', code: 'invalid_credentials'), SignInDoor.email)
-          .failure,
-      OnlineFailure.wrongPassword,
+      email(const AuthApiException('For security purposes, you can only request this after 42 seconds.',
+          statusCode: '429', code: 'over_email_send_rate_limit')),
+      OnlineFailure.emailRateLimited,
     );
     expect(
-      translate(const AuthApiException('User already registered', code: 'user_already_exists'), SignInDoor.email)
-          .failure,
-      OnlineFailure.wrongPassword,
+      email(const AuthApiException('Error sending magic link email', statusCode: '500', code: 'unexpected_failure')),
+      OnlineFailure.emailNotSent,
     );
+    expect(email(const AuthApiException('Failed to reach hook', statusCode: '500', code: 'hook_timeout')),
+        OnlineFailure.emailNotSent);
     expect(
-      translate(AuthWeakPasswordException(message: 'weak', statusCode: '422', reasons: const ['length'])).failure,
-      OnlineFailure.weakPassword,
-    );
-    expect(
-      translate(const AuthApiException('Unable to validate email address: invalid format'), SignInDoor.email).failure,
-      OnlineFailure.invalidEmail,
+      translate(const AuthApiException('slow down', statusCode: '429', code: 'over_request_rate_limit')).failure,
+      OnlineFailure.unknown,
+      reason: 'fuori dall\'email un 429 non è «troppe mail»',
     );
   });
 

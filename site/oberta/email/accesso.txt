@@ -1,0 +1,31 @@
+OBERTÀ — TELEGRAMMA · RISERVATO · ALLA PORTA
+
+Qualcuno bussa alla porta.
+Di’ la parola d’ordine.
+
+Per entrare in Obertà con questo indirizzo, scrivi nell’app il codice qui sotto. Dal telefono puoi anche toccare il pulsante: l’app si apre già dentro.
+
+Somebody is knocking at the door.
+Say the word.
+
+To sign in to Obertà with this address, type the code below in the app. On your phone you can also tap the button: the app opens signed in.
+
+Il tuo codice · Your code: 428913
+
+Apri Obertà · Open Obertà: https://ref.supabase.co/auth/v1/verify?token=pkce_0000&type=magiclink&redirect_to=oberta%3A%2F%2Flogin-callback
+
+Codice e pulsante valgono 15 minuti, una volta sola.
+The code and the button work for 15 minutes, once.
+
+— Il Portiere / — The Doorman
+
+Non sei stato tu? Allora qualcuno ha sbagliato indirizzo: ignora questa mail. Senza il codice non entra nessuno.
+Not you? Then someone typed the wrong address: ignore this email. Without the code nobody gets in.
+Chi sa, tace.
+
+--
+Ricevi questa mail perché è stato chiesto un accesso a Obertà con questo indirizzo.
+You get this email because a sign-in to Obertà was requested with this address.
+Informativa privacy: https://charliemobile.dev/oberta/privacy.html
+Privacy policy: https://charliemobile.dev/oberta/privacy-en.html
+Obertà · Charlie Mobile · Nicolai Tana · oberta@charliemobile.dev

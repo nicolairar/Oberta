@@ -6,12 +6,10 @@ import '../../l10n/app_strings.dart';
 import '../../l10n/local_role_strings.dart';
 import '../../rules/game_engine.dart' show RoleDayPower;
 import '../../rules/game_setup.dart';
-import '../../narration/narrator_script.dart';
 import '../../l10n/table_strings.dart';
 import '../desktop/desktop_canvas.dart';
 import '../widgets/content_width.dart';
 import '../widgets/noir_modal.dart';
-import '../widgets/spoken_lines.dart';
 import 'local/local_table.dart';
 import 'online/game/action_strip.dart';
 import 'online/game/noir_role_card.dart';
@@ -37,9 +35,6 @@ class _RoleRevealScreenState extends State<RoleRevealScreen> {
     // Mentre ognuno guarda la sua carta, in modalità meme parte la canzoncina.
     SoundStage.instance.meme(Meme.englishSpanish);
   }
-
-  /// Solo per le parole della tenda: la città non conta.
-  late final NarratorScript _script = NarratorScript(pack: AppStrings.of(context).pack);
 
   int _index = 0;
   bool _holdingPhone = false;
@@ -67,7 +62,6 @@ class _RoleRevealScreenState extends State<RoleRevealScreen> {
     final player = players[_index];
     final t = AppStrings.of(context);
     final ts = TableStrings(t.language);
-    final curtain = _script.curtain(player.name, card: true);
     final desk = DesktopCanvas.of(context);
     final tag = '${_index + 1} ${player.name}';
     return PopScope(
@@ -114,7 +108,7 @@ class _RoleRevealScreenState extends State<RoleRevealScreen> {
                                       child: ConstrainedBox(
                                         constraints: const BoxConstraints(maxWidth: 560),
                                         child: ActionStrip(
-                                          status: _seen ? _script.putPhoneDown().text : ts.holdTheCard,
+                                          status: _seen ? t.personBookedPass : ts.holdTheCard,
                                           tone: _seen ? StripTone.done : StripTone.act,
                                           actions: [
                                             NoirAction(
@@ -131,16 +125,11 @@ class _RoleRevealScreenState extends State<RoleRevealScreen> {
                                   ),
                                 ],
                               )
-                            : SpokenLines(
+                            : LocalCurtain(
                                 key: ValueKey('handoff-$_index'),
-                                lines: curtain,
-                                reader: setup.narrator?.name,
-                                child: LocalCurtain(
-                                  player: player,
-                                  number: _index + 1,
-                                  hint: curtain.last.text,
-                                  onReady: () => setState(() => _holdingPhone = true),
-                                ),
+                                player: player,
+                                number: _index + 1,
+                                onReady: () => setState(() => _holdingPhone = true),
                               ),
                       ),
                     ),

@@ -121,8 +121,8 @@ class _DesktopSettingsState extends State<_DesktopSettings> {
           bindings: {
             const SingleActivator(LogicalKeyboardKey.arrowUp): () => _step(-1),
             const SingleActivator(LogicalKeyboardKey.arrowDown): () => _step(1),
-            // Il menu nascosto di prova Steam (solo build STEAM=true).
-            if (SteamClient.enabled)
+            // Il menu nascosto di prova Steam (solo build STEAM=true di prova).
+            if (SteamClient.enabled && BuildFlags.testTools)
               for (final shortcut in SteamDebugSheet.shortcuts) shortcut: () => SteamDebugSheet.open(context),
           },
           child: DeskEscape(
@@ -451,13 +451,13 @@ class _DesktopSettingsState extends State<_DesktopSettings> {
             icon: Icons.privacy_tip_outlined,
             title: s.privacyPolicy,
             chevron: true,
-            onTap: () => _host._openLegal(s.privacyPolicy, 'privacy', privacyPolicyUrl),
+            onTap: () => _host._openLegal(s.privacyPolicy, 'privacy'),
           ),
           _DeskRow(
             icon: Icons.gavel,
             title: s.terms,
             chevron: true,
-            onTap: () => _host._openLegal(s.terms, 'terms', termsUrl),
+            onTap: () => _host._openLegal(s.terms, 'terms'),
           ),
           if (signedIn && _host.widget.online?.account != null)
             _DeskRow(

@@ -102,41 +102,60 @@ void main() {
     });
   });
 
-  group('l\'account di prova', () {
-    test('la prima volta crea l\'account, poi ci rientra con la stessa password', () async {
-      await online.auth.signInWithTestAccount(email: 'prova@oberta.test', password: 'segreta');
+  group('l\'accesso con email, senza password', () {
+    test('il codice della mail fa entrare, e la volta dopo nello stesso account', () async {
+      await online.auth.sendEmailCode(' Prova@Oberta.test ', language: 'it');
+      final code = online.auth.emailCodes['prova@oberta.test']!;
+      expect(code, matches(RegExp(r'^[0-9]{6}$')));
+      expect(online.auth.emailLanguages['prova@oberta.test'], 'it');
+      await online.auth.verifyEmailCode(email: 'prova@oberta.test', code: code);
       final first = online.auth.userId;
       expect(first, isNotNull);
       expect(first, isNot('me'), reason: 'è un altro account, non quello di Apple');
       await online.auth.signOut();
-      await online.auth.signInWithTestAccount(email: ' Prova@Oberta.test ', password: 'segreta');
+      await online.auth.sendEmailCode('prova@oberta.test');
+      await online.auth.verifyEmailCode(email: 'PROVA@oberta.test', code: online.auth.emailCodes['prova@oberta.test']!);
       expect(online.auth.userId, first);
     });
 
-    test('password sbagliata, password debole, email storta', () async {
-      await online.auth.signInWithTestAccount(email: 'prova@oberta.test', password: 'segreta');
-      await online.auth.signOut();
+    test('codice sbagliato, quello di una mail vecchia, scaduto, email storta', () async {
+      await online.auth.sendEmailCode('prova@oberta.test');
+      final old = online.auth.emailCodes['prova@oberta.test']!;
       await expectLater(
-        online.auth.signInWithTestAccount(email: 'prova@oberta.test', password: 'sbagliata'),
-        _fails(OnlineFailure.wrongPassword),
+        online.auth.verifyEmailCode(email: 'prova@oberta.test', code: '000000'),
+        _fails(OnlineFailure.emailCodeWrong),
       );
+      await online.auth.sendEmailCode('prova@oberta.test');
+      expect(online.auth.emailCodes['prova@oberta.test'], isNot(old), reason: 'una mail nuova, un codice nuovo');
       await expectLater(
-        online.auth.signInWithTestAccount(email: 'altra@oberta.test', password: '123'),
-        _fails(OnlineFailure.weakPassword),
+        online.auth.verifyEmailCode(email: 'prova@oberta.test', code: old),
+        _fails(OnlineFailure.emailCodeWrong),
       );
+      online.auth.expireEmailCodes();
       await expectLater(
-        online.auth.signInWithTestAccount(email: 'non-una-email', password: 'segreta'),
-        _fails(OnlineFailure.invalidEmail),
+        online.auth.verifyEmailCode(email: 'prova@oberta.test', code: online.auth.emailCodes['prova@oberta.test']!),
+        _fails(OnlineFailure.emailCodeExpired),
       );
+      await expectLater(online.auth.sendEmailCode('non-una-email'), _fails(OnlineFailure.invalidEmail));
       expect(online.auth.signedIn, isFalse);
     });
 
-    test('col provider Email spento sul server non si entra', () async {
+    test('il link della mail fa entrare una volta sola', () async {
+      await online.auth.sendEmailCode('prova@oberta.test');
+      online.auth.openEmailLink('prova@oberta.test');
+      expect(online.auth.signedIn, isTrue);
+      expect(online.auth.takeEmailLinkFailure(), isNull);
+      await online.auth.signOut();
+      online.auth.openEmailLink('prova@oberta.test');
+      expect(online.auth.signedIn, isFalse);
+      expect(online.auth.takeEmailLinkFailure()?.failure, OnlineFailure.emailLinkExpired);
+      expect(online.auth.takeEmailLinkFailure(), isNull, reason: 'lo si dice una volta');
+    });
+
+    test('col provider Email spento sul server la mail non parte', () async {
       online.emailEnabled = false;
-      await expectLater(
-        online.auth.signInWithTestAccount(email: 'prova@oberta.test', password: 'segreta'),
-        _fails(OnlineFailure.emailDisabled),
-      );
+      await expectLater(online.auth.sendEmailCode('prova@oberta.test'), _fails(OnlineFailure.emailDisabled));
+      expect(online.auth.emailCodes, isEmpty);
     });
   });
 

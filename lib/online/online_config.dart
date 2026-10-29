@@ -13,11 +13,18 @@ class OnlineConfig {
   final String googleIosClientId;
   final String googleWebClientId;
 
+  /// Il client OAuth Android (pacchetto + SHA-1 delle chiavi di firma). Il
+  /// codice non lo usa: Android chiede il token per il client web. C'è solo
+  /// quando il proprietario l'ha creato (docs/release.md), e accende il
+  /// pulsante di Google su Android: senza, Google risponderebbe con un errore.
+  final String googleAndroidClientId;
+
   const OnlineConfig({
     required this.supabaseUrl,
     required this.supabaseAnonKey,
     this.googleIosClientId = '',
     this.googleWebClientId = '',
+    this.googleAndroidClientId = '',
   });
 
   static const compiled = OnlineConfig(
@@ -25,9 +32,12 @@ class OnlineConfig {
     supabaseAnonKey: String.fromEnvironment('SUPABASE_ANON_KEY'),
     googleIosClientId: String.fromEnvironment('GOOGLE_IOS_CLIENT_ID'),
     googleWebClientId: String.fromEnvironment('GOOGLE_WEB_CLIENT_ID'),
+    googleAndroidClientId: String.fromEnvironment('GOOGLE_ANDROID_CLIENT_ID'),
   );
 
   bool get isComplete => supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
 
   bool get hasGoogle => googleIosClientId.isNotEmpty && googleWebClientId.isNotEmpty;
+
+  bool get hasGoogleAndroid => googleAndroidClientId.isNotEmpty && googleWebClientId.isNotEmpty;
 }

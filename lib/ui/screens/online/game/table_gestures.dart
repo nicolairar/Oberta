@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 import '../../../../online/reactions.dart';
+import '../../../widgets/weapons/noir_weapons.dart';
 import 'noir_ui.dart';
 
 /// Un gesto disegnato a mano, nello stile del tavolo: inchiostro scuro,
@@ -20,7 +21,6 @@ class GestureArt extends CustomPainter {
   static const _ink = Color(0xFF120C08);
   static const _cream = Color(0xFFF3E9D2);
   static const _ember = Color(0xFFFF8A2A);
-  static const _steel = Color(0xFF3A3D44);
   static const _leaf = Color(0xFF3E7A3A);
   static const _skin = Color(0xFFE2B48C);
   static const _amber = Color(0xFFC8781E);
@@ -291,41 +291,16 @@ class GestureArt extends CustomPainter {
     canvas.restore();
   }
 
-  static void _revolver(Canvas canvas, {Color body = _steel}) {
-    final gun = Path()
-      ..moveTo(-0.08, -0.12)
-      ..lineTo(0.4, -0.12)
-      ..lineTo(0.4, -0.04)
-      ..lineTo(0.06, -0.04)
-      ..lineTo(0.04, 0.0)
-      ..lineTo(-0.06, 0.0)
-      ..lineTo(-0.12, 0.26)
-      ..lineTo(-0.28, 0.26)
-      ..lineTo(-0.2, -0.04)
-      ..lineTo(-0.22, -0.1)
-      ..close();
-    _shadow(canvas, gun);
-    canvas.drawPath(gun, _fill(body));
-    canvas.drawPath(
-        Path()
-          ..moveTo(-0.11, 0.04)
-          ..lineTo(-0.15, 0.24)
-          ..lineTo(-0.25, 0.24)
-          ..lineTo(-0.19, 0.0)
-          ..close(),
-        _fill(const Color(0xFF6A3A1E)));
-    canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(-0.08, -0.15, 0.16, 0.13), const Radius.circular(0.03)),
-        _fill(const Color(0xFF4C5058)));
-    canvas.drawArc(const Rect.fromLTWH(-0.06, -0.02, 0.1, 0.1), 0, pi, false, _line(_ink, 0.02));
-    canvas.drawPath(gun, _line(_ink, 0.02));
-  }
+  /// Le armi dei gesti sono quelle dei filmati della notte: nere, col filo
+  /// di luce (weapons/noir_weapons.dart).
+  static const _weapons = NoirWeapons(WeaponLook.inked);
+  static const _gunBox = Rect.fromLTRB(-0.40, -0.30, 0.42, 0.30);
+  static const _gunTilt = -0.2;
 
   static void _gun(Canvas canvas, double t) {
-    canvas.save();
-    canvas.rotate(-0.2);
-    _revolver(canvas);
-    canvas.restore();
-    _smoke(canvas, const Offset(0.38, -0.2), t, scale: 1.2);
+    _weapons.icon(canvas, NoirWeapon.revolver, _gunBox, tilt: _gunTilt);
+    final muzzle = NoirWeapons.iconMuzzle(NoirWeapon.revolver, _gunBox, tilt: _gunTilt);
+    _smoke(canvas, muzzle.translate(0.02, -0.04), t, scale: 1.2);
   }
 
   static void _bill(Canvas canvas, Offset at, double angle, double alpha) {
@@ -487,49 +462,25 @@ class GestureArt extends CustomPainter {
     }
   }
 
+  static const _tommyBox = Rect.fromLTRB(-0.47, -0.30, 0.47, 0.30);
+  static const _tommyTilt = -0.15;
+
   static void _tommy(Canvas canvas, double t, double land) {
-    canvas.save();
-    canvas.rotate(-0.15);
-    final body = Path()
-      ..moveTo(-0.44, -0.04)
-      ..lineTo(-0.2, -0.08)
-      ..lineTo(0.3, -0.08)
-      ..lineTo(0.3, 0.0)
-      ..lineTo(-0.2, 0.02)
-      ..lineTo(-0.44, 0.1)
-      ..close();
-    _shadow(canvas, body);
-    canvas.drawPath(body, _fill(_steel));
-    canvas.drawRect(const Rect.fromLTRB(0.3, -0.065, 0.44, -0.035), _fill(_steel));
-    for (var i = 0; i < 4; i++) {
-      canvas.drawLine(Offset(0.12 + i * 0.04, -0.08), Offset(0.12 + i * 0.04, 0.0), _line(_ink, 0.012));
-    }
-    canvas.drawPath(
-        Path()
-          ..moveTo(-0.44, -0.04)
-          ..lineTo(-0.26, -0.06)
-          ..lineTo(-0.28, 0.06)
-          ..lineTo(-0.44, 0.1)
-          ..close(),
-        _fill(const Color(0xFF6A3A1E)));
-    canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(0.08, 0.0, 0.06, 0.14), const Radius.circular(0.02)),
-        _fill(const Color(0xFF6A3A1E)));
-    canvas.drawCircle(const Offset(-0.06, 0.08), 0.1, _fill(const Color(0xFF2A2C31)));
-    canvas.drawCircle(const Offset(-0.06, 0.08), 0.1, _line(_ink, 0.018));
-    canvas.drawCircle(const Offset(-0.06, 0.08), 0.03, _fill(_steel));
-    canvas.drawPath(body, _line(_ink, 0.02));
+    _weapons.icon(canvas, NoirWeapon.tommy, _tommyBox, tilt: _tommyTilt);
     final flash = ((t * 12) % 1) < 0.5;
     if (flash) {
+      // La vampata appena davanti al compensatore.
+      final at = NoirWeapons.iconMuzzle(NoirWeapon.tommy, _tommyBox, tilt: _tommyTilt) +
+          Offset(cos(_tommyTilt), sin(_tommyTilt)) * 0.06;
       final star = Path();
       for (var i = 0; i < 8; i++) {
         final r = i.isEven ? 0.12 : 0.05;
         final a = i * pi / 4;
-        final p = Offset(0.5 + cos(a) * r, -0.05 + sin(a) * r);
+        final p = Offset(at.dx + cos(a) * r, at.dy + sin(a) * r);
         i == 0 ? star.moveTo(p.dx, p.dy) : star.lineTo(p.dx, p.dy);
       }
       canvas.drawPath(star..close(), _fill(const Color(0xFFFFC83A)));
     }
-    canvas.restore();
     if (land > 0) {
       // I fori sul posto, uno dopo l'altro, con le crepe.
       const holes = [Offset(-0.3, -0.3), Offset(0.28, -0.22), Offset(-0.18, 0.28), Offset(0.32, 0.3), Offset(0.02, -0.4)];
