@@ -52,7 +52,17 @@ class DeviceStage extends SoundStage implements VerdictStage {
   DeviceStage() {
     _ready.then<void>((_) {}, onError: _report);
     _cues.then<void>((_) {}, onError: _report);
+    for (final player in [_player, _memePlayer, _voicePlayer, ..._shortPlayers,
+      for (final deck in [..._musicDecks, ..._ambienceDecks, ..._atmosphereDecks]) deck.player]) {
+      _quiet(player);
+    }
   }
+
+  /// Di serie un lettore chiede a che punto è a ogni fotogramma, finché
+  /// suona: con la musica sempre accesa vuol dire chiedere un fotogramma
+  /// nuovo dopo l'altro, e una chiamata al sistema per lettore ogni volta.
+  /// Qui nessuno ascolta quella posizione: la si chiede solo quando serve.
+  static AudioPlayer _quiet(AudioPlayer player) => player..positionUpdater = null;
 
   /// Da dove parte davvero [asset] (saltato il silenzio in testa) e quanto
   /// suona da lì.
