@@ -291,7 +291,9 @@ class NoirActions extends StatelessWidget {
     final m = NoirMetrics.of(context);
     Widget button(NoirAction a) => NoirModalButton(key: a.key, action: a, paper: paper, autofocus: a.main && m.desk);
     if (actions.length == 1) return button(actions.single);
-    if (actions.length == 2) {
+    // Side by side, unless a button carries a price on a phone: half the
+    // card is too narrow for both, and the words shrank to a whisper.
+    if (actions.length == 2 && (m.desk || actions.every((a) => a.trailing == null))) {
       final ordered = [...actions]..sort((a, b) => (a.main ? 1 : 0) - (b.main ? 1 : 0));
       return Row(
         children: [

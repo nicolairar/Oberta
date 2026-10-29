@@ -7,8 +7,20 @@ class _Entry {
   final ShopFeature? feature;
   final ShopBundle? bundle;
 
-  const _Entry.item(ShopItem this.item, {this.feature}) : bundle = null;
-  const _Entry.bundle(ShopBundle this.bundle) : item = null, feature = null;
+  /// A bundle's gestures: they show in flight, not worn.
+  final List<TableGesture> gestures;
+
+  /// A bundle of frames and name inks: it shows on the seat card.
+  final bool around;
+
+  const _Entry.item(ShopItem this.item, {this.feature}) : bundle = null, gestures = const [], around = false;
+  const _Entry.bundle(ShopBundle this.bundle, {this.gestures = const [], this.around = false}) : item = null, feature = null;
+
+  /// A gesture, or a bundle of gestures only.
+  bool get isGesture => item?.isGesture ?? (gestures.isNotEmpty && gestures.length == bundle!.itemIds.length);
+
+  /// The gestures it shows.
+  List<TableGesture> get showcase => item != null ? [?ShopController.gestureOf(item!)] : gestures;
 
   String get key => bundle != null ? 'bundle.${bundle!.id}' : item!.id;
 
@@ -45,7 +57,12 @@ Rect _focusOf(_Entry entry) {
 class _ZoomBustPainter extends CustomPainter {
   final AvatarLook look;
   final Rect focus;
-  const _ZoomBustPainter(this.look, {this.focus = const Rect.fromLTWH(0, 0, 1, 1)});
+
+  /// The scene as a framed picture behind the bust (the hero): rounded
+  /// corners and a brass rim, so its square edges read as a frame and not
+  /// as a cut. The person stands in front and may overlap the rim.
+  final bool framed;
+  const _ZoomBustPainter(this.look, {this.focus = const Rect.fromLTWH(0, 0, 1, 1), this.framed = false});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -53,12 +70,28 @@ class _ZoomBustPainter extends CustomPainter {
     canvas.save();
     canvas.clipRect(Offset.zero & size);
     canvas.translate(size.width / 2 - focus.center.dx * scale, size.height / 2 - focus.center.dy * scale);
-    LookPainter.bust(canvas, look, scale);
+    if (framed && look.aura != Aura.none) {
+      final picture = RRect.fromRectAndRadius(Offset.zero & Size.square(scale), Radius.circular(scale * 0.07));
+      canvas.drawRRect(picture.shift(Offset(0, scale * 0.012)), Paint()
+        ..color = const Color(0xAA000000)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, scale * 0.02));
+      canvas.save();
+      canvas.clipRRect(picture);
+      LookPainter.aura(canvas, look, scale);
+      canvas.restore();
+      canvas.drawRRect(picture, Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = max(1.5, scale * 0.008)
+        ..color = const Color(0xFFD9B45A));
+      LookPainter.bust(canvas, look, scale, aura: false);
+    } else {
+      LookPainter.bust(canvas, look, scale);
+    }
     canvas.restore();
   }
 
   @override
-  bool shouldRepaint(_ZoomBustPainter old) => old.look != look || old.focus != focus;
+  bool shouldRepaint(_ZoomBustPainter old) => old.look != look || old.focus != focus || old.framed != framed;
 }
 
 /// The picture of an entry: the player wearing it, zoomed on where it
@@ -72,16 +105,41 @@ class _EntryArt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final item = entry.item;
-    if (item != null && item.isGesture) {
-      return Padding(padding: const EdgeInsets.all(8), child: CustomPaint(painter: GestureArt(ShopController.gestureOf(item)!), child: const SizedBox.expand()));
+    if (entry.isGesture) {
+      return Padding(padding: const EdgeInsets.all(8), child: _GestureGrid(entry.showcase));
     }
-    if (item != null && item.around) {
+    if (item?.around ?? entry.around) {
       return Padding(
         padding: const EdgeInsets.fromLTRB(10, 6, 10, 2),
         child: FittedBox(child: SizedBox(width: 90, height: 90 * SeatPreview.aspect, child: SeatPreview(look: look, name: who))),
       );
     }
     return CustomPaint(painter: _ZoomBustPainter(look, focus: _focusOf(entry)), child: const SizedBox.expand());
+  }
+}
+
+/// Gestures, still: one fills the square, a bundle shows its four dearest
+/// two by two.
+class _GestureGrid extends StatelessWidget {
+  final List<TableGesture> gestures;
+  const _GestureGrid(this.gestures);
+
+  @override
+  Widget build(BuildContext context) {
+    if (gestures.length == 1) return CustomPaint(painter: GestureArt(gestures.single), child: const SizedBox.expand());
+    final shown = gestures.reversed.take(4).toList();
+    return Column(
+      children: [
+        for (var row = 0; row < 2; row++)
+          Expanded(
+            child: Row(
+              children: [
+                for (final g in shown.skip(row * 2).take(2)) Expanded(child: CustomPaint(painter: GestureArt(g), child: const SizedBox.expand())),
+              ],
+            ),
+          ),
+      ],
+    );
   }
 }
 
@@ -123,16 +181,16 @@ class _Hero extends StatelessWidget {
   });
 
   /// Whether [entry] shows as the seat card when nobody chose.
-  static bool cardFirst(_Entry? entry) => entry?.item?.around ?? false;
+  static bool cardFirst(_Entry? entry) => entry?.item?.around ?? entry?.around ?? false;
 
   @override
   Widget build(BuildContext context) {
-    final item = entry?.item;
     final Widget art;
-    if (item != null && item.isGesture) {
+    if (entry?.isGesture ?? false) {
       art = Padding(
-        padding: EdgeInsets.fromLTRB(size * 0.12, size * 0.1, size * 0.12, size * 0.2),
-        child: GestureShowcase(key: const Key('shop.hero.gesture'), gestures: [ShopController.gestureOf(item)!]),
+        // Above what covers the bottom (the phone's price tag), all of it.
+        padding: EdgeInsets.fromLTRB(size * 0.12, size * 0.1, size * 0.12, max(size * 0.2, size - (cardRoom ?? size) + size * 0.04)),
+        child: GestureShowcase(key: const Key('shop.hero.gesture'), gestures: entry!.showcase),
       );
     } else if (card ?? cardFirst(entry)) {
       final room = (cardRoom ?? size) - size * 0.06;
@@ -149,7 +207,7 @@ class _Hero extends StatelessWidget {
         ),
       );
     } else {
-      art = CustomPaint(painter: _ZoomBustPainter(look, focus: frame), size: Size.square(size));
+      art = CustomPaint(painter: _ZoomBustPainter(look, focus: frame, framed: true), size: Size.square(size));
     }
     return SizedBox.square(
       dimension: size,
@@ -246,7 +304,15 @@ class _TimerBadge extends StatelessWidget {
       children: [
         Icon(Icons.schedule, size: 11 * scale, color: const Color(0xFF1A0E04)),
         SizedBox(width: 3 * scale),
-        Text(text, style: TextStyle(color: const Color(0xFF1A0E04), fontSize: 10.5 * scale, fontWeight: FontWeight.w900, letterSpacing: 0.3)),
+        // On a small phone's tag the column is narrow: the time shortens.
+        Flexible(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(color: const Color(0xFF1A0E04), fontSize: 10.5 * scale, fontWeight: FontWeight.w900, letterSpacing: 0.3),
+          ),
+        ),
       ],
     ),
   );

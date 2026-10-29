@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/online/fake_online.dart';
 import 'package:oberta/online/online_account.dart';
@@ -163,14 +164,58 @@ void main() {
     await dept(tester, 'frames');
     expect(find.byKey(const Key('shop.hero.seat')), findsOneWidget, reason: 'la cornice si vede sulla carta');
     expect(find.descendant(of: find.byKey(const Key('shop.hero.seat')), matching: find.byKey(const Key('seatPreview.plate'))), findsOneWidget);
-    await tester.tap(find.byKey(const Key('shop.view.bust')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('shop.hero.seat')), findsNothing);
+    expect(find.byKey(const Key('shop.view.bust')), findsNothing, reason: 'on the bust a frame or an ink would not show at all');
 
     await dept(tester, 'hats');
     expect(find.byKey(const Key('shop.hero.seat')), findsNothing);
     await tester.tap(find.byKey(const Key('shop.view.card')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('shop.hero.seat')), findsOneWidget, reason: 'anche un cappello si prova sulla carta');
+  });
+
+  /// Like [pick], for shelves that never settle (gestures and frames move).
+  Future<void> pickMoving(WidgetTester tester, String key) async {
+    for (var i = 0; i < 80; i++) {
+      if (find.byKey(Key(key)).hitTestable().evaluate().isNotEmpty) {
+        await tester.tap(find.byKey(Key(key)).hitTestable());
+        await tester.pump(const Duration(milliseconds: 600));
+        return;
+      }
+      await tester.drag(find.byKey(const Key('shop.dial')), const Offset(-90, 0));
+      await tester.pump(const Duration(milliseconds: 600));
+    }
+    fail('$key never came round on the dial');
+  }
+
+  testWidgets('la vetrina: i gesti si vedono in volo, le cornici sulla carta', (tester) async {
+    await open(tester);
+    await tester.tap(find.byKey(const Key('shop.section.luxe')));
+    await tester.pump(const Duration(milliseconds: 600));
+    await pickMoving(tester, 'shop.bundle.repertorio');
+    expect(find.byKey(const Key('shop.hero.gesture')), findsOneWidget, reason: 'il repertorio non è un busto nudo');
+    expect(find.byKey(const Key('shop.view.card')), findsNothing, reason: 'un gesto non si indossa');
+    await pickMoving(tester, 'shop.bundle.leggenda');
+    expect(find.byKey(const Key('shop.hero.seat')), findsOneWidget, reason: 'cornici e inchiostri si vedono sul posto');
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('un pezzo delle missioni: la riga piccola resta nel cartellino e lascia il nome intero', (tester) async {
+    tester.view.physicalSize = const Size(375, 667) * 3;
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    account = OnlineAccount(online.services);
+    await tester.pumpWidget(MaterialApp(home: ShopScreen(account: account, shop: online.shop)));
+    await tester.pumpAndSettle();
+    await dept(tester, 'frames');
+    for (final id in ['border.badge', 'border.noose', 'border.laurel']) {
+      await pickMoving(tester, 'shop.item.$id');
+      final tag = tester.getRect(find.byKey(const Key('shop.tag')));
+      final action = tester.getRect(find.byKey(const Key('shop.action')));
+      expect(tag.contains(action.topLeft) && tag.contains(action.bottomRight), isTrue, reason: '$id: the unlock line stays inside the tag');
+      expect(action.width, lessThan(tag.width * 0.5), reason: '$id: the name keeps half the tag');
+      final name = tester.renderObject<RenderParagraph>(find.descendant(of: find.byKey(const Key('shop.tag')), matching: find.byType(RichText)).first);
+      expect(name.didExceedMaxLines, isFalse, reason: '$id: the name is whole');
+    }
+    await tester.pumpWidget(const SizedBox());
   });
 }

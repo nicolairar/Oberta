@@ -57,12 +57,14 @@ extension _Phone on _ShopScreenState {
                   who: _shop.who,
                   size: hero,
                   frame: _heroFrame(picked),
-                  card: _card,
-                  // The price tag covers the bottom of the hero.
-                  cardRoom: hero - 46 - 84,
+                  // Frames and inks live on the seat card: no bust for them.
+                  card: _Hero.cardFirst(picked) ? true : _card,
+                  // The price tag covers the bottom of the hero (two lines
+                  // of name at most): the card stays clear of it.
+                  cardRoom: hero - 46 - 100,
                 ),
               ),
-              if (picked?.item?.isGesture != true)
+              if (picked?.isGesture != true && !_Hero.cardFirst(picked))
                 Positioned(right: 10, top: medalsTop + medalsHeight + 8, child: _viewToggle(picked)),
               Positioned(left: 0, right: 0, top: medalsTop, height: medalsHeight, child: _medals(now)),
               Positioned(
@@ -93,7 +95,9 @@ extension _Phone on _ShopScreenState {
     // The hands rise from the bottom edge: the portrait sits higher, so they
     // clear the price tag. The scene and the shoulders want it whole.
     if (slot == 'held') return const Rect.fromLTWH(-0.225, 0.1, 1.45, 1.45);
-    if (ShopController.slotOf(entry?.item)?.wide ?? false) return const Rect.fromLTWH(-0.05, -0.02, 1.1, 1.1);
+    // The whole portrait above the tag: the scene to its edges, the wings
+    // and the effects that sit low (the yarn) all show.
+    if (ShopController.slotOf(entry?.item)?.wide ?? false) return const Rect.fromLTWH(-0.26, -0.05, 1.52, 1.52);
     // A neck tattoo sits where the price tag covers the hero: the portrait
     // steps back, like for a suit, so the neck shows above the tag.
     final wide = entry?.bundle != null || slot == 'outfit' || slot == 'accessory' || slot == 'tattoo';
@@ -327,7 +331,6 @@ extension _Phone on _ShopScreenState {
             onTap: () => _setFilter(_filter.copyWith(own: o)),
           ),
         TargaIconButton(key: const Key('shop.filters'), icon: Icons.tune, size: 36, badge: _filter.extra, tooltip: t.filters, onPressed: _openFilters),
-        if (_dept == ShopDept.hands) ..._handChips(),
         if (_dept == ShopDept.face && widget.onChangeFace != null)
           TargaIconButton(key: const Key('shop.changeFace'), icon: Icons.face_retouching_natural, size: 36, tooltip: t.changeFace, onPressed: widget.onChangeFace),
       ];
@@ -336,6 +339,12 @@ extension _Phone on _ShopScreenState {
     return Column(
       children: [
         Wrap(alignment: WrapAlignment.center, crossAxisAlignment: WrapCrossAlignment.center, spacing: 7, runSpacing: 6, children: chips),
+        // The hands on a row of their own: with the filters they wrapped one
+        // word to a line by itself.
+        if (_dept == ShopDept.hands) ...[
+          const SizedBox(height: 6),
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: [for (final (i, chip) in _handChips().indexed) ...[if (i > 0) const SizedBox(width: 7), chip]]),
+        ],
         const SizedBox(height: 8),
         Text(caption, key: const Key('shop.count'), style: const TextStyle(color: Color(0xFF9A8A78), fontSize: 11.5, letterSpacing: 0.4)),
       ],

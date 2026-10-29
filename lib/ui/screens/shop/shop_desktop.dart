@@ -62,8 +62,9 @@ extension _Desktop on _ShopScreenState {
                   look: _lookOf(picked),
                   who: _shop.who,
                   size: bust,
-                  // The scene, the shoulders and the hands want the whole portrait.
-                  frame: (ShopController.slotOf(picked?.item)?.wide ?? false) ? const Rect.fromLTWH(-0.04, -0.06, 1.08, 1.08) : const Rect.fromLTWH(-0.15, -0.27, 1.3, 1.3),
+                  // The scene, the shoulders and the hands want the whole portrait, the
+                  // wings reaching past it too.
+                  frame: (ShopController.slotOf(picked?.item)?.wide ?? false) ? const Rect.fromLTWH(-0.13, -0.08, 1.26, 1.26) : const Rect.fromLTWH(-0.15, -0.27, 1.3, 1.3),
                   card: false,
                 ),
               ),
@@ -82,7 +83,7 @@ extension _Desktop on _ShopScreenState {
               ),
               // The seat card beside the bust, standing on the counter: the
               // frame and the name ink as the table sees them.
-              if (picked?.item?.isGesture != true)
+              if (picked?.isGesture != true)
                 Positioned(
                   left: stageR - cardW,
                   top: counterTop + 18 - cardW * SeatPreview.aspect,
@@ -111,7 +112,7 @@ extension _Desktop on _ShopScreenState {
     final live = _shop.liveWindow(now);
     final shown = <_Entry>[
       for (final (item, feature) in live.take(4)) _Entry.item(item, feature: feature),
-      for (final b in _shop.shelfBundles.take(max(0, 4 - live.length))) _Entry.bundle(b),
+      for (final b in _shop.shelfBundles.take(max(0, 4 - live.length))) _bundleEntry(b),
     ];
     final onWindow = _dept == ShopDept.window;
     return SingleChildScrollView(

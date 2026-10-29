@@ -168,11 +168,11 @@ class _ShopScreenState extends State<ShopScreen> {
         _WindowSection.featured => [for (final (item, feature) in _shop.liveWindow(now)) _Entry.item(item, feature: feature)],
         _WindowSection.sets => [
           for (final b in _shop.shelfBundles)
-            if (!b.premium) _Entry.bundle(b),
+            if (!b.premium) _bundleEntry(b),
         ],
         _WindowSection.luxe => [
           for (final b in _shop.shelfBundles)
-            if (b.premium) _Entry.bundle(b),
+            if (b.premium) _bundleEntry(b),
         ],
         null => const [],
       };
@@ -185,6 +185,9 @@ class _ShopScreenState extends State<ShopScreen> {
           if (item.free == free) _Entry.item(item),
     ];
   }
+
+  /// A bundle on the shelf, with what decides how it shows.
+  _Entry _bundleEntry(ShopBundle bundle) => _Entry.bundle(bundle, gestures: _shop.bundleGestures(bundle), around: _shop.bundleAround(bundle));
 
   /// La voce scelta: quella toccata, se c'è ancora, o quella indossata.
   int _pickedIndex(List<_Entry> entries) {
@@ -301,15 +304,18 @@ class _ShopScreenState extends State<ShopScreen> {
         onTap: open,
         child: SizedBox(
           height: height,
+          // On the phone's tag it shares the row with the piece's name: a
+          // narrow column that wraps, so the name keeps its room.
+          width: desk ? null : 150,
           child: Center(
             child: Text(
               _progressStrings.unlocksWith(_progressStrings.mission(item.unlock!)),
               textAlign: TextAlign.center,
-              maxLines: 2,
+              maxLines: desk ? 2 : 3,
               overflow: TextOverflow.ellipsis,
               style: AppText.body.copyWith(
-                fontSize: desk ? 14 : 12,
-                height: 1.25,
+                fontSize: desk ? 14 : 11.5,
+                height: 1.2,
                 color: AppColors.gold,
                 fontStyle: FontStyle.italic,
                 decoration: open == null ? null : TextDecoration.underline,
