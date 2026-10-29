@@ -102,7 +102,8 @@ git add pubspec.yaml && git commit -m "Bump build to $(sed -n 's/^version: .*+//
    interni la ricevono da soli.
 3. `RANKED_DEBUG` serve **solo** ai tester: non deve mai arrivare all'App Store. Fa della build una
    build di prova (`--dart-define=OBERTA_TEST=true`, `lib/build_flags.dart`): classificata aperta,
-   accesso con email e password, stanze che partono in due. Senza, è la build da negozio.
+   stanze che partono in due. Senza, è la build da negozio. L'accesso con email c'è in tutte e due
+   (sezione 13).
 4. Il caricamento **non** alza la build minima.
 
 ## 4. iOS: TestFlight esterno
@@ -130,9 +131,9 @@ git add pubspec.yaml && git commit -m "Bump build to $(sed -n 's/^version: .*+//
    ```sh
    bundle exec fastlane ios metadata
    ```
-3. Prima del primo invio: `docs/app-store.md` spuntato; l'accesso email/password nella build da
-   negozio non c'è già (`lib/build_flags.dart`); provider Email di Supabase spento e
-   `supabase/scripts/prelaunch.sql` eseguito (sezione 8).
+3. Prima del primo invio: `docs/app-store.md` spuntato; `supabase/scripts/prelaunch.sql` eseguito
+   (sezione 8); provider Email **acceso**, senza password, con la mail del codice provata dal
+   telefono (sezione 13).
 4. App Store Connect → App → **+ Versione** `x.y.z` → *Build*: scegli la build appena processata.
 5. *Rilascio della versione*: **manuale** dopo l'approvazione, e attiva
    **Rilascio graduale (7 giorni)**.
@@ -457,7 +458,8 @@ select code, status, created_at from public.rooms where ranked and test_match an
 
 - `ranked_test_humans` = `0`: senza, la classificata riempie i tavoli di bot.
 - Nessuna build pubblica con `RANKED_DEBUG`.
-- Account di prova email eliminati e provider Email come deciso in `docs/app-store.md`.
+- Account di prova con password eliminati (li elenca `prelaunch.sql`); provider Email acceso, senza
+  password (sezione 13).
 
 ## 9. Aggiornamento obbligatorio
 
@@ -604,3 +606,87 @@ quello di Brevo). Chi si cancella da Brevo va tolto anche qui (`delete from inte
 email = '...'`). Il CSV contiene dati personali: non nel repository, cancellalo dopo l'import.
 In alternativa gratuita, qualunque strumento di mailing con link personali (es. un piccolo script
 che chiama l'API transazionale di Brevo, 300 mail al giorno gratis) va bene, con le stesse regole.
+
+## 13. «Entra con email», senza password
+
+Chiunque, su ogni piattaforma, può entrare con un indirizzo email: niente password, niente «password
+dimenticata». Il foglio dell'accesso ha «Entra con email» sotto Apple / Google / Steam.
+
+**Come va**:
+
+1. L'app chiama `signInWithOtp` (`lib/online/supabase_online.dart`) con l'indirizzo, la lingua
+   dell'app in `data.lang` (vale per gli account nuovi) e, solo sui telefoni, il ritorno
+   `oberta://login-callback`.
+2. Supabase Auth trova o crea l'account (non confermato), genera un codice di **6 cifre** che vale
+   **15 minuti** e chiama il **Send Email Hook**: la Edge Function `auth-email`
+   (`supabase/functions/auth-email/`), firmata con `SEND_EMAIL_HOOK_SECRET` (standard-webhooks).
+3. `auth-email` manda con Brevo **una** mail con il codice grande (si seleziona con un tocco) e, se
+   il ritorno è `oberta://`, il pulsante «Apri Obertà»: il link `/auth/v1/verify` di Supabase, che
+   rimanda il browser a `oberta://login-callback?code=...`; supabase_flutter lo riceve (app_links) e
+   scambia il `code` (PKCE) da solo. iPhone: schema `oberta` in `Info.plist`; Android: l'intent
+   filter `login-callback` in `AndroidManifest.xml`.
+4. Oppure si scrive il codice nelle sei caselle (`email_code_field.dart`: si incolla, iOS lo propone
+   sopra la tastiera): `verifyOTP(type: email)`. Il codice conferma anche l'indirizzo.
+
+Sul **computer** (Steam, Mac, Windows, Linux) lo schema `oberta://` non è registrato: l'app non
+chiede il ritorno, Supabase usa la Site URL e la mail porta **solo il codice** (nessun pulsante).
+
+**La mail**: `supabase/functions/auth-email/templates/code.ts`, lo stesso telegramma della mail di
+benvenuto della lista (muro, cornice d'ottone, insegna, medaglioni), le immagini servite dalla
+funzione stessa (`/functions/v1/auth-email/img/<nome>`, le stesse della lista), mai dal sito. Lingua
+da `user_metadata.lang`: italiano per `it`, inglese per le altre, **italiano + inglese** se non si
+sa (gli account entrati prima con Apple o Google). Tipi: `magiclink` e `recovery` (accesso),
+`signup` e `invite` (primo accesso), `email_change` (nuovo indirizzo; due mail se un giorno si
+accende «Secure email change»), `reauthentication` (solo codice). Anteprime:
+`site/oberta/email/accesso*.html` (`deno run -A supabase/functions/auth-email/templates/preview.ts`;
+`auth_email_test.ts` fallisce se non sono aggiornate).
+
+**Impostazioni di Auth** (Management API `PATCH /v1/projects/<ref>/config/auth`, già fatte):
+
+| Chiave | Valore | Perché |
+|---|---|---|
+| `external_email_enabled` | `true` | il provider Email resta acceso |
+| `mailer_autoconfirm` | `false` | «Confirm email» acceso: il codice è la conferma |
+| `mailer_otp_length` / `mailer_otp_exp` | `6` / `900` | sei cifre, 15 minuti (`OnlineAuth.emailCodeLifetime`) |
+| `smtp_max_frequency` | `60` | una mail al minuto per indirizzo (il conto alla rovescia di «Rimanda») |
+| `rate_limit_email_sent` | `60` | mail l'ora per tutto il progetto |
+| `hook_send_email_enabled` / `_uri` / `_secrets` | `true` / `https://<ref>.supabase.co/functions/v1/auth-email` / `v1,whsec_...` | le mail le manda `auth-email` |
+| `uri_allow_list` | contiene `oberta://**` | il ritorno del link |
+
+**Segreti** (Edge Function secrets, mai nel repository): `SEND_EMAIL_HOOK_SECRET` (lo stesso valore
+di `hook_send_email_secrets`) e quelli della lista, `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`
+(oberta@charliemobile.dev), `BREVO_SENDER_NAME`. Per cambiare il segreto: generarne uno nuovo
+(`v1,whsec_` + 32 byte casuali in base64), `supabase secrets set SEND_EMAIL_HOOK_SECRET=...`, poi lo
+stesso valore in Authentication > Hooks (o `hook_send_email_secrets` via API), senza stamparlo.
+
+**Pubblicare** la funzione: da sola a ogni push su `main` (è in `supabase/config.toml`, senza JWT:
+Auth firma ogni chiamata), oppure `supabase functions deploy auth-email --no-verify-jwt --use-api`.
+
+**Brevo**: il piano gratuito dà **300 mail al giorno**, divise con la lista d'attesa. Il giorno
+della mail di lancio conviene mandarla presto, o salire di piano: oltre il limite Brevo rifiuta, la
+funzione risponde errore e l'app dice «La mail non è partita». Protezione per IP spenta (sezione 12).
+
+**Provare**:
+
+- Senza spedire niente: un indirizzo sotto `.invalid` (per esempio `e2e@oberta.invalid`) passa da
+  Auth alla funzione e a Brevo in modalità sandbox (`X-Sib-Sandbox: drop`): se l'app (o
+  `POST /auth/v1/otp`) risponde ok, la catena funziona. L'account resta non confermato:
+  `prelaunch.sql` lo elenca.
+- La funzione da sola: `deno test -A supabase/functions/tests/auth_email_test.ts` (firma, tipi,
+  lingue, Brevo che sbaglia, immagini, anteprime).
+- Davvero: dal telefono «Entra con email» con un proprio indirizzo; arriva «Il tuo codice per
+  Obertà: 123456»; il codice fa entrare; con una seconda richiesta il pulsante «Apri Obertà»
+  (dal Mail dell'iPhone) apre l'app già dentro. Se non arriva: Supabase → Edge Functions →
+  `auth-email` → Logs (`not sent: brevo ...`), poi Brevo → Transactional → Logs.
+
+**Da sapere**:
+
+- Codice e link sono lo stesso biglietto: usato uno, l'altro non vale più; una mail nuova annulla
+  la vecchia.
+- Il link aperto su un altro dispositivo (o dopo aver chiesto un'altra mail) non fa entrare: il
+  foglio dice di scrivere il codice.
+- Qualche filtro aziendale (per esempio i «link sicuri» di Outlook in ufficio) apre i link da solo
+  e li consuma: in quel caso il codice risulta già usato, si rimanda la mail.
+- Stessa email già verificata con Apple o Google: Supabase la collega allo stesso account.
+- Nessuna password nell'app. Gli account di prova di prima, con password, si eliminano a mano
+  (`prelaunch.sql`, sezione 8).

@@ -278,6 +278,22 @@ Principio di sicurezza: ogni telefono manda solo **intenzioni** ("voto Marco") e
 riceve solo la **vista personalizzata** che gli spetta — mai l'elenco completo
 dei ruoli (eccetto il narratore umano, che già li conosce).
 
+## L'accesso online
+
+Si entra con Apple (iPhone), Google (iPhone e Android, se l'app ha i client id), Steam (desktop) o
+con **un indirizzo email, senza password**: Supabase manda un codice di 6 cifre che vale 15 minuti,
+e sui telefoni nella stessa mail un link che riapre l'app già dentro (`oberta://login-callback`,
+scambiato da supabase_flutter). Niente password da nessuna parte, quindi niente «password
+dimenticata».
+
+- App: `SignInPanel` in `lib/ui/screens/online/sign_in_sheet.dart` (i passi: modi d'accesso →
+  indirizzo → codice), le sei caselle in `email_code_field.dart`, le chiamate in
+  `SupabaseAuth.sendEmailCode` / `verifyEmailCode` (`lib/online/supabase_online.dart`).
+- Server: il Send Email Hook di Supabase Auth chiama la Edge Function `auth-email`, che manda la
+  mail con Brevo. Il modello della mail è `supabase/functions/auth-email/templates/code.ts`, le
+  anteprime `site/oberta/email/accesso*.html`.
+- Impostazioni, segreti, prove e limiti: `docs/release.md`, sezione 13.
+
 ## Roadmap (vedi anche il brief di progetto)
 
 0. ✅ Setup ambiente (Flutter, Xcode, Simulator iOS)

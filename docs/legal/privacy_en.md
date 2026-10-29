@@ -34,6 +34,7 @@ The website uses no profiling, advertising or analytics cookies and loads no thi
 ## What we process with an online account
 
 - Your Apple (or Google) account identifier and the email address provided at sign-in; with Apple this may be a private relay address ("Hide My Email").
+- If you sign in with email: the address you type. We send you an email with a 6-digit code (and, on phones, a link) to sign in: no password, none stored.
 - The unique username (handle) you choose and your preferred language.
 - If you sign in with Steam (desktop app): your SteamID, your Steam profile name and the address of your Steam profile picture, read from your public Steam profile at each sign-in. Only you see your Steam name (we use it to suggest your handle); other players see your Steam picture only if you choose it as your profile picture. We never receive your Steam password.
 - The platforms linked to your account (Steam, Apple), shown to other players as a small logo next to your name: only yes or no, never the identifier.
@@ -71,6 +72,7 @@ We do not process location, contacts, photos or health data. The microphone is u
 ## How long
 
 - Account data: as long as the account exists. If you delete it, we erase it immediately.
+- Email sign-in code and link: they work for 15 minutes, once, and are useless after that.
 - Chat messages: 90 days, then deleted automatically.
 - Table voice chat: nothing is kept. Your voice goes out live and is never recorded or transcribed.
 - Match and abandon records: as long as the account exists.
@@ -83,7 +85,7 @@ We do not process location, contacts, photos or health data. The microphone is u
 
 - Supabase Inc. — hosting and database, with servers in the European Union (Ireland, region eu-west-1). Any transfers outside the EU are covered by Standard Contractual Clauses.
 - LiveKit, Inc. — live transmission of table voice chat (LiveKit Cloud, servers in the European Union). No recording, transcription or storage of audio. Any transfers outside the EU are covered by Standard Contractual Clauses.
-- Sendinblue SAS (Brevo) — sending the emails of the "Notify me at launch" list (France, servers in the European Union).
+- Sendinblue SAS (Brevo) — sending the emails of the "Notify me at launch" list and the sign-in code emails (France, servers in the European Union).
 - Cloudflare, Inc. — serving and protecting the website. Any transfers outside the EU are covered by Standard Contractual Clauses and the EU-US Data Privacy Framework.
 - Apple Inc. — Sign in with Apple and, on iPhone, Game Center for medals. For Game Center Apple acts as an independent controller under its own policy. There are no purchases in the app.
 - Google LLC — only if you choose to sign in with Google (Android) or use Google Play Games; for Play Games Google acts as an independent controller under its own policy.

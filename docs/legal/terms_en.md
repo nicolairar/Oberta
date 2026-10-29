@@ -8,7 +8,7 @@ By using Obertà you accept these terms. The game is offered by Nicolai Tana (co
 
 ## Account
 
-- Online play requires an Apple, Google or Steam account and a minimum age of 14.
+- Online play requires an Apple, Google or Steam account, or an email address (you sign in with a code sent by email, no password), and a minimum age of 14.
 - You are responsible for what happens with your account. Your username must not offend or impersonate others or staff.
 - You can delete your account at any time: on your phone from Settings → Account → "Delete account"; from PC (Steam) by writing to oberta@charliemobile.dev. Deletion is permanent: coins and cosmetics are lost.
 

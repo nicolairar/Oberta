@@ -8,7 +8,7 @@ Usando Obertà accetti questi termini. Il gioco è offerto da Nicolai Tana (cont
 
 ## Account
 
-- Per giocare online serve un account Apple, Google o Steam e almeno 14 anni.
+- Per giocare online serve un account Apple, Google o Steam, oppure un indirizzo email (si entra con un codice mandato per mail, senza password), e almeno 14 anni.
 - Sei responsabile di ciò che accade con il tuo account. Il nome unico non deve offendere né impersonare altri o lo staff.
 - Puoi eliminare l'account in qualsiasi momento: sul telefono da Impostazioni → Account → «Elimina account»; dal PC (Steam) scrivendo a oberta@charliemobile.dev. L'eliminazione è definitiva: monete e cosmetici vanno persi.
 

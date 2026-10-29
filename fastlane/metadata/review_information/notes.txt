@@ -1,8 +1,8 @@
 SIGN-IN
 No demo account is needed.
 - One-phone mode ("Un telefono per tutti" / "One phone for everyone", the poster in the middle of the home screen) works fully offline, without any account.
-- Online features (rooms with friends, shop, barber) use Sign in with Apple only: tap "ACCEDI" / "SIGN IN" on the home screen and sign in with your own Apple ID. On first sign-in you choose a unique username; the barber's mirror then lets you pick a face (it can be skipped).
-- To play an online game, open "Gioca con amici" / "Play with friends", tap "OPEN A ROOM" and let a second device signed in with another Apple ID join with "JOIN WITH A CODE" (or the QR). A game needs at least 4 players to start; with two devices the room's lobby already shows the table, the chat and the report and block actions below.
+- Online features (rooms with friends, shop, barber) need an account: tap "ACCEDI" / "SIGN IN" on the home screen, then "Sign in with Apple" with your own Apple ID, or "Sign in with email". Email sign-in has no password: type any address you can read, we email a 6-digit code (valid 15 minutes) and a link; type the code in the six boxes (iOS also offers it above the keyboard), or tap "Open Obertà" in the email on the same iPhone and the app opens signed in. On first sign-in you choose a unique username; the barber's mirror then lets you pick a face (it can be skipped).
+- To play an online game, open "Gioca con amici" / "Play with friends", tap "OPEN A ROOM" and let a second device signed in with another account (another Apple ID, or email sign-in with another address) join with "JOIN WITH A CODE" (or the QR). A game needs at least 4 players to start; with two devices the room's lobby already shows the table, the chat and the report and block actions below.
 
 COINS AND PURCHASES
 The app has no in-app purchases and no real-money currency. Coins are earned only by playing online matches and are spent in the in-game shop on cosmetic items (hats, outfits, frames).

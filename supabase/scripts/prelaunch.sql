@@ -7,8 +7,8 @@
 -- As written it is a DRY RUN: it makes the changes inside a transaction,
 -- prints one row per check and rolls everything back. Read the rows, then
 -- run it again with the last line changed from `rollback;` to `commit;`.
--- Every `ok` must be true after the commit (except the email accounts,
--- which go by hand: step 2 below).
+-- Every `ok` must be true after the commit (except the old password test
+-- accounts, which go by hand: step 3 below).
 --
 --   SQL editor:      paste the whole file, Run.
 --   Management API:  POST /v1/projects/<ref>/database/query with the file
@@ -24,15 +24,20 @@
 --   2. public.rooms: clears the bot count of friends rooms still waiting in
 --      the lobby (start_game sets it again from the config, now 0).
 -- What it only checks (outside SQL, by hand):
---   - Authentication > Sign In / Providers > Email: OFF (or Management API
---     GET /v1/projects/<ref>/config/auth: "external_email_enabled": false).
---     The store build has no email form (lib/build_flags.dart), but the
---     endpoint would still accept a password sign-in while it is on.
---   - Apple and Google providers ON; the `account` function has
---     APPLE_TEAM_ID, APPLE_KEY_ID, APPLE_CLIENT_ID, APPLE_PRIVATE_KEY.
---   - The test accounts with an email identity (listed at the end): delete
---     them one by one, with the template in step 3, or from
---     Authentication > Users (after `select public.forget_account(<id>)`).
+--   - Email stays ON, passwordless (docs/release.md, "Entra con email"):
+--     Management API GET /v1/projects/<ref>/config/auth shows
+--     external_email_enabled true, mailer_autoconfirm false, mailer_otp_length
+--     6, mailer_otp_exp 900, hook_send_email_enabled true with the auth-email
+--     function as hook_send_email_uri.
+--   - Apple and Google providers ON (the Apple key for token revocation is
+--     already set on the `account` function).
+--   - The old test accounts with a password (the hidden email + password
+--     login of the test builds, gone now; listed at the end): delete them one
+--     by one, with the template in step 3, or from Authentication > Users
+--     (after `select public.forget_account(<id>)`). Players who sign in with
+--     the email code have no password and are never listed. So is the
+--     end-to-end probe e2e@oberta.invalid (an address nobody can own): delete
+--     it the same way, or leave it, it never signed in.
 
 begin;
 
@@ -53,7 +58,7 @@ where key in ('ranked_test_humans', 'friends_test_bots', 'friends_test_size');
 update public.rooms set bots = 0
 where status = 'lobby' and not ranked and not test_match and bots <> 0;
 
--- 3. Test accounts with an email identity: NOT deleted here. Copy the ids
+-- 3. Old test accounts with a password: NOT deleted here. Copy the ids
 -- from the last rows, then (after the commit of this file) run, per id:
 --
 --   select public.forget_account('<id>');
@@ -91,17 +96,19 @@ select 'no ranked test match still open',
   not exists (select 1 from public.rooms where test_match and status <> 'ended'),
   (select string_agg(code || ' ' || status, ', ') from public.rooms where test_match and status <> 'ended');
 
+-- Nobody signs in with a password any more: an account that has one is
+-- from the old test login.
 insert into _r (check_name, ok, detail)
-select 'no test account with an email identity (step 3, by hand)',
-  not exists (select 1 from auth.identities where provider = 'email'),
-  (select count(*)::text || ' account(s)' from auth.identities where provider = 'email');
+select 'no account with a password left (step 3, by hand)',
+  not exists (select 1 from auth.users where coalesce(encrypted_password, '') <> ''),
+  (select count(*)::text || ' account(s)' from auth.users where coalesce(encrypted_password, '') <> '');
 
 insert into _r (check_name, ok, detail)
-select 'email account: ' || coalesce(p.handle, '(no handle)'), false,
+select 'password account: ' || coalesce(p.handle, '(no handle)'), false,
   u.id::text || ' ' || coalesce(u.email, '') || ' last sign-in ' || coalesce(u.last_sign_in_at::text, 'never')
 from auth.users u
-join auth.identities i on i.user_id = u.id and i.provider = 'email'
 left join public.profiles p on p.id = u.id
+where coalesce(u.encrypted_password, '') <> ''
 order by u.created_at;
 
 -- For the record: the minimum builds (docs/release.md, section 9). Raise

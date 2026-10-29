@@ -34,6 +34,7 @@ Il sito non usa cookie di profilazione, pubblicità o strumenti di analisi, e no
 ## Quali dati trattiamo con l'account online
 
 - Identificativo dell'account Apple (o Google) e indirizzo email forniti al momento dell'accesso; con Apple può essere un indirizzo di inoltro privato («Nascondi la mia email»).
+- Se entri con l'email: l'indirizzo che scrivi. Ti mandiamo una mail con un codice di 6 cifre (e, sul telefono, un link) per entrare: niente password, nessuna password salvata.
 - Nome unico (handle) che scegli e la lingua preferita.
 - Se accedi con Steam (app desktop): il tuo SteamID, il nome del profilo Steam e l'indirizzo dell'immagine del profilo Steam, letti dal profilo pubblico di Steam a ogni accesso. Il nome Steam lo vedi solo tu (serve a proporti il nome unico); l'immagine di Steam la vedono gli altri giocatori solo se la scegli come immagine del profilo. Non riceviamo mai la password di Steam.
 - Le piattaforme collegate all'account (Steam, Apple), mostrate agli altri giocatori come un piccolo logo accanto al nome: solo sì o no, mai l'identificativo.
@@ -71,6 +72,7 @@ Non trattiamo posizione, contatti, foto o dati di salute. Il microfono serve sol
 ## Per quanto tempo
 
 - Dati dell'account: finché l'account esiste. Se lo elimini, li cancelliamo subito.
+- Codice e link per entrare con l'email: valgono 15 minuti e una volta sola, poi non servono più.
 - Messaggi di chat: 90 giorni, poi vengono cancellati automaticamente.
 - Voce al tavolo: nessuna conservazione. La voce passa dal vivo e non viene registrata né trascritta.
 - Registro degli abbandoni e delle partite: finché l'account esiste.
@@ -83,7 +85,7 @@ Non trattiamo posizione, contatti, foto o dati di salute. Il microfono serve sol
 
 - Supabase Inc. — hosting e database, con server nell'Unione Europea (Irlanda, regione eu-west-1). Eventuali trasferimenti fuori dall'UE sono coperti dalle Clausole Contrattuali Standard.
 - LiveKit, Inc. — trasmissione dal vivo della voce al tavolo (LiveKit Cloud, server nell'Unione Europea). Nessuna registrazione, trascrizione o conservazione dell'audio. Eventuali trasferimenti fuori dall'UE sono coperti dalle Clausole Contrattuali Standard.
-- Sendinblue SAS (Brevo) — invio delle mail della lista «Avvisami quando esce» (Francia, server nell'Unione Europea).
+- Sendinblue SAS (Brevo) — invio delle mail della lista «Avvisami quando esce» e delle mail con il codice per entrare (Francia, server nell'Unione Europea).
 - Cloudflare, Inc. — pubblicazione e protezione del sito. Eventuali trasferimenti fuori dall'UE sono coperti dalle Clausole Contrattuali Standard e dal Data Privacy Framework UE-USA.
 - Apple Inc. — accesso con Apple e, sull'iPhone, Game Center per le medaglie. Per Game Center Apple agisce come titolare autonomo secondo la propria informativa. Nell'app non ci sono acquisti.
 - Google LLC — solo se scegli di accedere con Google (Android) o usi Google Play Games; per Play Games Google agisce come titolare autonomo secondo la propria informativa.
