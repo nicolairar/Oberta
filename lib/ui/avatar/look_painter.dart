@@ -190,6 +190,13 @@ abstract final class LookPainter {
     );
   }
 
+  /// Where the top of the player (the hat, the hair, what floats over
+  /// them) falls in the portrait of side 1, as [bust] paints it.
+  static double top(AvatarLook look) {
+    final p = _Noir.parts(look);
+    return 1 + (p.crown - 1) * _Noir.scale(look, p);
+  }
+
   /// Fin dove sale la persona sopra la testa, nelle misure del busto (la
   /// sommità della testa è a -1.06): il cappello, la pettinatura, le ali.
   static double crown(AvatarLook look) {

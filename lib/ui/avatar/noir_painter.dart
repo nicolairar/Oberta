@@ -642,11 +642,14 @@ abstract final class _Noir {
       final below = Path()..addRect(Rect.fromLTRB(-1, line, 2, 3));
       if (back != null) back = Path.combine(PathOperation.intersect, back, below);
       if (front != null) front = Path.combine(PathOperation.intersect, front, below);
-      // An afro under a hat puffs out at the sides and stops by the cheeks:
-      // the rest of its round would wrap the jaw like a bowl.
+      // An afro under a hat puffs out in two round tufts by the ears: the
+      // rest of its round would cup the face like a bowl.
       if (style == HairStyle.afro) {
         final drop = b.mouthY - line;
-        final puff = Path()..addOval(Rect.fromCenter(center: Offset(b.cx, line + drop * 0.4), width: b.w * 1.62, height: drop * 1.3));
+        final puff = Path();
+        for (final s in [-1.0, 1.0]) {
+          puff.addOval(Rect.fromCenter(center: Offset(b.cx + s * b.r * 0.95, line + drop * 0.4), width: b.r * 1.05, height: drop * 0.92));
+        }
         if (back != null) back = Path.combine(PathOperation.intersect, back, puff);
         if (front != null) front = Path.combine(PathOperation.intersect, front, puff);
       }
@@ -1462,6 +1465,20 @@ abstract final class _Noir {
           }
         }
       }
+    }
+    // On the darkest skins the ink of the nose and the mouth sinks into the
+    // face: a thin rim of lamp-lit skin around their lines, as the shine on
+    // a cheekbone, keeps every shape readable.
+    if (skin.computeLuminance() < 0.07) {
+      canvas.saveLayer(
+        null,
+        Paint()
+          ..imageFilter = ui.ImageFilter.dilate(radiusX: thin * 1.1, radiusY: thin * 1.1)
+          ..colorFilter = ColorFilter.mode(Color.lerp(skin, const Color(0xFFF0D8B8), 0.3)!, BlendMode.srcIn),
+      );
+      _nose(canvas, look, b, skin, thin, small);
+      _mouth(canvas, look, b, skin, thin, small);
+      canvas.restore();
     }
     _nose(canvas, look, b, skin, thin, small);
     _mouth(canvas, look, b, skin, thin, small);

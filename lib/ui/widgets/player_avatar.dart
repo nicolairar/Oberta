@@ -190,6 +190,16 @@ class AvatarBustPainter extends CustomPainter {
     for (var i = 1; i < 8; i++) {
       canvas.drawLine(Offset(0, s * i / 8), Offset(i.isEven ? s : s * 0.16, s * i / 8), ruler);
     }
+    // A huge afro or a tall hat would be cut by the round and the ring: the
+    // player steps down a little, inside them (the square portraits keep
+    // the size).
+    final top = LookPainter.top(look);
+    const room = 0.085;
+    if (top < room) {
+      final k = (1 - room) / (1 - top);
+      canvas.translate(s * 0.5 * (1 - k), s * (1 - k));
+      canvas.scale(k);
+    }
     LookPainter.bust(canvas, look, s);
     canvas.restore();
     canvas.drawCircle(

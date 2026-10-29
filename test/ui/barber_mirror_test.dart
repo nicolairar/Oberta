@@ -9,6 +9,7 @@ import 'package:oberta/ui/avatar/avatar_look.dart';
 import 'package:oberta/ui/avatar/face_presets.dart';
 import 'package:oberta/ui/screens/avatar/barber_mirror_screen.dart';
 import 'package:oberta/ui/widgets/noir_avatar.dart';
+import 'package:oberta/ui/widgets/player_avatar.dart';
 
 const _names = ['Ada', 'Bruno', 'Carla', 'Dino', 'Elio', 'Fabio', 'Gina', 'Ugo', 'Rosa', 'Vito', 'Lucia', 'Nino'];
 
@@ -182,5 +183,37 @@ void main() {
     expect(saved!.look.dame, isTrue);
     expect(saved!.avatar['presentation'], 'woman');
     expect(saved!.look.base.tone, amara.tone);
+  });
+
+  testWidgets('the close-ups of the eyes, brows, nose and mouth show the face alone', (tester) async {
+    tester.view.physicalSize = const Size(400, 860) * 2;
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+    WornLooks.clear();
+    final online = FakeOnline()..signInReady(handle: 'anna');
+    // Dressed from the shop: glasses, a shine in the eyes, a walrus, a cigarette.
+    final dressed = AvatarLook.fallback('anna').copyWith(
+      glasses: AvatarGlasses.aviator,
+      eyeShine: EyeShine.star,
+      accessory: AvatarAccessory.cigarette,
+      base: AvatarBase.of(SkinTone.ebony, FaceMark.walrus),
+    );
+    final profile = (await online.profiles.me()).copyWith(avatar: {...dressed.toJson(), 'presentation': 'woman'});
+    await tester.pumpWidget(MaterialApp(home: BarberMirrorScreen(services: online.services, profile: profile)));
+    await tester.pump(const Duration(seconds: 1));
+    for (final (tab, option) in [('Occhi', 'mirror.eyes.round'), ('Bocca', 'mirror.mouth.smile'), ('Naso', 'mirror.nose.roman')]) {
+      final label = find.widgetWithText(Tab, tab);
+      await tester.ensureVisible(label);
+      await tester.pumpAndSettle();
+      await tester.tap(label);
+      await tester.pumpAndSettle();
+      final look = tester.widget<PlayerAvatar>(find.descendant(of: find.byKey(Key(option)), matching: find.byType(PlayerAvatar))).look!;
+      expect(look.glasses, AvatarGlasses.none, reason: option);
+      expect(look.eyeShine, EyeShine.none, reason: option);
+      expect(look.base.mark, FaceMark.clean, reason: option);
+      expect(look.accessory, AvatarAccessory.none, reason: option);
+    }
+    // The mirror itself still shows him as he is dressed.
+    expect(tester.widget<PlayerAvatar>(find.byWidgetPredicate((w) => w is PlayerAvatar && w.seed == 'mirror')).look!.glasses, AvatarGlasses.aviator);
   });
 }

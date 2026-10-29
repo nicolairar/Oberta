@@ -235,6 +235,18 @@ class _BarberMirrorScreenState extends State<BarberMirrorScreen> {
   /// rimette con un tocco.
   AvatarLook _shown(AvatarLook look) => _hatOn || look.bareHead ? look : look.copyWith(hat: AvatarHead.slicked);
 
+  /// A close-up of one feature (the eyes, the brows, the nose, the mouth):
+  /// only the face the barber makes. The shop's glasses, eye shines, face
+  /// paint, beards and what is in the mouth would hide the very thing being
+  /// chosen.
+  AvatarLook _close(AvatarLook look) => _shown(look).copyWith(
+    glasses: AvatarGlasses.none,
+    eyeShine: EyeShine.none,
+    faceExtras: const [],
+    base: const {FaceMark.scar, FaceMark.mole, FaceMark.stubble}.contains(look.base.mark) ? look.base : AvatarBase.of(look.base.tone, FaceMark.clean),
+    accessory: look.accessory.smokes || look.accessory == AvatarAccessory.toothpick ? AvatarAccessory.none : look.accessory,
+  );
+
   void _set(AvatarLook look) {
     HapticFeedback.selectionClick();
     setState(() => _look = look);
@@ -461,7 +473,7 @@ class _BarberMirrorScreenState extends State<BarberMirrorScreen> {
                                     (final swatch?, _) => _Swatch(color: swatch(option)),
                                     (null, final focus?) => _Zoom(
                                       focus: focus,
-                                      child: PlayerAvatar(seed: option.name, look: _shown(tab.apply(_look, option)), size: 66),
+                                      child: PlayerAvatar(seed: option.name, look: _close(tab.apply(_look, option)), size: 66),
                                     ),
                                     (null, null) => PlayerAvatar(seed: option.name, look: _shown(tab.apply(_look, option)), size: 66),
                                   },

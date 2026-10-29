@@ -25,6 +25,7 @@ import 'package:oberta/ui/screens/online/game/seat_card.dart';
 import 'package:oberta/ui/screens/shop/shop_focus.dart';
 import 'package:oberta/ui/screens/shop/shop_screen.dart' show rarityColor;
 import 'package:oberta/ui/widgets/noir_avatar.dart' show AvatarHead;
+import 'package:oberta/ui/widgets/player_avatar.dart';
 
 final out = Platform.environment['OUT'] ?? 'build/audit/cappello_volto';
 final only = Platform.environment['ONLY']?.split(',').toSet();
@@ -177,13 +178,13 @@ class _Zoom extends CustomPainter {
   bool shouldRepaint(_Zoom old) => true;
 }
 
-/// The phone hero: a 432 square, centred on the 393 screen (so 19.6 px fall
+/// The phone hero (shop_phone.dart, _heroFrame): a 432 square, centred on the 393 screen (so 19.6 px fall
 /// off each side), with the view toggle at its top right and the price tag
 /// over it from 302 down.
 const _heroSide = 432.0;
 const _heroWindow = Size(393, 330);
 
-Widget _hero(AvatarLook look) => SizedBox.fromSize(
+Widget _hero(AvatarLook look, String slot) => SizedBox.fromSize(
   size: _heroWindow,
   child: Stack(
     children: [
@@ -205,7 +206,7 @@ Widget _hero(AvatarLook look) => SizedBox.fromSize(
                 ),
               ),
             ),
-            CustomPaint(painter: _Zoom(look, const Rect.fromLTWH(-0.15, -0.08, 1.3, 1.3))),
+            CustomPaint(painter: _Zoom(look, slot == 'tattoo' ? const Rect.fromLTWH(-0.3, -0.12, 1.6, 1.6) : const Rect.fromLTWH(-0.15, -0.08, 1.3, 1.3))),
           ],
         ),
       ),
@@ -268,7 +269,9 @@ Widget _seat(String name) => Padding(
   child: SeatCard(name: name, width: 74, number: 7),
 );
 
-enum _View { hero, thumb, seat }
+/// The shop hero, the dial thumbnail, the table seat card, and the round
+/// portrait of the barber's mirror and the home (for the head pieces).
+enum _View { hero, thumb, seat, coin }
 
 /// One seat card, painted alone at dpr 3: the card reads the look of its
 /// player by name ([WornLooks]), so each one gets its own pump.
@@ -300,9 +303,10 @@ Future<void> _sheet(WidgetTester tester, String file, List<_Item> items, _View v
         continue;
       }
       final Widget art = switch (view) {
-        _View.hero => FittedBox(child: _hero(look)),
+        _View.hero => FittedBox(child: _hero(look, item.focusSlot)),
         _View.thumb => _thumb(look, item),
         _View.seat => RawImage(image: await _seatImage(tester, name, look), scale: 3),
+        _View.coin => PlayerAvatar(seed: name, look: look, size: 80),
       };
       cells.add((b == 0 ? item.id : '', art));
     }
@@ -311,6 +315,7 @@ Future<void> _sheet(WidgetTester tester, String file, List<_Item> items, _View v
     _View.hero => (heroWidth, _heroWindow.height * heroWidth / _heroWindow.width, 1.0),
     _View.thumb => (80.0, 80.0, 2.0),
     _View.seat => (90.0, 74 * 1.32 + 8, 3.0),
+    _View.coin => (80.0, 80.0, 2.0),
   };
   final cols = view == _View.hero && heroWidth > 300 ? 3 : 9;
   const labelH = 13.0;
@@ -455,6 +460,7 @@ void main() {
         final chunk = items.sublist(start, min(start + 20, items.length));
         final name = only == null ? '${group}_$n' : 'only_${group}_$n';
         for (final view in _View.values) {
+          if (view == _View.coin && !const {'hat', 'hairdo', 'headFx', 'barber_hair'}.contains(group)) continue;
           await _sheet(tester, '${name}_${view.name}.png', chunk, view);
         }
       }

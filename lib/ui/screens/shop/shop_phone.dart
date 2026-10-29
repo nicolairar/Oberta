@@ -94,7 +94,9 @@ extension _Phone on _ShopScreenState {
     // clear the price tag. The scene and the shoulders want it whole.
     if (slot == 'held') return const Rect.fromLTWH(-0.225, 0.1, 1.45, 1.45);
     if (ShopController.slotOf(entry?.item)?.wide ?? false) return const Rect.fromLTWH(-0.05, -0.02, 1.1, 1.1);
-    final wide = entry?.bundle != null || slot == 'outfit' || slot == 'accessory';
+    // A neck tattoo sits where the price tag covers the hero: the portrait
+    // steps back, like for a suit, so the neck shows above the tag.
+    final wide = entry?.bundle != null || slot == 'outfit' || slot == 'accessory' || slot == 'tattoo';
     return wide ? const Rect.fromLTWH(-0.3, -0.12, 1.6, 1.6) : const Rect.fromLTWH(-0.15, -0.08, 1.3, 1.3);
   }
 

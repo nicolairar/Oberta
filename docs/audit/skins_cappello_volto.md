@@ -13,9 +13,39 @@ Every piece of the Cappello department (hats, hairdos, head effects) and of the 
   - 288 combinations of hair style and colour.
   - About 2,800 renders in all.
 
-The tool that draws the sheets is `flutter test tool/audit/skins_cappello_volto_test.dart`. It writes the sheets to `build/audit/cappello_volto/<group>_<n>_{hero,thumb,seat}.png` (20 pieces per sheet) and the colour grids to `hair_colours_{1,2}.png`. To check a few pieces at a larger size, run it with `ONLY=hat.sombrero,face.walrus ZOOM=393`.
+The audit was done in two passes:
 
-## Findings
+1. **Render sheets.** `flutter test tool/audit/skins_cappello_volto_test.dart` writes the sheets to `build/audit/cappello_volto/<group>_<n>_{hero,thumb,seat,coin}.png` (20 pieces per sheet) and the colour grids to `hair_colours_{1,2}.png`. The `coin` sheets show the round portrait of the mirror and the home, for the head pieces. To check a few pieces at a larger size, run it with `ONLY=hat.sombrero,face.walrus ZOOM=393`.
+2. **A walk through the real app, as a player.** The test backend is used, and the player signs in with the face of one of the three players. The walk goes in this order:
+   - It starts in the street and walks into the Bottega.
+   - It opens the Cappello and Volto medallions and turns the dial through every piece, first as the bust and then back as the seat card.
+   - It buys and wears five pieces: `hat.borsalino`, `face.walrus`, `glasses.aviator`, `tattoo.koi` and `eyeShine.star`.
+   - It walks to the barber, switches on "Mostra tutto" and taps every option of every tab.
+   - It ends by sitting at a table of eight.
+
+   Each step takes a screenshot at the phone's own size.
+   - On the iOS simulator (iPhone 16 Pro): `flutter test integration_test/skins_walk_test.dart -d <simulator> --dart-define=WALK_LOOK=nadia --dart-define=WALK_OUT=<absolute folder>`.
+   - Headless, at 393×852 and dpr 3 with the notch and the home bar, for iterating: `WALK_LOOK=nadia flutter test tool/audit/skins_walk_headless_test.dart`. It writes to `build/audit/walk/<who>/`.
+   - `python3 tool/audit/walk_sheets.py build/audit/walk/<who>` makes contact sheets of the steps.
+
+   Each run takes about 480 screenshots.
+
+## Findings from the walk through the app
+
+| Item(s) | Problem | Severity | Fix |
+|---|---|---|---|
+| Barber: eye, eye-size, brow, make-up, nose and mouth options | The close-up thumbnails showed the player as he is dressed. His glasses, his shop eye shine (gold stars), his walrus moustache and his cigarette covered the very feature being chosen, so all twelve eye shapes or all twelve mouths looked the same. | High | Close-up options now show only the barber's own face: no glasses, eye shine, face paint, beard or mouth prop (`_close` in `barber_mirror_screen.dart`, phone and desktop). |
+| Barber: nose and mouth on the darkest skins (espresso, ebony) | Once the skin was set to espresso, the twelve noses and the mouths were dark ink on dark skin, and every option looked the same in the close-ups and at the table. | High | On the darkest skins, the lines of the nose and the mouth get a thin rim of lamp-lit skin (`_features` in `noir_painter.dart`). |
+| Neck tattoos on the phone hero (9 pieces) | The tattoo sat right under the price tag. Playing cards, skull and family crest were half hidden behind the tag of the piece being bought. | High | The hero steps back for tattoos, as it does for suits (`_heroFrame`), so the neck shows above the tag. |
+| Afro under hats, in the shop hero | Even after the first fix, at hero size the clipped afro still read as a bowl around the face. | High | Redrawn as two round tufts by the ears. |
+| Round portrait (mirror, home) with an afro, a beehive or a tall hat | The top of the hair or hat was cut by the round and its gold ring. | Medium | In the round portrait, a player whose top would reach the ring steps down a little (`LookPainter.top` and the round painter in `player_avatar.dart`). Square portraits keep their size. |
+| Buying a piece | The "È tuo" notice covers the department medallions for a few seconds. | Low | Not changed: it belongs to the shop's shared UI, not to a piece. |
+| Barber: the head shape options under an afro | All the shapes look alike, because the afro hides the outline of the head. | Low | Not changed: the hair is part of how a shape reads. "Mostra tutto" with a short cut shows them clearly. |
+| Eye shines behind dark glasses | The stars and hearts are drawn over the lenses. | — | By design (`glasses.dark`): it reads as "star glasses" and is clear at the table. |
+
+The walk also confirmed, in place, the fixes from the render sheets: Nadia at the table wears the borsalino, the aviators, the star shine, the walrus (with its sheen on dark skin) and the koi tattoo, and every one of them reads on the 74 px seat card.
+
+## Findings from the render sheets
 
 | Item(s) | Problem | Severity | Fix |
 |---|---|---|---|

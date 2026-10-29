@@ -284,7 +284,7 @@ extension _DeskMirror on _BarberMirrorScreenState {
                                             focus: focus,
                                             child: PlayerAvatar(
                                               seed: option.name,
-                                              look: _shown(tab.apply(_look, option)),
+                                              look: _close(tab.apply(_look, option)),
                                               size: 84,
                                             ),
                                           ),
