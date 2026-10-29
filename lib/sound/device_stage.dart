@@ -7,12 +7,14 @@ import 'package:flutter/foundation.dart';
 
 import '../ui/widgets/death_scene.dart';
 import '../ui/widgets/verdict_scene.dart';
+import 'cue_deck.dart';
 import 'cue_sounds.dart';
 import 'ambience.dart';
 import 'fx_groups.dart';
 import 'meme_beat.dart';
 import 'memes.dart';
 import 'music_tracks.dart';
+import 'scene_cues.dart';
 import 'sound_onsets.dart';
 import 'sound_stage.dart';
 import 'verdict_stage.dart';
@@ -48,6 +50,16 @@ class DeviceStage extends SoundStage implements VerdictStage {
   final Map<FxGroup, int> _lastTake = {};
   late final Future<void> _ready = _setUp();
 
+  /// Per misurare (tool/audio_sync): chiamato ogni volta che parte un suono
+  /// di una scena, col lettore, la registrazione, il punto da cui parte,
+  /// quando (su [clock], in microsecondi) la scena l'ha chiesto e se il
+  /// lettore era già pronto.
+  static void Function(SceneCue cue, AudioPlayer player, String asset, Duration from, int called, bool ready)? probe;
+
+  static final Stopwatch clock = Stopwatch()..start();
+
+  /// Il ritardo misurato tra il play e il suono vero, che le scene anticipano.
+  final LeadMeter _lead = LeadMeter();
 
   DeviceStage() {
     _ready.then<void>((_) {}, onError: _report);
@@ -55,6 +67,37 @@ class DeviceStage extends SoundStage implements VerdictStage {
     for (final player in [_player, _memePlayer, _voicePlayer, ..._shortPlayers,
       for (final deck in [..._musicDecks, ..._ambienceDecks, ..._atmosphereDecks]) deck.player]) {
       _quiet(player);
+    }
+    _warmUp().then<void>((_) {}, onError: _report);
+  }
+
+  /// Appena l'app parte: i passi con cui comincia ogni scena già copiati
+  /// sul disco, e il ritardo del lettore già misurato, con qualche passo a
+  /// volume zero (il primo, che sveglia l'audio, di solito non conta).
+  /// Così anche la prima scena della sera è a tempo dal primo passo.
+  Future<void> _warmUp() async {
+    await _ready;
+    final steps = [for (var i = 1; i <= 4; i++) 'sounds/step_$i.wav'];
+    for (final asset in steps) {
+      await _file(asset);
+    }
+    // Una tavola che scricchiola: abbastanza lunga da leggerne la posizione
+    // mentre suona (un passo finisce in un decimo di secondo).
+    final plank = DeviceFileSource(await _file('sounds/plank.wav'));
+    const patience = Duration(seconds: 2);
+    final player = _quiet(AudioPlayer());
+    try {
+      for (var i = 0; i < 5; i++) {
+        await player.setSource(plank).timeout(patience);
+        await player.setVolume(0).timeout(patience);
+        final called = clock.elapsedMicroseconds;
+        await player.resume().timeout(patience);
+        _measure(player, Duration.zero, called);
+        await Future<void>.delayed(const Duration(milliseconds: 400));
+        await player.stop().timeout(patience);
+      }
+    } finally {
+      await player.dispose();
     }
   }
 
@@ -77,6 +120,24 @@ class DeviceStage extends SoundStage implements VerdictStage {
     final from = _shapeOf(asset).from;
     return from > Duration.zero ? from : null;
   }
+
+  /// Una registrazione di [group] diversa dall'ultima, quando se ne ha la scelta.
+  int _takeOf(FxGroup group) {
+    var take = 1 + _random.nextInt(group.count);
+    if (group.count > 1 && take == _lastTake[group]) take = take % group.count + 1;
+    _lastTake[group] = take;
+    return take;
+  }
+
+  /// I file dei suoni copiati dagli asset al disco, dove i lettori li
+  /// leggono: una copia sola per file, anche se lo chiedono in due insieme.
+  final Map<String, Future<String>> _files = {};
+
+  Future<String> _file(String asset) => _files[asset] ??= AudioCache.instance.loadPath(asset)
+    // Andata male una volta, la prossima si riprova.
+    ..then<void>((_) {}, onError: (Object _) {
+      _files.remove(asset);
+    });
 
   Future<Map<Cue, String>> _recordCues() async {
     final tapes = await compute(_composeAllCues, null);
@@ -131,8 +192,111 @@ class DeviceStage extends SoundStage implements VerdictStage {
 
 
 
+  /// Copia sul disco, prima che servano, le registrazioni che le scene in
+  /// arrivo possono suonare (tutte le varianti di ogni gruppo).
   @override
-  void prepare(Iterable<DeathAct> acts) {}
+  void prepare(Iterable<DeathAct> acts) {
+    final assets = <String>{
+      for (final act in acts)
+        for (final cue in sceneCuesFor(act, memes: memeMode)) ...[
+          if (cue.fx case final fx?) for (var take = 1; take <= fx.count; take++) fx.asset(take),
+          if (cue.sample case final name?) 'sounds/$name.wav',
+          if (cue.meme case final meme?) meme.asset,
+        ],
+    };
+    for (final asset in assets) {
+      _file(asset).then<void>((_) {}, onError: _report);
+    }
+  }
+
+  @override
+  SceneSound arm(CueSheet sheet) => _SceneDeck(this, sheet);
+
+  @override
+  Duration get cueLead => _lead.lead;
+
+  /// Un suono di una scena già deciso: quale registrazione, da dove parte,
+  /// quanto suona, quanto forte rispetto al volume degli effetti.
+  _Resolved _resolve(SceneCue cue) {
+    final asset = switch (cue) {
+      SceneCue(meme: final meme?) => meme.asset,
+      SceneCue(fx: final fx?) => fx.asset(_takeOf(fx)),
+      _ => 'sounds/${cue.sample}.wav',
+    };
+    final shape = _shapeOf(asset);
+    // I meme sono fatti per farsi sentire: sopra a tutto il resto.
+    final gain = cue.meme != null ? 1.15 : cue.gain * mix.scene;
+    return _Resolved(cue, asset, shape.from, shape.length, gain);
+  }
+
+  double _volumeOf(_Resolved take) => (effectsVolume * take.gain).clamp(0.0, 1.0);
+
+  /// Se [take] può suonare adesso. Un meme mentre ne suona un altro non
+  /// suona: quelli brevi si mettono in coda (a freddo), quelli lunghi no.
+  bool _mayPlay(_Resolved take) {
+    if (!enabled || effectsVolume <= 0) return false;
+    final meme = take.cue.meme;
+    if (meme == null) return true;
+    if (!memeMode) return false;
+    if (_memeUntil.isAfter(DateTime.now())) {
+      if (!meme.isLong) this.meme(meme);
+      return false;
+    }
+    _memeStarts(meme);
+    return true;
+  }
+
+  /// Fa partire un suono di scena su un lettore già pronto: resta solo il play.
+  void _fire(AudioPlayer player, _Resolved take, double armed) {
+    final volume = _volumeOf(take);
+    // Le chiamate al lettore arrivano in ordine: niente attesa tra le due.
+    if (volume != armed) player.setVolume(volume).then<void>((_) {}, onError: _report);
+    final called = clock.elapsedMicroseconds;
+    player.resume().then<void>((_) {}, onError: _report);
+    probe?.call(take.cue, player, take.asset, take.from, called, true);
+    _measure(player, take.from, called);
+  }
+
+  /// Un suono di scena che non ha un lettore pronto: parte come gli altri,
+  /// su uno dei lettori dei suoni brevi.
+  void _fireCold(_Resolved take) {
+    final player = _shortPlayers[_nextShort++ % _shortPlayers.length];
+    final called = clock.elapsedMicroseconds;
+    () async {
+      try {
+        await player.stop();
+        await player.play(
+          DeviceFileSource(await _file(take.asset)),
+          volume: _volumeOf(take),
+          position: take.from > Duration.zero ? take.from : null,
+        );
+        probe?.call(take.cue, player, take.asset, take.from, called, false);
+      } catch (error) {
+        _report(error);
+      }
+    }();
+  }
+
+  /// Quanto ci ha messo il suono a partire davvero, da quando si è premuto
+  /// play ([called]): la posizione del lettore dice da quanto sta suonando.
+  void _measure(AudioPlayer player, Duration from, int called) {
+    var tries = 0;
+    Future<void> look() async {
+      try {
+        final before = clock.elapsedMicroseconds;
+        final at = await player.getCurrentPosition();
+        final after = clock.elapsedMicroseconds;
+        final ran = at == null ? Duration.zero : at - from;
+        if (ran > const Duration(milliseconds: 5)) {
+          _lead.heard(Duration(microseconds: (before + after) ~/ 2 - ran.inMicroseconds - called));
+        } else if (++tries < 8) {
+          Timer(const Duration(milliseconds: 40), look);
+        }
+      } catch (_) {}
+    }
+
+    Timer(const Duration(milliseconds: 60), look);
+  }
 
 
   /// Le scene non hanno più un nastro: ogni suono parte da solo al suo
@@ -180,13 +344,9 @@ class DeviceStage extends SoundStage implements VerdictStage {
         if (after > Duration.zero) await Future<void>.delayed(after);
         if (!enabled) return;
         await _ready;
-        // Una registrazione diversa dall'ultima, quando se ne ha la scelta.
-        var take = 1 + _random.nextInt(group.count);
-        if (group.count > 1 && take == _lastTake[group]) take = take % group.count + 1;
-        _lastTake[group] = take;
+        final asset = group.asset(_takeOf(group));
         final player = _shortPlayers[_nextShort++ % _shortPlayers.length];
         await player.stop();
-        final asset = group.asset(take);
         await player.play(AssetSource(asset), volume: (effectsVolume * volume).clamp(0.0, 1.0), position: _startOf(asset));
       } catch (error) {
         _report(error);
@@ -313,20 +473,7 @@ class DeviceStage extends SoundStage implements VerdictStage {
           await Future<void>.delayed(_memeUntil.difference(now));
           if (!memeMode || !enabled) return;
         }
-        _memeUntil = DateTime.now().add(Duration(milliseconds: meme.millis));
-        MemeBeat.instance.heard(meme);
-        // Il meme è la battuta: la musica si fa da parte. Quelli lunghi la
-        // zittiscono del tutto (e il sottofondo con lei), quelli brevi la
-        // abbassano per un attimo.
-        _memeDuck = meme.isLong ? 0 : 0.35;
-        _musicDeck.fadeTo(_musicTarget, const Duration(milliseconds: 150));
-        if (meme.isLong) _ambienceDeck.fadeTo(0, const Duration(milliseconds: 300));
-        _memeTimer?.cancel();
-        _memeTimer = Timer(Duration(milliseconds: meme.millis + 200), () {
-          _memeDuck = 1;
-          _musicDeck.fadeTo(_musicTarget, const Duration(milliseconds: 1200));
-          if (_ambienceGroup != null) _ambienceDeck.fadeTo(_ambienceVolume, const Duration(milliseconds: 1500));
-        });
+        _memeStarts(meme);
         await _memePlayer.stop();
         // I meme sono fatti per farsi sentire: sopra a tutto il resto.
         await _memePlayer.play(
@@ -338,6 +485,24 @@ class DeviceStage extends SoundStage implements VerdictStage {
         _report(error);
       }
     }();
+  }
+
+  /// Parte un meme: fino alla sua fine gli altri aspettano.
+  void _memeStarts(Meme meme) {
+    _memeUntil = DateTime.now().add(Duration(milliseconds: meme.millis));
+    MemeBeat.instance.heard(meme);
+    // Il meme è la battuta: la musica si fa da parte. Quelli lunghi la
+    // zittiscono del tutto (e il sottofondo con lei), quelli brevi la
+    // abbassano per un attimo.
+    _memeDuck = meme.isLong ? 0 : 0.35;
+    _musicDeck.fadeTo(_musicTarget, const Duration(milliseconds: 150));
+    if (meme.isLong) _ambienceDeck.fadeTo(0, const Duration(milliseconds: 300));
+    _memeTimer?.cancel();
+    _memeTimer = Timer(Duration(milliseconds: meme.millis + 200), () {
+      _memeDuck = 1;
+      _musicDeck.fadeTo(_musicTarget, const Duration(milliseconds: 1200));
+      if (_ambienceGroup != null) _ambienceDeck.fadeTo(_ambienceVolume, const Duration(milliseconds: 1500));
+    });
   }
 
   @override
@@ -500,6 +665,144 @@ class DeviceStage extends SoundStage implements VerdictStage {
 }
 
 List<Uint8List> _composeAllCues(Object? _) => [for (final cue in Cue.values) composeCue(cue)];
+
+class _Resolved {
+  final SceneCue cue;
+  final String asset;
+  final Duration from;
+  final Duration length;
+  final double gain;
+
+  const _Resolved(this.cue, this.asset, this.from, this.length, this.gain);
+}
+
+/// Un lettore della scena e i suoni che gli toccano, in ordine.
+class _Seat {
+  AudioPlayer player;
+  final List<int> queue = [];
+  int next = 0;
+
+  /// Il suono che ha caricato ed è pronto a partire, se ce n'è uno.
+  int? ready;
+  double volume = 0;
+  bool used = false;
+  Timer? later;
+
+  _Seat(this.player);
+}
+
+/// I suoni di una scena, ognuno già caricato su un lettore suo prima del
+/// suo fotogramma (il piano è [planDeck]): al momento giusto resta solo il
+/// play. Un lettore che ha finito il suo si ricarica col prossimo. Quello che
+/// non ha fatto in tempo a essere pronto parte a freddo, come prima.
+class _SceneDeck implements SceneSound {
+  final DeviceStage stage;
+  final List<SceneCue> cues;
+  final Map<int, _Resolved> _takes = {};
+  final Map<int, _Seat> _seatOf = {};
+  final List<_Seat> _seats = [];
+  final Set<int> _fired = {};
+  bool _closed = false;
+
+  /// I lettori si caricano uno alla volta, nell'ordine in cui serviranno:
+  /// tutti insieme si rubano il tempo a vicenda, e il primo passo
+  /// arriverebbe tardi.
+  Future<void> _line = Future<void>.value();
+
+  void _queue(_Seat seat) => _line = _line.then((_) => _arm(seat));
+
+  _SceneDeck(this.stage, CueSheet sheet) : cues = sheet.cues {
+    final times = sheet.times;
+    final coming = [for (var i = sheet.next; i < cues.length; i++) i];
+    for (final i in coming) {
+      _takes[i] = stage._resolve(cues[i]);
+    }
+    final plan = planDeck([for (final i in coming) (at: times[i], length: _takes[i]!.length)]);
+    for (var p = 0; p < plan.players; p++) {
+      _seats.add(_Seat(DeviceStage._quiet(AudioPlayer())));
+    }
+    for (var k = 0; k < coming.length; k++) {
+      final seat = plan.seats[k];
+      if (seat == null) continue;
+      _seatOf[coming[k]] = _seats[seat];
+      _seats[seat].queue.add(coming[k]);
+    }
+    if (!stage.enabled || stage.effectsVolume <= 0) return;
+    // Il piano dà i lettori in ordine di primo suono.
+    for (final seat in _seats) {
+      _queue(seat);
+    }
+  }
+
+  /// Carica sul lettore il prossimo dei suoi suoni che non è ancora partito.
+  Future<void> _arm(_Seat seat) async {
+    while (!_closed) {
+      while (seat.next < seat.queue.length && _fired.contains(seat.queue[seat.next])) {
+        seat.next++;
+      }
+      if (seat.next >= seat.queue.length) return;
+      final index = seat.queue[seat.next];
+      final take = _takes[index]!;
+      try {
+        // Ogni tanto un lettore non dice mai di essere pronto: non può
+        // fermare tutti gli altri, che si caricano dopo di lui.
+        const patience = Duration(seconds: 2);
+        if (seat.used) await seat.player.stop().timeout(patience);
+        seat.used = true;
+        await seat.player.setSource(DeviceFileSource(await stage._file(take.asset))).timeout(patience);
+        if (take.from > Duration.zero) await seat.player.seek(take.from).timeout(patience);
+        seat.volume = stage._volumeOf(take);
+        await seat.player.setVolume(seat.volume).timeout(patience);
+      } catch (error) {
+        if (_closed) return;
+        stage._report(error);
+        // Questo suono partirà a freddo; per i prossimi, un lettore nuovo.
+        seat.player.dispose().then<void>((_) {}, onError: (Object _) {});
+        seat.player = DeviceStage._quiet(AudioPlayer());
+        seat.used = false;
+        seat.next++;
+        continue;
+      }
+      if (_closed) return;
+      if (!_fired.contains(index)) {
+        seat.ready = index;
+        return;
+      }
+    }
+  }
+
+  @override
+  void fire(int index) {
+    if (_closed || !_fired.add(index)) return;
+    final take = _takes[index] ?? stage._resolve(cues[index]);
+    final seat = _seatOf[index];
+    if (!stage._mayPlay(take)) {
+      if (seat != null && seat.ready == index) {
+        seat.ready = null;
+        _queue(seat);
+      }
+      return;
+    }
+    if (seat != null && seat.ready == index) {
+      seat.ready = null;
+      stage._fire(seat.player, take, seat.volume);
+      // Finito questo, il lettore si prepara per il prossimo.
+      seat.later = Timer(take.length + const Duration(milliseconds: 40), () => _queue(seat));
+    } else {
+      stage._fireCold(take);
+    }
+  }
+
+  @override
+  void release() {
+    if (_closed) return;
+    _closed = true;
+    for (final seat in _seats) {
+      seat.later?.cancel();
+      seat.player.dispose().then<void>((_) {}, onError: stage._report);
+    }
+  }
+}
 
 /// Un lettore con il suo volume, che sa salire e scendere piano.
 class _Deck {

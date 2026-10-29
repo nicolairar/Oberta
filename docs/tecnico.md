@@ -336,6 +336,57 @@ flutter run               # lancia sul device selezionato (o te lo chiede)
 flutter test
 ```
 
+## Il suono dei film
+
+I film della notte e del verdetto non hanno una colonna sonora unica: ogni
+passo, sparo, tonfo o urlo è una registrazione a sé, agganciata al momento
+del film in cui succede (`lib/sound/scene_cues.dart`). Perché si senta sul
+fotogramma giusto e non dopo:
+
+- **Il silenzio in testa ai file si salta.** Molte registrazioni si aprono
+  con un po' di vuoto: lo scricchiolio del cappio dopo 160 ms, certi urli
+  dopo 200, la carta posata dopo 370. `tool/sound/onsets.py` misura dove
+  comincia davvero ogni file (e quanto dura) e scrive
+  `lib/sound/sound_onsets.dart`; i lettori partono da lì. Va rigenerato
+  quando si aggiunge o si cambia un suono: un test se ne accorge.
+- **I lettori sono pronti prima.** Quando una scena comincia
+  (`SoundStage.arm`), ogni suono va su un lettore suo, già caricato e già al
+  punto giusto; li carica uno alla volta, nell'ordine in cui serviranno, e un
+  lettore si ricarica col suono dopo solo quando il suo è finito (il piano è
+  `planDeck` in `lib/sound/cue_deck.dart`). Al fotogramma resta solo il play.
+  Prima ogni suono fermava un lettore, caricava il file, aspettava che fosse
+  pronto e solo allora partiva. Quello che non fa in tempo a essere pronto
+  parte come prima, a freddo.
+- **Il ritardo che resta si anticipa.** Anche col lettore pronto, dal play al
+  suono vero passa tempo (sul Mac 85–90 ms; con le cuffie bluetooth molto di
+  più). Il palco lo misura a ogni suono dalla posizione del lettore
+  (`LeadMeter`: mediana delle ultime nove misure, meno un fotogramma, mai più
+  di 150 ms) e le scene fanno partire ogni suono con quell'anticipo
+  (`CueSheet.due`). All'avvio qualche passo a volume zero lo misura già, così
+  anche la prima scena della sera è a tempo dal primo passo.
+- I lettori non chiedono più a che punto sono a ogni fotogramma: di serie
+  `audioplayers` lo fa finché suonano, e con la musica sempre accesa teneva
+  l'app a disegnare fotogrammi senza sosta.
+
+Si misura nell'app vera, in profile sul Mac:
+
+```bash
+lockf -t 0 /tmp/oberta_app.lock flutter run --profile -d macos -t tool/audio_sync/main.dart
+```
+
+Dieci film (otto della notte, due verdetti), per ogni suono il ritardo tra
+il fotogramma in cui si vede la cosa e il suono che si sente, compreso il
+silenzio in testa al file (passi esclusi, per confrontare gli stessi 66
+suoni). Prima: 109 ms di mediana, 241 al 90°, 289 il peggiore; gli spari e
+i colpi 105–269 ms. Adesso: 19 ms di mediana, 31 al 90°, 37 il peggiore,
+nessun suono a freddo (con i passi, 139 suoni: 16 ms di mediana). Il
+fotogramma arriva sullo schermo un giro dopo il build (16 ms a 60 Hz):
+suono e immagine ora arrivano insieme. La posizione del lettore comprende il
+ritardo dell'uscita audio che il sistema conosce; un altoparlante che mente
+sul suo ritardo resta fuori dalla misura.
+
+I gesti del tavolo non hanno ancora un suono.
+
 ## Prestazioni
 
 Obiettivo: 120 Hz su ProMotion, cioè 8,3 ms per fotogramma sia per il

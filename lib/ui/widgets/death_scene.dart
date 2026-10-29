@@ -256,12 +256,14 @@ class DeathScene extends StatefulWidget {
 class _DeathSceneState extends State<DeathScene>
     with SingleTickerProviderStateMixin {
   late final AnimationController _film;
-  late final List<SceneCue> _cues = sceneCuesFor(
-    widget.act,
-    save: widget.save,
-    memes: SoundStage.instance.memeMode,
+  late final CueSheet _cues = CueSheet(
+    sceneCuesFor(widget.act, save: widget.save, memes: SoundStage.instance.memeMode),
+    length: DeathScene.length,
+    clock: filmClock,
   );
-  int _nextCue = 0;
+
+  /// I suoni della scena, già caricati prima del loro fotogramma.
+  late final SceneSound _sound;
   final List<Timer> _tuning = [];
   late final Future<ParticleSprites> _particles = ParticleSprites.shared;
   bool _struck = false;
@@ -285,8 +287,10 @@ class _DeathSceneState extends State<DeathScene>
               _struck = true;
               HapticFeedback.heavyImpact();
             }
-            while (_nextCue < _cues.length && t >= _cues[_nextCue].t) {
-              SoundStage.instance.sceneCue(_cues[_nextCue++]);
+            // Ogni suono parte un attimo prima del suo fotogramma: quanto il
+            // palco ha misurato che ci mette a farsi sentire.
+            for (final cue in _cues.due(_film.value, lead: SoundStage.instance.cueLead)) {
+              _sound.fire(cue);
             }
           })
           ..addStatusListener((status) {
@@ -301,9 +305,8 @@ class _DeathSceneState extends State<DeathScene>
       // Si entra al punto giusto; la musica solo per chi arriva in tempo.
       final from = (startAt.inMicroseconds / DeathScene.length.inMicroseconds).clamp(0.0, 1.0);
       final t = filmTime(from);
-      while (_nextCue < _cues.length && _cues[_nextCue].t < t) {
-        _nextCue++;
-      }
+      _cues.skipTo(from);
+      _sound = SoundStage.instance.arm(_cues);
       _struck = t >= DeathScenePainter.strike;
       SoundStage.instance.duckMusic(true);
       if (startAt < const Duration(milliseconds: 700)) SoundStage.instance.playScene(widget.act);
@@ -314,6 +317,7 @@ class _DeathSceneState extends State<DeathScene>
     // Il film parte quando parte la musica. Il palco muto risponde subito;
     // quello vero ci mette un attimo, e la scena lo aspetta (ma non per
     // sempre: senza audio si va in onda lo stesso).
+    _sound = SoundStage.instance.arm(_cues);
     SoundStage.instance.duckMusic(true);
     final music = SoundStage.instance.playScene(widget.act);
     if (music is Future<void>) {
@@ -354,7 +358,8 @@ class _DeathSceneState extends State<DeathScene>
   /// sempre, e avanti si va solo col pulsante.
   void _skip() {
     _struck = true;
-    _nextCue = _cues.length;
+    _cues.skipAll();
+    _sound.release();
     _film.value = 1;
     SoundStage.instance.stop();
   }
@@ -372,6 +377,7 @@ class _DeathSceneState extends State<DeathScene>
     }
     SoundStage.instance.duckMusic(false);
     SoundStage.instance.stop();
+    _sound.release();
     _film.dispose();
     super.dispose();
   }

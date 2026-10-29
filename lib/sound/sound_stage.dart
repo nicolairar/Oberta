@@ -120,6 +120,17 @@ class SoundStage {
   /// sonora è pronta quando si spengono le luci.
   void prepare(Iterable<DeathAct> acts) {}
 
+  /// Prepara i suoni di una scena che sta per cominciare (da [CueSheet.next]
+  /// in poi), così al loro fotogramma partono subito. La scena li fa
+  /// suonare con [SceneSound.fire] e, quando finisce, li lascia andare.
+  ///
+  /// Il palco muto non prepara niente: ogni suono passa da [sceneCue].
+  SceneSound arm(CueSheet sheet) => _Unarmed(this, sheet.cues);
+
+  /// Quanto prima del loro fotogramma vanno fatti partire i suoni delle
+  /// scene: il ritardo che il palco ha misurato tra il play e il suono vero.
+  Duration get cueLead => Duration.zero;
+
   /// Fa partire la colonna sonora di una scena.
   ///
   /// Un palco che suona davvero restituisce un `Future` che si chiude quando
@@ -136,4 +147,27 @@ class SoundStage {
   void cue(Cue cue) {}
 
   Future<void> stop() async {}
+}
+
+/// I suoni di una scena, preparati da [SoundStage.arm].
+abstract class SceneSound {
+  /// Fa suonare il suono [index] della scena.
+  void fire(int index);
+
+  /// La scena è finita (o saltata): quello che suona ancora tace, e i
+  /// lettori tornano liberi.
+  void release();
+}
+
+class _Unarmed implements SceneSound {
+  final SoundStage stage;
+  final List<SceneCue> cues;
+
+  _Unarmed(this.stage, this.cues);
+
+  @override
+  void fire(int index) => stage.sceneCue(cues[index]);
+
+  @override
+  void release() {}
 }

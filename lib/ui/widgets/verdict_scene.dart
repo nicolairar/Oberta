@@ -181,8 +181,13 @@ class VerdictScene extends StatefulWidget {
 }
 
 class _VerdictSceneState extends State<VerdictScene> with SingleTickerProviderStateMixin {
-  late final List<SceneCue> _cues = verdictCuesFor(_take, memes: SoundStage.instance.memeMode);
-  int _nextCue = 0;
+  late final CueSheet _cues = CueSheet(
+    verdictCuesFor(_take, memes: SoundStage.instance.memeMode),
+    length: _take.length,
+  );
+
+  /// I suoni del film, già caricati prima del loro fotogramma.
+  late final SceneSound _sound;
 
   late final VerdictTake _take =
       widget.condemnedName == null ? VerdictTake.assoluzione : VerdictTake.pick(widget.variant, Random());
@@ -204,8 +209,9 @@ class _VerdictSceneState extends State<VerdictScene> with SingleTickerProviderSt
           _struck = true;
           HapticFeedback.mediumImpact();
         }
-        while (_nextCue < _cues.length && _film.value >= _cues[_nextCue].t) {
-          SoundStage.instance.sceneCue(_cues[_nextCue++]);
+        // Un attimo prima del fotogramma: quanto il suono ci mette a uscire.
+        for (final cue in _cues.due(_film.value, lead: SoundStage.instance.cueLead)) {
+          _sound.fire(cue);
         }
       })
       ..addStatusListener((status) {
@@ -218,9 +224,8 @@ class _VerdictSceneState extends State<VerdictScene> with SingleTickerProviderSt
     final startAt = widget.startAt;
     if (startAt != null) {
       final from = (startAt.inMicroseconds / _take.length.inMicroseconds).clamp(0.0, 1.0);
-      while (_nextCue < _cues.length && _cues[_nextCue].t < from) {
-        _nextCue++;
-      }
+      _cues.skipTo(from);
+      _sound = SoundStage.instance.arm(_cues);
       _struck = from >= _take.payoff;
       SoundStage.instance.duckMusic(true);
       if (startAt < const Duration(milliseconds: 700)) SoundStage.instance.playVerdict(_take);
@@ -228,6 +233,7 @@ class _VerdictSceneState extends State<VerdictScene> with SingleTickerProviderSt
       return;
     }
 
+    _sound = SoundStage.instance.arm(_cues);
     SoundStage.instance.duckMusic(true);
     final music = SoundStage.instance.playVerdict(_take);
     if (music is Future<void>) {
@@ -259,7 +265,8 @@ class _VerdictSceneState extends State<VerdictScene> with SingleTickerProviderSt
   /// Chi salta arriva alla carta finale, e avanti si va solo col pulsante.
   void _skip() {
     _struck = true;
-    _nextCue = _cues.length;
+    _cues.skipAll();
+    _sound.release();
     _film.value = 1;
     SoundStage.instance.stop();
   }
@@ -277,6 +284,7 @@ class _VerdictSceneState extends State<VerdictScene> with SingleTickerProviderSt
       timer.cancel();
     }
     SoundStage.instance.stop();
+    _sound.release();
     _film.dispose();
     super.dispose();
   }

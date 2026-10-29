@@ -35,6 +35,53 @@ class SceneCue {
   SceneCue at(double t) => SceneCue._(t, fx, sample, meme, gain);
 }
 
+double _same(double t) => t;
+
+/// I suoni di una scena mentre va in onda: dice quali far partire adesso.
+///
+/// I suoni sono agganciati al tempo del film ([SceneCue.t]); [clock] lo
+/// porta nel tempo vero, da 0 a 1 ([filmClock] per le scene della notte,
+/// che non scorrono uniformi; per i verdetti i due tempi coincidono).
+/// Con [lead] un suono parte un po' prima del suo fotogramma: il tempo che
+/// il lettore ci mette a farsi sentire.
+class CueSheet {
+  final List<SceneCue> cues;
+  final Duration length;
+  final List<double> _at;
+  int _next = 0;
+
+  CueSheet(this.cues, {required this.length, double Function(double t) clock = _same})
+      : _at = [for (final cue in cues) clock(cue.t)];
+
+  /// Quando deve sentirsi ogni suono, dall'inizio del film.
+  List<Duration> get times => [for (final at in _at) length * at];
+
+  /// Il primo suono che non è ancora partito.
+  int get next => _next;
+
+  /// Chi entra a film cominciato (online, in ritardo) non sente i suoni di
+  /// prima di [x], il tempo vero da 0 a 1.
+  void skipTo(double x) {
+    while (_next < cues.length && _at[_next] < x) {
+      _next++;
+    }
+  }
+
+  /// Saltata la scena, non suona più niente.
+  void skipAll() => _next = cues.length;
+
+  /// I suoni da far partire al tempo vero [x] (da 0 a 1), ognuno [lead]
+  /// prima del suo fotogramma: l'indice di ciascuno in [cues].
+  List<int> due(double x, {Duration lead = Duration.zero}) {
+    final ahead = x + lead.inMicroseconds / length.inMicroseconds;
+    final due = <int>[];
+    while (_next < cues.length && _at[_next] <= ahead + 1e-9) {
+      due.add(_next++);
+    }
+    return due;
+  }
+}
+
 const _s = DeathScenePainter.strike;
 
 /// I passi della vittima che arriva sotto il lampione: uno per ogni volta
