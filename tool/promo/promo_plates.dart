@@ -18,6 +18,7 @@ import 'package:oberta/ui/screens/online/online_game_screen.dart';
 import 'package:oberta/ui/theme/app_theme.dart';
 import 'package:oberta/ui/widgets/city_backdrop.dart';
 import 'package:oberta/rules/role.dart';
+import 'package:oberta/ui/avatar/avatar_look.dart';
 import 'package:oberta/ui/widgets/flip_role_card.dart';
 
 import '../../test/support/manual_clock.dart';
@@ -75,6 +76,9 @@ final _key = GlobalKey();
 
 /// How many frames of the card flip, after the face-down one.
 const flipFrames = 14;
+
+/// Tony's look as his profile wears it, set by [shootPlates].
+late AvatarLook brotherLook;
 
 Widget _app(Widget home) => RepaintBoundary(
   key: _key,
@@ -147,14 +151,30 @@ Future<Map<String, ui.Image>> shootPlates(WidgetTester tester) async {
   final plates = <String, ui.Image>{};
   final seed = int.tryParse(Platform.environment['SEED'] ?? '') ?? 16;
   final clock = ManualClock();
-  final online = FakeOnline(accountId: 'bruno', clock: clock, random: Random(seed))
-    ..signInReady(handle: 'bruno')
-    ..addPlayer('anna', handle: 'anna');
+  // Tony, the brother, dresses first: the real shop and the real barber, so
+  // his seat at the table wears exactly the look the promo paints big.
+  final online = FakeOnline(accountId: 'tony', clock: clock, random: Random(seed))..signInReady(handle: 'tony', coins: 100000);
+  for (final (item, tone) in [('hat.fedora', null), ('face.scar', 'olive'), ('outfit.charcoal_pinstripe', null), ('accessory.cigar', null)]) {
+    await _settled(tester, online.shop.buy(item));
+    await _settled(tester, online.shop.equip(item, tone: tone));
+  }
+  await _settled(tester, online.services.profiles.saveFace(
+    const {'hair': 'slicked', 'presentation': 'man', 'shape': 'square', 'brows': 'angled', 'mouth': 'smirk'},
+    tone: 'olive',
+  ));
+  // As when his profile arrives from the server: the table paints his seat
+  // from what the app remembers he wears (WornLooks), and so does the promo.
+  WornLooks.remember((await _settled(tester, online.services.profiles.me()))!);
+  brotherLook = AvatarLook.of('tony');
+  // Then the phone is yours: Bruno, on a test account of the fake backend.
+  online.addPlayer('test-1', handle: 'bruno');
+  await _settled(tester, online.services.auth.signOut());
+  await _settled(tester, online.services.auth.signInWithTestAccount(email: 'bruno@promo.test', password: 'promo-only'));
   OnlineServices.instance = online.services;
-  final room = online.openRoomAs('anna', AppLanguage.it);
-  online.joinAs('bruno', room.code);
-  await _settled(tester, online.gameAs('anna').setBots(room.id, 6));
-  await _settled(tester, online.gameAs('anna').startGame(room.id));
+  final room = online.openRoomAs('tony', AppLanguage.it);
+  online.joinAs('test-1', room.code);
+  await _settled(tester, online.gameAs('tony').setBots(room.id, 6));
+  await _settled(tester, online.gameAs('tony').startGame(room.id));
   final me = (await _settled(tester, online.services.profiles.me()))!;
   await tester.pumpWidget(
     _app(OnlineGameScreen(key: UniqueKey(), services: online.services, room: room, me: me, clock: clock)),

@@ -35,14 +35,14 @@ const beat = 60 / 136.4;
 double B(num n) => n * beat;
 
 // ── the edit (in beats; encode.swift uses the same numbers) ──────────────
-final hook = B(0), table = B(6), votes = B(13), lynch = B(24), black = B(33), flip = B(33.75), payoff = B(42), wardrobe = B(48), end = B(56);
-final length = B(65);
+final hook = B(0), table = B(6), votes = B(13), lynch = B(24), flip = B(33), payoff = B(41), wardrobe = B(47), end = B(55);
+final length = B(64);
 
-/// The card lands face up on beat 35, a beat and a quarter into its scene.
-final face = B(35) - flip;
+/// Straight from the river to the card: it lands face up on beat 34.
+final face = B(34) - flip;
 
 // ── the payoff line: PAYOFF=detto (default) | mamma | sangue ─────────────
-// Each is two lines; the last word lands alone, on beat 44, with a zoom hit.
+// Each is two lines; the last word lands alone, on beat 43, with a zoom hit.
 const _payoffs = {
   'detto': (["TE", "L'AVEVO"], 'DETTO.'),
   'mamma': (['MAMMA', 'NON', 'DEVE'], 'SAPERLO.'),
@@ -70,10 +70,10 @@ final _shakes = <(double, double)>[
   for (final t in _voteTicks) (t, 12),
   (B(22), 34),
   (B(26), 26),
-  (B(35), 60),
-  (B(44), 40),
-  for (var i = 48; i < 56; i++) (B(i), 10),
-  (B(56), 8),
+  (B(34), 60),
+  (B(43), 40),
+  for (var i = 47; i < 55; i++) (B(i), 10),
+  (B(55), 8),
 ];
 
 Offset shakeAt(double t) {
@@ -91,18 +91,13 @@ Offset shakeAt(double t) {
 final _flashes = <(double, Color, double)>[
   (B(2.6), const Color(0xFFFF2E24), 0.40),
   (B(22), const Color(0xFFFF2E24), 0.30),
-  (B(35), const Color(0xFFFF2E24), 0.75),
-  (B(44), Colors.white, 0.35),
+  (B(34), const Color(0xFFFF2E24), 0.75),
+  (B(43), Colors.white, 0.35),
 ];
 
 // ── the brother ──────────────────────────────────────────────────────────
-final _brother = AvatarLook.fallback('Tonino').copyWith(
-  base: AvatarBase.of(SkinTone.olive, FaceMark.scar),
-  hat: AvatarHead.fedora,
-  outfit: AvatarOutfit.byId('charcoal_pinstripe'),
-  accessory: AvatarAccessory.cigar,
-  features: const FaceFeatures(hair: HairStyle.slicked, presentation: Presentation.man, shape: FaceShape.square, brows: BrowShape.angled, mouth: MouthShape.smirk),
-);
+/// Tony, exactly as his seat at the table wears him (see [shootPlates]).
+AvatarLook get _brother => brotherLook;
 
 /// After the river: horns, a rain cloud of his own and a tear.
 final _ghost = _brother.copyWith(hat: AvatarHead.devilHorns, headFx: HeadFx.rainCloud, aura: Aura.inferno).marked(FaceExtra.tear);
@@ -211,10 +206,8 @@ Future<ui.Image> frame(double t) {
     _table(c, t - table);
   } else if (t < lynch) {
     _votes(c, t - votes);
-  } else if (t < black) {
-    _lynch(c, t - lynch);
   } else if (t < flip) {
-    // A third of a second of black: a pause, not an end.
+    _lynch(c, t - lynch);
   } else if (t < payoff) {
     _flip(c, t - flip);
   } else if (t < wardrobe) {
@@ -567,7 +560,7 @@ void _votes(Canvas c, double u) {
 // ── 4 · lynched: the game's pier film, with a speed ramp ─────────────────
 /// Scene time → film time: fast walk, slow-motion push, fast splash.
 double _film(double u) {
-  final d = black - lynch;
+  final d = flip - lynch;
   final x = clamp01(u / d);
   // Speed: 1 except a slow-motion dip around the push and the splash.
   const slow = 0.35;
@@ -586,7 +579,7 @@ double _film(double u) {
 }
 
 void _lynch(Canvas c, double u) {
-  final d = black - lynch;
+  final d = flip - lynch;
   final zoom = lerp(1.22, 1.40, inOutSine(u / d)) * punch(u, 0.12) + hitAt(u, B(2), 0.06);
   final sky = plates['verdictSky']!;
   final shake = shakeAt(_clock);
@@ -602,7 +595,7 @@ void _lynch(Canvas c, double u) {
   words(c, [('LINCIATO.', red, B(2))], H * 0.20, u, size: 150, tilt: -0.03);
 }
 
-// ── 5 · black, then his card turns over ──────────────────────────────────
+// ── 5 · straight from the river, his card turns over ──────────────────────────────────
 void _flip(Canvas c, double u) {
   const all = Rect.fromLTWH(0, 0, W, H);
   final hot = u >= face ? 1.0 : 0.0;
@@ -670,7 +663,7 @@ void _flip(Canvas c, double u) {
 
 // ── 6 · the payoff ───────────────────────────────────────────────────────
 void _payoffScene(Canvas c, double u) {
-  final last = B(2); // beat 44
+  final last = B(2); // beat 43
   final zoom = lerp(1.15, 1.0, outCubic(u / 0.3)) + hitAt(u, last, 0.14) + u * 0.02;
   _character(c, _ghost, u, zoom: zoom, lamp: const Color(0x55FF3B30), blur: u < 0.2 || (u > last && u < last + 0.15));
   final (lead, punchline) = _payoff;

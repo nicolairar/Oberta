@@ -12,7 +12,7 @@ import ImageIO
 let fps: Int32 = 60
 let beat = 60.0 / 136.4
 func B(_ n: Double) -> Double { n * beat }
-let length = B(65)
+let length = B(64)
 // PREVIEW=1: a light 720×1280 copy (avconvert's 720p preset fits a vertical
 // video in 404×720, too small to judge on a phone).
 let preview = ProcessInfo.processInfo.environment["PREVIEW"] != nil
@@ -44,35 +44,32 @@ cues += [
   Cue(file: sfx + "fx_gavel_1.m4a", at: B(26), volume: 0.8, max: 0.8),
   Cue(file: meme + "faaah.m4a", at: 13.05, volume: 0.9, max: 1.45),
   Cue(file: sfx + "fx_splash_1.m4a", at: 14.0, volume: 0.55, max: 0.5),
-  // 5 · a third of a second of black, on a low hit; the card turns, vine boom
-  Cue(file: sounds + "body_fall.wav", at: B(33), volume: 0.9),
-  Cue(file: sfx + "fx_heartbeat_1.m4a", at: B(33) + 0.02, volume: 0.6, max: 0.35),
-  Cue(file: sfx + "fx_swish_3.m4a", at: B(33.75) - 0.04, volume: 0.5, max: 0.5),
-  Cue(file: sounds + "flip.wav", at: B(34.2), volume: 0.9),
-  Cue(file: meme + "vine_boom.m4a", at: B(35), volume: 1.0),
+  // 5 · straight from the river: the card turns, vine boom
+  Cue(file: sfx + "fx_swish_3.m4a", at: B(33) - 0.04, volume: 0.5, max: 0.5),
+  Cue(file: sounds + "flip.wav", at: B(33.2), volume: 0.9),
+  Cue(file: meme + "vine_boom.m4a", at: B(34), volume: 1.0),
   // 6 · the payoff: the zoom hit on the last word
-  Cue(file: sounds + "punch_2.wav", at: B(44), volume: 0.8),
-  Cue(file: meme + "hee_hee.m4a", at: B(44) + 0.12, volume: 0.75, max: 0.9),
+  Cue(file: sounds + "punch_2.wav", at: B(43), volume: 0.8),
+  Cue(file: meme + "hee_hee.m4a", at: B(43) + 0.12, volume: 0.75, max: 0.9),
   // 7 · the wardrobe: the till on the first outfit, a swish on each next one
-  Cue(file: sfx + "fx_cashreg_1.m4a", at: B(48), volume: 0.55, max: 0.8),
+  Cue(file: sfx + "fx_cashreg_1.m4a", at: B(47), volume: 0.55, max: 0.8),
 ]
-for i in 49..<56 {
+for i in 48..<55 {
   cues.append(Cue(file: sfx + "fx_swish_\((i % 4) + 1).m4a", at: B(Double(i)) - 0.05, volume: 0.32, max: 0.35))
 }
 cues += [
   // 8 · the neon: the strike, and the short before the loop
-  Cue(file: sfx + "fx_bulb_1.m4a", at: B(56) + 0.05, volume: 0.5, max: 0.8),
+  Cue(file: sfx + "fx_bulb_1.m4a", at: B(55) + 0.05, volume: 0.5, max: 0.8),
   Cue(file: sfx + "fx_spark_1.m4a", at: length - 0.32, volume: 0.6, max: 0.3),
 ]
-// The music sits under the meme hits, and drops out for the beat of black.
+// The music sits under the meme hits.
 let music = "assets/music/day.m4a"
 let musicFrom = 49.92 // the fullest stretch, starting on a beat
 let musicLevel: Float = 0.8
 let duckLevel: Float = 0.38
-let ducks: [(Double, Double)] = [(13.0, B(33))] // faaah, then straight into the silence
-let silence = (B(33), B(33.75)) // the black pause → back with the card
-let boom = (B(35), B(35) + 1.0)
-let hee = (B(44), B(44) + 0.9)
+let faaah = (13.0, B(33) - 0.1)
+let boom = (B(34), B(34) + 1.0)
+let hee = (B(43), B(43) + 0.9)
 
 func time(_ s: Double) -> CMTime { CMTime(seconds: s, preferredTimescale: 48000) }
 
@@ -96,9 +93,8 @@ musicParams.setVolume(musicLevel, at: .zero)
 func ramp(_ from: Float, _ to: Float, _ at: Double, _ d: Double) {
   musicParams.setVolumeRamp(fromStartVolume: from, toEndVolume: to, timeRange: CMTimeRange(start: time(at), duration: time(d)))
 }
-for (a, _) in ducks { ramp(musicLevel, duckLevel, a - 0.12, 0.12) }
-ramp(duckLevel, 0, silence.0 - 0.08, 0.08)
-ramp(0, musicLevel, silence.1, 0.03)
+ramp(musicLevel, duckLevel, faaah.0 - 0.12, 0.12)
+ramp(duckLevel, musicLevel, faaah.1, 0.2)
 ramp(musicLevel, duckLevel, boom.0 - 0.05, 0.05)
 ramp(duckLevel, musicLevel, boom.1, 0.25)
 ramp(musicLevel, duckLevel, hee.0, 0.08)
