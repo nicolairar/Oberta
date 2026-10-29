@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#100b09">
+    <meta name="theme-color" content="#0b0807">
     <meta name="description" content="Obertà: ruoli segreti, bugie e un voto. Gratis, da 4 a 12 con gli amici, a voce. A dicembre su iPhone, Android e Steam.">
     <meta property="og:title" content="Obertà — Chi sa, tace">
     <meta property="og:description" content="Ruoli segreti, bugie e un voto. Gratis, con gli amici.">
@@ -15,24 +15,47 @@
     <link rel="stylesheet" href="style.css">
     <script src="app.js" defer></script>
   </head>
-  <body>
+  <body class="home">
     <a class="skip-link" href="#contenuto">Vai al contenuto</a>
 
     <header class="site-header">
-      <a class="wordmark" href="#inizio" aria-label="Obertà, inizio">OBERTÀ<span>®</span></a>
+      <!-- L'insegna al neon del gioco: OBERTÀ, e ogni tanto la B salta e si legge OMERTÀ (app.js). -->
+      <a class="neon" href="#inizio" aria-label="Obertà, inizio">
+        <svg class="neon__sign" viewBox="-24 -54 493 178" aria-hidden="true" focusable="false">
+          <defs>
+            <path id="neon-o" d="M31 0a31 31 0 0 1 31 31v38a31 31 0 0 1-62 0V31A31 31 0 0 1 31 0Z"/>
+            <path id="neon-b" d="M79 100V0h30a24 24 0 0 1 0 48H79m30 0h2a26 26 0 0 1 0 52H79"/>
+            <path id="neon-m" d="M79 100V0l29 58 29-58v100"/>
+            <path id="neon-e" d="M204 0h-50v100h50M154 50h40"/>
+            <path id="neon-r" d="M221 100V0h32a26 26 0 0 1 0 52h-32m27 0 31 48"/>
+            <path id="neon-t" d="M296 0h60M326 0v100"/>
+            <path id="neon-a" d="m373 100 36-100 36 100M388 66h42M390-30l19 17"/>
+          </defs>
+          <g class="neon__l" data-l="o"><use class="neon__glass" href="#neon-o"/><g class="neon__lit"><use class="neon__halo" href="#neon-o"/><use class="neon__tube" href="#neon-o"/><use class="neon__core" href="#neon-o"/></g></g>
+          <g class="neon__l" data-l="b"><use class="neon__glass" href="#neon-b"/><g class="neon__lit"><use class="neon__halo" href="#neon-b"/><use class="neon__tube" href="#neon-b"/><use class="neon__core" href="#neon-b"/></g></g>
+          <g class="neon__l neon__ghost" data-l="m"><g class="neon__lit"><use class="neon__halo" href="#neon-m"/><use class="neon__tube" href="#neon-m"/><use class="neon__core" href="#neon-m"/></g></g>
+          <g class="neon__l" data-l="e"><use class="neon__glass" href="#neon-e"/><g class="neon__lit"><use class="neon__halo" href="#neon-e"/><use class="neon__tube" href="#neon-e"/><use class="neon__core" href="#neon-e"/></g></g>
+          <g class="neon__l" data-l="r"><use class="neon__glass" href="#neon-r"/><g class="neon__lit"><use class="neon__halo" href="#neon-r"/><use class="neon__tube" href="#neon-r"/><use class="neon__core" href="#neon-r"/></g></g>
+          <g class="neon__l" data-l="t"><use class="neon__glass" href="#neon-t"/><g class="neon__lit"><use class="neon__halo" href="#neon-t"/><use class="neon__tube" href="#neon-t"/><use class="neon__core" href="#neon-t"/></g></g>
+          <g class="neon__l" data-l="a"><use class="neon__glass" href="#neon-a"/><g class="neon__lit"><use class="neon__halo" href="#neon-a"/><use class="neon__tube" href="#neon-a"/><use class="neon__core" href="#neon-a"/></g></g>
+        </svg>
+      </a>
       <nav aria-label="Navigazione principale">
         <a href="#amici">Come si gioca</a>
         <a href="ruoli.html">I ruoli</a>
-        <a href="#piattaforme">Dove si gioca</a>
+        <a class="nav-stores" href="#piattaforme">Dove si gioca</a>
       </nav>
     </header>
 
     <main id="contenuto">
       <section class="hero" id="inizio" aria-labelledby="hero-title">
         <div class="hero__media">
-          <div class="phone phone--hero">
-            <img src="video/hero.jpg" alt="Il video di Obertà: zio Vito racconta la partita che ha rovinato la famiglia" width="540" height="960" fetchpriority="high">
-            <video data-src="video/hero.mp4" muted loop playsinline preload="none" aria-hidden="true" tabindex="-1" width="540" height="960"></video>
+          <div class="device device--hero">
+            <div class="device__screen">
+              <img src="video/hero.jpg" alt="Il video di Obertà: zio Vito racconta la partita che ha rovinato la famiglia" width="720" height="1280" fetchpriority="high">
+              <!-- app.js sceglie la sorgente: hero-sd sotto i 900 px, hero-hd sopra. -->
+              <video data-src="video/hero-hd.mp4" data-src-sm="video/hero-sd.mp4" muted loop playsinline preload="none" aria-hidden="true" tabindex="-1" width="720" height="1280"></video>
+            </div>
           </div>
         </div>
         <div class="hero__copy">
@@ -66,65 +89,76 @@
 
       <section class="beat" id="amici" aria-labelledby="amici-title">
         <div class="beat__copy">
+          <p class="kicker">01 · Gli amici</p>
           <h2 id="amici-title">Gioca con gli amici.</h2>
           <p>Da 4 a 12. Un codice, e si parla a voce.</p>
           <span class="tag">Premi per parlare</span>
         </div>
         <div class="beat__media">
-          <div class="phone phone--clip">
-            <img src="video/voce.jpg" alt="Di giorno si parla a voce: si tiene premuto il microfono" width="360" height="640" loading="lazy">
-            <video data-src="video/voce.mp4" muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video>
+          <div class="device">
+            <div class="device__screen device__screen--clip">
+              <img src="video/voce.jpg" alt="Di giorno si parla a voce: si tiene premuto il microfono" width="540" height="960" loading="lazy">
+              <video data-src="video/voce.mp4" muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video>
+            </div>
           </div>
         </div>
       </section>
 
       <section class="beat beat--red" id="voto" aria-labelledby="voto-title">
         <div class="beat__copy">
+          <p class="kicker">02 · La piazza</p>
           <h2 id="voto-title">Il voto è un numero.</h2>
           <p>Punta il dito. Chi ne prende di più va al molo.</p>
         </div>
-        <div class="beat__media beat__media--pair">
-          <div class="phone phone--clip">
-            <img src="video/voto.jpg" alt="Il voto della piazza: su ogni posto il numero dei voti presi" width="360" height="640" loading="lazy">
-            <video data-src="video/voto.mp4" muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video>
-          </div>
-          <div class="phone phone--clip">
-            <img src="video/molo.jpg" alt="Il linciato finisce in acqua dal molo" width="360" height="640" loading="lazy">
-            <video data-src="video/molo.mp4" muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video>
+        <div class="beat__media">
+          <div class="device">
+            <div class="device__screen device__screen--clip">
+              <img src="video/voto.jpg" alt="Il voto della piazza: su ogni posto il numero dei voti presi, e il linciato finisce in acqua dal molo" width="540" height="960" loading="lazy">
+              <video data-src="video/voto.mp4" muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video>
+            </div>
           </div>
         </div>
       </section>
 
       <section class="beat" id="telefono" aria-labelledby="telefono-title">
         <div class="beat__copy">
+          <p class="kicker">03 · Il tavolo</p>
           <h2 id="telefono-title">Un telefono, tutti al tavolo.</h2>
           <p>Passatevelo di mano. Il narratore guida la notte a voce.</p>
         </div>
         <div class="beat__media">
-          <div class="phone phone--shot">
-            <img src="img/notte.jpg" alt="La notte al tavolo: dodici posti numerati, la famiglia sceglie chi colpire" width="600" height="1298" loading="lazy">
+          <div class="device">
+            <div class="device__screen">
+              <img src="img/notte.jpg" alt="La notte al tavolo: dodici posti numerati, la famiglia sceglie chi colpire" width="600" height="1298" loading="lazy">
+            </div>
           </div>
         </div>
       </section>
 
       <section class="beat beat--paper" id="bottega" aria-labelledby="bottega-title">
         <div class="beat__copy">
+          <p class="kicker">04 · La bottega</p>
           <h2 id="bottega-title">Vestiti da boss.</h2>
           <p>Monete solo giocando. Niente da comprare, mai.</p>
         </div>
         <div class="beat__media beat__media--pair">
-          <div class="phone phone--clip">
-            <img src="video/look.jpg" alt="Completi, cappelli e animali: il personaggio cambia vestito" width="360" height="640" loading="lazy">
-            <video data-src="video/look.mp4" muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video>
+          <div class="device">
+            <div class="device__screen device__screen--clip">
+              <img src="video/look.jpg" alt="Completi, cappelli e animali: il personaggio cambia vestito" width="540" height="960" loading="lazy">
+              <video data-src="video/look.mp4" muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video>
+            </div>
           </div>
-          <div class="phone phone--shot">
-            <img src="img/bottega.jpg" alt="La bottega: il personaggio sotto la lampada e la ruota dei pezzi" width="600" height="1298" loading="lazy">
+          <div class="device">
+            <div class="device__screen">
+              <img src="img/bottega.jpg" alt="La bottega: il personaggio sotto la lampada e la ruota dei pezzi" width="600" height="1298" loading="lazy">
+            </div>
           </div>
         </div>
       </section>
 
       <section class="beat" id="ruoli" aria-labelledby="ruoli-title">
         <div class="beat__copy">
+          <p class="kicker">05 · I ruoli</p>
           <!-- roles:summary (generated by tool/site/roles_page.dart) -->
           <h2 id="ruoli-title">Ventinove ruoli.</h2>
           <!-- roles:summary:end -->
@@ -142,8 +176,10 @@
               </span>
             </span>
           </button>
-          <div class="phone phone--shot">
-            <img src="img/collezione.jpg" alt="La collezione dei ruoli: le carte vinte scoperte, le altre col lucchetto" width="600" height="1300" loading="lazy">
+          <div class="device">
+            <div class="device__screen">
+              <img src="img/collezione.jpg" alt="La collezione dei ruoli: le carte vinte scoperte, le altre col lucchetto" width="600" height="1300" loading="lazy">
+            </div>
           </div>
         </div>
       </section>
@@ -155,8 +191,10 @@
           <p>La classificata: sempre in 12, al tavolo della tua lingua.</p>
         </div>
         <div class="beat__media">
-          <div class="phone phone--shot">
-            <img src="img/classificata.jpg" alt="L'ingresso della classificata: il tuo grado e i tavoli per lingua" width="600" height="1299" loading="lazy">
+          <div class="device">
+            <div class="device__screen">
+              <img src="img/classificata.jpg" alt="L'ingresso della classificata: il tuo grado e i tavoli per lingua" width="600" height="1299" loading="lazy">
+            </div>
           </div>
         </div>
       </section>
@@ -172,6 +210,7 @@
           <li><img src="img/badges/google-play-it.svg" alt="Google Play" width="239" height="71" loading="lazy"></li>
           <li class="stores__steam"><img src="img/badges/steam-logo-white.png" alt="Steam" width="900" height="272" loading="lazy"></li>
         </ul>
+        <a class="platforms__cta" href="#avvisami">Avvisami quando esce <span aria-hidden="true">↑</span></a>
         <ul class="langs" aria-label="Lingue del gioco">
           <li lang="it">Italiano</li>
           <li lang="en">English</li>

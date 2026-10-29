@@ -6,25 +6,97 @@ const still = reduceMotion || saveData;
 const year = document.querySelector('#year');
 if (year) year.textContent = String(new Date().getFullYear());
 
-// Video muti in loop: partono solo quando sono in vista, si fermano fuori.
+// Video muti in loop. Ne gira uno solo alla volta: quello più in vista (almeno metà dentro lo
+// schermo); gli altri restano fermi sulla locandina e non decodificano niente. La sorgente si
+// carica solo la prima volta che un video tocca a lui (preload="none" nell'HTML).
 // Con «riduci movimento» o il risparmio dati resta la locandina (nessun download).
 if (!still && 'IntersectionObserver' in window) {
-  const play = (video) => {
-    if (!video.src) {
-      video.muted = true;
-      video.setAttribute('muted', '');
-      video.src = video.dataset.src;
-      video.addEventListener('playing', () => video.classList.add('is-playing'), { once: true });
+  const videos = [...document.querySelectorAll('video[data-src]')];
+  const small = window.matchMedia('(max-width: 899px)');
+  const seen = new Map();
+  let current = null;
+  const load = (video) => {
+    if (video.src) return;
+    video.muted = true;
+    video.setAttribute('muted', '');
+    video.src = (small.matches && video.dataset.srcSm) || video.dataset.src;
+    video.addEventListener('playing', () => video.classList.add('is-playing'), { once: true });
+  };
+  const pick = () => {
+    let best = null;
+    let most = 0.5;
+    for (const [video, ratio] of seen) {
+      if (ratio >= most) { best = video; most = ratio; }
     }
-    video.play().catch(() => {});
+    if (best !== current && current) current.pause();
+    current = best;
+    if (current && !document.hidden) {
+      load(current);
+      current.play().catch(() => {});
+    }
   };
   const watcher = new IntersectionObserver((entries) => {
-    for (const { target, isIntersecting } of entries) {
-      if (isIntersecting) play(target);
-      else if (target.src) target.pause();
+    for (const { target, intersectionRatio } of entries) seen.set(target, intersectionRatio);
+    pick();
+  }, { threshold: [0, 0.25, 0.5, 0.75, 1] });
+  for (const video of videos) watcher.observe(video);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) current?.pause();
+    else pick();
+  });
+}
+
+// L'insegna al neon, come nel gioco: si accende lettera per lettera, poi ogni tanto la B
+// sfrigola e si spegne e al suo posto si accende una M: OMERTÀ. Solo timer, niente per-frame.
+const neon = document.querySelector('.neon');
+if (neon && !reduceMotion) {
+  const letter = (key) => neon.querySelector(`[data-l="${key}"]`);
+  const b = letter('b');
+  const m = letter('m');
+  const order = ['o', 'b', 'e', 'r', 't', 'a'].map(letter);
+  const wait = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); });
+  const tick = 1000 / 16;
+  // Un passo ogni sedicesimo di secondo, 1 acceso e 0 spento (i ritmi di HomeNeonSign).
+  const play = async (el, steps) => {
+    for (const on of steps) {
+      el.classList.toggle('is-off', !on);
+      await wait(tick);
     }
-  }, { rootMargin: '200px 0px' });
-  for (const video of document.querySelectorAll('video[data-src]')) watcher.observe(video);
+  };
+  const buzz = [1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1];
+  const strike = [1, 0, 1, 0, 1];
+  const flicker = [1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1];
+  const ghost = async (ms) => {
+    neon.classList.add('is-dim');
+    const end = performance.now() + ms;
+    for (let i = 0; performance.now() < end; i++) {
+      m.classList.toggle('is-on', flicker[i % flicker.length] === 1);
+      await wait(tick);
+    }
+    m.classList.remove('is-on');
+    neon.classList.remove('is-dim');
+  };
+  const run = async () => {
+    for (const el of order) el.classList.add('is-off');
+    neon.classList.remove('is-booting');
+    await wait(400);
+    for (const el of order) {
+      play(el, strike);
+      await wait(150);
+    }
+    await wait(1600);
+    for (;;) {
+      await wait(3500 + Math.random() * 4500);
+      if (document.hidden) continue;
+      await play(b, buzz);
+      b.classList.add('is-off');
+      await ghost(1100 + Math.random() * 1300);
+      await play(b, strike);
+      b.classList.remove('is-off');
+    }
+  };
+  neon.classList.add('is-booting');
+  run();
 }
 
 // Carta ruolo: tieni premuto per scoprirla, come nel gioco.

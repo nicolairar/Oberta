@@ -31,10 +31,11 @@ SKIP_SHOTS=1 tool/site/refresh_media.sh # solo i video
 ```
 
 - Le schermate vengono dall'app vera, renderizzata dai test in `tool/render/` (vetrina dello store con `RAW=1`, classificata, collezione dei ruoli), ridotte a 600 px di larghezza in JPEG con `sips`.
-- I video vengono dai corti promozionali (`~/Documents/VitoLong19201080.mp4` e `Tony15sec19201080.mp4`, o `VITO=` / `TONY=`), ricodificati con AVFoundation da `tool/site/web_video.swift`: senza traccia audio, H.264, `hero.mp4` 540×960 (~3,6 MB, tutto zio Vito), i loop delle sezioni 360×640 di 2–4 secondi (~150–250 KB), ognuno con la sua locandina JPEG.
+- I video vengono dai corti promozionali (`~/Documents/VitoLong19201080.mp4` e `Tony15sec19201080.mp4`, o `VITO=` / `TONY=`), ricodificati con AVFoundation da `tool/site/web_video.swift`: senza traccia audio, H.264 High (CABAC, B-frame). L'apertura è tutto zio Vito (45 s) a 720×1280 in due pesi: `hero-hd.mp4` (~8 MB, desktop) e `hero-sd.mp4` (~5,4 MB, telefono, scelto da `app.js` sotto i 900 px). I loop delle sezioni (`voce`, `voto`, `look`) sono 540×960 di 2–8 secondi (~0,5–1,6 MB), ognuno con la sua locandina JPEG. `img/grain.png` (la grana dello sfondo) la fa `tool/site/grain.swift`.
+- Le foto della pagina si controllano con `swift tool/site/site_shots.swift site/oberta/index.html build/site_shots` (1440×900, 1920×1080, 390×844, una schermata per altezza di finestra), che misura anche la fluidità dello scorrimento e quanti video girano insieme.
 - Niente da installare: solo Flutter, `sips` e Swift di macOS.
 
-I video partono solo quando sono in vista (`app.js`); con «riduci movimento» o il risparmio dati si vede solo la locandina e il video non si scarica. Il numero dei ruoli nel titolo della sezione «ruoli» lo scrive `dart run tool/site/roles_page.dart`.
+Gira un solo video alla volta, quello più in vista, e la sorgente si scarica solo quando tocca a lui (`app.js`); con «riduci movimento» o il risparmio dati si vede solo la locandina e il video non si scarica. Il numero dei ruoli nel titolo della sezione «ruoli» lo scrive `dart run tool/site/roles_page.dart`.
 
 ## Lista d'attesa
 

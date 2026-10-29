@@ -36,16 +36,21 @@ fi
 
 [ -n "${SKIP_VIDEO:-}" ] && exit 0
 mkdir -p "$site/video"
+rm -f "$site/video/hero.mp4" "$site/video/molo.mp4" "$site/video/molo.jpg"
 v="swift -suppress-warnings tool/site/web_video.swift"
-# Hero: the whole Zio Vito short, no audio track.
-$v clip "$vito" "$site/video/hero.mp4" --width 540 --kbps 650
-$v frame "$vito" "$site/video/hero.jpg" --at 2.5 --width 540 --quality 0.6
-# Section loops, 2-4 s each, cut between two scene changes of the shorts.
+# Hero: the whole Zio Vito short (45 s), no audio track, 720x1280. Flat animation stays
+# crisp at these rates: ~8 MB for desktop/retina, ~5.5 MB for phones (picked in app.js).
+$v clip "$vito" "$site/video/hero-hd.mp4" --width 720 --kbps 1450
+$v clip "$vito" "$site/video/hero-sd.mp4" --width 720 --kbps 950
+$v frame "$vito" "$site/video/hero.jpg" --at 1.2 --width 720 --quality 0.8
+# Section loops, cut between two scene changes of the shorts, 540x960. Only one video
+# on the page plays at a time; the others stay on their poster.
 loop() { # name src start duration poster-at
-  $v clip "$2" "$site/video/$1.mp4" --start "$3" --duration "$4" --width 360 --kbps 420
-  $v frame "$2" "$site/video/$1.jpg" --at "$5" --width 360 --quality 0.6
+  $v clip "$2" "$site/video/$1.mp4" --start "$3" --duration "$4" --width 540 --kbps 1600
+  $v frame "$2" "$site/video/$1.jpg" --at "$5" --width 540 --quality 0.8
 }
 loop voce "$vito" 23.0 2.3 24.0
-loop voto "$tony" 7.0 4.4 10.5
-loop molo "$tony" 11.9 3.0 14.0
-loop look "$tony" 21.0 3.0 22.3
+loop voto "$tony" 7.0 7.9 7.0
+loop look "$tony" 21.0 3.0 21.0
+# The grain tile laid over the section backgrounds: 96x96 static noise, ~13 KB.
+swift -suppress-warnings tool/site/grain.swift "$site/img/grain.png"

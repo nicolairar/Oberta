@@ -1,6 +1,7 @@
 // Web copies of the promo shorts for the landing page, with nothing to install:
 // AVFoundation re-encodes the video track only (no audio track at all), scaled
-// down, at a low bitrate, with the moov atom up front for streaming.
+// down, H.264 High profile (CABAC, B-frames) at the given average bitrate, with the
+// moov atom up front for streaming.
 //
 //   swift tool/site/web_video.swift clip <src.mp4> <out.mp4> [--start s] [--duration s] [--width px] [--kbps n] [--fps n]
 //   swift tool/site/web_video.swift frame <src.mp4> <out.jpg> [--at s] [--width px] [--quality 0..1]
@@ -90,6 +91,8 @@ func clip() async throws {
       AVVideoAverageBitRateKey: Int((opts["kbps"] ?? 900) * 1000),
       AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel,
       AVVideoMaxKeyFrameIntervalKey: Int(fps * 2),
+      AVVideoH264EntropyModeKey: AVVideoH264EntropyModeCABAC,
+      AVVideoAllowFrameReorderingKey: true,
       AVVideoExpectedSourceFrameRateKey: Int(fps),
     ],
   ])
