@@ -21,8 +21,10 @@ Deno.serve((req) =>
     unsubscribe: async (token) => {
       await sql`select public.unsubscribe_waitlist(${token})`;
     },
-    markSent: async (token) => {
-      await sql`update internal.waitlist set confirm_sent_at = now() where confirm_token = ${token}::uuid`;
+    noteMail: async (token, error) => {
+      await (error === null
+        ? sql`update internal.waitlist set confirm_sent_at = now(), confirm_error = null where confirm_token = ${token}::uuid`
+        : sql`update internal.waitlist set confirm_error = ${error} where confirm_token = ${token}::uuid`);
     },
     fetch,
     log: console.log,

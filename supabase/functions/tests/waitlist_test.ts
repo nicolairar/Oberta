@@ -23,6 +23,7 @@ function world(env: Record<string, string> = secrets, brevoStatus = 201) {
   const logs: string[] = [];
   const joins: { ip: string | null; consent: string }[] = [];
   const sent: string[] = [];
+  const failed: string[] = [];
   let n = 0;
   const deps: WaitlistDeps = {
     env: (name) => env[name],
@@ -50,17 +51,19 @@ function world(env: Record<string, string> = secrets, brevoStatus = 201) {
       for (const [k, row] of list) if (row.unsubscribe === token) list.delete(k);
       return Promise.resolve();
     },
-    markSent: (token) => {
-      sent.push(token);
+    noteMail: (token, error) => {
+      if (error === null) sent.push(token);
+      else failed.push(error);
       return Promise.resolve();
     },
     fetch: ((input: string | URL | Request, init?: RequestInit) => {
       mails.push({ url: String(input), headers: new Headers(init?.headers), body: JSON.parse(String(init?.body)) });
-      return Promise.resolve(new Response('{"messageId":"x"}', { status: brevoStatus }));
+      const answer = brevoStatus < 300 ? '{"messageId":"x"}' : `{"message":"bad key ${env.BREVO_API_KEY}"}`;
+      return Promise.resolve(new Response(answer, { status: brevoStatus }));
     }) as typeof fetch,
     log: (...args) => logs.push(args.join(' ')),
   };
-  return { deps, list, mails, logs, joins, sent };
+  return { deps, list, mails, logs, joins, sent, failed };
 }
 
 const call = (deps: WaitlistDeps, body: unknown, origin: string | null = site, extra: Record<string, string> = {}) =>
@@ -88,6 +91,7 @@ Deno.test('a new address is saved and gets one confirmation email from Brevo', a
   assertEquals(mail.headers.get('api-key'), 'test-key');
   assertEquals(mail.body.to, [{ email: 'zz.aiko@example.com' }]);
   assertEquals(mail.body.sender, { email: 'ciao@example.com', name: 'Obertà' });
+  assertEquals(mail.body.replyTo, { email: 'oberta@charliemobile.dev' });
   assertEquals(mail.body.subject, 'La Famiglia ti ha notato');
   const row = w.list.get('zz.aiko@example.com')!;
   assertStringIncludes(String(mail.body.htmlContent), `https://charliemobile.dev/oberta/conferma.html?t=${row.confirm}`);
@@ -128,6 +132,7 @@ Deno.test('without the Brevo secrets the sign-up is saved and the mail skipped',
   assertEquals(w.mails.length, 0);
   assert(w.logs.some((l) => l.includes('secrets missing')));
   assertEquals(w.sent, []);
+  assertEquals(w.failed, ['secrets_missing']);
 });
 
 Deno.test('Brevo failing does not change the answer', async () => {
@@ -137,6 +142,8 @@ Deno.test('Brevo failing does not change the answer', async () => {
   assert(w.logs.some((l) => l.includes('500')));
   assert(!w.logs.some((l) => l.includes('test-key')));
   assertEquals(w.sent, []);
+  assertEquals(w.failed.length, 1);
+  assert(w.failed[0].startsWith('brevo 500') && !w.failed[0].includes('test-key'));
 });
 
 Deno.test('no consent, bad address, rate limit: the error comes back, no mail', async () => {

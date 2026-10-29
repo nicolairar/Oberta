@@ -28,14 +28,16 @@ export interface WaitlistDeps {
   join: (email: string, lang: string, consent: string, ip: string | null) => Promise<JoinResult>;
   confirm: (token: string) => Promise<void>;
   unsubscribe: (token: string) => Promise<void>;
-  /** Notes that the confirmation email went out (confirm_sent_at). */
-  markSent: (confirmToken: string) => Promise<void>;
+  /** Notes how the confirmation email went: confirm_sent_at, or the reason in confirm_error. */
+  noteMail: (confirmToken: string, error: string | null) => Promise<void>;
   fetch: typeof fetch;
   log: (...args: unknown[]) => void;
 }
 
 export const brevoUrl = 'https://api.brevo.com/v3/smtp/email';
 const defaultSite = 'https://charliemobile.dev/oberta';
+/** The only contact address in the mails (and where replies go). */
+export const replyTo = 'oberta@charliemobile.dev';
 const defaultOrigins = ['https://charliemobile.dev', 'https://www.charliemobile.dev', 'https://oberta.pages.dev'];
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -71,7 +73,7 @@ export function siteUrl(env: WaitlistDeps['env']): string {
   return (env('WAITLIST_SITE_URL') ?? defaultSite).replace(/\/$/, '');
 }
 
-/** Sends the confirmation email; false (and a log line) when it cannot. */
+/** Sends the confirmation email: null when Brevo took it, else why not (no secrets ever in it). */
 export async function sendConfirmation(
   deps: WaitlistDeps,
   to: string,
@@ -79,12 +81,12 @@ export async function sendConfirmation(
   confirmToken: string,
   unsubscribeToken: string,
   functionUrl: string,
-): Promise<boolean> {
+): Promise<string | null> {
   const key = deps.env('BREVO_API_KEY');
   const sender = deps.env('BREVO_SENDER_EMAIL');
   if (!key || !sender) {
     deps.log('waitlist: Brevo secrets missing, confirmation email skipped');
-    return false;
+    return 'secrets_missing';
   }
   const site = siteUrl(deps.env);
   const unsubscribeUrl = `${site}/disiscriviti.html?t=${unsubscribeToken}`;
@@ -100,6 +102,7 @@ export async function sendConfirmation(
       headers: { 'api-key': key, 'content-type': 'application/json', accept: 'application/json' },
       body: JSON.stringify({
         sender: { email: sender, name: deps.env('BREVO_SENDER_NAME') || 'Obertà' },
+        replyTo: { email: replyTo },
         to: [{ email: to }],
         subject: mail.subject,
         htmlContent: mail.html,
@@ -111,16 +114,16 @@ export async function sendConfirmation(
         },
       }),
     });
+    const answer = (await res.text().catch(() => '')).replaceAll(key, '***').slice(0, 300);
     if (!res.ok) {
-      deps.log('waitlist: Brevo answered', res.status);
-      await res.body?.cancel();
-      return false;
+      deps.log('waitlist: Brevo answered', res.status, answer);
+      return `brevo ${res.status}: ${answer}`;
     }
-    await res.body?.cancel();
-    return true;
+    return null;
   } catch (error) {
-    deps.log('waitlist: Brevo unreachable', error instanceof Error ? error.message : 'failed');
-    return false;
+    const reason = (error instanceof Error ? error.message : 'failed').replaceAll(key, '***').slice(0, 300);
+    deps.log('waitlist: Brevo unreachable', reason);
+    return `unreachable: ${reason}`;
   }
 }
 
@@ -168,8 +171,8 @@ export async function handleWaitlist(req: Request, deps: WaitlistDeps): Promise<
   if (result.new && result.confirm_token && result.unsubscribe_token) {
     const mailLang: Lang = result.lang === 'it' ? 'it' : 'en';
     const functionUrl = `${(deps.env('SUPABASE_URL') ?? url.origin).replace(/\/$/, '')}/functions/v1/waitlist`;
-    const sent = await sendConfirmation(deps, email.trim().toLowerCase(), mailLang, result.confirm_token, result.unsubscribe_token, functionUrl);
-    if (sent) await deps.markSent(result.confirm_token).catch(() => deps.log('waitlist: could not note the sent mail'));
+    const error = await sendConfirmation(deps, email.trim().toLowerCase(), mailLang, result.confirm_token, result.unsubscribe_token, functionUrl);
+    await deps.noteMail(result.confirm_token, error).catch(() => deps.log('waitlist: could not note the mail outcome'));
   }
   // New or already there, mail sent or not: the same answer.
   return json({ ok: true }, 200, headers);

@@ -320,7 +320,7 @@ supabase secrets set --project-ref <ref> BREVO_API_KEY=... BREVO_SENDER_EMAIL=ob
 ```
 
 Senza segreti l'iscrizione si salva lo stesso e la mail si salta (log «Brevo secrets missing»);
-`confirm_sent_at` resta vuoto. Facoltativi: `WAITLIST_SITE_URL` (default
+`confirm_sent_at` resta vuoto e `confirm_error` dice perché (`secrets_missing`, oppure stato e messaggio di Brevo): `select email, confirm_error from internal.waitlist where confirm_error is not null;`. Facoltativi: `WAITLIST_SITE_URL` (default
 `https://charliemobile.dev/oberta`) e `WAITLIST_ORIGINS` (origini ammesse, separate da virgola;
 default `charliemobile.dev`, `www.charliemobile.dev`, `oberta.pages.dev` e le sue anteprime).
 
