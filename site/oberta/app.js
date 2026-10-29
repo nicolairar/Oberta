@@ -1,75 +1,31 @@
+// Obertà, la landing. Senza JS si vedono le locandine dei video e tutto il testo.
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-const phases = {
-  notte: {
-    image: 'img/notte.png',
-    alt: 'La notte: un giocatore legge il proprio compito segreto e sceglie cosa fare',
-    title: 'Cala la notte',
-    description: 'Ognuno riceve il suo compito segreto: la famiglia sceglie chi colpire, gli altri indagano o proteggono.'
-  },
-  piazza: {
-    image: 'img/piazza.png',
-    alt: 'La piazza durante la discussione: il tavolo con i posti numerati sopra la chat',
-    title: 'La piazza parla',
-    description: 'Alibi, accuse, mezze verità nella chat della piazza. Si parla per numeri di posto, e ogni parola può cambiare il voto.'
-  },
-  alba: {
-    image: 'img/alba.png',
-    alt: 'Il giornale dell’alba racconta il delitto senza svelare il ruolo della vittima',
-    title: 'Arriva l’alba',
-    description: 'Il giornale racconta chi non si è svegliato. Il suo ruolo resta un segreto.'
-  },
-  voto: {
-    image: 'img/voto.png',
-    alt: 'Il voto: le mani dei giocatori puntano verso chi accusano, la chat resta visibile',
-    title: 'Si vota',
-    description: 'Ognuno punta il dito. Chi prende più voti viene linciato e il suo ruolo si scopre.'
-  }
-};
-
-const phaseImage = document.querySelector('#phase-image');
-const phaseTitle = document.querySelector('#phase-title');
-const phaseDescription = document.querySelector('#phase-description');
-
-const phaseCaption = document.querySelector('.chronicle__caption');
-let swapTimer;
-
-function swapPhase(phase) {
-  clearTimeout(swapTimer);
-  const same = phaseImage.getAttribute('src') === phase.image;
-  if (!same) phaseImage.classList.add('is-changing');
-  phaseCaption?.classList.add('is-changing');
-  swapTimer = setTimeout(() => {
-    const done = () => phaseImage.classList.remove('is-changing');
-    if (!same) {
-      phaseImage.addEventListener('load', done, { once: true });
-      phaseImage.addEventListener('error', done, { once: true });
-      phaseImage.src = phase.image;
-      if (phaseImage.complete) requestAnimationFrame(done);
-    }
-    phaseImage.alt = phase.alt;
-    phaseTitle.textContent = phase.title;
-    phaseDescription.textContent = phase.description;
-    phaseCaption?.classList.remove('is-changing');
-  }, reduceMotion ? 0 : 230);
-}
-
-for (const button of document.querySelectorAll('[data-phase]')) {
-  button.addEventListener('click', () => {
-    const phase = phases[button.dataset.phase];
-    if (!phase || !phaseImage) return;
-
-    for (const tab of document.querySelectorAll('[data-phase]')) {
-      const active = tab === button;
-      tab.classList.toggle('is-active', active);
-      tab.setAttribute('aria-pressed', String(active));
-    }
-
-    swapPhase(phase);
-  });
-}
+const saveData = navigator.connection?.saveData === true;
+const still = reduceMotion || saveData;
 
 const year = document.querySelector('#year');
 if (year) year.textContent = String(new Date().getFullYear());
+
+// Video muti in loop: partono solo quando sono in vista, si fermano fuori.
+// Con «riduci movimento» o il risparmio dati resta la locandina (nessun download).
+if (!still && 'IntersectionObserver' in window) {
+  const play = (video) => {
+    if (!video.src) {
+      video.muted = true;
+      video.setAttribute('muted', '');
+      video.src = video.dataset.src;
+      video.addEventListener('playing', () => video.classList.add('is-playing'), { once: true });
+    }
+    video.play().catch(() => {});
+  };
+  const watcher = new IntersectionObserver((entries) => {
+    for (const { target, isIntersecting } of entries) {
+      if (isIntersecting) play(target);
+      else if (target.src) target.pause();
+    }
+  }, { rootMargin: '200px 0px' });
+  for (const video of document.querySelectorAll('video[data-src]')) watcher.observe(video);
+}
 
 // Carta ruolo: tieni premuto per scoprirla, come nel gioco.
 // roles:start
@@ -121,45 +77,16 @@ if (card) {
   card.addEventListener('blur', hide);
 }
 
-// Entrate delle sezioni, in ordine di lettura. Senza JS tutto resta visibile.
+// Entrate delle sezioni, solo con JS e senza «riduci movimento».
 if ('IntersectionObserver' in window && !reduceMotion) {
-  const groups = [
-    ['.chronicle', ['h2', '.chronicle__intro > p', ['.phase-tab', 'row'], ['.chronicle__view', 'pic']]],
-    ['.vote', ['h2', '.vote__heading > p', '.text-link', ['.vote__image', 'pic']]],
-    ['.verdict', [['.verdict__image', 'pic'], 'h2', '.verdict__copy > p']],
-    ['.cast', ['h2', '.cast__copy p', ['.cast__sheet', 'pic'], ['.role-card', 'pic'], '.cast__image figcaption']],
-    ['.look', [['.look__image', 'pic'], 'h2', '.look__copy p', ['.look__image--second', 'pic']]],
-    ['.ranked', ['h2', '.ranked__copy p', ['.ranked__image', 'pic']]],
-    ['.desk', ['h2', '.desk__copy p', ['.monitor', 'pic']]],
-    ['.modes', ['h2', ['.mode', 'row'], '.modes__note', '.button--gold']],
-    ['.platforms', ['h2', '.platforms__heading p', ['.platform', 'up'], '.platforms__legal', '.button--paper']]
-  ];
-  const targets = [];
-  for (const [section, parts] of groups) {
-    let step = 0;
-    const seen = new Set();
-    for (const part of parts) {
-      const [selector, kind] = Array.isArray(part) ? part : [part, 'up'];
-      for (const el of document.querySelectorAll(`${section} ${selector}`)) {
-        if (seen.has(el)) continue;
-        seen.add(el);
-        el.dataset.reveal = kind;
-        el.style.setProperty('--d', `${Math.min(step, 8) * 80}ms`);
-        targets.push(el);
-        step += 1;
-      }
-    }
-  }
-  const stamp = document.querySelector('.mode__label--stamp');
-  if (stamp) targets.push(stamp);
   document.documentElement.classList.add('js');
+  const targets = document.querySelectorAll('.beat__copy, .beat__media, .platforms > *');
   const observer = new IntersectionObserver((entries) => {
     for (const entry of entries) {
       if (!entry.isIntersecting) continue;
       entry.target.classList.add('is-in');
-      if (entry.target === stamp) stamp.closest('.mode')?.classList.add('is-shaking');
       observer.unobserve(entry.target);
     }
-  }, { rootMargin: '0px 0px -12% 0px' });
+  }, { rootMargin: '0px 0px -10% 0px' });
   for (const el of targets) observer.observe(el);
 }

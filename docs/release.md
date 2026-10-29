@@ -73,8 +73,11 @@ git add pubspec.yaml && git commit -m "Bump build to $(sed -n 's/^version: .*+//
    tool/voice/regenerate.sh
    ```
    e committa `assets/voice/` (Kokoro `im_nicola` / `am_adam`, 0.86, effetto godfather).
-6. Landing (`site/oberta/`): testi e immagini (`img/home.png`, `img/classificata.png`,
-   `img/bottega.png`, `img/desktop.jpg`, …) aggiornati se la UI o le funzioni sono cambiate.
+6. Landing (`site/oberta/`): testi aggiornati se la UI o le funzioni sono cambiate, poi
+   schermate e video rifatti in un colpo (vedi `site/oberta/README.md`):
+   ```sh
+   tool/site/refresh_media.sh && dart run tool/site/roles_page.dart
+   ```
    Pubblica da sola a ogni push su `main` (Cloudflare Pages).
 7. Screenshot dello store, se è cambiata la UI:
    ```sh

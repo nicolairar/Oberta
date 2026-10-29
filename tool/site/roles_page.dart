@@ -127,9 +127,8 @@ void main() {
     <header class="site-header">
       <a class="wordmark" href="./" aria-label="Obertà, inizio">OBERTÀ<span>®</span></a>
       <nav aria-label="Navigazione principale">
-        <a href="./#partita">La partita</a>
+        <a href="./#amici">Come si gioca</a>
         <a href="ruoli.html" aria-current="page">I ruoli</a>
-        <a href="./#modalita">Come si gioca</a>
         <a href="./#piattaforme">Dove si gioca</a>
       </nav>
       <a class="header-cta" href="./">Torna al quartiere <span aria-hidden="true">↖</span></a>
@@ -137,12 +136,12 @@ void main() {
     <main id="contenuto">
       <section class="roles-hero" aria-labelledby="roles-title">
         <figure class="roles-hero__shot" data-ui>
-          <img src="img/collezione.png" alt="La collezione dei ruoli nel gioco: le carte già vinte scoperte, le altre coperte col lucchetto" width="600" height="1301">
+          <img src="img/collezione.jpg" alt="La collezione dei ruoli nel gioco: le carte già vinte scoperte, le altre coperte col lucchetto" width="600" height="1300">
           <figcaption>Nel gioco: le carte da scoprire.</figcaption>
         </figure>
         <div class="roles-hero__copy">
           <h1 id="roles-title">I ruoli.</h1>
-          <p>$total carte, tre parti. All’inizio della partita ognuno riceve la sua e non la fa vedere a nessuno. Quali ruoli entrano dipende da quanti siete al tavolo (da 4 a 12): i più rari arrivano solo nelle partite grandi. Nel gioco, nella collezione dei ruoli, ogni carta resta coperta finché non vinci una partita con lei; poi tiene il conto delle tue partite, vittorie e serie migliore.</p>
+          <p>$total carte, tre parti. Una a testa, e non si fa vedere. Più siete al tavolo (da 4 a 12), più ruoli entrano. Nel gioco ogni carta resta coperta finché non ci vinci una partita.</p>
           <nav class="roles-jump" aria-label="Le tre parti">
 ${[for (final MapEntry(value: (title, _, key, _)) in _groups.entries) '            <a href="#$key">${_esc(title)}</a>'].join('\n')}
           </nav>
@@ -182,30 +181,16 @@ $sections    </main>
     stderr.writeln('app.js has no roles:start/roles:end block: card list left alone.');
   }
 
-  // The cast paragraph on the home page: how many roles, and who is in each side.
+  // The roles section of the home page: just the count, as its title.
   final index = File('$_site/index.html');
   final page = index.readAsStringSync();
   final summary = RegExp(r'(<!-- roles:summary[^>]*-->\n)[\s\S]*?(\s*<!-- roles:summary:end -->)');
   if (summary.hasMatch(page)) {
-    // La Prostituta gioca per la Famiglia senza conoscerla: si dice a parte.
-    String names(Team team) {
-      final list = [
-        for (final e in rolesOfTeam(team))
-          if (e.role != Role.prostituta) _bare(italianPack.roles[e.role]?.label ?? e.id),
-      ];
-      return list.length < 2 ? list.join() : '${list.sublist(0, list.length - 1).join(', ')} e ${list.last}';
-    }
-
     final count = _words(total);
-    final text =
-        '          <p>${count[0].toUpperCase()}${count.substring(1)} ruoli, ognuno con la sua icona. '
-        'La <strong>famiglia</strong> si conosce e uccide di notte: ${_esc(names(Team.mafia))}; '
-        'con loro gioca la ${_esc(_bare(italianPack.roles[Role.prostituta]!.label))}, che non sa chi sono e non vota l\'agguato. '
-        'La <strong>città</strong> indaga, protegge e vota: ${_esc(names(Team.citizens))}. '
-        'E poi i <strong>solitari</strong>, che giocano per sé: ${_esc(names(Team.neutral))}.</p>';
+    final text = '          <h2 id="ruoli-title">${count[0].toUpperCase()}${count.substring(1)} ruoli.</h2>';
     index.writeAsStringSync(page.replaceFirstMapped(summary, (m) => '${m[1]}$text${m[2]}'));
   } else {
-    stderr.writeln('index.html has no roles:summary block: cast paragraph left alone.');
+    stderr.writeln('index.html has no roles:summary block: roles title left alone.');
   }
 
   stdout.writeln('ruoli.html: $total roles (${[for (final t in Team.values) '${t.name} ${rolesOfTeam(t).length}'].join(', ')}).');
