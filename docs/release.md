@@ -3,7 +3,7 @@
 Da seguire **ogni volta**, nell'ordine. I comandi si lanciano dalla radice del repository
 (il checkout principale, dove ci sono `fastlane/.env` e `config/supabase.json`).
 
-## La release in 10 righe
+## La release in 11 righe
 
 1. Decidi la versione (`x.y.z`, regole sotto) e scrivila in `pubspec.yaml`; la build `+N` la alza fastlane.
 2. `flutter analyze && flutter test` verdi; migrazioni e Edge Function sul server; voce, landing e screenshot aggiornati se servono.
@@ -11,10 +11,11 @@ Da seguire **ogni volta**, nell'ordine. I comandi si lanciano dalla radice del r
 4. Tester esterni: `bundle exec fastlane ios external_beta` (gruppo «External Tester»).
 5. App Store: `bundle exec fastlane ios beta` **senza** `RANKED_DEBUG`, poi `bundle exec fastlane ios metadata`.
 6. App Store Connect: scegli la build, rilascio graduale, invia alla revisione.
-7. Desktop: `git tag vX.Y.Z && git push origin vX.Y.Z` → il CI compila, zip privati negli artifact.
-8. Steam (Fase 2): carica gli zip con SteamPipe sul branch `beta`, prova, poi metti live su `default`.
-9. Solo se le build vecchie non devono più giocare online: `tool/release/set_min_build.sh <platform> <N>`.
-10. Dopo: link e badge della landing, `./deploy.sh` di CharlieWebsite sul server, note in `docs/stato.md`.
+7. Android: `bundle exec fastlane android internal` → bozza sulla traccia interna di Play; da Play Console ai tester, poi produzione graduale (sezione 7).
+8. Desktop: `git tag vX.Y.Z && git push origin vX.Y.Z` → il CI compila, zip privati negli artifact.
+9. Steam (Fase 2): carica gli zip con SteamPipe sul branch `beta`, prova, poi metti live su `default`.
+10. Solo se le build vecchie non devono più giocare online: `tool/release/set_min_build.sh <platform> <N>`.
+11. Dopo: link e badge della landing, `./deploy.sh` di CharlieWebsite sul server, note in `docs/stato.md`.
 
 ---
 
@@ -195,19 +196,235 @@ server (sezione 9).
 6. Steamworks → *SteamPipe* → *Builds*: metti la build live sul branch **`default`**.
    Steam aggiorna tutti da solo.
 
-## 7. Android
+## 7. Android / Google Play
 
-Non c'è ancora. Quando arriverà: `bundle exec fastlane android …` verso la traccia interna di
-Google Play, poi produzione con rilascio graduale; stessa numerazione `+N`; la build minima si alza
-con `set_min_build.sh android <N>`.
+Pacchetto `com.obertagame.oberta`, stessa numerazione di iOS: `versionCode` = `+N`, `versionName` =
+`x.y.z` (pubspec). `minSdk` 24 (Android 7), `targetSdk` 36 (Play chiede almeno 35). Su Play va un
+**AAB** firmato con la **chiave di caricamento**; la chiave con cui l'app arriva ai telefoni la
+genera e la tiene Google (Play App Signing).
 
-### 7.1 Play Games Services: i traguardi
+### 7.1 La chiave di caricamento (fatta: da custodire)
+
+- `android/upload-keystore.jks` (PKCS12, RSA 4096, alias `upload`, valida fino al 2054) e
+  `android/key.properties` (password, alias, `storeFile=../upload-keystore.jks`): **mai in git**
+  (`android/.gitignore`, controlla con `git check-ignore -v android/key.properties android/upload-keystore.jks`).
+  Le stesse password sono in `fastlane/.env` (`ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_PASSWORD`).
+- **Copia di sicurezza adesso**: il `.jks` e la password fuori dal Mac (gestore di password). Persa la
+  chiave, Play la sostituisce (Play Console → *Integrità dell'app* → *Richiedi la reimpostazione della
+  chiave di caricamento*), ma ci vogliono giorni.
+- Senza `key.properties` la release si firma con la chiave di debug: va bene per provarla a mano, Play
+  la rifiuta, e la lane `android internal` si ferma prima di compilare.
+- Su un altro Mac: copia i due file in `android/`.
+- Impronte della chiave di caricamento (non sono segrete; servono a Google Sign-In, 7.5):
+
+  ```
+  SHA-1:   D0:2F:C8:E2:C3:04:61:8B:F8:AD:65:88:2E:B4:11:67:14:3E:0A:ED
+  SHA-256: 41:ED:EC:90:36:22:4E:A9:A0:76:44:6F:FD:71:19:D7:C8:D5:8B:57:D6:E4:AF:68:CE:CD:88:E3:F5:00:77:94
+  ```
+
+  Per rileggerle: `keytool -list -v -keystore android/upload-keystore.jks -alias upload` (chiede la password).
+
+### 7.2 Compilare e provare
+
+Una volta sola sul Mac: Android Studio → *SDK Manager* → *SDK Tools* → **Android SDK Command-line
+Tools (latest)**, poi `flutter doctor --android-licenses`. Senza, `flutter build appbundle` scrive
+l'AAB ma finisce con «Release app bundle failed to strip debug symbols» (Flutter controlla l'AAB con
+`apkanalyzer`, che sta lì) ed esce con errore: la lane si ferma.
+
+```sh
+# per Play (lo fa la lane, 7.8)
+flutter build appbundle --release --dart-define-from-file=config/supabase.json
+# per installarla a mano su un telefono col debug USB
+flutter build apk --release --dart-define-from-file=config/supabase.json
+adb install -r build/app/outputs/flutter-apk/app-release.apk
+```
+
+- AAB: `build/app/outputs/bundle/release/app-release.aab`, circa 157 MB (tre architetture, simboli
+  nativi e mapping di R8 dentro: Play li usa da solo per i crash). Un telefono ne scarica molto meno
+  (Play Console → *App bundle explorer* dice quanto).
+- Durante la build niente `flutter test` / `flutter drive` nello stesso checkout: rigenerano
+  `GeneratedPluginRegistrant.java` con `integration_test` e la release fallisce con «package
+  dev.flutter.plugins.integration_test does not exist». Basta rilanciare.
+- R8 è acceso. Le regole le portano i plugin; `android/app/proguard-rules.pro` aggiunge i tipi Kotlin
+  che `package:jni` e `shared_preferences_android` cercano per nome: senza, la release parte e
+  resta ferma sul caricamento (le impostazioni non si aprono). Se un plugin nuovo chiama Kotlin da
+  Dart con JNI, prova **sempre** la release su un telefono o un emulatore, non solo il debug.
+- Librerie native allineate a 16 KB (obbligatorio su Play per target 35+): verificato.
+- Permessi: Internet; microfono solo quando si sceglie «Microfono» (prima la spiegazione dell'app, poi
+  la domanda di Android; negato → si ascolta e basta, con il pulsante per le impostazioni);
+  fotocamera solo per il lettore QR; Bluetooth per le cuffie. Niente notifiche (l'app non ne manda:
+  `POST_NOTIFICATIONS` non serve), niente ID pubblicità. Microfono, fotocamera e Bluetooth non sono
+  obbligatori per installarla.
+- Schermo intero (Android 15+): le schermate stanno dentro le barre di sistema, anche con i tre
+  pulsanti in basso; il tema della finestra è sempre scuro (avvio e barra di navigazione).
+- Icona: adattiva (`mipmap-anydpi-v26`), dagli stessi disegni di iOS: `tool/make_app_icons.sh`
+  rifà tutte e due.
+- Prova veloce senza telefono: c'è l'AVD `oberta_smoke` (Android 17, Play Store, pagine da 16 KB):
+  `~/Library/Android/sdk/emulator/emulator -avd oberta_smoke`, poi `adb install -r ...apk`.
+
+### 7.3 Play Console: la prima volta
+
+1. Account sviluppatore Google Play (25 $ una tantum, verifica dell'identità). **Attenzione**: un
+   account **personale** creato dopo il 13 novembre 2023 deve fare un **test chiuso con almeno 12
+   tester per 14 giorni di fila** prima di poter chiedere la produzione. Per uscire a dicembre il
+   test chiuso deve partire **entro metà novembre**. Un account **organizzazione** (serve il D-U-N-S)
+   non ha questo obbligo.
+2. *Crea app*: nome **Obertà**, lingua predefinita **Italiano – it-IT**, **Gioco**, **Senza costi**;
+   accetta le dichiarazioni.
+3. **Il primo AAB si carica a mano**: l'API di Play (fastlane) non crea la prima release di un'app
+   nuova. *Test e rilascio* → *Test* → **Test interno** → *Crea nuova release* → carica
+   `build/app/outputs/bundle/release/app-release.aab` (7.2) → *Salva*. Con il primo AAB Google attiva
+   **Play App Signing** da solo (accetta la chiave generata da Google).
+4. *Test e rilascio* → *Configurazione* → **Integrità dell'app** → *Firma dell'app*: copia SHA-1 e
+   SHA-256 del **certificato della chiave di firma dell'app** (non di quella di caricamento). Servono
+   a Google Sign-In (7.5) e a Play Games (7.9); scrivile qui sotto quando le hai:
+
+   ```
+   Firma dell'app (Play) SHA-1:   <da Play Console>
+   Firma dell'app (Play) SHA-256: <da Play Console>
+   ```
+
+5. *Test interno* → *Tester*: un elenco di email (fino a 100), salva, copia il **link per i tester**
+   (lo aprono dal telefono, accettano, poi scaricano da Play).
+
+### 7.4 Il service account per fastlane
+
+1. [Google Cloud Console](https://console.cloud.google.com), lo stesso progetto dei client OAuth
+   (7.5): *API e servizi* → *Libreria* → abilita **Google Play Android Developer API**.
+2. *IAM e amministrazione* → *Service account* → *Crea*: nome `fastlane-play`, nessun ruolo.
+3. Il service account → *Chiavi* → *Aggiungi chiave* → **JSON**: salvalo come
+   `fastlane/play-service-account.json` (fuori da git per `.gitignore`).
+4. Play Console → **Utenti e autorizzazioni** → *Invita nuovi utenti*: l'email del service account
+   (`...@...iam.gserviceaccount.com`); autorizzazioni per l'app Obertà: *Rilascia app nei canali di
+   test*, *Gestisci canali di test e modifica elenchi di tester*, *Gestisci la presenza nello store*
+   (per i testi); più avanti *Rilascia in produzione*. Possono servire alcune ore prima che valgano.
+5. In `fastlane/.env`: `PLAY_JSON_KEY=fastlane/play-service-account.json` (percorso dalla radice del
+   repo). Senza, le lane `android` si fermano subito e dicono cosa manca. Prova:
+   ```sh
+   bundle exec fastlane run validate_play_store_json_key json_key:fastlane/play-service-account.json
+   ```
+
+### 7.5 Accedi con Google su Android
+
+Su Android l'app chiede a Google un token per il **client web** (`GOOGLE_WEB_CLIENT_ID`, quello che
+usa già Supabase) e Google riconosce l'app da **pacchetto + SHA-1 della firma**: il client Android
+non compare nel codice, ma deve esistere, per **ogni** chiave che firma l'app. Finché in
+`config/supabase.json` non c'è `GOOGLE_ANDROID_CLIENT_ID`, su Android il pulsante di Google non si
+mostra (e il foglio dice che non c'è un modo per entrare).
+
+Google Cloud Console, **lo stesso progetto** del client web e di quello iOS (e poi di Play Games:
+due progetti diversi non possono avere lo stesso pacchetto con la stessa SHA-1):
+
+1. *API e servizi* → **Schermata consenso OAuth** (*Branding*): nome Obertà, email di assistenza
+   `oberta@charliemobile.dev`, dominio autorizzato `charliemobile.dev`, link a privacy e termini;
+   ambiti solo `openid`, `email`, `profile`. Stato di pubblicazione **In produzione** (in «Test»
+   entrano solo gli utenti di prova).
+2. *Credenziali* → *Crea credenziali* → **ID client OAuth** → tipo **Android**:
+   - «Obertà Android (Play)»: pacchetto `com.obertagame.oberta`, **SHA-1 della firma dell'app di
+     Play** (7.3, punto 4). È quella delle build scaricate da Play, tester compresi.
+   - «Obertà Android (caricamento)»: stesso pacchetto, **SHA-1 della chiave di caricamento**
+     `D0:2F:C8:E2:C3:04:61:8B:F8:AD:65:88:2E:B4:11:67:14:3E:0A:ED` (le APK installate a mano, 7.2).
+   - Facoltativo, per `flutter run`: la SHA-1 della chiave di debug del Mac
+     (`keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android`).
+3. Il **client web** c'è già (`GOOGLE_WEB_CLIENT_ID`). Se mai andasse rifatto: tipo *Applicazione
+   web*, URI di reindirizzamento `https://<ref>.supabase.co/auth/v1/callback` (il login dal
+   desktop passa di lì).
+4. Supabase → *Authentication* → *Sign In / Providers* → **Google**: attivo; *Client IDs*: il client
+   **web** (i token Android hanno lui come destinatario) e quello iOS, separati da virgola; *Client
+   Secret*: quello del client web; **Skip nonce checks spento** (l'app manda il nonce).
+5. `config/supabase.json` (non nel repo, vedi `config/supabase.example.json`): aggiungi
+   `"GOOGLE_ANDROID_CLIENT_ID": "<id del client «Obertà Android (Play)»>"`. Il valore serve solo ad
+   accendere il pulsante: aggiungilo **dopo** aver creato il client con la SHA-1 di Play, altrimenti
+   chi scarica da Play vede un errore di Google invece del login.
+6. Prova: APK a mano (7.2) → «Accedi con Google» entra (client di caricamento); poi la build della
+   traccia interna (client di Play).
+
+### 7.6 Contenuti dell'app (Policy → Contenuti dell'app)
+
+Tutti da compilare prima di uscire dal test interno.
+
+- **Norme sulla privacy**: `https://charliemobile.dev/oberta/privacy.html`.
+- **Accesso all'app**: «Alcune funzionalità sono limitate». Istruzioni: la modalità a un telefono non
+  chiede nessun account; l'online si apre con *Accedi con Google* e qualunque account Google va bene,
+  nessuna credenziale da dare. Una partita online parte da 4 persone; con due telefoni la sala della
+  stanza basta per chat, «Segnala» e «Blocca» (come `fastlane/metadata/review_information/notes.txt`).
+- **Annunci**: No. **ID pubblicità**: No (nessun SDK lo usa; il manifest non ha `AD_ID`).
+- **Classificazione dei contenuti** (questionario IARC), categoria *Gioco*, le stesse risposte
+  dell'App Store (`docs/app-store.md`): violenza fantasy/non realistica, rara, niente sangue
+  (omicidi raccontati); riferimenti alla criminalità organizzata (tema mafia); tabacco solo come
+  sigaretta degli avatar; niente linguaggio volgare, sesso, droghe, gioco d'azzardo simulato;
+  **interazione fra utenti: Sì** (chat scritta e voce); condivisione della posizione: No; acquisti
+  digitali: No. Risultato atteso intorno a PEGI 12.
+- **Pubblico di destinazione**: 13–15, 16–17, 18+ (niente sotto i 13: il gioco non è per bambini e
+  l'online vuole 14 anni, `docs/legal/terms_it.md`). «Potrebbe attirare i bambini?»: No.
+- **App di notizie**: No. **App governativa**: No. **Funzionalità finanziarie / salute**: nessuna.
+- **Eliminazione dell'account**: nell'app Impostazioni → Account → «Elimina account»; link web:
+  `https://charliemobile.dev/oberta/privacy.html` (sezione dei diritti: dall'app, o scrivendo a
+  `oberta@charliemobile.dev`).
+- **Sicurezza dei dati**, la stessa tabella di `docs/app-store.md` nelle categorie di Play. Per tutti:
+  raccolti, **non condivisi** (Supabase e LiveKit trattano per nostro conto: per Play non è
+  «condivisione»), **facoltativi** (senza account si gioca lo stesso), scopo *Funzionalità
+  dell'app* (più *Gestione dell'account* per email e ID utente).
+
+  | Categoria Play | Dato | Da dove |
+  |---|---|---|
+  | Informazioni personali > ID utente | id dell'account Supabase | accesso online |
+  | Informazioni personali > Indirizzo email | email dell'account Google | Accedi con Google, a Supabase Auth |
+  | Informazioni personali > Nome | nome utente unico (handle) | profilo |
+  | Messaggi > Altri messaggi in-app | messaggi della chat delle stanze (90 giorni) | chat |
+  | Audio > Registrazioni vocali o audio | la voce al tavolo, **trattata temporaneamente** (dal vivo, mai registrata) | voce LiveKit, premi-per-parlare |
+  | Attività nelle app > Interazioni con l'app | partite, ruoli, vittorie, livello, esperienza, monete, missioni, medaglie, oggetti, amici | statistiche e bottega |
+  | Attività nelle app > Altri contenuti generati dagli utenti | avatar (faccia del barbiere, abiti, cornice), segnalazioni e giocatori bloccati | profilo, «Segnala», «Blocca» |
+  | Informazioni e prestazioni dell'app > Altre informazioni | tipo di dispositivo («Android») e numero di build | un solo dispositivo attivo, ruoli che la build conosce |
+
+  Differenza da Apple: Play conta anche la voce dal vivo (con «trattamento temporaneo»), Apple no.
+  Non raccolti: posizione, contatti, foto (restano sul telefono), file, calendario, salute, dati
+  finanziari, cronologia web, diagnostica. **Dati criptati in transito**: Sì. **Richiesta di
+  eliminazione**: Sì. I traguardi di Play Games li gestisce Google.
+
+### 7.7 La scheda dello store
+
+- Testi in `fastlane/metadata/android/{it-IT,en-US}/` (`title.txt` max 30 caratteri,
+  `short_description.txt` max 80, `full_description.txt` max 4000, `changelogs/default.txt` max
+  500): ripresi dai testi iOS (`fastlane/metadata/{it,en-US}/`), quando cambiano lì vanno cambiati
+  anche qui. Icona 512: `images/icon.png` (da `tool/make_app_icons.sh`).
+- **Da fare**: `images/featureGraphic.png` (1024×500, obbligatoria) e `images/phoneScreenshots/`
+  (da 2 a 8, PNG o JPEG, lato lungo **al massimo il doppio** del corto: quelli iPhone, 2,17:1, Play
+  li rifiuta; per esempio 1080×2160). Facoltativi i tablet: gli iPad 13" (2064×2752) vanno bene in
+  `images/tenInchScreenshots/`.
+- Categoria *Giochi › Da tavolo* (come su iOS), email
+  `oberta@charliemobile.dev`, sito `https://charliemobile.dev/oberta/`.
+- Carica testi e immagini (nessuna build, nessuna revisione):
+  ```sh
+  bundle exec fastlane android metadata
+  ```
+
+### 7.8 Uscire: traccia interna, test chiuso, produzione
+
+1. Build per i tester: `bundle exec fastlane android internal` (con `RANKED_DEBUG=1` è la build di
+   prova di `lib/build_flags.dart`, come su iOS: **mai** in produzione). Alza `+N` se serve, compila
+   l'AAB, controlla che non sia firmato con la chiave di debug e lo carica sulla traccia interna
+   **come bozza**. Poi committa `pubspec.yaml`, come per iOS.
+   Per avere lo stesso `+N` di iOS, lancia `ios beta` e `android internal` prima del commit.
+2. Play Console → *Test interno* → la release in bozza → *Rivedi release* → **Avvia
+   implementazione**. I tester la ricevono in pochi minuti.
+3. Test chiuso (obbligatorio per gli account personali, 7.3): *Test chiuso* → *Crea traccia* (per
+   esempio «Amici») → tester → *Promuovi release* dalla traccia interna. 12 persone per 14 giorni.
+4. Produzione (dopo *Richiedi l'accesso alla produzione*, se serve): build **senza**
+   `RANKED_DEBUG`, *Produzione* → *Crea release* (o *Promuovi* dalla traccia interna) →
+   **implementazione graduale** (per esempio 20%, poi 50%, poi 100%) → *Invia per la revisione*.
+   La prima revisione può chiedere qualche giorno.
+5. Build minima: solo quando la versione è davvero su Play per tutti,
+   `tool/release/set_min_build.sh android <N>` (sezione 9).
+
+### 7.9 Play Games Services: i traguardi
 
 Stesso meccanismo di Game Center (`lib/platform/achievements.dart`), ma Play genera gli id da sé:
 finché `playGamesIds` è vuota Android non chiama mai Play Games.
 
 1. Play Console → *Crescita* → **Play Games Services** → *Configurazione*: crea il progetto, collega il
-   progetto Google Cloud e le credenziali OAuth Android (SHA-1 della chiave di firma di Play).
+   progetto Google Cloud **di Google Sign-In** (7.5) e le credenziali OAuth Android (SHA-1 della
+   firma dell'app di Play, 7.3).
 2. L'**ID progetto** (solo cifre) va in `android/app/src/main/res/values/games.xml`
    (`game_services_project_id`, oggi `0`: è il segnaposto letto da
    `com.google.android.gms.games.APP_ID` nel manifest).
@@ -283,6 +500,9 @@ quando esiste, vedi `docs/steam.md`).
   (*Contact Us → Request an expedited review*). Solo in casi gravi: *Prezzi e disponibilità* →
   togli dalla vendita.
 - **Steam**: Steamworks → *Builds* → rimetti live su `default` la build precedente (subito per tutti).
+- **Google Play**: *Produzione* → la release → **Interrompi implementazione** (chi l'ha già la tiene,
+  gli altri restano sulla precedente). Poi una build nuova con `+N` più alto: come su iOS, un
+  `versionCode` già caricato non si riusa.
 - **Build minima alzata per errore**: `tool/release/set_min_build.sh <platform> <N vecchio>` (o 0).
 - **Migrazione sbagliata**: le migrazioni applicate **non si modificano né si cancellano**. Scrivi
   una migrazione nuova (timestamp nuovo) che rimette lo stato di prima, provala con
