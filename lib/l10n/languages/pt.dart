@@ -1255,6 +1255,8 @@ const portugueseMessages = <String, String>{
   'settings.yourLook': 'SEU VISUAL',
   'settings.barberSign': 'BARBEIRO',
   'settings.changeLook': 'Mudar o visual',
+  'settings.lobbyHint': 'Suas mesas: italiano, inglês e {language}.',
+  'settings.lobbyHintShared': 'Suas mesas: italiano e inglês.',
   // ---- desktop
   'desktop.loginSteam': 'Entrar com a Steam',
   'desktop.steamWaiting': 'Termine o login no navegador e depois volte.',

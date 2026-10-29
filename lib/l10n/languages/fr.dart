@@ -1262,6 +1262,8 @@ const frenchMessages = <String, String>{
   'settings.yourLook': 'TON LOOK',
   'settings.barberSign': 'BARBIER',
   'settings.changeLook': 'Changer de look',
+  'settings.lobbyHint': 'Tes tables : italien, anglais et {language}.',
+  'settings.lobbyHintShared': 'Tes tables : italien et anglais.',
   // ---- desktop
   'desktop.loginSteam': 'Se connecter avec Steam',
   'desktop.steamWaiting': 'Termine la connexion dans ton navigateur, puis reviens.',

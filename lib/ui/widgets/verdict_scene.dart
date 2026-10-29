@@ -17,6 +17,7 @@ import 'mugshot_frame.dart';
 import 'noir_avatar.dart';
 import 'particle_sprites.dart';
 import '../press.dart';
+import '../theme/script_fonts.dart';
 
 /// I modi in cui la piazza si libera di qualcuno, più quello in cui non si
 /// libera di nessuno.
@@ -336,7 +337,7 @@ class _VerdictSceneState extends State<VerdictScene> with SingleTickerProviderSt
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                 fontFamily: 'Courier',
-                                fontFamilyFallback: ['monospace'],
+                                fontFamilyFallback: monoFallback,
                                 color: AppColors.textPrimary,
                                 fontSize: 15,
                                 height: 1.35,

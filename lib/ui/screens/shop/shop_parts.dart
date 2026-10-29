@@ -193,7 +193,7 @@ class _FitName extends StatelessWidget {
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, box) {
       var s = size;
-      final style = TextStyle(fontFamily: 'Georgia', fontFamilyFallback: const ['serif'], fontStyle: FontStyle.italic, color: _cream, height: 1.12);
+      final style = TextStyle(fontFamily: 'Georgia', fontFamilyFallback: serifFallback, fontStyle: FontStyle.italic, color: _cream, height: 1.12);
       // Down to 80% on one line; past that, two lines at 80%.
       for (; s > size * 0.8; s -= 0.5) {
         final tp = TextPainter(text: TextSpan(text: text, style: style.copyWith(fontSize: s)), maxLines: 1, textDirection: TextDirection.ltr)

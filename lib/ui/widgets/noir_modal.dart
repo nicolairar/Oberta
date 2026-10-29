@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../desktop/desktop_canvas.dart';
 import '../press.dart';
 import 'targa.dart';
+import '../theme/script_fonts.dart';
 
 /// The noir modal kit: one dialog, one bottom sheet, one action menu, the
 /// same buttons everywhere. Phones get a card or a sheet; the desktop canvas
@@ -63,7 +64,7 @@ class NoirMetrics {
 TextStyle _serif(double size, Color color, {FontWeight weight = FontWeight.w700, double spacing = 0, double? height}) =>
     TextStyle(
       fontFamily: 'Georgia',
-      fontFamilyFallback: const ['serif'],
+      fontFamilyFallback: serifFallback,
       fontSize: size,
       fontWeight: weight,
       letterSpacing: spacing,

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../avatar/avatar_look.dart';
 import '../baked.dart';
+import '../../theme/script_fonts.dart';
 
 /// La cornice della bottega intorno a una carta del tavolo (o a un ritratto):
 /// [child] sta dentro, la cornice si disegna sopra il suo bordo. Con
@@ -434,7 +435,7 @@ class SeatFramePainter extends CustomPainter {
             fontSize: w * 1.45,
             height: 1,
             color: red ? const Color(0xFFC0182A) : const Color(0xFF15110E),
-            fontFamilyFallback: const ['Apple Symbols', 'Noto Sans Symbols', 'serif'],
+            fontFamilyFallback: const ['Apple Symbols', 'Noto Sans Symbols', ...serifFallback],
           ),
         ),
         textDirection: TextDirection.ltr,

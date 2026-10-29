@@ -12,6 +12,7 @@ import '../../desktop/home_modal.dart';
 import '../../theme/app_theme.dart';
 import 'online_widgets.dart';
 import '../../widgets/noir_modal.dart';
+import '../../theme/script_fonts.dart';
 
 /// Il foglio dell'accesso, che sale dal fondo del vicolo: Apple, Google se
 /// l'app lo conosce, e nient'altro. Torna vero se qualcuno è entrato.
@@ -127,7 +128,7 @@ class FailureNote extends StatelessWidget {
                 style: const TextStyle(
                   color: AppColors.textSecondary,
                   fontFamily: 'Courier',
-                  fontFamilyFallback: ['monospace'],
+                  fontFamilyFallback: monoFallback,
                   fontSize: 11,
                   height: 1.25,
                 ),

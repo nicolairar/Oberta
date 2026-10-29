@@ -11,6 +11,7 @@ import '../../../theme/role_style.dart';
 import '../../../widgets/roles_sheet.dart';
 import 'noir_ui.dart';
 import '../../../widgets/noir_modal.dart';
+import '../../../theme/script_fonts.dart';
 
 /// I pezzi della partita online su PC: la barra in alto, i tasti disegnati,
 /// il mazzo accanto alla chat, il menu di Esc e la conferma per uscire.
@@ -128,7 +129,7 @@ class DeskGameHud extends StatelessWidget {
                     maxLines: 1,
                     style: const TextStyle(
                       fontFamily: 'Georgia',
-                      fontFamilyFallback: ['serif'],
+                      fontFamilyFallback: serifFallback,
                       fontSize: 22,
                       fontStyle: FontStyle.italic,
                       color: Color(0xFFE8D9B8),

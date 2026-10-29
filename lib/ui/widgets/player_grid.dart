@@ -18,6 +18,7 @@ import '../theme/app_theme.dart';
 import '../theme/role_style.dart';
 import 'deal_table.dart' show PokerFelt;
 import 'player_avatar.dart';
+import '../theme/script_fonts.dart';
 
 /// Il tavolo da poker della partita, visto dalla propria sedia: il bordo
 /// di legno qui davanti, le proprie mani sul panno, il tavolo che si
@@ -1345,7 +1346,7 @@ Widget _dagger(double s) => Text(
   PlayerAvatar.dagger,
   style: TextStyle(
     fontFamily: 'Georgia',
-    fontFamilyFallback: const ['serif'],
+    fontFamilyFallback: serifFallback,
     fontSize: s * 0.5,
     height: 1,
     fontWeight: FontWeight.w700,
@@ -1407,7 +1408,7 @@ class _Plaque extends StatelessWidget {
         const ink = Color(0xFF241809);
         final style = TextStyle(
           fontFamily: 'Georgia',
-          fontFamilyFallback: const ['serif'],
+          fontFamilyFallback: serifFallback,
           color: ink,
           fontSize: height * 0.66,
           height: 1.1,
@@ -1480,7 +1481,7 @@ class _Stamp extends StatelessWidget {
               maxLines: 1,
               style: TextStyle(
                 fontFamily: 'Georgia',
-                fontFamilyFallback: const ['serif'],
+                fontFamilyFallback: serifFallback,
                 fontSize: width * 0.17,
                 fontWeight: FontWeight.w900,
                 letterSpacing: width * 0.012,

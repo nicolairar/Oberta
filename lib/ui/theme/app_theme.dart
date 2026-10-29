@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../widgets/targa.dart';
+import 'script_fonts.dart';
 
 /// Palette noir: sfondo quasi nero, accento rosso sangue, dettagli dorati.
 class AppColors {
@@ -18,7 +19,7 @@ class AppText {
   static TextStyle display(double size, {Color color = AppColors.gold}) {
     return TextStyle(
       fontFamily: 'Georgia',
-      fontFamilyFallback: const ['serif'],
+      fontFamilyFallback: serifFallback,
       fontSize: size,
       fontWeight: FontWeight.bold,
       letterSpacing: size * 0.08,
@@ -62,7 +63,7 @@ final _scheme = ColorScheme.fromSeed(seedColor: AppColors.accent, brightness: Br
   inversePrimary: Targa.brassDim,
 );
 
-const _serif = TextStyle(fontFamily: 'Georgia', fontFamilyFallback: ['serif'], fontWeight: FontWeight.bold);
+const _serif = TextStyle(fontFamily: 'Georgia', fontFamilyFallback: serifFallback, fontWeight: FontWeight.bold);
 const _goldEdge = BorderSide(color: Color(0x99D9B45A));
 
 Color? _when(Set<WidgetState> states, {Color? selected, Color? disabled, Color? hovered, Color? otherwise}) {
@@ -101,6 +102,7 @@ final _radioFill = WidgetStateProperty.resolveWith((states) => _when(states, sel
 ThemeData buildAppTheme() {
   return ThemeData(
     useMaterial3: true,
+    fontFamilyFallback: serifFallback,
     scaffoldBackgroundColor: AppColors.background,
     colorScheme: _scheme,
     appBarTheme: AppBarTheme(

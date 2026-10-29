@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_strings.dart';
 import '../../narration/narrator_script.dart';
 import '../theme/app_theme.dart';
+import '../theme/script_fonts.dart';
 
 /// Il copione da leggere ad alta voce, impaginato come un gobbo: il racconto
 /// in corsivo da romanzo, i fatti in evidenza perché nessuno se li perda.
@@ -81,7 +82,7 @@ class ScriptCard extends StatelessWidget {
 /// Lo stile del racconto e quello dei fatti: servono anche ai sottotitoli.
 const storyStyle = TextStyle(
   fontFamily: 'Georgia',
-  fontFamilyFallback: ['serif'],
+  fontFamilyFallback: serifFallback,
   fontSize: 18,
   height: 1.45,
   color: AppColors.textPrimary,

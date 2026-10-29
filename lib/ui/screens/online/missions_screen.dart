@@ -13,6 +13,7 @@ import '../../widgets/noir_notice.dart';
 import '../../widgets/targa.dart';
 import 'game/noir_ui.dart';
 import 'progress_widgets.dart';
+import '../../theme/script_fonts.dart';
 
 /// The missions, as typed orders pinned to the wall: the day's, the week's
 /// and the long goals. Each one says what to do, how far along it is and
@@ -345,7 +346,7 @@ class _MissionCardState extends State<_MissionCard> with SingleTickerProviderSta
                   s.mission(m.id, metric: m.metric, target: m.target),
                   style: const TextStyle(
                     fontFamily: 'Courier',
-                    fontFamilyFallback: ['monospace'],
+                    fontFamilyFallback: monoFallback,
                     color: Saloon.paperInk,
                     fontWeight: FontWeight.w900,
                     fontSize: 15,

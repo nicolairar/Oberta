@@ -11,6 +11,7 @@ import '../widgets/home_account.dart';
 import '../widgets/player_avatar.dart';
 import 'desktop_canvas.dart';
 import '../widgets/noir_modal.dart';
+import '../theme/script_fonts.dart';
 
 const _cream = Color(0xFFE9DEC4);
 
@@ -353,7 +354,7 @@ class _ProfileChip extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontFamily: 'Georgia',
-                        fontFamilyFallback: const ['serif'],
+                        fontFamilyFallback: serifFallback,
                         fontSize: 24,
                         height: 1.1,
                         fontWeight: FontWeight.bold,

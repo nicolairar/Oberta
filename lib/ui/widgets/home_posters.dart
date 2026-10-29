@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import 'baked.dart';
 import 'noir_avatar.dart';
+import '../theme/script_fonts.dart';
 
 const _ink = Color(0xFF14110F);
 const _cream = Color(0xFFEDE2C8);
@@ -12,7 +13,7 @@ const _red = Color(0xFFB3202A);
 
 TextStyle _print(double size, {Color color = _ink, bool italic = false, double spacing = 0}) => TextStyle(
       fontFamily: 'Georgia',
-      fontFamilyFallback: const ['serif'],
+      fontFamilyFallback: serifFallback,
       fontSize: size,
       height: 1.18,
       fontWeight: italic ? FontWeight.normal : FontWeight.bold,

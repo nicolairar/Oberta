@@ -15,6 +15,7 @@ import 'noir_avatar.dart';
 import 'particle_sprites.dart';
 import 'victim_card.dart';
 import '../press.dart';
+import '../theme/script_fonts.dart';
 
 part 'death_scenes_saves.dart';
 part 'death_scenes_family.dart';
@@ -429,7 +430,7 @@ class _DeathSceneState extends State<DeathScene>
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                 fontFamily: 'Courier',
-                                fontFamilyFallback: ['monospace'],
+                                fontFamilyFallback: monoFallback,
                                 color: AppColors.textPrimary,
                                 fontSize: 15,
                                 height: 1.35,

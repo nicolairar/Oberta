@@ -8,9 +8,11 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../widgets/language_flag.dart';
 import '../street/street_route.dart';
 import '../street/street_scaffold.dart';
 import '../../l10n/app_language.dart';
+import '../../l10n/lobby_language.dart';
 import '../../l10n/desktop_strings.dart';
 import '../../settings/display_settings.dart';
 import '../desktop/desktop_canvas.dart';
@@ -322,12 +324,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             children: [
                               for (final language in <AppLanguage?>[null, ...AppLanguage.values])
                                 TargaChip(
+                                  key: Key('settings.language.${language?.code ?? 'auto'}'),
                                   label: language?.nativeName ?? t.languageAutomatic,
                                   caps: false,
+                                  check: false,
+                                  icon: language == null ? Icons.public : null,
+                                  leading: language == null ? null : LanguageFlag(language.code, height: 13),
                                   selected: settings.language == language,
                                   onPressed: () => settings.language = language,
                                 ),
                             ],
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                          child: Text(
+                            switch (settings.lobbyLanguage) {
+                              final lobby when LobbyLanguage.shared.contains(lobby) => s.lobbyHintShared,
+                              final lobby => s.lobbyHint(lobby.nativeName),
+                            },
+                            key: const Key('settings.lobbyHint'),
+                            style: AppText.body.copyWith(fontSize: 13, color: AppColors.textSecondary),
                           ),
                         ),
                       ],

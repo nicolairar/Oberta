@@ -133,8 +133,14 @@ class ObertaApp extends StatelessWidget {
             child: DeviceSessionGate(session: DeviceSession.instance, child: child!),
           );
           // Su desktop il gioco sta nel suo riquadro 16:9 (o 9:16), col letterbox.
+          // Sul telefono una lingua da destra a sinistra rovescia la pagina
+          // (la Directionality viene dalla lingua); il riquadro del desktop è
+          // una scena disegnata a posizioni fisse, e resta da sinistra a destra.
           if (!DesktopPlatform.isDesktop) return gated;
-          return DesktopFrame(orientation: settings.orientation, child: gated);
+          return Directionality(
+            textDirection: TextDirection.ltr,
+            child: DesktopFrame(orientation: settings.orientation, child: gated),
+          );
         },
         home: Builder(
           builder: (context) => HomeScreen(

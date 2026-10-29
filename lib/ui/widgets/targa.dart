@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../press.dart';
 import '../theme/app_theme.dart';
 import 'home_account.dart' show CoinPainter;
+import '../theme/script_fonts.dart';
 
 /// The buttons of the whole game, «Targa»: an enamel plate in a bevelled
 /// brass frame, a thin hairline inside the frame, a soft gloss on top.
@@ -32,7 +33,7 @@ class Targa {
   /// The letters on a plate: serif capitals, spaced.
   static TextStyle label(double size, Color color) => TextStyle(
     fontFamily: 'Georgia',
-    fontFamilyFallback: const ['serif'],
+    fontFamilyFallback: serifFallback,
     fontSize: size,
     fontWeight: FontWeight.bold,
     letterSpacing: size * 0.16,
@@ -494,7 +495,7 @@ ButtonStyle _style(TargaKind kind, ButtonLayerBuilder background) => ButtonStyle
   padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 26, vertical: 16)),
   shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
   foregroundColor: kind == TargaKind.primary ? _primaryInk : _secondaryInk,
-  textStyle: const WidgetStatePropertyAll(TextStyle(fontFamily: 'Georgia', fontFamilyFallback: ['serif'], fontWeight: FontWeight.bold, letterSpacing: 1.8, fontSize: 15)),
+  textStyle: const WidgetStatePropertyAll(TextStyle(fontFamily: 'Georgia', fontFamilyFallback: serifFallback, fontWeight: FontWeight.bold, letterSpacing: 1.8, fontSize: 15)),
   backgroundBuilder: background,
 );
 
@@ -673,6 +674,9 @@ class TargaChip extends StatefulWidget {
   final VoidCallback? onPressed;
   final IconData? icon;
 
+  /// A small picture before the words instead of [icon] (a flag, say).
+  final Widget? leading;
+
   /// Show a check when [selected] (a filter), not just the enamel.
   final bool check;
 
@@ -691,6 +695,7 @@ class TargaChip extends StatefulWidget {
     required this.onPressed,
     this.selected = false,
     this.icon,
+    this.leading,
     this.check = true,
     this.desk = false,
     this.height,
@@ -732,7 +737,8 @@ class _TargaChipState extends State<TargaChip> with _Pressable {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (icon != null) ...[Icon(icon, size: size * 1.35, color: color), SizedBox(width: size * 0.45)],
+                  if (icon != null) ...[Icon(icon, size: size * 1.35, color: color), SizedBox(width: size * 0.45)]
+                  else if (widget.leading case final leading?) ...[leading, SizedBox(width: size * 0.55)],
                   Flexible(
                     child: FittedBox(
                       fit: BoxFit.scaleDown,

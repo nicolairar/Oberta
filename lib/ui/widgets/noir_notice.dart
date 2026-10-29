@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import '../theme/script_fonts.dart';
 
 /// What a notice is about: it picks the stamp on the left of the slip.
 enum NoticeKind { info, arrive, away, leave, mention, error, done }
@@ -191,7 +192,7 @@ class _NoticeSlipState extends State<NoticeSlip> with SingleTickerProviderStateM
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontFamily: 'Georgia',
-                      fontFamilyFallback: const ['serif'],
+                      fontFamilyFallback: serifFallback,
                       color: NoticeSlip.ink,
                       fontSize: 14 * k,
                       height: 1.25,

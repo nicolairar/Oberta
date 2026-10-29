@@ -1250,6 +1250,8 @@ const spanishMessages = <String, String>{
   'settings.yourLook': 'TU ASPECTO',
   'settings.barberSign': 'BARBERÍA',
   'settings.changeLook': 'Cambia tu aspecto',
+  'settings.lobbyHint': 'Tus mesas: italiano, inglés y {language}.',
+  'settings.lobbyHintShared': 'Tus mesas: italiano e inglés.',
   // ---- desktop
   'desktop.loginSteam': 'Iniciar sesión con Steam',
   'desktop.steamWaiting': 'Termina de iniciar sesión en el navegador y vuelve.',

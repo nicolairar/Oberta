@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../../../l10n/bidi.dart';
 import '../../../../l10n/app_strings.dart';
 import '../../../../l10n/game_event_strings.dart';
 import '../../../../online/online_services.dart';
@@ -12,6 +13,7 @@ import '../online_widgets.dart';
 import 'chat_mentions.dart';
 import 'noir_ui.dart';
 import '../../../widgets/noir_modal.dart';
+import '../../../theme/script_fonts.dart';
 
 /// Quale chat si vede adesso, e se si può scrivere. Lo decide la fase (e
 /// il server): qui si mostra soltanto.
@@ -249,7 +251,7 @@ class ChatSeatChip extends StatelessWidget {
       '$number',
       style: TextStyle(
         fontFamily: 'Georgia',
-        fontFamilyFallback: const ['serif'],
+        fontFamilyFallback: serifFallback,
         fontSize: size * 0.66,
         fontWeight: FontWeight.w800,
         height: 1,
@@ -326,7 +328,7 @@ class _Line extends StatelessWidget {
                     style: TextStyle(color: nameColor, fontWeight: FontWeight.w800),
                   ),
                   TextSpan(
-                    text: message.body,
+                    text: bidiIsolate(message.body),
                     style: dead ? const TextStyle(fontStyle: FontStyle.italic) : null,
                   ),
                 ],

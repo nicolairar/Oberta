@@ -6,6 +6,7 @@ import '../../roster/portrait_registry.dart';
 import '../theme/app_theme.dart';
 import 'noir_avatar.dart';
 import 'noir_photo.dart';
+import '../theme/script_fonts.dart';
 
 // I testi del widget, tutti qui: la traduzione li prenderà da qui.
 const _serialLabel = 'N.';
@@ -145,7 +146,7 @@ class MugshotFrame extends StatelessWidget {
                             maxLines: 1,
                             style: TextStyle(
                               fontFamily: 'Courier',
-                              fontFamilyFallback: const ['monospace'],
+                              fontFamilyFallback: monoFallback,
                               fontSize: side * 0.12,
                               fontWeight: FontWeight.w700,
                               letterSpacing: side * 0.012,
@@ -162,7 +163,7 @@ class MugshotFrame extends StatelessWidget {
                           '$_serialLabel ${serialOf(shown)}',
                           style: TextStyle(
                             fontFamily: 'Courier',
-                            fontFamilyFallback: const ['monospace'],
+                            fontFamilyFallback: monoFallback,
                             fontSize: max(9, side * 0.055),
                             letterSpacing: side * 0.02,
                             height: 1,
@@ -272,7 +273,7 @@ class _Stamp extends StatelessWidget {
             maxLines: 1,
             style: TextStyle(
               fontFamily: 'Georgia',
-              fontFamilyFallback: const ['serif'],
+              fontFamilyFallback: serifFallback,
               fontSize: size * 0.15,
               fontWeight: FontWeight.w900,
               letterSpacing: size * 0.012,

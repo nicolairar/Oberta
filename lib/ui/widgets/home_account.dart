@@ -8,6 +8,7 @@ import '../press.dart';
 import '../theme/app_theme.dart';
 import 'player_avatar.dart';
 import 'targa.dart';
+import '../theme/script_fonts.dart';
 
 const _cream = Color(0xFFE9DEC4);
 const _iron = Color(0xFF08080B);
@@ -102,7 +103,7 @@ class _HomeSignInPlateState extends State<HomeSignInPlate> {
                       maxLines: 1,
                       style: TextStyle(
                         fontFamily: 'Georgia',
-                        fontFamilyFallback: const ['serif'],
+                        fontFamilyFallback: serifFallback,
                         fontSize: 12.5,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 2.2,
@@ -280,7 +281,7 @@ class _HomeProfileBadgeState extends State<HomeProfileBadge> {
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontFamily: 'Georgia',
-                              fontFamilyFallback: const ['serif'],
+                              fontFamilyFallback: serifFallback,
                               fontSize: 13.5,
                               height: 1.1,
                               fontWeight: FontWeight.bold,
@@ -592,7 +593,7 @@ class HomeCoachMark extends StatelessWidget {
                   textAlign: TextAlign.right,
                   style: const TextStyle(
                     fontFamily: 'Georgia',
-                    fontFamilyFallback: ['serif'],
+                    fontFamilyFallback: serifFallback,
                     fontSize: 21,
                     height: 1.2,
                     fontStyle: FontStyle.italic,
@@ -797,7 +798,7 @@ class _HomeShopSignState extends State<HomeShopSign> with SingleTickerProviderSt
                                 maxLines: 1,
                                 style: TextStyle(
                                   fontFamily: 'Georgia',
-                                  fontFamilyFallback: const ['serif'],
+                                  fontFamilyFallback: serifFallback,
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                   letterSpacing: 1,

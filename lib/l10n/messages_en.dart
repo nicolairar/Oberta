@@ -37,6 +37,8 @@ const englishMessages = <String, String>{
   'settings.yourLook': 'YOUR LOOK',
   'settings.barberSign': 'BARBER',
   'settings.changeLook': 'Change your look',
+  'settings.lobbyHint': 'Your tables: Italian, English and {language}.',
+  'settings.lobbyHintShared': 'Your tables: Italian and English.',
   // ---- desktop
   'desktop.loginSteam': 'Sign in with Steam',
   'desktop.steamWaiting': 'Finish signing in in your browser, then come back.',

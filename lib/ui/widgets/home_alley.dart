@@ -6,6 +6,7 @@ import '../street/noir_smoker.dart';
 import '../street/street_stage.dart';
 import '../street/street_wall.dart';
 import 'home_neon_sign.dart';
+import '../theme/script_fonts.dart';
 
 double _span(double t, double from, double to) => ((t - from) / (to - from)).clamp(0.0, 1.0);
 
@@ -259,7 +260,7 @@ class HomeWallPainter extends CustomPainter {
         text: plaque,
         style: TextStyle(
           fontFamily: 'Georgia',
-          fontFamilyFallback: const ['serif'],
+          fontFamilyFallback: serifFallback,
           fontSize: 9.5,
           height: 1.15,
           fontWeight: FontWeight.bold,

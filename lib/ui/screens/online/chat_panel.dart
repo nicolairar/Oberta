@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/bidi.dart';
 import '../../../online/online_services.dart';
 import '../../desktop/desktop_canvas.dart';
 import '../../theme/app_theme.dart';
@@ -138,7 +139,7 @@ class _ChatPanelState extends State<ChatPanel> {
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
-                                TextSpan(text: message.body),
+                                TextSpan(text: bidiIsolate(message.body)),
                               ],
                             ),
                             style: AppText.body.copyWith(color: AppColors.textPrimary, fontSize: text, height: 1.3),

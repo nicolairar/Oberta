@@ -23,6 +23,7 @@ import '../avatar/barber_mirror_screen.dart';
 import 'online_widgets.dart';
 import 'progress_hooks.dart';
 import '../../widgets/noir_modal.dart';
+import '../../theme/script_fonts.dart';
 
 part 'profile_dossier_desktop.dart';
 part 'profile_public.dart';
@@ -37,7 +38,7 @@ const _ink = Color(0xFF2A1E16);
 const _stamp = Color(0xFFA3242C);
 const _brass = Color(0xFFD9B04C);
 
-const _typed = TextStyle(fontFamily: 'Courier', fontFamilyFallback: ['monospace'], color: _ink);
+const _typed = TextStyle(fontFamily: 'Courier', fontFamilyFallback: monoFallback, color: _ink);
 
 /// Il fascicolo del giocatore, dal ritratto in alto a sinistra nel vicolo:
 /// una cartellina della questura, anni Quaranta. Foto segnaletica, nome

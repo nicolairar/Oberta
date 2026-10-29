@@ -56,6 +56,10 @@ class SettingsStrings {
   String get barberSign => _m('barberSign');
   String get changeLook => _m('changeLook');
 
+  /// Under the language picker: which ranked tables are yours.
+  String lobbyHint(String language) => _m('lobbyHint', {'language': language});
+  String get lobbyHintShared => _m('lobbyHintShared');
+
   /// The privacy policy and terms exist in Italian and English only.
   String get legalAsset => language == AppLanguage.it ? 'it' : 'en';
 }

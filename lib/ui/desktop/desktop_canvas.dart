@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../theme/app_theme.dart';
+import '../theme/script_fonts.dart';
 
 /// Il gioco su desktop coricato si disegna sempre su una tela fissa di
 /// 1920×1080 punti, poi la tela si ingrandisce o rimpicciolisce tutta
@@ -87,7 +88,7 @@ abstract final class DeskSize {
 ThemeData buildDesktopTheme(ThemeData base) {
   final shape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(DeskSize.radius));
   const padding = EdgeInsets.symmetric(horizontal: 36, vertical: 22);
-  const textStyle = TextStyle(fontFamily: 'Georgia', fontFamilyFallback: ['serif'], fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: 2);
+  const textStyle = TextStyle(fontFamily: 'Georgia', fontFamilyFallback: serifFallback, fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: 2);
   WidgetStateProperty<Color?> hover(Color color) => WidgetStateProperty.resolveWith(
         (states) => states.contains(WidgetState.hovered) || states.contains(WidgetState.focused) ? color : null,
       );

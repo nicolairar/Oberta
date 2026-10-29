@@ -10,6 +10,7 @@ import '../../sound/narrator_voice.dart';
 import '../../sound/sound_stage.dart';
 import '../desktop/desktop_canvas.dart';
 import '../widgets/targa.dart';
+import '../theme/script_fonts.dart';
 
 const _paper = Color(0xFFEFE4CB);
 const _paperShade = Color(0xFFE0D0AC);
@@ -463,7 +464,7 @@ TextStyle _serif(
   double? height,
 }) => TextStyle(
   fontFamily: 'Georgia',
-  fontFamilyFallback: const ['serif'],
+  fontFamilyFallback: serifFallback,
   fontSize: size,
   color: color,
   fontWeight: weight,

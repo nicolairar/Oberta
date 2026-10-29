@@ -344,6 +344,9 @@ class _DesktopSettingsState extends State<_DesktopSettings> {
             values: [null, ...AppLanguage.values],
             selected: settings.language,
             label: (l) => l?.nativeName ?? t.languageAutomatic,
+            leading: (l) => l == null
+                ? const Icon(Icons.public, color: AppColors.gold, size: 22)
+                : LanguageFlag(l.code, height: 20),
             onPick: (l) => settings.language = l,
           ),
         ];
@@ -780,6 +783,9 @@ class _DeskChoices<T> extends StatelessWidget {
   final ValueChanged<T> onPick;
   final bool enabled;
 
+  /// A picture before each choice's words (a language's flag).
+  final Widget? Function(T)? leading;
+
   const _DeskChoices({
     required this.icon,
     required this.title,
@@ -790,6 +796,7 @@ class _DeskChoices<T> extends StatelessWidget {
     required this.label,
     required this.onPick,
     this.enabled = true,
+    this.leading,
   });
 
   @override
@@ -830,6 +837,7 @@ class _DeskChoices<T> extends StatelessWidget {
                   _ChoiceTile(
                     key: Key('settings.$keyPrefix.${label(value)}'),
                     label: label(value),
+                    leading: leading?.call(value),
                     selected: value == selected,
                     onTap: () => onPick(value),
                   ),
@@ -844,10 +852,11 @@ class _DeskChoices<T> extends StatelessWidget {
 
 class _ChoiceTile extends StatelessWidget {
   final String label;
+  final Widget? leading;
   final bool selected;
   final VoidCallback onTap;
 
-  const _ChoiceTile({super.key, required this.label, required this.selected, required this.onTap});
+  const _ChoiceTile({super.key, required this.label, this.leading, required this.selected, required this.onTap});
 
   @override
   Widget build(BuildContext context) => DeskHover(
@@ -873,6 +882,7 @@ class _ChoiceTile extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           if (selected) ...[const Icon(Icons.check, color: AppColors.gold, size: 22), const SizedBox(width: 10)],
+          if (leading case final leading?) ...[leading, const SizedBox(width: 12)],
           Text(
             label,
             style: DeskText.text(

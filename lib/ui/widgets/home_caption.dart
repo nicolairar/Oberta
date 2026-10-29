@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../desktop/desktop_canvas.dart';
 import '../theme/app_theme.dart';
+import '../theme/script_fonts.dart';
 
 /// La didascalia in fondo al vicolo, battuta a macchina una lettera alla
 /// volta come nelle scene del delitto. Resta lì qualche secondo, si
@@ -102,7 +103,7 @@ class HomeCaptionState extends State<HomeCaption> with SingleTickerProviderState
     // Sul PC la riga si legge da più lontano: più grande.
     final style = TextStyle(
       fontFamily: 'Courier',
-      fontFamilyFallback: const ['monospace'],
+      fontFamilyFallback: monoFallback,
       color: AppColors.textPrimary,
       fontSize: DesktopCanvas.of(context) ? 21 : 13.5,
       height: 1.3,

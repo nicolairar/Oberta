@@ -1254,6 +1254,8 @@ const germanMessages = <String, String>{
   'settings.yourLook': 'DEIN LOOK',
   'settings.barberSign': 'BARBIER',
   'settings.changeLook': 'Look ändern',
+  'settings.lobbyHint': 'Deine Tische: Italienisch, Englisch und {language}.',
+  'settings.lobbyHintShared': 'Deine Tische: Italienisch und Englisch.',
   // ---- desktop
   'desktop.loginSteam': 'Mit Steam anmelden',
   'desktop.steamWaiting': 'Schließ die Anmeldung im Browser ab und komm dann zurück.',

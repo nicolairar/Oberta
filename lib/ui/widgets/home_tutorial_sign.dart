@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../theme/script_fonts.dart';
 
 /// Il cartello del tutorial, fissato al palo del lampione con due fascette
 /// di ferro: una freccia di smalto color crema, filetto rosso, che punta
@@ -49,7 +50,7 @@ class _HomeTutorialSignState extends State<HomeTutorialSign> {
                         maxLines: 1,
                         style: TextStyle(
                           fontFamily: 'Georgia',
-                          fontFamilyFallback: const ['serif'],
+                          fontFamilyFallback: serifFallback,
                           fontSize: h * 0.40,
                           height: 1,
                           fontWeight: FontWeight.w800,

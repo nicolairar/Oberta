@@ -16,6 +16,7 @@ import '../theme/role_style.dart';
 import '../widgets/noir_modal.dart';
 import 'online/online_game_screen.dart';
 import '../widgets/targa.dart';
+import '../theme/script_fonts.dart';
 
 /// La mano di prova: lo schermo della partita online vera, con cinque bot
 /// che recitano un copione. Il narratore accende solo una luce sul pezzo
@@ -525,7 +526,7 @@ class _CoachCard extends StatelessWidget {
                 caption,
                 style: const TextStyle(
                   fontFamily: 'Georgia',
-                  fontFamilyFallback: ['serif'],
+                  fontFamilyFallback: serifFallback,
                   fontStyle: FontStyle.italic,
                   fontSize: 15,
                   height: 1.3,
@@ -586,7 +587,7 @@ class TutorialNote extends StatelessWidget {
                     s.hint,
                     style: const TextStyle(
                       fontFamily: 'Georgia',
-                      fontFamilyFallback: ['serif'],
+                      fontFamilyFallback: serifFallback,
                       fontStyle: FontStyle.italic,
                       fontSize: 13,
                       color: Color(0xFF2A1E14),

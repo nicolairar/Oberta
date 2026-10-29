@@ -10,6 +10,7 @@ import '../../press.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/player_avatar.dart';
 import '../../widgets/noir_modal.dart';
+import '../../theme/script_fonts.dart';
 
 /// The recap of the last online game seen, so the results screen (which
 /// opens after the table closes) can offer it too.
@@ -51,7 +52,7 @@ Color _teamColor(Team team) => switch (team) {
 TextStyle _serif(double size, {Color color = _ink, FontWeight weight = FontWeight.w400, bool italic = false, double spacing = 0}) =>
     TextStyle(
       fontFamily: 'Georgia',
-      fontFamilyFallback: const ['serif'],
+      fontFamilyFallback: serifFallback,
       fontSize: size,
       color: color,
       fontWeight: weight,

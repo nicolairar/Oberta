@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../press.dart';
 import '../../../theme/app_theme.dart';
 import '../../../widgets/targa.dart';
+import '../../../theme/script_fonts.dart';
 
 /// I colori della sala da gioco: il panno verde, il legno, l'ottone, lo
 /// smalto rosso delle targhe del vicolo.
@@ -244,7 +245,7 @@ class _Ribbon extends StatelessWidget {
     maxLines: 1,
     style: const TextStyle(
       fontFamily: 'Georgia',
-      fontFamilyFallback: ['serif'],
+      fontFamilyFallback: serifFallback,
       fontSize: 14,
       fontStyle: FontStyle.italic,
       color: Color(0xFFE8D9B8),

@@ -24,6 +24,7 @@ import '../online/game/table_gestures.dart' show GestureArt;
 import '../online/missions_screen.dart';
 import '../online/online_widgets.dart' show showFailure;
 import 'shop_controller.dart';
+import '../../theme/script_fonts.dart';
 
 export '../../../l10n/shop_strings.dart' show ShopDept, ShopOwnership;
 

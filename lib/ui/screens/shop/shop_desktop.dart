@@ -215,7 +215,7 @@ extension _Desktop on _ShopScreenState {
                     worn?.name(_language) ?? t.pieces(count),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontFamily: 'Georgia', fontFamilyFallback: ['serif'], fontStyle: FontStyle.italic, color: _cream, fontSize: 18),
+                    style: const TextStyle(fontFamily: 'Georgia', fontFamilyFallback: serifFallback, fontStyle: FontStyle.italic, color: _cream, fontSize: 18),
                   ),
                   if (worn != null) Text(t.pieces(count), style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
                 ],
