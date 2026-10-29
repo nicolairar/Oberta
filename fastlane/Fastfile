@@ -41,9 +41,10 @@ platform :ios do
            "-authenticationKeyPath #{File.expand_path(ENV.fetch('ASC_KEY_PATH'), '..')} " \
            "-authenticationKeyID #{ENV.fetch('ASC_KEY_ID')} " \
            "-authenticationKeyIssuerID #{ENV.fetch('ASC_ISSUER_ID')}"
-    # RANKED_DEBUG=1 bundle exec fastlane ios beta: build di prova con la
-    # classificata sbloccata (di norma resta chiusa dalla home).
-    online += " --dart-define=RANKED_DEBUG=true" if ENV["RANKED_DEBUG"] == "1"
+    # RANKED_DEBUG=1 bundle exec fastlane ios beta: build di prova
+    # (lib/build_flags.dart): classificata sbloccata, accesso con email,
+    # due persone bastano coi bot. Senza, la build è quella da negozio.
+    online += " --dart-define=OBERTA_TEST=true" if ENV["RANKED_DEBUG"] == "1"
     # Flutter lancia CocoaPods: fuori dal bundle di fastlane, che non lo contiene.
     Bundler.with_unbundled_env { sh("cd .. && flutter build ios --release --config-only#{online}") }
     sh("rm -rf ../build/ios/archive/Runner.xcarchive")

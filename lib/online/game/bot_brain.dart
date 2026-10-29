@@ -7,10 +7,6 @@ import '../../rules/player_view.dart';
 import '../../rules/role.dart';
 import '../handle_rules.dart';
 
-/// I bot si accendono nelle build di prova. Una build per l'App Store li
-/// spegne con `--dart-define=OBERTA_BOTS=false`.
-const botsEnabled = bool.fromEnvironment('OBERTA_BOTS', defaultValue: true);
-
 /// I nomi dei bot, nell'ordine in cui si siedono: `bot.alfa`, `bot.bravo`...
 /// Hanno la forma dei nomi unici, ma nessun umano li può prendere.
 const _nato = [

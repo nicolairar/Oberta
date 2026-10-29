@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
+import '../../../build_flags.dart';
 import '../../../l10n/app_strings.dart';
 import '../../../l10n/desktop_strings.dart';
 import '../../../l10n/online_strings.dart';
@@ -18,7 +19,9 @@ import '../../theme/script_fonts.dart';
 /// l'app lo conosce, e nient'altro. Torna vero se qualcuno è entrato.
 ///
 /// Chi tiene premuto il titolo (o la targhetta «Accedi» nel vicolo, che
-/// apre il foglio con [test]) trova l'account di prova con email e password.
+/// apre il foglio con [test]) trova l'account di prova con email e password,
+/// solo dove ci sono gli strumenti di prova ([BuildFlags.testTools]): in una
+/// build da negozio [test] non conta e il titolo non risponde.
 Future<bool> showSignInSheet(
   BuildContext context, {
   required OnlineServices services,
@@ -148,7 +151,7 @@ class SignInPanel extends StatefulWidget {
   /// Una riga sopra i pulsanti: perché si sta entrando (una stanza, per esempio).
   final String? note;
 
-  /// Comincia dall'account di prova.
+  /// Comincia dall'account di prova (solo con [BuildFlags.testTools]).
   final bool test;
   final VoidCallback? onSignedIn;
 
@@ -174,7 +177,7 @@ class SignInPanel extends StatefulWidget {
 }
 
 class _SignInPanelState extends State<SignInPanel> {
-  late bool _test = widget.test;
+  late bool _test = widget.test && BuildFlags.testTools;
   final _email = TextEditingController();
   final _password = TextEditingController();
   bool _busy = false;
@@ -240,6 +243,7 @@ class _SignInPanelState extends State<SignInPanel> {
   }
 
   void _toggleTest() {
+    if (!BuildFlags.testTools) return;
     HapticFeedback.mediumImpact();
     setState(() {
       _test = !_test;
@@ -270,11 +274,12 @@ class _SignInPanelState extends State<SignInPanel> {
             ),
           ),
         // Il titolo tenuto premuto apre l'account di prova: i giocatori
-        // non lo cercano, chi prova l'app sa dov'è.
+        // non lo cercano, chi prova l'app sa dov'è. Nella build da negozio
+        // non c'è.
         GestureDetector(
           key: const Key('online.signInTitle'),
           behavior: HitTestBehavior.opaque,
-          onLongPress: _toggleTest,
+          onLongPress: BuildFlags.testTools ? _toggleTest : null,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -302,7 +307,7 @@ class _SignInPanelState extends State<SignInPanel> {
           ),
         ),
         SizedBox(height: desk ? 36 : 18),
-        if (_test) ..._testForm(t) else ..._providers(t, auth, desk),
+        if (BuildFlags.testTools && _test) ..._testForm(t) else ..._providers(t, auth, desk),
         if (_error case final error?) ...[const SizedBox(height: 14), FailureNote(error: error)],
         SizedBox(height: desk ? 28 : 14),
         Text(
@@ -404,5 +409,8 @@ class _SignInPanelState extends State<SignInPanel> {
     ),
   ];
 
-  void _submitTest() => _signIn(() => widget.auth.signInWithTestAccount(email: _email.text, password: _password.text));
+  void _submitTest() {
+    if (!BuildFlags.testTools) return;
+    _signIn(() => widget.auth.signInWithTestAccount(email: _email.text, password: _password.text));
+  }
 }

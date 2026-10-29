@@ -25,6 +25,7 @@ import '../../l10n/stats_strings.dart';
 import '../../l10n/settings_strings.dart';
 import '../../online/online_services.dart';
 import '../../settings/app_settings.dart';
+import '../../build_flags.dart';
 import '../../steam/steam.dart';
 import '../../steam/steam_debug_sheet.dart';
 import '../theme/app_theme.dart';

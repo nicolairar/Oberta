@@ -92,7 +92,7 @@ jobs:
         shell: bash
         run: |
           if [ "${{ inputs.steam_test }}" = "true" ]; then
-            DEFINES="$DEFINES --dart-define=STEAM=true --dart-define=RANKED_DEBUG=true"
+            DEFINES="$DEFINES --dart-define=STEAM=true --dart-define=OBERTA_TEST=true"
           fi
           flutter build ${{ matrix.platform }} --release $DEFINES
           # Le librerie dell'SDK di Steam non si possono distribuire qui: si
