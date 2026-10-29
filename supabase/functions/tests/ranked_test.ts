@@ -17,7 +17,7 @@ function pgliteDb(pg: PGlite): Db {
   return { ...tx(pg), transaction: (work) => pg.transaction((t) => work(tx(t))) };
 }
 
-const ids = Array.from({ length: 12 }, (_, i) => `00000000-0000-0000-0000-${String(i + 1).padStart(12, '0')}`);
+const ids = Array.from({ length: 14 }, (_, i) => `00000000-0000-0000-0000-${String(i + 1).padStart(12, '0')}`);
 
 async function world(people = 12, practiced = true) {
   const pg = new PGlite();
@@ -48,7 +48,12 @@ async function world(people = 12, practiced = true) {
   }
   const match = async () => (await one<{ n: number }>(`select internal.ranked_match() as n`)).n;
   const queued = async () => (await one<{ n: number }>(`select count(*)::int as n from internal.ranked_queue`)).n;
-  return { pg, db: pgliteDb(pg), as, one, enqueue, match, queued };
+  // A full lobby starts after a short countdown ('ranked_countdown'): the
+  // test jumps to its end, then runs the matcher.
+  const countdownOver = () => pg.query(`update public.rooms set starts_at = now() - interval '1 second' where starts_at is not null`);
+  const counting = async () =>
+    (await one<{ n: number }>(`select count(*)::int as n from public.rooms where status = 'lobby' and starts_at is not null`)).n;
+  return { pg, db: pgliteDb(pg), as, one, enqueue, match, queued, countdownOver, counting };
 }
 
 Deno.test('the queue: signed in with a handle, one entry per person, a language each', async () => {
@@ -93,24 +98,38 @@ Deno.test('ranked needs the three practice hands, recorded once each', async () 
   await pg.close();
 });
 
-Deno.test('the matcher: eight at once, six to ten after a minute, never bots, never twice', async () => {
-  const { pg, as, enqueue, match, queued, one } = await world(12);
-  for (let i = 0; i < 7; i++) await enqueue(ids[i]);
-  assertEquals(await match(), 0, 'seven are not enough');
-  await enqueue(ids[7]);
+Deno.test('the matcher: exactly twelve, never fewer whatever the wait, never bots, never twice', async () => {
+  const { pg, as, enqueue, match, queued, one, countdownOver, counting } = await world(14);
+  for (let i = 0; i < 11; i++) await enqueue(ids[i]);
+  assertEquals(await counting(), 0, 'eleven are not enough');
+  assertEquals(await match(), 0);
+  // However long they wait, eleven never make a ranked table, even with the
+  // old small-table keys back in the config.
+  await pg.query(`insert into internal.config (key, value) values ('ranked_small_min', '8'), ('ranked_small_after', '0'), ('ranked_size', '12')
+                  on conflict (key) do update set value = excluded.value`);
+  await pg.query(`update internal.ranked_queue set joined_at = now() - interval '10 minutes', seen_at = now()`);
+  await pg.query(`update public.room_members set joined_at = now() - interval '10 minutes'`);
+  await pg.query(`update public.rooms set created_at = now() - interval '10 minutes'`);
+  assertEquals(await match(), 0, 'no small tables after a long wait');
+  assertEquals(await counting(), 0);
+  await enqueue(ids[11]);
+  assertEquals(await counting(), 1, 'the twelfth starts the countdown');
+  assertEquals(await match(), 0, 'the countdown runs first');
+  await countdownOver();
   assertEquals(await match(), 1);
   assertEquals(await queued(), 0);
-  const room = await one<{ id: string; ranked: boolean; bots: number; status: string; test_match: boolean }>(
-    `select id, ranked, bots, status, test_match from public.rooms where ranked`,
+  const room = await one<{ id: string; ranked: boolean; bots: number; status: string; test_match: boolean; max_players: number }>(
+    `select id, ranked, bots, status, test_match, max_players from public.rooms where ranked`,
   );
   assert(room.ranked && !room.test_match);
   assertEquals(room.bots, 0);
+  assertEquals(room.max_players, 12);
   assertEquals(room.status, 'playing');
   const seats = await one<{ humans: number; bots: number }>(
     `select count(profile_id)::int as humans, count(*) filter (where profile_id is null)::int as bots from public.game_seats where room_id = $1`,
     [room.id],
   );
-  assertEquals(seats, { humans: 8, bots: 0 });
+  assertEquals(seats, { humans: 12, bots: 0 });
   const [{ status }] = await as<{ status: { room: string; queued: boolean } }>(ids[3], `select public.ranked_status() as status`);
   assertEquals(status.room, room.id, 'the phone learns its room');
   await assertRejects(() => enqueue(ids[3]), Error, 'already_in_game');
@@ -119,7 +138,7 @@ Deno.test('the matcher: eight at once, six to ten after a minute, never bots, ne
   await assertRejects(() => pg.query(`update public.rooms set bots = 2 where id = $1`, [room.id]), Error, 'rooms_ranked_without_bots');
   await assertRejects(() => as(ids[0], `select public.set_room_bots($1, 2)`, [room.id]), Error, 'permission denied');
   await assertRejects(
-    () => pg.query(`insert into public.game_seats (room_id, seat, profile_id, name) values ($1, 's9', null, 'bot.x')`, [room.id]),
+    () => pg.query(`insert into public.game_seats (room_id, seat, profile_id, name) values ($1, 's13', null, 'bot.x')`, [room.id]),
     Error,
     'no_bots_in_ranked',
   );
@@ -127,40 +146,39 @@ Deno.test('the matcher: eight at once, six to ten after a minute, never bots, ne
   await pg.query(`update public.rooms set status = 'lobby' where id = $1`, [room.id]);
   await assertRejects(() => as(ids[0], `select public.start_game($1)`, [room.id]), Error, 'not_allowed');
   const { code } = await one<{ code: string }>(`select code from public.rooms where id = $1`, [room.id]);
-  await assertRejects(() => as(ids[9], `select public.join_room($1)`, [code]), Error, 'room_');
-  await pg.query(`update public.room_members set left_at = now() where room_id = $1 and profile_id = $2`, [room.id, ids[7]]);
-  await assertRejects(() => as(ids[9], `select public.join_room($1)`, [code]), Error, 'room_closed', 'even with a free seat');
+  await assertRejects(() => as(ids[12], `select public.join_room($1)`, [code]), Error, 'room_');
+  await pg.query(`update public.room_members set left_at = now() where room_id = $1 and profile_id = $2`, [room.id, ids[11]]);
+  await assertRejects(() => as(ids[12], `select public.join_room($1)`, [code]), Error, 'room_closed', 'even with a free seat');
   await assertRejects(() => as(ids[1], `select public.send_chat($1, 'lobby', 'ciao')`, [room.id]), Error, 'chat_closed');
-
-  // Six who waited over a minute play; six fresh ones do not.
-  for (let i = 8; i < 12; i++) await enqueue(ids[i], 'en');
-  await pg.query(`update public.rooms set status = 'ended' where id = $1`, [room.id]);
-  for (let i = 0; i < 2; i++) await enqueue(ids[i], 'en');
-  assertEquals(await match(), 0, 'six fresh players wait for eight');
-  await pg.query(`update internal.ranked_queue set joined_at = now() - interval '70 seconds'`);
-  assertEquals(await match(), 1, 'after a minute six are enough');
-  assertEquals((await one<{ n: number }>(`select max_players::int as n from public.rooms where ranked and language = 'en'`)).n, 6);
   await pg.close();
 });
 
 Deno.test('the matcher pairs by rating band and by conduct, and drops silent phones', async () => {
-  const { pg, enqueue, match, queued } = await world(12);
-  // Four new players and four far stronger ones.
-  for (let i = 4; i < 8; i++) {
+  const { pg, enqueue, match, queued, countdownOver, counting } = await world(14);
+  // Six new players and six far stronger ones.
+  for (let i = 6; i < 12; i++) {
     await pg.query(`insert into public.ratings (profile_id, language, mu, sigma) values ($1, 'it', 45, 2)`, [ids[i]]);
   }
-  for (let i = 0; i < 8; i++) await enqueue(ids[i]);
-  assertEquals(await match(), 0, 'too far apart while the wait is short');
+  for (let i = 0; i < 12; i++) await enqueue(ids[i]);
+  assertEquals(await counting(), 0, 'too far apart while the wait is short: two lobbies of six');
+  assertEquals(await match(), 0);
+  // After a long wait the lobbies fill one another, whatever the rating.
   await pg.query(`update internal.ranked_queue set joined_at = now() - interval '6 minutes', seen_at = now()`);
-  assertEquals(await match(), 1, 'after a long wait the band opens');
+  await pg.query(`update public.rooms set created_at = now() - interval '6 minutes'`);
+  assertEquals(await match(), 0);
+  assertEquals(await counting(), 1, 'after a long wait the band opens');
+  await countdownOver();
+  assertEquals(await match(), 1);
 
   // Two frequent leavers never land with the others.
   await pg.exec(`delete from public.room_members; delete from public.rooms; delete from public.ratings`);
   await pg.query(`insert into internal.conduct (profile_id, score) values ($1, 40), ($2, 40)
                   on conflict (profile_id) do update set score = 40`, [ids[0], ids[1]]);
-  for (let i = 0; i < 8; i++) await enqueue(ids[i]);
-  assertEquals(await match(), 0, 'six well-behaved and two leavers are not a table of eight');
-  for (let i = 8; i < 10; i++) await enqueue(ids[i]);
+  for (let i = 0; i < 12; i++) await enqueue(ids[i]);
+  assertEquals(await counting(), 0, 'ten well-behaved and two leavers are not a table of twelve');
+  for (let i = 12; i < 14; i++) await enqueue(ids[i]);
+  assertEquals(await counting(), 1);
+  await countdownOver();
   assertEquals(await match(), 1);
   const left = (await pg.query<{ profile_id: string }>(`select profile_id from internal.ranked_queue order by profile_id`)).rows;
   assertEquals(left.map((r) => r.profile_id), [ids[0], ids[1]], 'the leavers wait for their own kind');
@@ -173,16 +191,23 @@ Deno.test('the matcher pairs by rating band and by conduct, and drops silent pho
 });
 
 Deno.test('TEST ONLY flag: two people and bots, never ranked', async () => {
-  const { pg, enqueue, match, one } = await world(2);
+  const { pg, as, enqueue, match, one, countdownOver, counting } = await world(2);
   await enqueue(ids[0]);
   await enqueue(ids[1]);
-  assertEquals(await match(), 0, 'off by default');
+  assertEquals(await counting(), 0, 'off by default: two wait in a ranked lobby for twelve');
+  assertEquals(await match(), 0);
+  // The flag decides where people are seated, so it is on before they queue.
+  for (const who of ids.slice(0, 2)) await as(who, `select public.leave_ranked_queue()`);
   await pg.query(`insert into internal.config values ('ranked_test_humans', '2')`);
+  await enqueue(ids[0]);
+  await enqueue(ids[1]);
+  assertEquals(await counting(), 1);
+  await countdownOver();
   assertEquals(await match(), 1);
   const room = await one<{ ranked: boolean; test_match: boolean; bots: number; status: string }>(
-    `select ranked, test_match, bots, status from public.rooms`,
+    `select ranked, test_match, bots, status from public.rooms where status = 'playing'`,
   );
-  assertEquals(room, { ranked: false, test_match: true, bots: 6, status: 'playing' });
+  assertEquals(room, { ranked: false, test_match: true, bots: 10, status: 'playing' });
   await pg.close();
 });
 
@@ -232,9 +257,10 @@ type View = { seat: string; alive: boolean; action: { type: string; targets: str
 const ackStages = new Set(['reveal', 'dawnFilms', 'dawn', 'discussion', 'verdictFilm', 'verdict']);
 
 Deno.test('a whole ranked game: XP, levels, coins, ratings and history, written only by the server', async () => {
-  const { pg, db, as, enqueue, match, one } = await world(8);
-  const players = ids.slice(0, 8);
+  const { pg, db, as, enqueue, match, one, countdownOver } = await world(12);
+  const players = ids.slice(0, 12);
   for (const p of players) await enqueue(p);
+  await countdownOver();
   assertEquals(await match(), 1);
   const { id: room } = await one<{ id: string }>(`select id from public.rooms where ranked`);
   let now = Number((await one<{ now: number }>(`select extract(epoch from now()) * 1000 as now`)).now);
@@ -280,23 +306,26 @@ Deno.test('a whole ranked game: XP, levels, coins, ratings and history, written 
     abandoned: boolean;
     profile_id: string; won: boolean; xp_gained: number; level_after: number; coins_gained: number; rating_delta: number; ranked: boolean;
   }>(`select * from public.match_history order by seat`)).rows;
-  assertEquals(history.length, 8, 'everyone settled once');
+  assertEquals(history.length, 12, 'everyone settled once');
   assert(history.every((h) => h.ranked && !h.abandoned));
   const winners = history.filter((h) => h.won);
   const losers = history.filter((h) => !h.won);
   assert(winners.length > 0 && losers.length > 0);
+  // The game itself is worth 100 + 100 (first win of the day) to a winner
+  // and 30 to a loser; missions and achievements the game completed (they
+  // depend on the roles dealt) come on top.
   for (const w of winners) {
-    assertEquals(w.xp_gained, 200, 'a win plus the first win of the day');
-    assertEquals(w.level_after, 2);
-    assertEquals(w.coins_gained, 150);
+    assert(w.xp_gained >= 200, `a win plus the first win of the day: ${w.xp_gained}`);
+    assert(w.level_after >= 2, 'a winner levels up');
+    assert(w.coins_gained >= 50 + 40, 'the level and the win pay coins');
     assert(w.rating_delta > 0, 'winners go up');
   }
   for (const l of losers) {
-    assertEquals(l.xp_gained, 30);
+    assert(l.xp_gained >= 30, `a loss: ${l.xp_gained}`);
     assert(l.rating_delta < 0, 'losers go down');
   }
   const ratings = (await pg.query<{ profile_id: string; mu: number; sigma: number; games: number }>(`select * from public.ratings`)).rows;
-  assertEquals(ratings.length, 8);
+  assertEquals(ratings.length, 12);
   for (const r of ratings) {
     assert(r.sigma < 25 / 3, 'uncertainty shrinks');
     assertEquals(r.games, 1);
@@ -304,13 +333,19 @@ Deno.test('a whole ranked game: XP, levels, coins, ratings and history, written 
     assert(won ? r.mu > 25 : r.mu < 25, `${won ? 'winner' : 'loser'} mu ${r.mu}`);
   }
   const winner = winners[0].profile_id;
-  assertEquals((await one<{ level: number; xp: number; coins: number }>(`select level, xp, coins from public.profiles where id = $1`, [winner])),
-    { level: 2, xp: 25, coins: 150 });
-  assertEquals((await one<{ n: number }>(`select count(*)::int as n from public.coin_ledger where reason = 'level_up'`)).n, winners.length);
-
+  const settled = winners[0];
+  const profile = await one<{ level: number; coins: number; ledger: number }>(
+    `select level, coins, (select coalesce(sum(delta), 0)::int from public.coin_ledger where profile_id = $1) as ledger
+     from public.profiles where id = $1`,
+    [winner],
+  );
+  assertEquals(profile.level, settled.level_after, 'the profile has the level of the history');
+  assertEquals(profile.coins, profile.ledger, 'every coin has its ledger row');
+  assertEquals((await one<{ n: number }>(`select count(*)::int as n from public.coin_ledger where reason = 'match'`)).n, history.length,
+    'one ledger row per player for the game itself');
   // Settling twice changes nothing.
   await pg.query(`select internal.record_match($1, 'mafia', '{"players": []}')`, [room]);
-  assertEquals((await one<{ n: number }>(`select count(*)::int as n from public.match_history`)).n, 8);
+  assertEquals((await one<{ n: number }>(`select count(*)::int as n from public.match_history`)).n, 12);
 
   // Each phone reads only its own history and rating; nobody writes them.
   const mine = await as<{ profile_id: string }>(winner, `select profile_id from public.match_history`);

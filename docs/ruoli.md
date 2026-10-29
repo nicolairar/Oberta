@@ -148,7 +148,7 @@ Senza i ruoli nuovi i numeri cambiano di 1–3 punti al massimo (stessa tabella:
 
 ### 2.6 Classificata
 
-La classificata si gioca in **12** (`ranked_size`), ed è quella che deve essere bilanciata meglio. Dal 29 ottobre ha un **mazzo suo a posti fissi** (`rankedRoles` in `lib/rules/role_assignment.dart`). Il server lo usa quando la stanza è classificata e al tavolo sono in 12; un tavolo classificato più piccolo (partito dopo l'attesa, `ranked_small_min`) usa il mazzo automatico.
+La classificata si gioca in **12** (`ranked_size`), ed è quella che deve essere bilanciata meglio. Dal 29 ottobre ha un **mazzo suo a posti fissi** (`rankedRoles` in `lib/rules/role_assignment.dart`). Il server lo usa quando la stanza è classificata e al tavolo sono in 12; un tavolo classificato è sempre di 12, mai più piccolo, per quanto si aspetti.
 
 | Posti | Carte |
 |---|---|
