@@ -8,8 +8,8 @@ import 'package:oberta/online/incoming_links.dart';
 import 'package:oberta/online/online_services.dart';
 
 /// Il vicolo con l'online: la targhetta «Accedi», il suggerimento sul
-/// manifesto, il cartellino di chi è entrato, l'account di prova e i link
-/// delle stanze aperti dalla fotocamera.
+/// manifesto, il cartellino di chi è entrato, l'accesso con email (senza
+/// password) e i link delle stanze aperti dalla fotocamera.
 void main() {
   late FakeOnline online;
 
@@ -154,62 +154,141 @@ void main() {
     });
   });
 
-  group('l\'account di prova', () {
-    testWidgets('i giocatori non lo vedono: solo Apple', (tester) async {
+  group('entra con email, senza password', () {
+    Finder said(String text) => find.textContaining(text, findRichText: true);
+
+    /// Dal vicolo: «Accedi», «Entra con email», l'indirizzo, «Mandami il codice».
+    Future<void> askCode(WidgetTester tester, {String address = 'prova@oberta.test'}) async {
+      await openAlley(tester);
+      await tester.tap(find.text('ACCEDI'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('online.signInEmail')));
+      await tester.pumpAndSettle();
+      expect(said('codice di 6 cifre e un link'), findsOneWidget);
+      await tester.enterText(find.byKey(const Key('online.email')), address);
+      await tester.tap(find.byKey(const Key('online.emailSend')));
+      await tester.pumpAndSettle();
+    }
+
+    String codeFor(String address) => online.auth.emailCodes[address]!;
+
+    testWidgets('c\'è per tutti, sotto Apple, e niente password da nessuna parte', (tester) async {
       await openAlley(tester);
       await tester.tap(find.text('ACCEDI'));
       await tester.pumpAndSettle();
       expect(find.text('Entra con Apple'), findsOneWidget);
-      expect(find.byKey(const Key('online.testEmail')), findsNothing);
-      expect(find.textContaining('Account di prova', findRichText: true), findsNothing);
+      expect(find.text('Entra con email'), findsOneWidget);
+      expect(
+        tester.getRect(find.byKey(const Key('online.signInEmail'))).top,
+        greaterThan(tester.getRect(find.text('Entra con Apple')).top),
+      );
+      expect(said('assword'), findsNothing);
     });
 
-    testWidgets('tenendo premuto «Accedi» si apre; la prima volta crea l\'account', (tester) async {
-      await openAlley(tester);
-      await tester.longPress(find.text('ACCEDI'));
-      await tester.pumpAndSettle();
-      expect(find.text('ACCOUNT DI PROVA'), findsOneWidget);
+    testWidgets('il codice della mail: sbagliato lo si dice, giusto si entra, poi il profilo', (tester) async {
+      await askCode(tester);
+      expect(said('Abbiamo scritto a prova@oberta.test'), findsOneWidget);
+      expect(online.auth.emailLanguages['prova@oberta.test'], 'it', reason: 'le sue mail in italiano');
+      expect(tester.widget<ElevatedButton>(find.byKey(const Key('online.emailVerify'))).onPressed, isNull);
 
-      await tester.enterText(find.byKey(const Key('online.testEmail')), 'prova@oberta.test');
-      await tester.enterText(find.byKey(const Key('online.testPassword')), '123');
-      await tester.tap(find.byKey(const Key('online.testSubmit')));
+      await tester.enterText(find.byKey(const Key('online.emailCodeInput')), '000000');
       await tester.pumpAndSettle();
-      expect(find.text('Password troppo debole: almeno 6 caratteri.'), findsOneWidget);
+      expect(find.text('Codice sbagliato: controlla l\'ultima mail che ti abbiamo mandato.'), findsOneWidget);
+      expect(online.auth.signedIn, isFalse);
 
-      await tester.enterText(find.byKey(const Key('online.testPassword')), 'segreta');
-      await tester.tap(find.byKey(const Key('online.testSubmit')));
+      await tester.enterText(find.byKey(const Key('online.emailCodeInput')), codeFor('prova@oberta.test'));
       await tester.pumpAndSettle();
-      expect(online.auth.signedIn, isTrue);
+      expect(online.auth.signedIn, isTrue, reason: 'a sei cifre entra da solo');
       await fillProfile(tester, handle: 'prova');
       expect(find.byKey(const Key('home.badge')), findsOneWidget);
     });
 
-    testWidgets('dal foglio dell\'accesso, tenendo premuto il titolo; password sbagliata', (tester) async {
-      await tester.runAsync(() async {
-        await online.auth.signInWithTestAccount(email: 'prova@oberta.test', password: 'segreta');
-        await online.auth.signOut();
-      });
+    testWidgets('incollato con gli spazi, o dentro una frase, il codice va lo stesso', (tester) async {
+      await askCode(tester);
+      final code = codeFor('prova@oberta.test');
+      await tester.enterText(
+        find.byKey(const Key('online.emailCodeInput')),
+        'Il codice: ${code.substring(0, 3)} ${code.substring(3)}',
+      );
+      await tester.pumpAndSettle();
+      expect(online.auth.signedIn, isTrue);
+    });
+
+    testWidgets('il link della mail apre l\'app già dentro: il foglio si chiude da solo', (tester) async {
+      await askCode(tester);
+      online.auth.openEmailLink('prova@oberta.test');
+      await tester.pumpAndSettle();
+      expect(online.auth.signedIn, isTrue);
+      expect(find.byKey(const Key('online.emailCode')), findsNothing);
+      await fillProfile(tester, handle: 'prova');
+      expect(find.byKey(const Key('home.badge')), findsOneWidget);
+    });
+
+    testWidgets('un link scaduto lo dice, e si resta sul codice', (tester) async {
+      await askCode(tester);
+      online.auth.expireEmailCodes();
+      online.auth.openEmailLink('prova@oberta.test');
+      await tester.pumpAndSettle();
+      expect(online.auth.signedIn, isFalse);
+      expect(said('Il link è scaduto o è già stato usato'), findsOneWidget);
+      expect(find.byKey(const Key('online.emailCode')), findsOneWidget);
+    });
+
+    testWidgets('rimandare: prima il conto alla rovescia, poi un codice nuovo, e vale solo l\'ultimo', (tester) async {
+      await askCode(tester);
+      final old = codeFor('prova@oberta.test');
+      expect(find.text('Rimanda il codice tra 60 s'), findsOneWidget);
+      expect(tester.widget<TextButton>(find.byKey(const Key('online.emailResend'))).onPressed, isNull);
+      await tester.pump(const Duration(seconds: 30));
+      expect(find.text('Rimanda il codice tra 30 s'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 31));
+      expect(find.text('Rimanda il codice'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('online.emailResend')));
+      await tester.pumpAndSettle();
+      expect(find.text('Codice nuovo in arrivo: vale solo l\'ultimo.'), findsOneWidget);
+      expect(codeFor('prova@oberta.test'), isNot(old));
+      await tester.enterText(find.byKey(const Key('online.emailCodeInput')), old);
+      await tester.pumpAndSettle();
+      expect(online.auth.signedIn, isFalse);
+      expect(find.byKey(const Key('online.failure')), findsOneWidget);
+      await tester.pump(const Duration(seconds: 61));
+    });
+
+    testWidgets('l\'indirizzo storto lo si dice; «Cambia indirizzo» e «Altri modi» tornano indietro', (tester) async {
       await openAlley(tester);
       await tester.tap(find.text('ACCEDI'));
       await tester.pumpAndSettle();
-      await tester.longPress(find.byKey(const Key('online.signInTitle')));
+      await tester.tap(find.byKey(const Key('online.signInEmail')));
       await tester.pumpAndSettle();
-      await tester.enterText(find.byKey(const Key('online.testEmail')), 'prova@oberta.test');
-      await tester.enterText(find.byKey(const Key('online.testPassword')), 'sbagliata');
-      await tester.tap(find.byKey(const Key('online.testSubmit')));
+      await tester.enterText(find.byKey(const Key('online.email')), 'non-una-email');
+      await tester.tap(find.byKey(const Key('online.emailSend')));
       await tester.pumpAndSettle();
-      expect(find.text('Password sbagliata per questa email.'), findsOneWidget);
-      expect(online.auth.signedIn, isFalse);
+      expect(find.text('Questa email non sembra valida.'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('online.emailBack')));
+      await tester.pumpAndSettle();
+      expect(find.text('Entra con Apple'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('online.signInEmail')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('online.email')), 'prova@oberta.test');
+      await tester.tap(find.byKey(const Key('online.emailSend')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('online.emailChange')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('online.email')), findsOneWidget);
+      await tester.pump(const Duration(seconds: 61));
     });
 
     testWidgets('col provider Email spento il server lo dice chiaro', (tester) async {
       online.emailEnabled = false;
       await openAlley(tester);
-      await tester.longPress(find.text('ACCEDI'));
+      await tester.tap(find.text('ACCEDI'));
       await tester.pumpAndSettle();
-      await tester.enterText(find.byKey(const Key('online.testEmail')), 'prova@oberta.test');
-      await tester.enterText(find.byKey(const Key('online.testPassword')), 'segreta');
-      await tester.tap(find.byKey(const Key('online.testSubmit')));
+      await tester.tap(find.byKey(const Key('online.signInEmail')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('online.email')), 'prova@oberta.test');
+      await tester.tap(find.byKey(const Key('online.emailSend')));
       await tester.pumpAndSettle();
       expect(find.text('Accesso con email non attivo sul server.'), findsOneWidget);
       expect(find.textContaining('email_provider_disabled'), findsOneWidget);

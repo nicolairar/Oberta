@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:clock/clock.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -409,7 +410,7 @@ class SupabaseAuth extends OnlineAuth {
           // funzione auth-email mette il pulsante solo per `oberta://`).
           emailRedirectTo: emailLinkOpensApp ? emailRedirect : null,
         );
-        _emailSentAt[address] = DateTime.now();
+        _emailSentAt[address] = clock.now();
       }, SignInDoor.email);
 
   @override
@@ -419,7 +420,7 @@ class SupabaseAuth extends OnlineAuth {
       await _guard(() => _client.auth.verifyOTP(type: OtpType.email, email: address, token: code.trim()), SignInDoor.email);
     } on OnlineException catch (error) {
       final sent = _emailSentAt[address];
-      final old = sent != null && DateTime.now().difference(sent) > OnlineAuth.emailCodeLifetime;
+      final old = sent != null && clock.now().difference(sent) > OnlineAuth.emailCodeLifetime;
       if (error.failure == OnlineFailure.emailCodeWrong && old) {
         throw OnlineException(OnlineFailure.emailCodeExpired, error.cause, error.reason);
       }

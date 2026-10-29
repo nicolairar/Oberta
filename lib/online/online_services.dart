@@ -26,8 +26,9 @@ export 'voice/voice_models.dart';
 /// L'account: chi è entrato, e come si entra. Avvisa chi ascolta quando
 /// qualcuno entra o esce.
 ///
-/// Si entra solo con un account vero, Apple o Google, così il profilo segue
-/// la persona su ogni telefono. Niente email, niente password.
+/// Si entra con un account vero (Apple, Google, Steam) o con un indirizzo
+/// email, così il profilo segue la persona su ogni dispositivo. Mai password:
+/// l'email entra con un codice di sei cifre, o col link della stessa mail.
 abstract class OnlineAuth extends ChangeNotifier {
   /// L'id dell'account, o null se nessuno è entrato.
   String? get userId;
@@ -52,11 +53,31 @@ abstract class OnlineAuth extends ChangeNotifier {
 
   Future<void> signInWithSteam() async => throw const OnlineException(OnlineFailure.unknown, null, 'steam · unavailable');
 
-  /// L'account di prova, con email e password, per chi prova l'app da un
-  /// secondo telefono: entra, o crea l'account se non c'è ancora. Nascosto
-  /// ai giocatori (si apre tenendo premuto «Accedi»); sul server va acceso
-  /// il provider Email, con la conferma via email spenta.
-  Future<void> signInWithTestAccount({required String email, required String password});
+  /// «Entra con email», senza password: c'è dove c'è l'online.
+  bool get emailAvailable => false;
+
+  /// Il link della mail apre l'app già dentro (iPhone e Android, che
+  /// conoscono `oberta://`). Sul computer la mail porta solo il codice.
+  bool get emailLinkOpensApp => false;
+
+  /// Manda a [email] la mail con il codice di sei cifre (e il link, dove apre
+  /// l'app). Chi non ha ancora un account lo crea entrando: il codice è la
+  /// conferma dell'indirizzo, e [language] (`it`, `en`...) la lingua delle sue
+  /// mail. Una mail nuova annulla quella di prima.
+  Future<void> sendEmailCode(String email, {String? language}) async =>
+      throw const OnlineException(OnlineFailure.emailDisabled, null, 'email · unavailable');
+
+  /// Entra con il [code] dell'ultima mail mandata a [email].
+  Future<void> verifyEmailCode({required String email, required String code}) async =>
+      throw const OnlineException(OnlineFailure.emailDisabled, null, 'email · unavailable');
+
+  /// Quanto valgono il codice e il link della mail (`mailer_otp_exp` sul
+  /// server): oltre, un codice rifiutato è «scaduto», non «sbagliato».
+  static const emailCodeLifetime = Duration(minutes: 15);
+
+  /// Un link della mail che non ha fatto entrare (scaduto, già usato, aperto
+  /// su un altro dispositivo): il foglio dell'accesso lo dice, una volta.
+  OnlineException? takeEmailLinkFailure() => null;
 
   Future<void> signOut();
 }

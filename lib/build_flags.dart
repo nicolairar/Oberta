@@ -3,9 +3,10 @@ import 'package:flutter/foundation.dart';
 /// Build di prova o build da negozio: l'unico interruttore dell'app.
 ///
 /// Una build `--release` **senza** dart-define è quella da negozio (App
-/// Store, Google Play, Steam): non ci sono l'accesso con email e password,
-/// la classificata aperta, la soglia di due persone coi bot di prova, il menu
-/// di prova Steam. Non serve ricordarsi niente: è il caso di partenza.
+/// Store, Google Play, Steam): non ci sono la classificata aperta, la soglia
+/// di due persone coi bot di prova, il menu di prova Steam. Non serve
+/// ricordarsi niente: è il caso di partenza. (L'accesso con email non è
+/// più una cosa di prova: c'è per tutti, senza password.)
 ///
 /// Una build di prova lo dice con `--dart-define=OBERTA_TEST=true`:
 /// `RANKED_DEBUG=1 bundle exec fastlane ios beta` (TestFlight interno) e il
@@ -19,7 +20,7 @@ import 'package:flutter/foundation.dart';
 /// arriva mai in una build `--release`.
 ///
 /// Le cose che il server decide da sé (bot nelle stanze, minimo della
-/// classificata, provider Email) si spengono con
+/// classificata) si spengono con
 /// `supabase/scripts/prelaunch.sql` (docs/app-store.md).
 abstract final class BuildFlags {
   /// Compilata come build di prova (TestFlight interno, Steam di prova).

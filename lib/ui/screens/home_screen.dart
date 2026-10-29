@@ -293,10 +293,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
     _continue();
   }
 
-  /// Il foglio dell'accesso; con [test], l'account di prova.
-  Future<void> _signIn({bool test = false}) async {
+  /// Il foglio dell'accesso: Apple, Google, Steam o l'email con il codice.
+  Future<void> _signIn() async {
     if (_coach) setState(() => _coach = false);
-    final signedIn = await showSignInSheet(context, services: _online!, test: test);
+    final signedIn = await showSignInSheet(context, services: _online!);
     if (signedIn) _continue();
   }
 
@@ -673,7 +673,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                         key: const Key('home.signIn'),
                         label: t.online.signIn,
                         onTap: _signIn,
-                        onLongPress: () => _signIn(test: true),
                       ),
                     ),
                   // Dopo l'accesso, al posto della targa ACCEDI c'è l'insegna
@@ -832,7 +831,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                           profile: account?.profile,
                           signInLabel: t.online.signIn,
                           onSignIn: _signIn,
-                          onSignInTest: () => _signIn(test: true),
                           onProfile: _openProfile,
                           pickHandle: t.online.pickHandle,
                           levelLabel: t.online.levelShort,

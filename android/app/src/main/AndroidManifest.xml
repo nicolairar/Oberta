@@ -47,6 +47,14 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="oberta" android:host="steam-link"/>
             </intent-filter>
+            <!-- «Entra con email»: il link della mail torna qui da Supabase
+                 (oberta://login-callback?code=...) e l'app entra da sola. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="oberta" android:host="login-callback"/>
+            </intent-filter>
         </activity>
         <!-- Play Games Services (games_services): l'id del progetto della Play Console.
              Segnaposto finché Android non esce; vedi docs/release.md, sezione 7.9. -->

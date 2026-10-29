@@ -38,12 +38,22 @@ abstract class OnlineStrings {
   String get coins;
   String xpProgress(int xp, int next);
 
-  // L'account di prova, nascosto.
-  String get testAccount;
-  String get testAccountBody;
+  // «Entra con email», senza password: il codice e il link della mail.
+  String get loginEmail;
+  String get emailBody;
+  String get emailBodyCodeOnly;
   String get emailLabel;
-  String get passwordLabel;
-  String get testAccountSubmit;
+  String get emailSend;
+  String emailSentTo(String address);
+  String emailSentToCodeOnly(String address);
+  String get emailCodeLabel;
+  String get emailVerify;
+  String get emailResend;
+  String emailResendIn(int seconds);
+  String get emailResent;
+  String get emailChange;
+  String get emailOtherWays;
+  String get emailSpam;
 
   // Il profilo.
   String get setupTitle;
@@ -292,11 +302,21 @@ abstract class OnlineStrings {
     'level': level,
     'coins': coins,
     'xpProgress': xpProgress(40, 300),
-    'testAccount': testAccount,
-    'testAccountBody': testAccountBody,
+    'loginEmail': loginEmail,
+    'emailBody': emailBody,
+    'emailBodyCodeOnly': emailBodyCodeOnly,
     'emailLabel': emailLabel,
-    'passwordLabel': passwordLabel,
-    'testAccountSubmit': testAccountSubmit,
+    'emailSend': emailSend,
+    'emailSentTo': emailSentTo('anna@example.com'),
+    'emailSentToCodeOnly': emailSentToCodeOnly('anna@example.com'),
+    'emailCodeLabel': emailCodeLabel,
+    'emailVerify': emailVerify,
+    'emailResend': emailResend,
+    'emailResendIn': emailResendIn(42),
+    'emailResent': emailResent,
+    'emailChange': emailChange,
+    'emailOtherWays': emailOtherWays,
+    'emailSpam': emailSpam,
     'setupTitle': setupTitle,
     'setupBody': setupBody,
     'handleLabel': handleLabel,
@@ -663,16 +683,36 @@ final class ItalianOnlineStrings extends OnlineStrings {
   String xpProgress(int xp, int next) => '$xp su $next punti esperienza';
 
   @override
-  String get testAccount => 'Account di prova';
+  String get loginEmail => 'Entra con email';
   @override
-  String get testAccountBody =>
-      'Solo per provare l\'app da un altro telefono: entra con email e password, o crea l\'account se non c\'è.';
+  String get emailBody => 'Ti mandiamo una mail con un codice di 6 cifre e un link per entrare. Niente password.';
+  @override
+  String get emailBodyCodeOnly => 'Ti mandiamo una mail con un codice di 6 cifre da scrivere qui. Niente password.';
   @override
   String get emailLabel => 'Indirizzo email';
   @override
-  String get passwordLabel => 'Password (almeno 6 caratteri)';
+  String get emailSend => 'MANDAMI IL CODICE';
   @override
-  String get testAccountSubmit => 'ENTRA O CREA';
+  String emailSentTo(String address) =>
+      'Abbiamo scritto a $address. Scrivi il codice della mail, oppure tocca il link: l\'app si apre già dentro.';
+  @override
+  String emailSentToCodeOnly(String address) => 'Abbiamo scritto a $address. Scrivi qui il codice della mail.';
+  @override
+  String get emailCodeLabel => 'Codice di 6 cifre';
+  @override
+  String get emailVerify => 'ENTRA';
+  @override
+  String get emailResend => 'Rimanda il codice';
+  @override
+  String emailResendIn(int seconds) => 'Rimanda il codice tra $seconds s';
+  @override
+  String get emailResent => 'Codice nuovo in arrivo: vale solo l\'ultimo.';
+  @override
+  String get emailChange => 'Cambia indirizzo';
+  @override
+  String get emailOtherWays => 'Altri modi per entrare';
+  @override
+  String get emailSpam => 'Non arriva? Guarda nella posta indesiderata.';
 
   @override
   String get setupTitle => 'IL TUO PROFILO';
@@ -928,10 +968,12 @@ final class ItalianOnlineStrings extends OnlineStrings {
         OnlineFailure.appleDisabled => 'Accesso con Apple non attivo sul server.',
         OnlineFailure.googleDisabled => 'Accesso con Google non attivo sul server.',
         OnlineFailure.emailDisabled => 'Accesso con email non attivo sul server.',
-        OnlineFailure.wrongPassword => 'Password sbagliata per questa email.',
-        OnlineFailure.weakPassword => 'Password troppo debole: almeno 6 caratteri.',
         OnlineFailure.invalidEmail => 'Questa email non sembra valida.',
-        OnlineFailure.emailNotConfirmed => 'Il server chiede di confermare l\'email: per le prove va spento.',
+        OnlineFailure.emailCodeWrong => 'Codice sbagliato: controlla l\'ultima mail che ti abbiamo mandato.',
+        OnlineFailure.emailCodeExpired => 'Il codice è scaduto: chiedine uno nuovo.',
+        OnlineFailure.emailLinkExpired => 'Il link è scaduto o è già stato usato: scrivi il codice della mail, o chiedine uno nuovo.',
+        OnlineFailure.emailRateLimited => 'Troppe mail di fila: aspetta un minuto e riprova.',
+        OnlineFailure.emailNotSent => 'La mail non è partita: riprova tra poco.',
         OnlineFailure.profileIncomplete => 'Prima finisci il tuo profilo.',
         OnlineFailure.handleTaken => 'Questo nome unico è già preso.',
         OnlineFailure.invalidHandle => 'Nome non valido.',
@@ -1162,16 +1204,36 @@ class EnglishOnlineStrings extends OnlineStrings {
   String xpProgress(int xp, int next) => '$xp of $next experience points';
 
   @override
-  String get testAccount => 'Test account';
+  String get loginEmail => 'Sign in with email';
   @override
-  String get testAccountBody =>
-      'Only for trying the app from another phone: sign in with email and password, or create the account if missing.';
+  String get emailBody => 'We send you an email with a 6-digit code and a sign-in link. No password.';
+  @override
+  String get emailBodyCodeOnly => 'We send you an email with a 6-digit code to type here. No password.';
   @override
   String get emailLabel => 'Email address';
   @override
-  String get passwordLabel => 'Password (at least 6 characters)';
+  String get emailSend => 'SEND ME THE CODE';
   @override
-  String get testAccountSubmit => 'SIGN IN OR CREATE';
+  String emailSentTo(String address) =>
+      'We wrote to $address. Type the code from the email, or tap the link: the app opens signed in.';
+  @override
+  String emailSentToCodeOnly(String address) => 'We wrote to $address. Type the code from the email here.';
+  @override
+  String get emailCodeLabel => '6-digit code';
+  @override
+  String get emailVerify => 'SIGN IN';
+  @override
+  String get emailResend => 'Send the code again';
+  @override
+  String emailResendIn(int seconds) => 'Send again in $seconds s';
+  @override
+  String get emailResent => 'New code on its way: only the latest one works.';
+  @override
+  String get emailChange => 'Use another address';
+  @override
+  String get emailOtherWays => 'Other ways to sign in';
+  @override
+  String get emailSpam => 'Nothing yet? Check your spam folder.';
 
   @override
   String get setupTitle => 'YOUR PROFILE';
@@ -1427,10 +1489,12 @@ class EnglishOnlineStrings extends OnlineStrings {
         OnlineFailure.appleDisabled => 'Sign in with Apple is not enabled on the server.',
         OnlineFailure.googleDisabled => 'Sign in with Google is not enabled on the server.',
         OnlineFailure.emailDisabled => 'Email sign-in is not enabled on the server.',
-        OnlineFailure.wrongPassword => 'Wrong password for this email.',
-        OnlineFailure.weakPassword => 'Password too weak: at least 6 characters.',
         OnlineFailure.invalidEmail => 'That email does not look valid.',
-        OnlineFailure.emailNotConfirmed => 'The server wants the email confirmed: turn that off for testing.',
+        OnlineFailure.emailCodeWrong => 'Wrong code: check the latest email we sent you.',
+        OnlineFailure.emailCodeExpired => 'The code has expired: ask for a new one.',
+        OnlineFailure.emailLinkExpired => 'The link has expired or was already used: type the code from the email, or ask for a new one.',
+        OnlineFailure.emailRateLimited => 'Too many emails in a row: wait a minute and try again.',
+        OnlineFailure.emailNotSent => 'The email did not go out: try again in a moment.',
         OnlineFailure.profileIncomplete => 'Finish your profile first.',
         OnlineFailure.handleTaken => 'That handle is already taken.',
         OnlineFailure.invalidHandle => 'Invalid name.',

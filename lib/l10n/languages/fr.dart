@@ -735,16 +735,38 @@ final class FrenchOnlineStrings extends EnglishOnlineStrings {
   String xpProgress(int xp, int next) => '$xp sur $next points d’expérience';
 
   @override
-  String get testAccount => 'Compte de test';
+  String get loginEmail => 'Se connecter par e-mail';
   @override
-  String get testAccountBody =>
-      'Seulement pour essayer l’appli depuis un autre téléphone : connecte-toi avec e-mail et mot de passe, ou crée le compte s’il n’existe pas.';
+  String get emailBody =>
+      'On t’envoie un e-mail avec un code à 6 chiffres et un lien de connexion. Pas de mot de passe.';
+  @override
+  String get emailBodyCodeOnly =>
+      'On t’envoie un e-mail avec un code à 6 chiffres à saisir ici. Pas de mot de passe.';
   @override
   String get emailLabel => 'Adresse e-mail';
   @override
-  String get passwordLabel => 'Mot de passe (6 caractères minimum)';
+  String get emailSend => 'ENVOIE-MOI LE CODE';
   @override
-  String get testAccountSubmit => 'SE CONNECTER OU CRÉER';
+  String emailSentTo(String address) =>
+      'On a écrit à $address. Saisis le code de l’e-mail ou touche le lien : l’app s’ouvre déjà connectée.';
+  @override
+  String emailSentToCodeOnly(String address) => 'On a écrit à $address. Saisis ici le code de l’e-mail.';
+  @override
+  String get emailCodeLabel => 'Code à 6 chiffres';
+  @override
+  String get emailVerify => 'ENTRER';
+  @override
+  String get emailResend => 'Renvoyer le code';
+  @override
+  String emailResendIn(int seconds) => 'Renvoyer dans $seconds s';
+  @override
+  String get emailResent => 'Nouveau code en route : seul le dernier marche.';
+  @override
+  String get emailChange => 'Utiliser une autre adresse';
+  @override
+  String get emailOtherWays => 'Autres façons de se connecter';
+  @override
+  String get emailSpam => 'Rien reçu ? Regarde dans les spams.';
 
   @override
   String get setupTitle => 'TON PROFIL';
@@ -1002,10 +1024,12 @@ final class FrenchOnlineStrings extends EnglishOnlineStrings {
         OnlineFailure.appleDisabled => 'La connexion avec Apple n’est pas activée sur le serveur.',
         OnlineFailure.googleDisabled => 'La connexion avec Google n’est pas activée sur le serveur.',
         OnlineFailure.emailDisabled => 'La connexion par e-mail n’est pas activée sur le serveur.',
-        OnlineFailure.wrongPassword => 'Mauvais mot de passe pour cet e-mail.',
-        OnlineFailure.weakPassword => 'Mot de passe trop faible : 6 caractères minimum.',
         OnlineFailure.invalidEmail => 'Cet e-mail n’a pas l’air valide.',
-        OnlineFailure.emailNotConfirmed => 'Le serveur veut un e-mail confirmé : désactive ça pour les tests.',
+        OnlineFailure.emailCodeWrong => 'Mauvais code : vérifie le dernier e-mail qu’on t’a envoyé.',
+        OnlineFailure.emailCodeExpired => 'Le code a expiré : demandes-en un nouveau.',
+        OnlineFailure.emailLinkExpired => 'Le lien a expiré ou a déjà servi : saisis le code de l’e-mail ou demandes-en un nouveau.',
+        OnlineFailure.emailRateLimited => 'Trop d’e-mails d’affilée : attends une minute et réessaie.',
+        OnlineFailure.emailNotSent => 'L’e-mail n’est pas parti : réessaie dans un instant.',
         OnlineFailure.profileIncomplete => 'Termine d’abord ton profil.',
         OnlineFailure.handleTaken => 'Ce pseudo est déjà pris.',
         OnlineFailure.invalidHandle => 'Nom invalide.',

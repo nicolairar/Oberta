@@ -727,16 +727,37 @@ final class SpanishOnlineStrings extends EnglishOnlineStrings {
   String xpProgress(int xp, int next) => '$xp de $next puntos de experiencia';
 
   @override
-  String get testAccount => 'Cuenta de prueba';
+  String get loginEmail => 'Iniciar sesión con correo';
   @override
-  String get testAccountBody =>
-      'Solo para probar la app desde otro teléfono: entra con correo y contraseña, o crea la cuenta si no existe.';
+  String get emailBody => 'Te enviamos un correo con un código de 6 cifras y un enlace para entrar. Sin contraseña.';
+  @override
+  String get emailBodyCodeOnly =>
+      'Te enviamos un correo con un código de 6 cifras para escribir aquí. Sin contraseña.';
   @override
   String get emailLabel => 'Correo electrónico';
   @override
-  String get passwordLabel => 'Contraseña (al menos 6 caracteres)';
+  String get emailSend => 'ENVÍAME EL CÓDIGO';
   @override
-  String get testAccountSubmit => 'ENTRAR O CREAR';
+  String emailSentTo(String address) =>
+      'Te escribimos a $address. Escribe el código del correo o toca el enlace: la app se abre con la sesión iniciada.';
+  @override
+  String emailSentToCodeOnly(String address) => 'Te escribimos a $address. Escribe aquí el código del correo.';
+  @override
+  String get emailCodeLabel => 'Código de 6 cifras';
+  @override
+  String get emailVerify => 'ENTRAR';
+  @override
+  String get emailResend => 'Reenviar el código';
+  @override
+  String emailResendIn(int seconds) => 'Reenviar en $seconds s';
+  @override
+  String get emailResent => 'Nuevo código en camino: solo vale el último.';
+  @override
+  String get emailChange => 'Usar otra dirección';
+  @override
+  String get emailOtherWays => 'Otras formas de entrar';
+  @override
+  String get emailSpam => '¿No llega? Mira en la carpeta de spam.';
 
   @override
   String get setupTitle => 'TU PERFIL';
@@ -991,10 +1012,12 @@ final class SpanishOnlineStrings extends EnglishOnlineStrings {
         OnlineFailure.appleDisabled => 'El inicio de sesión con Apple no está activado en el servidor.',
         OnlineFailure.googleDisabled => 'El inicio de sesión con Google no está activado en el servidor.',
         OnlineFailure.emailDisabled => 'El inicio de sesión con correo no está activado en el servidor.',
-        OnlineFailure.wrongPassword => 'Contraseña incorrecta para este correo.',
-        OnlineFailure.weakPassword => 'Contraseña demasiado débil: al menos 6 caracteres.',
         OnlineFailure.invalidEmail => 'Ese correo no parece válido.',
-        OnlineFailure.emailNotConfirmed => 'El servidor pide confirmar el correo: desactívalo para las pruebas.',
+        OnlineFailure.emailCodeWrong => 'Código incorrecto: revisa el último correo que te enviamos.',
+        OnlineFailure.emailCodeExpired => 'El código ha caducado: pide uno nuevo.',
+        OnlineFailure.emailLinkExpired => 'El enlace ha caducado o ya se usó: escribe el código del correo o pide uno nuevo.',
+        OnlineFailure.emailRateLimited => 'Demasiados correos seguidos: espera un minuto y vuelve a intentarlo.',
+        OnlineFailure.emailNotSent => 'El correo no salió: inténtalo de nuevo en un momento.',
         OnlineFailure.profileIncomplete => 'Primero completa tu perfil.',
         OnlineFailure.handleTaken => 'Ese alias ya está ocupado.',
         OnlineFailure.invalidHandle => 'Nombre no válido.',
