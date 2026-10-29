@@ -164,7 +164,8 @@ class _TargetTag extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(10),
           child: Container(
-            width: 132,
+            // Two to a row on a phone, wide enough for a twelve-letter handle.
+            width: 160,
             height: 48,
             padding: const EdgeInsets.symmetric(horizontal: 8),
             decoration: BoxDecoration(
@@ -184,10 +185,12 @@ class _TargetTag extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Saloon.paper, fontSize: 14, fontWeight: FontWeight.w600)),
+                  // The whole name, smaller if it must: never «massimil…».
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(name, maxLines: 1, style: const TextStyle(color: Saloon.paper, fontSize: 14, fontWeight: FontWeight.w600)),
+                  ),
                 ),
               ],
             ),
@@ -348,7 +351,8 @@ class _GestureTileState extends State<GestureTile> with SingleTickerProviderStat
                 Text(
                   widget.open ? widget.label : '🔒 ${widget.lockedLabel}',
                   textAlign: TextAlign.center,
-                  maxLines: 2,
+                  // «Un'offerta che non puoi rifiutare» wants its three lines.
+                  maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: widget.open ? Saloon.paper : Saloon.paper.withValues(alpha: 0.5),
