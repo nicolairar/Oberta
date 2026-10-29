@@ -120,10 +120,7 @@ Future<void> showPlayerActions(
     case 'block' when safety != null:
       await confirmBlock(context, safety: safety, profileId: profileId, name: name);
     case 'unblock' when safety != null:
-      await _run(context, () async {
-        await safety.unblock(profileId);
-        return s.unblocked(name);
-      });
+      await unblockPlayer(context, safety: safety, profileId: profileId, name: name);
     case 'rules':
       await showCommunityRules(context);
   }
@@ -291,6 +288,20 @@ Future<bool> confirmBlock(
     return s.blocked(name);
   });
   return true;
+}
+
+/// Sblocca, senza domande: si torna a bloccare con un tocco.
+Future<void> unblockPlayer(
+  BuildContext context, {
+  required SafetyRepository safety,
+  required String profileId,
+  required String name,
+}) {
+  final s = SafetyStrings.of(context);
+  return _run(context, () async {
+    await safety.unblock(profileId);
+    return s.unblocked(name);
+  });
 }
 
 /// La segnalazione: un motivo, due righe se si vuole, e via. Vero se è

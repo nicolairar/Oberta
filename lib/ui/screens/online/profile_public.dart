@@ -4,6 +4,7 @@ part of 'profile_sheet.dart';
 /// messaggio, gli amici o la classifica: ritratto, nome, livello, grado,
 /// titolo, le tre medaglie più rare e i numeri delle partite vere. Solo
 /// l'account: niente della partita in corso, niente abbandoni né condotta.
+/// In fondo, per chi non è sé stesso: bloccarlo e segnalarlo.
 Future<void> showPublicProfile(BuildContext context, {required OnlineServices services, required String target}) {
   HapticFeedback.selectionClick();
   final load = services.profiles.publicProfile(target);
@@ -25,7 +26,10 @@ Future<void> showPublicProfile(BuildContext context, {required OnlineServices se
             child: SizedBox(
               width: _DeskDossier.width,
               height: _DeskDossier.height,
-              child: Material(type: MaterialType.transparency, child: _PublicDossier(load: load, desk: true)),
+              child: Material(
+                type: MaterialType.transparency,
+                child: _PublicDossier(load: load, services: services, desk: true),
+              ),
             ),
           ),
         ),
@@ -35,15 +39,16 @@ Future<void> showPublicProfile(BuildContext context, {required OnlineServices se
   return showNoirSheet<void>(
     context,
     heightFactor: 0.94,
-    builder: (context) => SizedBox.expand(child: _PublicDossier(load: load)),
+    builder: (context) => SizedBox.expand(child: _PublicDossier(load: load, services: services)),
   );
 }
 
 class _PublicDossier extends StatelessWidget {
   final Future<PublicProfile> load;
+  final OnlineServices services;
   final bool desk;
 
-  const _PublicDossier({required this.load, this.desk = false});
+  const _PublicDossier({required this.load, required this.services, this.desk = false});
 
   Widget _folder(Widget left, [Widget? right, String? tab]) => desk
       ? _DeskFolder(left: left, right: right ?? const SizedBox.shrink(), tab: tab)
@@ -94,6 +99,7 @@ class _PublicDossier extends StatelessWidget {
                 const SizedBox(height: 18),
                 view.roles(),
               ],
+              _PublicSafety(services: services, profile: p.profile),
             ],
           ),
           null,
@@ -110,6 +116,7 @@ class _PublicDossier extends StatelessWidget {
             view.identity(photo: 260),
             const SizedBox(height: 28),
             if (p.open) view.medals() else view.closed(),
+            _PublicSafety(services: services, profile: p.profile),
           ],
         ),
       );
@@ -131,6 +138,60 @@ class _PublicDossier extends StatelessWidget {
       return _folder(left, right, tab);
     },
   );
+}
+
+/// In fondo al fascicolo di un altro giocatore: bloccarlo (o sbloccarlo) e
+/// segnalarlo, con gli stessi fogli del tavolo e della chat. Niente per sé
+/// stessi, e niente dove l'online non ha segnalazioni.
+class _PublicSafety extends StatelessWidget {
+  final OnlineServices services;
+  final Profile profile;
+
+  const _PublicSafety({required this.services, required this.profile});
+
+  @override
+  Widget build(BuildContext context) {
+    final safety = services.safety;
+    if (safety == null || profile.id == services.auth.userId) return const SizedBox.shrink();
+    final s = SafetyStrings.of(context);
+    return ValueListenableBuilder<Set<String>>(
+      valueListenable: BlockedPlayers.ids,
+      builder: (context, blocked, _) {
+        final isBlocked = blocked.contains(profile.id);
+        return Column(
+          key: const Key('public.safety'),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SizedBox(height: 22),
+            Container(height: 1, color: _ink.withValues(alpha: 0.45)),
+            if (isBlocked)
+              _Plate(
+                key: const Key('public.unblock'),
+                label: s.unblock,
+                icon: const Icon(Icons.lock_open, color: _ink, size: 22),
+                dim: true,
+                onTap: () => unblockPlayer(context, safety: safety, profileId: profile.id, name: profile.name),
+              )
+            else
+              _Plate(
+                key: const Key('public.block'),
+                label: s.block,
+                icon: const Icon(Icons.block, color: _ink, size: 22),
+                dim: true,
+                onTap: () => confirmBlock(context, safety: safety, profileId: profile.id, name: profile.name),
+              ),
+            _Plate(
+              key: const Key('public.report'),
+              label: s.report,
+              icon: const Icon(Icons.flag_outlined, color: _stamp, size: 22),
+              dim: true,
+              onTap: () => showReportDialog(context, safety: safety, profileId: profile.id, name: profile.name),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }
 
 class _PublicView {

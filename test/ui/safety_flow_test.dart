@@ -6,7 +6,9 @@ import 'package:oberta/online/fake_online.dart';
 import 'package:oberta/online/online_services.dart';
 import 'package:oberta/settings/app_settings.dart';
 import 'package:oberta/settings/settings_store.dart';
+import 'package:oberta/ui/screens/online/friends_screen.dart';
 import 'package:oberta/ui/screens/online/online_room_screen.dart';
+import 'package:oberta/ui/screens/online/profile_sheet.dart';
 import 'package:oberta/ui/screens/settings_screen.dart';
 
 import '../support/languages.dart';
@@ -114,6 +116,70 @@ void main() {
     await tester.pumpAndSettle();
     expect((await online.services.friends.list()).map((f) => f.other.id), contains('bruno'));
     await tester.pumpWidget(const SizedBox());
+  });
+
+  group('dal fascicolo pubblico', () {
+    // Una richiesta d'amicizia da chi non si conosce: toccandola si apre il
+    // suo fascicolo, con «Blocca» e «Segnala» in fondo.
+    Future<void> openRequest(WidgetTester tester) async {
+      _usePhone(tester);
+      online
+        ..addPlayer('carla', handle: 'carla')
+        ..requestFrom('carla');
+      await tester.pumpWidget(appIn(AppLanguage.it, FriendsScreen(services: online.services)));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('friends.request.carla')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('public.page')), findsOneWidget);
+      await tester.scrollUntilVisible(find.byKey(const Key('public.report')), 150,
+          scrollable: find.byType(Scrollable).last);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('si segnala, con un motivo', (tester) async {
+      await openRequest(tester);
+      await tester.tap(find.byKey(const Key('public.report')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('safety.reportDialog')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('safety.reason.identity')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('safety.report.send')));
+      await tester.pumpAndSettle();
+      expect(find.text('Segnalazione ricevuta. Ce ne occupiamo noi.'), findsOneWidget);
+      final report = online.reports.single;
+      expect(report.target, 'carla');
+      expect(report.reason, ReportReason.identity);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('si blocca, e la richiesta sparisce', (tester) async {
+      await openRequest(tester);
+      await tester.tap(find.byKey(const Key('public.block')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('safety.block.confirm')));
+      await tester.pumpAndSettle();
+      expect(online.blocks, {('anna', 'carla')});
+      expect(find.byKey(const Key('public.unblock')), findsOneWidget);
+      await tester.tapAt(const Offset(200, 10));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('friends.request.carla')), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('nel proprio fascicolo non c\'è niente da segnalare', (tester) async {
+      _usePhone(tester);
+      await tester.pumpWidget(appIn(AppLanguage.it, Builder(
+        builder: (context) => TextButton(
+          onPressed: () => showPublicProfile(context, services: online.services, target: 'anna'),
+          child: const Text('apri'),
+        ),
+      )));
+      await tester.tap(find.text('apri'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('public.page')), findsOneWidget);
+      expect(find.byKey(const Key('public.safety')), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    });
   });
 
   testWidgets('dalle impostazioni: le regole, e i bloccati da sbloccare', (tester) async {
