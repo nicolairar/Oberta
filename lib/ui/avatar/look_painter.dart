@@ -322,6 +322,13 @@ abstract final class LookPainter {
   /// L'oro della bottega (la statua, le giacche d'oro): il ritratto luccica.
   static bool gilded(AvatarLook look) => _Noir._gilded(look);
 
+  /// Un vezzo che sta accanto o dietro la persona (il fumogeno, la bandiera,
+  /// il pappagallo, i palloncini): la sua miniatura mostra il ritratto
+  /// intero, che si veda tutto.
+  static bool beside(AvatarAccessory accessory) =>
+      _Noir._wingedVice(accessory) ||
+      const {AvatarAccessory.parrot, AvatarAccessory.pigeon, AvatarAccessory.plungerSword, AvatarAccessory.baguetteCigar}.contains(accessory);
+
   /// Quanto salgono le cose che si posano sopra i capelli (l'aureola, le
   /// corna, il gatto) quando i capelli sono alti: stanno sopra, non dentro.
   static double _hatLift(AvatarLook look) {
@@ -673,7 +680,9 @@ abstract final class LookPainter {
       _patch(canvas, outfit, -0.2);
       return;
     }
-    if (look.dame || pattern == CoatPattern.dress) {
+    // Un costume intero (il fantasma, la mummia, la banana) sale al collo
+    // anche per lei: niente scollo a V nel lenzuolo.
+    if ((look.dame && !pattern.costume) || pattern == CoatPattern.dress) {
       // Uno scollo a V, senza risvolti.
       canvas.drawPath(
         Path()
@@ -1313,7 +1322,8 @@ abstract final class LookPainter {
 
   /// Il colletto aperto della camicia.
   static void _openCollar(Canvas canvas, AvatarLook look) {
-    if (look.dame) return;
+    // A dress, a blouse and a jersey have their own neckline: no shirt.
+    if (look.dame || const {CoatPattern.dress, CoatPattern.blouse, CoatPattern.jersey}.contains(look.outfit.pattern)) return;
     final collar = Paint()..color = _dark(look.outfit.shirt, 0.1);
     canvas.drawPath(
       Path()
@@ -1330,15 +1340,21 @@ abstract final class LookPainter {
   }
 
   static void _neck(Canvas canvas, AvatarLook look, Offset light) {
-    final accent = look.outfit.accent;
+    // The dresses keep a pale accent for their trim: a tie, a scarf or a
+    // cravat in it would vanish on the skin, so they take a deep navy (a
+    // wine on the black dress, where navy would vanish too).
+    final pale = look.outfit.pattern.feminine && look.outfit.accent.computeLuminance() > 0.45;
+    final accent = !pale ? look.outfit.accent : (look.outfit.coat.computeLuminance() < 0.03 ? const Color(0xFF8E1D2C) : const Color(0xFF1B2A4A));
     // La tuta ha il suo collo: niente cravatte sotto la cerniera.
     final zipped = (look.outfit.pattern == CoatPattern.track || look.outfit.pattern.costume) && !look.dame;
+    // A tie wants a collar: under a zip or a costume there is none, for anyone.
+    final covered = look.outfit.pattern == CoatPattern.track || look.outfit.pattern.costume;
     switch (look.accessory) {
       case AvatarAccessory.tie:
-        if (look.dame || zipped) break;
+        if (covered) break;
         _tie(canvas, accent);
       case AvatarAccessory.stripeTie:
-        if (look.dame || zipped) break;
+        if (covered) break;
         // A righe oblique, come quelle dei collegi.
         _tie(
           canvas,
@@ -1357,7 +1373,7 @@ abstract final class LookPainter {
           },
         );
       case AvatarAccessory.knitTie:
-        if (look.dame || zipped) break;
+        if (covered) break;
         // Di maglia, la punta dritta e la trama a righe fitte.
         _tie(
           canvas,
@@ -1373,7 +1389,7 @@ abstract final class LookPainter {
           },
         );
       case AvatarAccessory.ricciTiePin:
-        if (look.dame || zipped) break;
+        if (covered) break;
         _tie(canvas, accent);
         // Il fermacravatta d'oro con il brillante.
         canvas.drawRRect(
@@ -1467,7 +1483,7 @@ abstract final class LookPainter {
         }
         brandMark(canvas, ShopBrand.chanterelle, const Offset(-0.1, -0.42), 0.024, color: const Color(0xFF151417));
       case AvatarAccessory.polkaTie:
-        if (look.dame || zipped) break;
+        if (covered) break;
         _tie(
           canvas,
           const Color(0xFF8E1D28),
@@ -1549,11 +1565,7 @@ abstract final class LookPainter {
       case AvatarAccessory.vaugirardStrap:
         // La tracolla di cuoio della borsa da viaggio, di traverso sul petto,
         // con la fibbia e la placca d'ottone della casa.
-        if (look.dame || zipped) {
-          if (!zipped) _openCollar(canvas, look);
-        } else {
-          _tie(canvas, const Color(0xFF4A2E1A));
-        }
+        if (!covered) _tie(canvas, const Color(0xFF4A2E1A));
         final strap = Path()
           ..moveTo(-0.3, -0.62)
           ..lineTo(-0.22, -0.64)

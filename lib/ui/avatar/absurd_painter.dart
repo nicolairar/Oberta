@@ -149,8 +149,16 @@ abstract final class _Absurd {
         // Il lenzuolo sale fino alla nuca.
         canvas.drawOval(const Rect.fromLTRB(-0.2, -0.7, 0.2, -0.56), _fill(outfit.coat));
       case CoatPattern.mummy:
-        canvas.drawRect(const Rect.fromLTRB(-0.1, -0.68, 0.1, -0.58), _fill(outfit.coat));
-        canvas.drawLine(const Offset(-0.1, -0.64), const Offset(0.1, -0.66), _line(_dark(outfit.coat, 0.22), 0.01));
+        // Le bende girano anche intorno al collo: un rotolo, non una scatola.
+        final wrap = RRect.fromRectAndRadius(const Rect.fromLTRB(-0.11, -0.69, 0.11, -0.57), const Radius.circular(0.05));
+        canvas.drawRRect(wrap, _fill(_dark(outfit.coat, 0.08)));
+        final band = _line(_dark(outfit.coat, 0.3), 0.01);
+        canvas.save();
+        canvas.clipRRect(wrap);
+        canvas.drawLine(const Offset(-0.12, -0.6), const Offset(0.12, -0.66), band);
+        canvas.drawLine(const Offset(-0.12, -0.645), const Offset(0.12, -0.69), band);
+        canvas.restore();
+        canvas.drawRRect(wrap, _line(_dark(outfit.coat, 0.45), 0.008));
       default:
         _Calcio.collar(canvas, outfit);
     }

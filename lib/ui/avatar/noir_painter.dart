@@ -759,12 +759,11 @@ abstract final class _Noir {
 
   /// Quello che sta dietro le spalle: le ali, i palloncini, il guscio, il
   /// razzo, e i fumogeni e le bandiere delle curve (le sciarpe no).
-  static bool _winged(AvatarLook look) {
-    final a = look.accessory;
-    return look.back.wing ||
-        const {AvatarAccessory.balloons, AvatarAccessory.snailShell, AvatarAccessory.jetpack}.contains(a) ||
-        (CalcioTeam.of(a.name) != null && !a.name.endsWith('Scarf'));
-  }
+  static bool _winged(AvatarLook look) => look.back.wing || _wingedVice(look.accessory);
+
+  static bool _wingedVice(AvatarAccessory a) =>
+      const {AvatarAccessory.balloons, AvatarAccessory.snailShell, AvatarAccessory.jetpack}.contains(a) ||
+      (CalcioTeam.of(a.name) != null && !a.name.endsWith('Scarf'));
 
   static bool _gilded(AvatarLook look) => look.base.mark == FaceMark.goldStatue || const {'gold_brocade', 'versalli_baroque'}.contains(look.outfit.id);
 
@@ -838,7 +837,13 @@ abstract final class _Noir {
     final broad = look.dame ? 0.86 : 1.0;
     final faceTattoo = look.tattoo == Tattoo.teardrop || look.tattoo == Tattoo.cheekStar;
 
-    void wings() => pic('wings', bodyMap(b, look), (c) => _Oddities.wings(c, look));
+    // The ink pass only outlines what has an edge: the stadium glow and the
+    // flare's smoke would turn into a dark disc behind the shoulders.
+    void wings({bool ink = false}) => pic(ink ? 'wingsInk' : 'wings', bodyMap(b, look), (c) {
+          _Calcio.glow = !ink;
+          _Oddities.wings(c, look);
+          _Calcio.glow = true;
+        });
     void oddHat() => pic('hat', liftedHat, (c) => LookPainter._hat(c, look, Paint(), silhouette: false));
     void hairdoBack() => pic('hairdoBack', hatAt, (c) => _Extras.hairdoBack(c, look, null));
     void hairdoFront() => pic('hairdoFront', hatAt, (c) => _Extras.hairdoFront(c, look));
@@ -879,7 +884,7 @@ abstract final class _Noir {
               ..imageFilter = ui.ImageFilter.dilate(radiusX: ow, radiusY: ow)
               ..colorFilter = const ColorFilter.mode(_nInk, BlendMode.srcIn),
           );
-          wings();
+          wings(ink: true);
           canvas.restore();
         }
         wings();
@@ -893,7 +898,7 @@ abstract final class _Noir {
     // --- La sagoma d'inchiostro ---
     if (!bare) {
       final heavy = _nStroke(_nInk, ow * 2);
-      for (final path in [p.back, p.neck, p.torso, ...p.ears, p.face, p.front, p.braids, p.hat?.crown, if (look.hat != AvatarHead.crown) p.hat?.brim]) {
+      for (final path in [p.back, p.neck, if (nativeOutfit) p.torso, ...p.ears, p.face, p.front, p.braids, p.hat?.crown, if (look.hat != AvatarHead.crown) p.hat?.brim]) {
         if (path != null) canvas.drawPath(path, heavy);
       }
       if (look.base.mark == FaceMark.fullBeard || look.base.mark == FaceMark.muttonChops) canvas.drawPath(b.beard(), heavy);
@@ -939,9 +944,12 @@ abstract final class _Noir {
             _outfit(canvas, look, p, thin, toon);
           } else {
             coat();
-            if (!bare) canvas.drawPath(p.torso, _nStroke(_nInk, thin));
           }
         case LookLayer.neck:
+          // A tie, the braces and the lapels stop at the hem, as the suit
+          // does: they would hang below it where the bust is drawn whole.
+          canvas.save();
+          if (nativeOutfit) canvas.clipRect(Rect.fromLTRB(-1, -1, 2, b.base));
           neckwear();
           if (bowed) _bowTie(canvas, look, b, thin);
           if (nativeOutfit && !const {CoatPattern.dress, CoatPattern.blouse, CoatPattern.jersey}.contains(look.outfit.pattern)) {
@@ -950,6 +958,7 @@ abstract final class _Noir {
               toon(b.lapel(s, wide: look.outfit.pattern == CoatPattern.doubleBreasted || look.outfit.pattern == CoatPattern.trench), lapel, d: 0.025, rim: s < 0);
             }
           }
+          canvas.restore();
         case LookLayer.face:
           for (final e in p.ears) {
             toon(e, skin, d: 0.03);
@@ -1022,9 +1031,17 @@ abstract final class _Noir {
       }
     }
     if (gilt) {
+      // The shine lies on the gold only: the statue's whole figure, or the
+      // gold suit. Never a square of light over the background.
       const area = Rect.fromLTRB(0, 0, 1, 1);
+      final shining = [
+        if (gold) ...[p.back, p.neck, ...p.ears, p.face, p.front, p.braids, p.hat?.crown, p.hat?.brim],
+        if (const {'gold_brocade', 'versalli_baroque'}.contains(look.outfit.id)) p.torso,
+      ].whereType<Path>();
+      canvas.save();
+      canvas.clipPath(shining.fold(Path(), (all, path) => all..addPath(path, Offset.zero)));
       canvas.drawRect(
-        area,
+        area.inflate(0.5),
         Paint()
           ..blendMode = BlendMode.plus
           ..shader = const LinearGradient(
@@ -1034,6 +1051,7 @@ abstract final class _Noir {
             stops: [0, 0.3, 0.38, 0.46, 0.6, 0.66, 0.72],
           ).createShader(area),
       );
+      canvas.restore();
     }
     LookPainter._style = previous;
   }
@@ -1162,8 +1180,9 @@ abstract final class _Noir {
         canvas.drawPath(vee, _nStroke(_nInk, thin));
         if (o.pattern == CoatPattern.doubleBreasted) {
           for (final s in [-1, 1]) {
-            for (final dy in [0.2, 0.27]) {
-              canvas.drawCircle(Offset(b.cx + s * 0.05, b.shoulderY + dy), 0.011, _nFill(Color.lerp(o.accent, _nInk, 0.2)!));
+            // Beside the bottom of the vee, where the jacket still shows.
+            for (final dy in [0.1, 0.155]) {
+              canvas.drawCircle(Offset(b.cx + s * 0.07, b.shoulderY + dy), 0.011, _nFill(Color.lerp(o.accent, _nInk, 0.2)!));
             }
           }
         }
@@ -1817,8 +1836,9 @@ abstract final class _Noir {
     final cigar = a == AvatarAccessory.cigar;
     final pick = a == AvatarAccessory.toothpick;
     final from = Offset(b.cx + b.w * 0.08, b.mouthY + b.h * 0.005);
-    final to = from + Offset(b.w * (cigar ? 0.36 : (pick ? 0.2 : 0.34)), b.h * (cigar ? 0.08 : -0.03));
-    final t = cigar ? b.w * 0.07 : (pick ? b.w * 0.014 : b.w * 0.035);
+    final to = from + Offset(b.w * (cigar ? 0.36 : (pick ? 0.26 : 0.34)), b.h * (cigar ? 0.08 : -0.03));
+    // The toothpick keeps at least a pixel of wood at the table's size.
+    final t = cigar ? b.w * 0.07 : (pick ? max(b.w * 0.02, thin * 1.1) : b.w * 0.035);
     canvas.drawLine(from, to, _nStroke(_nInk, t + lw * 2.2, cap: StrokeCap.butt));
     canvas.drawLine(from, to, _nStroke(cigar ? const Color(0xFF6B3E20) : (pick ? const Color(0xFFD8B87A) : const Color(0xFFF4EEE4)), t, cap: StrokeCap.butt));
     if (pick) return;

@@ -885,7 +885,7 @@ enum CalcioTeam {
   blaugrana('Blaugrana', 'Blu e granata, a righe.', 'Blue and garnet stripes.', Color(0xFF1F3F94), Color(0xFF9A1B3F), Color(0xFFE9C23A), Color(0xFF6E1A3C), CalcioKit.stripes, CalcioEmblem.comet, CalcioProp.flare),
   merengues('Merengues', 'Bianco candido e oro.', 'Spotless white and gold.', Color(0xFFF4F1EA), Color(0xFFD4A93A), Color(0xFF5B3A8E), Color(0xFF4E3C80), CalcioKit.sash, CalcioEmblem.sun, CalcioProp.trophy),
   celesti('Celesti', 'Il celeste del cielo sopra le fabbriche.', 'Sky blue over the factory chimneys.', Color(0xFF8EC6EE), Color(0xFFF4F1EA), Color(0xFF1C2C4C), Color(0xFF2C5C8E), CalcioKit.plain, CalcioEmblem.moon, CalcioProp.megaphone),
-  diavoli('Diavoli Rossi', 'Rosso fuoco, collo nero.', 'Fire red, black collar.', Color(0xFFC8202A), Color(0xFF16151A), Color(0xFFF4F1EA), Color(0xFF3C3A46), CalcioKit.plain, CalcioEmblem.bolt, CalcioProp.flare),
+  diavoli('Diavoli Rossi', 'Rosso fuoco, collo nero.', 'Fire red, black collar.', Color(0xFFC8202A), Color(0xFFF4F1EA), Color(0xFF16151A), Color(0xFF3C3A46), CalcioKit.plain, CalcioEmblem.bolt, CalcioProp.flare),
   reds('Reds del Porto', 'Rosso dal porto, e cantano sempre.', 'Harbour red, and always singing.', Color(0xFFB81C2C), Color(0xFFF4F1EA), Color(0xFFE9C23A), Color(0xFF9A3A22), CalcioKit.plain, CalcioEmblem.anchor, CalcioProp.megaphone),
   rossoneri('Rossoneri', 'Righe rosse e nere.', 'Red and black stripes.', Color(0xFFC8202A), Color(0xFF16151A), Color(0xFFF4F1EA), Color(0xFF7A1A1E), CalcioKit.stripes, CalcioEmblem.star, CalcioProp.flare),
   nerazzurri('Nerazzurri', 'Righe nere e azzurre.', 'Black and blue stripes.', Color(0xFF1E4FB0), Color(0xFF141418), Color(0xFFE9C23A), Color(0xFF1C3C7C), CalcioKit.stripes, CalcioEmblem.compass, CalcioProp.flag),

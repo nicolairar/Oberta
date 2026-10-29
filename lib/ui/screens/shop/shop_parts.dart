@@ -23,6 +23,9 @@ class _Entry {
 /// The part of the bust a thumbnail zooms on, in bust units.
 Rect _focusOf(_Entry entry) {
   if (entry.bundle != null) return const Rect.fromLTWH(0.1, 0.06, 0.8, 0.8);
+  // A flare, a flag, a parrot: beside the player, so the whole portrait.
+  final vice = entry.item!.slot == 'accessory' ? AvatarAccessory.values.where((a) => a.name == entry.item!.lookId).firstOrNull : null;
+  if (vice != null && LookPainter.beside(vice)) return const Rect.fromLTWH(0, 0, 1, 1);
   return switch (entry.item!.slot) {
     'hat' => const Rect.fromLTWH(0.12, 0.0, 0.76, 0.6),
     'hairdo' || 'hairDye' => const Rect.fromLTWH(0.06, 0.0, 0.88, 0.7),

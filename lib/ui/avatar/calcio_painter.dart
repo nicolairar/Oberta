@@ -303,13 +303,17 @@ abstract final class _Calcio {
 
   // --- Dietro: l'alone, il fumo e la bandiera ---------------------------------
 
+  /// False while the ink outline is drawn: the glow and the smoke have no
+  /// edge to outline.
+  static bool glow = true;
+
   static void back(Canvas canvas, AvatarAccessory accessory) {
     final team = _team(accessory.name);
     if (team == null || accessory.name.endsWith('Scarf')) return;
-    _aura(canvas, team);
+    if (glow) _aura(canvas, team);
     switch (team.prop) {
       case CalcioProp.flare:
-        _smoke(canvas, team);
+        if (glow) _smoke(canvas, team);
       case CalcioProp.flag:
         _flag(canvas, team);
       case CalcioProp.megaphone || CalcioProp.trophy:
@@ -416,6 +420,22 @@ abstract final class _Calcio {
     canvas.restore();
     canvas.drawPath(flag, _line(_dark(team.primary, 0.5), 0.008));
     badge(canvas, team, const Offset(-0.26, -1.14), 0.075);
+    // Il nastro della squadra annodato all'asta, sopra la spalla, dove
+    // l'asta si vede.
+    const knot = Rect.fromLTRB(0.385, -0.9, 0.455, -0.84);
+    canvas.drawRRect(RRect.fromRectAndRadius(knot.inflate(0.008), const Radius.circular(0.012)), _fill(LookPainter.ink));
+    canvas.drawRect(Rect.fromLTRB(knot.left, knot.top, knot.right, knot.center.dy), _fill(team.primary));
+    canvas.drawRect(Rect.fromLTRB(knot.left, knot.center.dy, knot.right, knot.bottom), _fill(team.secondary));
+    for (final s in [-1.0, 1.0]) {
+      canvas.drawPath(
+        Path()
+          ..moveTo(0.42, -0.84)
+          ..lineTo(0.42 + s * 0.035, -0.77)
+          ..lineTo(0.42 + s * 0.012, -0.775)
+          ..close(),
+        _fill(s < 0 ? team.primary : team.secondary),
+      );
+    }
   }
 
   // --- Davanti: la sciarpa e il pezzo forte ----------------------------------
@@ -436,9 +456,8 @@ abstract final class _Calcio {
       case CalcioProp.trophy:
         _trophy(canvas, team);
       case CalcioProp.flag:
-        // La mano che stringe l'asta, col nastro della squadra.
-        canvas.drawRect(const Rect.fromLTRB(0.41, -0.52, 0.47, -0.46), _fill(team.secondary));
-        canvas.drawRect(const Rect.fromLTRB(0.41, -0.46, 0.47, -0.42), _fill(team.primary));
+        // Il nastro è annodato all'asta, dietro ([_flag]).
+        break;
     }
   }
 
