@@ -16,6 +16,8 @@ export interface StepInput {
   seed?: number;
   /** When dealing: the oldest app build among the people at the table. */
   minBuild?: number;
+  /** When dealing: a ranked room (12 players, the ranked deck). */
+  ranked?: boolean;
 }
 
 export interface StepOutput {

@@ -186,7 +186,10 @@ extension RoleInfo on Role {
     // Sul telefono unico la cella non ha chat (una domanda e una risposta
     // scritte, al proprio turno) e le risposte che arrivano all'alba si
     // leggono al turno della notte dopo (docs/ruoli.md, 3.1).
-    Role.prostituta => const RoleRule(RoleCategory.familyPower, minPlayers: 9, tier: RoleTier.l2),
+    // Solo da 12, dove la Famiglia è in tre: non vota l'agguato e non conosce
+    // gli altri, e con due della Famiglia restava un killer solo (a 10 la
+    // Città vinceva il 76% delle partite con lei, docs/ruoli.md 2.5).
+    Role.prostituta => const RoleRule(RoleCategory.familyPower, minPlayers: 12, tier: RoleTier.l2),
     Role.carceriere => const RoleRule(RoleCategory.protector, minPlayers: 8, tier: RoleTier.l3),
     Role.pacifista => const RoleRule(RoleCategory.civic, minPlayers: 9, tier: RoleTier.l2),
     // Cupido lega due innamorati la prima notte, e poi non fa più niente.

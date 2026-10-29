@@ -52,11 +52,11 @@ int maxNeutralsFor(int count) => maxNeutrals;
 /// Tarato con la simulazione (`tool/balance/simulate.dart`): fino a 6 la
 /// Città ha un potere solo (con un mafioso è già favorita), a 7 e 8 tutto
 /// quello che può (due della Famiglia contro sette o otto sono tanti), a 10
-/// un po' meno.
+/// meno (con 7 la Città vinceva il 61-65%, con 6 il 58-59%).
 int cityBudgetFor(int count) => switch (count) {
   <= 6 => 3,
   <= 9 => 8,
-  10 => 7,
+  10 => 6,
   11 => 9,
   _ => 10,
 };
@@ -244,4 +244,61 @@ Map<Player, Role> assignRoles(List<Player> players, [Random? random, PlayMode mo
   final rng = random ?? Random();
   final deck = rolesForPlayerCount(players.length, random: rng, mode: mode)..shuffle(rng);
   return Map.fromIterables(players, deck);
+}
+
+/// La classificata si gioca sempre in 12 (`ranked_size` sul server).
+const rankedPlayers = 12;
+
+/// I poteri di Famiglia della classificata: la Prostituta no (non conosce la
+/// Famiglia e non vota l'agguato: con lei la Città vinceva il 63%).
+const rankedFamilyPowers = [Role.padrino, Role.sarto, Role.compare];
+
+/// I neutrali della classificata: niente assassini in proprio (Piromane,
+/// Sicario, Capo della setta), che portavano la Città sotto il 25%.
+const rankedNeutrals = [Role.fesso, Role.cacciatore, Role.strozzino];
+
+const rankedInvestigators = [Role.detective, Role.giornalista, Role.becchino, Role.portinaio];
+const rankedProtectors = [Role.medico, Role.guardaspalle, Role.carceriere];
+
+/// I due colpi extra: in classificata escono sempre tutti e due.
+const rankedGuns = [Role.artigliere, Role.tiratoreScelto];
+
+const rankedCivics = [
+  Role.reduce,
+  Role.pregiudicato,
+  Role.messia,
+  Role.sindaco,
+  Role.pacifista,
+  Role.cupido,
+  Role.presidente,
+];
+
+/// Il mazzo della classificata (12 giocatori, `docs/ruoli.md` 2.6): un mazzo
+/// a posti fissi, tarato con la simulazione perché nessuna squadra
+/// stravinca.
+/// - Famiglia: un Picciotto e due poteri diversi fra [rankedFamilyPowers];
+/// - un neutrale fra [rankedNeutrals];
+/// - Città: l'Artigliere e il Tiratore scelto ([rankedGuns]), un
+///   investigatore, un protettore, due fra [rankedCivics], due Onesti.
+///
+/// Un ruolo in [exclude] (un telefono al tavolo non lo sa leggere) lascia il
+/// posto a un altro dello stesso gruppo, o a un Picciotto / un Onesto.
+List<Role> rankedRoles({Random? random, Set<Role> exclude = const {}}) {
+  final rng = random ?? Random();
+  List<Role> draw(List<Role> pool, int count) => ([
+    for (final role in pool)
+      if (!exclude.contains(role)) role,
+  ]..shuffle(rng)).take(count).toList();
+
+  final family = draw(rankedFamilyPowers, 2);
+  final deck = [
+    ...family,
+    ...List.filled(mafiaCountFor(rankedPlayers) - family.length, Role.mafioso),
+    ...draw(rankedNeutrals, 1),
+    ...draw(rankedGuns, 2),
+    ...draw(rankedInvestigators, 1),
+    ...draw(rankedProtectors, 1),
+    ...draw(rankedCivics, 2),
+  ];
+  return [...deck, ...List.filled(rankedPlayers - deck.length, Role.cittadino)];
 }

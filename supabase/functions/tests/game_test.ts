@@ -315,6 +315,23 @@ Deno.test('a table with an old build is never dealt a role that build cannot rea
   assert(seenNew, 'build 66 tables still get the new roles');
 });
 
+Deno.test('a ranked table is dealt the ranked deck: both guns, one tame neutral, no Prostitute', () => {
+  const seats = Array.from({ length: 12 }, (_, i) => ({ seat: `s${i + 1}`, profile_id: `p${i + 1}`, name: `p${i + 1}` }));
+  const now = Date.UTC(2026, 9, 29, 16);
+  const neutrals = ['fesso', 'cacciatore', 'strozzino', 'piromane', 'sicario', 'capoSetta'];
+  for (let seed = 1; seed <= 20; seed++) {
+    const out = step({ state: null, seats, language: 'it', now, intents: [], seed, minBuild: 66, ranked: true });
+    const rows = (out.board.board as { deck: { role: string; count: number }[] }).deck;
+    assertEquals(rows.reduce((sum, row) => sum + row.count, 0), 12);
+    const deck = dealt(out);
+    assert(deck.includes('artigliere') && deck.includes('tiratoreScelto'), `seed ${seed}: ${deck}`);
+    const neutral = deck.filter((r) => neutrals.includes(r));
+    assertEquals(neutral.length, 1, `seed ${seed}: ${deck}`);
+    assert(['fesso', 'cacciatore', 'strozzino'].includes(neutral[0]), `seed ${seed}: ${deck}`);
+    assert(!deck.includes('prostituta'), `seed ${seed}: ${deck}`);
+  }
+});
+
 Deno.test('two people on build 65 in a friends room: bots fill the table and the game goes on', async () => {
   const pg = new PGlite();
   await pg.exec(await Deno.readTextFile(new URL('functions/tests/pglite_prelude.sql', root)));

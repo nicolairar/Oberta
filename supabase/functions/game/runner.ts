@@ -46,8 +46,8 @@ export async function stepRoom(
 ): Promise<boolean> {
   return await db.transaction(async (tx) => {
     const at = await clock(tx, now);
-    const games = await tx.query<{ state: unknown; language: string }>(
-      `select g.state, r.language
+    const games = await tx.query<{ state: unknown; language: string; ranked: boolean }>(
+      `select g.state, r.language, r.ranked
        from internal.game_state g join public.rooms r on r.id = g.room_id
        where g.room_id = $2 and ${due}
        for update of g skip locked`,
@@ -95,6 +95,7 @@ export async function stepRoom(
     const input: StepInput = {
       state: games[0].state ?? null,
       ...(minBuild === null ? {} : { minBuild }),
+      ...(games[0].ranked && (games[0].state === null || games[0].state === undefined) ? { ranked: true } : {}),
       seats: seats.map((s) => ({ seat: s.seat, profile_id: s.profile_id, name: s.name })),
       language: games[0].language,
       now: at,

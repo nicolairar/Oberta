@@ -126,6 +126,8 @@ class ServerStep {
 /// - `minBuild` (facoltativo): la build più vecchia fra le persone al
 ///   tavolo, quando si danno le carte: i ruoli che quella build non conosce
 ///   non escono (vedi `role_builds.dart`).
+/// - `ranked` (facoltativo): una partita classificata; a 12 si danno le
+///   carte col mazzo della classificata ([rankedRoles]).
 ///
 /// In uscita un [ServerStep] in JSON. Non lancia per un'intenzione storta:
 /// quella torna rifiutata a chi l'ha mandata.
@@ -142,6 +144,7 @@ Map<String, Object?> serverStep(Map<String, Object?> input, {OnlinePacing pacing
           random: random,
           pacing: pacing,
           minBuild: (input['minBuild'] as num?)?.toInt(),
+          ranked: input['ranked'] == true,
         )
       : ServerGame.fromJson(stateJson, random: random);
   final intents = [
@@ -273,20 +276,20 @@ class ServerGame {
     required Random random,
     OnlinePacing pacing = const OnlinePacing(),
     int? minBuild,
+    bool ranked = false,
   }) {
     final ordered = [...seats]..sort((a, b) => _seatNumber(a.seat).compareTo(_seatNumber(b.seat)));
     final seating = Seating([
       for (final plan in ordered) Occupant(seat: plan.seat, name: plan.name, profileId: plan.profileId),
     ]);
     // Come GameSetup.deal, ma senza i ruoli che un telefono al tavolo non
-    // saprebbe leggere.
+    // saprebbe leggere; la classificata in 12 ha il suo mazzo.
     final players = seating.players;
-    final deck = rolesForPlayerCount(
-      players.length,
-      random: random,
-      mode: PlayMode.online,
-      exclude: rolesTooNewFor(minBuild),
-    )..shuffle(random);
+    final exclude = rolesTooNewFor(minBuild);
+    final deck = (ranked && players.length == rankedPlayers
+        ? rankedRoles(random: random, exclude: exclude)
+        : rolesForPlayerCount(players.length, random: random, mode: PlayMode.online, exclude: exclude))
+      ..shuffle(random);
     final engine = GameEngine(
       GameSetup.fromRoles(Map.fromIterables(players, deck)),
       settings: GameSettings(night: pacing.night, discussion: pacing.discussion, vote: pacing.vote),

@@ -19,7 +19,7 @@ Legenda livelli: **L0** nessun potere (o malus), **L1** base, **L2** medio, **L3
 - **Capo della setta:** neutrale; ogni notte converte una persona; vince quando tutti i vivi sono della setta; se muore la setta si scioglie e non succede altro; il Commissario **non** vede i convertiti; solo il Capo vede l'elenco della setta: i convertiti **non** sanno chi è il Capo né chi altro è nella setta (sanno solo di essere stati convertiti e che ora vincono con la setta). *Nel codice:* compito `convert`; la conversione non passa su chi è in cella o protetto (Dottore, Strozzino), né sulla Famiglia, sul Piromane, sul Sicario o sul Presidente («porta chiusa», la vede solo il Capo), né su chi muore quella notte. Niente chat della setta (i convertiti non si conoscono). In locale il convertito legge «Hai visto la luce» al suo turno della notte dopo, il Capo l'elenco e le porte chiuse.
 - **Artigliere:** Città, L3, da 10 giocatori, colpo extra (mai con Cecchino, Tiratore, Piromane, Sicario). *Nel codice:* `Fire` di giorno, solo in discussione, dal secondo giorno, due colpi in tutto, uno al giorno; il colpito muore subito (niente Dottore, Guardaspalle, Reduce: di giorno non ci sono protezioni) e la sua carta si gira come quella di un linciato; al primo colpo anche l'Artigliere diventa pubblico. Non spara al Presidente (è della Città, come il Cecchino: la scorta para solo gli attacchi di notte). La tregua del Pacifista e il silenzio del Sarto non lo fermano; l'innamorato del colpito muore di crepacuore; la taglia colpita scade. Se il colpo chiude la partita, finisce lì. Online: bottone «Fuoco!» in discussione, riga in chat (`cannon`), boato; in locale: bottone «Fuoco dell'Artigliere» in discussione accanto alla tregua (l'Artigliere tocca il suo volto, poi il bersaglio), poi il copione del boato. Build 66.
 - **Cecchino** resta per i tavoli piccoli; **Tiratore scelto** per i tavoli grandi: mira di notte, il giorno dopo spara o cambia mira, 2 colpi, muore se spara a un cittadino della Città, i neutrali non lo uccidono. *Nel codice* (3.6): enum `tiratoreScelto`, da 9 giocatori; dove può entrare lui il Cecchino non esce (torna solo se al tavolo c'è un telefono troppo vecchio per il Tiratore).
-- **Classificata e stanze degli amici** usano lo stesso roster e le stesse regole dei livelli.
+- **Classificata** (29 ottobre): 12 giocatori, con un **mazzo suo a posti fissi** tarato con la simulazione (2.6). Le stanze degli amici e il gioco in locale usano il mazzo automatico (2.2).
 - **Gioco in locale:** ogni ruolo nuovo deve funzionare anche sul telefono unico (`PlayMode.sharedPhone`). Dove un meccanismo non può (una chat privata), si adatta e si scrive qui (vedi 3.1, 3.2, 3.10).
 
 ---
@@ -49,7 +49,7 @@ Legenda livelli: **L0** nessun potere (o malus), **L1** base, **L2** medio, **L3
 | Il Cacciatore di taglie | `cacciatore` | Neutrale | Vince se la sua taglia viene linciata; se muore altrimenti passa con la Città | 9 | L2 | **È già il "Cacciatore di teste" chiesto.** Unica differenza: dopo la taglia scaduta la carta dovrebbe mostrare "Ora sei un Onesto" (oggi passa con la Città senza dirlo chiaro). |
 | Lo Strozzino | `strozzino` | Neutrale | Ogni notte protegge uno; vince se vivo a fine partita | 10 | L1 | È un secondo Dottore che non sceglie parte: aiuta chi protegge, quindi ok. |
 | Il Sicario | `sicario` | Neutrale ostile | Uccide ogni notte; risulta della Famiglia; vince solo se resta l'ultimo vivo | 12 | L3 | Ok, fermabile da protezioni e dalla cella. |
-| La Prostituta | `prostituta` | Famiglia | Blocca la mossa notturna di una persona (anche della Famiglia); non sa chi è della Famiglia e la Famiglia non sa di lei; non vota l'agguato (lo vota se resta l'ultima della Famiglia) | 9 | L2 | Anche in locale. |
+| La Prostituta | `prostituta` | Famiglia | Blocca la mossa notturna di una persona (anche della Famiglia); non sa chi è della Famiglia e la Famiglia non sa di lei; non vota l'agguato (lo vota se resta l'ultima della Famiglia) | 12 | L2 | Anche in locale. Da 12 (prima da 9): con due della Famiglia lasciava un killer solo. |
 | Il Carceriere | `carceriere` | Città | Chiude in cella: blocca e protegge (anche dal fuoco); chat anonima | 8 | L3 | In locale: domanda e risposta scritte. |
 | Il Pacifista | `pacifista` | Città | Una volta, di giorno: ruolo esatto di uno a tutti, niente voto | 9 | L2 | Anche in locale. |
 | Il Tiratore scelto | `tiratoreScelto` | Città | Di notte mira; di giorno spara (2 colpi); se colpisce la Città muore lui | 9 | L3 | Anche in locale. Prende il posto del Cecchino da 9. |
@@ -72,7 +72,7 @@ Legenda livelli: **L0** nessun potere (o malus), **L1** base, **L2** medio, **L3
 | L3 | Commissario, Carceriere, Artigliere, Tiratore scelto | — | Sicario |
 | L4 | — | — | Piromane, Capo della setta |
 
-### 2.2 Regole del mazzo (classificata e stanze degli amici, uguali)
+### 2.2 Regole del mazzo (stanze degli amici e locale; la classificata ha il suo, 2.6)
 
 Nel codice (`lib/rules/role_assignment.dart`, campo `tier` in `RoleRule`, punti in `RoleInfo.points`). Restano quelle di prima (`maxFamilyPowersFor`, tetti per categoria, `neutralFits`, Compare e ruoli nuovi solo online). In più, con i valori tarati dalla simulazione (2.5):
 
@@ -93,7 +93,7 @@ Nel codice (`lib/rules/role_assignment.dart`, campo `tier` in `RoleRule`, punti 
 | 7 | 2 | 0 | 0 | 8 | 1 |
 | 8 | 2 | 0 | 2 | 8 | 2 |
 | 9 | 2 | 2 | 2 | 8 | 2 |
-| 10 | 2 | 2 | 2 | 7 | 2 |
+| 10 | 2 | 2 | 2 | 6 | 2 |
 | 11 | 2 | 2 | 7 | 9 | 2 |
 | 12 | 3 | 4 | 7 | 10 | 2 |
 
@@ -105,14 +105,14 @@ Nel codice (`lib/rules/role_assignment.dart`, campo `tier` in `RoleRule`, punti 
 | 5 | Dottore |
 | 7 | Sarto, Compare, Cecchino |
 | 8 | Cronista, Becchino, Fesso, **Carceriere** |
-| 9 | Guardaspalle, Reduce, Sindaco, Portinaio, Cacciatore, **Prostituta, Pacifista, Tiratore scelto, Cupido** (da qui il Cecchino non esce più) |
+| 9 | Guardaspalle, Reduce, Sindaco, Portinaio, Cacciatore, **Pacifista, Tiratore scelto, Cupido** (da qui il Cecchino non esce più) |
 | 10 | Padrino, Pregiudicato, Messia, Strozzino (poi Artigliere, Presidente) |
 | 11 | Piromane (poi Capo della setta) |
-| 12 | Sicario |
+| 12 | Sicario, **Prostituta** (prima da 9) |
 
 ### 2.4 Classificata e stanze degli amici
 
-Decisione del proprietario: **stesso roster, stesse regole dei livelli** (2.2) in classificata e tra amici, Presidente compreso. Restano diversi solo il punteggio (OpenSkill per lingua in classificata; XP e monete in tutte e due) e, più avanti, i modi "scegli i ruoli" e "a mano" delle stanze degli amici, che devono comunque rispettare le regole rigide (Famiglia tra 1 e meno della metà del tavolo, sempre un killer, al massimo un L4, al massimo uno che vince col linciaggio, ruoli con chat solo online).
+Prima decisione del proprietario (28 ottobre): **stesso roster, stesse regole dei livelli** (2.2) in classificata e tra amici, Presidente compreso. **Superata il 29 ottobre per la classificata**: a 12 il mazzo automatico dava Città 28%, Famiglia 48%, neutrali 23%, e la classificata ora ha un mazzo suo (2.6). Le stanze degli amici restano col mazzo automatico. Restano diversi solo il punteggio (OpenSkill per lingua in classificata; XP e monete in tutte e due) e, più avanti, i modi "scegli i ruoli" e "a mano" delle stanze degli amici, che devono comunque rispettare le regole rigide (Famiglia tra 1 e meno della metà del tavolo, sempre un killer, al massimo un L4, al massimo uno che vince col linciaggio, ruoli con chat solo online).
 
 ### 2.5 Simulazione del bilanciamento
 
@@ -136,13 +136,84 @@ Senza i ruoli nuovi i numeri cambiano di 1–3 punti al massimo (stessa tabella:
 
 **Con il Tiratore scelto** (dai 9 al posto del Cecchino; 1500 partite per tavolo, con tutti i ruoli nuovi, Capo della setta e Artigliere compresi; il Tiratore di notte mira con lo stesso fiuto a uno della Famiglia, di giorno spara una volta su due): 4: 51/49, 5: 55/45, 6: 76/24, 7: 25/75, 8: 40/60, 9: 50/41/9, 10: 60/34/6, 11: 48/24/28, 12: 23/55/22. Senza nessun ruolo nuovo: 9: 45/43/11, 10: 60/33/7, 11: 52/23/25, 12: 24/57/19. Il Tiratore vince il 57% delle partite in cui c'è (l'Artigliere il 62%, il Cecchino, rimasto ai tavoli da 7 e 8, il 32%): a 9 la Città sale di qualche punto, senza passare il 60%.
 
-**Con la Prostituta al buio** (29 ottobre: non conosce la Famiglia e la Famiglia non conosce lei; 3000 partite per tavolo, `dart run tool/balance/simulate.dart`), Città/Famiglia/Neutrali con i ruoli nuovi: 9: 53/37/11, 10: 65/28/7, 11: 49/22/29, 12: 28/48/23 (prima 9: 50/41/9, 10: 60/34/6, 11: 48/24/28, 12: 23/55/22). Senza i ruoli nuovi (quindi senza Prostituta) non cambia niente: 9: 43/45/11, 10: 60/33/7, 11: 52/23/25, 12: 24/55/21. La Prostituta vince il 24% delle partite in cui c'è (prima il 39%): i bot la fanno bloccare a caso, anche la Famiglia, e la Famiglia può colpirla senza saperlo. La Famiglia perde 4–7 punti dai 9 ai 12; a 10 la Città arriva al 65%, sopra il tetto del 60%: da tenere d'occhio con le partite vere (strade: Prostituta L1 invece di L2 nel bilancio della Famiglia, o da 10 giocatori).
+**Con la Prostituta al buio** (29 ottobre: non conosce la Famiglia e la Famiglia non conosce lei; 3000 partite per tavolo, `dart run tool/balance/simulate.dart`), Città/Famiglia/Neutrali con i ruoli nuovi: 9: 53/37/11, 10: 65/28/7, 11: 49/22/29, 12: 28/48/23 (prima 9: 50/41/9, 10: 60/34/6, 11: 48/24/28, 12: 23/55/22). Senza i ruoli nuovi (quindi senza Prostituta) non cambia niente: 9: 43/45/11, 10: 60/33/7, 11: 52/23/25, 12: 24/55/21. La Prostituta vince il 24% delle partite in cui c'è (prima il 39%): i bot la fanno bloccare a caso, anche la Famiglia, e la Famiglia può colpirla senza saperlo. La Famiglia perde 4–7 punti dai 9 ai 12; a 10 la Città arriva al 65%, sopra il tetto del 60%.
+
+**La correzione del 10** (29 ottobre, 10000 partite per tavolo). Contare la Prostituta L1 invece di L2 non cambierebbe niente: dai 9 agli 11 la Famiglia ha al massimo un potere (`maxFamilyPowersFor`), e a 12 ogni coppia di poteri sta già nei 4 punti. Il guaio è un altro: con due della Famiglia, se uno è la Prostituta resta un killer solo, che non sa di lei (a 10, con lei, la Città vinceva il 76%). Quindi: **Prostituta da 12** (dove la Famiglia è in tre) e **V(10) da 7 a 6**. Città/Famiglia/Neutrali: 9: 46/44/10 (prima 52/37/10), **10: 59/34/7 (prima 65/29/7)**, 11: 47/24/29 (prima 49/22/29), 12 invariato (29/47/23). Con V(10) a 4 o 5 la Città scende solo di un altro punto, ma il mazzo si riempie di Presidente e Pregiudicato (i ruoli coi punti negativi): non vale la pena.
 
 **Prima della taratura** (regole del documento originale, stesso fiuto): 5: 67/33, 6: 80/20, 7: 26/74, 10: 61/33, **11: 17/67/16**. La taratura ha sistemato 5 (Città 67% → 56%), 8 (Famiglia 62% → 60%, Carceriere e due L3 da 8), 10 e soprattutto 11 (Famiglia 67% → 22%, due della Famiglia invece di tre).
 
 **Vittorie per ruolo** (chi aveva quella carta ha vinto), su tutti i tavoli: Picciotto 49%, Padrino 41%, Sarto 42%, Compare 42%, **Prostituta 39%**, Onesto 50%, Commissario 50%, Dottore 37%, Cecchino 36%, Cronista 47%, Becchino 39%, Guardaspalle 42%, Reduce 48%, Pregiudicato 45%, Messia 47%, Sindaco 45%, Portinaio 42%, **Carceriere 43%**, **Pacifista 46%**, **Cupido 44%**, **Presidente 58%**, **Artigliere 62%**, Fesso 18%, Piromane 20%, Cacciatore 40%, Strozzino 43%, Sicario 17%, **Capo della setta 21%**. Nessun ruolo domina; l'Artigliere è il più forte (due colpi pubblici, da 10 giocatori, dove la Città vince già il 61%): sul tetto del 62% del test, da tenere d'occhio (se sale, alzarlo a 11 giocatori o togliergli un colpo).
 
 **Il limite che resta: 6 e 7 giocatori.** Nella simulazione conta quasi solo quanti uccidono di notte: un mafioso su 6 perde tre volte su quattro, due su 7 vincono tre volte su quattro, qualunque potere abbia la Città (a 6 anche senza nessun ruolo speciale la Città vince il 71%; a 7 col mazzo cittadino più forte possibile, Commissario + Dottore + Cecchino, vince il 26%). Bilanci e livelli non bastano: serve una decisione sul tavolo (sezione 6).
+
+### 2.6 Classificata
+
+La classificata si gioca in **12** (`ranked_size`), ed è quella che deve essere bilanciata meglio. Dal 29 ottobre ha un **mazzo suo a posti fissi** (`rankedRoles` in `lib/rules/role_assignment.dart`). Il server lo usa quando la stanza è classificata e al tavolo sono in 12; un tavolo classificato più piccolo (partito dopo l'attesa, `ranked_small_min`) usa il mazzo automatico.
+
+| Posti | Carte |
+|---|---|
+| Famiglia (3) | un **Picciotto** e **due poteri diversi** fra Padrino, Sarto, Compare |
+| Neutrale (1) | uno fra **Fesso, Cacciatore di taglie, Strozzino** |
+| Colpi extra (2) | **Artigliere e Tiratore scelto, sempre tutti e due** |
+| Investigatore (1) | uno fra Commissario, Cronista, Becchino, Portinaio |
+| Protettore (1) | uno fra Dottore, Guardaspalle, Carceriere |
+| Civici (2) | due fra Reduce, Pregiudicato, Messia, Sindaco, Pacifista, Cupido, Presidente |
+| Onesti (2) | |
+
+**Fuori dalla classificata:** Piromane, Sicario e Capo della setta: con un assassino in proprio al tavolo la Città scendeva al 22–25%, e in più non potevano esserci né colpi extra né Presidente. Fuori anche la Prostituta (con lei la Città vinceva il 63%, perché non conosce la Famiglia e non vota l'agguato) e il Cecchino (a 12 il colpo extra è del Tiratore). Un ruolo che un telefono al tavolo non sa leggere (`role_builds.dart`) lascia il posto a un altro dello stesso gruppo, o a un Picciotto o a un Onesto.
+
+**Perché così.** Nella simulazione conta quasi solo chi uccide. I poteri della Famiglia e i punti della Città spostano 1–3 punti; i colpi extra e i neutrali ne spostano 10–15. Con un solo colpo extra la Città vinceva il 46% e la Famiglia il 47% (al bordo della fascia); con tutti e due 51/43. L'Artigliere non va toccato: in classificata vince il 50% delle volte che esce. Il 62% di prima veniva dai tavoli da 10, dove la Città vinceva già il 61–65%. Quindi niente colpo in meno.
+
+**Simulazione** (`dart run tool/balance/ranked.dart 50000`: 50000 partite, seme 1, fiuto 0,3; intervallo di confidenza al 95%). **Prima**, col mazzo automatico a 12 (`dart run tool/balance/ranked.dart 50000 1 auto`): **Città 28,4% ± 0,4, Famiglia 48,5% ± 0,4, neutrale da solo 23,1% ± 0,4**. Con la Prostituta la Città saliva al 36–37%, senza scendeva al 21–23%; con Cacciatore e Capo della setta insieme si fermava al 18%. **Adesso:**
+
+| Squadra | vittorie (IC 95%) |
+|---|---|
+| Città | 50,8% ± 0,4 |
+| Famiglia | 43,1% ± 0,4 |
+| Neutrale da solo | 6,1% ± 0,2 |
+
+| Ruolo | esce (per partita) | vince quando esce | vittorie sul totale |
+|---|---|---|---|
+| Picciotto | 1,00 carte | 42,2% ± 0,4 |  |
+| Padrino | 66,1% | 42,4% ± 0,5 |  |
+| Sarto | 66,8% | 42,1% ± 0,5 |  |
+| Compare | 67,1% | 42,4% ± 0,5 |  |
+| Onesto | 2,00 carte | 49,6% ± 0,3 |  |
+| Commissario | 25,0% | 50,4% ± 0,9 |  |
+| Dottore | 33,3% | 50,5% ± 0,8 |  |
+| Cronista | 25,2% | 53,1% ± 0,9 |  |
+| Becchino | 24,9% | 47,9% ± 0,9 |  |
+| Guardaspalle | 33,2% | 47,4% ± 0,8 |  |
+| Reduce | 28,4% | 51,8% ± 0,8 |  |
+| Pregiudicato | 28,6% | 49,7% ± 0,8 |  |
+| Messia | 28,8% | 52,3% ± 0,8 |  |
+| Sindaco | 28,4% | 49,1% ± 0,8 |  |
+| Portinaio | 24,8% | 47,5% ± 0,9 |  |
+| Carceriere | 33,5% | 50,7% ± 0,8 |  |
+| Pacifista | 28,8% | 49,6% ± 0,8 |  |
+| Cupido | 28,4% | 45,2% ± 0,8 |  |
+| Presidente | 28,5% | 50,2% ± 0,8 |  |
+| Artigliere | 100% | 49,9% ± 0,4 |  |
+| Tiratore scelto | 100% | 49,4% ± 0,4 |  |
+| Fesso | 33,4% | 14,5% ± 0,5 | 4,8% ± 0,2 |
+| Cacciatore | 33,3% | 36,2% ± 0,7 | 12,1% ± 0,3 |
+| Strozzino | 33,3% | 42,3% ± 0,8 | 14,1% ± 0,3 |
+
+Per i neutrali, "vittorie sul totale" è la quota di tutte le partite classificate in cui quel neutrale vince. Lo Strozzino vince con chiunque se è vivo; il Cacciatore chiude la partita con la taglia linciata. Nessun ruolo passa il 54% quando esce, e nessun neutrale il 15% sul totale.
+
+| Composizione | partite | Città | Famiglia | Neutrale |
+|---|---|---|---|---|
+| Famiglia: Compare + Padrino | 16613 | 50,5% ± 0,8 | 43,6% ± 0,8 | 5,8% ± 0,4 |
+| Famiglia: Compare + Sarto | 16948 | 51,0% ± 0,8 | 42,7% ± 0,7 | 6,2% ± 0,4 |
+| Famiglia: Padrino + Sarto | 16439 | 50,9% ± 0,8 | 42,9% ± 0,8 | 6,2% ± 0,4 |
+| Neutrale: Cacciatore | 16645 | 44,2% ± 0,8 | 37,5% ± 0,7 | 18,3% ± 0,6 |
+| Neutrale: Fesso | 16716 | 52,2% ± 0,8 | 47,8% ± 0,8 | 0% |
+| Neutrale: Strozzino | 16639 | 56,0% ± 0,8 | 44,0% ± 0,8 | 0% |
+
+Le uniche composizioni fuori media sono quelle del neutrale. Col Cacciatore la Città scende al 44% (lui chiude il 18% di quelle partite); con lo Strozzino sale al 56%. Tutte e tre restano sotto il 60%. I punti della Città spostano poco: da 47/47 con 8 punti a 54/40 con 14.
+
+`test/online/ranked_balance_test.dart` rifà a ogni `flutter test` una simulazione corta (2000 partite, seme fisso) e controlla la fascia: Città 45–55%, Famiglia 40–50%, nessun ruolo sopra il 60% quando esce, nessun neutrale sopra il 15% sul totale. Un ruolo nuovo che entra in classificata deve passarlo.
+
 
 ---
 

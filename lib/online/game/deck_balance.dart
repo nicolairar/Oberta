@@ -54,12 +54,17 @@ class BalanceReport {
 /// tavolo vero: al voto, chi non è della Famiglia con questa probabilità
 /// punta qualcuno della Famiglia ancora vivo (senza sapere chi sia: lo
 /// sceglie il simulatore), altrimenti vota come il bot.
+///
+/// [deal] cambia il mazzo (di base quello automatico, per esempio quello
+/// della classificata); [onGame] riceve ogni partita finita, col suo mazzo.
 BalanceReport simulateDecks(
   int players,
   int games, {
   required int seed,
   Set<Role> exclude = const {},
   double hunch = defaultHunch,
+  List<Role> Function(Random random)? deal,
+  void Function(List<Role> deck, GameEngine engine)? onGame,
 }) {
   final random = Random(seed);
   final brain = BotBrain(random);
@@ -68,7 +73,9 @@ BalanceReport simulateDecks(
   final won = <Role, int>{};
   final lobby = [for (var i = 1; i <= players; i++) Player(id: 's$i', name: 's$i')];
   for (var game = 0; game < games; game++) {
-    final deck = rolesForPlayerCount(players, random: random, mode: PlayMode.online, exclude: exclude)..shuffle(random);
+    final deck =
+        (deal?.call(random) ?? rolesForPlayerCount(players, random: random, mode: PlayMode.online, exclude: exclude))
+          ..shuffle(random);
     final engine = GameEngine(GameSetup.fromRoles(Map.fromIterables(lobby, deck)), seed: random.nextInt(seedRange));
     for (var turn = 0; turn < 40 && engine.phase != GamePhase.ended; turn++) {
       if (engine.phase == GamePhase.night) {
@@ -80,7 +87,8 @@ BalanceReport simulateDecks(
               for (final other in view.action!.targets)
                 if (engine.setup.roleOf(other).team == Team.mafia) other,
             ];
-            if (family.isNotEmpty && engine.apply(NightAction(player.id, family[random.nextInt(family.length)].id)).accepted) {
+            if (family.isNotEmpty &&
+                engine.apply(NightAction(player.id, family[random.nextInt(family.length)].id)).accepted) {
               continue;
             }
           }
@@ -133,6 +141,7 @@ BalanceReport simulateDecks(
     }
     final ending = engine.phase != GamePhase.ended ? 'none' : engine.winner!.name;
     endings[ending] = (endings[ending] ?? 0) + 1;
+    onGame?.call(deck, engine);
     for (final player in lobby) {
       final role = engine.setup.roleOf(player);
       dealt[role] = (dealt[role] ?? 0) + 1;
@@ -145,3 +154,20 @@ BalanceReport simulateDecks(
 /// Il fiuto di base della simulazione: con questo il tavolo più semplice
 /// (un Picciotto, il Commissario, gli Onesti) sta intorno alla parità.
 const defaultHunch = 0.3;
+
+/// Le partite della classificata: sempre in 12, col mazzo della classificata
+/// ([rankedRoles]), e senza i ruoli in [exclude].
+BalanceReport simulateRanked(
+  int games, {
+  required int seed,
+  Set<Role> exclude = const {},
+  double hunch = defaultHunch,
+  void Function(List<Role> deck, GameEngine engine)? onGame,
+}) => simulateDecks(
+  rankedPlayers,
+  games,
+  seed: seed,
+  hunch: hunch,
+  deal: (random) => rankedRoles(random: random, exclude: exclude),
+  onGame: onGame,
+);
