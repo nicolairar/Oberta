@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/l10n/app_language.dart';
 import 'package:oberta/ui/avatar/avatar_look.dart';
+import 'package:oberta/ui/avatar/look_painter.dart';
 import 'package:oberta/ui/avatar/seated_character.dart';
 import 'package:oberta/ui/widgets/home_neon_sign.dart';
 import 'package:oberta/ui/widgets/noir_avatar.dart' show AvatarHead;
@@ -34,11 +35,14 @@ const beat = 60 / 136.4;
 double B(num n) => n * beat;
 
 // ── the edit (in beats; encode.swift uses the same numbers) ──────────────
-final hook = B(0), table = B(6), votes = B(13), lynch = B(24), black = B(33), flip = B(35), payoff = B(43), end = B(49);
-final length = B(58);
+final hook = B(0), table = B(6), votes = B(13), lynch = B(24), black = B(33), flip = B(33.75), payoff = B(42), wardrobe = B(48), end = B(56);
+final length = B(65);
+
+/// The card lands face up on beat 35, a beat and a quarter into its scene.
+final face = B(35) - flip;
 
 // ── the payoff line: PAYOFF=detto (default) | mamma | sangue ─────────────
-// Each is two lines; the last word lands alone, on beat 45, with a zoom hit.
+// Each is two lines; the last word lands alone, on beat 44, with a zoom hit.
 const _payoffs = {
   'detto': (["TE", "L'AVEVO"], 'DETTO.'),
   'mamma': (['MAMMA', 'NON', 'DEVE'], 'SAPERLO.'),
@@ -66,9 +70,10 @@ final _shakes = <(double, double)>[
   for (final t in _voteTicks) (t, 12),
   (B(22), 34),
   (B(26), 26),
-  (B(36), 60),
-  (B(45), 40),
-  (B(49), 8),
+  (B(35), 60),
+  (B(44), 40),
+  for (var i = 48; i < 56; i++) (B(i), 10),
+  (B(56), 8),
 ];
 
 Offset shakeAt(double t) {
@@ -86,8 +91,8 @@ Offset shakeAt(double t) {
 final _flashes = <(double, Color, double)>[
   (B(2.6), const Color(0xFFFF2E24), 0.40),
   (B(22), const Color(0xFFFF2E24), 0.30),
-  (B(36), const Color(0xFFFF2E24), 0.75),
-  (B(45), Colors.white, 0.35),
+  (B(35), const Color(0xFFFF2E24), 0.75),
+  (B(44), Colors.white, 0.35),
 ];
 
 // ── the brother ──────────────────────────────────────────────────────────
@@ -106,6 +111,7 @@ final _ghost = _brother.copyWith(hat: AvatarHead.devilHorns, headFx: HeadFx.rain
 late Map<String, ui.Image> plates;
 late List<ui.Image> grain;
 late Map<String, ui.Image> badges;
+late ui.Image icon;
 ParticleSprites? sprites;
 
 void main() {
@@ -123,6 +129,7 @@ void main() {
     await tester.runAsync(() async {
       sprites = await ParticleSprites.shared;
       grain = [for (var i = 0; i < 6; i++) await _noise(Random(i))];
+      icon = await _decode(File('assets/roles/mafioso.png').readAsBytesSync());
       badges = {
         for (final name in ['app-store-it', 'google-play-it', 'steam-logo-white'])
           name: await _decode(File('$out/badges/$name.png').readAsBytesSync()),
@@ -207,11 +214,13 @@ Future<ui.Image> frame(double t) {
   } else if (t < black) {
     _lynch(c, t - lynch);
   } else if (t < flip) {
-    // A beat of black and silence.
+    // A third of a second of black: a pause, not an end.
   } else if (t < payoff) {
     _flip(c, t - flip);
-  } else if (t < end) {
+  } else if (t < wardrobe) {
     _payoffScene(c, t - payoff);
+  } else if (t < end) {
+    _wardrobe(c, t - wardrobe);
   } else {
     _end(c, t - end);
   }
@@ -595,7 +604,6 @@ void _lynch(Canvas c, double u) {
 
 // ── 5 · black, then his card turns over ──────────────────────────────────
 void _flip(Canvas c, double u) {
-  final face = B(1); // the card lands face up on beat 36
   const all = Rect.fromLTWH(0, 0, W, H);
   final hot = u >= face ? 1.0 : 0.0;
   c.drawRect(
@@ -618,8 +626,8 @@ void _flip(Canvas c, double u) {
     }
     c.restore();
   }
-  // The flip: the game's own frames, from beat 35.2 to 36.
-  final start = B(0.2);
+  // The flip: the game's own frames, over the half beat before it lands.
+  final start = face - B(0.8);
   final k = (clamp01((u - start) / (face - start)) * flipFrames).floor();
   final img = plates['flip_${k.toString().padLeft(2, '0')}']!;
   final enter = lerp(0.55, 1, outBack(u / 0.25));
@@ -631,13 +639,38 @@ void _flip(Canvas c, double u) {
   c.scale(zoom);
   c.drawImageRect(img, Rect.fromLTWH(0, 0, img.width.toDouble(), img.height.toDouble()), Rect.fromCenter(center: Offset.zero, width: w, height: h), Paint()..filterQuality = FilterQuality.high);
   c.restore();
+  // The Picciotto's icon jumps out of the card toward the camera.
+  if (u >= face) {
+    final since = u - face;
+    for (var k = since < 0.2 ? 4 : 0; k >= 0; k--) {
+      final at = since - k / fps / 1.5;
+      if (at < 0) continue;
+      final grow = outBack(at / 0.28);
+      final side = W * lerp(0.12, 0.33, grow) * (1 + 0.015 * sin(u * 8));
+      final y = H * lerp(0.50, 0.335, outCubic(at / 0.28)) + sin(u * 3) * 6;
+      c.save();
+      c.translate(W / 2 + shake.dx, y + shake.dy);
+      c.rotate(lerp(0.4, -0.05, outCubic(at / 0.28)));
+      if (k == 0) {
+        c.drawCircle(const Offset(0, 14), side * 0.56, Paint()
+          ..color = Colors.black.withValues(alpha: 0.55)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, side * 0.08));
+        c.drawCircle(Offset.zero, side * 0.62, Paint()
+          ..shader = ui.Gradient.radial(Offset.zero, side * 0.62, [const Color(0x66FFD27A), const Color(0x00FFD27A)]));
+      }
+      c.drawImageRect(icon, const Rect.fromLTWH(0, 0, 250, 250), Rect.fromCenter(center: Offset.zero, width: side, height: side), Paint()
+        ..filterQuality = FilterQuality.high
+        ..color = Colors.white.withValues(alpha: k == 0 ? 1 : 0.2));
+      c.restore();
+    }
+  }
   words(c, say('ERA DAVVERO', face + 0.15, step: 0.18), H * 0.13, u);
   words(c, [('UN', Colors.white, face + 0.55), ('MAFIOSO.', red, face + 0.7)], H * 0.205, u, size: 124, tilt: -0.025);
 }
 
 // ── 6 · the payoff ───────────────────────────────────────────────────────
 void _payoffScene(Canvas c, double u) {
-  final last = B(2); // beat 45
+  final last = B(2); // beat 44
   final zoom = lerp(1.15, 1.0, outCubic(u / 0.3)) + hitAt(u, last, 0.14) + u * 0.02;
   _character(c, _ghost, u, zoom: zoom, lamp: const Color(0x55FF3B30), blur: u < 0.2 || (u > last && u < last + 0.15));
   final (lead, punchline) = _payoff;
@@ -646,7 +679,46 @@ void _payoffScene(Canvas c, double u) {
   words(c, [(punchline, yellow, last)], H * 0.235, u, size: 150, tilt: -0.03);
 }
 
-// ── 7 · the neon sign, coming soon, the store badges; dark for the loop ──
+// ── 7 · and dress him as you like: one absurd outfit per beat ──────────
+final _outfits = <(AvatarLook, int)>[
+  (_brother.copyWith(hat: AvatarHead.fishHead, outfit: AvatarOutfit.byId('banana_suit'), aura: Aura.spaghettiStorm, eyeShine: EyeShine.spiral).holding(HeldItem.cannolo, hand: Hand.right), 0xFF3A2A1E),
+  (_brother.copyWith(hat: AvatarHead.spaghettiHat, outfit: AvatarOutfit.byId('pizza_suit'), aura: Aura.vesuvio, headFx: HeadFx.coins, eyeShine: EyeShine.heart).holding(HeldItem.moka, hand: Hand.right), 0xFF3E1A12),
+  (_brother.copyWith(hat: AvatarHead.astronautHelmet, outfit: AvatarOutfit.byId('gold_brocade'), back: BackItem.gildedWings, frontFx: FrontFx.sparkles, aura: Aura.sunburst), 0xFF14243A),
+  (_brother.copyWith(hat: AvatarHead.unicornHorn, outfit: AvatarOutfit.byId('clown_suit'), hairDye: HairDye.neonPop, aura: Aura.neonAlley, frontFx: FrontFx.petals).holding(HeldItem.cat), 0xFF2E1438),
+  (_brother.copyWith(hat: AvatarHead.flamingHair, outfit: AvatarOutfit.byId('delacroix_cape'), back: BackItem.dragonWings, aura: Aura.inferno, eyeShine: EyeShine.flame).holding(HeldItem.revolver, hand: Hand.right), 0xFF3A1208),
+  (_brother.copyWith(hat: AvatarHead.octopusHat, outfit: AvatarOutfit.byId('mummy_wraps'), aura: Aura.harbourMoon, frontFx: FrontFx.bats), 0xFF102A2E),
+  (_brother.copyWith(hat: AvatarHead.birthdayCake, outfit: AvatarOutfit.byId('cactus_suit'), aura: Aura.varietyCurtain, frontFx: FrontFx.musicNotes).holding(HeldItem.teddy), 0xFF2A1430),
+  (_brother.copyWith(hat: AvatarHead.catOnHead, outfit: AvatarOutfit.byId('magician_cape'), aura: Aura.vault, frontFx: FrontFx.banknotes, eyeShine: EyeShine.diamond), 0xFF2A2410),
+];
+
+void _wardrobe(Canvas c, double u) {
+  final i = (u / beat).floor().clamp(0, _outfits.length - 1);
+  final local = u - i * beat;
+  final (look, hue) = _outfits[i];
+  c.drawRect(
+    const Rect.fromLTWH(0, 0, W, H),
+    Paint()..shader = ui.Gradient.radial(const Offset(W / 2, H * 0.52), H * 0.6, [Color(hue), const Color(0xFF0C0806)]),
+  );
+  final shake = shakeAt(_clock);
+  final side = W * 0.84;
+  for (var k = local < 0.12 ? 3 : 0; k >= 0; k--) {
+    final at = local - k / fps / 1.5;
+    final s = lerp(1.35, 1, outCubic(at / 0.2)) * (1 + 0.015 * sin(u * 6));
+    c.save();
+    c.translate(W / 2 + shake.dx, H * 0.55 + shake.dy);
+    c.scale(s);
+    c.rotate((i.isEven ? 1 : -1) * lerp(0.08, 0.02, outCubic(at / 0.2)));
+    c.translate(-side / 2, -side / 2);
+    if (k > 0) c.saveLayer(Rect.fromLTWH(-side * 0.5, -side * 0.5, side * 2, side * 2), Paint()..color = Colors.white.withValues(alpha: 0.25));
+    LookPainter.bust(c, look, side);
+    if (k > 0) c.restore();
+    c.restore();
+  }
+  words(c, say('E VESTILO', 0.05, step: 0.16), H * 0.13, u);
+  words(c, say('COME VUOI.', 0.4, step: 0.16, keys: {'VUOI.': yellow}), H * 0.205, u, size: 124);
+}
+
+// ── 8 · the neon sign, coming soon, the store badges; dark for the loop ──
 final _neon = HomeNeonState();
 
 void _end(Canvas c, double u) {

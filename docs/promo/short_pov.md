@@ -1,11 +1,13 @@
 # Obertà — short POV (Reels / TikTok / Shorts)
 
-Verticale 9:16, 1080×1920, 60 fps, MP4 H.264 + AAC, **25,5 secondi**.
+Verticale 9:16, 1080×1920, 60 fps, MP4 H.264 + AAC, **28,6 secondi**
+(più un'anteprima leggera 720×1280).
 Una sola storia in formato POV, solo sottotitoli (niente narratore).
 
 - **Musica**: `assets/music/day.m4a` dal secondo ~49,9, 136 bpm → un battito
-  ogni 0,44 s. Tagli e colpi cadono sui battiti; la musica si spegne per il
-  battito di buio e riparte sul vine boom.
+  ogni 0,44 s. Tagli e colpi cadono sui battiti; la musica si spegne per
+  un terzo di secondo di buio (con un colpo basso, così è una pausa e non
+  una fine) e riparte quando arriva la carta.
 - **Ritmo**: circa 1 s ogni 3–4 parole. Ogni frase resta il tempo di leggerla
   una volta, poi si taglia.
 - **Sottotitoli**: parola per parola (karaoke), Georgia Bold maiuscolo,
@@ -25,17 +27,18 @@ Una sola storia in formato POV, solo sottotitoli (niente narratore).
 | 2 | 2,64–5,72 (6–13) | Il tavolo del giorno (numeri bianchi dei posti), cartellino giallo «TUO FRATELLO» sul suo posto; tre fumetti della chat che lo difendono: «Ma dai, è un santo!», «Lui? Impossibile.», «Accusi tuo fratello?!» | **NESSUNO TI CREDE.** | `swish`, un `pizzi` per fumetto |
 | 3 | 5,72–10,56 (13–24) | Stesso tavolo: i voti su di lui salgono 1→6, uno per battito, la camera spinge sul suo posto; timbro **ACCUSATO** | **DEVI CONVINCERE** / **LA CITTÀ.** | una fiche per voto, `impact` sul timbro |
 | 4 | 10,56–14,52 (24–33) | Il film del verdetto del gioco (il molo): camminata veloce, ralenti sulla spinta, tuffo | **LINCIATO.** | `gavel` sulla parola, `faaah` sulla spinta, `splash` |
-| 5 | 14,52–15,40 (33–35) | Nero | — | silenzio |
-| 6 | 15,40–18,92 (35–43) | La carta ruolo del gioco si gira (i suoi fotogrammi veri): Il Picciotto. Lampo rosso, zoom, shake | **ERA DAVVERO** / **UN MAFIOSO.** | `swish`, `flip`, `vine_boom` e la musica che riparte |
-| 7 | 18,92–21,56 (43–49) | Il fratello di nuovo, ora con le corna da diavolo, la nuvoletta di pioggia e una lacrima | **TE L'AVEVO** … **DETTO.** (l'ultima parola da sola, sul battito 45, con zoom) | `punch` + `hee_hee` |
-| 8 | 21,56–25,51 (49–58) | L'insegna al neon OBERTÀ si accende; sotto, su fondo scuro pulito, **PRESTO DISPONIBILE** e i badge ufficiali App Store, Google Play e Steam (gli stessi del sito, non modificati); nell'ultimo quarto di secondo l'insegna salta e torna il buio | **GIOCA GRATIS** / **CON GLI AMICI** | `bulb`, `spark` al guasto, musica in dissolvenza |
+| 5 | 14,52–14,85 (33–33¾) | Nero, un terzo di secondo | — | silenzio, `body_fall` + un battito di cuore |
+| 6 | 14,85–18,48 (33¾–42) | La carta ruolo del gioco si gira (i suoi fotogrammi veri): Il Picciotto. Sul battito 35 l'icona del ruolo (`assets/roles/mafioso.png`) salta fuori dalla carta verso la camera; lampo rosso, zoom, shake | **ERA DAVVERO** / **UN MAFIOSO.** | `swish`, `flip`, `vine_boom`, la musica torna |
+| 7 | 18,48–21,11 (42–48) | Il fratello di nuovo, ora con le corna da diavolo, la nuvoletta di pioggia e una lacrima | **TE L'AVEVO** … **DETTO.** (l'ultima parola da sola, sul battito 44, con zoom) | `punch` + `hee_hee` |
+| 8 | 21,11–24,63 (48–56) | Il guardaroba: il fratello con un costume assurdo diverso a ogni battito (pesce + banana, pizza, astronauta, unicorno clown, drago di fuoco, polpo mummia, torta e cactus, gatto mago) | **E VESTILO** / **COME VUOI.** | `cashreg` sul primo, uno `swish` per costume |
+| 9 | 24,63–28,59 (56–65) | L'insegna al neon OBERTÀ si accende; sotto, su fondo scuro pulito, **PRESTO DISPONIBILE** e i badge ufficiali App Store, Google Play e Steam (gli stessi del sito, non modificati); nell'ultimo quarto di secondo l'insegna salta e torna il buio | **GIOCA GRATIS** / **CON GLI AMICI** | `bulb`, `spark` al guasto, musica in dissolvenza |
 
 Il finale torna al buio e il video riparte dal primo fotogramma (loop).
 
 ## La battuta finale
 
 Si cambia con `PAYOFF=` al momento del render (l'ultima parola arriva sempre
-da sola, sul battito 45):
+da sola, sul battito 44):
 
 | `PAYOFF` | Testo |
 |---|---|
@@ -52,6 +55,9 @@ swift tool/promo/badges.swift
 flutter test tool/promo/promo_render_test.dart          # PAYOFF=mamma …
 # 2. Il video con l'audio mixato: build/promo/oberta_short_pov.mp4.
 swift tool/promo/encode.swift
+# 3. L'anteprima leggera, 720×1280: build/promo/oberta_short_pov_720p.mp4.
+#    (avconvert -p PresetAppleM4V720pHD dà solo 404×720 per un video verticale.)
+PREVIEW=1 swift tool/promo/encode.swift
 ```
 
 `FRAMES=0,90,500` nel test rende solo quei fotogrammi e un foglio di
