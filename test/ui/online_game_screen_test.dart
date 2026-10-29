@@ -264,6 +264,37 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  // QA P2-2: after an idle close the window stays at the last night, and
+  // 12 s later "Il server non risponde… RIENTRA" sat on the closed table.
+  testWidgets('una partita chiusa perché nessuno gioca più non chiede di rientrare', (tester) async {
+    _usePhone(tester);
+    final clock = ManualClock();
+    final online = FakeOnline(accountId: 'bruno', clock: clock, pacing: const OnlinePacing(idleTimeouts: 1))
+      ..signInReady(handle: 'bruno')
+      ..addPlayer('anna', handle: 'anna');
+    final room = online.openRoomAs('anna', LobbyLanguage.it);
+    online.joinAs('bruno', room.code);
+    await settled(tester, online.gameAs('anna').setBots(room.id, 3));
+    await settled(tester, online.gameAs('anna').startGame(room.id));
+    final me = await settled(tester, online.services.profiles.me());
+    await tester.pumpWidget(_app(OnlineGameScreen(services: online.services, room: room, me: me, clock: clock)));
+    await flush(tester);
+
+    // Nessuno tocca il telefono: la notte scade a vuoto e il server chiude.
+    for (var i = 0; i < 200 && find.byKey(const Key('online.closed')).evaluate().isEmpty; i++) {
+      clock.fireNext();
+      await flush(tester);
+    }
+    expect(find.byKey(const Key('online.closed')), findsOneWidget);
+    clock.elapse(const Duration(seconds: 40));
+    await flush(tester);
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.byKey(const Key('online.closed')), findsOneWidget);
+    expect(find.byKey(const Key('online.serverSilent')), findsNothing, reason: 'non c\'è un tavolo a cui rientrare');
+    expect(find.byKey(const Key('online.reconnect')), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('chi esce dalla partita in corso ci rientra col pulsante, non da solo', (tester) async {
     _usePhone(tester);
     final online = FakeOnline(accountId: 'bruno', clock: ManualClock())

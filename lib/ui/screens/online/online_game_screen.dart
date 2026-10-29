@@ -527,10 +527,13 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   }
 
   /// Il server tace da ben oltre la fine della fase: forse manca la rete.
+  /// Non una partita chiusa: lì la fase resta ferma per sempre, e non c'è
+  /// un tavolo a cui rientrare.
   bool get _serverSilent {
     final window = _window;
     return window != null &&
         _stage != Stage.ended &&
+        !_board.abandoned &&
         _client.serverNow.isAfter(window.endsAt.add(const Duration(seconds: 12)));
   }
 
@@ -1232,9 +1235,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   /// Il collegamento che non va: il server tace, la rete ha dato errore, o
   /// il server non sente più questo telefono. Si rientra al tavolo con un
-  /// tocco. Chi ha lasciato la città lo sa, e guarda soltanto.
+  /// tocco. Chi ha lasciato la città lo sa, e guarda soltanto. Una partita
+  /// chiusa dal server non ha un tavolo a cui rientrare: niente avvisi.
   Widget? _connectionBanner() {
-    if (!_client.ready) return null;
+    if (!_client.ready || _board.abandoned) return null;
     final String text;
     final Key key;
     var rejoin = true;
