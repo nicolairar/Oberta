@@ -38,13 +38,18 @@ class NarratorRolesSheet extends StatefulWidget {
 class _NarratorRolesSheetState extends State<NarratorRolesSheet> {
   bool _visible = false;
 
+  // Il rilascio può arrivare dopo che il foglio è uscito dallo schermo.
+  void _show(bool visible) {
+    if (mounted) setState(() => _visible = visible);
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppStrings.of(context);
     return Listener(
-      onPointerDown: (_) => setState(() => _visible = true),
-      onPointerUp: (_) => setState(() => _visible = false),
-      onPointerCancel: (_) => setState(() => _visible = false),
+      onPointerDown: (_) => _show(true),
+      onPointerUp: (_) => _show(false),
+      onPointerCancel: (_) => _show(false),
       child: Container(
         width: double.infinity,
         decoration: BoxDecoration(

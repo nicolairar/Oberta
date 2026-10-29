@@ -78,7 +78,10 @@ class _NoirRoleCardState extends State<NoirRoleCard>
     super.dispose();
   }
 
+  // Il dito può restare sulla carta mentre la fase finisce e la notte la
+  // toglie dal tavolo: il rilascio arriva a una carta che non c'è più.
   void _press() {
+    if (!mounted) return;
     HapticFeedback.mediumImpact();
     SoundStage.instance.cue(Cue.flip);
     if (_still) {
@@ -88,7 +91,10 @@ class _NoirRoleCardState extends State<NoirRoleCard>
     }
   }
 
-  void _release() => _still ? _flip.value = 0 : _flip.reverse();
+  void _release() {
+    if (!mounted) return;
+    _still ? _flip.value = 0 : _flip.reverse();
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -58,7 +58,9 @@ class _FlipRoleCardState extends State<FlipRoleCard> with SingleTickerProviderSt
     super.dispose();
   }
 
+  // Il rilascio può arrivare dopo che la carta è uscita dallo schermo.
   void _press() {
+    if (!mounted) return;
     HapticFeedback.mediumImpact();
     SoundStage.instance.cue(Cue.flip);
     // A caso, mai legato al ruolo: lo sentono tutti, non deve svelare niente.
@@ -71,8 +73,10 @@ class _FlipRoleCardState extends State<FlipRoleCard> with SingleTickerProviderSt
     }
   }
 
-  void _release() =>
-      (MediaQuery.maybeDisableAnimationsOf(context) ?? false) ? _controller.value = 0 : _controller.reverse();
+  void _release() {
+    if (!mounted) return;
+    (MediaQuery.maybeDisableAnimationsOf(context) ?? false) ? _controller.value = 0 : _controller.reverse();
+  }
 
   @override
   Widget build(BuildContext context) {
