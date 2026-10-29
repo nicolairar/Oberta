@@ -16,10 +16,10 @@ You can play on a single phone without an account. In that case no personal data
 
 If you leave your email in the form on charliemobile.dev/oberta:
 
-- **What we keep**: the email address, the language (to write to you in Italian or English), the date and time of the sign-up, of the confirmation email and of the confirmation, and the version of the consent text you accepted, as proof of consent. We do not store your IP address with the email: to stop abuse we keep, for one hour at most, only a fingerprint of the IP hashed with a secret key, then delete it.
+- **What we keep**: the email address, the language (to write to you in Italian or English), the date and time of the sign-up and of the welcome email, and the version of the consent text you accepted, as proof of consent. We do not store your IP address with the email: to stop abuse we keep, for one hour at most, only a fingerprint of the IP hashed with a secret key, then delete it.
 - **Why**: only to tell you when Obertà comes out and, rarely, for news about Obertà. No other use, no profiling, no selling or sharing with third parties.
 - **Legal basis**: your consent (art. 6.1.a GDPR), given by ticking the box, which is never pre-ticked. You can withdraw it at any time, with no consequences; withdrawal does not affect what was done before.
-- **Double opt-in**: after signing up you get a single email with a "Confirm your email" button. Until you confirm we send nothing else, and launch emails go only to confirmed addresses. If the address was already on the list we send nothing.
+- **Signing up**: ticking the box and sending the form subscribes you (single opt-in). We keep the time and the exact version of the text you accepted, as proof of consent. You get a welcome email straight away with the unsubscribe link; if the address was already on the list we send nothing. Every subscriber gets the launch email.
 - **Age**: you must be at least 14 (art. 2-quinquies of the Italian Privacy Code).
 - **How long**: until you unsubscribe, and in any case no longer than 12 months after the game comes out; then we delete the whole list.
 - **Unsubscribing**: every email has a one-click unsubscribe link that deletes your address immediately. For access, rectification, erasure or withdrawal of consent you can also write to oberta@charliemobile.dev.

@@ -149,7 +149,7 @@ if (notify) {
       email.readOnly = true;
       consent.disabled = true;
       button.textContent = 'Fatto';
-      say('Ci sei. Se l’indirizzo è nuovo, ti arriva una mail: conferma con un clic.', 'ok');
+      say('Fatto. Ti abbiamo mandato una mail di benvenuto.', 'ok');
       return;
     }
     button.disabled = false;
@@ -158,7 +158,7 @@ if (notify) {
   });
 }
 
-// conferma.html e disiscriviti.html: il token arriva nel link della mail (?t=).
+// disiscriviti.html: il token arriva nel link della mail (?t=).
 const tokenPage = document.querySelector('[data-waitlist-action]');
 if (tokenPage) {
   const token = new URLSearchParams(location.search).get('t') || '';
@@ -174,7 +174,7 @@ if (tokenPage) {
     show('invalid');
   } else {
     // Serve un clic: i controlli automatici dei link nelle caselle di posta
-    // non confermano e non cancellano nessuno.
+    // non cancellano nessuno.
     show('ask');
     tokenPage.querySelector('[data-waitlist-go]')?.addEventListener('click', run, { once: true });
   }

@@ -1,15 +1,16 @@
-// The double opt-in email, as a 1940s telegram from the Famiglia: a dark
+// The welcome email (single opt-in: the sign-up is already done), as a 1940s telegram from the Famiglia: a dark
 // brick wall, a card with a brass double rule and art-deco corners, the neon
-// sign, a telegram slip, the Targa button of the game, four role medallions
+// sign, a telegram slip, a Targa button to the roles page, four role medallions
 // and the Padrino's signature. Tables and inline styles only, 560 px wide and
 // fluid below, a VML button for Outlook, bgcolor fallbacks under every image.
 // The images live on the site (site/oberta/email/, tool/site/email_assets.py).
-// Previews with sample links: site/oberta/email/conferma-*.html (preview.ts).
+// Previews with sample links: site/oberta/email/benvenuto-*.html (preview.ts).
 
 export type Lang = 'it' | 'en';
 
 export interface Links {
-  confirmUrl: string;
+  /** The button: the site's roles page. */
+  ctaUrl: string;
   unsubscribeUrl: string;
   privacyUrl: string;
   /** Where the images live: the site's email/ folder, absolute. */
@@ -24,18 +25,17 @@ export interface Email {
 
 const copy = {
   it: {
-    subject: 'La Famiglia ti ha notato',
-    preheader: 'Grazie per l’interesse. Conferma che sei dei nostri: basta un clic.',
-    wire: 'Telegramma · Riservato · Urgente',
+    subject: 'Sei dei nostri',
+    preheader: 'Iscrizione confermata. Ti scriviamo a dicembre, quando esce Obertà.',
+    wire: 'Telegramma · Riservato · Sei dentro',
     thanks: 'Grazie per l’interesse.',
-    title: 'La Famiglia ti ha notato.',
-    lead: 'Hai lasciato il tuo nome in giro. Bene. Da noi si entra solo con la parola data: conferma che sei dei nostri, e quando apriamo le porte sarai il primo a saperlo.',
-    slip: 'CONFERMA CHE SEI DEI NOSTRI STOP TI ASPETTIAMO AL TAVOLO STOP',
-    button: 'Conferma',
+    title: 'Sei dei nostri.',
+    lead: 'La Famiglia ha preso nota del tuo nome. Da adesso sei sulla lista: ti scriviamo a dicembre, quando esce Obertà, e sarai tra i primi a sederti al tavolo.',
+    slip: 'ISCRIZIONE CONFERMATA STOP TI SCRIVIAMO A DICEMBRE STOP ACQUA IN BOCCA STOP',
+    button: 'Scopri i ruoli',
     release: 'A dicembre, gratis, su iPhone, Android e Steam.',
     sign: '— Il Padrino',
-    ignore: 'Non sei stato tu? Allora non ci conosciamo. Ignora questa mail: senza conferma non ti scriviamo più.',
-    fallback: 'Il pulsante non va? Copia questo link nel browser:',
+    ignore: 'Non sei stato tu? Allora non ci conosciamo: cancellati qui sotto con un clic e non ti scriviamo più.',
     motto: 'Chi sa, tace.',
     why: 'Ricevi questa mail perché hai lasciato il tuo indirizzo su charliemobile.dev/oberta.',
     unsubscribe: 'Cancellami dalla lista',
@@ -44,18 +44,17 @@ const copy = {
     roles: ['Il Padrino', 'Il Commissario', 'Il Dottore', 'Il Picciotto'],
   },
   en: {
-    subject: 'The Family has noticed you',
-    preheader: 'Thanks for your interest. Confirm you are one of us: one click.',
-    wire: 'Telegram · Confidential · Urgent',
+    subject: 'You are one of us',
+    preheader: 'You are on the list. We write in December, when Obertà comes out.',
+    wire: 'Telegram · Confidential · You are in',
     thanks: 'Thanks for your interest.',
-    title: 'The Family has noticed you.',
-    lead: 'You left your name around. Good. With us you only get in on your word: confirm you are one of us, and when the doors open you will be the first to know.',
-    slip: 'CONFIRM YOU ARE ONE OF US STOP A SEAT IS WAITING STOP',
-    button: 'Confirm',
+    title: 'You are one of us.',
+    lead: 'The Family has taken note of your name. You are on the list now: we write in December, when Obertà comes out, and you will be among the first at the table.',
+    slip: 'SIGN-UP CONFIRMED STOP WE WRITE IN DECEMBER STOP NOT A WORD STOP',
+    button: 'Meet the roles',
     release: 'December, free, on iPhone, Android and Steam.',
     sign: '— The Godfather',
-    ignore: 'Not you? Then we have never met. Ignore this email: without a confirmation we never write again.',
-    fallback: 'Button not working? Paste this link into your browser:',
+    ignore: 'Not you? Then we have never met: unsubscribe below with one click and we never write again.',
     motto: 'Who knows, keeps quiet.',
     why: 'You get this email because you left your address on charliemobile.dev/oberta.',
     unsubscribe: 'Remove me from the list',
@@ -73,9 +72,9 @@ const sans = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, s
 const mono = "'Courier New', Courier, monospace";
 const roleFiles = ['padrino', 'detective', 'medico', 'mafioso'];
 
-export function confirmEmail(lang: Lang, links: Links): Email {
+export function welcomeEmail(lang: Lang, links: Links): Email {
   const t = copy[lang] ?? copy.it;
-  const confirm = esc(links.confirmUrl);
+  const cta = esc(links.ctaUrl);
   const unsubscribe = esc(links.unsubscribeUrl);
   const privacy = esc(links.privacyUrl);
   const base = esc(links.assetBase.replace(/\/$/, ''));
@@ -152,7 +151,7 @@ export function confirmEmail(lang: Lang, links: Links): Email {
         </tr>
         <tr>
           <td align="center" style="padding:26px 24px 0;">
-            <!--[if mso]><v:roundrect href="${confirm}" style="height:60px;v-text-anchor:middle;width:300px;" arcsize="24%" strokecolor="#d9b45a" strokeweight="2.5pt" fillcolor="#8a1520"><center style="color:#fff1d6;font-family:Georgia,serif;font-size:20px;font-weight:bold;letter-spacing:5px;">${esc(t.button.toUpperCase())}</center></v:roundrect><![endif]-->
+            <!--[if mso]><v:roundrect href="${cta}" style="height:60px;v-text-anchor:middle;width:300px;" arcsize="24%" strokecolor="#d9b45a" strokeweight="2.5pt" fillcolor="#8a1520"><center style="color:#fff1d6;font-family:Georgia,serif;font-size:20px;font-weight:bold;letter-spacing:5px;">${esc(t.button.toUpperCase())}</center></v:roundrect><![endif]-->
             <!--[if !mso]><!-- -->
             <table role="presentation" cellpadding="0" cellspacing="0" border="0">
               <tr>
@@ -160,7 +159,7 @@ export function confirmEmail(lang: Lang, links: Links): Email {
                   <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                     <tr>
                       <td align="center" bgcolor="#8a1520" style="border-radius:13px;background-color:#8a1520;background-image:linear-gradient(180deg,#b3242e 0%,#7e111a 55%,#4a070d 100%);">
-                        <a href="${confirm}" target="_blank" style="display:inline-block;min-width:230px;padding:19px 34px;font-family:${serif};font-size:20px;line-height:20px;font-weight:bold;letter-spacing:5px;text-transform:uppercase;text-align:center;color:#fff1d6;text-decoration:none;border-radius:13px;">${esc(t.button)}</a>
+                        <a href="${cta}" target="_blank" style="display:inline-block;min-width:230px;padding:19px 34px;font-family:${serif};font-size:20px;line-height:20px;font-weight:bold;letter-spacing:5px;text-transform:uppercase;text-align:center;color:#fff1d6;text-decoration:none;border-radius:13px;">${esc(t.button)}</a>
                       </td>
                     </tr>
                   </table>
@@ -192,7 +191,6 @@ export function confirmEmail(lang: Lang, links: Links): Email {
               <tr><td style="border-top:1px solid #9c7424;font-size:0;line-height:0;">&nbsp;</td></tr>
             </table>
             <p style="margin:12px 0 0;font-family:${sans};font-size:13px;line-height:1.5;color:#9c8f7b;">${esc(t.ignore)}</p>
-            <p style="margin:10px 0 0;font-family:${sans};font-size:12px;line-height:1.5;color:#8c7a62;">${esc(t.fallback)}<br><a href="${confirm}" style="color:#e6c77a;word-break:break-all;">${confirm}</a></p>
           </td>
         </tr>
         <tr>
@@ -235,7 +233,7 @@ export function confirmEmail(lang: Lang, links: Links): Email {
     '',
     t.slip,
     '',
-    `${t.button.toUpperCase()}: ${links.confirmUrl}`,
+    `${t.button}: ${links.ctaUrl}`,
     '',
     t.release,
     '',

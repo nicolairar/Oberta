@@ -1,35 +1,37 @@
 // The launch waitlist's door, called by the landing page (no JWT).
 //
 //   POST {action: "join", email, lang, consent, website}   -> {ok: true} | {ok: false, error}
-//   POST {action: "confirm", token}                         -> {ok: true}
 //   POST {action: "unsubscribe", token}                     -> {ok: true}
 //   POST ?unsubscribe=<token>  (RFC 8058 one-click from the mail client) -> {ok: true}
+//   GET  /img/<name>           the welcome email's images (templates/images.ts): the site
+//                              is behind a Cloudflare challenge mail image proxies cannot pass
 //
 // Only the site's origins get through (CORS and a check here). A join goes to
 // internal.waitlist_join (consent, shape, rate limit per hashed IP), which
-// says whether the address is new: only a NEW address gets the confirmation
-// email (double opt-in) through Brevo. An address already on the list,
-// confirmed or not, gets nothing and the same {ok: true}: the answer never
+// says whether the address is new. Single opt-in: the ticked box and the form
+// subscribe; only a NEW address gets the welcome email through Brevo. An
+// address already on the list gets nothing and the same {ok: true}: the answer never
 // tells whether someone is on the list. Without the Brevo secrets the sign-up
 // is still saved and the mail is skipped (logged).
-import { confirmEmail, type Lang } from './templates/confirm.ts';
+import { images } from './templates/images.ts';
+import { type Lang, welcomeEmail } from './templates/welcome.ts';
 
 export interface JoinResult {
   ok: boolean;
   error?: string;
   new?: boolean;
   lang?: string;
-  confirm_token?: string;
+  /** Private row key to note how the welcome mail went. */
+  mail_token?: string;
   unsubscribe_token?: string;
 }
 
 export interface WaitlistDeps {
   env: (name: string) => string | undefined;
   join: (email: string, lang: string, consent: string, ip: string | null) => Promise<JoinResult>;
-  confirm: (token: string) => Promise<void>;
   unsubscribe: (token: string) => Promise<void>;
-  /** Notes how the confirmation email went: confirm_sent_at, or the reason in confirm_error. */
-  noteMail: (confirmToken: string, error: string | null) => Promise<void>;
+  /** Notes how the welcome email went: confirm_sent_at, or the reason in confirm_error. */
+  noteMail: (mailToken: string, error: string | null) => Promise<void>;
   fetch: typeof fetch;
   log: (...args: unknown[]) => void;
 }
@@ -69,32 +71,36 @@ export function clientIp(req: Request): string | null {
   return h.get('cf-connecting-ip') ?? h.get('x-forwarded-for')?.split(',')[0]?.trim() ?? h.get('x-real-ip') ?? null;
 }
 
+/** This function's public address, from SUPABASE_URL. */
+export function functionUrl(env: WaitlistDeps['env'], fallbackOrigin = ''): string {
+  return `${(env('SUPABASE_URL') ?? fallbackOrigin).replace(/\/$/, '')}/functions/v1/waitlist`;
+}
+
 export function siteUrl(env: WaitlistDeps['env']): string {
   return (env('WAITLIST_SITE_URL') ?? defaultSite).replace(/\/$/, '');
 }
 
-/** Sends the confirmation email: null when Brevo took it, else why not (no secrets ever in it). */
-export async function sendConfirmation(
+/** Sends the welcome email: null when Brevo took it, else why not (no secrets ever in it). */
+export async function sendWelcome(
   deps: WaitlistDeps,
   to: string,
   lang: Lang,
-  confirmToken: string,
   unsubscribeToken: string,
   functionUrl: string,
 ): Promise<string | null> {
   const key = deps.env('BREVO_API_KEY');
   const sender = deps.env('BREVO_SENDER_EMAIL');
   if (!key || !sender) {
-    deps.log('waitlist: Brevo secrets missing, confirmation email skipped');
+    deps.log('waitlist: Brevo secrets missing, welcome email skipped');
     return 'secrets_missing';
   }
   const site = siteUrl(deps.env);
   const unsubscribeUrl = `${site}/disiscriviti.html?t=${unsubscribeToken}`;
-  const mail = confirmEmail(lang, {
-    confirmUrl: `${site}/conferma.html?t=${confirmToken}`,
+  const mail = welcomeEmail(lang, {
+    ctaUrl: `${site}/ruoli.html`,
     unsubscribeUrl,
     privacyUrl: `${site}/privacy.html#lista`,
-    assetBase: `${site}/email`,
+    assetBase: deps.env('WAITLIST_ASSET_BASE') ?? `${functionUrl}/img`,
   });
   try {
     const res = await deps.fetch(brevoUrl, {
@@ -107,7 +113,7 @@ export async function sendConfirmation(
         subject: mail.subject,
         htmlContent: mail.html,
         textContent: mail.text,
-        tags: ['waitlist-confirm'],
+        tags: ['waitlist-welcome'],
         headers: {
           'List-Unsubscribe': `<${unsubscribeUrl}>, <${functionUrl}?unsubscribe=${unsubscribeToken}>`,
           'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
@@ -132,6 +138,16 @@ export async function handleWaitlist(req: Request, deps: WaitlistDeps): Promise<
   const origin = req.headers.get('origin');
   const headers = cors(origin, deps.env);
 
+  const picture = url.pathname.match(/\/img\/([a-z0-9-]+\.(?:jpg|png))$/);
+  if (picture && (req.method === 'GET' || req.method === 'HEAD')) {
+    const image = images[picture[1]];
+    if (!image) return new Response('not found', { status: 404 });
+    const bytes = Uint8Array.from(atob(image.base64), (c) => c.charCodeAt(0));
+    return new Response(req.method === 'HEAD' ? null : bytes, {
+      headers: { 'content-type': image.type, 'cache-control': 'public, max-age=604800', 'access-control-allow-origin': '*' },
+    });
+  }
+
   // One-click unsubscribe from the mail client: no origin, just the token.
   const oneClick = url.searchParams.get('unsubscribe');
   if (oneClick !== null && req.method === 'POST') {
@@ -147,10 +163,10 @@ export async function handleWaitlist(req: Request, deps: WaitlistDeps): Promise<
   if (!body || typeof body !== 'object') return json({ ok: false, error: 'bad_request' }, 400, headers);
   const { action } = body as Record<string, unknown>;
 
-  if (action === 'confirm' || action === 'unsubscribe') {
+  if (action === 'unsubscribe') {
     const token = (body as Record<string, unknown>).token;
     if (typeof token === 'string' && uuid.test(token)) {
-      await (action === 'confirm' ? deps.confirm : deps.unsubscribe)(token.toLowerCase());
+      await deps.unsubscribe(token.toLowerCase());
     }
     return json({ ok: true }, 200, headers);
   }
@@ -168,11 +184,10 @@ export async function handleWaitlist(req: Request, deps: WaitlistDeps): Promise<
     clientIp(req),
   );
   if (!result.ok) return json({ ok: false, error: result.error ?? 'failed' }, 200, headers);
-  if (result.new && result.confirm_token && result.unsubscribe_token) {
+  if (result.new && result.mail_token && result.unsubscribe_token) {
     const mailLang: Lang = result.lang === 'it' ? 'it' : 'en';
-    const functionUrl = `${(deps.env('SUPABASE_URL') ?? url.origin).replace(/\/$/, '')}/functions/v1/waitlist`;
-    const error = await sendConfirmation(deps, email.trim().toLowerCase(), mailLang, result.confirm_token, result.unsubscribe_token, functionUrl);
-    await deps.noteMail(result.confirm_token, error).catch(() => deps.log('waitlist: could not note the mail outcome'));
+    const error = await sendWelcome(deps, email.trim().toLowerCase(), mailLang, result.unsubscribe_token, functionUrl(deps.env, url.origin));
+    await deps.noteMail(result.mail_token, error).catch(() => deps.log('waitlist: could not note the mail outcome'));
   }
   // New or already there, mail sent or not: the same answer.
   return json({ ok: true }, 200, headers);

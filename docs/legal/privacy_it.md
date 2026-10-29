@@ -16,10 +16,10 @@ Puoi giocare sullo stesso telefono senza account. In quel caso nessun dato perso
 
 Se lasci la tua email nel modulo di charliemobile.dev/oberta:
 
-- **Cosa salviamo**: l'indirizzo email, la lingua (per scriverti in italiano o in inglese), la data e l'ora dell'iscrizione, della mail di conferma e della conferma, e la versione del testo di consenso che hai accettato, come prova del consenso. Non salviamo il tuo indirizzo IP con l'email: per fermare gli abusi usiamo per un'ora al massimo solo un'impronta dell'IP cifrata con una chiave segreta, poi la cancelliamo.
+- **Cosa salviamo**: l'indirizzo email, la lingua (per scriverti in italiano o in inglese), la data e l'ora dell'iscrizione e della mail di benvenuto, e la versione del testo di consenso che hai accettato, come prova del consenso. Non salviamo il tuo indirizzo IP con l'email: per fermare gli abusi usiamo per un'ora al massimo solo un'impronta dell'IP cifrata con una chiave segreta, poi la cancelliamo.
 - **Perché**: solo per avvisarti quando Obertà esce e, di rado, per notizie su Obertà. Nessun altro uso, nessuna profilazione, nessuna cessione o condivisione con terzi.
 - **Base giuridica**: il tuo consenso (art. 6.1.a GDPR), dato spuntando la casella, che non è mai già spuntata. Puoi ritirarlo quando vuoi, senza conseguenze; il ritiro non tocca quello che è stato fatto prima.
-- **Doppia conferma**: dopo l'iscrizione ricevi una sola mail con il pulsante «Conferma la tua email». Finché non confermi non ti mandiamo nient'altro, e le mail di lancio vanno solo agli indirizzi confermati. Se l'indirizzo era già in lista non ti mandiamo niente.
+- **Iscrizione**: spuntando la casella e inviando il modulo sei iscritto (iscrizione singola). Salviamo l'ora e la versione esatta del testo che hai accettato, come prova del consenso. Ricevi subito una mail di benvenuto con il link per cancellarti; se l'indirizzo era già in lista non ti mandiamo niente. Tutti gli iscritti ricevono la mail di lancio.
 - **Età**: devi avere almeno 14 anni (art. 2-quinquies del Codice privacy italiano).
 - **Per quanto tempo**: finché non ti cancelli, e comunque non oltre 12 mesi dall'uscita del gioco; poi cancelliamo tutta la lista.
 - **Cancellarti**: ogni mail ha il link per cancellarti in un clic, che elimina subito il tuo indirizzo. Per accesso, rettifica, cancellazione o ritiro del consenso puoi anche scrivere a oberta@charliemobile.dev.

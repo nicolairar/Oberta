@@ -1,12 +1,12 @@
 // The waitlist Edge Function with an in-memory list and a fake Brevo: only a
-// new address gets the confirmation email, a known one gets nothing and the
+// new address gets the welcome email (single opt-in), a known one gets nothing and the
 // same answer, no secrets means saved but not sent, only the site's origins
 // get in. The database side is supabase/tests/waitlist.sql.
 //
 //   deno test -A supabase/functions/tests/waitlist_test.ts
 import { assert, assertEquals, assertStringIncludes } from 'jsr:@std/assert@1';
 import { brevoUrl, handleWaitlist, type JoinResult, type WaitlistDeps } from '../waitlist/handler.ts';
-import { confirmEmail } from '../waitlist/templates/confirm.ts';
+import { welcomeEmail } from '../waitlist/templates/welcome.ts';
 import { preview, previewDir } from '../waitlist/templates/preview.ts';
 
 const site = 'https://charliemobile.dev';
@@ -38,14 +38,10 @@ function world(env: Record<string, string> = secrets, brevoStatus = 201) {
         lang,
         confirm: `c0000000-0000-4000-8000-00000000000${n}`,
         unsubscribe: `u0000000-0000-4000-8000-00000000000${n}`.replace('u', 'a'),
-        confirmed: false,
+        confirmed: true,
       };
       list.set(addr, row);
-      return Promise.resolve({ ok: true, new: true, lang, confirm_token: row.confirm, unsubscribe_token: row.unsubscribe });
-    },
-    confirm: (token) => {
-      for (const row of list.values()) if (row.confirm === token) row.confirmed = true;
-      return Promise.resolve();
+      return Promise.resolve({ ok: true, new: true, lang, mail_token: row.confirm, unsubscribe_token: row.unsubscribe });
     },
     unsubscribe: (token) => {
       for (const [k, row] of list) if (row.unsubscribe === token) list.delete(k);
@@ -78,7 +74,7 @@ const call = (deps: WaitlistDeps, body: unknown, origin: string | null = site, e
 
 const join = (email: string, lang = 'it') => ({ action: 'join', email, lang, consent: '2026-10-v1', website: '' });
 
-Deno.test('a new address is saved and gets one confirmation email from Brevo', async () => {
+Deno.test('a new address is subscribed and gets one welcome email from Brevo', async () => {
   const w = world();
   const res = await call(w.deps, join('Zz.Aiko@Example.com'), site, { 'x-forwarded-for': '203.0.113.7, 10.0.0.1' });
   assertEquals(res.status, 200);
@@ -92,24 +88,24 @@ Deno.test('a new address is saved and gets one confirmation email from Brevo', a
   assertEquals(mail.body.to, [{ email: 'zz.aiko@example.com' }]);
   assertEquals(mail.body.sender, { email: 'ciao@example.com', name: 'Obertà' });
   assertEquals(mail.body.replyTo, { email: 'oberta@charliemobile.dev' });
-  assertEquals(mail.body.subject, 'La Famiglia ti ha notato');
+  assertEquals(mail.body.subject, 'Sei dei nostri');
   const row = w.list.get('zz.aiko@example.com')!;
-  assertStringIncludes(String(mail.body.htmlContent), `https://charliemobile.dev/oberta/conferma.html?t=${row.confirm}`);
+  assertStringIncludes(String(mail.body.htmlContent), 'https://charliemobile.dev/oberta/ruoli.html');
+  assert(!String(mail.body.htmlContent).includes('conferma.html'));
   assertStringIncludes(String(mail.body.htmlContent), `https://charliemobile.dev/oberta/disiscriviti.html?t=${row.unsubscribe}`);
   assertStringIncludes(String(mail.body.htmlContent), 'Grazie per l’interesse');
-  assertStringIncludes(String(mail.body.textContent), `conferma.html?t=${row.confirm}`);
+  assertStringIncludes(String(mail.body.textContent), `disiscriviti.html?t=${row.unsubscribe}`);
   const headers = mail.body.headers as Record<string, string>;
   assertStringIncludes(headers['List-Unsubscribe'], `https://ref.supabase.co/functions/v1/waitlist?unsubscribe=${row.unsubscribe}`);
   assertEquals(headers['List-Unsubscribe-Post'], 'List-Unsubscribe=One-Click');
   assertEquals(w.sent, [row.confirm]);
 });
 
-Deno.test('an address already on the list, confirmed or not, gets nothing and the same answer', async () => {
+Deno.test('an address already on the list gets nothing and the same answer', async () => {
   const w = world();
   await call(w.deps, join('zz@example.com'));
   const again = await call(w.deps, join(' ZZ@example.com '));
   assertEquals(await again.json(), { ok: true });
-  w.list.get('zz@example.com')!.confirmed = true;
   const third = await call(w.deps, join('zz@example.com', 'en'));
   assertEquals(await third.json(), { ok: true });
   assertEquals(w.mails.length, 1);
@@ -120,8 +116,8 @@ Deno.test('English sign-ups (and any other language) get the English email', asy
   const w = world();
   await call(w.deps, join('zz_en@example.com', 'en'));
   await call(w.deps, join('zz_ja@example.com', 'ja'));
-  assertEquals(w.mails.map((m) => m.body.subject), ['The Family has noticed you', 'The Family has noticed you']);
-  assertStringIncludes(String(w.mails[0].body.htmlContent), 'The Family has noticed you.');
+  assertEquals(w.mails.map((m) => m.body.subject), ['You are one of us', 'You are one of us']);
+  assertStringIncludes(String(w.mails[0].body.htmlContent), 'You are one of us.');
 });
 
 Deno.test('without the Brevo secrets the sign-up is saved and the mail skipped', async () => {
@@ -178,14 +174,14 @@ Deno.test('only the site origins get in', async () => {
   assertEquals(w.joins.length, 1);
 });
 
-Deno.test('confirm and unsubscribe by token, always ok', async () => {
+Deno.test('unsubscribe by token, always ok; there is no confirm step', async () => {
   const w = world();
   await call(w.deps, join('zz@example.com'));
   const row = w.list.get('zz@example.com')!;
-  assertEquals(await (await call(w.deps, { action: 'confirm', token: 'nonsense' })).json(), { ok: true });
-  assert(!row.confirmed);
-  assertEquals(await (await call(w.deps, { action: 'confirm', token: row.confirm.toUpperCase() })).json(), { ok: true });
   assert(row.confirmed);
+  assertEquals((await call(w.deps, { action: 'confirm', token: row.confirm })).status, 400);
+  assertEquals(await (await call(w.deps, { action: 'unsubscribe', token: 'nonsense' })).json(), { ok: true });
+  assert(w.list.has('zz@example.com'));
   assertEquals(await (await call(w.deps, { action: 'unsubscribe', token: row.unsubscribe })).json(), { ok: true });
   assert(!w.list.has('zz@example.com'));
 });
@@ -206,9 +202,23 @@ Deno.test('one-click unsubscribe from the mail client needs no origin', async ()
   assert(!w.list.has('zz@example.com'));
 });
 
+Deno.test('the function serves the email images, and the email points at them', async () => {
+  const w = world();
+  await call(w.deps, join('zz@example.com'));
+  assertStringIncludes(String(w.mails[0].body.htmlContent), 'https://ref.supabase.co/functions/v1/waitlist/img/oberta-neon.jpg');
+  for (const name of ['oberta-neon.jpg', 'brick.jpg', 'deco-tl.png', 'role-padrino.png']) {
+    const res = await handleWaitlist(new Request(`https://ref.supabase.co/functions/v1/waitlist/img/${name}`), w.deps);
+    assertEquals(res.status, 200, name);
+    assertEquals(res.headers.get('content-type'), name.endsWith('.jpg') ? 'image/jpeg' : 'image/png');
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    assertEquals(bytes, await Deno.readFile(new URL(name, previewDir)), `run tool/site/email_assets.py (${name})`);
+  }
+  assertEquals((await handleWaitlist(new Request('https://ref.supabase.co/functions/v1/waitlist/img/nope.png'), w.deps)).status, 404);
+});
+
 Deno.test('the email escapes what it is given and has a plain-text twin', () => {
-  const mail = confirmEmail('it', {
-    confirmUrl: 'https://x.example/c?t=1&"<b>',
+  const mail = welcomeEmail('it', {
+    ctaUrl: 'https://x.example/c?t=1&"<b>',
     unsubscribeUrl: 'https://x.example/u',
     privacyUrl: 'https://x.example/p',
     assetBase: 'https://x.example/email/',
@@ -222,7 +232,7 @@ Deno.test('the email escapes what it is given and has a plain-text twin', () => 
 Deno.test('the previews on the site match the templates', async () => {
   for (const lang of ['it', 'en'] as const) {
     const mail = preview(lang);
-    assertEquals(await Deno.readTextFile(new URL(`conferma-${lang}.html`, previewDir)), mail.html, `run templates/preview.ts (${lang})`);
-    assertEquals(await Deno.readTextFile(new URL(`conferma-${lang}.txt`, previewDir)), mail.text, `run templates/preview.ts (${lang})`);
+    assertEquals(await Deno.readTextFile(new URL(`benvenuto-${lang}.html`, previewDir)), mail.html, `run templates/preview.ts (${lang})`);
+    assertEquals(await Deno.readTextFile(new URL(`benvenuto-${lang}.txt`, previewDir)), mail.text, `run templates/preview.ts (${lang})`);
   }
 });

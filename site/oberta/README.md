@@ -38,4 +38,4 @@ I video partono solo quando sono in vista (`app.js`); con «riduci movimento» o
 
 ## Lista d'attesa
 
-Il modulo «Avvisami» nell'apertura, `conferma.html` e `disiscriviti.html` parlano con la Edge Function `waitlist` (indirizzo in `app.js`). `email/` contiene le immagini e le anteprime della mail di conferma. Tutto in `docs/release.md`, sezione 12.
+Il modulo «Avvisami» nell'apertura e `disiscriviti.html` parlano con la Edge Function `waitlist` (indirizzo in `app.js`); iscrizione singola, `conferma.html` rimanda solo all'inizio. `email/` contiene le immagini e le anteprime della mail di benvenuto. Tutto in `docs/release.md`, sezione 12.

@@ -310,7 +310,8 @@ quando esiste, vedi `docs/steam.md`).
 Il modulo nell'apertura della landing chiama la Edge Function `waitlist`
 (`supabase/functions/waitlist/`), che salva l'indirizzo in `internal.waitlist` (migrazione
 `20261125090000_waitlist.sql`, non leggibile dall'API) e, **solo per un indirizzo nuovo**, manda con
-Brevo la mail di conferma (doppio opt-in). Un indirizzo già in lista, confermato o no, non riceve
+Brevo la mail di benvenuto (iscrizione singola: casella spuntata + modulo = iscritto, `confirmed = true`
+subito, con ora e versione del consenso come prova). Un indirizzo già in lista non riceve
 niente e il sito risponde uguale. Informativa: `privacy.html#lista` e `docs/legal/privacy_*.md`.
 
 **Segreti Brevo** (Edge Function secrets; mai nel repository, mai stampati):
@@ -324,31 +325,33 @@ bloccata per le Edge Function, che escono da indirizzi AWS che cambiano): con la
 Brevo risponde `401 unrecognised IP address` e la mail non parte (si vede in `confirm_error`).
 
 Senza segreti l'iscrizione si salva lo stesso e la mail si salta (log «Brevo secrets missing»);
-`confirm_sent_at` resta vuoto e `confirm_error` dice perché (`secrets_missing`, oppure stato e messaggio di Brevo): `select email, confirm_error from internal.waitlist where confirm_error is not null;`. Facoltativi: `WAITLIST_SITE_URL` (default
+`confirm_sent_at` (ora della mail di benvenuto) resta vuoto e `confirm_error` dice perché (`secrets_missing`, oppure stato e messaggio di Brevo): `select email, confirm_error from internal.waitlist where confirm_error is not null;`. Facoltativi: `WAITLIST_SITE_URL` (default
 `https://charliemobile.dev/oberta`) e `WAITLIST_ORIGINS` (origini ammesse, separate da virgola;
 default `charliemobile.dev`, `www.charliemobile.dev`, `oberta.pages.dev` e le sue anteprime).
 
-**La mail di conferma**: `supabase/functions/waitlist/templates/confirm.ts` (IT/EN secondo la lingua
-dell'iscrizione), immagini in `site/oberta/email/` (`python3 tool/site/email_assets.py`), anteprime
-`site/oberta/email/conferma-*.html` (`deno run -A supabase/functions/waitlist/templates/preview.ts`;
+**La mail di benvenuto**: `supabase/functions/waitlist/templates/welcome.ts` (IT/EN secondo la lingua
+dell'iscrizione), immagini in `site/oberta/email/` (`python3 tool/site/email_assets.py`, che le copia anche in
+`templates/images.ts`: la mail le prende da `…/functions/v1/waitlist/img/<nome>`, perché il sito è dietro la
+verifica anti-bot di Cloudflare e i proxy delle immagini di Gmail/Apple non la passano), anteprime
+`site/oberta/email/benvenuto-*.html` (`deno run -A supabase/functions/waitlist/templates/preview.ts`;
 `waitlist_test.ts` fallisce se non sono aggiornate). Test: `deno test -A
 supabase/functions/tests/waitlist_test.ts` e `supabase/tests/waitlist.sql` (`begin; … rollback;`).
 
 **Link**:
 
-- conferma: `https://charliemobile.dev/oberta/conferma.html?t=<confirm_token>`
+- niente link di conferma (`conferma.html` rimanda all'inizio); il pulsante della mail porta a `ruoli.html`
 - cancellazione: `https://charliemobile.dev/oberta/disiscriviti.html?t=<unsubscribe_token>`
   (cancella la riga); one-click per i client di posta:
   `POST https://<ref>.supabase.co/functions/v1/waitlist?unsubscribe=<unsubscribe_token>`
 
 **Regole per ogni invio** (GDPR e Garante):
 
-1. Solo agli indirizzi con `confirmed = true`.
+1. A tutti gli iscritti (tutti hanno `confirmed = true` dall'iscrizione).
 2. Solo notizie su Obertà (l'uscita, poi di rado novità): è la finalità del consenso.
 3. In ogni mail il link di cancellazione personale e gli header `List-Unsubscribe` /
    `List-Unsubscribe-Post: List-Unsubscribe=One-Click`.
-4. Chi si iscrive prima che Brevo fosse configurato (`confirm_sent_at is null`) riceve prima, una
-   volta sola, la mail di conferma; non la mail di lancio.
+4. Chi non ha ricevuto la mail di benvenuto (`confirm_sent_at is null`, vedi `confirm_error`) riceve
+   comunque la mail di lancio: l'iscrizione vale dal modulo.
 5. 12 mesi dopo l'uscita si cancella tutta la lista: `delete from internal.waitlist;`.
 6. Un nuovo testo del consenso nel modulo = una nuova riga in `internal.waitlist_consents` e una nuova
    `data-consent` in `index.html` (le vecchie restano come prova).
