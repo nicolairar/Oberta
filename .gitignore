@@ -79,3 +79,6 @@ steam_api64.lib
 libsteam_api.so
 libsteam_api.dylib
 steam_appid.txt
+
+# Demo renders for the owner, not part of the app
+/docs/demo/
