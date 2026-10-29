@@ -33,6 +33,10 @@ class SeatCard extends StatelessWidget {
   final bool accused;
   final String accusedLabel;
 
+  /// Di notte, solo per la Famiglia: il bersaglio dei complici. Un mirino
+  /// scuro sopra il ritratto, al posto del nastro e dei voti del giorno.
+  final bool nightTarget;
+
   /// Quanti voti ha (zero: nessun bollo).
   final int votes;
 
@@ -73,6 +77,7 @@ class SeatCard extends StatelessWidget {
     this.me = false,
     this.accused = false,
     this.accusedLabel = '',
+    this.nightTarget = false,
     this.votes = 0,
     this.pizzino,
     this.pizzinoKey,
@@ -258,6 +263,14 @@ class SeatCard extends StatelessWidget {
                 child: _VoteCount(votes, size: max(22, width * 0.3)),
               ),
             ),
+          ),
+        // Il mirino della notte: il bersaglio della Famiglia, discreto.
+        if (nightTarget && !fallen)
+          Positioned(
+            left: 0,
+            right: 0,
+            top: height * 0.05,
+            child: Center(child: NightTargetMark(size: max(20, width * 0.28))),
           ),
         // Il nastro dell'accusato: sul petto, appena sopra la targhetta; la
         // faccia e il nome restano scoperti.
@@ -492,6 +505,48 @@ class _VoteCount extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// Il mirino della notte sul bersaglio della Famiglia: un tondo blu notte
+/// con un filo rosso scuro e la croce. Niente smalto: non è un'accusa.
+class NightTargetMark extends StatelessWidget {
+  final double size;
+
+  const NightTargetMark({super.key, required this.size});
+
+  @override
+  Widget build(BuildContext context) => Container(
+    key: const Key('seat.nightTarget'),
+    width: size,
+    height: size,
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      color: const Color(0xCC0E1626),
+      border: Border.all(color: const Color(0xFF8E1B22), width: 1.4),
+      boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 6)],
+    ),
+    child: CustomPaint(painter: _CrosshairPainter()),
+  );
+}
+
+class _CrosshairPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.center(Offset.zero);
+    final r = size.shortestSide / 2;
+    final line = Paint()
+      ..color = const Color(0xFFB3262E)
+      ..strokeWidth = max(1.2, r * 0.12)
+      ..strokeCap = StrokeCap.round;
+    canvas.drawCircle(c, r * 0.42, line..style = PaintingStyle.stroke);
+    for (final d in [const Offset(1, 0), const Offset(-1, 0), const Offset(0, 1), const Offset(0, -1)]) {
+      canvas.drawLine(c + d * (r * 0.22), c + d * (r * 0.72), line);
+    }
+    canvas.drawCircle(c, r * 0.08, Paint()..color = const Color(0xFFB3262E));
+  }
+
+  @override
+  bool shouldRepaint(_CrosshairPainter oldDelegate) => false;
 }
 
 /// Il voto di chi ha votato: il numero di posto dell'accusato, bianco, con

@@ -87,7 +87,9 @@ class LocalTable extends StatelessWidget {
       for (final e in tally.entries)
         if (e.value == top) e.key,
     ];
-    final leading = accusing && top > 0 && leaders.length == 1 ? leaders.single : null;
+    // L'accusato è solo del voto di giorno: di notte i voti sono quelli della
+    // Famiglia, e il loro bersaglio ha il mirino, mai il nastro.
+    final leading = day && accusing && top > 0 && leaders.length == 1 ? leaders.single : null;
     final index = {for (var i = 0; i < seats.length; i++) seats[i]: i};
     final italian = t.language.locale.languageCode == 'it';
     return SaloonTable(
@@ -124,7 +126,8 @@ class LocalTable extends StatelessWidget {
           selected: player == selected,
           accused: player == leading,
           accusedLabel: t.online.accusedTag,
-          votes: tally[player] ?? 0,
+          nightTarget: !day && (tally[player] ?? 0) > 0,
+          votes: day ? tally[player] ?? 0 : 0,
           pizzino: pizzino,
           pizzinoKey: ValueKey('pizzino-${player.id}'),
           pizzinoColor: voteColor,

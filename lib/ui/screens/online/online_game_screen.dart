@@ -2038,7 +2038,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       for (final e in tally.entries)
         if (e.value == top) e.key,
     ];
-    final leading = accusing && top > 0 && leaders.length == 1 ? leaders.single : null;
+    // L'accusato è solo del voto di giorno: di notte i voti sono quelli della
+    // Famiglia, e il loro bersaglio ha il mirino, mai il nastro.
+    final leading = day && accusing && top > 0 && leaders.length == 1 ? leaders.single : null;
     final index = {for (var i = 0; i < seats.length; i++) seats[i]: i};
     final byId = {for (var i = 0; i < seats.length; i++) seats[i].id: i};
     return SaloonTable(
@@ -2075,7 +2077,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
           selected: player == selected,
           accused: player == leading,
           accusedLabel: _t.online.accusedTag,
-          votes: tally[player] ?? 0,
+          nightTarget: !day && (tally[player] ?? 0) > 0,
+          votes: day ? tally[player] ?? 0 : 0,
           pizzino: _pizzinoOf(vote, day: day),
           pizzinoKey: ValueKey('pizzino-${player.id}'),
           pizzinoColor: voteColor,

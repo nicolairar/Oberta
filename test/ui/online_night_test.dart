@@ -167,18 +167,44 @@ void main() {
       await tester.tap(find.byWidget(_tappable().first.widget));
       await tester.pump();
       expect(mine, findsOneWidget, reason: 'il numero compare subito');
+      // Di notte niente nastro dell'accusato: il bersaglio ha il mirino.
+      expect(find.text('ACCUSATO'), findsNothing);
+      expect(find.byKey(const Key('seat.nightTarget')), findsOneWidget);
       // Passa il tempo (i complici bot votano): la mano resta fino alla fine.
       for (var i = 0; i < 6; i++) {
         game.clock.elapse(const Duration(seconds: 3));
         await flush(tester);
         if (find.byKey(const Key('online.night')).evaluate().isEmpty) break;
         expect(mine, findsOneWidget, reason: 'il numero resta');
+        expect(find.text('ACCUSATO'), findsNothing, reason: 'i voti della famiglia non sono un\'accusa');
         expect(find.byKey(const Key('online.pass')), findsOneWidget, reason: 'si può ancora cambiare');
       }
       await tester.pumpWidget(const SizedBox());
       return;
     }
     fail('nessuna partita con Bruno nella famiglia');
+  });
+
+  testWidgets('chi non è della famiglia non vede né il mirino né l\'accusato della notte', (tester) async {
+    _usePhone(tester);
+    for (var seed = 1; seed < 60; seed++) {
+      final game = await _toTheNight(tester, seed);
+      if (game == null) continue;
+      if (find.text('Chi eliminate stanotte?').evaluate().isNotEmpty) {
+        await tester.pumpWidget(const SizedBox());
+        continue;
+      }
+      // La famiglia (bot) vota mentre Bruno fa la sua notte.
+      for (var i = 0; i < 6 && find.byKey(const Key('online.night')).evaluate().isNotEmpty; i++) {
+        game.clock.elapse(const Duration(seconds: 3));
+        await flush(tester);
+        expect(find.byKey(const Key('seat.nightTarget')), findsNothing, reason: 'seed $seed');
+        expect(find.text('ACCUSATO'), findsNothing, reason: 'seed $seed');
+      }
+      await tester.pumpWidget(const SizedBox());
+      return;
+    }
+    fail('nessuna partita con Bruno fuori dalla famiglia');
   });
 
   testWidgets('il Compare, come tutta la famiglia, ha il voto dell\'agguato e non la domanda di copertura', (tester) async {
