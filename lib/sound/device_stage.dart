@@ -13,6 +13,7 @@ import 'fx_groups.dart';
 import 'meme_beat.dart';
 import 'memes.dart';
 import 'music_tracks.dart';
+import 'sound_onsets.dart';
 import 'sound_stage.dart';
 import 'verdict_stage.dart';
 
@@ -53,6 +54,20 @@ class DeviceStage extends SoundStage implements VerdictStage {
     _cues.then<void>((_) {}, onError: _report);
   }
 
+  /// Da dove parte davvero [asset] (saltato il silenzio in testa) e quanto
+  /// suona da lì.
+  static ({Duration from, Duration length}) _shapeOf(String asset) {
+    final shape = soundShapes[asset];
+    if (shape == null) return (from: Duration.zero, length: const Duration(seconds: 2));
+    return (from: Duration(milliseconds: shape.$1), length: Duration(milliseconds: shape.$2 - shape.$1));
+  }
+
+  /// Il punto in cui far partire [asset], se non è l'inizio.
+  static Duration? _startOf(String asset) {
+    final from = _shapeOf(asset).from;
+    return from > Duration.zero ? from : null;
+  }
+
   Future<Map<Cue, String>> _recordCues() async {
     final tapes = await compute(_composeAllCues, null);
     final paths = <Cue, String>{};
@@ -80,7 +95,8 @@ class DeviceStage extends SoundStage implements VerdictStage {
         }
         final recorded = cueRecordings[cue];
         if (recorded != null) {
-          await player.play(AssetSource('sounds/${recorded[_nextShort % recorded.length]}.wav'), volume: effectsVolume * gain);
+          final asset = 'sounds/${recorded[_nextShort % recorded.length]}.wav';
+          await player.play(AssetSource(asset), volume: effectsVolume * gain, position: _startOf(asset));
         } else {
           await player.play(DeviceFileSource((await _cues)[cue]!), volume: effectsVolume * gain);
         }
@@ -120,10 +136,11 @@ class DeviceStage extends SoundStage implements VerdictStage {
   void sample(String name, {double volume = 1}) {
     if (!enabled || effectsVolume <= 0) return;
     final player = _shortPlayers[_nextShort++ % _shortPlayers.length];
+    final asset = 'sounds/$name.wav';
     () async {
       try {
         await player.stop();
-        await player.play(AssetSource('sounds/$name.wav'), volume: (effectsVolume * volume).clamp(0.0, 1.0));
+        await player.play(AssetSource(asset), volume: (effectsVolume * volume).clamp(0.0, 1.0), position: _startOf(asset));
       } catch (error) {
         _report(error);
       }
@@ -159,7 +176,8 @@ class DeviceStage extends SoundStage implements VerdictStage {
         _lastTake[group] = take;
         final player = _shortPlayers[_nextShort++ % _shortPlayers.length];
         await player.stop();
-        await player.play(AssetSource(group.asset(take)), volume: (effectsVolume * volume).clamp(0.0, 1.0));
+        final asset = group.asset(take);
+        await player.play(AssetSource(asset), volume: (effectsVolume * volume).clamp(0.0, 1.0), position: _startOf(asset));
       } catch (error) {
         _report(error);
       }
@@ -301,7 +319,11 @@ class DeviceStage extends SoundStage implements VerdictStage {
         });
         await _memePlayer.stop();
         // I meme sono fatti per farsi sentire: sopra a tutto il resto.
-        await _memePlayer.play(AssetSource(meme.asset), volume: (effectsVolume * 1.15).clamp(0.0, 1.0));
+        await _memePlayer.play(
+          AssetSource(meme.asset),
+          volume: (effectsVolume * 1.15).clamp(0.0, 1.0),
+          position: _startOf(meme.asset),
+        );
       } catch (error) {
         _report(error);
       }
