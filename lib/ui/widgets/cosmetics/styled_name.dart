@@ -74,7 +74,7 @@ class StyledName extends StatefulWidget {
         NameStyle.shimmer => const [Color(0xFFB8862B), Color(0xFFFFE9A6), Color(0xFFFFFFFF), Color(0xFFFFE9A6), Color(0xFFB8862B)],
         NameStyle.inferno => const [Color(0xFFFFF2B0), Color(0xFFFFB02E), Color(0xFFFF5A1A), Color(0xFFC81E12), Color(0xFFFFB02E)],
         NameStyle.moonlight => const [Color(0xFF8FA6C8), Color(0xFFEAF2FF), Color(0xFFB9C9E4), Color(0xFFFFFFFF), Color(0xFF7D93B8)],
-        NameStyle.bloodInk => const [Color(0xFF5A0610), Color(0xFFC2142A), Color(0xFF7A0A18), Color(0xFFE23A48), Color(0xFF4A040C)],
+        NameStyle.bloodInk => const [Color(0xFFA8142A), Color(0xFFE8283E), Color(0xFFB01628), Color(0xFFFF5A66), Color(0xFF9A1022)],
         NameStyle.siren => const [Color(0xFF3D7BFF), Color(0xFF9EC0FF), Color(0xFFFF4A4A), Color(0xFFFFB0B0), Color(0xFF3D7BFF)],
         _ => null,
       };
@@ -215,6 +215,10 @@ class _StyledNameState extends State<StyledName> with SingleTickerProviderStateM
         ).createShader(Rect.fromLTWH(rect.left, rect.top, rect.width, h));
       case NameStyle.tramonto:
         return LinearGradient(colors: colors).createShader(rect);
+      case NameStyle.siren:
+        // The police lights: blue at one end, red at the other, whatever
+        // the length of the name.
+        return LinearGradient(colors: colors.take(4).toList(), stops: const [0, 0.42, 0.58, 1]).createShader(rect);
       default:
         return LinearGradient(
           begin: Alignment.topLeft,

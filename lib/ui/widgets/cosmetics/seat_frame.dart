@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 
 import '../../avatar/avatar_look.dart';
 import '../baked.dart';
-import '../../theme/script_fonts.dart';
 
 /// La cornice della bottega intorno a una carta del tavolo (o a un ritratto):
 /// [child] sta dentro, la cornice si disegna sopra il suo bordo. Con
@@ -422,27 +421,61 @@ class SeatFramePainter extends CustomPainter {
       canvas.drawPath(p, Paint()..color = const Color(0xFFB9A47A));
       canvas.restore();
     }
-    const glyphs = ['♠', '♥', '♣', '♦'];
     final corners = _corners(rr);
     for (var i = 0; i < 4; i++) {
       final red = i.isOdd;
       canvas.drawCircle(corners[i], w * 1.05, Paint()..color = const Color(0xFFF7F0DF));
       canvas.drawCircle(corners[i], w * 1.05, _stroke(w * 0.14, shader: gold));
-      final tp = TextPainter(
-        text: TextSpan(
-          text: glyphs[i],
-          style: TextStyle(
-            fontSize: w * 1.45,
-            height: 1,
-            color: red ? const Color(0xFFC0182A) : const Color(0xFF15110E),
-            fontFamilyFallback: const ['Apple Symbols', 'Noto Sans Symbols', ...serifFallback],
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      tp.paint(canvas, corners[i] - Offset(tp.width / 2, tp.height / 2));
-      tp.dispose();
+      // The four suits drawn, not typed: no font is missing a path.
+      canvas.drawPath(suitPath(i, corners[i], w * 0.62), Paint()..color = red ? const Color(0xFFC0182A) : const Color(0xFF15110E));
     }
+  }
+
+  /// A card suit (0 spades, 1 hearts, 2 clubs, 3 diamonds) of half-height
+  /// [r] around [c].
+  @visibleForTesting
+  static Path suitPath(int suit, Offset c, double r) {
+    final p = Path();
+    switch (suit % 4) {
+      case 1:
+        p
+          ..moveTo(c.dx, c.dy + r)
+          ..cubicTo(c.dx - r * 0.35, c.dy + r * 0.55, c.dx - r * 1.05, c.dy + r * 0.05, c.dx - r * 0.95, c.dy - r * 0.45)
+          ..cubicTo(c.dx - r * 0.85, c.dy - r * 1.0, c.dx - r * 0.15, c.dy - r * 1.0, c.dx, c.dy - r * 0.5)
+          ..cubicTo(c.dx + r * 0.15, c.dy - r * 1.0, c.dx + r * 0.85, c.dy - r * 1.0, c.dx + r * 0.95, c.dy - r * 0.45)
+          ..cubicTo(c.dx + r * 1.05, c.dy + r * 0.05, c.dx + r * 0.35, c.dy + r * 0.55, c.dx, c.dy + r)
+          ..close();
+      case 3:
+        p
+          ..moveTo(c.dx, c.dy - r)
+          ..quadraticBezierTo(c.dx + r * 0.35, c.dy - r * 0.35, c.dx + r * 0.75, c.dy)
+          ..quadraticBezierTo(c.dx + r * 0.35, c.dy + r * 0.35, c.dx, c.dy + r)
+          ..quadraticBezierTo(c.dx - r * 0.35, c.dy + r * 0.35, c.dx - r * 0.75, c.dy)
+          ..quadraticBezierTo(c.dx - r * 0.35, c.dy - r * 0.35, c.dx, c.dy - r)
+          ..close();
+      case 0:
+        p
+          ..moveTo(c.dx, c.dy - r)
+          ..cubicTo(c.dx + r * 0.3, c.dy - r * 0.55, c.dx + r * 1.0, c.dy - r * 0.15, c.dx + r * 0.9, c.dy + r * 0.3)
+          ..cubicTo(c.dx + r * 0.8, c.dy + r * 0.75, c.dx + r * 0.2, c.dy + r * 0.7, c.dx + r * 0.08, c.dy + r * 0.35)
+          ..lineTo(c.dx + r * 0.3, c.dy + r)
+          ..lineTo(c.dx - r * 0.3, c.dy + r)
+          ..lineTo(c.dx - r * 0.08, c.dy + r * 0.35)
+          ..cubicTo(c.dx - r * 0.2, c.dy + r * 0.7, c.dx - r * 0.8, c.dy + r * 0.75, c.dx - r * 0.9, c.dy + r * 0.3)
+          ..cubicTo(c.dx - r * 1.0, c.dy - r * 0.15, c.dx - r * 0.3, c.dy - r * 0.55, c.dx, c.dy - r)
+          ..close();
+      default:
+        for (final o in [Offset(0, -r * 0.48), Offset(-r * 0.48, r * 0.1), Offset(r * 0.48, r * 0.1)]) {
+          p.addOval(Rect.fromCircle(center: c + o, radius: r * 0.4));
+        }
+        p
+          ..moveTo(c.dx - r * 0.1, c.dy)
+          ..lineTo(c.dx - r * 0.3, c.dy + r)
+          ..lineTo(c.dx + r * 0.3, c.dy + r)
+          ..lineTo(c.dx + r * 0.1, c.dy)
+          ..close();
+    }
+    return p;
   }
 
   /// Art déco: oro a gradini, linee doppie, il ventaglio in alto.

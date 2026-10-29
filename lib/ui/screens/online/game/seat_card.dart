@@ -416,23 +416,41 @@ class _PlateName extends StatelessWidget {
         textScaler: MediaQuery.textScalerOf(context),
       )..layout();
       final room = box.maxWidth - mark - 2;
-      final fit = painter.width <= 0 ? 1.0 : (room / painter.width).clamp(min(1.0, max(shrink, 9 / style.fontSize!)), 1.0);
+      final fit = painter.width <= 0 ? 1.0 : (room / painter.width).clamp(min(1.0, max(shrink, 8.5 / style.fontSize!)), 1.0);
       painter.dispose();
+      // Smaller than that a name stops reading: a long one (twelve letters,
+      // the most a handle has) is narrowed instead, never cut. Measured
+      // again at its size: the letter spacing does not shrink with it.
+      final fitted = TextPainter(
+        text: TextSpan(text: label, style: style.copyWith(fontSize: style.fontSize! * fit)),
+        textDirection: TextDirection.ltr,
+        maxLines: 1,
+        textScaler: MediaQuery.textScalerOf(context),
+      )..layout();
+      final squeeze = fitted.width <= 0 ? 1.0 : (room / (fitted.width + 3)).clamp(0.6, 1.0);
+      fitted.dispose();
+      Widget name = StyledName(
+        text,
+        text: label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.center,
+        base: style.copyWith(fontSize: style.fontSize! * fit),
+      );
+      if (squeeze < 1) {
+        name = Transform(
+          alignment: Alignment.center,
+          transform: Matrix4.diagonal3Values(squeeze, 1, 1),
+          // Laid out at its whole width, then narrowed into the room.
+          child: OverflowBox(maxWidth: double.infinity, child: name),
+        );
+      }
       return Center(
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (bot) Icon(Icons.settings, size: mark * 0.85, color: Saloon.brass),
-            Flexible(
-              child: StyledName(
-                text,
-                text: label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                base: style.copyWith(fontSize: style.fontSize! * fit),
-              ),
-            ),
+            Flexible(child: name),
           ],
         ),
       );
