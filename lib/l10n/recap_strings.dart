@@ -15,119 +15,104 @@ class RecapStrings {
 
   static RecapStrings of(BuildContext context) => RecapStrings(AppStrings.of(context).language);
 
-  bool get _en => language == AppLanguage.en;
-
-  String _t(String it, String en) => _en ? en : it;
+  /// The text under `recap.<key>` in the messages of the language.
+  String _m(String key, [Map<String, Object?> args = const {}]) => language.message('recap.$key', args);
 
   // ---- The recap.
-  String get open => _t('IL RESOCONTO', 'THE FULL ACCOUNT');
-  String get masthead => _t('Il Resoconto', 'The Full Account');
-  String get dateLine => _t('Edizione straordinaria · tutte le carte in tavola', 'Special edition · every card on the table');
-  String get cast => _t('Chi era chi', 'Who was who');
-  String get timeline => _t('Notte per notte, giorno per giorno', 'Night by night, day by day');
-  String night(int round) => _t('Notte $round', 'Night $round');
-  String day(int round) => _t('Giorno $round', 'Day $round');
-  String get won => _t('VINCE', 'WON');
-  String get wonAlone => _t('VINCE DA SOLO', 'WON ALONE');
-  String get survived => _t('in piedi', 'standing');
-  String get fell => _t('caduto', 'fallen');
-  String get left => _t('se n\'è andato', 'walked out');
-  String get close => _t('CHIUDI', 'CLOSE');
-  String get you => _t('tu', 'you');
-  String get quietNight => _t('Una notte senza mosse.', 'A night without a move.');
+  String get open => _m('open');
+  String get masthead => _m('masthead');
+  String get dateLine => _m('dateLine');
+  String get cast => _m('cast');
+  String get timeline => _m('timeline');
+  String night(int round) => _m('night', {'round': round});
+  String day(int round) => _m('day', {'round': round});
+  String get won => _m('won');
+  String get wonAlone => _m('wonAlone');
+  String get survived => _m('survived');
+  String get fell => _m('fell');
+  String get left => _m('left');
+  String get close => _m('close');
+  String get you => _m('you');
+  String get quietNight => _m('quietNight');
 
   String team(Team team) => switch (team) {
-    Team.citizens => _t('cittadino', 'town'),
-    Team.mafia => _t('famiglia', 'family'),
-    Team.neutral => _t('per conto suo', 'on their own'),
+    Team.citizens => _m('team.citizens'),
+    Team.mafia => _m('team.mafia'),
+    Team.neutral => _m('team.neutral'),
   };
 
   String winner(Team? team) => switch (team) {
-    Team.citizens => _t('Vince la città', 'The town wins'),
-    Team.mafia => _t('Vince la famiglia', 'The family wins'),
-    Team.neutral => _t('Vince il Piromane', 'The Arsonist wins'),
-    null => _t('Nessun vincitore', 'No winner'),
+    Team.citizens => _m('winner.citizens'),
+    Team.mafia => _m('winner.mafia'),
+    Team.neutral => _m('winner.neutral'),
+    null => _m('winner.null'),
   };
 
   String familyAimed(String target, String voters) =>
-      _t('La famiglia ha puntato $target ($voters).', 'The family went for $target ($voters).');
-  String get familyNobody => _t('La famiglia non si è messa d\'accordo.', 'The family could not agree.');
+      _m('familyAimed', {'target': target, 'voters': voters});
+  String get familyNobody => _m('familyNobody');
 
   String move(NightTaskKind kind, String target, {Team? seen, String? role, bool? visited}) => switch (kind) {
-    NightTaskKind.silence => _t('ha cucito la bocca a $target.', 'sewed $target\'s mouth shut.'),
-    NightTaskKind.protect => _t('ha vegliato su $target.', 'watched over $target.'),
-    NightTaskKind.guard => _t('ha fatto da scorta a $target.', 'stood guard for $target.'),
-    NightTaskKind.investigate => _t(
-      'ha indagato su $target: risultava ${seen == Team.mafia ? 'della famiglia' : 'pulito'}.',
-      'investigated $target: came back ${seen == Team.mafia ? 'family' : 'clean'}.',
-    ),
-    NightTaskKind.dig => _t('ha scavato la fossa di $target: era ${inline(role ?? '')}.', 'dug up $target: they were the $role.'),
-    NightTaskKind.snipe => _t('ha sparato a $target.', 'took a shot at $target.'),
-    NightTaskKind.scoop => _t('ha scritto lo scoop su $target.', 'ran the scoop on $target.'),
-    NightTaskKind.douse => _t('ha cosparso di benzina $target.', 'doused $target in petrol.'),
-    NightTaskKind.ignite => _t('ha acceso il fiammifero.', 'struck the match.'),
-    NightTaskKind.resurrect => _t('ha richiamato in vita $target.', 'called $target back to life.'),
-    NightTaskKind.lend => _t('ha prestato soldi a $target.', 'lent money to $target.'),
-    NightTaskKind.stab => _t('ha colpito $target.', 'knifed $target.'),
-    NightTaskKind.jail => _t('ha chiuso in cella $target.', 'locked $target up.'),
-    NightTaskKind.block => _t('ha passato la notte con $target.', 'spent the night with $target.'),
-    NightTaskKind.link => _t('ha fatto innamorare $target.', 'made $target fall in love.'),
-    NightTaskKind.convert => _t('ha chiamato alla setta $target.', 'called $target to the cult.'),
-    NightTaskKind.aim => _t('ha messo nel mirino $target.', 'drew a bead on $target.'),
-    NightTaskKind.watch => _t(
-      'ha sorvegliato la porta di $target: ${visited == true ? 'qualcuno è passato' : 'nessuno è passato'}.',
-      'watched $target\'s door: ${visited == true ? 'someone came by' : 'nobody came by'}.',
-    ),
+    NightTaskKind.silence => _m('move.silence', {'target': target}),
+    NightTaskKind.protect => _m('move.protect', {'target': target}),
+    NightTaskKind.guard => _m('move.guard', {'target': target}),
+    NightTaskKind.investigate => _m('move.investigate', {'target': target, 'seen': seen == Team.mafia ? 'mafia' : 'clean'}),
+    NightTaskKind.dig => _m('move.dig', {'target': target, 'role': inline(role ?? '')}),
+    NightTaskKind.snipe => _m('move.snipe', {'target': target}),
+    NightTaskKind.scoop => _m('move.scoop', {'target': target}),
+    NightTaskKind.douse => _m('move.douse', {'target': target}),
+    NightTaskKind.ignite => _m('move.ignite'),
+    NightTaskKind.resurrect => _m('move.resurrect', {'target': target}),
+    NightTaskKind.lend => _m('move.lend', {'target': target}),
+    NightTaskKind.stab => _m('move.stab', {'target': target}),
+    NightTaskKind.jail => _m('move.jail', {'target': target}),
+    NightTaskKind.block => _m('move.block', {'target': target}),
+    NightTaskKind.link => _m('move.link', {'target': target}),
+    NightTaskKind.convert => _m('move.convert', {'target': target}),
+    NightTaskKind.aim => _m('move.aim', {'target': target}),
+    NightTaskKind.watch => _m('move.watch', {'target': target, 'visited': visited == true ? 'yes' : 'no'}),
     NightTaskKind.kill || NightTaskKind.decoy => '',
   };
 
   String attack(AttackOutcome outcome, AttackSource source, String target) {
     final by = switch (source) {
-      AttackSource.family => _t('dalla famiglia', 'by the family'),
-      AttackSource.sniper => _t('dal Cecchino', 'by the Sniper'),
-      AttackSource.fire => _t('dal fuoco', 'by the fire'),
-      AttackSource.assassin => _t('dal Sicario', 'by the Hitman'),
+      AttackSource.family => _m('attack.family'),
+      AttackSource.sniper => _m('attack.sniper'),
+      AttackSource.fire => _m('attack.fire'),
+      AttackSource.assassin => _m('attack.assassin'),
     };
     final g = PlayerGenders.of(target);
     return switch (outcome) {
-      AttackOutcome.killed => _t(
-        agree(g, m: '$target è stato ucciso $by.', f: '$target è stata uccisa $by.', n: '$target non ce la fa: il colpo arriva $by.'),
-        '$target was killed $by.',
-      ),
-      AttackOutcome.healed => _t(
-        agree(g, m: '$target, colpito $by, è stato salvato.', f: '$target, colpita $by, è stata salvata.', n: 'Il colpo arriva $by, ma $target si salva.'),
-        '$target, hit $by, was saved.',
-      ),
-      AttackOutcome.shrugged => _t('$target ha incassato il colpo $by.', '$target took the blow $by and lived.'),
-      AttackOutcome.escorted => _t('La scorta ha respinto l\'attentato $by a $target.', 'The escort fended off the attack $by on $target.'),
+      AttackOutcome.killed => _m('attack.killed', {'target': target, 'by': by, 'gender': g.name}),
+      AttackOutcome.healed => _m('attack.healed', {'target': target, 'by': by, 'gender': g.name}),
+      AttackOutcome.shrugged => _m('attack.shrugged', {'target': target, 'by': by}),
+      AttackOutcome.escorted => _m('attack.escorted', {'by': by, 'target': target}),
     };
   }
 
   String scoopOut(String target, Team team) => switch (team) {
-    Team.mafia => _t('Il giornale esce: $target è della famiglia.', 'The paper is out: $target is family.'),
-    Team.citizens => _t('Il giornale esce: $target è pulito.', 'The paper is out: $target is clean.'),
-    Team.neutral => _t('Il giornale esce: $target fa per conto suo.', 'The paper is out: $target plays alone.'),
+    Team.mafia => _m('scoopOut.mafia', {'target': target}),
+    Team.citizens => _m('scoopOut.citizens', {'target': target}),
+    Team.neutral => _m('scoopOut.neutral', {'target': target}),
   };
 
   /// A role name in the middle of an Italian sentence: "era il Picciotto".
-  String inline(String role) => _en || role.isEmpty ? role : role[0].toLowerCase() + role.substring(1);
-  String risen(String target) => _t(
-    agree(PlayerGenders.of(target), m: '$target è tornato tra i vivi.', f: '$target è tornata tra i vivi.', n: '$target torna tra i vivi.'),
-    '$target is back among the living.',
-  );
-  String mayor(String name) => _t('$name si rivela Sindaco: il suo voto vale due.', '$name reveals the Mayor: their vote counts twice.');
-  String get votes => _t('Lo scrutinio', 'The ballot');
-  String get abstained => _t('si astiene', 'abstains');
+  String inline(String role) =>
+      language.capitalizesRoles || role.isEmpty ? role : role[0].toLowerCase() + role.substring(1);
+  String risen(String target) => _m('risen', {'target': target, 'gender': PlayerGenders.of(target).name});
+  String mayor(String name) => _m('mayor', {'name': name});
+  String get votes => _m('votes');
+  String get abstained => _m('abstained');
   String condemned(String name, String role) =>
-      _t('La piazza condanna $name. Era ${inline(role)}.', 'The square condemns $name. They were the $role.');
-  String get noCondemned => _t('La piazza non condanna nessuno.', 'The square condemns nobody.');
-  String foolWins(String name) => _t('$name voleva proprio questo: vince da solo.', '$name wanted exactly this: wins alone.');
-  String bounty(String hunter) => _t('$hunter incassa la taglia.', '$hunter collects the bounty.');
-  String exit(String name) => _t('$name ha lasciato la città.', '$name left town.');
+      _m('condemned', {'name': name, 'role': inline(role)});
+  String get noCondemned => _m('noCondemned');
+  String foolWins(String name) => _m('foolWins', {'name': name});
+  String bounty(String hunter) => _m('bounty', {'hunter': hunter});
+  String exit(String name) => _m('exit', {'name': name});
 
   // ---- The notices on the table.
-  String leftTown(String name) => _t('$name esce di scena.', '$name has left the scene.');
-  String wentAway(String name) => _t('$name si allontana dal tavolo.', '$name stepped away from the table.');
-  String cameBack(String name) => _t('$name di nuovo al tavolo.', '$name is back at the table.');
-  String calledOut(String name) => _t('$name ti chiama in causa.', '$name is calling you out.');
+  String leftTown(String name) => _m('leftTown', {'name': name});
+  String wentAway(String name) => _m('wentAway', {'name': name});
+  String cameBack(String name) => _m('cameBack', {'name': name});
+  String calledOut(String name) => _m('calledOut', {'name': name});
 }

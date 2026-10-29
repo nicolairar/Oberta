@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/online/fake_online.dart';
-import 'package:oberta/online/game/progress.dart' show MissionDef;
 import 'package:oberta/online/online_services.dart';
 import 'package:oberta/ui/avatar/avatar_look.dart';
 

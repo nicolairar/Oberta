@@ -13,6 +13,7 @@ import '../../ui/avatar/deep_slots.dart' show Hand;
 import '../../ui/widgets/verdict_scene.dart';
 import '../app_language.dart';
 import '../online_strings.dart';
+import '../rules_strings.dart';
 import '../shop_strings.dart';
 import '../strings_en.dart';
 
@@ -26,7 +27,8 @@ import '../strings_en.dart';
 // Bürger, Detektiv, Doktor ("der Doc" in the lines), Scharfschütze, Reporter,
 // Totengräber, Leibwächter, Veteran, Ex-Knacki, Messias, Bürgermeister,
 // Portier, Trottel, Brandstifter, Kopfgeldjäger, Kredithai, Auftragskiller,
-// Lockvogel, Schließer, Pazifist. The factions: "die Familie" and "die Stadt".
+// Lockvogel, Schließer, Pazifist, Amor, Präsident, Sektenführer, Kanonier,
+// Meisterschütze. The factions: "die Familie" and "die Stadt" (and "die Sekte").
 // Roles go into sentences without an article ("{name} war Detektiv").
 
 final class GermanStrings extends EnglishStrings {
@@ -40,6 +42,8 @@ final class GermanStrings extends EnglishStrings {
   OnlineStrings get online => const GermanOnlineStrings();
   @override
   ShopStrings get shop => const GermanShopStrings();
+  @override
+  List<RulesStep>? rulesSteps(RulesStyle style) => style == RulesStyle.quick ? _quickDe : _stageDe;
   @override
   Map<String, String> get messages => germanMessages;
 
@@ -144,6 +148,8 @@ final class GermanStrings extends EnglishStrings {
   String get youActAlone => 'DU ARBEITEST ALLEIN';
   @override
   String get yourAccomplices => 'DEINE KOMPLIZEN';
+  @override
+  String get familyUnknown => 'DU ARBEITEST FÜR DIE FAMILIE, ABER DU WEISST NICHT, WER SIE SIND';
   @override
   String get familyBadge => 'FAMILIE';
   @override
@@ -1234,7 +1240,7 @@ const germanMessages = <String, String>{
   'settings.deleteAccount': 'Konto löschen',
   'settings.deleteHint': 'Für immer: Profil, Freunde, Garderobe und Münzen.',
   'settings.deleteTitle': 'Dein Konto löschen?',
-  'settings.deleteBody': 'Profil, Look, Freunde, Garderobe, Münzen, Räume und Nachrichten: alles weg, für immer. Von Käufen mit echtem Geld bleibt aus steuerlichen Gründen nur ein anonymer Beleg.',
+  'settings.deleteBody': 'Profil, Look, Freunde, Garderobe, Münzen, Aufträge, Räume und Nachrichten: alles weg, für immer.',
   'settings.deleteContinue': 'Weiter',
   'settings.cancel': 'Abbrechen',
   'settings.deleteTypePrompt': 'Letztes Wort: Tipp „{word}“ zur Bestätigung.',
@@ -1321,8 +1327,10 @@ const germanMessages = <String, String>{
   'gameEvent.text.dawn': 'Tag {round} bricht an.',
   'gameEvent.text.dawn.nobodyDiedTonight': 'Heute Nacht ist niemand gestorben.',
   'gameEvent.text.dawn.foundDead': 'Tot aufgefunden: {names}.',
+  'gameEvent.text.dawn.theEscortFended': 'Die Eskorte hat einen Anschlag auf den Präsidenten abgewehrt.',
   'gameEvent.text.dawn.someoneWasSaved': 'Jemand wurde gerettet.',
   'gameEvent.text.dawn.attacksFoiled': '{saved} Anschläge vereitelt.',
+  'gameEvent.text.dawn.diedOfA': '{broken} ist an gebrochenem Herzen gestorben.',
   'gameEvent.text.scoop': 'Der Knüller der Zeitung: {name} ist {role}.',
   'gameEvent.text.scoop.thePaperS': 'Der Knüller der Zeitung: {name} ist {team}.',
   'gameEvent.text.silenced': 'Der Schneider hat {name} den Mund zugenäht: heute stumm.',
@@ -1330,13 +1338,24 @@ const germanMessages = <String, String>{
   'gameEvent.text.lynch.theSquareCondemns': 'Der Platz verurteilt niemanden.',
   'gameEvent.text.lynch.theSquareCondemns.2': 'Der Platz verurteilt {name}: {role}.',
   'gameEvent.text.lynch.collectsTheBounty': ' {bountyHunter} kassiert das Kopfgeld.',
+  'gameEvent.text.lynch.diedOfA': ' {heartbroken} ist an gebrochenem Herzen gestorben.',
   'gameEvent.text.mayor': '{name} gibt sich als Bürgermeister zu erkennen: Die Stimme zählt doppelt.',
   'gameEvent.text.truce': '{name}, der Pazifist, ruft Waffenstillstand aus: {target} ist {role}. Heute keine Abstimmung.',
+  'gameEvent.text.cannon': ' {heartbroken} ist an gebrochenem Herzen gestorben.',
+  'gameEvent.text.cannon.aRoarIn': 'Ein Donnern auf dem Platz: {name}, der Kanonier, hat {target} getroffen, Rolle {role}.',
+  'gameEvent.text.shot': ' {heartbroken} ist an gebrochenem Herzen gestorben.',
+  'gameEvent.text.shot.aShotFrom': 'Ein Schuss vom Glockenturm geht nach hinten los: {name}, {role}, zielte auf die Stadt.',
+  'gameEvent.text.shot.aShotFrom.2': 'Ein Schuss vom Glockenturm: {name} liegt am Boden. Rolle {role}.',
+  'gameEvent.text.aim': 'Du hast {name} im Visier.',
   'gameEvent.text.cell': 'Du sitzt in der Zelle. Heute Nacht gehst du nirgendwohin.',
   'gameEvent.text.cell.tonightIsIn': 'Heute Nacht sitzt {name} in der Zelle.',
+  'gameEvent.text.converted': 'Du hast das Licht gesehen: Jetzt gehörst du zur Sekte und gewinnst nur mit ihr.',
+  'gameEvent.text.door': '{name} gehört jetzt zu dir.',
+  'gameEvent.text.door.doorShutDid': 'Tür zu: {name} ist nicht übergetreten.',
   'gameEvent.text.busy': 'Letzte Nacht hat dich jemand beschäftigt.',
   'gameEvent.text.left': '{name} hat die Stadt verlassen.',
   'gameEvent.text.end': 'Spiel beendet: Keiner hat mehr gespielt.',
+  'gameEvent.text.end.thePresidentHas': ' Der Präsident ist gefallen.',
   'gameEvent.text.end.gameOver': 'Spiel vorbei: {winner}.',
   'gameEvent.text.end.wonAlone': ' Allein gewonnen: {alone}.',
   'gameEvent.text.found': '{name} war {role}.',
@@ -1352,13 +1371,30 @@ const germanMessages = <String, String>{
   'gameEvent.text.protected': 'Heute Nacht hast du über {name} gewacht.',
   'gameEvent.text.dawn.foundOne': 'Tot aufgefunden: {name}.',
   'gameEvent.text.dawn.backAmongLiving': '{name} ist zurück unter den Lebenden.',
+  'gameEvent.text.lovers.bound': 'Du hast {first} und {second} aneinander gebunden.',
+  'gameEvent.text.lovers.self': 'Das Herz hat gewählt: {first} und {second} lieben sich. Ihr gewinnt nur, wenn ihr beide lebt.',
   // ---- progress
   'progress.missions': 'Aufträge',
   'progress.achievements': 'Erfolge',
   'progress.leaderboard': 'Bestenliste',
   'progress.daily': 'TÄGLICH',
   'progress.weekly': 'WÖCHENTLICH',
-  'progress.missionsHint': 'Sie erledigen sich beim Spielen: Die Belohnung kommt von allein. Abgebrochene oder untätige Spiele zählen nie.',
+  'progress.goals': 'ZIELE',
+  'progress.tabDaily': 'HEUTE',
+  'progress.tabWeekly': 'WOCHE',
+  'progress.tabGoals': 'ZIELE',
+  'progress.missionsHint': 'Sie erledigen sich beim Spielen, dann holst du sie ab. Münzen gibt es nur so: Für echtes Geld wird nichts verkauft. Abgebrochene oder untätige Spiele zählen nie.',
+  'progress.goalsHint': 'Ziele bleiben, bis du sie erreichst. Manche bringen Stücke, die der Laden nie verkauft.',
+  'progress.claim': 'ABHOLEN',
+  'progress.claimed': 'ABGEHOLT',
+  'progress.late': 'FRÜHER',
+  'progress.reputation': 'RESPEKT',
+  'progress.reputationGain': '+{n} Respekt',
+  'progress.claimDone': 'Abgeholt: {coins} Münzen, +{reputation} Respekt',
+  'progress.itemWon': 'Jetzt deins: {name}',
+  'progress.reward': 'Belohnung: {name}',
+  'progress.unlocksWith': 'Freischalten mit: {mission}',
+  'progress.missionOnly': 'Nur über Aufträge',
   'progress.done': 'ERLEDIGT',
   'progress.endsIn': 'endet in {inDays} Tagen',
   'progress.endsIn.endsInH': 'endet in {h} Std',
@@ -1374,7 +1410,7 @@ const germanMessages = <String, String>{
   'progress.leaderboardHint': 'Die besten Hundert der Rangliste, nach Sprache.',
   'progress.yourPlace': 'Du bist auf Platz {rank}',
   'progress.notRanked': 'Spiel ein Ranglistenspiel, um auf die Liste zu kommen.',
-  'progress.missionDone': 'Auftrag erledigt: {name}',
+  'progress.missionDone': 'Auftrag erledigt: {name}. Hol ihn ab!',
   'progress.achievementDone': 'Erfolg: {name}',
   'progress.mission.daily_play_3': 'Spiel 3 Partien',
   'progress.mission.daily_win_1': 'Gewinn eine Partie',
@@ -1395,6 +1431,28 @@ const germanMessages = <String, String>{
   'progress.mission.weekly_finds_3': 'Entlarve als Detektiv 3 Mafiosi',
   'progress.mission.weekly_kills_5': 'Zieh mit der Familie 5 Anschläge durch',
   'progress.mission.weekly_nights_12': 'Überleb 12 Nächte',
+  'progress.mission.daily_friends_play_2': 'Spiel 2 Partien mit Freunden',
+  'progress.mission.daily_win_alive_1': 'Gewinn und überleb bis zum Ende',
+  'progress.mission.daily_survive_2': 'Sei am Ende von 2 Partien noch am Leben',
+  'progress.mission.weekly_play_10': 'Spiel 10 Partien',
+  'progress.mission.weekly_wins_4': 'Gewinn 4 Partien',
+  'progress.mission.weekly_town_wins_3': 'Gewinn 3-mal mit der Stadt',
+  'progress.mission.weekly_mafia_wins_2': 'Gewinn 2-mal mit der Familie',
+  'progress.mission.weekly_detective_win_1': 'Gewinn eine Partie als Detektiv',
+  'progress.mission.weekly_doctor_win_1': 'Gewinn eine Partie als Doktor',
+  'progress.mission.long_nights_10': 'Überleb 10 Nächte',
+  'progress.mission.long_lynch_hits_3': 'Schick 3 Mafiosi an den Galgen',
+  'progress.mission.long_detective_wins_5': 'Gewinn 5 Partien als Detektiv',
+  'progress.mission.long_finds_5': 'Entlarve als Detektiv 5 Mafiosi',
+  'progress.mission.long_mafia_wins_10': 'Gewinn 10-mal mit der Familie',
+  'progress.mission.long_town_wins_10': 'Gewinn 10-mal mit der Stadt',
+  'progress.mission.long_wins_50': 'Gewinn 50 Partien',
+  'progress.mission.long_games_25': 'Spiel 25 Partien',
+  'progress.mission.long_friends_games_20': 'Spiel 20 Partien mit Freunden',
+  'progress.mission.long_ranked_games_20': 'Spiel 20 Ranglistenpartien',
+  'progress.mission.long_saves_5': 'Rette als Doktor 5 Leben',
+  'progress.mission.long_survived_25': 'Sei am Ende von 25 Partien noch am Leben',
+  'progress.mission.long_neutral_wins_3': 'Gewinn 3-mal als Einzelgänger',
   'progress.mission': 'Ziel: {target}',
   'progress.achievement.wins_10': 'Glückspilz',
   'progress.achievement': 'Gewinn 10 Partien',
@@ -1429,12 +1487,11 @@ const germanMessages = <String, String>{
   'progress.achievement.roles_won_all': 'Chamäleon',
   'progress.achievement.winWithEvery': 'Gewinn mit jeder Rolle',
   'progress.achievement.roles_town_all': 'Die ganze Stadt',
-  'progress.achievement.roles_town_all.goal': 'Gewinn mit jeder Rolle der Stadt',
+  'progress.achievement.winWithEvery.2': 'Gewinn mit jeder Rolle der Stadt',
   'progress.achievement.roles_mafia_all': 'Die ganze Familie',
-  'progress.achievement.roles_mafia_all.goal': 'Gewinn mit jeder Rolle der Familie',
+  'progress.achievement.winWithEvery.3': 'Gewinn mit jeder Rolle der Familie',
   'progress.achievement.roles_lone_all': 'Alle Einzelgänger',
-  'progress.achievement.roles_lone_all.goal': 'Gewinn mit jeder Einzelgänger-Rolle',
-  'progress.achievement.roleWin': 'Gewinn eine Partie mit dieser Rolle',
+  'progress.achievement.winWithEvery.4': 'Gewinn mit jeder Einzelgänger-Rolle',
   'progress.achievement.wins_alive_25': 'Dickes Fell',
   'progress.achievement.winTimesStill': 'Gewinn 25-mal und bleib dabei am Leben',
   'progress.achievement.lynch_hits_10': 'Gute Nase',
@@ -1465,6 +1522,7 @@ const germanMessages = <String, String>{
   'progress.achievement.asAMafioso': 'Bring als Mafioso 5 Unschuldige an den Galgen',
   'progress.achievement.fool_win': 'Wer zuletzt lacht',
   'progress.achievement.winAsThe': 'Gewinn als Trottel',
+  'progress.achievement.winAGame': 'Gewinn eine Partie mit dieser Rolle',
   'progress.titleName.man_of_honor': 'Ehrenmann',
   'progress.titleName.legend': 'Legende',
   'progress.titleName.veteran': 'Veteran',
@@ -1478,6 +1536,7 @@ const germanMessages = <String, String>{
   'progress.titleName.guardian_angel': 'Schutzengel',
   'progress.titleName.inspector': 'Der Inspektor',
   'progress.titleName.schemer': 'Intrigant',
+  'progress.toClaim': '{n} zum Abholen',
   // ---- recap
   'recap.open': 'DER GANZE BERICHT',
   'recap.masthead': 'Der ganze Bericht',
@@ -1515,11 +1574,15 @@ const germanMessages = <String, String>{
   'recap.move.stab': 'hat {target} abgestochen.',
   'recap.move.jail': 'hat {target} eingesperrt.',
   'recap.move.block': 'hat die Nacht mit {target} verbracht.',
+  'recap.move.link': 'hat {target} verliebt gemacht.',
+  'recap.move.convert': 'hat {target} zur Sekte gerufen.',
+  'recap.move.aim': 'hat {target} ins Visier genommen.',
   'recap.attack.family': 'von der Familie',
   'recap.attack.sniper': 'vom Scharfschützen',
   'recap.attack.fire': 'vom Feuer',
   'recap.attack.assassin': 'vom Auftragskiller',
   'recap.attack.shrugged': '{target} hat den Schlag {by} eingesteckt und lebt.',
+  'recap.attack.escorted': 'Die Eskorte hat den Anschlag {by} auf {target} abgewehrt.',
   'recap.scoopOut.mafia': 'Die Zeitung ist raus: {target} gehört zur Familie.',
   'recap.scoopOut.citizens': 'Die Zeitung ist raus: {target} ist sauber.',
   'recap.scoopOut.neutral': 'Die Zeitung ist raus: {target} spielt allein.',
@@ -1682,21 +1745,46 @@ const germanMessages = <String, String>{
   'table.youAreJailed': 'Du sitzt in der Zelle. Heute Nacht gehst du nirgendwohin.',
   'table.jailerWantsYou': 'Der Schließer will ein Wörtchen reden.',
   'table.inYourCell': 'In deiner Zelle: {name}. Verhör im Chat.',
+  'table.lastOfFamily': 'Von der Familie bist nur noch du übrig: Jetzt gehört die Nacht dir.',
   'table.mateInCell': 'Heute Nacht sitzt {name} in der Zelle.',
   'table.jailChat': 'Die Zelle',
   'table.jailer': 'Der Schließer',
+  'table.converted': 'Du hast das Licht gesehen: Jetzt gehörst du zur Sekte und gewinnst nur mit ihr.',
+  'table.sectLine': 'Deine Sekte: {names}.',
+  'table.doorClosed': 'Tür zu: {name} ist nicht übergetreten.',
+  'table.linkFirst': 'Tipp das erste Herz an.',
+  'table.linkSecond': '{name} und wer noch? Tipp das zweite Herz an.',
+  'table.link': '{a} und {b} verkuppeln?',
+  'table.linkBody': 'Sie erfahren es im Morgengrauen und gewinnen nur, wenn beide leben. Du kannst es nicht ändern.',
+  'table.loversLine': 'Verliebt: {a} und {b}.',
+  'table.inLoveWith': 'Dein Herz schlägt für {name}.',
+  'table.loversChat': 'Die Verliebten',
   'table.answerAtDawn': 'Jemand an diesem Tisch blockiert: Die Antwort kommt im Morgengrauen.',
   'table.readTheNews': 'Lies die Nachrichten, dann „Bereit“.',
   'table.votedFor': 'Du hast für {name} gestimmt. Du kannst umentscheiden.',
   'table.revealMayor': 'Enthüllen',
   'table.revealMayorTitle': 'Dich als Bürgermeister zu erkennen geben?',
   'table.revealMayorBody': 'Alle wissen dann, wer du bist, und ab heute zählt deine Stimme doppelt.',
+  'table.shootTitle': 'Auf {name} schießen?',
+  'table.shotLine': 'Der Schuss ging nach hinten los: {name} war {role}.',
+  'table.shotLine.aShotFrom': 'Ein Schuss vom Glockenturm: {name} war {role}.',
+  'table.aimLine': 'Im Visier: {name}. Schüsse: {left}.',
   'table.truce': 'Waffenstillstand',
   'table.truceHint': 'Tipp an, wen du vor allen enthüllst.',
   'table.truceTitle': 'Alles stopp: {name} enthüllen?',
   'table.truceBody': 'Alle sehen die genaue Rolle, und deine. Heute keine Abstimmung. Nur einmal.',
   'table.truceLine': '{pacifist} hat Waffenstillstand ausgerufen: {name} ist {role}.',
   'table.truceVerdict': 'Waffenstillstand: Heute hängt keiner.',
+  'table.fire': 'Feuer!',
+  'table.fireHint': 'Tipp an, wen du triffst.',
+  'table.fireTitle': 'Feuer auf {name}?',
+  'table.fireBody': 'Die Person stirbt sofort, und ihre Rolle wird öffentlich. Alle hören das Donnern: Dann wissen sie, wer die Kanone hat.',
+  'table.shotsLeft': 'Du hast noch einen Schuss.',
+  'table.shotsLeft.youHaveShots': 'Du hast noch {count} Schüsse.',
+  'table.gunnerShotsLeft': 'Der Kanonier hat keine Schüsse mehr.',
+  'table.gunnerShotsLeft.theGunnerHas': 'Der Kanonier hat noch einen Schuss.',
+  'table.gunnerShotsLeft.theGunnerHas.2': 'Der Kanonier hat noch {count} Schüsse.',
+  'table.cannonLine': 'Ein Donnern auf dem Platz: Der Kanonier hat {name} getroffen, Rolle {role}.',
   'table.noLynch': 'Niemand wurde gelyncht.',
   'table.chatOpensLater': 'Der Platz öffnet wieder zur Diskussion.',
   'table.chatOver': 'Das Spiel ist vorbei.',
@@ -1708,6 +1796,7 @@ const germanMessages = <String, String>{
   'table.lynchedLine': '{name} wurde gelyncht.',
   'table.lynchedLine.role': '{name} wurde gelyncht. Rolle: {role}.',
   'table.abstainedVotes': '{n, plural, one{# Enthaltung} other{# Enthaltungen}}',
+  'table.shootBody': 'Alle hören es, keiner weiß, wer geschossen hat. Gehört die Person zur Stadt, geht der Schuss nach hinten los und du stirbst. {left, plural, one{Es ist dein letzter Schuss.} other{Du hast noch # Schüsse.}}',
   // ---- tutorial
   'tutorial.you': 'Du',
   'tutorial.skip': 'Überspringen',
@@ -1883,7 +1972,6 @@ const germanMessages = <String, String>{
   'results.keysPlayAgainOrBack': 'ENTER  noch mal   ·   ESC  zurück',
   'results.keysBackToRoom': 'ENTER oder ESC  zurück in den Raum',
   'results.level': 'LEVEL {level}',
-
   // ---- mirror
   'mirror.takeHatOff': 'Hut abnehmen',
   'mirror.putHatOn': 'Hut aufsetzen',
@@ -1920,7 +2008,6 @@ const germanMessages = <String, String>{
   'mirror.tab.marks': 'Male',
   'mirror.tab.age': 'Alter',
   'mirror.tab.head': 'Kopf',
-
   // ---- chronicle
   'chronicle.deadJoiner': ' UND ',
   'chronicle.listJoiner': ' und ',
@@ -1935,12 +2022,10 @@ const germanMessages = <String, String>{
   'chronicle.lynchedNeutral': '{name} gelyncht: {role}',
   'chronicle.lynchedFamily': '{name} gelyncht: einer von der Familie',
   'chronicle.lynchedInnocent': '{name} gelyncht: unschuldig',
-
   // ---- courier
   'courier.masthead': 'Der {city}-Kurier',
   'courier.dateLine': 'Jahrgang XIX  ·  Tag {round}  ·  {edition}',
   'courier.dawnEdition': 'Morgenausgabe',
-
   // ---- gesture
   'gesture.title': 'Eine Geste für {name}',
   'gesture.hint': 'Der ganze Tisch sieht sie.',
@@ -1991,27 +2076,69 @@ const germanMessages = <String, String>{
   'localRole.answerHint': 'Deine Antwort (nur der Schließer liest sie)',
   'localRole.questionHint': 'Eine Frage an den Gefangenen (optional)',
   'localRole.jailed': '{name} sitzt in deiner Zelle.',
+  'localRole.converted': 'Du hast das Licht gesehen: Jetzt gehörst du zur Sekte und gewinnst nur mit ihr.',
+  'localRole.sect': 'Deine Sekte: {names}.',
+  'localRole.doorClosed': 'Letzte Nacht eine verschlossene Tür: {name}.',
+  'localRole.sectWins': 'Die Sekte gewinnt',
+  'localRole.linkSecond': 'Und wer noch? Tipp das zweite Herz an.',
+  'localRole.linked': 'Du hast {a} und {b} aneinander gebunden.',
+  'localRole.inLoveWith': 'Dein Herz schlägt für {name}: Ihr gewinnt nur, wenn ihr beide lebt.',
+  'localRole.fateCannon': 'Kanone, Tag {round}',
+  'localRole.fateDay': 'Tagsüber, Tag {round}',
   'localRole.truce': 'Waffenstillstand des Pazifisten',
   'localRole.whoAreYou': 'Der Pazifist tippt auf das eigene Gesicht.',
   'localRole.notYou': 'Nur der Pazifist kann den Waffenstillstand ausrufen.',
   'localRole.whoToReveal': 'Wen enthüllst du vor allen?',
+  'localRole.cannon': 'Feuer des Kanoniers',
+  'localRole.gunnerWhoAreYou': 'Der Kanonier tippt auf das eigene Gesicht.',
+  'localRole.notTheGunner': 'Nur der Kanonier kann feuern.',
+  'localRole.whoToHit': 'Wen triffst du?',
+  'localRole.marksman': 'Schuss des Meisterschützen',
+  'localRole.whoIsMarksman': 'Der Meisterschütze tippt auf das eigene Gesicht.',
+  'localRole.notMarksman': 'Nur der Meisterschütze kann schießen.',
+  'localRole.aimed': 'Im Visier: {name}. Übrige Schüsse: {left}.',
+  'localRole.noAim': 'Niemand im Visier: Wähl heute Nacht jemanden.',
+  'localRole.fire': 'Feuer!',
+  'localRole.carryOn': 'Weiter',
   'localRole.cancel': 'Abbrechen',
   'localRole.confirm': 'Bestätigen',
   // ---- localTable
-  'localTable.curtainHint': 'Alle anderen schauen weg. Tipp erst, wenn du das Handy in der Hand hast.',
-  'localTable.roleCurtainHint': 'Gleich siehst du deine Karte: Sonst darf keiner hinschauen.',
-  'localTable.backToTable': 'Handy in die Tischmitte',
   'localTable.pickedConfirm': 'Du hast {name} gewählt. Bestätige, oder tipp auf einen anderen Platz.',
   'localTable.familyNote': 'Familie',
   'localTable.cleanNote': 'sauber',
-  'localTable.putItDown': 'Erledigt. Leg das Handy hin und gib es weiter.',
   'localTable.discuss': 'Redet laut darüber. Dann wird abgestimmt.',
   'localTable.openVote': 'Das Handy bleibt in der Mitte: Es wird einzeln abgestimmt, ganz offen.',
-  'localTable.voterTurn': '{name} stimmt ab: Tipp an, wen du verurteilst.',
   'localTable.votedLine': '{voter} stimmt für {target}.',
   'localTable.abstainedLine': '{voter} enthält sich.',
   'localTable.undo': 'Zurück',
   'localTable.notTheMayor': 'Nur der Bürgermeister kann sich enthüllen.',
+  // ---- rules
+  'rules.sign': 'Regeln',
+  'rules.title': 'So wird gespielt',
+  'rules.banner': 'Zum Vorlesen',
+  'rules.pitch': 'Lies diese Seite laut vor: In einer Minute können deine Freunde spielen.',
+  'rules.style.quick': 'Kurz',
+  'rules.style.stage': 'Theatralisch',
+  'rules.styleHint.quick': 'Das ganze Spiel in einer Minute.',
+  'rules.styleHint.stage': 'Ein schwarzes Märchen, zum Vortragen.',
+  'rules.readToMe': 'Lies sie mir vor',
+  'rules.stopReading': 'Das reicht',
+  'rules.commonRoles': 'Die häufigsten Rollen',
+  'rules.commonRolesHint': 'Eine Zeile pro Rolle, für Neugierige.',
+  'rules.playLocal': 'Spielen wir an einem Handy',
+  'rules.playLocalHint': 'Ein Handy, von Hand zu Hand gereicht.',
+  'rules.playFriends': 'Mit Freunden spielen',
+  'rules.playFriendsHint': 'Das Ein-Handy-Spiel läuft auf dem Handy: Von hier geht es in einen Online-Raum.',
+  'rules.back': 'Zurück',
+  'rules.team.citizens': 'Stadt',
+  'rules.team.mafia': 'Familie',
+  'rules.team.neutral': 'Auf eigene Faust',
+  // ---- chat
+  'chat.fresh': '{n} neu',
+  // ---- nightNotes
+  'nightNotes.spendTheNight': 'Die Nacht verbringen',
+  // ---- ranked
+  'ranked.yourTable': 'Deine Sprache',
 };
 
 /// The narrator's script, read on screen (no recorded voice yet).
@@ -2128,7 +2255,7 @@ const germanPack = NarrationPack(
     Role.prostituta: RoleText(
       'Lockvogel',
       '„Ein Lied, ein Drink, und die Nacht ist weg.“',
-      'Du gehörst zur Familie, wählst aber kein Opfer: Jede Nacht blockierst du jemanden, nie zweimal dieselbe Person. Kann sonst keiner wählen, wählst du.',
+      'Du spielst für die Familie, aber ihr kennt euch nicht. Jede Nacht blockierst du einen Zug, nie zweimal dieselbe Person. Bleibst nur du übrig, wählst du.',
     ),
     Role.carceriere: RoleText(
       'Schließer',
@@ -2139,6 +2266,31 @@ const germanPack = NarrationPack(
       'Pazifist',
       '„Blut ruft nach Blut. Ich rufe Waffenruhe.“',
       'Einmal pro Spiel enthüllst du tagsüber vor allen die genaue Rolle einer Person, und deine: Dann wird nicht abgestimmt. Du gewinnst mit der Stadt.',
+    ),
+    Role.cupido: RoleText(
+      'Amor',
+      '„Zwei Herzen, eine Mitgift, kein Ausweg.“',
+      'In der ersten Nacht verbindest du zwei Personen, gern auch dich. Sie gewinnen nur, wenn beide leben; stirbt eine, folgt die andere. Du gewinnst mit der Stadt.',
+    ),
+    Role.presidente: RoleText(
+      'Präsident',
+      '„Der Staat verhandelt nicht.“',
+      'Alle wissen, wer du bist, und keiner kann gegen dich stimmen. Die Eskorte rettet dich bei den ersten zwei Anschlägen, beim dritten stirbst du. Dann verliert die Stadt.',
+    ),
+    Role.capoSetta: RoleText(
+      'Sektenführer',
+      '„Ich will keinen Glauben. Nur Gefolgschaft.“',
+      'Du spielst allein: Jede Nacht bekehrst du jemanden, der ab dann nur mit dir gewinnt und die anderen nicht kennt. Du gewinnst, wenn alle Lebenden zur Sekte gehören.',
+    ),
+    Role.artigliere: RoleText(
+      'Kanonier',
+      '„Ich flüstere nicht. Ich donnere.“',
+      'Zwei Schüsse, einer pro Tag, ab dem zweiten Tag: Wen du in der Diskussion triffst, stirbt sofort. Ab dem ersten Schuss kennen dich alle. Du gewinnst mit der Stadt.',
+    ),
+    Role.tiratoreScelto: RoleText(
+      'Meisterschütze',
+      '„Ein Atemzug, ein Schuss, ein Name.“',
+      'Nachts nimmst du jemanden ins Visier, tagsüber darfst du schießen. Zwei Schüsse. Gehört die Person zur Stadt, geht der Schuss nach hinten los und du stirbst.',
     ),
   },
   cities: [
@@ -2517,7 +2669,10 @@ const germanPack = NarrationPack(
     NightTaskKind.lend: 'Wen schützt du heute Nacht mit einem Kredit?',
     NightTaskKind.stab: 'Wen schaltest du heute Nacht aus?',
     NightTaskKind.jail: 'Wen sperrst du heute Nacht ein?',
+    NightTaskKind.link: 'Wer verliebt sich?',
+    NightTaskKind.convert: 'Wen rufst du heute Nacht ins Licht?',
     NightTaskKind.block: 'Für wen singst du heute Nacht?',
+    NightTaskKind.aim: 'Wen behältst du im Visier?',
   },
   taskHints: {
     NightTaskKind.kill: 'Tipp einen Namen an: Das ist deine Stimme, wer stirbt. Die Mehrheit der Familie entscheidet.',
@@ -2535,9 +2690,50 @@ const germanPack = NarrationPack(
     NightTaskKind.lend: 'Tipp einen Namen an: Die Person kann heute Nacht nicht sterben. Nie zweimal hintereinander dieselbe.',
     NightTaskKind.stab: 'Tipp einen Namen an: Die Person stirbt heute Nacht, außer jemand beschützt sie.',
     NightTaskKind.jail: 'Tipp einen Namen an: Die Person kann heute Nacht nichts tun und keiner kommt ran. Die Zelle schließt sofort.',
+    NightTaskKind.link: 'Tipp zwei Namen an, auch deinen: Ab heute Nacht lieben sie sich. Nur einmal.',
+    NightTaskKind.convert: 'Tipp einen Namen an: Geht die Tür auf, gehört die Person ab morgen zur Sekte.',
     NightTaskKind.block: 'Tipp einen Namen an: Der Zug dieser Person geht heute Nacht verloren. Nie zwei Nächte hintereinander dieselbe Person.',
+    NightTaskKind.aim: 'Tipp einen Namen an: Morgen darfst du schießen. Gehört die Person zur Stadt, stirbst du.',
     NightTaskKind.decoy: 'Heute Nacht kein Zug: Tipp irgendeinen Namen an, es passiert nichts. So bleibt deine Rolle verborgen.',
   },
+  backfires: [
+    'Der Schuss hallt, aber es fällt, wer abgedrückt hat.',
+    'Das Gewehr klemmt und platzt. Vom Glockenturm kommt nur noch Stille.',
+  ],
+  backfireFact: 'Der Schuss ging nach hinten los: Der Meisterschütze zielte auf die Stadt und stirbt selbst.',
+  cannonShots: [
+    'Ein Donnern erschüttert den Platz. Die Fenster klirren, die Tauben fliegen alle auf einmal auf.',
+    'Die Kanone donnert einmal. Als sich der Rauch verzieht, steht jemand nicht mehr.',
+    'Feuer! Der Boden bebt, die Tassen springen auf den Cafétischen. Dann Stille.',
+  ],
+  cannonFact: 'Ein Donnern auf dem Platz: Der Kanonier hat {name} getroffen.',
+  cardCurtainHint: 'Gleich siehst du deine Karte: Sonst darf keiner hinschauen.',
+  curtainHint: 'Alle anderen schauen weg. Tipp erst, wenn du das Handy in der Hand hast.',
+  escorts: [
+    'Ein Schuss im Dunkeln. Aber ein Mann in Schwarz steht schon vor dem Präsidenten, den Koffer erhoben.',
+    'Ein Schuss, ein Funke, ein Klirren von Stahl. Die Eskorte schläft nie.',
+  ],
+  escortFact: 'Die Eskorte hat einen Anschlag auf den Präsidenten abgewehrt.',
+  heartbreaks: [
+    'Ein Herz bleibt lautlos stehen. Wen es liebte, ist schon fort.',
+    'Manche können nicht allein auf der Welt bleiben.',
+  ],
+  heartbreakFact: '{name} ist an gebrochenem Herzen gestorben und folgt der großen Liebe.',
+  loversWinFact: 'Die Verliebten leben beide: Sie gewinnen zusammen.',
+  marksmanShots: [
+    'Ein Schuss vom Glockenturm. {name} bricht mitten auf dem Platz zusammen.',
+    'Ein trockener Knall, von weit her. {name} bringt den Satz nicht mehr zu Ende.',
+  ],
+  marksmanShotFact: 'Ein Schuss vom Glockenturm: {name} ist aus dem Spiel.',
+  passPhone: 'Gib das Handy an {name} weiter.',
+  presidentFallsFact: 'Der Präsident ist gefallen. Die Stadt ist verloren.',
+  putPhoneDown: 'Erledigt. Leg das Handy hin und gib es weiter.',
+  sectWins: [
+    'In jedem Fenster brennen Kerzen. In {city} ist keiner mehr übrig, den man bekehren könnte.',
+    'Ein leiser Gesang steigt aus den Straßen von {city}. Alle haben das Licht gesehen.',
+  ],
+  sectWinsFact: 'Die Sekte gewinnt: Alle Lebenden folgen dem Sektenführer.',
+  voterTurn: '{name} stimmt ab: Tipp an, wen du verurteilst.',
   decoyPrompts: [
     'Wer kommt dir am verdächtigsten vor?',
     'Wem würdest du nie trauen?',
@@ -2546,3 +2742,97 @@ const germanPack = NarrationPack(
     'Wer spielt an diesem Tisch das beste Theater?',
   ],
 );
+
+const _quickDe = [
+  RulesStep('Zwei Seiten', [
+    RulesBeat('Stell dir eine Großstadt in den Vierzigern vor. Fast alle sind anständige Leute: die Stadt.'),
+    RulesBeat('Manche nicht. Das ist die Familie, und heute Nacht hat sie zu tun.'),
+    RulesBeat('Die Gangster kennen sich untereinander. Die Ehrlichen kennen niemanden. Genau das ist das Problem.'),
+  ]),
+  RulesStep('Deine Karte ist geheim', [
+    RulesBeat('Das Handy geht reihum. Alle sehen sich ihre Rolle allein an und verraten sie niemandem.'),
+    RulesBeat('Tagsüber darfst du über dich sagen, was du willst. Auch Lügen. Vor allem Lügen.'),
+  ]),
+  RulesStep('Die Nacht', [
+    RulesBeat(
+      'Nachts geht das Handy von Hand zu Hand. Wer es hält, macht heimlich einen Zug; alle anderen schauen weg.',
+    ),
+    RulesBeat('Die Familie wählt, wen sie aus dem Weg räumt. Der Detektiv ermittelt, der Doktor rettet.'),
+    RulesBeat('Keine Kräfte? Tipp auf PASSEN, mit demselben Pokerface wie alle. Keiner soll wissen, wer was getan hat.'),
+  ]),
+  RulesStep('Der Tag', [
+    RulesBeat('Im Morgengrauen erfahrt ihr, wer es nicht geschafft hat. Wer nachts stirbt, nimmt die Rolle mit ins Grab.'),
+    RulesBeat('Dann wird geredet: Anklagen, Alibis, schiefe Blicke.'),
+    RulesBeat(
+      'Zum Schluss wird abgestimmt. Wer die meisten Stimmen hat, wird gelyncht, und die Karte wird aufgedeckt. Gleichstand? Heute hängt keiner.',
+    ),
+  ]),
+  RulesStep('Wer gewinnt', [
+    RulesBeat('Die Stadt gewinnt, wenn die ganze Familie raus ist.'),
+    RulesBeat('Die Familie gewinnt, wenn sie so viele sind wie alle anderen.'),
+    RulesBeat('Ein paar seltsame Gestalten spielen auf eigene Rechnung: Ihre Karte sagt ihnen, wie sie gewinnen.'),
+  ]),
+  RulesStep('Die goldenen Regeln', [
+    RulesBeat('Schiel nicht auf fremde Handys.'),
+    RulesBeat('Zeig deinen Bildschirm niemandem.'),
+    RulesBeat('Tote reden nicht. Nicht mal mit den Augen.'),
+    RulesBeat('Und keiner nimmt es persönlich: Es ist nur ein Spiel. Mehr oder weniger.'),
+  ]),
+];
+
+const _stageDe = [
+  RulesStep('Es war einmal', [
+    RulesBeat.cue('Dimm das Licht. Warte auf Stille.'),
+    RulesBeat(
+      'Es war einmal, in einer Stadt, die niemals schläft, ein Platz voller guter Leute. Man nannte sie die Stadt.',
+    ),
+    RulesBeat(
+      'Doch unter diesen guten Leuten versteckte sich die Familie. Wenige, elegant, bewaffnet. Sie kannten sich alle… und niemand kannte sie.',
+    ),
+    RulesBeat.cue('Schau allen ins Gesicht, langsam.'),
+    RulesBeat('Vielleicht sitzt einer von ihnen an diesem Tisch. Vielleicht zwei.'),
+  ]),
+  RulesStep('Der versiegelte Umschlag', [
+    RulesBeat('Jeder von euch bekommt einen versiegelten Umschlag: Darin steht, wer ihr wirklich seid.'),
+    RulesBeat.cue('Gib das Handy nach rechts weiter, als wäre es ein Umschlag.'),
+    RulesBeat('Lest ihn allein. Dann schließt ihn ins Herz und verratet ihn niemandem.'),
+    RulesBeat('Ab morgen dürft ihr über euch erzählen, was ihr wollt. Die Wahrheit… oder auch nicht.'),
+  ]),
+  RulesStep('Wenn die Nacht hereinbricht', [
+    RulesBeat.cue('Senk die Stimme.'),
+    RulesBeat('Wenn die Nacht hereinbricht, geht das Handy von Hand zu Hand, wie ein Geheimnis, das brennt.'),
+    RulesBeat('Wer es hält, macht ungesehen den Zug. Die anderen starren an die Wand, an die Decke, auf die eigenen Schuhe.'),
+    RulesBeat(
+      'Die Familie wählt, wer das Morgengrauen nicht erlebt. Der Detektiv schnüffelt in fremden Geschäften. Der Doktor wacht über jemanden.',
+    ),
+    RulesBeat(
+      'Und wer keine Kräfte hat? Spielt Theater. Tippt mit Verschwörermiene auf den Bildschirm, damit keiner irgendwen verdächtigt.',
+    ),
+  ]),
+  RulesStep('Im Morgengrauen, der Platz', [
+    RulesBeat.cue('Heb die Stimme, wie ein Ausrufer.'),
+    RulesBeat('Im Morgengrauen erwacht die Stadt und zählt ihre Toten. Wer nachts fällt, geht mit seinem Geheimnis.'),
+    RulesBeat('Dann versammelt sich der Platz: Man klagt an, man schwört, man lügt.'),
+    RulesBeat.cue('Zeig plötzlich auf jemanden.'),
+    RulesBeat('Du! Wo warst du letzte Nacht?'),
+    RulesBeat(
+      'Wenn die Stimmen verstummen, wird abgestimmt. Wer die meisten Stimmen bekommt, wird verurteilt, und die Karte wird vor allen aufgedeckt.',
+    ),
+    RulesBeat('Bei Gleichstand steht der Platz still: Heute wird niemand verurteilt.'),
+  ]),
+  RulesStep('Wie die Geschichte endet', [
+    RulesBeat('Die Geschichte endet gut für die Stadt, wenn der Letzte der Familie den Platz verlassen hat.'),
+    RulesBeat(
+      'Sie endet gut für die Familie, wenn ihre Leute so viele sind wie alle anderen: Von da an gehört die Stadt ihnen.',
+    ),
+    RulesBeat('Und ein paar einsame Seelen spielen ihr ganz eigenes Spiel: Ihr Umschlag sagt ihnen, wie sie gewinnen.'),
+  ]),
+  RulesStep('Die drei Gesetze der Straße', [
+    RulesBeat.cue('Langsam, an den Fingern abgezählt.'),
+    RulesBeat('Erstes Gesetz: Man schielt nicht auf fremde Handys.'),
+    RulesBeat('Zweites Gesetz: Den eigenen Bildschirm zeigt man niemandem.'),
+    RulesBeat('Drittes Gesetz: Tote reden nicht. Nicht mit dem Mund, nicht mit den Augen.'),
+    RulesBeat.cue('Pause. Dann, im Flüsterton.'),
+    RulesBeat('Und jetzt… soll die Nacht beginnen.'),
+  ]),
+];

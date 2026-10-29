@@ -16,7 +16,6 @@ import 'package:oberta/ui/avatar/avatar_look.dart';
 import 'package:oberta/ui/screens/online/missions_screen.dart';
 import 'package:oberta/ui/theme/app_theme.dart';
 import 'package:oberta/ui/widgets/cosmetics/seat_preview.dart';
-import 'package:oberta/ui/widgets/cosmetics/cosmetic_ids.dart';
 import 'package:oberta/ui/widgets/player_avatar.dart';
 
 final out = Platform.environment['OUT'] ?? 'build/render/missions';

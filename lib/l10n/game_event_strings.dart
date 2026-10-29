@@ -1,6 +1,5 @@
 import '../online/game/game_backend.dart';
 import '../rules/role.dart';
-import 'app_language.dart';
 import 'app_strings.dart';
 import 'player_gender.dart';
 
@@ -11,12 +10,11 @@ class GameEventStrings {
 
   const GameEventStrings(this.strings);
 
-  bool get _en => strings.language == AppLanguage.en;
-
-  String _t(String it, String en) => _en ? en : it;
+  /// The text under `gameEvent.<key>` in the messages of the language.
+  String _m(String key, [Map<String, Object?> args = const {}]) => strings.language.message('gameEvent.$key', args);
 
   /// The label on a private line.
-  String get onlyYou => _t('SOLO TU', 'ONLY YOU');
+  String get onlyYou => _m('onlyYou');
 
   String _role(Object? name) {
     final role = name is String ? Role.values.asNameMap()[name] : null;
@@ -24,18 +22,18 @@ class GameEventStrings {
   }
 
   String _team(Object? team) => switch (team) {
-        'mafia' => _t('della famiglia', 'with the family'),
-        'neutral' => _t('per conto suo', 'on their own'),
-        _ => _t('pulito', 'clean'),
+        'mafia' => _m('_team.mafia'),
+        'neutral' => _m('_team.neutral'),
+        _ => _m('_team'),
       };
 
   String _names(Object? list) => [for (final name in (list as List<Object?>? ?? const [])) '$name'].join(', ');
 
   String _winner(Object? team) => switch (team) {
-        'citizens' => _t('vince la città', 'the town wins'),
-        'mafia' => _t('vince la famiglia', 'the family wins'),
-        'neutral' => _t('vince chi giocava da solo', 'a lone player wins'),
-        _ => _t('nessun vincitore', 'no winner'),
+        'citizens' => _m('_winner.citizens'),
+        'mafia' => _m('_winner.mafia'),
+        'neutral' => _m('_winner.neutral'),
+        _ => _m('_winner'),
       };
 
   String text(GameEvent event) {
@@ -43,43 +41,32 @@ class GameEventStrings {
     final name = '${d['name'] ?? '?'}';
     switch (event.kind) {
       case 'night':
-        return _t('Cala la notte ${d['round']}. La città dorme.', 'Night ${d['round']} falls. The town sleeps.');
+        return _m('text.night', {'round': d['round']});
       case 'dawn':
         final dead = (d['dead'] as List<Object?>? ?? const []);
         final saved = (d['saved'] as num?)?.toInt() ?? 0;
         final parts = <String>[
-          _t('Sorge il giorno ${d['round']}.', 'Day ${d['round']} breaks.'),
-          if (dead.isEmpty) _t('Nessun morto stanotte.', 'Nobody died tonight.'),
+          _m('text.dawn', {'round': d['round']}),
+          if (dead.isEmpty) _m('text.dawn.nobodyDiedTonight'),
           if (dead.length == 1)
-            _t(
-              agree(
-                PlayerGenders.of('${dead.single}'),
-                m: 'Trovato morto: ${dead.single}.',
-                f: 'Trovata morta: ${dead.single}.',
-                n: 'Vittima della notte: ${dead.single}.',
-              ),
-              'Found dead: ${dead.single}.',
-            ),
-          if (dead.length > 1) _t('Trovati morti: ${_names(dead)}.', 'Found dead: ${_names(dead)}.'),
-          if (d['escorted'] == true) _t('La scorta ha respinto un attentato al Presidente.', 'The escort fended off an attack on the President.'),
-          if (saved == 1) _t('Qualcuno è stato salvato.', 'Someone was saved.'),
-          if (saved > 1) _t('$saved agguati sventati.', '$saved attacks foiled.'),
+            _m('text.dawn.foundOne', {'name': '${dead.single}', 'gender': PlayerGenders.of('${dead.single}').name}),
+          if (dead.length > 1) _m('text.dawn.foundDead', {'names': _names(dead)}),
+          if (d['escorted'] == true) _m('text.dawn.theEscortFended'),
+          if (saved == 1) _m('text.dawn.someoneWasSaved'),
+          if (saved > 1) _m('text.dawn.attacksFoiled', {'saved': saved}),
           if (d['resurrected'] case final String back)
-            _t(
-              agree(PlayerGenders.of(back), m: '$back è tornato tra i vivi.', f: '$back è tornata tra i vivi.', n: '$back torna tra i vivi.'),
-              '$back is back among the living.',
-            ),
+            _m('text.dawn.backAmongLiving', {'name': back, 'gender': PlayerGenders.of(back).name}),
           for (final broken in (d['heartbroken'] as List<Object?>? ?? const []))
-            _t('Il cuore di $broken si è spezzato.', '$broken died of a broken heart.'),
+            _m('text.dawn.diedOfA', {'broken': broken}),
         ];
         return parts.join(' ');
       case 'scoop':
         final role = d['role'];
         return role != null
-            ? _t('Lo scoop del giornale: $name è ${_role(role)}.', 'The paper\'s scoop: $name is the ${_role(role)}.')
-            : _t('Lo scoop del giornale: $name è ${_team(d['team'])}.', 'The paper\'s scoop: $name is ${_team(d['team'])}.');
+            ? _m('text.scoop', {'name': name, 'role': _role(role)})
+            : _m('text.scoop.thePaperS', {'name': name, 'team': _team(d['team'])});
       case 'silenced':
-        return _t('Il Sarto ha cucito la bocca a $name: oggi tace.', 'The Tailor sewed $name\'s mouth shut: silent today.');
+        return _m('text.silenced', {'name': name});
       case 'lynch':
         final votes = [
           for (final v in (d['votes'] as List<Object?>? ?? const []).cast<Map<String, Object?>>()) '${v['name']} ${v['count']}',
@@ -87,93 +74,85 @@ class GameEventStrings {
         final abstained = (d['abstained'] as num?)?.toInt() ?? 0;
         final tally = [
           ...votes,
-          if (abstained > 0) _t('astenuti $abstained', 'abstained $abstained'),
+          if (abstained > 0) _m('text.lynch', {'abstained': abstained}),
         ].join(' · ');
         final verdict = d['name'] == null
-            ? _t('La piazza non condanna nessuno.', 'The square condemns nobody.')
-            : _t('La piazza condanna $name: era ${_role(d['role'])}.', 'The square condemns $name: the ${_role(d['role'])}.');
+            ? _m('text.lynch.theSquareCondemns')
+            : _m('text.lynch.theSquareCondemns.2', {'name': name, 'role': _role(d['role'])});
         final hunter = d['bountyHunter'] == null
             ? ''
-            : _t(' ${d['bountyHunter']} incassa la taglia.', ' ${d['bountyHunter']} collects the bounty.');
+            : _m('text.lynch.collectsTheBounty', {'bountyHunter': d['bountyHunter']});
         final broken = d['heartbroken'] == null
             ? ''
-            : _t(' Il cuore di ${d['heartbroken']} si è spezzato.', ' ${d['heartbroken']} died of a broken heart.');
+            : _m('text.lynch.diedOfA', {'heartbroken': d['heartbroken']});
         return tally.isEmpty ? '$verdict$hunter$broken' : '$verdict$hunter$broken ($tally)';
       case 'mayor':
-        return _t('$name si rivela Sindaco: il suo voto vale doppio.', '$name reveals the Mayor: their vote counts twice.');
+        return _m('text.mayor', {'name': name});
       case 'truce':
-        return _t(
-          '$name, il Pacifista, chiede la tregua: ${d['target']} è ${_role(d['role'])}. Oggi non si vota.',
-          '$name, the Pacifist, calls a truce: ${d['target']} is the ${_role(d['role'])}. No vote today.',
-        );
+        return _m('text.truce', {'name': name, 'target': d['target'], 'role': _role(d['role'])});
       case 'cannon':
         final broken = d['heartbroken'] == null
             ? ''
-            : _t(' Il cuore di ${d['heartbroken']} si è spezzato.', ' ${d['heartbroken']} died of a broken heart.');
-        return _t(
-              'Un boato in piazza: $name, l\'Artigliere, ha colpito ${d['target']}, che era ${_role(d['role'])}.',
-              'A roar in the square: $name, the Gunner, hit ${d['target']}, who was the ${_role(d['role'])}.',
-            ) +
+            : _m('text.cannon', {'heartbroken': d['heartbroken']});
+        return _m('text.cannon.aRoarIn', {'name': name, 'target': d['target'], 'role': _role(d['role'])}) +
             broken;
       case 'shot':
         final brokenShot = d['heartbroken'] == null
             ? ''
-            : _t(' Il cuore di ${d['heartbroken']} si è spezzato.', ' ${d['heartbroken']} died of a broken heart.');
+            : _m('text.shot', {'heartbroken': d['heartbroken']});
         return (d['backfired'] == true
-                ? _t('Un colpo dal campanile torna indietro: $name, ${_role(d['role'])}, mirava a uno della Città.',
-                    'A shot from the bell tower comes back: $name, the ${_role(d['role'])}, was aiming at the town.')
-                : _t('Un colpo dal campanile: $name è a terra. Era ${_role(d['role'])}.',
-                    'A shot from the bell tower: $name is down. The ${_role(d['role'])}.')) +
+                ? _m('text.shot.aShotFrom', {'name': name, 'role': _role(d['role'])})
+                : _m('text.shot.aShotFrom.2', {'name': name, 'role': _role(d['role'])})) +
             brokenShot;
       case 'aim':
-        return _t('Hai $name nel mirino.', 'You have $name in your sights.');
+        return _m('text.aim', {'name': name});
       case 'cell':
         return d['self'] == true
-            ? _t('Sei in cella. Stanotte non esci.', 'You are in a cell. You are not going out tonight.')
-            : _t('Stanotte $name è in cella.', 'Tonight $name is in a cell.');
+            ? _m('text.cell')
+            : _m('text.cell.tonightIsIn', {'name': name});
       case 'lovers':
         final names = [for (final n in (d['names'] as List<Object?>? ?? const [])) '$n'];
-        if (d['self'] != true) return _t('Hai legato ${names.join(' e ')}.', 'You bound ${names.join(' and ')}.');
-        return _t('Il cuore ha scelto: ${names.join(' e ')} si amano. Vincete solo se restate vivi tutti e due.',
-            'The heart has chosen: ${names.join(' and ')} are in love. You win only if both of you live.');
+        final first = names.isEmpty ? '?' : names.first;
+        final second = names.length < 2 ? '?' : names[1];
+        if (d['self'] != true) return _m('text.lovers.bound', {'first': first, 'second': second});
+        return _m('text.lovers.self', {'first': first, 'second': second});
       case 'converted':
-        return _t('Hai visto la luce: ora sei della setta, e vinci solo con lei.',
-            'You have seen the light: you are in the cult now, and win only with it.');
+        return _m('text.converted');
       case 'door':
         return d['converted'] == true
-            ? _t('$name è dei tuoi, ora.', '$name is one of yours now.')
-            : _t('Porta chiusa: $name non si è convertito.', 'Door shut: $name did not convert.');
+            ? _m('text.door', {'name': name})
+            : _m('text.door.doorShutDid', {'name': name});
       case 'busy':
-        return _t('Stanotte qualcuno ti ha tenuto occupato.', 'Last night someone kept you busy.');
+        return _m('text.busy');
       case 'left':
-        return _t('$name ha lasciato la città.', '$name has left town.');
+        return _m('text.left', {'name': name});
       case 'end':
-        if (d['abandoned'] == true) return _t('Partita chiusa: non giocava più nessuno.', 'Game closed: nobody was playing.');
+        if (d['abandoned'] == true) return _m('text.end');
         final alone = _names(d['alone']);
-        final fell = d['presidentFell'] == true ? _t(' Il Presidente è caduto.', ' The President has fallen.') : '';
-        return _t('Fine della partita: ${_winner(d['winner'])}.', 'Game over: ${_winner(d['winner'])}.') + fell +
-            (alone.isEmpty ? '' : _t(' Vince da solo: $alone.', ' Won alone: $alone.'));
+        final fell = d['presidentFell'] == true ? _m('text.end.thePresidentHas') : '';
+        return _m('text.end.gameOver', {'winner': _winner(d['winner'])}) + fell +
+            (alone.isEmpty ? '' : _m('text.end.wonAlone', {'alone': alone}));
       case 'found':
         return d['role'] != null
-            ? _t('$name era ${_role(d['role'])}.', '$name was the ${_role(d['role'])}.')
-            : _t('$name risulta ${_team(d['team'])}.', '$name comes up ${_team(d['team'])}.');
+            ? _m('text.found', {'name': name, 'role': _role(d['role'])})
+            : _m('text.found.comesUp', {'name': name, 'team': _team(d['team'])});
       case 'watch':
         return d['visited'] == true
-            ? _t('Alla porta di $name è passato qualcuno.', 'Someone came to $name\'s door.')
-            : _t('Alla porta di $name non è passato nessuno.', 'Nobody came to $name\'s door.');
+            ? _m('text.watch', {'name': name})
+            : _m('text.watch.nobodyCameTo', {'name': name});
       case 'bounty':
-        return _t('La tua taglia: fai linciare $name.', 'Your bounty: get $name lynched.');
+        return _m('text.bounty', {'name': name});
       case 'doused':
-        return _t('Cosparsi di benzina: ${_names(d['names'])}.', 'Doused in petrol: ${_names(d['names'])}.');
+        return _m('text.doused', {'names': _names(d['names'])});
       case 'familyTarget':
         return d['name'] == null
-            ? _t('La famiglia non si è messa d\'accordo.', 'The family could not agree.')
-            : _t('La famiglia ha scelto $name.', 'The family chose $name.');
+            ? _m('text.familyTarget')
+            : _m('text.familyTarget.theFamilyChose', {'name': name});
       case 'protected':
         return switch (d['kind']) {
-          'guard' => _t('Stanotte hai fatto da scorta a $name.', 'Tonight you stood guard for $name.'),
-          'lend' => _t('Stanotte hai prestato soldi a $name.', 'Tonight you lent money to $name.'),
-          _ => _t('Stanotte hai vegliato su $name.', 'Tonight you watched over $name.'),
+          'guard' => _m('text.guard', {'name': name}),
+          'lend' => _m('text.lend', {'name': name}),
+          _ => _m('text.protected', {'name': name}),
         };
     }
     return '';

@@ -6,6 +6,7 @@ import '../rules/role.dart';
 import '../ui/widgets/verdict_scene.dart';
 import 'app_language.dart';
 import 'online_strings.dart';
+import 'rules_strings.dart';
 import 'shop_strings.dart';
 
 /// Tutti i testi dell'interfaccia in una lingua. Il copione del narratore e
@@ -41,6 +42,11 @@ abstract class AppStrings {
   /// The keyed messages of the smaller text classes (settings, table,
   /// recap...): see [AppLanguage.message].
   Map<String, String> get messages;
+
+  /// The rules read aloud before a one-phone game, for the languages that
+  /// are not Italian or English (those live in rules_strings.dart). Null
+  /// reads the English ones.
+  List<RulesStep>? rulesSteps(RulesStyle style) => null;
 
   // Il vicolo.
   String get homeTitle => 'OBERTÀ';

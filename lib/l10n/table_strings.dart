@@ -14,146 +14,119 @@ class TableStrings {
 
   static TableStrings of(BuildContext context) => TableStrings(AppStrings.of(context).language);
 
-  bool get _en => language == AppLanguage.en;
-
-  String _t(String it, String en) => _en ? en : it;
+  /// The text under `table.<key>` in the messages of the language.
+  String _m(String key, [Map<String, Object?> args = const {}]) => language.message('table.$key', args);
 
   // ---- The card.
-  String get holdTheCard => _t('Tieni premuta la carta per guardarla.', 'Press and hold the card to look at it.');
+  String get holdTheCard => _m('holdTheCard');
 
   // ---- The night.
   String picked(String name) =>
-      _t('Hai scelto $name. Puoi cambiare fino allo scadere.', 'You picked $name. You can change until time runs out.');
-  String get passed => _t('Hai passato. Puoi ancora scegliere qualcuno.', 'You passed. You can still pick someone.');
-  String familyPicks(String picks) => _t('Famiglia: $picks', 'Family: $picks');
-  String get nightRunsOut => _t('La notte finisce allo scadere del tempo.', 'The night ends when time runs out.');
+      _m('picked', {'name': name});
+  String get passed => _m('passed');
+  String familyPicks(String picks) => _m('familyPicks', {'picks': picks});
+  String get nightRunsOut => _m('nightRunsOut');
 
   /// The question before an investigation or a dig: the answer is instant.
-  String investigate(String name) => _t('Indaghi su $name?', 'Investigate $name?');
-  String dig(String name) => _t('Scavi la fossa di $name?', 'Dig up $name?');
+  String investigate(String name) => _m('investigate', {'name': name});
+  String dig(String name) => _m('dig', {'name': name});
   String get instantAnswer =>
-      _t('La risposta arriva subito, e poi non puoi cambiare.', 'The answer comes at once, and then you cannot change it.');
-  String get cancel => _t('Annulla', 'Cancel');
+      _m('instantAnswer');
+  String get cancel => _m('cancel');
 
   /// The Jailer's question: the cell closes at once.
-  String jail(String name) => _t('Chiudi $name in cella?', 'Lock $name up?');
-  String get jailBody => _t(
-    'La cella si chiude subito: stanotte non agisce e nessuno lo tocca. Poi non puoi cambiare.',
-    'The cell shuts at once: tonight they cannot act and nobody can touch them. You cannot change it.',
-  );
-  String get youAreJailed => _t('Sei in cella. Stanotte non esci.', 'You are in a cell. You are not going out tonight.');
-  String get jailerWantsYou => _t('Il Carceriere vuole parlarti.', 'The Jailer wants a word.');
-  String inYourCell(String name) => _t('In cella: $name. Interrogalo in chat.', 'In your cell: $name. Question them in the chat.');
-  String get lastOfFamily => _t(
-    'Sei rimasta l\'ultima della Famiglia: ora la notte è tua.',
-    'You are the last of the Family left: now the night is yours.',
-  );
-  String mateInCell(String name) => _t('Stanotte $name è in cella.', 'Tonight $name is in a cell.');
-  String get jailChat => _t('La cella', 'The cell');
-  String get jailer => _t('Il Carceriere', 'The Jailer');
+  String jail(String name) => _m('jail', {'name': name});
+  String get jailBody => _m('jailBody');
+  String get youAreJailed => _m('youAreJailed');
+  String get jailerWantsYou => _m('jailerWantsYou');
+  String inYourCell(String name) => _m('inYourCell', {'name': name});
+  String get lastOfFamily => _m('lastOfFamily');
+  String mateInCell(String name) => _m('mateInCell', {'name': name});
+  String get jailChat => _m('jailChat');
+  String get jailer => _m('jailer');
   // ---- The cult.
   String get converted =>
-      _t('Hai visto la luce: ora sei della setta, e vinci solo con lei.', 'You have seen the light: you are in the cult now, and win only with it.');
-  String sectLine(String names) => _t('La tua setta: $names.', 'Your cult: $names.');
-  String doorClosed(String name) => _t('Porta chiusa: $name non si è convertito.', 'Door shut: $name did not convert.');
+      _m('converted');
+  String sectLine(String names) => _m('sectLine', {'names': names});
+  String doorClosed(String name) => _m('doorClosed', {'name': name});
 
   // ---- Cupid.
-  String get linkFirst => _t('Tocca il primo innamorato.', 'Tap the first lover.');
-  String linkSecond(String name) => _t('$name e chi? Tocca il secondo.', '$name and who? Tap the second.');
-  String link(String a, String b) => _t('Fai innamorare $a e $b?', 'Make $a and $b fall in love?');
-  String get linkBody => _t(
-    'Si sapranno innamorati all\'alba: vincono solo se restano vivi tutti e due. Poi non puoi cambiare.',
-    'They learn it at dawn and win only if both live. You cannot change it.',
-  );
-  String loversLine(String a, String b) => _t('Innamorati: $a e $b.', 'Lovers: $a and $b.');
-  String inLoveWith(String name) => _t('Il tuo cuore batte per $name.', 'Your heart beats for $name.');
-  String get loversChat => _t('Gli innamorati', 'The lovers');
+  String get linkFirst => _m('linkFirst');
+  String linkSecond(String name) => _m('linkSecond', {'name': name});
+  String link(String a, String b) => _m('link', {'a': a, 'b': b});
+  String get linkBody => _m('linkBody');
+  String loversLine(String a, String b) => _m('loversLine', {'a': a, 'b': b});
+  String inLoveWith(String name) => _m('inLoveWith', {'name': name});
+  String get loversChat => _m('loversChat');
   String get answerAtDawn =>
-      _t('Al tavolo c\'è chi blocca: la risposta arriva all\'alba.', 'Someone at this table blocks: the answer comes at dawn.');
+      _m('answerAtDawn');
 
   // ---- The day.
-  String get readTheNews => _t('Leggi la cronaca, poi Pronto.', 'Read the news, then Ready.');
-  String votedFor(String name) => _t('Hai votato $name. Puoi cambiare idea.', 'You voted $name. You can change your mind.');
-  String abstained([Gender me = Gender.unknown]) => _t(
-    agree(me, m: 'Ti sei astenuto. Puoi ancora votare.', f: 'Ti sei astenuta. Puoi ancora votare.', n: 'Astensione registrata. Puoi ancora votare.'),
-    'You abstained. You can still vote.',
-  );
-  String get revealMayor => _t('Rivelati', 'Reveal');
-  String get revealMayorTitle => _t('Ti riveli come Sindaco?', 'Reveal yourself as the Mayor?');
+  String get readTheNews => _m('readTheNews');
+  String votedFor(String name) => _m('votedFor', {'name': name});
+  String abstained([Gender me = Gender.unknown]) => _m('abstained', {'gender': me.name});
+  String get revealMayor => _m('revealMayor');
+  String get revealMayorTitle => _m('revealMayorTitle');
   String get revealMayorBody =>
-      _t('Tutti sapranno chi sei, e da oggi il tuo voto vale doppio.', 'Everyone will know who you are, and your vote counts twice from today.');
-  String silenced([Gender gender = Gender.unknown]) => _t(agree(gender, m: 'zittito', f: 'zittita'), 'silenced');
+      _m('revealMayorBody');
+  String silenced([Gender gender = Gender.unknown]) => _m('silenced', {'gender': gender.name});
 
   // ---- The Marksman's day shot.
-  String shootTitle(String name) => _t('Spari a $name?', 'Shoot $name?');
-  String shootBody(int left) => _t(
-    'Lo sentono tutti, ma nessuno sa chi ha sparato. Se è della Città, il colpo torna indietro e muori tu. ${left == 1 ? 'È il tuo ultimo colpo.' : 'Ti restano $left colpi.'}',
-    'Everyone hears it, nobody knows who fired. If they are town, the shot comes back and you die. ${left == 1 ? 'It is your last shot.' : 'You have $left shots left.'}',
-  );
+  String shootTitle(String name) => _m('shootTitle', {'name': name});
+  String shootBody(int left) => _m('shootBody', {'left': left});
   String shotLine(String name, String role, {required bool backfired}) => backfired
-      ? _t('Il colpo è tornato indietro: $name era $role.', 'The shot came back: $name was the $role.')
-      : _t('Un colpo dal campanile: $name era $role.', 'A shot from the bell tower: $name was the $role.');
+      ? _m('shotLine', {'name': name, 'role': role})
+      : _m('shotLine.aShotFrom', {'name': name, 'role': role});
   String aimLine(String name, int left) =>
-      _t('Nel mirino: $name. Colpi: $left.', 'In your sights: $name. Shots: $left.');
+      _m('aimLine', {'name': name, 'left': left});
 
   // ---- The Pacifist's truce.
-  String get truce => _t('Tregua', 'Truce');
-  String get truceHint => _t('Tocca chi svelare a tutti.', 'Tap who to reveal to everyone.');
-  String truceTitle(String name) => _t('Fermi tutti: sveli $name?', 'Stop everything: reveal $name?');
-  String get truceBody => _t(
-    'Tutti vedranno il suo ruolo esatto e il tuo. Oggi non si vota. Una volta sola.',
-    'Everyone will see their exact role, and yours. No vote today. Only once.',
-  );
+  String get truce => _m('truce');
+  String get truceHint => _m('truceHint');
+  String truceTitle(String name) => _m('truceTitle', {'name': name});
+  String get truceBody => _m('truceBody');
   String truceLine(String pacifist, String name, String role) =>
-      _t('$pacifist ha chiesto la tregua: $name è $role.', '$pacifist called a truce: $name is the $role.');
-  String get truceVerdict => _t('Tregua: oggi non si impicca nessuno.', 'Truce: nobody hangs today.');
+      _m('truceLine', {'pacifist': pacifist, 'name': name, 'role': role});
+  String get truceVerdict => _m('truceVerdict');
 
   // ---- The Gunner's shots.
-  String get fire => _t('Fuoco!', 'Fire!');
-  String get fireHint => _t('Tocca chi colpire.', 'Tap who to hit.');
-  String fireTitle(String name) => _t('Fuoco su $name?', 'Fire at $name?');
-  String get fireBody => _t(
-    'Muore subito e il suo ruolo diventa pubblico. Il boato lo sentono tutti: sapranno che sei l\'Artigliere.',
-    'They die on the spot and their role goes public. Everyone hears the roar: they will know you are the Gunner.',
-  );
+  String get fire => _m('fire');
+  String get fireHint => _m('fireHint');
+  String fireTitle(String name) => _m('fireTitle', {'name': name});
+  String get fireBody => _m('fireBody');
   String shotsLeft(int count) => count == 1
-      ? _t('Ti resta un colpo.', 'You have one shot left.')
-      : _t('Ti restano $count colpi.', 'You have $count shots left.');
+      ? _m('shotsLeft')
+      : _m('shotsLeft.youHaveShots', {'count': count});
   String gunnerShotsLeft(int count) => switch (count) {
-        0 => _t('All\'Artigliere non restano colpi.', 'The Gunner has no shots left.'),
-        1 => _t('All\'Artigliere resta un colpo.', 'The Gunner has one shot left.'),
-        _ => _t('All\'Artigliere restano $count colpi.', 'The Gunner has $count shots left.'),
+        0 => _m('gunnerShotsLeft'),
+        1 => _m('gunnerShotsLeft.theGunnerHas'),
+        _ => _m('gunnerShotsLeft.theGunnerHas.2', {'count': count}),
       };
   String cannonLine(String name, String role) =>
-      _t('Un boato in piazza: l\'Artigliere ha colpito $name, che era $role.', 'A roar in the square: the Gunner hit $name, the $role.');
+      _m('cannonLine', {'name': name, 'role': role});
 
   /// The red stamp on the lynched seat.
-  String lynched([Gender gender = Gender.unknown]) => _t(agree(gender, m: 'Linciato', f: 'Linciata'), 'Lynched');
+  String lynched([Gender gender = Gender.unknown]) => _m('lynched', {'gender': gender.name});
 
   /// The verdict, short and plain: who, and which card. In Italian it agrees
   /// with the player; when nobody said how, the square does the lynching.
   String lynchedLine(String name, String? role, {Gender gender = Gender.unknown}) {
-    final who = agree(
-      gender,
-      m: '$name è stato linciato.',
-      f: '$name è stata linciata.',
-      n: 'La piazza ha linciato $name.',
-    );
-    if (role == null) return _t(who, '$name was lynched.');
-    final card = role.isEmpty ? role : role[0].toLowerCase() + role.substring(1);
-    return _t('$who Era $card.', '$name was lynched. They were the $role.');
+    if (role == null) return _m('lynchedLine', {'name': name, 'gender': gender.name});
+    final card = language.capitalizesRoles || role.isEmpty ? role : role[0].toLowerCase() + role.substring(1);
+    return _m('lynchedLine.role', {'name': name, 'role': card, 'gender': gender.name});
   }
 
-  String get noLynch => _t('Nessuno è stato linciato.', 'Nobody was lynched.');
-  String abstainedVotes(int n) => _t(n == 1 ? '1 astenuto' : '$n astenuti', '$n abstained');
+
+  String get noLynch => _m('noLynch');
+  String abstainedVotes(int n) => _m('abstainedVotes', {'n': n});
 
   // ---- The chat, when it is closed.
-  String get chatOpensLater => _t('La piazza riapre per la discussione.', 'The square opens again for the discussion.');
-  String get chatOver => _t('La partita è finita.', 'The game is over.');
+  String get chatOpensLater => _m('chatOpensLater');
+  String get chatOver => _m('chatOver');
 
   // ---- The connection.
-  String get rejoin => _t('Rientra', 'Rejoin');
+  String get rejoin => _m('rejoin');
 
   // ---- The end.
-  String get leave => _t('Esci', 'Leave');
+  String get leave => _m('leave');
 }

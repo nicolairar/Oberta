@@ -2,7 +2,6 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
-import '../../../../l10n/app_language.dart';
 import '../../../../l10n/app_strings.dart';
 import '../../../../l10n/game_event_strings.dart';
 import '../../../../online/online_services.dart';
@@ -550,9 +549,8 @@ class _Tabs extends StatelessWidget {
   }
 }
 
-/// «↓ 3 nuovi», in italiano o in inglese.
-String _freshLabel(BuildContext context, int count) =>
-    AppStrings.of(context).language == AppLanguage.en ? '$count new' : (count == 1 ? '1 nuovo' : '$count nuovi');
+/// «↓ 3 nuovi».
+String _freshLabel(BuildContext context, int count) => AppStrings.of(context).language.message('chat.fresh', {'n': count});
 
 /// La chat dentro lo schermo, senza foglio: tutti i messaggi (i più nuovi in
 /// basso) e, se si può, il campo per scrivere. Di giorno prende quasi tutto

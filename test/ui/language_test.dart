@@ -46,13 +46,24 @@ void main() {
     expect(find.byTooltip('Impostazioni'), findsOneWidget);
   });
 
-  for (final locale in const [Locale('en', 'US'), Locale('de', 'DE'), Locale('fr', 'FR')]) {
+  // English, and the languages not translated yet (Japanese, Arabic...).
+  for (final locale in const [Locale('en', 'US'), Locale('ja', 'JP'), Locale('ar', 'EG')]) {
     testWidgets('un telefono in $locale apre il vicolo in inglese', (tester) async {
       _usePhone(tester, speaks: [locale]);
       await tester.pumpWidget(ObertaApp(settings: AppSettings(MemorySettingsStore())));
       await tester.pumpAndSettle();
       _expectEnglishAlley();
       expect(find.byTooltip('Settings'), findsOneWidget);
+    });
+  }
+
+  for (final (locale, settings) in const [(Locale('de', 'DE'), 'Einstellungen'), (Locale('es', 'MX'), 'Ajustes')]) {
+    testWidgets('un telefono in $locale apre il vicolo nella sua lingua', (tester) async {
+      _usePhone(tester, speaks: [locale]);
+      await tester.pumpWidget(ObertaApp(settings: AppSettings(MemorySettingsStore())));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.byTooltip(settings), findsOneWidget);
     });
   }
 

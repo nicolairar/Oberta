@@ -13,6 +13,7 @@ import '../../ui/avatar/deep_slots.dart' show Hand;
 import '../../ui/widgets/verdict_scene.dart';
 import '../app_language.dart';
 import '../online_strings.dart';
+import '../rules_strings.dart';
 import '../shop_strings.dart';
 import '../strings_en.dart';
 
@@ -28,7 +29,8 @@ import '../strings_en.dart';
 // Tireur, le Reporter, le Fossoyeur, le Garde du corps, le Vétéran, le Repris
 // de justice, le Messie, le Maire, le Concierge, le Bouffon, le Pyromane, le
 // Chasseur de primes, l'Usurier, le Tueur à gages, l'Entraîneuse, le Geôlier,
-// le Pacifiste. The factions: "la Famille" and "la ville".
+// le Pacifiste, Cupidon, le Président, le Gourou, l'Artilleur, le Tireur
+// d'élite. The factions: "la Famille" and "la ville".
 
 final class FrenchStrings extends EnglishStrings {
   const FrenchStrings();
@@ -43,6 +45,8 @@ final class FrenchStrings extends EnglishStrings {
   ShopStrings get shop => const FrenchShopStrings();
   @override
   Map<String, String> get messages => frenchMessages;
+  @override
+  List<RulesStep>? rulesSteps(RulesStyle style) => style == RulesStyle.quick ? _quickFr : _stageFr;
 
   @override
   String get settings => 'Réglages';
@@ -145,6 +149,8 @@ final class FrenchStrings extends EnglishStrings {
   String get youActAlone => 'TU AGIS EN SOLO';
   @override
   String get yourAccomplices => 'TES COMPLICES';
+  @override
+  String get familyUnknown => 'TU SERS LA FAMILLE, SANS SAVOIR QUI EN EST';
   @override
   String get familyBadge => 'FAMILLE';
   @override
@@ -1242,7 +1248,7 @@ const frenchMessages = <String, String>{
   'settings.deleteAccount': 'Supprimer le compte',
   'settings.deleteHint': 'Pour toujours : profil, amis, garde-robe et pièces.',
   'settings.deleteTitle': 'Supprimer ton compte ?',
-  'settings.deleteBody': 'Profil, look, amis, garde-robe, pièces, salles et messages : tout part, pour de bon. Les achats en argent réel ne laissent qu’un reçu anonyme, pour le fisc.',
+  'settings.deleteBody': 'Profil, look, amis, garde-robe, pièces, missions, salles et messages : tout part, pour de bon.',
   'settings.deleteContinue': 'Continuer',
   'settings.cancel': 'Annuler',
   'settings.deleteTypePrompt': 'Dernier mot : tape « {word} » pour confirmer.',
@@ -1329,8 +1335,10 @@ const frenchMessages = <String, String>{
   'gameEvent.text.dawn': 'Le jour {round} se lève.',
   'gameEvent.text.dawn.nobodyDiedTonight': 'Personne n’est mort cette nuit.',
   'gameEvent.text.dawn.foundDead': 'Victimes de la nuit : {names}.',
+  'gameEvent.text.dawn.theEscortFended': 'L’escorte a repoussé un attentat contre le Président.',
   'gameEvent.text.dawn.someoneWasSaved': 'Quelqu’un a été sauvé.',
   'gameEvent.text.dawn.attacksFoiled': 'Attaques déjouées : {saved}.',
+  'gameEvent.text.dawn.diedOfA': 'Le cœur de {broken} s’est brisé.',
   'gameEvent.text.scoop': 'Le scoop du journal : {name} est {role}.',
   'gameEvent.text.scoop.thePaperS': 'Le scoop du journal : {name} est {team}.',
   'gameEvent.text.silenced': 'Le Tailleur a cousu la bouche de {name} : silence aujourd’hui.',
@@ -1338,13 +1346,24 @@ const frenchMessages = <String, String>{
   'gameEvent.text.lynch.theSquareCondemns': 'La place ne condamne personne.',
   'gameEvent.text.lynch.theSquareCondemns.2': 'La place condamne {name} : c’était {role}.',
   'gameEvent.text.lynch.collectsTheBounty': ' {bountyHunter} empoche la prime.',
+  'gameEvent.text.lynch.diedOfA': ' Le cœur de {heartbroken} s’est brisé.',
   'gameEvent.text.mayor': '{name} se révèle Maire : son vote compte double.',
   'gameEvent.text.truce': '{name}, le Pacifiste, impose une trêve : {target} est {role}. Pas de vote aujourd’hui.',
+  'gameEvent.text.cannon': ' Le cœur de {heartbroken} s’est brisé.',
+  'gameEvent.text.cannon.aRoarIn': 'Un grondement sur la place : {name}, l’Artilleur, a touché {target}, qui était {role}.',
+  'gameEvent.text.shot': ' Le cœur de {heartbroken} s’est brisé.',
+  'gameEvent.text.shot.aShotFrom': 'Un coup de feu du clocher revient en arrière : {name}, {role}, visait quelqu’un de la ville.',
+  'gameEvent.text.shot.aShotFrom.2': 'Un coup de feu du clocher : {name} est à terre. C’était {role}.',
+  'gameEvent.text.aim': 'Tu tiens {name} en joue.',
   'gameEvent.text.cell': 'Tu es en cellule. Tu ne sors pas cette nuit.',
   'gameEvent.text.cell.tonightIsIn': 'Cette nuit, {name} est en cellule.',
+  'gameEvent.text.converted': 'Tu as vu la lumière : te voilà dans la secte, et tu ne gagnes plus qu’avec elle.',
+  'gameEvent.text.door': '{name} est des tiens, maintenant.',
+  'gameEvent.text.door.doorShutDid': 'Porte close : {name} n’a pas suivi.',
   'gameEvent.text.busy': 'La nuit dernière, quelqu’un a accaparé ta nuit.',
   'gameEvent.text.left': '{name} a quitté la ville.',
   'gameEvent.text.end': 'Partie fermée : plus personne ne jouait.',
+  'gameEvent.text.end.thePresidentHas': ' Le Président est tombé.',
   'gameEvent.text.end.gameOver': 'Partie terminée : {winner}.',
   'gameEvent.text.end.wonAlone': ' Victoire en solo : {alone}.',
   'gameEvent.text.found': '{name} était {role}.',
@@ -1360,13 +1379,30 @@ const frenchMessages = <String, String>{
   'gameEvent.text.protected': 'Cette nuit, tu as veillé sur {name}.',
   'gameEvent.text.dawn.foundOne': '{gender, select, masculine{Retrouvé mort : {name}.} feminine{Retrouvée morte : {name}.} other{Victime de la nuit : {name}.}}',
   'gameEvent.text.dawn.backAmongLiving': '{gender, select, masculine{{name} est revenu parmi les vivants.} feminine{{name} est revenue parmi les vivants.} other{{name} revient parmi les vivants.}}',
+  'gameEvent.text.lovers.bound': 'Tu as lié {first} et {second}.',
+  'gameEvent.text.lovers.self': 'Le cœur a choisi : {first} et {second} s’aiment. Vous ne gagnez que si aucun de vous deux ne meurt.',
   // ---- progress
   'progress.missions': 'Missions',
   'progress.achievements': 'Succès',
   'progress.leaderboard': 'Classement',
   'progress.daily': 'DU JOUR',
   'progress.weekly': 'DE LA SEMAINE',
-  'progress.missionsHint': 'Elles se remplissent en jouant : la récompense arrive toute seule. Les parties abandonnées ou passées à rien faire ne comptent jamais.',
+  'progress.goals': 'OBJECTIFS',
+  'progress.tabDaily': 'AUJOURD’HUI',
+  'progress.tabWeekly': 'SEMAINE',
+  'progress.tabGoals': 'OBJECTIFS',
+  'progress.missionsHint': 'Elles se remplissent en jouant, puis tu les encaisses. Les pièces ne se gagnent qu’ainsi : rien ne s’achète avec de l’argent réel. Les parties abandonnées ou passées à ne rien faire ne comptent jamais.',
+  'progress.goalsHint': 'Les objectifs restent là jusqu’à ce que tu les atteignes. Certains offrent des articles que la boutique ne vend pas.',
+  'progress.claim': 'ENCAISSER',
+  'progress.claimed': 'ENCAISSÉ',
+  'progress.late': 'D’HIER',
+  'progress.reputation': 'RESPECT',
+  'progress.reputationGain': '+{n} de respect',
+  'progress.claimDone': 'Encaissé : {coins} pièces, +{reputation} de respect',
+  'progress.itemWon': 'Offert : {name}',
+  'progress.reward': 'Récompense : {name}',
+  'progress.unlocksWith': 'Se débloque avec : {mission}',
+  'progress.missionOnly': 'Seulement par les missions',
   'progress.done': 'FAIT',
   'progress.endsIn': 'finit dans {inDays} jours',
   'progress.endsIn.endsInH': 'finit dans {h} h',
@@ -1382,7 +1418,7 @@ const frenchMessages = <String, String>{
   'progress.leaderboardHint': 'Les cent meilleurs en classé, par langue.',
   'progress.yourPlace': 'Tu es n°{rank}',
   'progress.notRanked': 'Joue une partie classée pour entrer au tableau.',
-  'progress.missionDone': 'Mission accomplie : {name}',
+  'progress.missionDone': 'Mission accomplie : {name}. Encaisse-la !',
   'progress.achievementDone': 'Succès : {name}',
   'progress.mission.daily_play_3': 'Joue 3 parties',
   'progress.mission.daily_win_1': 'Gagne une partie',
@@ -1403,6 +1439,28 @@ const frenchMessages = <String, String>{
   'progress.mission.weekly_finds_3': 'Démasque 3 mafieux en Commissaire',
   'progress.mission.weekly_kills_5': 'Réussis 5 contrats avec la Famille',
   'progress.mission.weekly_nights_12': 'Survis à 12 nuits',
+  'progress.mission.daily_friends_play_2': 'Joue 2 parties entre amis',
+  'progress.mission.daily_win_alive_1': 'Gagne et sois en vie à la fin',
+  'progress.mission.daily_survive_2': 'Sois en vie à la fin de 2 parties',
+  'progress.mission.weekly_play_10': 'Joue 10 parties',
+  'progress.mission.weekly_wins_4': 'Gagne 4 parties',
+  'progress.mission.weekly_town_wins_3': 'Gagne 3 fois avec la ville',
+  'progress.mission.weekly_mafia_wins_2': 'Gagne 2 fois avec la Famille',
+  'progress.mission.weekly_detective_win_1': 'Gagne une partie en Commissaire',
+  'progress.mission.weekly_doctor_win_1': 'Gagne une partie en Docteur',
+  'progress.mission.long_nights_10': 'Survis à 10 nuits',
+  'progress.mission.long_lynch_hits_3': 'Envoie 3 mafieux à l’échafaud',
+  'progress.mission.long_detective_wins_5': 'Gagne 5 parties en Commissaire',
+  'progress.mission.long_finds_5': 'Démasque 5 mafieux en Commissaire',
+  'progress.mission.long_mafia_wins_10': 'Gagne 10 fois avec la Famille',
+  'progress.mission.long_town_wins_10': 'Gagne 10 fois avec la ville',
+  'progress.mission.long_wins_50': 'Gagne 50 parties',
+  'progress.mission.long_games_25': 'Joue 25 parties',
+  'progress.mission.long_friends_games_20': 'Joue 20 parties entre amis',
+  'progress.mission.long_ranked_games_20': 'Joue 20 parties classées',
+  'progress.mission.long_saves_5': 'Sauve 5 vies en Docteur',
+  'progress.mission.long_survived_25': 'Sois en vie à la fin de 25 parties',
+  'progress.mission.long_neutral_wins_3': 'Gagne 3 fois en neutre',
   'progress.mission': 'Objectif : {target}',
   'progress.achievement.wins_10': 'Veinard',
   'progress.achievement': 'Gagne 10 parties',
@@ -1437,12 +1495,12 @@ const frenchMessages = <String, String>{
   'progress.achievement.roles_won_all': 'Caméléon',
   'progress.achievement.winWithEvery': 'Gagne avec chaque rôle',
   'progress.achievement.roles_town_all': 'Toute la ville',
-  'progress.achievement.roles_town_all.goal': 'Gagne avec chaque rôle de la ville',
+  'progress.achievement.winWithEvery.2': 'Gagne avec chaque rôle de la ville',
   'progress.achievement.roles_mafia_all': 'Toute la Famille',
-  'progress.achievement.roles_mafia_all.goal': 'Gagne avec chaque rôle de la Famille',
+  'progress.achievement.winWithEvery.3': 'Gagne avec chaque rôle de la Famille',
   'progress.achievement.roles_lone_all': 'Tous les solitaires',
-  'progress.achievement.roles_lone_all.goal': 'Gagne avec chaque rôle solitaire',
-  'progress.achievement.roleWin': 'Gagne une partie avec ce rôle',
+  'progress.achievement.winWithEvery.4': 'Gagne avec chaque rôle solitaire',
+  'progress.achievement.winAGame': 'Gagne une partie avec ce rôle',
   'progress.achievement.wins_alive_25': 'Peau dure',
   'progress.achievement.winTimesStill': 'Gagne 25 fois encore en vie',
   'progress.achievement.lynch_hits_10': 'Bon flair',
@@ -1486,6 +1544,7 @@ const frenchMessages = <String, String>{
   'progress.titleName.guardian_angel': 'Ange gardien',
   'progress.titleName.inspector': 'L’Inspecteur',
   'progress.titleName.schemer': 'Manipulateur',
+  'progress.toClaim': '{n} à encaisser',
   // ---- recap
   'recap.open': 'LE RÉCIT COMPLET',
   'recap.masthead': 'Le Récit complet',
@@ -1523,11 +1582,15 @@ const frenchMessages = <String, String>{
   'recap.move.stab': 'a planté {target}.',
   'recap.move.jail': 'a bouclé {target}.',
   'recap.move.block': 'a passé la nuit avec {target}.',
+  'recap.move.link': 'a lié le cœur de {target}.',
+  'recap.move.convert': 'a appelé {target} dans la secte.',
+  'recap.move.aim': 'a mis {target} en joue.',
   'recap.attack.family': 'par la Famille',
   'recap.attack.sniper': 'par le Tireur',
   'recap.attack.fire': 'par le feu',
   'recap.attack.assassin': 'par le Tueur à gages',
   'recap.attack.shrugged': '{target} encaisse le coup {by}, et survit.',
+  'recap.attack.escorted': 'L’escorte a repoussé l’attentat {by} contre {target}.',
   'recap.scoopOut.mafia': 'Le journal est sorti : {target} est de la Famille.',
   'recap.scoopOut.citizens': 'Le journal est sorti : {target} est réglo.',
   'recap.scoopOut.neutral': 'Le journal est sorti : {target} joue en solo.',
@@ -1690,21 +1753,46 @@ const frenchMessages = <String, String>{
   'table.youAreJailed': 'Tu es en cellule. Tu ne sors pas cette nuit.',
   'table.jailerWantsYou': 'Le Geôlier veut te dire un mot.',
   'table.inYourCell': 'Dans ta cellule : {name}. Interroge dans le chat.',
+  'table.lastOfFamily': 'Tu es la dernière de la Famille : maintenant, la nuit est à toi.',
   'table.mateInCell': 'Cette nuit, {name} est en cellule.',
   'table.jailChat': 'La cellule',
   'table.jailer': 'Le Geôlier',
+  'table.converted': 'Tu as vu la lumière : te voilà dans la secte, et tu ne gagnes plus qu’avec elle.',
+  'table.sectLine': 'Ta secte : {names}.',
+  'table.doorClosed': 'Porte close : {name} n’a pas suivi.',
+  'table.linkFirst': 'Touche le premier cœur.',
+  'table.linkSecond': '{name} et qui ? Touche le second.',
+  'table.link': 'Lier le cœur de {a} et de {b} ?',
+  'table.linkBody': 'Les deux l’apprendront à l’aube, et ne gagnent que si aucun ne meurt. Ensuite, impossible de changer.',
+  'table.loversLine': 'Cœurs liés : {a} et {b}.',
+  'table.inLoveWith': 'Ton cœur bat pour {name}.',
+  'table.loversChat': 'Les amants',
   'table.answerAtDawn': 'Quelqu’un à cette table bloque : la réponse arrive à l’aube.',
   'table.readTheNews': 'Lis les nouvelles, puis Prêt.',
   'table.votedFor': 'Tu as voté {name}. Tu peux changer d’avis.',
   'table.revealMayor': 'Se révéler',
   'table.revealMayorTitle': 'Te révéler comme Maire ?',
   'table.revealMayorBody': 'Tout le monde saura qui tu es, et ton vote comptera double dès aujourd’hui.',
+  'table.shootTitle': 'Tirer sur {name} ?',
+  'table.shotLine': 'Le coup est revenu en arrière : {name} était {role}.',
+  'table.shotLine.aShotFrom': 'Un coup de feu du clocher : {name} était {role}.',
+  'table.aimLine': 'En joue : {name}. Balles : {left}.',
   'table.truce': 'Trêve',
   'table.truceHint': 'Touche qui révéler à tout le monde.',
   'table.truceTitle': 'Tout arrêter : révéler {name} ?',
   'table.truceBody': 'Tout le monde verra son rôle exact, et le tien. Pas de vote aujourd’hui. Une seule fois.',
   'table.truceLine': '{pacifist} a imposé une trêve : {name} est {role}.',
   'table.truceVerdict': 'Trêve : personne ne pend aujourd’hui.',
+  'table.fire': 'Feu !',
+  'table.fireHint': 'Touche ta cible.',
+  'table.fireTitle': 'Feu sur {name} ?',
+  'table.fireBody': 'La cible meurt sur le coup et son rôle devient public. Tout le monde entend le grondement : on saura que tu es l’Artilleur.',
+  'table.shotsLeft': 'Il te reste un coup.',
+  'table.shotsLeft.youHaveShots': 'Il te reste {count} coups.',
+  'table.gunnerShotsLeft': 'L’Artilleur n’a plus de coups.',
+  'table.gunnerShotsLeft.theGunnerHas': 'Il reste un coup à l’Artilleur.',
+  'table.gunnerShotsLeft.theGunnerHas.2': 'Il reste {count} coups à l’Artilleur.',
+  'table.cannonLine': 'Un grondement sur la place : l’Artilleur a touché {name}, qui était {role}.',
   'table.noLynch': 'Personne n’a été lynché.',
   'table.chatOpensLater': 'La place rouvre pour le débat.',
   'table.chatOver': 'La partie est finie.',
@@ -1716,6 +1804,7 @@ const frenchMessages = <String, String>{
   'table.lynchedLine': '{gender, select, masculine{{name} a été lynché.} feminine{{name} a été lynchée.} other{La place a lynché {name}.}}',
   'table.lynchedLine.role': '{gender, select, masculine{{name} a été lynché. C’était {role}.} feminine{{name} a été lynchée. C’était {role}.} other{La place a lynché {name}. C’était {role}.}}',
   'table.abstainedVotes': '{n, plural, one{# abstention} other{# abstentions}}',
+  'table.shootBody': 'Tout le monde l’entend, personne ne sait qui a tiré. Si c’est quelqu’un de la ville, le coup revient et c’est toi qui meurs. {left, plural, one{C’est ta dernière balle.} other{Il te reste # balles.}}',
   // ---- tutorial
   'tutorial.you': 'Toi',
   'tutorial.skip': 'Passer',
@@ -1999,28 +2088,150 @@ const frenchMessages = <String, String>{
   'localRole.answerHint': 'Ta réponse (seul le Geôlier la lit)',
   'localRole.questionHint': 'Une question pour le prisonnier (facultatif)',
   'localRole.jailed': '{name} est dans ta cellule.',
+  'localRole.converted': 'Tu as vu la lumière : te voilà dans la secte, et tu ne gagnes plus qu’avec elle.',
+  'localRole.sect': 'Ta secte : {names}.',
+  'localRole.doorClosed': 'La nuit dernière, porte close : {name}.',
+  'localRole.sectWins': 'La secte gagne',
+  'localRole.linkSecond': 'Et qui d’autre ? Touche le second cœur.',
+  'localRole.linked': 'Tu as lié {a} et {b}.',
+  'localRole.inLoveWith': 'Ton cœur bat pour {name} : vous ne gagnez que si aucun de vous deux ne meurt.',
+  'localRole.fateCannon': 'Au canon, jour {round}',
+  'localRole.fateDay': 'De jour, jour {round}',
   'localRole.truce': 'Trêve du Pacifiste',
   'localRole.whoAreYou': 'Que le Pacifiste touche son propre visage.',
   'localRole.notYou': 'Seul le Pacifiste peut imposer la trêve.',
   'localRole.whoToReveal': 'Qui révèles-tu à tous ?',
+  'localRole.cannon': 'Feu de l’Artilleur',
+  'localRole.gunnerWhoAreYou': 'Que l’Artilleur touche son propre visage.',
+  'localRole.notTheGunner': 'Seul l’Artilleur peut tirer.',
+  'localRole.whoToHit': 'Qui frappes-tu ?',
+  'localRole.marksman': 'Tir du Tireur d’élite',
+  'localRole.whoIsMarksman': 'Que le Tireur d’élite touche son propre visage.',
+  'localRole.notMarksman': 'Seul le Tireur d’élite peut tirer.',
+  'localRole.aimed': 'En joue : {name}. Balles restantes : {left}.',
+  'localRole.noAim': 'Personne en joue : choisis cette nuit.',
+  'localRole.fire': 'Feu !',
+  'localRole.carryOn': 'Continuer',
   'localRole.cancel': 'Annuler',
   'localRole.confirm': 'Confirmer',
   // ---- localTable
-  'localTable.curtainHint': 'Les autres regardent ailleurs. Touche seulement quand le téléphone est entre tes mains.',
-  'localTable.roleCurtainHint': 'Tu vas voir ta carte : personne d’autre ne doit regarder.',
-  'localTable.backToTable': 'Téléphone au milieu de la table',
   'localTable.pickedConfirm': 'Tu as choisi {name}. Confirme, ou touche une autre place.',
   'localTable.familyNote': 'famille',
   'localTable.cleanNote': 'réglo',
-  'localTable.putItDown': 'C’est fait. Pose le téléphone et passe-le.',
   'localTable.discuss': 'Discutez à voix haute. Ensuite, on vote.',
   'localTable.openVote': 'Le téléphone reste au milieu : on vote un par un, à visage découvert.',
-  'localTable.voterTurn': '{name} vote : touche qui tu condamnes.',
   'localTable.votedLine': '{voter} vote {target}.',
   'localTable.abstainedLine': '{voter} s’abstient.',
   'localTable.undo': 'Retour',
   'localTable.notTheMayor': 'Seul le Maire peut se révéler.',
+  // ---- rules
+  'rules.sign': 'Règles',
+  'rules.title': 'Règles du jeu',
+  'rules.banner': 'À lire à voix haute',
+  'rules.pitch': 'Lis cette page à voix haute : en une minute, tes amis savent jouer.',
+  'rules.style.quick': 'Express',
+  'rules.style.stage': 'Théâtrale',
+  'rules.styleHint.quick': 'Tout le jeu en une minute.',
+  'rules.styleHint.stage': 'Un conte noir, à jouer.',
+  'rules.readToMe': 'Lis-la-moi',
+  'rules.stopReading': 'Ça suffit',
+  'rules.commonRoles': 'Les rôles les plus courants',
+  'rules.commonRolesHint': 'Une ligne chacun, pour les curieux.',
+  'rules.playLocal': 'On joue sur un téléphone',
+  'rules.playLocalHint': 'Un seul téléphone, passé de main en main.',
+  'rules.playFriends': 'Jouer entre amis',
+  'rules.playFriendsHint': 'Sur un seul téléphone, on joue sur place : d’ici, une salle en ligne.',
+  'rules.back': 'Retour',
+  'rules.team.citizens': 'Ville',
+  'rules.team.mafia': 'Famille',
+  'rules.team.neutral': 'En solo',
+  // ---- chat
+  'chat.fresh': '{n, plural, one{# nouveau} other{# nouveaux}}',
+  // ---- nightNotes
+  'nightNotes.spendTheNight': 'Passer la nuit',
+  // ---- ranked
+  'ranked.yourTable': 'Ta langue',
 };
+
+// The rules read aloud, quick and theatrical (rules_strings.dart has the
+// Italian and English ones). Stage cues (RulesBeat.cue) are not spoken.
+const _quickFr = [
+  RulesStep('Deux camps', [
+    RulesBeat('Imagine une grande ville dans les années quarante. Presque tout le monde y est honnête : c’est la ville.'),
+    RulesBeat('Pas tous. Eux, c’est la Famille, et ce soir, ils ont du travail.'),
+    RulesBeat('Les mafieux se connaissent entre eux. Les honnêtes gens ne connaissent personne. Tout le problème est là.'),
+  ]),
+  RulesStep('Ta carte est secrète', [
+    RulesBeat('Le téléphone fait le tour. Chacun regarde son rôle, seul, et ne le dit à personne.'),
+    RulesBeat('Le jour, tu peux dire ce que tu veux sur qui tu es. Même des mensonges. Surtout des mensonges.'),
+  ]),
+  RulesStep('La nuit', [
+    RulesBeat('La nuit, le téléphone passe de main en main. Qui le tient joue son coup en secret ; les autres regardent ailleurs.'),
+    RulesBeat('La Famille choisit qui descendre. Le Commissaire enquête, le Docteur sauve.'),
+    RulesBeat('Pas de pouvoir ? Touche JE PASSE, avec la même tête que les autres. Personne ne doit savoir qui a fait quoi.'),
+  ]),
+  RulesStep('Le jour', [
+    RulesBeat('À l’aube, on découvre qui n’a pas tenu le coup. Qui meurt la nuit emporte son rôle dans la tombe.'),
+    RulesBeat('Puis on discute : accusations, alibis, regards en coin.'),
+    RulesBeat('À la fin, on vote. Qui a le plus de voix est lynché, et sa carte est retournée. Égalité ? Personne ne pend aujourd’hui.'),
+  ]),
+  RulesStep('Qui gagne', [
+    RulesBeat('La ville gagne quand toute la Famille est dehors.'),
+    RulesBeat('La Famille gagne quand elle est aussi nombreuse que tous les autres.'),
+    RulesBeat('Quelques drôles de types jouent pour leur compte : leur carte leur dit comment gagner.'),
+  ]),
+  RulesStep('Les règles d’or', [
+    RulesBeat('Ne regarde pas le téléphone des autres.'),
+    RulesBeat('Ne montre ton écran à personne.'),
+    RulesBeat('Les morts ne parlent pas. Même pas avec les yeux.'),
+    RulesBeat('Et personne ne se vexe : ce n’est qu’un jeu. Plus ou moins.'),
+  ]),
+];
+
+const _stageFr = [
+  RulesStep('Il était une fois', [
+    RulesBeat.cue('Baisse les lumières. Attends le silence.'),
+    RulesBeat('Il était une fois, dans une cité qui ne dort jamais, une place pleine de braves gens. On les appelait la ville.'),
+    RulesBeat('Mais parmi ces braves gens se cachait la Famille. Peu nombreux, élégants, armés. Ils se connaissaient tous… et personne ne les connaissait.'),
+    RulesBeat.cue('Regarde chaque visage, lentement.'),
+    RulesBeat('Peut-être que l’un d’eux est assis à cette table. Peut-être deux.'),
+  ]),
+  RulesStep('L’enveloppe scellée', [
+    RulesBeat('Chacun de vous recevra une enveloppe scellée : dedans, il y a qui vous êtes vraiment.'),
+    RulesBeat.cue('Passe le téléphone à ta droite, comme une enveloppe.'),
+    RulesBeat('Lisez-la en secret. Puis gardez-la au fond du cœur, et ne la dites à personne.'),
+    RulesBeat('Dès demain, vous pourrez raconter ce que vous voulez sur vous. La vérité… ou pas.'),
+  ]),
+  RulesStep('Quand tombe la nuit', [
+    RulesBeat.cue('Baisse la voix.'),
+    RulesBeat('Quand tombe la nuit, le téléphone passe de main en main, comme un secret qui brûle les doigts.'),
+    RulesBeat('Qui le tient joue son coup sans être vu. Les autres fixent le mur, le plafond, leurs chaussures.'),
+    RulesBeat('La Famille choisit qui ne verra pas l’aube. Le Commissaire fouille dans les affaires des autres. Le Docteur veille sur quelqu’un.'),
+    RulesBeat('Et ceux qui n’ont pas de pouvoir ? Ils jouent la comédie. Ils touchent l’écran avec un air de conspirateur, pour que personne ne soupçonne personne.'),
+  ]),
+  RulesStep('À l’aube, la place', [
+    RulesBeat.cue('Élève la voix, comme un crieur public.'),
+    RulesBeat('À l’aube, la ville se réveille et compte ses morts. Qui tombe la nuit s’en va avec son secret.'),
+    RulesBeat('Alors la place se rassemble : on accuse, on jure, on ment.'),
+    RulesBeat.cue('Montre quelqu’un du doigt, d’un coup.'),
+    RulesBeat('Toi ! Où étais-tu cette nuit ?'),
+    RulesBeat('Quand les voix se taisent, on vote. Qui récolte le plus de voix est condamné, et sa carte se retourne aux yeux de tous.'),
+    RulesBeat('Si les voix sont à égalité, la place s’arrête : aujourd’hui, pas de condamnation.'),
+  ]),
+  RulesStep('Comment finit l’histoire', [
+    RulesBeat('L’histoire finit bien pour la ville quand le dernier de la Famille a quitté la place.'),
+    RulesBeat('Elle finit bien pour la Famille quand ses hommes sont aussi nombreux que tous les autres : dès lors, la ville est à eux.'),
+    RulesBeat('Et quelques âmes solitaires jouent une partie bien à elles : leur enveloppe leur dira comment gagner.'),
+  ]),
+  RulesStep('Les trois lois de la rue', [
+    RulesBeat.cue('Lentement, en comptant sur tes doigts.'),
+    RulesBeat('Première loi : on ne regarde pas dans le téléphone des autres.'),
+    RulesBeat('Deuxième loi : on ne montre son écran à personne.'),
+    RulesBeat('Troisième loi : les morts ne parlent pas. Ni avec la bouche, ni avec les yeux.'),
+    RulesBeat.cue('Une pause. Puis, à voix basse.'),
+    RulesBeat('Et maintenant… que la nuit commence.'),
+  ]),
+];
 
 // The same rules as the Italian and English scripts:
 // - court : une ligne ou deux par réplique ;
@@ -2140,12 +2351,37 @@ const frenchPack = NarrationPack(
     Role.prostituta: RoleText(
       'L’Entraîneuse',
       '« Une chanson, un verre, et la nuit s’envole. »',
-      'De la Famille, mais sans vote au contrat : chaque nuit, tu bloques le coup de quelqu’un, jamais le même deux fois de suite. S’il ne reste que toi pour voter, tu votes.',
+      'Tu joues pour la Famille, sans la connaître ni être connue. Chaque nuit, tu bloques le coup de quelqu’un, jamais le même deux fois de suite. Dernière en lice, tu votes.',
     ),
     Role.carceriere: RoleText(
       'Le Geôlier',
       '« Ici, on parle. Dehors, on meurt. »',
       'Chaque nuit, tu enfermes quelqu’un, jamais le même deux fois de suite : il n’agit pas et personne ne le tue. Interroge-le dans le chat, incognito.',
+    ),
+    Role.cupido: RoleText(
+      'Cupidon',
+      '« Deux cœurs, une dot, aucune issue. »',
+      'La première nuit, tu lies deux personnes, toi aussi si tu veux. Elles ne gagnent que si les deux vivent ; si l’une meurt, l’autre suit. Tu gagnes avec la ville.',
+    ),
+    Role.presidente: RoleText(
+      'Le Président',
+      '« L’État ne négocie pas. »',
+      'Tous savent qui tu es, et nul ne peut voter contre toi. Ton escorte te sauve des deux premières attaques ; à la troisième, tu meurs. Si tu meurs, la ville perd.',
+    ),
+    Role.capoSetta: RoleText(
+      'Le Gourou',
+      '« Je ne demande pas la foi. Juste de suivre. »',
+      'Tu joues en solo : chaque nuit, tu convertis quelqu’un, qui ne gagne plus qu’avec toi sans savoir qui d’autre en est. Tu gagnes quand tous les vivants sont de la secte.',
+    ),
+    Role.artigliere: RoleText(
+      'L’Artilleur',
+      '« Je ne chuchote pas. Je tonne. »',
+      'Deux coups, un par jour, dès le deuxième jour : pendant le débat, ta cible meurt sur-le-champ. Dès ton premier tir, tous savent qui tu es. Tu gagnes avec la ville.',
+    ),
+    Role.tiratoreScelto: RoleText(
+      'Le Tireur d’élite',
+      '« Un souffle, un coup, un nom. »',
+      'La nuit, tu mets quelqu’un en joue ; le jour, tu peux lui tirer dessus. Deux balles. Si c’est quelqu’un de la ville, le coup revient et c’est toi qui meurs.',
     ),
     Role.pacifista: RoleText(
       'Le Pacifiste',
@@ -2431,6 +2667,11 @@ const frenchPack = NarrationPack(
     'Place au vote. Essayez de ne pas vous tromper. Encore.',
   ],
   voteInstruction: 'Décidez à voix haute qui éliminer. Vous pouvez aussi n’éliminer personne.',
+  passPhone: 'Passe le téléphone à {name}.',
+  curtainHint: 'Les autres regardent ailleurs. Touche seulement quand le téléphone est entre tes mains.',
+  cardCurtainHint: 'Tu vas voir ta carte : personne d’autre ne doit regarder.',
+  putPhoneDown: 'C’est fait. Pose le téléphone et passe-le.',
+  voterTurn: '{name} vote : touche qui tu condamnes.',
   lynchScenes: [
     '{name} monte les marches de l’échafaud. La guillotine brille au soleil.',
     '{name} marche vers la corde, la tête haute. Roulement de tambour.',
@@ -2469,6 +2710,39 @@ const frenchPack = NarrationPack(
     'La place range les cordes : trêve, pour aujourd’hui.',
   ],
   truceFact: 'Le Pacifiste a imposé une trêve : pas de vote aujourd’hui.',
+  heartbreaks: [
+    'Un cœur s’arrête sans un bruit. L’autre moitié est déjà partie.',
+    'Il y a des gens qui ne savent pas rester seuls au monde.',
+  ],
+  heartbreakFact: 'Le cœur de {name} s’est brisé, sur les pas de l’être aimé.',
+  loversWinFact: 'Les deux amants sont en vie : ils gagnent ensemble.',
+  escorts: [
+    'Un coup de feu dans le noir. Mais un homme en noir est déjà devant le Président, mallette levée.',
+    'Un coup de feu, une étincelle, un claquement d’acier. L’escorte ne dort jamais.',
+  ],
+  escortFact: 'L’escorte a repoussé un attentat contre le Président.',
+  presidentFallsFact: 'Le Président est tombé. La ville a perdu.',
+  sectWins: [
+    'Des bougies s’allument à chaque fenêtre. À {city}, il n’y a plus personne à convertir.',
+    'Un chant sourd monte des rues de {city}. Tout le monde a vu la lumière.',
+  ],
+  sectWinsFact: 'La secte gagne : chaque âme encore en vie suit le Gourou.',
+  cannonShots: [
+    'Un grondement secoue la place. Les vitres tremblent, les pigeons s’envolent d’un coup.',
+    'Le canon tonne une fois. Quand la fumée se dissipe, quelqu’un n’est plus debout.',
+    'Feu ! Le sol tremble, les tasses sautent sur les tables du café. Puis, le silence.',
+  ],
+  cannonFact: 'Un grondement sur la place : l’Artilleur a touché {name}.',
+  marksmanShots: [
+    'Un coup de feu du clocher. {name} s’effondre au milieu de la place.',
+    'Une détonation sèche, de très loin. {name} ne finira jamais sa phrase.',
+  ],
+  marksmanShotFact: 'Un coup de feu du clocher : {name} quitte la partie.',
+  backfires: [
+    'Le coup résonne, mais c’est le tireur qui tombe.',
+    'Le fusil s’enraye et éclate. Du clocher ne descend que le silence.',
+  ],
+  backfireFact: 'Le coup est revenu en arrière : le Tireur d’élite visait la ville, et meurt à sa place.',
   citizensWin: [
     '{city} est libre. Dès demain, on dort fenêtres ouvertes. Générique.',
     'Dans la rue, les gens se regardent de nouveau dans les yeux. À l’écran : « Fin ».',

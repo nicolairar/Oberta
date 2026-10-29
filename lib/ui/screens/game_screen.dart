@@ -1319,7 +1319,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   String _lowerFirstLocal(String text) =>
-      _t.language.locale.languageCode == 'it' && text.isNotEmpty ? text[0].toLowerCase() + text.substring(1) : text;
+      !_t.language.capitalizesRoles && text.isNotEmpty ? text[0].toLowerCase() + text.substring(1) : text;
 
   /// La mossa è fatta: sul panno la risposta (l'indagine, la fossa) o la
   /// notte che continua. Il posto scoperto resta acceso.

@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import '../../../l10n/app_strings.dart';
 import '../../../l10n/progress_strings.dart';
 import '../../../online/online_services.dart';
-import '../../../online/shop_models.dart';
 import '../../../sound/sound_stage.dart' show Press;
 import '../../theme/app_theme.dart';
 import '../../widgets/home_account.dart' show CoinPainter;

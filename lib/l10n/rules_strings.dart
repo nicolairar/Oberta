@@ -36,44 +36,37 @@ class RulesStrings {
 
   static RulesStrings of(BuildContext context) => RulesStrings(AppStrings.of(context).language);
 
-  bool get _en => language == AppLanguage.en;
-
-  String _t(String it, String en) => _en ? en : it;
+  /// The text under `rules.<key>` in the messages of the language.
+  String _m(String key, [Map<String, Object?> args = const {}]) => language.message('rules.$key', args);
 
   // Il cartello sul palo e la pagina.
-  String get sign => _t('Regole', 'Rules');
-  String get title => _t('Regole del gioco', 'How to play');
-  String get banner => _t('Da leggere ad alta voce', 'To be read aloud');
-  String get pitch => _t(
-    'Leggi questa pagina ad alta voce: in un minuto i tuoi amici sanno giocare.',
-    'Read this page out loud: in one minute your friends know how to play.',
-  );
+  String get sign => _m('sign');
+  String get title => _m('title');
+  String get banner => _m('banner');
+  String get pitch => _m('pitch');
   String style(RulesStyle style) => switch (style) {
-    RulesStyle.quick => _t('Sbrigativa', 'Quick'),
-    RulesStyle.stage => _t('Teatrale', 'Theatrical'),
+    RulesStyle.quick => _m('style.quick'),
+    RulesStyle.stage => _m('style.stage'),
   };
   String styleHint(RulesStyle style) => switch (style) {
-    RulesStyle.quick => _t('Tutto il gioco in un minuto.', 'The whole game in a minute.'),
-    RulesStyle.stage => _t('Una favola nera, da recitare.', 'A dark fairy tale, to perform.'),
+    RulesStyle.quick => _m('styleHint.quick'),
+    RulesStyle.stage => _m('styleHint.stage'),
   };
-  String get readToMe => _t('Fammela leggere', 'Read it to me');
-  String get stopReading => _t('Basta così', 'That will do');
-  String get commonRoles => _t('I ruoli più comuni', 'The most common roles');
+  String get readToMe => _m('readToMe');
+  String get stopReading => _m('stopReading');
+  String get commonRoles => _m('commonRoles');
   String get commonRolesHint =>
-      _t('Una riga ciascuno, per chi vuole sapere di più.', 'One line each, for the curious.');
-  String get playLocal => _t('Giochiamo in locale', 'Let\'s play on one phone');
-  String get playLocalHint => _t('Un telefono solo, passato di mano in mano.', 'One phone, passed from hand to hand.');
-  String get playFriends => _t('Gioca con amici', 'Play with friends');
-  String get playFriendsHint => _t(
-    'In locale si gioca col telefono: da qui, una stanza online.',
-    'One-phone games live on the phone: from here, an online room.',
-  );
-  String get back => _t('Indietro', 'Back');
+      _m('commonRolesHint');
+  String get playLocal => _m('playLocal');
+  String get playLocalHint => _m('playLocalHint');
+  String get playFriends => _m('playFriends');
+  String get playFriendsHint => _m('playFriendsHint');
+  String get back => _m('back');
 
   String team(Team team) => switch (team) {
-    Team.citizens => _t('Città', 'Town'),
-    Team.mafia => _t('Famiglia', 'Family'),
-    Team.neutral => _t('Da solo', 'On their own'),
+    Team.citizens => _m('team.citizens'),
+    Team.mafia => _m('team.mafia'),
+    Team.neutral => _m('team.neutral'),
   };
 
   /// I ruoli che si incontrano quasi a ogni tavolo del telefono unico: quelli
@@ -97,11 +90,12 @@ class RulesStrings {
     return out.toString();
   }
 
-  List<RulesStep> steps(RulesStyle style) => switch ((style, _en)) {
-    (RulesStyle.quick, false) => _quickIt,
-    (RulesStyle.quick, true) => _quickEn,
-    (RulesStyle.stage, false) => _stageIt,
-    (RulesStyle.stage, true) => _stageEn,
+  /// The six steps in this language. Italian and English are here; the
+  /// other languages bring theirs ([AppStrings.rulesSteps]) or read English.
+  List<RulesStep> steps(RulesStyle style) => switch (language) {
+    AppLanguage.it => style == RulesStyle.quick ? _quickIt : _stageIt,
+    AppLanguage.en => style == RulesStyle.quick ? _quickEn : _stageEn,
+    _ => language.strings.rulesSteps(style) ?? RulesStrings(AppLanguage.en).steps(style),
   };
 
   /// Tutto quello che la voce dice, nelle due versioni: il copione delle clip.

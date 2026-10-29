@@ -1,4 +1,3 @@
-import 'app_language.dart';
 import 'app_strings.dart';
 
 /// The words of the newer roles on the shared phone: the private notes at a
@@ -9,63 +8,59 @@ class LocalRoleStrings {
 
   const LocalRoleStrings(this.strings);
 
-  bool get _en => strings.language == AppLanguage.en;
-
-  String _t(String it, String en) => _en ? en : it;
+  /// The text under `localRole.<key>` in the messages of the language.
+  String _m(String key, [Map<String, Object?> args = const {}]) => strings.language.message('localRole.$key', args);
 
   // ---- Notes at your turn: what reached you at dawn.
-  String get wasBusy => _t('Ieri notte qualcuno ti ha tenuto occupato: la tua mossa è saltata.',
-      'Last night someone kept you busy: your move was lost.');
+  String get wasBusy => _m('wasBusy');
   String get wasJailed =>
-      _t('Ieri notte eri in cella: la tua mossa è saltata.', 'Last night you were in a cell: your move was lost.');
-  String jailerAsked(String question) => _t('Il Carceriere chiedeva: «$question»', 'The Jailer asked: “$question”');
+      _m('wasJailed');
+  String jailerAsked(String question) => _m('jailerAsked', {'question': question});
   String prisonerAnswered(String name, String answer) =>
-      _t('Dalla cella, $name ha risposto: «$answer»', 'From the cell, $name answered: “$answer”');
-  String foundFamily(String name) => _t('All\'alba: $name risulta della Famiglia.', 'At dawn: $name comes up Family.');
-  String foundClean(String name) => _t('All\'alba: $name risulta pulito.', 'At dawn: $name comes up clean.');
-  String foundRole(String name, String role) => _t('All\'alba: $name era $role.', 'At dawn: $name was the $role.');
+      _m('prisonerAnswered', {'name': name, 'answer': answer});
+  String foundFamily(String name) => _m('foundFamily', {'name': name});
+  String foundClean(String name) => _m('foundClean', {'name': name});
+  String foundRole(String name, String role) => _m('foundRole', {'name': name, 'role': role});
 
   // ---- The cell, on the phone.
-  String get jailedTitle => _t('Sei in cella', 'You are in a cell');
-  String get jailedBody => _t('Stanotte non esci e nessuno ti tocca.', 'You are not going out tonight, and nobody can touch you.');
-  String get jailerAsks => _t('Il Carceriere ti chiede:', 'The Jailer asks you:');
-  String get answerHint => _t('La tua risposta (la leggerà solo lui)', 'Your answer (only the Jailer reads it)');
+  String get jailedTitle => _m('jailedTitle');
+  String get jailedBody => _m('jailedBody');
+  String get jailerAsks => _m('jailerAsks');
+  String get answerHint => _m('answerHint');
   String get questionHint =>
-      _t('Una domanda per il prigioniero (facoltativa)', 'A question for the prisoner (optional)');
-  String jailed(String name) => _t('$name è in cella.', '$name is in your cell.');
+      _m('questionHint');
+  String jailed(String name) => _m('jailed', {'name': name});
 
   // ---- The cult.
-  String get converted => _t('Hai visto la luce: ora sei della setta, e vinci solo con lei.',
-      'You have seen the light: you are in the cult now, and win only with it.');
-  String sect(String names) => _t('La tua setta: $names.', 'Your cult: $names.');
-  String doorClosed(String name) => _t('Ieri notte, porta chiusa: $name.', 'Last night, a shut door: $name.');
-  String get sectWins => _t('Vince la setta', 'The cult wins');
+  String get converted => _m('converted');
+  String sect(String names) => _m('sect', {'names': names});
+  String doorClosed(String name) => _m('doorClosed', {'name': name});
+  String get sectWins => _m('sectWins');
 
   // ---- Cupid.
-  String get linkSecond => _t('E chi altro? Tocca il secondo innamorato.', 'And who else? Tap the second lover.');
-  String linked(String a, String b) => _t('Hai legato $a e $b.', 'You bound $a and $b.');
-  String inLoveWith(String name) => _t('Il tuo cuore batte per $name: vincete solo vivi tutti e due.',
-      'Your heart beats for $name: you win only if both of you live.');
-  String fateCannon(int round) => _t('Cannonata, giorno $round', 'Shelled, day $round');
-  String fateDay(int round) => _t('Di giorno, giorno $round', 'By day, day $round');
+  String get linkSecond => _m('linkSecond');
+  String linked(String a, String b) => _m('linked', {'a': a, 'b': b});
+  String inLoveWith(String name) => _m('inLoveWith', {'name': name});
+  String fateCannon(int round) => _m('fateCannon', {'round': round});
+  String fateDay(int round) => _m('fateDay', {'round': round});
 
   // ---- The day powers, in front of everyone.
-  String get truce => _t('Tregua del Pacifista', 'Pacifist\'s truce');
-  String get whoAreYou => _t('Il Pacifista tocchi il proprio volto.', 'The Pacifist taps their own face.');
-  String get notYou => _t('Solo il Pacifista può chiedere la tregua.', 'Only the Pacifist can call the truce.');
-  String get whoToReveal => _t('Chi sveli a tutti?', 'Who do you reveal to everyone?');
-  String get cannon => _t('Fuoco dell\'Artigliere', 'Gunner\'s fire');
-  String get gunnerWhoAreYou => _t('L\'Artigliere tocchi il proprio volto.', 'The Gunner taps their own face.');
-  String get notTheGunner => _t('Solo l\'Artigliere può sparare.', 'Only the Gunner can fire.');
-  String get whoToHit => _t('Chi colpisci?', 'Who do you hit?');
-  String get marksman => _t('Colpo del Tiratore', 'Marksman\'s shot');
-  String get whoIsMarksman => _t('Il Tiratore scelto tocchi il proprio volto.', 'The Marksman taps their own face.');
-  String get notMarksman => _t('Solo il Tiratore scelto può sparare.', 'Only the Marksman can shoot.');
+  String get truce => _m('truce');
+  String get whoAreYou => _m('whoAreYou');
+  String get notYou => _m('notYou');
+  String get whoToReveal => _m('whoToReveal');
+  String get cannon => _m('cannon');
+  String get gunnerWhoAreYou => _m('gunnerWhoAreYou');
+  String get notTheGunner => _m('notTheGunner');
+  String get whoToHit => _m('whoToHit');
+  String get marksman => _m('marksman');
+  String get whoIsMarksman => _m('whoIsMarksman');
+  String get notMarksman => _m('notMarksman');
   String aimed(String name, int left) =>
-      _t('Nel mirino: $name. Colpi rimasti: $left.', 'In your sights: $name. Shots left: $left.');
-  String get noAim => _t('Nessuno nel mirino: stanotte scegli chi.', 'Nobody in your sights: pick someone tonight.');
-  String get fire => _t('Fuoco!', 'Fire!');
-  String get carryOn => _t('Avanti', 'Carry on');
-  String get cancel => _t('Annulla', 'Cancel');
-  String get confirm => _t('Conferma', 'Confirm');
+      _m('aimed', {'name': name, 'left': left});
+  String get noAim => _m('noAim');
+  String get fire => _m('fire');
+  String get carryOn => _m('carryOn');
+  String get cancel => _m('cancel');
+  String get confirm => _m('confirm');
 }
