@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oberta/l10n/app_language.dart';
 import 'package:oberta/l10n/lobby_language.dart';
 import 'package:oberta/online/fake_online.dart';
 import 'package:oberta/online/join_code.dart';
@@ -41,7 +40,7 @@ void main() {
       await expectLater(online.profiles.update(handle: 'No!'), _fails(OnlineFailure.invalidHandle));
       final profile = await online.profiles.update(handle: 'anna', language: LobbyLanguage.en);
       expect(profile.isComplete, isTrue);
-      expect(profile.language, AppLanguage.en);
+      expect(profile.language, LobbyLanguage.en);
       expect([for (final p in await online.profiles.search('b')) p.handle], ['bruno']);
       expect(await online.profiles.search('anna'), isEmpty, reason: 'non si trova sé stessi');
     });

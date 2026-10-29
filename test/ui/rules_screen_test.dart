@@ -129,7 +129,8 @@ void main() {
 
   test('ogni frase detta delle regole ha la sua clip, in tutte e due le lingue', () {
     final voice = NarratorVoice.instance;
-    for (final language in AppLanguage.values) {
+    // Only Italian and English are recorded; the others read the rules.
+    for (final language in AppLanguage.values.where((l) => l.hasVoice)) {
       for (final line in RulesStrings(language).spoken) {
         expect(voice.clip(language, line), isNotNull, reason: '${language.name}: $line');
       }
