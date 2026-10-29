@@ -145,8 +145,9 @@ Seats _seats(WidgetTester tester, Finder within) => {
 
 /// Plates: `night` (Vito's family screen, Nonna not yet picked), `nightPick`
 /// (Nonna picked), `day` (the table at dawn, "Nessun morto stanotte"),
-/// `flip_00…` (the Picciotto's card turning over) and `prostituta` (her card,
-/// face up). Seats: the name tags on `night` and on `day`.
+/// `verdictSky`, `flip_00…` (the Picciotto's card turning over) and
+/// `card_prostituta`, `card_medico`, `card_carceriere` (face up).
+/// Seats: the name tags on `night` and on `day`.
 Future<(Map<String, ui.Image>, Map<String, Seats>)> shootZioPlates(WidgetTester tester) async {
   final plates = <String, ui.Image>{};
   final seats = <String, Seats>{};
@@ -277,15 +278,18 @@ Future<(Map<String, ui.Image>, Map<String, Seats>)> shootZioPlates(WidgetTester 
   }
   await finger.up();
   await tester.pump(const Duration(seconds: 1));
-  await cardOf(Role.prostituta);
-  await tester.pump(const Duration(milliseconds: 100));
-  finger = await tester.startGesture(tester.getCenter(find.byType(FlipRoleCard)));
-  for (var i = 0; i < 18; i++) {
-    await tester.pump(const Duration(milliseconds: 40));
+  // The three role moments: their cards face up.
+  for (final role in [Role.prostituta, Role.medico, Role.carceriere]) {
+    await cardOf(role);
+    await tester.pump(const Duration(milliseconds: 100));
+    finger = await tester.startGesture(tester.getCenter(find.byType(FlipRoleCard)));
+    for (var i = 0; i < 18; i++) {
+      await tester.pump(const Duration(milliseconds: 40));
+    }
+    plates['card_${role.name}'] = await grab(tester, key: card);
+    await finger.up();
+    await tester.pump(const Duration(seconds: 1));
   }
-  plates['prostituta'] = await grab(tester, key: card);
-  await finger.up();
-  await tester.pump(const Duration(seconds: 1));
   return (plates, seats);
 }
 

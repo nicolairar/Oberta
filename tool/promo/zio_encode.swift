@@ -12,7 +12,7 @@ import ImageIO
 let fps: Int32 = 60
 let beat = 60.0 / 139.5
 func B(_ n: Double) -> Double { n * beat }
-let length = B(104)
+let length = B(105)
 // PREVIEW=1: a light 720×1280 copy for phones.
 let preview = ProcessInfo.processInfo.environment["PREVIEW"] != nil
 let width = preview ? 720 : 1080, height = preview ? 1280 : 1920
@@ -20,82 +20,97 @@ let framesDir = "build/promo/zio_frames"
 let output = URL(fileURLWithPath: preview ? "build/promo/oberta_short_zio_720p.mp4" : "build/promo/oberta_short_zio.mp4")
 
 // ── the sound: (file, at seconds, volume, max length) ────────────────────
-// The pier film (zio_scenes.dart `film`) reaches the push at 0.66 here.
-let faaah = 31.98
+// The scenes, in beats, as in zio_scenes.dart; at(scene, beats) is a time.
+let cuts: [String: Double] = [
+  "hook": 0, "calcio": 6, "vito": 11, "nonna": 18, "dottore": 25, "notte2": 30, "prostituta": 35, "cella": 39,
+  "rabbia": 49, "urla": 53, "credeva": 59, "voti": 64, "fiume": 71, "carta": 78, "pena": 85, "vestiti": 89, "fine": 96,
+]
+func at(_ scene: String, _ beats: Double = 0) -> Double { B(cuts[scene]! + beats) }
+// The owner's two sounds (not in the repo: build/promo/extra/).
+let extra = "build/promo/extra/"
+// The pier film (zio_scenes.dart `film`) reaches the push 1.87 s in.
+let faaah = at("fiume") + 1.87
 struct Cue { let file: String; let at: Double; let volume: Float; var max: Double = 99 }
 let sounds = "assets/sounds/", sfx = "assets/sfx/", meme = "assets/meme/"
 func swish(_ n: Int, _ at: Double, _ v: Float = 0.45) -> Cue { Cue(file: sfx + "fx_swish_\(n).m4a", at: at - 0.06, volume: v, max: 0.45) }
 var cues: [Cue] = [
-  // 1 · the hook: the hit on «FAMIGLIA.»
-  Cue(file: sounds + "punch.wav", at: B(2), volume: 1.0),
-  // 2 · football: a stadium cheer, low
-  swish(1, B(6)),
-  Cue(file: sfx + "fx_cheer_1.m4a", at: B(6.1), volume: 0.35, max: 1.9),
-  // 3 · Obertà: the strike, the hit
-  Cue(file: sfx + "fx_bulb_1.m4a", at: B(11), volume: 0.6, max: 0.8),
-  Cue(file: sounds + "punch_2.wav", at: B(11.5), volume: 0.9),
-  // 4 · Vito, «SBAGLIATA.»
-  swish(2, B(15)),
-  Cue(file: sfx + "fx_cigar_1.m4a", at: B(15.3), volume: 0.45, max: 1.2),
-  Cue(file: sfx + "fx_impact_2.m4a", at: B(19), volume: 0.8, max: 0.9),
-  // 5 · the pick on Nonna
-  swish(3, B(22)),
-  Cue(file: sounds + "ui_confirm.wav", at: B(25.2) - 0.05, volume: 0.8),
-  Cue(file: sfx + "fx_gasp_1.m4a", at: B(25.2), volume: 0.6, max: 0.8),
-  // 6 · the Doctor: the dawn line, the save
-  swish(4, B(29)),
-  Cue(file: sfx + "fx_syringe_1.m4a", at: B(30), volume: 0.6, max: 0.8),
-  Cue(file: sfx + "fx_tada_1.m4a", at: B(31), volume: 0.45, max: 1.0),
-  // 7 · the second night
-  swish(1, B(34)),
-  Cue(file: sfx + "fx_owl_1.m4a", at: B(34.3), volume: 0.4, max: 1.2),
-  // 8 · the Prostituta: hee hee, a kiss
-  swish(2, B(39)),
-  Cue(file: meme + "hee_hee.m4a", at: B(40), volume: 0.85, max: 0.93),
-  Cue(file: sfx + "fx_kiss_1.m4a", at: B(40.6), volume: 0.6, max: 0.6),
-  // 9 · the cell: the bars, two bubbles, the church bells
-  swish(3, B(43)),
-  Cue(file: sounds + "metal_heavy.wav", at: B(44.5), volume: 0.9),
-  Cue(file: sfx + "fx_chain_1.m4a", at: B(44.55), volume: 0.5, max: 0.8),
-  Cue(file: sounds + "pizzi_07.wav", at: B(47), volume: 0.7),
-  Cue(file: sounds + "pizzi_07.wav", at: B(50), volume: 0.7),
-  Cue(file: sfx + "fx_church_1.m4a", at: B(50.1), volume: 0.5, max: 1.6),
-  // 10 · he shouted: the push-to-talk, a shout
-  swish(4, B(53)),
-  Cue(file: sounds + "ui_toggle.wav", at: B(53.35), volume: 0.7),
-  Cue(file: sfx + "fx_scream_1.m4a", at: B(53.6), volume: 0.4, max: 0.9),
+  // 1 · the hook: the hit and the glass on «FAMIGLIA.»
+  Cue(file: sounds + "punch.wav", at: at("hook", 2), volume: 1.0),
+  Cue(file: sfx + "fx_glassbreak_1.m4a", at: at("hook", 2) + 0.02, volume: 0.5, max: 0.9),
+  // 2 · football: a cheer, a swish per fan
+  Cue(file: sfx + "fx_cheer_1.m4a", at: at("calcio", 0.1), volume: 0.35, max: 2.0),
+]
+for i in 0..<4 { cues.append(swish(i + 1, at("calcio", Double(i) * 1.25), 0.4)) }
+cues += [
+  // 3 · Vito, «SBAGLIATA.»
+  swish(2, at("vito")),
+  Cue(file: sfx + "fx_cigar_1.m4a", at: at("vito", 0.3), volume: 0.45, max: 1.2),
+  Cue(file: sfx + "fx_impact_2.m4a", at: at("vito", 4), volume: 0.8, max: 0.9),
+  // 4 · the sights on Nonna: a heartbeat, the lock
+  swish(3, at("nonna")),
+  Cue(file: sfx + "fx_heartbeat_1.m4a", at: at("nonna", 1), volume: 0.5, max: 1.3),
+  Cue(file: sounds + "knife_draw.wav", at: at("nonna", 3.2) - 0.05, volume: 0.7),
+  Cue(file: sfx + "fx_gasp_1.m4a", at: at("nonna", 3.25), volume: 0.6, max: 0.8),
+  // 5 · the Doctor: the card, the save
+  swish(4, at("dottore")),
+  Cue(file: sounds + "card_place_1.wav", at: at("dottore", 0.3), volume: 0.7),
+  Cue(file: sfx + "fx_bandage_1.m4a", at: at("dottore", 2), volume: 0.6, max: 0.8),
+  Cue(file: sfx + "fx_tada_1.m4a", at: at("dottore", 2.05), volume: 0.45, max: 1.0),
+  // 6 · the second night
+  swish(1, at("notte2")),
+  Cue(file: sfx + "fx_owl_1.m4a", at: at("notte2", 0.3), volume: 0.4, max: 1.2),
+  // 7 · the Prostituta: the owner's anime-ahh on the word, a kiss
+  swish(2, at("prostituta")),
+  Cue(file: sounds + "card_place_2.wav", at: at("prostituta", 0.3), volume: 0.7),
+  Cue(file: extra + "anime-ahh.mp3", at: at("prostituta", 1), volume: 0.95, max: 0.86),
+  Cue(file: sfx + "fx_kiss_1.m4a", at: at("prostituta", 2.4), volume: 0.5, max: 0.6),
+  // 8 · the cell: the bars, the card, two bubbles, bells and hee hee
+  swish(3, at("cella")),
+  Cue(file: sounds + "metal_heavy.wav", at: at("cella", 1.5), volume: 0.9),
+  Cue(file: sfx + "fx_chain_1.m4a", at: at("cella", 1.55), volume: 0.5, max: 0.8),
+  Cue(file: sounds + "card_place_3.wav", at: at("cella", 3.1), volume: 0.7),
+  Cue(file: sounds + "pizzi_07.wav", at: at("cella", 4), volume: 0.7),
+  Cue(file: sounds + "pizzi_07.wav", at: at("cella", 7), volume: 0.7),
+  Cue(file: sfx + "fx_church_1.m4a", at: at("cella", 7.1), volume: 0.45, max: 1.6),
+  Cue(file: meme + "hee_hee.m4a", at: at("cella", 7.4), volume: 0.75, max: 0.93),
+  // 9 · after it all, Vito furious: the owner's aaugh rings on
+  Cue(file: extra + "aaugh.mp3", at: at("rabbia"), volume: 1.0, max: 3.47),
+  // 10 · the live voice: the button, a shout
+  swish(4, at("urla")),
+  Cue(file: sounds + "ui_toggle.wav", at: at("urla", 0.58), volume: 0.7),
+  Cue(file: sfx + "fx_scream_1.m4a", at: at("urla", 0.6), volume: 0.35, max: 0.9),
   // 11 · nobody believed me: a tap per bubble
-  swish(1, B(58)),
-  Cue(file: sounds + "pizzi_07.wav", at: B(59), volume: 0.7),
-  Cue(file: sounds + "pizzi_07.wav", at: B(60.5), volume: 0.7),
+  swish(1, at("credeva")),
+  Cue(file: sounds + "pizzi_07.wav", at: at("credeva", 1), volume: 0.7),
+  Cue(file: sounds + "pizzi_07.wav", at: at("credeva", 2.5), volume: 0.7),
   // 12 · the votes: a chip per vote, then the stamp
-  swish(2, B(63)),
+  swish(2, at("voti")),
 ]
 let voteSounds = ["chips_1.wav", "chips_2.wav", "chips_3.wav", "chips_1.wav", "chips_2.wav", "chips_3.wav"]
 for i in 0..<6 {
-  cues.append(Cue(file: sounds + voteSounds[i], at: B(63.75 + Double(i)), volume: 0.6 + Float(i) * 0.06))
+  cues.append(Cue(file: sounds + voteSounds[i], at: at("voti", 0.75 + Double(i)), volume: 0.6 + Float(i) * 0.06))
 }
 cues += [
-  Cue(file: sfx + "fx_gavel_1.m4a", at: B(69.25), volume: 0.85, max: 0.8),
-  // 13 · the river: faaah on the push, the splash (times printed by the render)
-  swish(3, B(70)),
+  Cue(file: sfx + "fx_gavel_1.m4a", at: at("voti", 6.25), volume: 0.85, max: 0.8),
+  // 13 · the river: faaah on the push, the splash
+  swish(3, at("fiume")),
   Cue(file: meme + "faaah.m4a", at: faaah, volume: 0.9, max: 1.2),
-  Cue(file: sfx + "fx_splash_1.m4a", at: 32.68, volume: 0.6, max: 0.6),
+  Cue(file: sfx + "fx_splash_1.m4a", at: at("fiume") + 2.57, volume: 0.6, max: 0.6),
   // 14 · straight into the card: swish, flip, vine boom
-  swish(4, B(77), 0.55),
-  Cue(file: sounds + "flip.wav", at: B(77.9), volume: 0.9),
-  Cue(file: meme + "vine_boom.m4a", at: B(78.5), volume: 1.0),
+  swish(4, at("carta"), 0.55),
+  Cue(file: sounds + "flip.wav", at: at("carta", 0.9), volume: 0.9),
+  Cue(file: meme + "vine_boom.m4a", at: at("carta", 1.5), volume: 1.0),
   // 15 · worth it
-  Cue(file: sounds + "punch_2.wav", at: B(86), volume: 0.8),
+  Cue(file: sounds + "punch_2.wav", at: at("pena", 2), volume: 0.8),
   // 16 · the wardrobe: the till, a swish per outfit
-  Cue(file: sfx + "fx_cashreg_1.m4a", at: B(88), volume: 0.55, max: 0.8),
+  Cue(file: sfx + "fx_cashreg_1.m4a", at: at("vestiti"), volume: 0.55, max: 0.8),
 ]
-for i in 89..<95 {
-  cues.append(Cue(file: sfx + "fx_swish_\((i % 4) + 1).m4a", at: B(Double(i)) - 0.05, volume: 0.32, max: 0.35))
+for i in 1..<7 {
+  cues.append(Cue(file: sfx + "fx_swish_\((i % 4) + 1).m4a", at: at("vestiti", Double(i)) - 0.05, volume: 0.32, max: 0.35))
 }
 // 17 · the neon (neon_end.dart): the strike, the B buzzing out while the
 // ghost M stutters (OMERTÀ), the B back, the short before the loop.
-let endAt = B(95)
+let endAt = at("fine")
 cues += [
   Cue(file: sfx + "fx_bulb_1.m4a", at: endAt + 0.05, volume: 0.5, max: 0.8),
   Cue(file: sfx + "fx_spark_2.m4a", at: endAt + 0.8, volume: 0.35, max: 0.5),
@@ -106,9 +121,15 @@ cues += [
 let music = "assets/music/day_2.m4a"
 let musicFrom = 0.14 + 46 * beat // a beat, in the full stretch
 let musicLevel: Float = 0.8
-let duckLevel: Float = 0.38
-// The music sits under the meme hits.
-let ducks: [(Double, Double)] = [(B(40), B(40) + 0.95), (faaah, faaah + 1.2), (B(78.5), B(78.5) + 1.0)]
+let duckLevel: Float = 0.32
+// The music sits under the meme hits and the owner's sounds.
+let ducks: [(Double, Double)] = [
+  (at("prostituta", 1), at("prostituta", 1) + 0.9),
+  (at("cella", 7.4), at("cella", 7.4) + 0.75),
+  (at("rabbia"), at("rabbia") + 3.4),
+  (faaah, faaah + 1.2),
+  (at("carta", 1.5), at("carta", 1.5) + 1.0),
+]
 func time(_ s: Double) -> CMTime { CMTime(seconds: s, preferredTimescale: 48000) }
 
 let composition = AVMutableComposition()
