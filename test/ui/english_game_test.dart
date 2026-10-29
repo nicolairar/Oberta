@@ -130,11 +130,12 @@ void main() {
     expect(find.text('2:00'), findsOneWidget);
     await tap(tester, 'CALL THE VOTE');
 
-    expect(find.textContaining('You can also choose to eliminate nobody.'), findsOneWidget);
-    expect(tester.widget<Text>(find.byKey(const Key('local.voterTurn'))).data, '1 Ada votes: tap who to condemn.');
-    await tap(tester, 'I ABSTAIN');
+    expect(find.textContaining('Vote out loud, together.'), findsOneWidget);
+    expect(tester.widget<Text>(find.byKey(const Key('local.voiceVoteStatus'))).data, 'Vote out loud. Then tap who you condemn.');
+    expect(find.text('TIE · NOBODY'), findsOneWidget);
     await tapSeat(tester, ada);
-    await tapSeat(tester, ada);
+    expect(find.text('Condemn 1 Ada? Confirm, or tap another seat.'), findsOneWidget);
+    await tap(tester, 'CONDEMN 1 ADA');
     // No film: everyone saw the vote. The seat plays the lynch in place.
     await tester.pumpAndSettle();
 
@@ -183,9 +184,8 @@ void main() {
     await tap(tester, 'NEXT');
     await tap(tester, 'OPEN THE FLOOR');
     await tap(tester, 'CALL THE VOTE');
-    for (var i = 0; i < 3; i++) {
-      await tap(tester, 'I ABSTAIN');
-    }
+    await tap(tester, 'TIE · NOBODY');
+    expect(find.text('A tie: nobody is condemned today. Back to the night.'), findsOneWidget);
     await tap(tester, 'CONTINUE');
     await tap(tester, 'START THE NIGHT');
     await nightTurn(tester, ada);

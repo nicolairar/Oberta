@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../sound/memes.dart';
 import '../../sound/sound_stage.dart';
 import '../../l10n/app_strings.dart';
+import '../../l10n/local_role_strings.dart';
+import '../../rules/game_engine.dart' show RoleDayPower;
 import '../../rules/game_setup.dart';
 import '../../narration/narrator_script.dart';
 import '../../l10n/table_strings.dart';
@@ -97,6 +99,10 @@ class _RoleRevealScreenState extends State<RoleRevealScreen> {
                                         child: NoirRoleCard(
                                           role: setup.roleOf(player),
                                           teammates: setup.teammatesOf(player),
+                                          // Chi ha un potere di giorno sa da subito dove trovarlo.
+                                          footnote: setup.roleOf(player).dayPower != null
+                                              ? LocalRoleStrings(t).dayPowerHint
+                                              : null,
                                           onRevealed: () => setState(() => _seen = true),
                                         ),
                                       ),

@@ -44,18 +44,22 @@ class LocalRoleStrings {
   String fateCannon(int round) => _m('fateCannon', {'round': round});
   String fateDay(int round) => _m('fateDay', {'round': round});
 
-  // ---- The day powers, in front of everyone.
-  String get truce => _m('truce');
-  String get whoAreYou => _m('whoAreYou');
-  String get notYou => _m('notYou');
+  // ---- The day powers: one button for everyone, then the phone in the
+  // hand of whoever tapped their face, and only their own power.
+  String get usePower => _m('usePower');
+  String get powerWho => _m('powerWho');
+  String get noPower => _m('noPower');
+  String get truceHow => _m('truceHow');
+  String get cannonHow => _m('cannonHow');
+  String get marksmanHow => _m('marksmanHow');
+  String get mayorHow => _m('mayorHow');
+  String shotsLeft(int left) => _m('shotsLeft', {'left': left});
+  String get askTruce => _m('askTruce');
+
+  /// The last line of a day-power role's card, on the one-phone game.
+  String get dayPowerHint => _m('dayPowerHint');
   String get whoToReveal => _m('whoToReveal');
-  String get cannon => _m('cannon');
-  String get gunnerWhoAreYou => _m('gunnerWhoAreYou');
-  String get notTheGunner => _m('notTheGunner');
   String get whoToHit => _m('whoToHit');
-  String get marksman => _m('marksman');
-  String get whoIsMarksman => _m('whoIsMarksman');
-  String get notMarksman => _m('notMarksman');
   String aimed(String name, int left) =>
       _m('aimed', {'name': name, 'left': left});
   String get noAim => _m('noAim');

@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oberta/rules/game_setup.dart';
 import 'package:oberta/rules/player.dart';
 import 'package:oberta/rules/role.dart';
+import 'package:oberta/ui/screens/online/game/noir_role_card.dart';
+import 'package:oberta/ui/screens/online/game/seat_card.dart';
+import 'package:oberta/ui/screens/role_reveal_screen.dart';
+import 'package:oberta/ui/theme/app_theme.dart';
+import 'package:oberta/ui/screens/online/game/verdict_line.dart' show TallyScroll;
 import 'package:oberta/ui/widgets/death_scene.dart';
+import 'package:oberta/ui/widgets/spoken_lines.dart';
 
 import '../support/local_game.dart';
 import 'game_screen_test.dart' show pumpGame, seat, table, watchVerdict;
@@ -75,17 +82,21 @@ void main() {
 
     await _toTheDay(tester);
 
-    // La tregua: il Pacifista si fa riconoscere, poi svela Ada a tutti.
-    await tapKey(tester, 'game.truce');
-    await tapSeat(tester, gina);
-    await tapKey(tester, 'game.powerConfirm');
-    expect(find.text('Solo il Pacifista può chiedere la tregua.'), findsOneWidget);
-    await tapSeat(tester, elio);
-    await tapKey(tester, 'game.powerConfirm');
+    // La tregua: chi vuole usare un potere tocca il suo volto e prende il
+    // telefono. Gina dietro la tenda non trova niente; Elio sì.
+    await openPower(tester, gina);
+    expect(find.text('Adesso non hai niente da usare.'), findsOneWidget);
+    await tapKey(tester, 'game.powerBack');
+    await openPower(tester, elio);
+    expect(find.text('IL PACIFISTA'), findsOneWidget);
+    expect(find.textContaining('sveli a tutti il ruolo esatto di una persona'), findsOneWidget);
+    expect(table(tester).selectable, isNot(contains(elio)), reason: 'non si svela se stesso');
     await tapSeat(tester, ada);
-    await tapKey(tester, 'game.powerConfirm');
+    await tapKey(tester, 'game.powerUse');
     expect(find.byKey(const Key('game.verdict')), findsOneWidget);
     expect(find.textContaining('Il Pacifista ha chiesto la tregua'), findsWidgets);
+    expect(seat(tester, elio).role, Role.pacifista, reason: 'il posto del Pacifista porta la sua carta');
+    expect(seat(tester, ada).role, Role.mafioso, reason: 'il ruolo svelato è sul tavolo');
     await tapKey(tester, 'local.afterVerdict');
 
     // La notte dopo: il Carceriere legge la risposta, il Pacifista il blocco.
@@ -138,7 +149,7 @@ void main() {
     await _toTheDay(tester);
     expect(seat(tester, dino).fallen, isFalse, reason: 'l\'agguato bloccato non parte');
     await tapKey(tester, 'local.toVote');
-    await openVote(tester, [ada, bruno, carla, dino, elio, fabio], {bruno: ada, carla: ada, dino: ada, elio: ada});
+    await voiceVerdict(tester, ada);
     await watchVerdict(tester);
     await tapKey(tester, 'local.afterVerdict');
 
@@ -171,7 +182,7 @@ void main() {
     }
     await _toTheDay(tester);
     await tapKey(tester, 'local.toVote');
-    await openVote(tester, [ada, bruno, carla, dino, elio], const {});
+    await voiceVerdict(tester, null);
     await tapKey(tester, 'local.afterVerdict');
     await tapLabel(tester, 'COMINCIA LA NOTTE');
     await nightTurn(tester, ada);
@@ -190,25 +201,27 @@ void main() {
       await nightTurn(tester, player);
     }
     await _toTheDay(tester);
-    expect(find.byKey(const Key('game.fire')), findsNothing, reason: 'il primo giorno no');
+    // Il primo giorno il cannone tace: dietro la tenda, niente da usare.
+    await openPower(tester, bruno);
+    expect(find.text('Adesso non hai niente da usare.'), findsOneWidget);
+    await tapKey(tester, 'game.powerBack');
     await tapKey(tester, 'local.toVote');
-    await openVote(tester, [ada, bruno, carla, dino, elio], const {});
+    await voiceVerdict(tester, null);
     await tapKey(tester, 'local.afterVerdict');
     await tapLabel(tester, 'COMINCIA LA NOTTE');
     for (final player in [ada, bruno, carla, dino, elio]) {
       await nightTurn(tester, player);
     }
     await _toTheDay(tester);
-    await tapKey(tester, 'game.fire');
-    await tapSeat(tester, carla);
-    await tapKey(tester, 'game.powerConfirm');
-    expect(find.text('Solo l\'Artigliere può sparare.'), findsOneWidget);
-    await tapSeat(tester, bruno);
-    await tapKey(tester, 'game.powerConfirm');
+    await openPower(tester, bruno);
+    expect(find.text('L\'ARTIGLIERE'), findsOneWidget);
+    expect(find.text('Colpi rimasti: 2.'), findsOneWidget);
+    expect(seat(tester, bruno).role, isNull, reason: 'prima del colpo nessuno sa chi è');
     await tapSeat(tester, ada);
-    await tapKey(tester, 'game.powerConfirm');
+    await tapKey(tester, 'game.powerUse');
     expect(find.byKey(const Key('game.shot')), findsOneWidget);
     expect(find.textContaining('l\'Artigliere ha colpito'), findsWidgets);
+    expect(seat(tester, bruno).role, Role.artigliere, reason: 'dopo il colpo il suo posto porta la carta');
     // Era l'ultimo della Famiglia: la partita è finita.
     expect(find.byKey(const Key('game.shotsLeft')), findsNothing);
     await tapKey(tester, 'game.afterShot');
@@ -230,17 +243,230 @@ void main() {
     }
     await _toTheDay(tester);
 
-    await tapKey(tester, 'game.marksman');
-    await tapSeat(tester, carla);
-    await tapKey(tester, 'game.powerConfirm');
-    expect(find.text('Solo il Tiratore scelto può sparare.'), findsOneWidget);
-    await tapSeat(tester, bruno);
-    await tapKey(tester, 'game.powerConfirm');
+    await openPower(tester, carla);
+    expect(find.text('Adesso non hai niente da usare.'), findsOneWidget);
+    await tapKey(tester, 'game.powerBack');
+    await openPower(tester, bruno);
+    expect(find.text('IL TIRATORE SCELTO'), findsOneWidget);
     expect(find.textContaining('Nel mirino: 1 Ada'), findsWidgets);
-    await tapKey(tester, 'game.marksmanFire');
+    expect(find.text('Colpi rimasti: 2.'), findsOneWidget);
+    await tapKey(tester, 'game.powerUse');
     expect(find.byKey(const Key('game.marksmanShot')), findsOneWidget);
     expect(find.textContaining('Un colpo dal campanile'), findsWidgets);
     await tapKey(tester, 'game.shotDone');
     expect(find.textContaining('Vincono gli onesti'), findsWidgets);
+  });
+
+  _powerTests();
+  _voteTests();
+}
+
+/// Quello che il tavolo vede adesso: ogni scritta sullo schermo, ogni posto
+/// con quello che mostra, e quello che legge la voce.
+List<String> _screen(WidgetTester tester) => [
+      for (final element in find.byType(RichText).evaluate()) (element.widget as RichText).text.toPlainText(),
+      for (final element in find.byType(SeatCard).evaluate())
+        switch (element.widget as SeatCard) {
+          final s => '${s.name}|${s.number}|${s.role}|${s.note}|${s.me}|${s.selected}|${s.selectable}|${s.dimmed}|${s.votes}',
+        },
+      for (final element in find.byType(SpokenLines).evaluate())
+        for (final line in (element.widget as SpokenLines).lines) 'voce: ${line.text}',
+    ];
+
+/// Una partita a cinque fino alla discussione del primo giorno, poi «Usa un
+/// potere» toccato da Bruno: le schermate prima di «Sono io».
+Future<List<List<String>>> _beforeTheCurtain(WidgetTester tester, Map<Player, Role> deal) async {
+  await pumpGame(tester, deal: deal);
+  await tapLabel(tester, 'COMINCIA LA NOTTE');
+  for (final player in deal.keys) {
+    await nightTurn(tester, player);
+  }
+  await tapLabel(tester, 'APRI LA DISCUSSIONE');
+  final screens = [_screen(tester)];
+  await tapKey(tester, 'game.usePower');
+  screens.add(_screen(tester));
+  await tapSeat(tester, bruno);
+  screens.add(_screen(tester));
+  await tapKey(tester, 'game.powerConfirm');
+  screens.add(_screen(tester));
+  return screens;
+}
+
+void _powerTests() {
+  testWidgets('la carta di chi ha un potere di giorno dice dove trovarlo; le altre no', (tester) async {
+    tester.view.physicalSize = const Size(393, 852) * 3;
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+    await tester.pumpWidget(MaterialApp(
+      theme: buildAppTheme(),
+      home: RoleRevealScreen(setup: GameSetup.fromRoles({ada: Role.artigliere, bruno: Role.cittadino, carla: Role.mafioso})),
+    ));
+    const hint = 'Di giorno: prendi il telefono e tocca «Usa un potere».';
+    for (final (player, expected) in [(ada, findsOneWidget), (bruno, findsNothing)]) {
+      await tapKey(tester, 'local.itsMe');
+      final hold = await tester.startGesture(tester.getCenter(find.byType(NoirRoleCard)));
+      await tester.pumpAndSettle();
+      expect(find.text(hint), expected, reason: player.name);
+      await hold.up();
+      await tester.pumpAndSettle();
+      await tapKey(tester, 'local.gotIt');
+    }
+  });
+
+  testWidgets('prima di «Sono io» chi ha un potere e chi no vedono e sentono le stesse cose', (tester) async {
+    final powered = await _beforeTheCurtain(tester, {
+      ada: Role.mafioso,
+      bruno: Role.pacifista,
+      carla: Role.cittadino,
+      dino: Role.cittadino,
+      elio: Role.cittadino,
+    });
+    expect(curtainName(tester), '2 BRUNO');
+    expect(find.text('Prendi il telefono in mano e non farti vedere da nessuno.'), findsOneWidget);
+    await tapKey(tester, 'local.itsMe');
+    expect(find.text('IL PACIFISTA'), findsOneWidget, reason: 'il potere solo dopo «Sono io»');
+    await tester.pumpWidget(const SizedBox());
+
+    final powerless = await _beforeTheCurtain(tester, {
+      ada: Role.mafioso,
+      bruno: Role.cittadino,
+      carla: Role.pacifista,
+      dino: Role.cittadino,
+      elio: Role.cittadino,
+    });
+    expect(powerless, hasLength(powered.length));
+    for (var i = 0; i < powered.length; i++) {
+      expect(powerless[i], powered[i], reason: 'schermata $i');
+    }
+    for (final screen in powered) {
+      expect(screen.where((text) => text.contains('Pacifista')), isEmpty, reason: 'nessun ruolo prima della tenda');
+    }
+    await tapKey(tester, 'local.itsMe');
+    expect(find.text('Adesso non hai niente da usare.'), findsOneWidget);
+    expect(find.byKey(const Key('game.powerUse')), findsNothing);
+  });
+
+  testWidgets('«Usa un potere» c\'è a ogni discussione, anche senza ruoli con un potere; dalla tenda si torna indietro', (tester) async {
+    await pumpGame(tester);
+    await tapLabel(tester, 'COMINCIA LA NOTTE');
+    for (final player in [ada, bruno, carla, dino]) {
+      await nightTurn(tester, player);
+    }
+    await tapLabel(tester, 'APRI LA DISCUSSIONE');
+    expect(find.byKey(const Key('game.usePower')), findsOneWidget);
+    expect(find.text('USA UN POTERE'), findsOneWidget);
+    await tapKey(tester, 'game.usePower');
+    expect(find.text('Chi sei? Tocca il tuo volto.'), findsWidgets);
+    expect(table(tester).selectable, {ada, bruno, carla, dino});
+    await tapKey(tester, 'game.powerCancel');
+    expect(find.byKey(const Key('local.day')), findsOneWidget);
+
+    // Un volto toccato per sbaglio: dalla tenda si torna alla discussione.
+    await tapKey(tester, 'game.usePower');
+    await tapSeat(tester, carla);
+    await tapKey(tester, 'game.powerConfirm');
+    expect(curtainName(tester), '3 CARLA');
+    await tapKey(tester, 'local.curtainBack');
+    expect(find.byKey(const Key('local.day')), findsOneWidget);
+
+    // Dal voto a voce si torna alla discussione, e ai poteri.
+    await tapKey(tester, 'local.toVote');
+    await tapKey(tester, 'local.backToTalk');
+    expect(find.byKey(const Key('game.usePower')), findsOneWidget);
+  });
+}
+
+void _voteTests() {
+  testWidgets('al voto a voce il Presidente non si tocca, e il Fesso linciato vince', (tester) async {
+    await pumpGame(tester, deal: {
+      ada: Role.mafioso,
+      bruno: Role.presidente,
+      carla: Role.fesso,
+      dino: Role.cittadino,
+      elio: Role.cittadino,
+      fabio: Role.cittadino,
+    });
+    await tapLabel(tester, 'COMINCIA LA NOTTE');
+    for (final player in [ada, bruno, carla, dino, elio, fabio]) {
+      await nightTurn(tester, player);
+    }
+    await tapLabel(tester, 'APRI LA DISCUSSIONE');
+    await tapKey(tester, 'local.toVote');
+    expect(table(tester).selectable, isNot(contains(bruno)), reason: 'non si lincia lo Stato');
+    await voiceVerdict(tester, carla);
+    await watchVerdict(tester);
+    expect(table(tester).lynched, carla);
+    expect(find.byKey(const Key('local.afterVerdict')), findsOneWidget);
+    await tapKey(tester, 'local.afterVerdict');
+    expect(find.text('NOTTE 2'), findsOneWidget, reason: 'il Fesso vince da solo, e la partita va avanti');
+  });
+
+  testWidgets('al voto a voce il crepacuore porta via l\'innamorato del condannato', (tester) async {
+    await pumpGame(tester, deal: {ada: Role.mafioso, bruno: Role.cupido, carla: Role.cittadino, dino: Role.cittadino, elio: Role.cittadino, fabio: Role.cittadino});
+    await tapLabel(tester, 'COMINCIA LA NOTTE');
+    await nightTurn(tester, ada);
+    await tapKey(tester, 'local.itsMe');
+    await tapSeat(tester, carla);
+    await tapKey(tester, 'local.confirm');
+    await tapSeat(tester, elio);
+    await tapKey(tester, 'local.confirm');
+    await tapKey(tester, 'local.done');
+    for (final player in [carla, dino, elio, fabio]) {
+      await nightTurn(tester, player);
+    }
+    await _toTheDay(tester);
+    await tapKey(tester, 'local.toVote');
+    await voiceVerdict(tester, carla);
+    await watchVerdict(tester);
+    expect(seat(tester, elio).fallen, isTrue, reason: 'il cuore di Elio si spezza');
+  });
+
+  testWidgets('il voto segreto: nessuno vede le schede degli altri, alla fine solo il conto', (tester) async {
+    await pumpGame(tester, vote: LocalVote.secret, deal: {
+      ada: Role.mafioso,
+      bruno: Role.cittadino,
+      carla: Role.cittadino,
+      dino: Role.cittadino,
+      elio: Role.cittadino,
+    });
+    await tapLabel(tester, 'COMINCIA LA NOTTE');
+    for (final player in [ada, bruno, carla, dino, elio]) {
+      await nightTurn(tester, player);
+    }
+    await tapLabel(tester, 'APRI LA DISCUSSIONE');
+    await tapKey(tester, 'local.toVote');
+    expect(find.textContaining('Voto segreto: il telefono passa di mano'), findsOneWidget);
+    expect(find.text('1 ADA DEVE VOTARE'), findsOneWidget);
+    expect(tester.widget<Text>(find.byKey(const Key('local.voterTurn'))).data, '1 Ada deve votare. Il voto è segreto.');
+    expect(find.byKey(const Key('local.backToTalk')), findsOneWidget, reason: 'l\'urna è ancora vuota');
+    await tapSeat(tester, bruno);
+    expect(find.text('Voti 2 Bruno. Conferma, o tocca un altro posto.'), findsOneWidget);
+    await tapKey(tester, 'local.castVote');
+
+    // Il secondo votante non vede niente del primo.
+    expect(find.text('2 BRUNO DEVE VOTARE'), findsOneWidget);
+    expect(find.byKey(const Key('local.backToTalk')), findsNothing, reason: 'una scheda è già nell\'urna');
+    expect(find.byKey(const Key('local.undoVote')), findsNothing, reason: 'non si torna alla scheda di un altro');
+    expect(table(tester).votes, isEmpty);
+    expect(seat(tester, bruno).votes, 0);
+    expect(seat(tester, bruno).accused, isFalse);
+    expect(seat(tester, ada).pizzino, isNull);
+    expect(tester.widget<Text>(find.byKey(const Key('strip.count'))).data, '1/5');
+    await tapSeat(tester, ada);
+    await tapKey(tester, 'local.castVote');
+    await secretVote(tester, [carla, dino, elio], {carla: ada, dino: bruno});
+
+    // Pari, due a due: nessuna condanna, e solo i numeri sul tavolo.
+    await watchVerdict(tester);
+    expect(find.text('Pareggio: oggi non viene condannato nessuno. Si torna alla notte.'), findsOneWidget);
+    expect(seat(tester, ada).votes, 2);
+    expect(seat(tester, bruno).votes, 2);
+    for (final player in [ada, bruno, carla, dino, elio]) {
+      expect(seat(tester, player).pizzino, isNull, reason: 'chi ha votato chi resta segreto');
+    }
+    final tally = tester.widget<TallyScroll>(find.byKey(const Key('local.verdictVotes'))).text;
+    expect(tally, allOf(contains('1 Ada: 2 voti'), contains('2 Bruno: 2 voti'), contains('1 astenuto')));
   });
 }

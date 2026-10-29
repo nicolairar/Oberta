@@ -198,6 +198,12 @@ void main() {
     await tester.tap(find.text('Automatic narrator'));
     await tester.pumpAndSettle();
 
+    // How the square votes, in English too.
+    expect(find.text('How does the square vote?'), findsOneWidget);
+    expect(find.text('Secret vote on the phone'), findsOneWidget);
+    await tester.tap(find.text('NEXT'));
+    await tester.pumpAndSettle();
+
     expect(find.text('THE CARDS'), findsOneWidget);
     expect(find.text('Automatic'), findsOneWidget);
     expect(find.text('The cards are dealt'), findsOneWidget);

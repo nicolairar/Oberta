@@ -2,8 +2,8 @@ import 'app_language.dart';
 
 /// The words of the one-phone table that the online table does not have:
 /// the curtain between two hands, the night pick that waits for a confirm,
-/// and the open vote where the phone stays in the middle and every voter
-/// takes a turn. Italian and English.
+/// the vote out loud where one taps the verdict, and the secret vote where
+/// the phone goes round, one ballot each.
 class LocalTableStrings {
   final AppLanguage language;
 
@@ -21,10 +21,29 @@ class LocalTableStrings {
 
   // ---- The day.
   String get discuss => _m('discuss');
-  String get openVote =>
-      _m('openVote');
-  String votedLine(String voter, String target) => _m('votedLine', {'voter': voter, 'target': target});
-  String abstainedLine(String voter) => _m('abstainedLine', {'voter': voter});
   String get undo => _m('undo');
-  String get notTheMayor => _m('notTheMayor');
+
+  // ---- How the square votes, chosen before the deal.
+  String get voteTitle => _m('voteTitle');
+  String get voteHeadline => _m('voteHeadline');
+  String get voteIntro => _m('voteIntro');
+  String get secretVote => _m('secretVote');
+  String get voiceVoteHint => _m('voiceVoteHint');
+  String get secretVoteHint => _m('secretVoteHint');
+  String get voteNext => _m('voteNext');
+
+  // ---- The vote out loud: the table talks, one taps the verdict.
+  String get voiceVoteTitle => _m('voiceVoteTitle');
+  String get voiceVote => _m('voiceVote');
+  String get tieRule => _m('tieRule');
+  String condemnConfirm(String name) => _m('condemnConfirm', {'name': name});
+  String get tieNobody => _m('tieNobody');
+  String condemn(String name) => _m('condemn', {'name': name});
+  String get backToTalk => _m('backToTalk');
+
+  // ---- The secret vote: the phone goes round, one ballot each.
+  String mustVote(String name) => _m('mustVote', {'name': name});
+  String get secretBallot => _m('secretBallot');
+  String votePicked(String name) => _m('votePicked', {'name': name});
+  String get castVote => _m('castVote');
 }

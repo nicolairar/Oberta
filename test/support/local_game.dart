@@ -62,9 +62,9 @@ Future<void> nightTurn(WidgetTester tester, Player actor, {Player? pick, int? nu
   await tapKey(tester, 'local.done');
 }
 
-/// The open vote: every living voter, in seat order, taps a seat (or
-/// abstains when [votes] has no entry for them).
-Future<void> openVote(WidgetTester tester, List<Player> voters, Map<Player, Player?> votes) async {
+/// The secret vote: every living voter, in seat order, taps a seat and
+/// confirms (or abstains when [votes] has no entry for them).
+Future<void> secretVote(WidgetTester tester, List<Player> voters, Map<Player, Player?> votes) async {
   for (final voter in voters) {
     final status = tester.widget<Text>(find.byKey(const Key('local.voterTurn')));
     expect(status.data, contains(voter.name), reason: 'vota ${voter.name}');
@@ -73,6 +73,28 @@ Future<void> openVote(WidgetTester tester, List<Player> voters, Map<Player, Play
       await tapKey(tester, 'local.abstain');
     } else {
       await tapSeat(tester, target);
+      await tapKey(tester, 'local.castVote');
     }
   }
+}
+
+/// The vote out loud is over: whoever holds the phone taps the condemned
+/// and confirms, or the tie when [condemned] is null.
+Future<void> voiceVerdict(WidgetTester tester, Player? condemned) async {
+  if (condemned == null) {
+    await tapKey(tester, 'local.tie');
+  } else {
+    await tapSeat(tester, condemned);
+    await tapKey(tester, 'local.condemn');
+  }
+}
+
+/// "Use a power": [user] taps their own face in front of everyone, confirms,
+/// takes the phone behind the curtain and taps "it's me".
+Future<void> openPower(WidgetTester tester, Player user) async {
+  await tapKey(tester, 'game.usePower');
+  await tapSeat(tester, user);
+  await tapKey(tester, 'game.powerConfirm');
+  expect(curtainName(tester), contains(user.name.toUpperCase()), reason: 'la tenda di ${user.name}');
+  await tapKey(tester, 'local.itsMe');
 }

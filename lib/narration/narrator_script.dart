@@ -170,20 +170,32 @@ class NarratorScript {
   /// La mossa della notte è fatta: il telefono si posa.
   ScriptLine putPhoneDown() => _fact(pack.putPhoneDown);
 
-  /// Il voto a turno: tocca a [name] (col numero di posto, «4 Dario»).
+  /// Il voto segreto a turno: tocca a [name] (col numero di posto, «4 Dario»).
   ScriptLine voterTurn(String name) => _fact(pack.voterTurn, name: name);
 
-  List<ScriptLine> voteCall() => [_story(_picker.pick('vote', pack.voteCalls)), _fact(pack.voteInstruction)];
+  /// Si chiama il voto: a voce, tutti insieme, o in segreto ([secret]).
+  List<ScriptLine> voteCall({bool secret = false}) => [
+        _story(_picker.pick('vote', pack.voteCalls)),
+        _fact(secret ? pack.secretVoteInstruction : pack.voteInstruction),
+      ];
+
+  /// Chi vuole usare un potere di giorno prende il telefono: la stessa
+  /// battuta per tutti, che abbia un potere o no.
+  ScriptLine powerCurtain() => _fact(pack.powerCurtainHint);
+
+  /// Il primo giorno, una volta: i poteri di giorno passano da un bottone solo.
+  ScriptLine dayPowers() => _fact(pack.dayPowersHint);
 
   /// La prima battuta porta il condannato al patibolo; la seconda gira la
   /// carta, e chi impagina il copione la tiene coperta fino a quel momento.
-  List<ScriptLine> lynch(LynchReport report) {
+  /// [tie]: nessuna condanna perché la piazza è finita pari.
+  List<ScriptLine> lynch(LynchReport report, {bool tie = false}) {
     final condemned = report.condemned;
     if (condemned == null && report.truce) {
       return [_fact(pack.truceFact), _story(_picker.pick('lynch.truce', pack.truces))];
     }
     if (condemned == null) {
-      return [_fact(pack.noLynchFact), _story(_picker.pick('lynch.none', pack.noLynch))];
+      return [_fact(tie ? pack.tieFact : pack.noLynchFact), _story(_picker.pick('lynch.none', pack.noLynch))];
     }
 
     final role = report.role!;

@@ -127,6 +127,19 @@ class GameRecap {
     this.bounties = const {},
   });
 
+  /// Lo stesso resoconto senza chi ha votato chi, giorno per giorno: il
+  /// voto segreto del telefono unico resta segreto anche a fine partita.
+  GameRecap withoutBallots() => GameRecap(
+    roles: roles,
+    winner: winner,
+    personalWins: personalWins,
+    survivors: survivors,
+    nights: nights,
+    days: [for (final day in days) RecapDay(round: day.round, mayor: day.mayor, votes: const [], lynch: day.lynch)],
+    exits: exits,
+    bounties: bounties,
+  );
+
   /// [player] ha vinto: con la sua fazione o da solo.
   bool won(Player player) =>
       personalWins.contains(player) || (winner != null && winner != Team.neutral && roles[player]?.team == winner);

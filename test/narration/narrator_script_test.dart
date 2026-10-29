@@ -370,6 +370,7 @@ void main() {
           );
           expect(words(script.dawn(shrugged(sara), discussion: threeMinutes)), lessThanOrEqualTo(60));
           expect(words(script.voteCall()), lessThanOrEqualTo(25));
+          expect(words(script.voteCall(secret: true)), lessThanOrEqualTo(25));
           expect(
             words(script.lynch(const LynchReport(round: 1, condemned: sara, role: Role.medico))),
             lessThanOrEqualTo(40),
@@ -488,6 +489,28 @@ void main() {
 
     test('il voto spiega che si può anche non eliminare nessuno', () {
       expect(factsOf(scriptIn('napoli', 1).voteCall()), [italianPack.voteInstruction]);
+      expect(italianPack.voteInstruction, contains('a voce'));
+      expect(italianPack.voteInstruction, contains('pari'));
+    });
+
+    test('il voto segreto si annuncia, e ognuno sente il suo turno', () {
+      final script = scriptIn('napoli', 1);
+      expect(factsOf(script.voteCall(secret: true)), [italianPack.secretVoteInstruction]);
+      expect(script.voterTurn('4 Dino').text, '4 Dino deve votare. Il voto è segreto.');
+    });
+
+    test('il pareggio ha la sua riga: nessuna condanna, si torna alla notte', () {
+      final script = scriptIn('napoli', 1);
+      expect(factsOf(script.lynch(const LynchReport(round: 1), tie: true)), [italianPack.tieFact]);
+      expect(factsOf(script.lynch(const LynchReport(round: 1))), [italianPack.noLynchFact]);
+      expect(factsOf(script.lynch(const LynchReport(round: 1, truce: true), tie: true)), [italianPack.truceFact]);
+    });
+
+    test('i poteri di giorno: la tenda uguale per tutti, e il primo giorno dove si trovano', () {
+      final script = scriptIn('napoli', 1);
+      expect(script.powerCurtain().text, 'Prendi il telefono in mano e non farti vedere da nessuno.');
+      expect(script.powerCurtain().isFact, isTrue);
+      expect(script.dayPowers().text, contains('«Usa un potere»'));
     });
 
     test('il linciaggio: prima la scena, poi la carta con ruolo e squadra', () {

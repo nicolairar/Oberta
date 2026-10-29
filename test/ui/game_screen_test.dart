@@ -36,6 +36,7 @@ Future<void> pumpGame(
   Map<Player, Role>? deal,
   Size screen = const Size(393, 852),
   Random? seating,
+  LocalVote vote = LocalVote.voice,
 }) async {
   tester.view.physicalSize = screen * 3;
   tester.view.devicePixelRatio = 3;
@@ -54,7 +55,7 @@ Future<void> pumpGame(
           child: TextButton(
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(
               builder: (_) => GameScreen(
-                setup: GameSetup.fromRoles(deal ?? roles, narrator: narrator),
+                setup: GameSetup.fromRoles(deal ?? roles, narrator: narrator, vote: vote),
                 random: Random(1),
                 seating: seating,
               ),
@@ -88,7 +89,7 @@ LocalTable table(WidgetTester tester) => tester.widget<LocalTable>(find.byType(L
 SeatCard seat(WidgetTester tester, Player player) => tester.widget<SeatCard>(find.byKey(ValueKey('seat-${player.id}')));
 
 void main() {
-  testWidgets('una partita intera: notte, film, alba, discussione, voto a turno, verdetto, fine', (tester) async {
+  testWidgets('una partita intera: notte, film, alba, discussione, voto a voce, verdetto, fine', (tester) async {
     await pumpGame(tester);
     await tapLabel(tester, 'COMINCIA LA NOTTE');
 
@@ -122,6 +123,13 @@ void main() {
     expect(find.text('ALBA'), findsOneWidget);
     expect(find.text('Tra i morti di stanotte: Carla. Il suo ruolo resta segreto.'), findsOneWidget);
     expect(find.textContaining('L\'Onesto'), findsNothing, reason: 'di notte il ruolo resta segreto');
+    // Il primo giorno il narratore dice dove sono i poteri di giorno.
+    while (find.text('Chi ha un potere di giorno lo usa col tasto «Usa un potere».').evaluate().isEmpty &&
+        find.text('CONTINUA A LEGGERE').evaluate().isNotEmpty) {
+      await tester.tap(find.text('CONTINUA A LEGGERE'));
+      await tester.pumpAndSettle();
+    }
+    expect(find.text('Chi ha un potere di giorno lo usa col tasto «Usa un potere».'), findsOneWidget);
     await tapLabel(tester, 'APRI LA DISCUSSIONE');
 
     // La discussione: il tavolo di tutti, nell'ordine di sempre, il
@@ -137,28 +145,29 @@ void main() {
     expect(find.text('1:58'), findsOneWidget);
     await tapKey(tester, 'local.toVote');
 
-    // Il voto: il telefono resta in mezzo, ognuno a turno.
-    expect(find.textContaining('Potete anche non eliminare nessuno.'), findsOneWidget);
-    expect(tester.widget<Text>(find.byKey(const Key('local.voterTurn'))).data, 'Vota 1 Ada: tocca chi condanni.');
-    expect(table(tester).selectable, {bruno, dino}, reason: 'né se stessi né i morti');
-    await tapKey(tester, 'local.abstain');
-    expect(find.text('Vota 2 Bruno: tocca chi condanni.'), findsOneWidget);
+    // Il voto a voce: il tavolo vota ad alta voce, il telefono resta in
+    // mezzo e uno tocca il condannato.
+    expect(find.textContaining('Votate a voce, tutti insieme.'), findsOneWidget);
+    expect(find.text('VOTATE A VOCE'), findsOneWidget);
+    expect(tester.widget<Text>(find.byKey(const Key('local.voiceVoteStatus'))).data, 'Votate a voce. Poi toccate chi condannate.');
+    expect(table(tester).selectable, {ada, bruno, dino}, reason: 'i vivi, nessuno escluso: non vota il telefono');
+    expect(table(tester).holder, isNull, reason: 'il telefono è di tutti');
+    expect(find.byKey(const Key('local.voterTurn')), findsNothing, reason: 'nessun turno: si vota a voce');
+    expect(find.text('CONDANNA'), findsOneWidget);
     await tapSeat(tester, dino);
-    expect(seat(tester, dino).votes, 1);
-    // Bruno ci ripensa: si torna indietro e si cambia.
-    await tapKey(tester, 'local.undoVote');
-    expect(find.text('Vota 2 Bruno: tocca chi condanni.'), findsOneWidget);
+    expect(find.text('Condannate 4 Dino? Conferma, o tocca un altro posto.'), findsOneWidget);
+    expect(find.text('CONDANNA 4 DINO'), findsOneWidget);
+    // Il tavolo ci ripensa: si tocca un altro posto.
     await tapSeat(tester, ada);
-    expect(seat(tester, dino).votes, 0);
-    expect(seat(tester, ada).votes, 1);
-    expect(seat(tester, bruno).pizzino, '1');
-    await tapSeat(tester, ada);
+    expect(find.text('CONDANNA 1 ADA'), findsOneWidget);
+    await tapKey(tester, 'local.condemn');
     await watchVerdict(tester);
 
     expect(find.text('IL VERDETTO'), findsOneWidget);
     expect(find.byKey(const Key('lynch.stamp')), findsOneWidget, reason: 'il linciaggio sul posto di Ada');
     expect(find.text('La carta si gira. Ada era… IL PICCIOTTO. Stava con la famiglia.'), findsOneWidget);
-    expect(find.text('1 Ada: 2 voti  ·  1 astenuto'), findsOneWidget);
+    expect(find.byKey(const Key('local.verdictVotes')), findsNothing, reason: 'i voti li ha contati il tavolo');
+    expect(seat(tester, ada).votes, 0);
     await tapKey(tester, 'local.afterVerdict');
 
     expect(find.text('Vincono\ngli onesti'), findsOneWidget);
@@ -235,12 +244,11 @@ void main() {
     await skipFilms(tester);
     await tapLabel(tester, 'APRI LA DISCUSSIONE');
     await tapKey(tester, 'local.toVote');
-    for (var i = 0; i < 3; i++) {
-      await tapKey(tester, 'local.abstain');
-    }
+    // Pari: nessuna condanna, si torna alla notte.
+    await voiceVerdict(tester, null);
     await watchVerdict(tester);
-    expect(find.text('Nessuna condanna'), findsOneWidget);
-    expect(find.text('Oggi non viene eliminato nessuno.'), findsOneWidget);
+    expect(find.text('Nessuna condanna'), findsWidgets);
+    expect(find.text('Pareggio: oggi non viene condannato nessuno. Si torna alla notte.'), findsOneWidget);
     await tapKey(tester, 'local.afterVerdict');
 
     expect(find.text('NOTTE 2'), findsOneWidget);
@@ -276,9 +284,7 @@ void main() {
     await skipFilms(tester);
     await tapLabel(tester, 'APRI LA DISCUSSIONE');
     await tapKey(tester, 'local.toVote');
-    for (var i = 0; i < 4; i++) {
-      await tapKey(tester, 'local.abstain');
-    }
+    await voiceVerdict(tester, null);
     await watchVerdict(tester);
     await tapKey(tester, 'local.afterVerdict');
 
@@ -391,9 +397,7 @@ void main() {
     await tapKey(tester, 'local.toVote');
     expect(seat(tester, elio).note, 'zittito');
     expect(table(tester).selectable, contains(elio), reason: 'chi tace si può comunque condannare');
-    for (var i = 0; i < 5; i++) {
-      await tapKey(tester, 'local.abstain');
-    }
+    await voiceVerdict(tester, null);
     await watchVerdict(tester);
     await tapKey(tester, 'local.afterVerdict');
 
@@ -404,7 +408,7 @@ void main() {
     expect(find.byKey(const Key('task.alternative')), findsNothing, reason: 'il silenzio è uno per partita');
   });
 
-  testWidgets('il Sindaco si rivela al suo turno di voto e vale doppio; chi non lo è viene fermato', (tester) async {
+  testWidgets('il Sindaco si rivela con «Usa un potere»: porta la carta, e il panno ricorda che vale doppio', (tester) async {
     await pumpGame(tester, deal: {
       ada: Role.mafioso,
       bruno: Role.sindaco,
@@ -417,27 +421,57 @@ void main() {
       await nightTurn(tester, player);
     }
     await tapLabel(tester, 'APRI LA DISCUSSIONE');
+
+    // Ada prova: dietro la tenda non trova niente, come chiunque non abbia un potere.
+    await openPower(tester, ada);
+    expect(find.text('Adesso non hai niente da usare.'), findsWidgets);
+    expect(find.byKey(const Key('game.powerUse')), findsNothing);
+    await tapKey(tester, 'game.powerBack');
+    expect(find.byKey(const Key('local.day')), findsOneWidget);
+
+    await openPower(tester, bruno);
+    expect(find.text('IL SINDACO'), findsOneWidget);
+    expect(find.text('Una volta a partita: ti riveli a tutti, e oggi il tuo voto vale doppio.'), findsOneWidget);
+    await tapKey(tester, 'game.powerUse');
+    expect(find.byKey(const Key('local.day')), findsOneWidget, reason: 'si torna alla discussione');
+    expect(seat(tester, bruno).role, Role.sindaco, reason: 'il suo posto porta la carta, per sempre');
+    expect(find.text('2 Bruno è il Sindaco: oggi il suo voto vale doppio.'), findsOneWidget);
+
+    // Una volta per partita: al secondo giro dietro la tenda non c'è più niente.
+    await openPower(tester, bruno);
+    expect(find.text('Adesso non hai niente da usare.'), findsWidgets);
+    await tapKey(tester, 'game.powerBack');
+
+    // Al voto a voce il panno lo ricorda: il doppio lo conta il tavolo.
     await tapKey(tester, 'local.toVote');
+    expect(find.text('2 Bruno è il Sindaco: oggi il suo voto vale doppio.'), findsOneWidget);
+    await voiceVerdict(tester, ada);
+    await watchVerdict(tester);
+    expect(find.byKey(const Key('lynch.stamp')), findsOneWidget);
+  });
 
-    // Ada prova a rivelarsi: il telefono dice di no, a tutti.
-    await tapKey(tester, 'local.revealMayor');
-    await tapLabel(tester, 'RIVELATI');
-    expect(find.text('Solo il Sindaco può rivelarsi.'), findsOneWidget);
-    await tester.pump(const Duration(seconds: 5));
-    await tester.pumpAndSettle();
-    await tapSeat(tester, carla);
-
-    await tapKey(tester, 'local.revealMayor');
-    await tapLabel(tester, 'RIVELATI');
-    expect(find.byKey(const Key('local.revealMayor')), findsNothing, reason: 'una volta per partita');
-    expect(seat(tester, bruno).role, Role.sindaco, reason: 'ora lo sanno tutti');
-    await tapSeat(tester, ada);
-    expect(seat(tester, ada).votes, 2, reason: 'il suo voto vale doppio');
-    for (var i = 0; i < 3; i++) {
-      await tapKey(tester, 'local.abstain');
+  testWidgets('al voto segreto il Sindaco rivelato vale doppio nel conto', (tester) async {
+    await pumpGame(tester, vote: LocalVote.secret, deal: {
+      ada: Role.mafioso,
+      bruno: Role.sindaco,
+      carla: Role.cittadino,
+      dino: Role.cittadino,
+      elio: Role.cittadino,
+    });
+    await tapLabel(tester, 'COMINCIA LA NOTTE');
+    for (final player in [ada, bruno, carla, dino, elio]) {
+      await nightTurn(tester, player);
     }
+    await tapLabel(tester, 'APRI LA DISCUSSIONE');
+    await openPower(tester, bruno);
+    await tapKey(tester, 'game.powerUse');
+    await tapKey(tester, 'local.toVote');
+    await secretVote(tester, [ada, bruno, carla, dino, elio], {ada: carla, bruno: ada});
     await watchVerdict(tester);
     expect(find.byKey(const Key('lynch.stamp')), findsOneWidget, reason: 'due voti contro uno: Ada');
+    expect(seat(tester, ada).votes, 2, reason: 'il voto del Sindaco vale doppio');
+    expect(seat(tester, carla).votes, 1);
+    expect(find.text('1 Ada: 2 voti  ·  3 Carla: 1 voto  ·  3 astenuti'), findsOneWidget);
   });
 
   testWidgets('a fine partita la famiglia è in rosso, qualunque ruolo avesse', (tester) async {

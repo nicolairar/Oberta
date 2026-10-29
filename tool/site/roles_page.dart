@@ -11,6 +11,7 @@
 import 'dart:io';
 
 import 'package:oberta/narration/italian_pack.dart';
+import 'package:oberta/rules/game_engine.dart' show RoleDayPower;
 import 'package:oberta/rules/role.dart';
 import 'package:oberta/rules/role_catalog.dart';
 
@@ -62,6 +63,8 @@ String _facts(RoleCatalogEntry e) {
     if (e.minPlayers > 4) 'da ${e.minPlayers} giocatori',
     if (e.modes.length == 1 && e.modes.contains(PlayMode.online)) 'solo online',
     if (e.modes.length == 1 && e.modes.contains(PlayMode.sharedPhone)) 'solo su un telefono',
+    // Al tavolo con un telefono solo i poteri di giorno passano da un bottone.
+    if (e.role.dayPower != null && e.modes.contains(PlayMode.sharedPhone)) 'su un telefono: «Usa un potere»',
   ];
   return parts.join(' · ');
 }

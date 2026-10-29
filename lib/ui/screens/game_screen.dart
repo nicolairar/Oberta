@@ -35,14 +35,12 @@ import 'online/game/action_strip.dart';
 import 'online/game/noir_ui.dart';
 import 'online/game/verdict_line.dart';
 import 'online/game/chronicle_headlines.dart';
-import 'online/online_widgets.dart' show showNote;
 import 'online/recap_screen.dart';
 import '../widgets/content_width.dart';
 import '../widgets/death_scene.dart';
 import '../widgets/narrator_roles_sheet.dart';
 import '../widgets/roles_sheet.dart';
 import '../widgets/player_avatar.dart';
-import '../widgets/noir_notice.dart';
 import '../widgets/city_backdrop.dart';
 import '../widgets/sky_events.dart';
 import '../widgets/scene_scaffold.dart';
@@ -78,11 +76,28 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-enum _Stage { script, handoff, task, taskDone, crimeIntro, crime, toNarrator, day, power, shot, vote, verdict, end }
-
-/// I poteri di giorno, davanti a tutti: la tregua del Pacifista, il colpo
-/// dell'Artigliere.
-enum _Power { truce, cannon, marksman }
+/// Di giorno i poteri passano da un bottone solo, uguale per tutti:
+/// [_Stage.powerWho] chi lo usa tocca il suo volto davanti a tutti,
+/// [_Stage.powerCurtain] prende il telefono (la tenda è la stessa per chi ha
+/// un potere e per chi no), [_Stage.power] vede soltanto il suo, o niente.
+enum _Stage {
+  script,
+  handoff,
+  task,
+  taskDone,
+  crimeIntro,
+  crime,
+  toNarrator,
+  day,
+  powerWho,
+  powerCurtain,
+  power,
+  shot,
+  marksmanShot,
+  vote,
+  verdict,
+  end,
+}
 
 class _GameScreenState extends State<GameScreen> {
   static const _mafiaRed = Color(0xFFE5606A);
@@ -116,18 +131,16 @@ class _GameScreenState extends State<GameScreen> {
   /// Cupido ha scelto il primo innamorato e cerca il secondo.
   Player? _firstLover;
 
-  /// La tregua del Pacifista o il colpo dell'Artigliere: chi lo usa
-  /// (verificato), poi su chi.
-  _Power _power = _Power.truce;
+  /// Chi ha toccato il suo volto per usare un potere di giorno: il
+  /// telefono è in mano sua.
+  Player? _powerUser;
 
   /// Il colpo del Tiratore scelto, appena sparato.
   ShotReport? _marksmanShot;
-  Player? _powerUser;
 
   /// L'ultimo colpo dell'Artigliere, e il copione da leggere.
   CannonShot? _shot;
   List<ScriptLine> _shotLines = const [];
-  String? _powerError;
   late final LocalRoleStrings _lr = LocalRoleStrings(_t);
   Exposure? _finding;
   late DawnReport _dawn;
@@ -155,12 +168,22 @@ class _GameScreenState extends State<GameScreen> {
   late final TableStrings _ts = TableStrings(_t.language);
   late final LocalTableStrings _ls = LocalTableStrings(_t.language);
 
-  /// Il voto della piazza, con il telefono in mezzo: chi vota, uno alla volta.
+  /// Il voto segreto: chi vota, uno alla volta, nell'ordine dei posti.
   List<Player> _voters = const [];
   int _voter = 0;
 
-  /// I voti del verdetto: il motore li dimentica quando condanna.
+  bool get _secretVote => widget.setup.vote == LocalVote.secret;
+
+  /// I voti del verdetto: il motore li dimentica quando condanna. Vuoti
+  /// col voto a voce: li ha contati il tavolo.
   List<SeatVote> _lastVotes = const [];
+
+  /// Nessuna condanna perché la piazza è finita pari.
+  bool _tie = false;
+
+  /// Il Sindaco che valeva doppio nel voto appena chiuso: dopo il verdetto
+  /// il motore è già alla notte, e non lo dice più.
+  Player? _verdictMayor;
 
   /// Il cronometro della discussione, nel cartiglio.
   Timer? _dayTimer;
@@ -303,7 +326,12 @@ class _GameScreenState extends State<GameScreen> {
       icon: Icons.wb_twilight,
       nightfall: false,
       title: report.victims.isEmpty ? _t.everyoneAlive : _t.crimePage,
-      lines: _script.dawn(report, discussion: widget.settings.discussion, stories: _deaths),
+      lines: [
+        ..._script.dawn(report, discussion: widget.settings.discussion, stories: _deaths),
+        // Il primo giorno, una volta: dove sono i poteri di giorno. Lo si
+        // dice sempre, che ci siano o no: il mazzo non trapela.
+        if (winner == null && _engine.round == 1) _script.dayPowers(),
+      ],
       // Chi è morto, a lutto. Se non è morto nessuno, chi l'ha scampata.
       // Solo i morti: chi si è salvato resta anonimo.
       portraits: [
@@ -335,8 +363,14 @@ class _GameScreenState extends State<GameScreen> {
   /// minuto alla volta, suona allo scadere. Non chiude niente: il voto lo
   /// chiama il tavolo.
   void _startDay() {
-    _dayTimer?.cancel();
     _dayLeft = widget.settings.discussion;
+    _runDayClock();
+  }
+
+  /// Il cronometro riparte da dove era: anche tornando dal voto alla
+  /// discussione.
+  void _runDayClock() {
+    _dayTimer?.cancel();
     _dayTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted || _dayLeft == Duration.zero || _stage != _Stage.day) return;
       setState(() => _dayLeft -= const Duration(seconds: 1));
@@ -349,11 +383,13 @@ class _GameScreenState extends State<GameScreen> {
     });
   }
 
-  /// Si vota a viso aperto, uno alla volta, nell'ordine dei posti.
+  /// Si chiama il voto. A voce: il tavolo vota ad alta voce e poi uno tocca
+  /// il verdetto. In segreto: il telefono passa di mano, nell'ordine dei
+  /// posti, e ognuno vota da solo.
   void _enterVote() {
     _dayTimer?.cancel();
     beat(MemeMoment.voteCall);
-    _voteLines = _script.voteCall();
+    _voteLines = _script.voteCall(secret: _secretVote);
     _voters = [
       for (final player in widget.setup.players)
         if (_engine.isAlive(player)) player,
@@ -362,13 +398,28 @@ class _GameScreenState extends State<GameScreen> {
     _stage = _Stage.vote;
   }
 
-  /// Il voto di chi tocca adesso (`null`: si astiene). Dopo l'ultimo, si conta.
+  /// Dal voto si torna alla discussione (e ai poteri di giorno), finché
+  /// nessuna scheda è nell'urna.
+  bool get _canBackToTalk => !_secretVote || _engine.dayVotes.isEmpty;
+
+  void _backToTalk() => _advance(() {
+        _stage = _Stage.day;
+        _runDayClock();
+      });
+
+  /// Il voto a voce è finito: chi ha il telefono tocca il condannato, o il
+  /// pareggio (`null`). Il motore registra il verdetto, senza voti finti.
+  void _voiceVerdict(Player? condemned) => _advance(() {
+        _lastVotes = const [];
+        _verdictMayor = null;
+        _tie = condemned == null;
+        _enterVerdict(_engine.lynch(condemned));
+      });
+
+  /// Il voto segreto di chi tocca adesso (`null`: si astiene). Niente suoni
+  /// che dicano se il bersaglio aveva già voti. Dopo l'ultimo, si conta.
   void _castVote(Player? target) {
     final voter = _voters[_voter];
-    final previous = _engine.dayVotes;
-    if (target != null && previous[voter] != target) {
-      beat(previous.values.contains(target) ? MemeMoment.voteChanged : MemeMoment.accused);
-    }
     _engine.apply(target == null ? Pass(voter.id) : DayVote(voter.id, target.id));
     _advance(() {
       if (_voter + 1 < _voters.length) {
@@ -376,27 +427,10 @@ class _GameScreenState extends State<GameScreen> {
         return;
       }
       _lastVotes = [for (final e in _engine.dayVotes.entries) (voter: e.key, target: e.value)];
+      _tie = _engine.dayVoteTied;
+      _verdictMayor = _engine.mayor;
       _enterVerdict(_engine.closeDayVote());
     });
-  }
-
-  Future<void> _revealMayor() async {
-    final voter = _voters[_voter];
-    final yes = await confirmNoir(
-      context,
-      key: const Key('local.askMayor'),
-      title: _ts.revealMayorTitle,
-      body: _ts.revealMayorBody,
-      cancel: _ts.cancel,
-      confirm: _ts.revealMayor,
-    );
-    if (!yes || !mounted || _stage != _Stage.vote) return;
-    final result = _engine.apply(RevealMayor(voter.id));
-    if (result is IntentRejected) {
-      showNote(context, _ls.notTheMayor, kind: NoticeKind.error);
-      return;
-    }
-    setState(() {});
   }
 
   /// La piazza ha votato e l'ha visto tutto il tavolo: niente film. Il posto
@@ -410,7 +444,7 @@ class _GameScreenState extends State<GameScreen> {
     // Nessuna condanna: il silenzio imbarazzato della battuta che non ride nessuno.
     if (condemned == null) beat(MemeMoment.noConviction, after: const Duration(milliseconds: 600));
     if (report.heartbroken != null) beat(MemeMoment.lovers, after: const Duration(seconds: 4));
-    _verdictLines = _script.lynch(report);
+    _verdictLines = _script.lynch(report, tie: _tie && !report.truce);
     _title = _t.verdictTitle;
     _mood = SceneMood.dusk;
     _stage = _Stage.verdict;
@@ -583,13 +617,18 @@ class _GameScreenState extends State<GameScreen> {
   /// Le fasi del tavolo: lo stesso tavolo dei posti della partita online.
   bool get _atTheTable => switch (_stage) {
         _Stage.handoff || _Stage.task || _Stage.taskDone || _Stage.toNarrator => true,
-        _Stage.day || _Stage.power || _Stage.shot || _Stage.vote || _Stage.verdict => true,
+        _Stage.day || _Stage.powerWho || _Stage.powerCurtain || _Stage.power => true,
+        _Stage.shot || _Stage.marksmanShot || _Stage.vote || _Stage.verdict => true,
         _ => false,
       };
 
-  /// Il telefono è in mano a uno solo: il tavolo è di notte.
-  bool get _private =>
-      _stage == _Stage.handoff || _stage == _Stage.task || _stage == _Stage.taskDone || _stage == _Stage.toNarrator;
+  /// Il telefono è in mano a uno solo: il tavolo è di notte. Anche di
+  /// giorno, quando qualcuno guarda il suo potere.
+  bool get _private => switch (_stage) {
+        _Stage.handoff || _Stage.task || _Stage.taskDone || _Stage.toNarrator => true,
+        _Stage.powerCurtain || _Stage.power => true,
+        _ => false,
+      };
 
   Widget _screen() {
     if (_stage == _Stage.crime) {
@@ -690,13 +729,15 @@ class _GameScreenState extends State<GameScreen> {
                     tooltip: _t.rolesTooltip,
                     onPressed: pressed(_showDeck, Press.card),
                   ),
-                  // Durante il voto, l'angolo torna al votante di prima.
-                  corner: _stage == _Stage.vote && _voter > 0
+                  // Durante il voto, l'angolo torna alla discussione (e ai
+                  // poteri): sempre a voce, in segreto finché l'urna è vuota.
+                  // Al voto segreto non si torna al votante di prima.
+                  corner: _stage == _Stage.vote && _canBackToTalk
                       ? HeaderIconButton(
-                          key: const Key('local.undoVote'),
+                          key: const Key('local.backToTalk'),
                           icon: Icons.undo,
-                          tooltip: _ls.undo,
-                          onPressed: pressed(() => _advance(() => _voter--), Press.back),
+                          tooltip: _ls.backToTalk,
+                          onPressed: pressed(_backToTalk, Press.back),
                         )
                       : narratorHolds
                       ? _narratorEye()
@@ -725,7 +766,7 @@ class _GameScreenState extends State<GameScreen> {
   /// La riga sotto il titolo: a che punto è il giro del telefono, o il voto.
   String? _ribbon() => switch (_stage) {
         _Stage.handoff || _Stage.task || _Stage.taskDone => '${_turn + 1} / ${_queue.length}',
-        _Stage.vote => '${_voter + 1} / ${_voters.length}',
+        _Stage.vote when _secretVote => '${_voter + 1} / ${_voters.length}',
         _ => null,
       };
 
@@ -800,9 +841,12 @@ class _GameScreenState extends State<GameScreen> {
         _Stage.verdict => _verdictView(),
         _Stage.toNarrator => _curtain(_narrator!, onReady: () => _advance(_enterDawn)),
         _Stage.day => _dayView(),
-        _Stage.power => _powerView(),
+        _Stage.powerWho => _powerWhoView(),
+        _Stage.powerCurtain => _powerCurtain(_powerUser!),
+        _Stage.power => _powerView(_powerUser!),
         _Stage.shot => _shotView(),
-        _Stage.vote => _voteView(),
+        _Stage.marksmanShot => _marksmanShotView(),
+        _Stage.vote => _secretVote ? _secretVoteView() : _voiceVoteView(),
         _Stage.end => _endView(),
       };
 
@@ -1039,195 +1083,46 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  /// Il Pacifista c'è nel mazzo e la tregua non è ancora spesa (il bottone
-  /// resta anche se è morto: sennò il tavolo lo saprebbe).
-  bool get _hasTruce => widget.setup.roles.values.contains(Role.pacifista) && !_engine.truceSpent;
-
-  /// Il Tiratore scelto c'è nel mazzo e ha ancora colpi (il bottone resta
-  /// anche se è morto). Con la tregua di oggi non si spara.
-  bool get _hasShot =>
-      widget.setup.roles.values.contains(Role.tiratoreScelto) && _engine.marksmanShotsLeft > 0 && !_engine.truceToday;
-
-  /// Il colpo del Tiratore scelto, davanti a tutti: tocca il suo volto, vede
-  /// chi ha nel mirino, spara. Poi il tavolo legge chi è caduto.
-  Widget _marksmanView() {
-    final user = _powerUser;
-    final shot = _marksmanShot;
-    final selected = _selected;
-    if (shot != null) {
-      final lines = _script.marksmanShot(shot);
-      return _tablePage(
-        key: const Key('game.marksmanShot'),
-        voice: lines,
-        table: _publicTable(
-          center: LocalFelt([
-            for (final line in lines.take(2))
-              (text: line.text, key: null, style: LocalFelt.lineStyle(context, color: Saloon.brass, weight: FontWeight.w700)),
-          ]),
-        ),
-        strip: ActionStrip(
-          status: lines.length > 2 ? lines[2].text : lines.last.text,
-          tone: StripTone.done,
-          actions: [
-            NoirAction(
-              key: const Key('game.shotDone'),
-              label: _lr.carryOn,
-              style: NoirButtonStyle.primary,
-              feel: Press.confirm,
-              onPressed: () => _advance(() {
-                final winner = _engine.winner;
-                winner != null ? _enterEnd(winner) : _stage = _Stage.day;
-              }),
-            ),
-          ],
-        ),
-      );
-    }
-    final aim = user == null ? null : _engine.aimed;
-    final status = user == null
-        ? _lr.whoIsMarksman
-        : aim == null
-        ? _lr.noAim
-        : _lr.aimed(_tag(aim), _engine.marksmanShotsLeft);
-    return _tablePage(
-      key: const Key('game.power'),
-      table: _publicTable(
-        holder: user,
-        selected: user == null ? selected : aim,
-        selectable: user == null ? {..._engine.alivePlayers} : const {},
-        onTap: user == null ? (player) => setState(() => _selected = player) : null,
-        center: LocalFelt([
-          (text: status, key: const Key('game.aim'), style: LocalFelt.titleStyle(context)),
-          if (_powerError case final error?)
-            (text: error, key: const Key('game.powerError'), style: LocalFelt.lineStyle(context, color: Saloon.mafia)),
-        ]),
-      ),
-      strip: ActionStrip(
-        status: user == null && selected != null ? _tag(selected) : status,
-        tone: StripTone.act,
-        actions: [
-          NoirAction(
-            label: _lr.cancel,
-            feel: Press.back,
-            onPressed: () => _advance(() => _stage = _Stage.day),
-          ),
-          if (user == null)
-            NoirAction(
-              key: const Key('game.powerConfirm'),
-              label: _lr.confirm,
-              style: NoirButtonStyle.primary,
-              feel: Press.confirm,
-              onPressed: selected == null
-                  ? null
-                  : () {
-                      final ok = widget.setup.roleOf(selected) == Role.tiratoreScelto && _engine.isAlive(selected);
-                      setState(() {
-                        _powerUser = ok ? selected : null;
-                        _powerError = ok ? null : _lr.notMarksman;
-                        _selected = null;
-                      });
-                    },
-            )
-          else
-            NoirAction(
-              key: const Key('game.marksmanFire'),
-              label: _lr.fire,
-              style: NoirButtonStyle.primary,
-              feel: Press.confirm,
-              onPressed: aim == null
-                  ? null
-                  : () => _advance(() {
-                      _dayTimer?.cancel();
-                      _marksmanShot = _engine.shoot(user);
-                    }),
-            ),
-        ],
-      ),
-    );
-  }
-
-  /// I bottoni dei poteri di giorno, accanto al cronometro.
-  Widget? _powerButtons() {
-    final buttons = [
-      if (_hasTruce) _powerButton(const Key('game.truce'), _lr.truce, _Power.truce),
-      if (_hasCannon) _powerButton(const Key('game.fire'), _lr.cannon, _Power.cannon),
-      if (_hasShot) _powerButton(const Key('game.marksman'), _lr.marksman, _Power.marksman),
-    ];
-    if (buttons.length < 2) return buttons.firstOrNull;
-    return Row(
-      children: [
-        for (final (i, button) in buttons.indexed) ...[
-          if (i > 0) const SizedBox(width: 8),
-          Expanded(child: button),
-        ],
-      ],
-    );
-  }
-
-  /// L'Artigliere c'è nel mazzo, dal secondo giorno, con un colpo in canna e
-  /// senza aver già sparato oggi. Finché non ha sparato il bottone resta
-  /// anche se è morto (sennò il tavolo lo saprebbe); dopo il primo colpo è
-  /// pubblico, e il bottone c'è solo se è vivo.
-  bool get _hasCannon {
-    final left = _engine.shotsLeft;
-    if (left == null || left == 0 || _engine.round < 2 || _engine.firedToday) return false;
-    if (_engine.shots.isEmpty) return true;
-    return _engine.isAlive(_engine.shots.first.gunner);
-  }
-
-  void _openPower(_Power power) => _advance(() {
-        _power = power;
-        _powerUser = null;
-        _powerError = null;
-        _marksmanShot = null;
-        _stage = _Stage.power;
-      });
-
-  Widget _powerButton(Key key, String label, _Power power) => SizedBox(
+  /// Il bottone dei poteri di giorno, accanto al cronometro: uno solo e
+  /// sempre lì, durante la discussione, che ci siano o no ruoli con un
+  /// potere. Così non dice niente del mazzo.
+  Widget _usePowerButton() => SizedBox(
         height: NoirMetrics(DesktopCanvas.of(context)).button,
         child: OutlinedButton(
-          key: key,
-          onPressed: pressed(() => _openPower(power), Press.tap),
-          child: FittedBox(fit: BoxFit.scaleDown, child: Text(label, maxLines: 1)),
+          key: const Key('game.usePower'),
+          onPressed: pressed(
+            () => _advance(() {
+              _powerUser = null;
+              _marksmanShot = null;
+              _stage = _Stage.powerWho;
+            }),
+            Press.tap,
+          ),
+          child: FittedBox(fit: BoxFit.scaleDown, child: Text(_lr.usePower.toUpperCase(), maxLines: 1)),
         ),
       );
 
-  /// I poteri davanti a tutti: chi lo usa tocca il suo volto, poi su chi.
-  /// La tregua: il ruolo esatto va sul tavolo e il voto salta. Il colpo:
-  /// il bersaglio muore e la sua carta si gira.
-  Widget _powerView() {
-    if (_power == _Power.marksman) return _marksmanView();
-    final user = _powerUser;
+  /// Chi vuole usare un potere tocca il suo volto, davanti a tutti: il
+  /// tavolo vede chi prende il telefono. Si tocca, si conferma: per tutti
+  /// gli stessi gesti, che il potere ci sia o no.
+  Widget _powerWhoView() {
     final selected = _selected;
-    final cannon = _power == _Power.cannon;
-    final whoAreYou = cannon ? _lr.gunnerWhoAreYou : _lr.whoAreYou;
-    final whoTo = cannon ? _lr.whoToHit : _lr.whoToReveal;
-    final selectable = user == null
-        ? {..._engine.alivePlayers}
-        : cannon
-        ? {..._engine.fireTargets(user)}
-        : {
-            for (final player in _engine.alivePlayers)
-              if (player != user) player,
-          };
     return _tablePage(
-      key: const Key('game.power'),
+      key: const Key('game.powerWho'),
       table: _publicTable(
-        holder: user,
+        selectable: {..._engine.alivePlayers},
         selected: selected,
-        selectable: selectable,
         onTap: (player) => setState(() => _selected = player),
         center: LocalFelt([
-          (text: user == null ? whoAreYou : whoTo, key: null, style: LocalFelt.titleStyle(context)),
-          if (_powerError case final error?)
-            (text: error, key: const Key('game.powerError'), style: LocalFelt.lineStyle(context, color: Saloon.mafia)),
+          (text: _lr.powerWho, key: const Key('game.powerWhoTitle'), style: LocalFelt.titleStyle(context)),
         ]),
       ),
       strip: ActionStrip(
-        status: selected == null ? (user == null ? whoAreYou : whoTo) : _tag(selected),
+        status: selected == null ? _lr.powerWho : _ls.pickedConfirm(_tag(selected)),
         tone: selected == null ? StripTone.act : StripTone.done,
         actions: [
           NoirAction(
+            key: const Key('game.powerCancel'),
             label: _lr.cancel,
             feel: Press.back,
             onPressed: () => _advance(() => _stage = _Stage.day),
@@ -1237,35 +1132,187 @@ class _GameScreenState extends State<GameScreen> {
             label: _lr.confirm,
             style: NoirButtonStyle.primary,
             feel: Press.confirm,
-            onPressed: selected == null ? null : () => _usePower(selected),
+            onPressed: selected == null
+                ? null
+                : () => _advance(() {
+                      _powerUser = selected;
+                      _stage = _Stage.powerCurtain;
+                    }),
           ),
         ],
       ),
     );
   }
 
-  void _usePower(Player picked) {
-    final user = _powerUser;
-    final cannon = _power == _Power.cannon;
-    if (user == null) {
-      final ok = cannon ? _engine.canFire(picked) : widget.setup.roleOf(picked) == Role.pacifista && _engine.isAlive(picked);
-      setState(() {
-        _powerUser = ok ? picked : null;
-        _powerError = ok ? null : (cannon ? _lr.notTheGunner : _lr.notYou);
-        _selected = null;
+  /// La tenda prima del potere: come di notte, il telefono in mano a uno
+  /// solo e gli altri che guardano altrove. Identica per tutti: chi ha un
+  /// potere e chi no vedono, sentono e toccano le stesse cose. Il ruolo
+  /// compare solo dopo «Sono io».
+  Widget _powerCurtain(Player user) {
+    final line = _script.powerCurtain();
+    return SpokenLines(
+      key: const Key('game.powerCurtain'),
+      lines: [line],
+      reader: _narrator?.name,
+      child: LocalCurtain(
+        player: user,
+        number: _numbers[user],
+        hint: line.text,
+        backLabel: _ls.undo,
+        onBack: () => _advance(() => _stage = _Stage.day),
+        onReady: () => _advance(() => _stage = _Stage.power),
+      ),
+    );
+  }
+
+  /// Il potere di [user], solo il suo: il nome del ruolo, che cosa fa,
+  /// quanti usi restano e il bottone. Chi adesso non ne ha uno (perché non
+  /// ce l'ha, o perché oggi non si può) legge la stessa riga di tutti.
+  /// Sul tavolo si vede solo quello che è pubblico.
+  Widget _powerView(Player user) {
+    final power = _engine.dayPowerOf(user);
+    final selected = _selected;
+    final title = LocalFelt.titleStyle(context);
+    final line = LocalFelt.lineStyle(context, style: FontStyle.italic);
+    final brass = LocalFelt.lineStyle(context, color: Saloon.brass, weight: FontWeight.w700);
+    final back = NoirAction(
+      key: const Key('game.powerBack'),
+      label: _ls.undo,
+      feel: Press.back,
+      onPressed: () => _advance(() => _stage = _Stage.day),
+    );
+    if (power == null) {
+      return _tablePage(
+        key: const Key('game.power'),
+        table: _publicTable(
+          holder: user,
+          center: LocalFelt([(text: _lr.noPower, key: const Key('game.noPower'), style: title)]),
+        ),
+        strip: ActionStrip(status: _ls.backToTalk, tone: StripTone.wait, actions: [back]),
+      );
+    }
+    final role = widget.setup.roleOf(user);
+    final aim = _engine.aimed;
+    // Sul panno: che cosa fa il potere e quanti usi restano (la tregua e il
+    // Sindaco sono una volta a partita, e lo dice già la riga). Nella
+    // striscia: che cosa si fa adesso.
+    final (how, left, Set<Player> targets, ask) = switch (power) {
+      DayPower.truce => (
+          _lr.truceHow,
+          null,
+          {
+            for (final player in _engine.alivePlayers)
+              if (player != user) player,
+          },
+          _lr.whoToReveal,
+        ),
+      DayPower.cannon => (
+          _lr.cannonHow,
+          _lr.shotsLeft(_engine.shotsLeft ?? 0),
+          {..._engine.fireTargets(user)},
+          _lr.whoToHit,
+        ),
+      DayPower.marksman => (
+          _lr.marksmanHow,
+          _lr.shotsLeft(_engine.marksmanShotsLeft),
+          <Player>{},
+          aim == null ? _lr.noAim : _lr.aimed(_tag(aim), _engine.marksmanShotsLeft),
+        ),
+      DayPower.mayor => (_lr.mayorHow, null, <Player>{}, _ts.revealMayorBody),
+    };
+    final (String label, VoidCallback? use) = switch (power) {
+      DayPower.truce => (_lr.askTruce, selected == null ? null : () => _useTruce(user, selected)),
+      DayPower.cannon => (_lr.fire, selected == null ? null : () => _advance(() => _enterShot(_engine.fire(user, selected)))),
+      DayPower.marksman => (
+          _lr.fire,
+          _engine.canShoot(user)
+              ? () => _advance(() {
+                    _marksmanShot = _engine.shoot(user);
+                    _stage = _Stage.marksmanShot;
+                  })
+              : null,
+        ),
+      DayPower.mayor => (_ts.revealMayor, () => _revealMayor(user)),
+    };
+    return _tablePage(
+      key: const Key('game.power'),
+      table: _publicTable(
+        holder: user,
+        selectable: targets,
+        selected: power == DayPower.marksman ? aim : selected,
+        onTap: targets.isEmpty ? null : (player) => setState(() => _selected = player),
+        center: LocalFelt([
+          (text: _t.role(role).label.toUpperCase(), key: const Key('game.powerRole'), style: title),
+          (text: how, key: const Key('game.powerHow'), style: line),
+          if (left != null) (text: left, key: const Key('game.powerLeft'), style: brass),
+        ]),
+      ),
+      strip: ActionStrip(
+        status: selected != null ? _ls.pickedConfirm(_tag(selected)) : ask,
+        statusKey: const Key('game.powerAsk'),
+        tone: use == null ? StripTone.act : StripTone.done,
+        actions: [
+          back,
+          NoirAction(
+            key: const Key('game.powerUse'),
+            label: label,
+            style: NoirButtonStyle.primary,
+            feel: Press.confirm,
+            onPressed: use,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// La tregua: il ruolo esatto del bersaglio e quello del Pacifista vanno
+  /// sul tavolo, e oggi non si vota.
+  void _useTruce(Player pacifist, Player target) => _advance(() {
+        _dayTimer?.cancel();
+        _engine.pacify(pacifist, target);
+        _lastVotes = const [];
+        _verdictMayor = null;
+        _tie = false;
+        _enterVerdict(_engine.lynch(null));
       });
-      return;
-    }
-    if (cannon) {
-      _advance(() => _enterShot(_engine.fire(user, picked)));
-      return;
-    }
-    _advance(() {
-      _dayTimer?.cancel();
-      _engine.pacify(user, picked);
-      _lastVotes = const [];
-      _enterVerdict(_engine.lynch(null));
-    });
+
+  /// Il Sindaco si rivela: da qui il suo posto porta la carta, e oggi il
+  /// suo voto vale doppio. Si torna alla discussione.
+  void _revealMayor(Player mayor) => _advance(() {
+        _engine.apply(RevealMayor(mayor.id));
+        _stage = _Stage.day;
+      });
+
+  /// Il colpo del Tiratore scelto: il tavolo legge chi è caduto. Chi ha
+  /// sparato resta anonimo, se il colpo non gli torna indietro.
+  Widget _marksmanShotView() {
+    final lines = _script.marksmanShot(_marksmanShot!);
+    return _tablePage(
+      key: const Key('game.marksmanShot'),
+      voice: lines,
+      table: _publicTable(
+        center: LocalFelt([
+          for (final line in lines.take(2))
+            (text: line.text, key: null, style: LocalFelt.lineStyle(context, color: Saloon.brass, weight: FontWeight.w700)),
+        ]),
+      ),
+      strip: ActionStrip(
+        status: lines.length > 2 ? lines[2].text : lines.last.text,
+        tone: StripTone.done,
+        actions: [
+          NoirAction(
+            key: const Key('game.shotDone'),
+            label: _lr.carryOn,
+            style: NoirButtonStyle.primary,
+            feel: Press.confirm,
+            onPressed: () => _advance(() {
+              final winner = _engine.winner;
+              winner != null ? _enterEnd(winner) : _stage = _Stage.day;
+            }),
+          ),
+        ],
+      ),
+    );
   }
 
   /// Il boato in piazza: il colpito cade, la sua carta si gira davanti a
@@ -1399,6 +1446,7 @@ class _GameScreenState extends State<GameScreen> {
     List<SeatVote> votes = const [],
     Player? lynched,
     bool accusing = true,
+    bool pizzini = true,
     Widget? center,
   }) =>
       LocalTable(
@@ -1412,15 +1460,26 @@ class _GameScreenState extends State<GameScreen> {
         selected: selected,
         onTap: onTap,
         votes: votes,
-        mayor: _engine.mayorRevealed ? _engine.mayor : null,
+        mayor: _stage == _Stage.verdict ? _verdictMayor : _engine.mayor,
         silenced: _stage == _Stage.verdict ? null : _dawn.silenced,
         lynched: lynched,
         accusing: accusing,
+        pizzini: pizzini,
         center: center,
       );
 
+  /// Il Sindaco rivelato oggi, sul panno: il suo voto vale doppio.
+  FeltLine? _mayorLine() => switch (_engine.mayor) {
+        final mayor? => (
+            text: _t.pack.mayorRevealed.replaceAll('{name}', _tag(mayor)),
+            key: const Key('local.mayor'),
+            style: LocalFelt.lineStyle(context, color: Saloon.brass, weight: FontWeight.w700),
+          ),
+        null => null,
+      };
+
   /// La discussione: sul panno chi è morto stanotte, nel cartiglio il
-  /// cronometro; sotto, più tempo o al voto.
+  /// cronometro; sotto, i poteri di giorno, più tempo o al voto.
   Widget _dayView() {
     final headline = dawnHeadline(_dawn, language: _t.language, everyoneAlive: _t.everyoneAlive).headline;
     final expired = _dayLeft == Duration.zero;
@@ -1429,12 +1488,13 @@ class _GameScreenState extends State<GameScreen> {
       table: _publicTable(
         center: LocalFelt([
           (text: headline, key: const Key('local.dawnHeadline'), style: LocalFelt.titleStyle(context)),
+          ?_mayorLine(),
         ]),
       ),
       strip: ActionStrip(
         status: expired ? _t.timeUp : _ls.discuss,
         tone: expired ? StripTone.wait : StripTone.act,
-        control: _powerButtons(),
+        control: _usePowerButton(),
         actions: [
           NoirAction(
             key: const Key('local.moreTime'),
@@ -1454,17 +1514,56 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  /// Il voto a viso aperto: il telefono resta in mezzo, ognuno a turno tocca
-  /// chi condanna (o si astiene). Le mani e i bolli dicono a che punto è.
-  Widget _voteView() {
+  /// Il voto a voce: il tavolo vota ad alta voce, il telefono resta in
+  /// mezzo. Poi chi lo tiene tocca il condannato e conferma, o il pareggio.
+  /// Il Sindaco rivelato oggi vale doppio: lo conta il tavolo, il panno lo
+  /// ricorda. Il Presidente non si tocca.
+  Widget _voiceVoteView() {
+    final selected = _selected;
+    return _tablePage(
+      key: const Key('local.voiceVote'),
+      script: SpokenScriptCard(reader: _narrator?.name, lines: _voteLines),
+      table: _publicTable(
+        selectable: {..._engine.lynchable},
+        selected: selected,
+        onTap: (player) => setState(() => _selected = player),
+        center: LocalFelt([
+          (text: _ls.voiceVoteTitle.toUpperCase(), key: const Key('local.voiceVoteTitle'), style: LocalFelt.titleStyle(context)),
+          (text: _ls.tieRule, key: null, style: LocalFelt.lineStyle(context, style: FontStyle.italic)),
+          ?_mayorLine(),
+        ]),
+      ),
+      strip: ActionStrip(
+        status: selected == null ? _ls.voiceVote : _ls.condemnConfirm(_tag(selected)),
+        statusKey: const Key('local.voiceVoteStatus'),
+        tone: selected == null ? StripTone.act : StripTone.done,
+        actions: [
+          NoirAction(
+            key: const Key('local.tie'),
+            label: _ls.tieNobody,
+            feel: Press.tap,
+            onPressed: () => _voiceVerdict(null),
+          ),
+          NoirAction(
+            key: const Key('local.condemn'),
+            label: _ls.condemn(selected == null ? '' : _tag(selected)).trim(),
+            style: NoirButtonStyle.primary,
+            feel: Press.confirm,
+            onPressed: selected == null ? null : () => _voiceVerdict(selected),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Il voto segreto: il telefono passa di mano e chi lo tiene vota da
+  /// solo, una volta. Sul tavolo nessun voto di chi è venuto prima, niente
+  /// accusato, niente suoni: solo quante schede sono nell'urna. Si tocca e
+  /// si conferma, perché non si torna indietro.
+  Widget _secretVoteView() {
     final voter = _voters[_voter];
-    final votes = [for (final e in _engine.dayVotes.entries) (voter: e.key, target: e.value)];
-    final targets = {
-      for (final player in _engine.alivePlayers)
-        if (player != voter) player,
-    };
-    final mayorInPlay = widget.setup.roles.values.contains(Role.sindaco) && !_engine.mayorRevealed;
-    final mayor = _engine.mayorRevealed ? _engine.mayor : null;
+    final selected = _selected;
+    final cast = _engine.dayVotes.length;
     final turn = _script.voterTurn(_tag(voter));
     return _tablePage(
       key: const Key('local.vote'),
@@ -1474,32 +1573,40 @@ class _GameScreenState extends State<GameScreen> {
       voice: _voter == 0 ? const [] : [turn],
       table: _publicTable(
         holder: voter,
-        selectable: targets,
-        onTap: _castVote,
-        votes: votes,
-        center: mayor == null
-            ? null
-            : LocalFelt([
-                (
-                  text: _t.pack.mayorRevealed.replaceAll('{name}', _tag(mayor)),
-                  key: const Key('local.mayor'),
-                  style: LocalFelt.lineStyle(context, color: Saloon.brass, weight: FontWeight.w700),
-                ),
-              ]),
+        selectable: {
+          for (final player in _engine.lynchable)
+            if (player != voter) player,
+        },
+        selected: selected,
+        onTap: (player) => setState(() => _selected = player),
+        center: LocalFelt([
+          (
+            text: _ls.mustVote(_tag(voter)).toUpperCase(),
+            key: const Key('local.mustVote'),
+            style: LocalFelt.titleStyle(context),
+          ),
+          (text: _ls.secretBallot, key: null, style: LocalFelt.lineStyle(context, style: FontStyle.italic)),
+          ?_mayorLine(),
+        ]),
       ),
       strip: ActionStrip(
-        status: turn.text,
+        status: selected == null ? turn.text : _ls.votePicked(_tag(selected)),
         statusKey: const Key('local.voterTurn'),
-        tone: StripTone.act,
-        count: '${votes.length}/${_voters.length}',
-        countTooltip: _t.online.votesCast(votes.length, _voters.length),
+        tone: selected == null ? StripTone.act : StripTone.done,
+        count: '$cast/${_voters.length}',
+        countTooltip: _t.online.votesCast(cast, _voters.length),
         actions: [
-          if (mayorInPlay)
-            NoirAction(key: const Key('local.revealMayor'), label: _ts.revealMayor, onPressed: _revealMayor),
           NoirAction(
             key: const Key('local.abstain'),
             label: _t.online.abstain,
             onPressed: () => _castVote(null),
+          ),
+          NoirAction(
+            key: const Key('local.castVote'),
+            label: _ls.castVote,
+            style: NoirButtonStyle.primary,
+            feel: Press.confirm,
+            onPressed: selected == null ? null : () => _castVote(selected),
           ),
         ],
       ),
@@ -1510,7 +1617,7 @@ class _GameScreenState extends State<GameScreen> {
   String _verdictTally() {
     final counts = <Player, int>{};
     var abstained = 0;
-    final mayor = _engine.mayorRevealed ? _engine.mayor : null;
+    final mayor = _verdictMayor;
     for (final vote in _lastVotes) {
       final target = vote.target;
       if (target == null) {
@@ -1545,6 +1652,9 @@ class _GameScreenState extends State<GameScreen> {
       script: SpokenScriptCard(reader: _narrator?.name, lines: _verdictLines),
       table: _publicTable(
         votes: _lastVotes,
+        // Il voto segreto resta segreto: si vede quanti voti ha preso
+        // ognuno, mai chi ha votato chi.
+        pizzini: !_secretVote,
         accusing: false,
         lynched: condemned,
         center: LocalFelt([
@@ -1668,7 +1778,8 @@ class _GameScreenState extends State<GameScreen> {
         if (_engine.recap case final recap?) ...[
           OutlinedButton(
             key: const Key('game.recap'),
-            onPressed: pressed(() => showGameRecap(context, recap), Press.tap),
+            // Anche a fine partita il voto segreto non dice chi ha votato chi.
+            onPressed: pressed(() => showGameRecap(context, _secretVote ? recap.withoutBallots() : recap), Press.tap),
             child: Text(RecapStrings.of(context).open),
           ),
           const SizedBox(height: 12),

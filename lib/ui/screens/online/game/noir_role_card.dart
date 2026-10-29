@@ -27,12 +27,17 @@ class NoirRoleCard extends StatefulWidget {
   /// Chiamata la prima volta che la carta arriva scoperta.
   final VoidCallback? onRevealed;
 
+  /// Una riga in fondo alle regole del ruolo, solo sul telefono unico: dove
+  /// si usa il potere di giorno.
+  final String? footnote;
+
   const NoirRoleCard({
     super.key,
     required this.role,
     this.teammates = const [],
     this.bounty,
     this.onRevealed,
+    this.footnote,
   });
 
   @override
@@ -154,6 +159,7 @@ class _NoirRoleCardState extends State<NoirRoleCard>
                                 role: widget.role,
                                 teammates: widget.teammates,
                                 bounty: widget.bounty,
+                                footnote: widget.footnote,
                               ),
                             )
                           : const _Back(),
@@ -266,8 +272,9 @@ class _Face extends StatelessWidget {
   final Role role;
   final List<Player> teammates;
   final Player? bounty;
+  final String? footnote;
 
-  const _Face({required this.role, required this.teammates, this.bounty});
+  const _Face({required this.role, required this.teammates, this.bounty, this.footnote});
 
   @override
   Widget build(BuildContext context) {
@@ -371,11 +378,29 @@ class _Face extends StatelessWidget {
                       color: Colors.black.withValues(alpha: 0.55),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: RoleRules(
-                      role,
-                      color: AppColors.textPrimary,
-                      labelColor: Saloon.brass,
-                      fontSize: 14,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        RoleRules(
+                          role,
+                          color: AppColors.textPrimary,
+                          labelColor: Saloon.brass,
+                          fontSize: 14,
+                        ),
+                        if (footnote case final note?) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            note,
+                            key: const Key('role.footnote'),
+                            style: const TextStyle(
+                              color: Saloon.brass,
+                              fontSize: 14,
+                              height: 1.35,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                   if (bounty case final mark?) ...[

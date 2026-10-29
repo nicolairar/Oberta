@@ -51,6 +51,10 @@ class LocalTable extends StatelessWidget {
   final bool day;
   final bool accusing;
 
+  /// The voter's seat shows whom they voted (false for the secret vote:
+  /// the seats show only how many votes each one took).
+  final bool pizzini;
+
   const LocalTable({
     super.key,
     required this.seats,
@@ -69,6 +73,7 @@ class LocalTable extends StatelessWidget {
     this.center,
     this.day = true,
     this.accusing = true,
+    this.pizzini = true,
   });
 
   @override
@@ -110,7 +115,7 @@ class LocalTable extends StatelessWidget {
         final can = selectable.contains(player);
         final hush = silenced == player;
         final pizzino = switch (vote?.target) {
-          _ when vote == null => null,
+          _ when vote == null || !pizzini => null,
           final target? => '${numbers[target] ?? target.name}',
           null when !day => null,
           null when italian && PlayerGenders.of(player.name) == Gender.feminine => 'astenuta',
@@ -222,12 +227,19 @@ class LocalCurtain extends StatelessWidget {
   final String hint;
   final VoidCallback onReady;
 
+  /// A way back, for a face tapped by mistake (the day powers): the same
+  /// for everyone, so it says nothing about who has what.
+  final VoidCallback? onBack;
+  final String? backLabel;
+
   const LocalCurtain({
     super.key,
     required this.player,
     required this.number,
     required this.hint,
     required this.onReady,
+    this.onBack,
+    this.backLabel,
   });
 
   @override
@@ -284,6 +296,20 @@ class LocalCurtain extends StatelessWidget {
                   onPressed: onReady,
                 ),
               ),
+              if (onBack != null) ...[
+                SizedBox(height: desk ? 14 : 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: NoirButton(
+                    key: const Key('local.curtainBack'),
+                    label: backLabel ?? '',
+                    kind: NoirButtonKind.brass,
+                    feel: Press.back,
+                    compact: true,
+                    onPressed: onBack,
+                  ),
+                ),
+              ],
             ],
           ),
         ),

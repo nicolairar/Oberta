@@ -132,8 +132,12 @@ const _quickIt = [
     RulesBeat('All\'alba si scopre chi non ce l\'ha fatta. Chi muore di notte si porta il ruolo nella tomba.'),
     RulesBeat('Poi si discute: accuse, alibi, facce strane.'),
     RulesBeat(
-      'Alla fine si vota. Il più votato viene linciato, e si gira la sua carta. Pareggio? Oggi non si condanna nessuno.',
+      'Chi ha un potere di giorno tocca «Usa un potere», poi il suo volto, e lo usa con il telefono in mano.',
     ),
+    RulesBeat(
+      'Alla fine si vota a voce, tutti insieme, e uno tocca sul telefono chi condannate. Il condannato gira la sua carta. Pareggio? Oggi non si condanna nessuno.',
+    ),
+    RulesBeat('Preferite il voto segreto? Sceglietelo prima delle carte: il telefono passa di mano e ognuno vota da solo.'),
   ]),
   RulesStep('Chi vince', [
     RulesBeat('La Città vince quando la Famiglia è tutta fuori.'),
@@ -169,8 +173,12 @@ const _quickEn = [
     RulesBeat('At dawn you find out who didn\'t make it. Whoever dies at night takes their role to the grave.'),
     RulesBeat('Then you talk: accusations, alibis, funny looks.'),
     RulesBeat(
-      'Finally, you vote. The most voted is lynched, and their card is turned over. A tie? Nobody hangs today.',
+      'Anyone with a day power taps “Use a power”, then their own face, and uses it with the phone in their hands.',
     ),
+    RulesBeat(
+      'Finally, you vote out loud, all together, and one of you taps the condemned on the phone. Their card is turned over. A tie? Nobody hangs today.',
+    ),
+    RulesBeat('Prefer a secret vote? Pick it before the cards: the phone goes round and everyone votes alone.'),
   ]),
   RulesStep('Who wins', [
     RulesBeat('The Town wins when the whole Family is out.'),
@@ -223,7 +231,7 @@ const _stageIt = [
     RulesBeat.cue('Indica qualcuno, all\'improvviso.'),
     RulesBeat('Tu! Dov\'eri stanotte?'),
     RulesBeat(
-      'Quando le voci tacciono, si vota. Chi prende più voti viene condannato, e la sua carta si gira davanti a tutti.',
+      'Quando le voci tacciono, si vota: a voce alta, col dito puntato. Chi prende più voti viene condannato, e la sua carta si gira davanti a tutti.',
     ),
     RulesBeat('Se i voti sono pari, la piazza si ferma: oggi nessuna condanna.'),
   ]),
@@ -280,7 +288,7 @@ const _stageEn = [
     RulesBeat.cue('Point at someone, suddenly.'),
     RulesBeat('You! Where were you last night?'),
     RulesBeat(
-      'When the voices fall silent, you vote. Whoever gets the most votes is condemned, and their card is turned over for all to see.',
+      'When the voices fall silent, you vote: out loud, finger pointed. Whoever gets the most votes is condemned, and their card is turned over for all to see.',
     ),
     RulesBeat('If the votes are tied, the square stands still: nobody is condemned today.'),
   ]),

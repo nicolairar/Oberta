@@ -120,7 +120,24 @@ class NarrationPack {
   final String manyMinutes;
 
   final List<String> voteCalls;
+
+  /// Il voto a voce sul telefono unico: si vota tutti insieme ad alta voce,
+  /// poi uno tocca chi è condannato; pari, nessuno.
   final String voteInstruction;
+
+  /// Il voto segreto sul telefono unico: il telefono passa di mano e
+  /// ognuno vota da solo.
+  final String secretVoteInstruction;
+
+  /// La piazza finisce pari: nessuna condanna, si torna alla notte.
+  final String tieFact;
+
+  /// Chi vuole usare un potere di giorno ha toccato il suo volto: il telefono
+  /// passa in mano sua, e nessuno deve vedere. Uguale per tutti, potere o no.
+  final String powerCurtainHint;
+
+  /// Il primo giorno: i poteri di giorno passano dal bottone «Usa un potere».
+  final String dayPowersHint;
 
   /// Il telefono che passa di mano: chi lo prende ({name}), e che gli altri
   /// guardino altrove; per la carta, che nessun altro la veda.
@@ -131,7 +148,7 @@ class NarrationPack {
   /// La mossa della notte è fatta: il telefono va posato.
   final String putPhoneDown;
 
-  /// Il voto a turno, col telefono in mezzo: tocca a {name}.
+  /// Il voto segreto, a turno: tocca a {name}, e nessun altro guarda.
   final String voterTurn;
 
   final List<String> lynchScenes;
@@ -250,6 +267,10 @@ class NarrationPack {
     required this.manyMinutes,
     required this.voteCalls,
     required this.voteInstruction,
+    required this.secretVoteInstruction,
+    required this.tieFact,
+    required this.powerCurtainHint,
+    required this.dayPowersHint,
     required this.passPhone,
     required this.curtainHint,
     required this.cardCurtainHint,

@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_strings.dart';
-import '../../rules/game_setup.dart';
 import '../../rules/player.dart';
 import '../../rules/role_assignment.dart';
 import '../theme/app_theme.dart';
 import '../widgets/scene_scaffold.dart';
 import 'narrator_draw_screen.dart';
-import 'role_deal_screen.dart';
+import 'vote_mode_screen.dart';
 import '../press.dart';
 import '../widgets/noir_modal.dart';
 
@@ -19,10 +18,11 @@ class NarratorSelectionScreen extends StatelessWidget {
   /// Un narratore umano non gioca: serve un giocatore in più al tavolo.
   bool get _canSpareAPlayer => players.length - 1 >= minRolePlayers;
 
+  /// Scelto il narratore, l'ultima domanda: come vota la piazza. Le carte
+  /// si danno dopo.
   void _deal(BuildContext context, Player? narrator) {
-    final setup = GameSetup.deal(lobby: players, narrator: narrator);
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => RoleDealScreen(setup: setup)),
+      MaterialPageRoute(builder: (_) => VoteModeScreen(players: players, narrator: narrator)),
     );
   }
 

@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_strings.dart';
-import '../../rules/game_setup.dart';
 import '../../rules/player.dart';
 import '../../rules/wheel_spin.dart';
 import '../theme/app_theme.dart';
 import '../widgets/revolver_cylinder.dart';
 import '../widgets/scene_scaffold.dart';
-import 'role_deal_screen.dart';
+import 'vote_mode_screen.dart';
 import '../press.dart';
 
 /// Il narratore si sorteggia alla maniera della famiglia: un nome per camera,
@@ -28,10 +27,11 @@ class _NarratorDrawScreenState extends State<NarratorDrawScreen> {
 
   Player get _narrator => widget.players[_spin.winnerIndex];
 
+  /// Il tamburo si gira una volta sola: si va avanti alla scelta del voto
+  /// senza poter tornare a rigirarlo.
   void _continue() {
-    final setup = GameSetup.deal(lobby: widget.players, narrator: _narrator);
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => RoleDealScreen(setup: setup)),
+      MaterialPageRoute(builder: (_) => VoteModeScreen(players: widget.players, narrator: _narrator)),
     );
   }
 

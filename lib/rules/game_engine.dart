@@ -228,6 +228,22 @@ class ShotReport {
   });
 }
 
+/// I poteri di giorno, usati davanti a tutti: la tregua del Pacifista, il
+/// cannone dell'Artigliere, il colpo del Tiratore scelto, il Sindaco che si
+/// rivela. Sul telefono unico passano tutti dallo stesso bottone.
+enum DayPower { truce, cannon, marksman, mayor }
+
+extension RoleDayPower on Role {
+  /// Il potere di giorno del ruolo, se ne ha uno (che oggi si possa usare o no).
+  DayPower? get dayPower => switch (this) {
+    Role.pacifista => DayPower.truce,
+    Role.artigliere => DayPower.cannon,
+    Role.tiratoreScelto => DayPower.marksman,
+    Role.sindaco => DayPower.mayor,
+    _ => null,
+  };
+}
+
 class RoundRecord {
   final int round;
   final List<Player> nightVictims;
@@ -1309,7 +1325,46 @@ class GameEngine {
     return _lynch(leaders.length == 1 && !truceToday ? leaders.single : null);
   }
 
-  /// Applica il verdetto della piazza; `condemned` nullo significa nessuna condanna.
+  /// Il voto della piazza finisce pari: più di uno in testa (il Sindaco
+  /// rivelato oggi conta doppio). Tutti astenuti non è un pareggio.
+  bool get dayVoteTied => tallyVotes(_dayVotes, weights: {?mayor: 2}).leaders.length > 1;
+
+  /// Chi oggi può salire sul patibolo: i vivi, tranne il Presidente (non si
+  /// lincia lo Stato). Con la tregua, nessuno.
+  List<Player> get lynchable => _phase != GamePhase.day || truceToday
+      ? const []
+      : [
+          for (final player in _alive)
+            if (setup.roleOf(player) != Role.presidente) player,
+        ];
+
+  /// Il potere di giorno che [player] può usare adesso, se ne ha uno: vivo,
+  /// di giorno, con il potere non ancora speso. Il Tiratore scelto con colpi
+  /// ma senza nessuno nel mirino ce l'ha lo stesso (vede che non può sparare).
+  /// Con la tregua di oggi non si spara e il Sindaco non si rivela.
+  DayPower? dayPowerOf(Player player) {
+    if (_phase != GamePhase.day || !isAlive(player)) return null;
+    return switch (setup.roleOf(player).dayPower) {
+      DayPower.truce when !truceSpent => DayPower.truce,
+      DayPower.cannon when canFire(player) => DayPower.cannon,
+      DayPower.marksman when marksmanShotsLeft > 0 && !truceToday => DayPower.marksman,
+      DayPower.mayor when !mayorRevealed && !truceToday => DayPower.mayor,
+      _ => null,
+    };
+  }
+
+  /// Applica il verdetto della piazza; `condemned` nullo significa nessuna
+  /// condanna (un pareggio, o la piazza che non condanna nessuno).
+  ///
+  /// È anche il verdetto del voto a voce sul telefono unico: il tavolo vota
+  /// ad alta voce e il telefono registra solo chi sale sul patibolo. Non si
+  /// fingono i voti: il Sindaco che vale doppio lo conta già il tavolo (dei
+  /// voti finti lo conterebbero due volte, o costringerebbero a inventare chi
+  /// ha votato chi), un pareggio andrebbe costruito con due capolista finti,
+  /// e il resoconto di fine partita mostrerebbe voti mai dati. Il registro
+  /// tiene un [LynchCommand], che si rigioca uguale. Le regole restano quelle
+  /// del motore: niente condanne con la tregua, il Presidente non si lincia,
+  /// il Fesso linciato vince, l'innamorato muore di crepacuore.
   LynchReport lynch(Player? condemned) {
     _require(GamePhase.day);
     if (condemned != null && !isAlive(condemned)) {
