@@ -9,7 +9,6 @@ import '../../l10n/table_strings.dart';
 import '../desktop/desktop_canvas.dart';
 import '../widgets/content_width.dart';
 import '../widgets/noir_modal.dart';
-import '../widgets/spoken_lines.dart';
 import 'local/local_table.dart';
 import 'online/game/action_strip.dart';
 import 'online/game/noir_role_card.dart';
@@ -125,16 +124,14 @@ class _RoleRevealScreenState extends State<RoleRevealScreen> {
                                   ),
                                 ],
                               )
-                            : SpokenLines(
+                            // La voce tace a ogni mano: «passa il telefono»
+                            // e «guarda la tua carta» stanno sulla tenda.
+                            : LocalCurtain(
                                 key: ValueKey('handoff-$_index'),
-                                lines: curtain,
-                                reader: setup.narrator?.name,
-                                child: LocalCurtain(
-                                  player: player,
-                                  number: _index + 1,
-                                  hint: curtain.last.text,
-                                  onReady: () => setState(() => _holdingPhone = true),
-                                ),
+                                player: player,
+                                number: _index + 1,
+                                hint: curtain.last.text,
+                                onReady: () => setState(() => _holdingPhone = true),
                               ),
                       ),
                     ),

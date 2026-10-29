@@ -769,15 +769,12 @@ class _GameScreenState extends State<GameScreen> {
     return voice.isEmpty ? page : SpokenLines(lines: voice, reader: _narrator?.name, child: page);
   }
 
-  /// La tenda fra una mano e l'altra; la voce dice a chi passa il telefono.
+  /// La tenda fra una mano e l'altra. La voce tace: come si passa il
+  /// telefono lo dice una volta sola all'inizio della notte, e il nome di
+  /// chi tocca si legge sulla tenda.
   Widget _curtain(Player player, {Key? key, required VoidCallback onReady}) {
     final lines = _script.curtain(player.name);
-    return SpokenLines(
-      key: key,
-      lines: lines,
-      reader: _narrator?.name,
-      child: LocalCurtain(player: player, number: _numbers[player], hint: lines.last.text, onReady: onReady),
-    );
+    return LocalCurtain(key: key, player: player, number: _numbers[player], hint: lines.last.text, onReady: onReady);
   }
 
   Widget _stageView() => switch (_stage) {
@@ -1361,9 +1358,10 @@ class _GameScreenState extends State<GameScreen> {
       (kind: NightTaskKind.jail, target: final prisoner?) => prisoner,
       _ => null,
     };
+    // «Posa il telefono e passalo» si legge sulla striscia: detto a voce a
+    // ogni mano, notte dopo notte, è solo rumore.
     return _tablePage(
       key: const Key('local.nightDone'),
-      voice: [_script.putPhoneDown()],
       script: prisoner == null
           ? null
           : _cellField(
