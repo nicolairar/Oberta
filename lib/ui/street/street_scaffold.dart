@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../desktop/desktop_canvas.dart';
+import '../season/season.dart';
 import '../theme/app_theme.dart';
 import 'street_facade.dart';
 import 'street_neon.dart';
@@ -44,7 +45,9 @@ class StreetBackdrop extends StatelessWidget {
     // e ne prende la luce che arriva fin qui.
     final before = route is StreetRoute ? StreetStage.placeOf(route.previous) : null;
     final index = (before?.index ?? 0) + 1;
-    final own = layout.lightsOf(section);
+    // La festa del giorno, se ce n'è una accesa: le sue luci si mescolano sul muro.
+    final season = SeasonStreet.of(context, layout, section, index: index, before: before?.lights ?? const []);
+    final own = season?.lights ?? layout.lightsOf(section);
     StreetStage.place(context, StreetPlace(index, own));
     final fixed = [for (final light in before?.lights ?? const <StreetLight>[]) light.shift(-media.size.width)];
     final incoming = route?.animation ?? kAlwaysCompleteAnimation;
@@ -71,6 +74,7 @@ class StreetBackdrop extends StatelessWidget {
             // I mattoni sono immagini di un muro solo, lungo tutta la strada;
             // la porta che si apre si disegna sopra.
             StreetWallLayer(wall: layout.wall, index: index, fixed: fixed, own: own, power: arriving ? power : null),
+            ?season?.ground,
             RepaintBoundary(
               child: CustomPaint(
                 painter: StreetFacadePainter(
@@ -79,10 +83,11 @@ class StreetBackdrop extends StatelessWidget {
                   open: door,
                   part: StreetFacadePart.front,
                   glow: power,
-                  vignette: StreetStage.walking.value == 0,
+                  vignette: season == null && StreetStage.walking.value == 0,
                 ),
               ),
             ),
+            ?season?.front(door: door, vignette: StreetStage.walking.value == 0),
             Positioned.fromRect(
               rect: layout.neon,
               child: RepaintBoundary(
@@ -101,6 +106,7 @@ class StreetBackdrop extends StatelessWidget {
                 ),
               ),
             ),
+            ?season?.air,
             IgnorePointer(
               ignoring: shown < 0.6,
               child: Opacity(

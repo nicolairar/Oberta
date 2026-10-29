@@ -295,7 +295,10 @@ class HomeStreetPainter extends CustomPainter {
   final Animation<double> intro;
   final HomeNeonState neon;
 
-  HomeStreetPainter({required this.layout, required this.ambient, required this.intro, required this.neon})
+  /// Piove (falso: al suo posto nevica, la disegna chi accende la neve).
+  final bool rain;
+
+  HomeStreetPainter({required this.layout, required this.ambient, required this.intro, required this.neon, this.rain = true})
     : super(repaint: Listenable.merge([ambient, intro, neon, StreetStage.walking]));
 
   static const loop = 60.0;
@@ -338,7 +341,7 @@ class HomeStreetPainter extends CustomPainter {
     _drip(canvas, lamp);
     // Mentre cammina per strada l'uomo lo disegna la strada, non il vicolo.
     if (StreetStage.walking.value == 0) _smoker(canvas, lamp);
-    _rain(canvas, size);
+    if (rain) _rain(canvas, size);
 
     final rect = Offset.zero & size;
     // Mentre si cammina la vignettatura la mette la strada, ferma sullo schermo.
@@ -479,6 +482,7 @@ class HomeStreetPainter extends CustomPainter {
     column(layout.lampHead.dx, layout.smoker * 0.34, _warm, 0.42 * lamp, 9);
 
     // Le pozzanghere, con i cerchi delle gocce che cadono.
+    if (!rain) return;
     final rng = Random(17);
     final ring = Paint()
       ..style = PaintingStyle.stroke
@@ -895,7 +899,7 @@ class HomeStreetPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(HomeStreetPainter old) =>
-      old.layout != layout || old.ambient != ambient || old.intro != intro || old.neon != neon;
+      old.layout != layout || old.ambient != ambient || old.intro != intro || old.neon != neon || old.rain != rain;
 }
 
 /// La chiusura a iride dei vecchi film: il nero si stringe intorno a un

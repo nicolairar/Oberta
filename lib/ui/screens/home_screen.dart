@@ -26,6 +26,7 @@ import '../street/street_route.dart';
 import '../street/street_section.dart';
 import '../street/street_stage.dart';
 import '../street/street_wall.dart';
+import '../season/season.dart';
 import 'avatar/barber_mirror_screen.dart';
 import 'lobby_screen.dart';
 import 'online/online_room_screen.dart';
@@ -566,12 +567,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
         child: LayoutBuilder(
           builder: (context, constraints) {
             final layout = HomeAlleyLayout(constraints.biggest, MediaQuery.paddingOf(context));
-            // La strada dei menu parte da qui: l'uomo sotto il lampione.
-            StreetStage.report(context, StreetSpot(layout.smokerFeet, layout.smoker));
-            StreetStage.place(context, StreetPlace(0, layout.lights));
             // Su desktop non c'è «Un telefono per tutti»: restano gli amici
             // e la classificata, alti quanto tutta la zona dei manifesti.
             final desktop = DesktopPlatform.isDesktop;
+            // La festa del giorno, se ce n'è una accesa: la neve, le zucche...
+            final season = SeasonAlley.of(context, layout, desktop: desktop, canvas: canvas, signedIn: signedIn);
+            final lights = season?.lights ?? layout.lights;
+            // La strada dei menu parte da qui: l'uomo sotto il lampione.
+            StreetStage.report(context, StreetSpot(layout.smokerFeet, layout.smoker));
+            StreetStage.place(context, StreetPlace(0, lights));
             final friendsPoster = desktop
                 ? Rect.fromLTRB(
                     layout.leftPoster.left,
@@ -603,7 +607,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                   // si avvia scorre via con gli stessi mattoni e la stessa luce
                   // della facciata che arriva. Si dipinge una volta, poi è
                   // un'immagine.
-                  StreetWallLayer(wall: layout.wall, index: 0, fixed: layout.lights),
+                  StreetWallLayer(wall: layout.wall, index: 0, fixed: lights),
                   Baked(
                     child: CustomPaint(
                       painter: HomeWallPainter(
@@ -613,6 +617,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                       ),
                     ),
                   ),
+                  ?season?.wall,
                   // L'insegna, appesa più avanti del muro, se ne va un po' più
                   // in fretta di lui (senza sfumare: è grande quanto lo schermo).
                   // Cambia solo quando una lettera sfarfalla: in mezzo è
@@ -626,6 +631,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                       ),
                     ),
                   ),
+                  ?season?.letters,
                   // Il titolo vero: i tubi li disegna il pittore, ma chi usa
                   // VoiceOver deve poterlo leggere. E chi tocca l'insegna la
                   // manda in corto.
@@ -773,10 +779,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                       ),
                     ),
                   ),
+                  ?season?.posters,
+                  ?season?.front,
                   IgnorePointer(
                     child: RepaintBoundary(
                       child: CustomPaint(
-                        painter: HomeStreetPainter(layout: layout, ambient: _ambient, intro: _intro, neon: _neon),
+                        painter: HomeStreetPainter(layout: layout, ambient: _ambient, intro: _intro, neon: _neon, rain: season?.rain ?? true),
                       ),
                     ),
                   ),
@@ -809,6 +817,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                         onTap: _openRules,
                       ),
                     ),
+                  ?season?.top(_intro),
                   Positioned.fromRect(
                     rect: layout.caption,
                     child: IgnorePointer(

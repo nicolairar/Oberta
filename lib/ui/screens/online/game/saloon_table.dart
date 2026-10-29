@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../../season/season.dart';
 import '../../../widgets/baked.dart';
 import 'noir_ui.dart';
 import 'table_gestures.dart';
@@ -22,6 +23,7 @@ class SaloonBackdrop extends StatelessWidget {
         children: [
           // La sala non si muove: si dipinge una volta, poi è un'immagine.
           Positioned.fill(child: Baked(child: CustomPaint(painter: _RoomPainter(night: night)))),
+          ?SeasonTable.room(context, night: night),
           child,
         ],
       );
@@ -349,6 +351,7 @@ class SaloonTable extends StatelessWidget {
           Positioned.fill(
             child: Baked(overflow: const EdgeInsets.all(64), child: CustomPaint(painter: _TablePainter(felt))),
           ),
+          ?SeasonTable.felt(context, felt: felt, centers: centers, card: width, area: area),
           if (center != null)
             Positioned.fromRect(
               rect: area,
@@ -362,6 +365,7 @@ class SaloonTable extends StatelessWidget {
               height: height,
               child: RepaintBoundary(child: seatBuilder(context, i, width)),
             ),
+          ?SeasonTable.seats(context, centers: centers, card: width),
           // Le mani e i gesti in volo si muovono da soli: ognuno sul suo
           // strato, così a ogni fotogramma non si ridisegnano i posti.
           Positioned.fill(
