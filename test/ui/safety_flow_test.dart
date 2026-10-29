@@ -129,9 +129,9 @@ void main() {
     await tester.tap(find.byKey(const Key('settings.rules')));
     await tester.pumpAndSettle();
     expect(find.text('Community rules'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('niko.tana@outlook.com'), 150,
+    await tester.scrollUntilVisible(find.text('oberta@charliemobile.dev'), 150,
         scrollable: find.byType(Scrollable).last);
-    expect(find.text('niko.tana@outlook.com'), findsOneWidget);
+    expect(find.text('oberta@charliemobile.dev'), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
 

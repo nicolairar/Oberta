@@ -6,7 +6,7 @@ Obertà is a party game. This policy explains what data we process, why, for how
 
 ## Data controller
 
-Nicolai Tana — privacy contact: niko.tana@outlook.com — certified email (PEC): nicolairar@pec.it
+Nicolai Tana — privacy contact: oberta@charliemobile.dev — certified email (PEC): nicolairar@pec.it
 
 ## Playing without an account
 
@@ -22,7 +22,7 @@ If you leave your email in the form on charliemobile.dev/oberta:
 - **Double opt-in**: after signing up you get a single email with a "Confirm your email" button. Until you confirm we send nothing else, and launch emails go only to confirmed addresses. If the address was already on the list we send nothing.
 - **Age**: you must be at least 14 (art. 2-quinquies of the Italian Privacy Code).
 - **How long**: until you unsubscribe, and in any case no longer than 12 months after the game comes out; then we delete the whole list.
-- **Unsubscribing**: every email has a one-click unsubscribe link that deletes your address immediately. For access, rectification, erasure or withdrawal of consent you can also write to niko.tana@outlook.com.
+- **Unsubscribing**: every email has a one-click unsubscribe link that deletes your address immediately. For access, rectification, erasure or withdrawal of consent you can also write to oberta@charliemobile.dev.
 - **Who processes it for us**: Supabase (database, European Union, Ireland) and Brevo by Sendinblue SAS (sending the emails, France, servers in the European Union).
 
 ### Website cookies
@@ -89,9 +89,9 @@ Online play includes text and voice chat with other players: you must be at leas
 
 - Access and portability: download all your data as JSON from Settings → Privacy & data → "Download my data".
 - Rectification: change your name, look and profile picture in the app. Your Steam name and picture update from Steam.
-- Erasure: on your phone, delete your account from Settings → Account → "Delete account"; from PC (Steam), write to niko.tana@outlook.com and we delete it within 30 days.
-- Withdrawing consent to the website list: the "Remove me from the list" link in every email, or write to niko.tana@outlook.com.
-- Objection and restriction: write to niko.tana@outlook.com.
+- Erasure: on your phone, delete your account from Settings → Account → "Delete account"; from PC (Steam), write to oberta@charliemobile.dev and we delete it within 30 days.
+- Withdrawing consent to the website list: the "Remove me from the list" link in every email, or write to oberta@charliemobile.dev.
+- Objection and restriction: write to oberta@charliemobile.dev.
 - Complaint to the supervisory authority: Garante per la protezione dei dati personali (www.garanteprivacy.it), or the authority of your EU country.
 
 We answer requests within 30 days.

@@ -2,7 +2,7 @@
 
 Ultimo aggiornamento: 18 ottobre 2026
 
-Usando Obertà accetti questi termini. Il gioco è offerto da Nicolai Tana (contatto: niko.tana@outlook.com; PEC: nicolairar@pec.it).
+Usando Obertà accetti questi termini. Il gioco è offerto da Nicolai Tana (contatto: oberta@charliemobile.dev; PEC: nicolairar@pec.it).
 
 ## Account
 

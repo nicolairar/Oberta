@@ -6,7 +6,7 @@ Obertà è un gioco di società. Questa informativa spiega quali dati trattiamo,
 
 ## Titolare del trattamento
 
-Nicolai Tana — contatto per la privacy: niko.tana@outlook.com — PEC: nicolairar@pec.it
+Nicolai Tana — contatto per la privacy: oberta@charliemobile.dev — PEC: nicolairar@pec.it
 
 ## Il gioco senza account
 
@@ -22,7 +22,7 @@ Se lasci la tua email nel modulo di charliemobile.dev/oberta:
 - **Doppia conferma**: dopo l'iscrizione ricevi una sola mail con il pulsante «Conferma la tua email». Finché non confermi non ti mandiamo nient'altro, e le mail di lancio vanno solo agli indirizzi confermati. Se l'indirizzo era già in lista non ti mandiamo niente.
 - **Età**: devi avere almeno 14 anni (art. 2-quinquies del Codice privacy italiano).
 - **Per quanto tempo**: finché non ti cancelli, e comunque non oltre 12 mesi dall'uscita del gioco; poi cancelliamo tutta la lista.
-- **Cancellarti**: ogni mail ha il link per cancellarti in un clic, che elimina subito il tuo indirizzo. Per accesso, rettifica, cancellazione o ritiro del consenso puoi anche scrivere a niko.tana@outlook.com.
+- **Cancellarti**: ogni mail ha il link per cancellarti in un clic, che elimina subito il tuo indirizzo. Per accesso, rettifica, cancellazione o ritiro del consenso puoi anche scrivere a oberta@charliemobile.dev.
 - **Chi lo tratta per noi**: Supabase (database, Unione Europea, Irlanda) e Brevo di Sendinblue SAS (invio delle mail, Francia, server nell'Unione Europea).
 
 ### Cookie del sito
@@ -89,9 +89,9 @@ L'online include una chat, scritta e a voce, con altri giocatori: per usarlo dev
 
 - Accesso e portabilità: scarica tutti i tuoi dati in formato JSON da Impostazioni → Privacy e dati → «Scarica i miei dati».
 - Rettifica: cambia nome, aspetto e immagine del profilo dall'app. Il nome e l'immagine di Steam si aggiornano da Steam.
-- Cancellazione: sul telefono elimina l'account da Impostazioni → Account → «Elimina account»; dal PC (Steam) scrivi a niko.tana@outlook.com e lo eliminiamo entro 30 giorni.
-- Ritiro del consenso alla lista del sito: il link «Cancellami dalla lista» in ogni mail, oppure scrivi a niko.tana@outlook.com.
-- Opposizione e limitazione: scrivi a niko.tana@outlook.com.
+- Cancellazione: sul telefono elimina l'account da Impostazioni → Account → «Elimina account»; dal PC (Steam) scrivi a oberta@charliemobile.dev e lo eliminiamo entro 30 giorni.
+- Ritiro del consenso alla lista del sito: il link «Cancellami dalla lista» in ogni mail, oppure scrivi a oberta@charliemobile.dev.
+- Opposizione e limitazione: scrivi a oberta@charliemobile.dev.
 - Reclamo all'autorità di controllo: Garante per la protezione dei dati personali (www.garanteprivacy.it).
 
 Rispondiamo alle richieste entro 30 giorni.

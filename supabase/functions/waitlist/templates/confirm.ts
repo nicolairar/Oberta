@@ -213,7 +213,7 @@ export function confirmEmail(lang: Lang, links: Links): Email {
           <td class="pad" align="center" style="padding:20px 40px 0;font-family:${sans};font-size:12px;line-height:1.7;color:#a89a84;">
             ${esc(t.why)}<br>
             <a href="${unsubscribe}" style="color:#e6c77a;">${esc(t.unsubscribe)}</a> &nbsp;·&nbsp; <a href="${privacy}" style="color:#e6c77a;">${esc(t.privacy)}</a><br>
-            Obertà · Charlie Mobile · Nicolai Tana · <a href="mailto:niko.tana@outlook.com" style="color:#a89a84;">niko.tana@outlook.com</a>
+            Obertà · Charlie Mobile · Nicolai Tana · <a href="mailto:oberta@charliemobile.dev" style="color:#a89a84;">oberta@charliemobile.dev</a>
           </td>
         </tr>
       </table>
@@ -248,7 +248,7 @@ export function confirmEmail(lang: Lang, links: Links): Email {
     t.why,
     `${t.unsubscribe}: ${links.unsubscribeUrl}`,
     `${t.privacy}: ${links.privacyUrl}`,
-    'Obertà · Charlie Mobile · Nicolai Tana · niko.tana@outlook.com',
+    'Obertà · Charlie Mobile · Nicolai Tana · oberta@charliemobile.dev',
     '',
   ].join('\n');
 

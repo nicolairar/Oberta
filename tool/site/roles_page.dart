@@ -153,7 +153,7 @@ $sections    </main>
       <p>Chi sa, tace. Chi parla non vede l’alba.</p>
       <a class="footer-top" href="#contenuto">Torna su <span aria-hidden="true">↑</span></a>
       <nav class="footer-links" aria-label="Informazioni">
-        <a href="mailto:niko.tana@outlook.com">Contatti</a>
+        <a href="mailto:oberta@charliemobile.dev">Contatti</a>
         <a href="privacy.html">Privacy</a>
         <a href="termini.html">Termini</a>
       </nav>

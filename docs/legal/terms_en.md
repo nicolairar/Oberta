@@ -2,7 +2,7 @@
 
 Last updated: 18 October 2026
 
-By using Obertà you accept these terms. The game is offered by Nicolai Tana (contact: niko.tana@outlook.com; certified email: nicolairar@pec.it).
+By using Obertà you accept these terms. The game is offered by Nicolai Tana (contact: oberta@charliemobile.dev; certified email: nicolairar@pec.it).
 
 ## Account
 

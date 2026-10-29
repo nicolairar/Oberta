@@ -117,7 +117,7 @@ void main() {
   test('i testi legali esistono nelle due lingue e si leggono', () {
     for (final name in ['privacy_it', 'privacy_en', 'terms_it', 'terms_en']) {
       final text = File('docs/legal/$name.md').readAsStringSync();
-      expect(text, contains('niko.tana@outlook.com'));
+      expect(text, contains('oberta@charliemobile.dev'));
       final widgets = LegalScreen.render(text);
       expect(widgets.length, greaterThan(20));
     }

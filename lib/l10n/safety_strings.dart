@@ -5,7 +5,7 @@ import 'app_language.dart';
 import 'app_strings.dart';
 
 /// Dove scrivere per le segnalazioni urgenti.
-const safetyContactEmail = 'niko.tana@outlook.com';
+const safetyContactEmail = 'oberta@charliemobile.dev';
 
 /// I testi di segnalazioni, blocchi e regole della community.
 class SafetyStrings {
