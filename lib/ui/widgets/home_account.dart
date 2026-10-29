@@ -748,11 +748,18 @@ class _HomeShopSignState extends State<HomeShopSign> with SingleTickerProviderSt
       onTapUp: (_) => _press(false),
       onTapCancel: () => _press(false),
       onTap: pressed(widget.onTap, Press.toggle),
-      child: AnimatedBuilder(
-        animation: _swing,
-        builder: (context, child) =>
-            Transform.rotate(angle: 0.035 * sin(_swing.value * 2 * pi), alignment: Alignment.topCenter, child: child),
-        child: LayoutBuilder(
+      // Dondola a ogni fotogramma, ma senza ricostruire niente: la tavola
+      // dipinta una volta sola nel suo strato, e girata al momento di
+      // disegnare. Ricostruita, farebbe rifare l'impaginazione di tutto il
+      // vicolo (è dentro il suo LayoutBuilder) a ogni fotogramma.
+      child: RepaintBoundary(
+        child: Flow(
+          delegate: _SwingDelegate(_swing),
+          // La luce della lampada esce dalla tavola: niente taglio.
+          clipBehavior: Clip.none,
+          children: [
+            RepaintBoundary(
+            child: LayoutBuilder(
           builder: (context, box) {
             final compact = box.maxWidth < 76;
             return Stack(
@@ -846,10 +853,35 @@ class _HomeShopSignState extends State<HomeShopSign> with SingleTickerProviderSt
               ],
             );
           },
+            ),
+            ),
+          ],
         ),
       ),
     ),
   );
+}
+
+/// Il dondolio dell'insegna: gira la tavola intorno alla staffa, in alto al
+/// centro, come faceva `Transform.rotate`.
+class _SwingDelegate extends FlowDelegate {
+  final Animation<double> swing;
+
+  _SwingDelegate(this.swing) : super(repaint: swing);
+
+  @override
+  void paintChildren(FlowPaintingContext context) {
+    final half = context.size.width / 2;
+    context.paintChild(
+      0,
+      transform: Matrix4.translationValues(half, 0, 0)
+        ..rotateZ(0.035 * sin(swing.value * 2 * pi))
+        ..translateByDouble(-half, 0, 0, 1),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_SwingDelegate old) => old.swing != swing;
 }
 
 class _ShopSignPainter extends CustomPainter {

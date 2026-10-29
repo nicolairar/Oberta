@@ -296,20 +296,23 @@ class _PrintedButton extends StatelessWidget {
               border: Border.all(color: _ink, width: 2),
             ),
             // Il riflesso si ridisegna spesso: resta nel suo strato, così il
-            // resto del manifesto non se ne accorge.
+            // resto del manifesto non se ne accorge; la scritta sotto, nel suo,
+            // non si registra di nuovo.
             child: RepaintBoundary(
               child: CustomPaint(
                 foregroundPainter: _GlintPainter(ambient),
-                child: Center(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(label, style: _print(17, color: const Color(0xFFFFF6E2), spacing: 2.6)),
-                        const SizedBox(width: 9),
-                        const CustomPaint(size: Size(9, 12), painter: _ArrowPainter()),
-                      ],
+                child: RepaintBoundary(
+                  child: Center(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(label, style: _print(17, color: const Color(0xFFFFF6E2), spacing: 2.6)),
+                          const SizedBox(width: 9),
+                          const CustomPaint(size: Size(9, 12), painter: _ArrowPainter()),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -327,11 +330,19 @@ class _PrintedButton extends StatelessWidget {
 class _GlintPainter extends CustomPainter {
   final Animation<double> ambient;
 
-  _GlintPainter(this.ambient) : super(repaint: ambient);
+  _GlintPainter(this.ambient) : super(repaint: _GlintTicks(ambient));
+
+  /// Dove è la lama, da 0 a 1 mentre passa (fuori, il pulsante è spento).
+  static double passOf(double ambient) => ((ambient * 10) % 1 - 0.5) / 0.11;
+
+  static bool lit(double ambient) {
+    final pass = passOf(ambient);
+    return pass > 0 && pass < 1;
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
-    final pass = ((ambient.value * 10) % 1 - 0.5) / 0.11;
+    final pass = passOf(ambient.value);
     if (pass <= 0 || pass >= 1) return;
     final lean = size.height * 0.7;
     final wide = size.width * 0.13;
@@ -352,6 +363,34 @@ class _GlintPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_GlintPainter old) => old.ambient != ambient;
+}
+
+/// I fotogrammi del giro d'ambiente in cui il riflesso c'è, più quello che
+/// lo spegne: negli altri (quasi nove su dieci) non c'è niente da ridisegnare.
+class _GlintTicks extends Listenable {
+  final Animation<double> ambient;
+  final Map<VoidCallback, VoidCallback> _gated = {};
+
+  _GlintTicks(this.ambient);
+
+  @override
+  void addListener(VoidCallback listener) {
+    var was = true;
+    void gated() {
+      final on = _GlintPainter.lit(ambient.value);
+      if (on || was) listener();
+      was = on;
+    }
+
+    _gated[listener] = gated;
+    ambient.addListener(gated);
+  }
+
+  @override
+  void removeListener(VoidCallback listener) {
+    final gated = _gated.remove(listener);
+    if (gated != null) ambient.removeListener(gated);
+  }
 }
 
 /// La fila dei sospetti davanti alle righe dell'altezza.

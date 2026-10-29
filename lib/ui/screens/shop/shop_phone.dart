@@ -394,7 +394,9 @@ class _Medal extends StatelessWidget {
     final face = item != null && !item.around
         ? DecoratedBox(
             decoration: _thumbGround(item.rarity),
-            child: CustomPaint(painter: _ZoomBustPainter(look, focus: _focusOf(_Entry.item(item))), child: const SizedBox.expand()),
+            child: Baked(
+              child: CustomPaint(painter: _ZoomBustPainter(look, focus: _focusOf(_Entry.item(item))), child: const SizedBox.expand()),
+            ),
           )
         : DecoratedBox(
             decoration: BoxDecoration(

@@ -319,3 +319,95 @@ flutter run               # lancia sul device selezionato (o te lo chiede)
 ```bash
 flutter test
 ```
+
+## Prestazioni
+
+Obiettivo: 120 Hz su ProMotion, cioè 8,3 ms per fotogramma sia per il
+lavoro del framework (build, layout, paint) sia per il raster.
+
+### Come si misura
+
+- `flutter test tool/perf/frame_cost_test.dart` — nel motore dei test,
+  senza finestre: telefono 393×852 a 3x e desktop 1920×1080, gli stessi
+  scenari di `tool/perf/scenarios.dart`. Per ogni scenario: ms del framework
+  (JIT di debug, quindi più lento del vero, ma i rapporti tengono), raster
+  sulla CPU, widget ricostruiti, oggetti ridipinti, immagini registrate di
+  nuovo, `Baked` rifatti, strati e filtri. `DIG=1` dice chi ridipinge, chi
+  chiede il paint e quali immagini costano; `PERF_SHOTS=dir PERF_STILL=1`
+  salva i fotogrammi fermi per il confronto pixel per pixel.
+- `flutter drive --profile -d macos --driver=test_driver/perf_driver.dart
+  --target=integration_test/perf_test.dart` — l'app vera in profile
+  (Impeller/Metal), con le tracce di `traceAction`: build e raster medi e al
+  90°. Finestra 393×852 punti (Retina 2x) e 960×540 punti (1920×1080 px).
+  `--dart-define=PERF_ONLY=phone: partita` per pochi scenari,
+  `--dart-define=PERF_DIG=true` con `PERF_RAW=1` per la traccia completa di
+  ogni widget. Una sola app per volta sul Mac (`/tmp/oberta_app.lock`).
+
+### Cosa costava, e cosa si è fatto
+
+- **Tavolo di giorno (e di notte, voto, verdetto, fine)**: il timer da 250 ms
+  del cronometro ricostruiva tutta `OnlineGameScreen` quattro volte al
+  secondo; col tavolo a dodici e la chat costava 6–13 ms di build, e l'app
+  in profile riusciva a dare 20–30 fotogrammi su 96. Adesso si ricostruisce
+  solo quando cambia qualcosa che dipende dall'ora (fase aperta, inizio
+  comune, scena del film, server muto); l'orologio in testa si aggiorna da
+  solo (`ValueListenableBuilder`).
+- **Vicolo**: le due insegne che dondolano erano `AnimatedBuilder` dentro il
+  `LayoutBuilder` della pagina: ogni fotogramma rifaceva layout e paint di
+  tutto il vicolo (144 oggetti). Ora girano in un `Flow` che ruota lo strato
+  al paint, senza ricostruire; la pagina ha il suo `RepaintBoundary` (la
+  didascalia che si scrive non la ridipinge), e il riflesso sul pulsante del
+  manifesto si ridisegna solo quando passa.
+- **Camminata per strada**: `StreetDrift` ricostruiva a ogni passo dentro lo
+  stesso `LayoutBuilder`; ora è un oggetto di render che sposta e sfuma lo
+  strato già disegnato (stessi strati di `Opacity` + `Transform.translate`).
+- **Bottega**: il ritratto grande, i pezzi sulla ruota e i medaglioni si
+  dipingevano dal vivo a ogni fotogramma (un ritratto con scena ed effetti
+  costava da solo 1 s di raster CPU). Ora sono `Baked` (la ruota con
+  `tilted`).
+- **Riscaldamento**: `WarmUp` disegna anche un ritratto per ogni scena della
+  bottega, con spalle, effetti in testa e davanti, mani e occhi.
+
+Pixel: vicolo, regole e fine partita identici prima/dopo (a parte la battuta
+della didascalia, che è a caso). Nella bottega cambiano solo i bordi
+antialiasati del ritratto (l'immagine si posa sul pixel intero) e dei pezzi
+girati sulla ruota: 0,9% dei pixel oltre 8 livelli sul telefono.
+
+### Numeri (app in profile sul Mac, ms per fotogramma, media → media)
+
+| scenario | build | raster | fotogrammi dati / 96 |
+|---|---|---|---|
+| telefono, vicolo fermo | 0,57 → 0,42 | 3,0 → 3,6 | 96 → 96 |
+| telefono, camminata | 1,03 → 1,06 | 2,8 → 2,7 | |
+| telefono, bottega, ruota che gira | 2,31 → 2,45 | 4,8 → 4,3 | |
+| telefono, giorno, chat che arriva | 3,33 → 0,39 | 7,5 → 8,3 | 52 → 104 |
+| telefono, giorno, anelli della voce | 6,18 → 0,56 | 9,7 → 11,6 | 22 → 96 |
+| telefono, voto fermo | 9,06 → 0,40 | 13,7 → 10,1 | 23 → 96 |
+| telefono, voti che cambiano | 9,49 → 1,96 | 13,8 → 12,1 | 21 → 95 |
+| telefono, verdetto | 8,93 → 0,46 | 13,8 → 11,2 | 24 → 144 |
+| telefono, fine partita | 6,02 → 0,36 | 9,5 → 8,3 | 33 → 144 |
+| desktop, vicolo fermo | 1,59 → 0,83 | 6,5 → 3,9 | |
+| desktop, camminata | 0,87 → 0,53 | 36,0 → 7,4 | |
+| desktop, bottega | 0,34 → 0,22 | 38,3 → 8,1 | |
+| desktop, notte | 9,34 → 0,53 | 10,6 → 9,6 | 25 → 96 |
+| desktop, giorno, chat che scorre | 11,52 → 1,05 | 11,9 → 7,2 | 20 → 93 |
+| desktop, voto fermo | 12,52 → 0,56 | 13,6 → 11,0 | 22 → 96 |
+| desktop, verdetto | 11,62 → 0,54 | 14,1 → 10,9 | 22 → 144 |
+
+Nel motore dei test (per fotogramma): vicolo fermo 144 → 3 oggetti
+ridipinti e 6 → 1 immagini registrate; camminata 170 → 31; giorno fermo
+17 → 0,3 widget ricostruiti; bottega ferma 887 → 49 ms di raster CPU.
+
+### Cosa resta
+
+- **Il raster del tavolo a dodici**: 9–12 ms per fotogramma sul Mac, appena
+  sopra gli 8,3 ms, a ogni fotogramma in cui qualcosa si muove (chat, voce,
+  voti). Sono soprattutto le ombre sfocate dei posti (bagliore, targhetta,
+  numero) e gli strati di trasparenza: dodici volte. Il prossimo passo è
+  tenere da parte la parte ferma di ogni posto, senza fermare le cornici e i
+  nomi animati.
+- I voti che cambiano ricostruiscono tutto il tavolo (giusto, ma 2–3 ms).
+- La ruota della bottega ricostruisce la pagina intera a ogni trascinamento
+  (2,5 ms di build): da isolare in un widget suo.
+- `VerdictScene` (il film del verdetto) non si vede più nell'app: il
+  verdetto è sul tavolo. Misurato solo nel motore dei test.

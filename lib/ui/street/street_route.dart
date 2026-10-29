@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 
 import '../desktop/desktop_canvas.dart';
@@ -170,19 +171,125 @@ class StreetDrift extends StatelessWidget {
     final leaving = ModalRoute.of(context)?.secondaryAnimation;
     if (leaving == null) return child;
     final width = MediaQuery.sizeOf(context).width;
-    return AnimatedBuilder(
-      animation: Listenable.merge([leaving, StreetStage.walking]),
-      child: RepaintBoundary(child: child),
-      builder: (context, child) {
-        // Solo per la strada: le altre pagine coprono il vicolo a modo loro.
-        final d = StreetStage.walking.value > 0 ? StreetTiming.drift(leaving.value) : 0.0;
-        return Opacity(
-          opacity: 1 - fade * d,
-          child: Transform.translate(offset: Offset(-width * depth * d, 0), child: child),
-        );
-      },
-    );
+    // Si sposta e sfuma al momento di disegnare, senza ricostruire: dentro il
+    // LayoutBuilder di una pagina, una ricostruzione a ogni fotogramma ne
+    // rifarebbe l'impaginazione e il disegno interi.
+    return _Drift(leaving: leaving, shift: width * depth, fade: fade, child: RepaintBoundary(child: child));
   }
+}
+
+/// Quanto si è spostato, da 0 a 1: solo per la strada (le altre pagine
+/// coprono il vicolo a modo loro).
+double _driftOf(Animation<double> leaving) => StreetStage.walking.value > 0 ? StreetTiming.drift(leaving.value) : 0.0;
+
+class _Drift extends SingleChildRenderObjectWidget {
+  final Animation<double> leaving;
+  final double shift;
+  final double fade;
+
+  const _Drift({required this.leaving, required this.shift, required this.fade, required Widget super.child});
+
+  @override
+  _RenderDrift createRenderObject(BuildContext context) => _RenderDrift(leaving, shift, fade);
+
+  @override
+  void updateRenderObject(BuildContext context, _RenderDrift renderObject) => renderObject
+    ..leaving = leaving
+    ..shift = shift
+    ..fade = fade;
+}
+
+/// Come `Opacity` sopra `Transform.translate`, con gli stessi strati (anche
+/// lui uno strato a sé, come `Opacity`), ma seguendo la camminata da solo:
+/// a ogni passo cambia solo dove si posa lo strato di [child].
+class _RenderDrift extends RenderProxyBox {
+  _RenderDrift(this._leaving, this._shift, this._fade);
+
+  Animation<double> _leaving;
+  set leaving(Animation<double> value) {
+    if (value == _leaving) return;
+    if (attached) _leaving.removeListener(_moved);
+    _leaving = value;
+    if (attached) _leaving.addListener(_moved);
+    _moved();
+  }
+
+  double _shift;
+  set shift(double value) {
+    if (value == _shift) return;
+    _shift = value;
+    _moved();
+  }
+
+  double _fade;
+  set fade(double value) {
+    if (value == _fade) return;
+    _fade = value;
+    _moved();
+  }
+
+  double get _d => _driftOf(_leaving);
+  Offset get _offset => Offset(-_shift * _d, 0);
+  int get _alpha => Color.getAlphaFromOpacity(1 - _fade * _d);
+
+  Offset _painted = Offset.zero;
+  int _shown = 255;
+
+  void _moved() {
+    final alpha = _alpha;
+    if (alpha != _shown) markNeedsCompositedLayerUpdate();
+    // Trasparente del tutto [child] non si disegna: riapparendo, sì.
+    if (_offset != _painted || (alpha == 0) != (_shown == 0)) markNeedsPaint();
+  }
+
+  @override
+  void attach(PipelineOwner owner) {
+    super.attach(owner);
+    _leaving.addListener(_moved);
+    StreetStage.walking.addListener(_moved);
+  }
+
+  @override
+  void detach() {
+    _leaving.removeListener(_moved);
+    StreetStage.walking.removeListener(_moved);
+    super.detach();
+  }
+
+  @override
+  bool get isRepaintBoundary => true;
+
+  @override
+  OffsetLayer updateCompositedLayer({required covariant OpacityLayer? oldLayer}) {
+    final layer = oldLayer ?? OpacityLayer();
+    _shown = _alpha;
+    layer.alpha = _shown;
+    return layer;
+  }
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    final child = this.child;
+    _painted = _offset;
+    if (child == null || _alpha == 0) return;
+    context.paintChild(child, offset + _painted);
+  }
+
+  @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {
+    final child = this.child;
+    if (child == null) return false;
+    return result.addWithPaintOffset(offset: _offset, position: position, hitTest: (result, position) => child.hitTest(result, position: position));
+  }
+
+  @override
+  void applyPaintTransform(RenderBox child, Matrix4 transform) {
+    final shift = _offset;
+    transform.translateByDouble(shift.dx, shift.dy, 0, 1);
+  }
+
+  @override
+  bool paintsChild(RenderBox child) => _alpha != 0;
 }
 
 /// Una pagina dei menu lungo la strada. All'andata l'uomo del vicolo (o

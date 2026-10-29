@@ -345,15 +345,64 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     _voice?.phase(_voiceKey);
     _watchGestures();
     MemeDirector.attach(_client, alive: () => mounted);
-    // Il cronometro, l'inizio dei film e la fine delle fasi.
+    // Il cronometro, l'inizio dei film e la fine delle fasi. Si ridisegna
+    // solo quando una di queste cose cambia davvero: col tavolo pieno di
+    // giorno una ricostruzione intera costa quasi un fotogramma, e quattro
+    // al secondo per nulla fanno perdere i 120 Hz.
     _ticker = Timer.periodic(const Duration(milliseconds: 250), (_) {
-      if (mounted) setState(() {});
+      if (!mounted) return;
+      if (_timeShown != _time) {
+        setState(() {});
+      } else {
+        _countdown.value = _countdownNow;
+      }
     });
   }
+
+  /// L'orologio in testa: lui sì cambia ogni secondo, e si ridisegna da
+  /// solo (vedi [_header]).
+  final _countdown = ValueNotifier<({String? text, bool urgent})>((text: null, urgent: false));
+
+  ({String? text, bool urgent}) get _countdownNow {
+    final ready = _client.ready;
+    final showClock = widget.showClock && ready && _stage != Stage.ended && !_board.abandoned;
+    if (!showClock) return (text: null, urgent: false);
+    final left = _client.timeLeft;
+    return (
+      text: _beforeStart ? '…' : _clock(left),
+      urgent: !_beforeStart && left < const Duration(seconds: 10) && _stage.acceptsActions,
+    );
+  }
+
+  /// La testa dello schermo con l'orologio che va da solo.
+  Widget _header(Widget Function(String? countdown, bool urgent) build) {
+    _countdown.value = _countdownNow;
+    return ValueListenableBuilder(valueListenable: _countdown, builder: (context, c, _) => build(c.text, c.urgent));
+  }
+
+  /// Quello che dello schermo dipende dall'ora (oltre all'orologio): la fase
+  /// aperta o no, l'inizio comune, la scena del film dell'alba, il
+  /// server che tace. Le altre novità arrivano dal tavolo ([_changed]).
+  Object? get _time {
+    if (!_client.ready) return null;
+    final elapsed = _client.elapsed;
+    return (
+      _window?.key,
+      _open,
+      elapsed.isNegative,
+      elapsed > const Duration(seconds: 3),
+      elapsed.inMilliseconds ~/ DeathScene.length.inMilliseconds,
+      _serverSilent,
+    );
+  }
+
+  /// [_time] all'ultima ricostruzione.
+  Object? _timeShown;
 
   @override
   void dispose() {
     _ticker?.cancel();
+    _countdown.dispose();
     _gestureFeed?.cancel();
     _chatFocus.dispose();
     WidgetsBinding.instance.removeObserver(this);
@@ -679,6 +728,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
 
   @override
   Widget build(BuildContext context) {
+    _timeShown = _time;
     _deskMode = DesktopCanvas.of(context);
     if (_deskMode) {
       _scaled = null;
@@ -732,8 +782,6 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         _stage == Stage.reveal ||
         _stage == Stage.night ||
         (_stage == Stage.ended && _public.winner == Team.mafia);
-    final left = _client.timeLeft;
-    final showClock = widget.showClock && ready && _stage != Stage.ended && !_board.abandoned;
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
@@ -749,11 +797,11 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
               children: [
                 Column(
                   children: [
-                    StageHeader(
+                    _header((countdown, urgent) => StageHeader(
                       title: ready ? _title() : widget.room.code,
                       ribbon: ready && !_board.abandoned ? _ribbon() : null,
-                      countdown: showClock ? (_beforeStart ? '…' : _clock(left)) : null,
-                      urgent: showClock && !_beforeStart && left < const Duration(seconds: 10) && _stage.acceptsActions,
+                      countdown: countdown,
+                      urgent: urgent,
                       leading: HeaderIconButton(
                         icon: Icons.close,
                         tooltip: _t.leaveTooltip,
@@ -771,7 +819,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
                             )
                           : null,
                       corner: widget.corner,
-                    ),
+                    )),
                     Expanded(
                       child: _inlineChat
                           ? _gamePage()
@@ -861,8 +909,6 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
           _stage == Stage.reveal ||
           _stage == Stage.night ||
           (_stage == Stage.ended && _public.winner == Team.mafia);
-      final left = _client.timeLeft;
-      final showClock = widget.showClock && ready && _stage != Stage.ended && !_board.abandoned;
       final side = ready && !_board.abandoned;
       page = Scaffold(
         backgroundColor: Saloon.ink,
@@ -872,15 +918,15 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
             children: [
               Column(
             children: [
-              DeskGameHud(
+              _header((countdown, urgent) => DeskGameHud(
                 title: ready ? _title() : widget.room.code,
                 ribbon: ready && !_board.abandoned ? _ribbon() : null,
-                countdown: showClock ? (_beforeStart ? '…' : _clock(left)) : null,
-                urgent: showClock && !_beforeStart && left < const Duration(seconds: 10) && _stage.acceptsActions,
+                countdown: countdown,
+                urgent: urgent,
                 onMenu: _openPause,
                 strings: _dt,
                 corner: widget.corner,
-              ),
+              )),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(DeskSize.gutter, 4, DeskSize.gutter, 36),

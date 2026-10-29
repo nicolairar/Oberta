@@ -113,7 +113,10 @@ class HomeCaptionState extends State<HomeCaption> with SingleTickerProviderState
       ],
     );
     final line = _line;
-    return Align(
+    // Una lettera alla volta, trenta al secondo: nel suo strato, così il
+    // vicolo sotto non si ridisegna a ogni lettera.
+    return RepaintBoundary(
+      child: Align(
       alignment: Alignment.center,
       child: ValueListenableBuilder<int>(
         valueListenable: _typed,
@@ -136,6 +139,7 @@ class HomeCaptionState extends State<HomeCaption> with SingleTickerProviderState
             style: style,
           );
         },
+      ),
       ),
     );
   }

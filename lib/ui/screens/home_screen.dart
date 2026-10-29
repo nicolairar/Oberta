@@ -591,7 +591,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
             final irisPoster = desktop ? friendsPoster : layout.mainPoster;
             // I pittori sbordano di qualche mattone oltre lo schermo: va
             // tagliato, o si vede quando la pagina scorre via su iPhone.
-            return ClipRect(
+            // Un'insegna che dondola o una lettera della didascalia fanno ricostruire
+            // un pezzo qui dentro, e il LayoutBuilder si rifà: con lo strato, il
+            // vicolo resta quello già disegnato.
+            return RepaintBoundary(
+              child: ClipRect(
               child: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -868,6 +872,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                   ),
                 ],
               ),
+            ),
             );
           },
         ),

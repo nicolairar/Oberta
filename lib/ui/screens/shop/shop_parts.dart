@@ -114,7 +114,12 @@ class _EntryArt extends StatelessWidget {
         child: FittedBox(child: SizedBox(width: 90, height: 90 * SeatPreview.aspect, child: SeatPreview(look: look, name: who))),
       );
     }
-    return CustomPaint(painter: _ZoomBustPainter(look, focus: _focusOf(entry)), child: const SizedBox.expand());
+    // Un ritratto intero per ogni pezzo sul bordo della ruota: dipinto una
+    // volta in un'immagine, poi la ruota gira solo quella.
+    return Baked(
+      tilted: true,
+      child: CustomPaint(painter: _ZoomBustPainter(look, focus: _focusOf(entry)), child: const SizedBox.expand()),
+    );
   }
 }
 
@@ -207,7 +212,9 @@ class _Hero extends StatelessWidget {
         ),
       );
     } else {
-      art = CustomPaint(painter: _ZoomBustPainter(look, focus: frame, framed: true), size: Size.square(size));
+      // Il ritratto grande, con la scena e gli effetti dei pezzi più cari:
+      // un'immagine, così ogni fotogramma della ruota non lo ridipinge.
+      art = Baked(child: CustomPaint(painter: _ZoomBustPainter(look, focus: frame, framed: true), size: Size.square(size)));
     }
     return SizedBox.square(
       dimension: size,
