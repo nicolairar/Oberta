@@ -99,7 +99,9 @@ git add pubspec.yaml && git commit -m "Bump build to $(sed -n 's/^version: .*+//
    ```
 2. App Store Connect → TestFlight: aspetta che la build finisca «Processing» (10–30 minuti); i tester
    interni la ricevono da soli.
-3. `RANKED_DEBUG` serve **solo** ai tester: non deve mai arrivare all'App Store.
+3. `RANKED_DEBUG` serve **solo** ai tester: non deve mai arrivare all'App Store. Fa della build una
+   build di prova (`--dart-define=OBERTA_TEST=true`, `lib/build_flags.dart`): classificata aperta,
+   accesso con email e password, stanze che partono in due. Senza, è la build da negozio.
 4. Il caricamento **non** alza la build minima.
 
 ## 4. iOS: TestFlight esterno
@@ -127,8 +129,9 @@ git add pubspec.yaml && git commit -m "Bump build to $(sed -n 's/^version: .*+//
    ```sh
    bundle exec fastlane ios metadata
    ```
-3. Prima del primo invio: segnaposto di `docs/app-store.md` riempiti, accesso email/password non
-   raggiungibile nella build di release, provider Email di Supabase spento se previsto lì.
+3. Prima del primo invio: `docs/app-store.md` spuntato; l'accesso email/password nella build da
+   negozio non c'è già (`lib/build_flags.dart`); provider Email di Supabase spento e
+   `supabase/scripts/prelaunch.sql` eseguito (sezione 8).
 4. App Store Connect → App → **+ Versione** `x.y.z` → *Build*: scegli la build appena processata.
 5. *Rilascio della versione*: **manuale** dopo l'approvazione, e attiva
    **Rilascio graduale (7 giorni)**.
@@ -216,7 +219,9 @@ finché `playGamesIds` è vuota Android non chiama mai Play Games.
 
 ## 8. Interruttori del server prima di un lancio pubblico
 
-Da controllare prima della prima uscita pubblica (e dopo ogni periodo di prove):
+Da controllare prima della prima uscita pubblica (e dopo ogni periodo di prove). Il modo più corto:
+`supabase/scripts/prelaunch.sql` nel SQL editor (prima com'è, prova con `rollback`; poi con `commit`
+in fondo). Spegne i bot di prova di stanze e classificata ed elenca quello che resta a mano.
 
 ```sh
 tool/release/set_min_build.sh show

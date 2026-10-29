@@ -2,14 +2,19 @@ SIGN-IN
 No demo account is needed.
 - One-phone mode ("Un telefono per tutti" / "One phone for everyone", the poster in the middle of the home screen) works fully offline, without any account.
 - Online features (rooms with friends, shop, barber) use Sign in with Apple only: tap "ACCEDI" / "SIGN IN" on the home screen and sign in with your own Apple ID. On first sign-in you choose a unique username; the barber's mirror then lets you pick a face (it can be skipped).
-- To play an online game, open "Gioca con amici" / "Play with friends", create a room and let a second device signed in with another Apple ID join with the code or QR.
+- To play an online game, open "Gioca con amici" / "Play with friends", tap "OPEN A ROOM" and let a second device signed in with another Apple ID join with "JOIN WITH A CODE" (or the QR). A game needs at least 4 players to start; with two devices the room's lobby already shows the table, the chat and the report and block actions below.
 
 COINS AND PURCHASES
 The app has no in-app purchases and no real-money currency. Coins are earned only by playing online matches and are spent in the in-game shop on cosmetic items (hats, outfits, frames).
 
-USER-GENERATED CONTENT
-Online rooms have a text chat (open square by day, private Family chat at night), only with people in the same room. Every message is checked server-side against a blocked-words filter before it is stored; blocked messages are rejected. Usernames go through the same filter.
-Report and block: long-press any other player's seat or any chat message to report (with a reason) or block them. Blocked players' messages are hidden, friend requests and room joins between you are refused. Blocked players can be managed in Settings > Blocked players; the community rules are in Settings > Community rules.
+USER-GENERATED CONTENT, REPORT AND BLOCK
+Online rooms have a text chat (open square by day, private Family chat at night) and optional push-to-talk voice, only with the people in the same room. Voice is live only and never recorded. Every chat message is checked server-side against a blocked-words filter before it is stored; blocked messages are rejected. Usernames go through the same filter.
+To report or block another player (two accounts in the same room, see SIGN-IN):
+1. At the table: tap the other player's face, in the room's lobby or during a game (during the day you can also long-press it and choose "Report or block").
+2. In the chat: long-press any message written by another player.
+3. From a profile: "Play with friends" > "FRIENDS", tap a friend, a friend request or a search result to open their public file; "BLOCK" and "REPORT" are at the bottom.
+Paths 1 and 2 open the player's sheet with "Block" and "Report". "Report" asks for a reason (offensive language, cheating or abandoning games, inappropriate username or look, spam, other) and an optional note, then "Send"; a reported chat message is attached to the report. The reported player never learns who reported them. "Block" asks for confirmation: their messages disappear, the friendship ends, friend requests are refused both ways and they can no longer join rooms you host.
+Blocked players are listed, and can be unblocked, in Settings (gear icon on the home screen) > "PRIVACY & DATA" > "Blocked players". The community rules and the contact address for urgent reports (oberta@charliemobile.dev) are in Settings > "PRIVACY & DATA" > "Community rules". We review every report.
 
 ACCOUNT DELETION
 Settings (gear icon on the home screen) > "Elimina account" / "Delete account". After typing the confirmation word, the account, profile, friends, wardrobe and coins are deleted permanently and the Sign in with Apple token is revoked.
