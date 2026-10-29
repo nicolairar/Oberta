@@ -122,7 +122,7 @@ final class EnglishStrings extends AppStrings {
   @override
   String get youAreTown => 'YOU\'RE WITH THE TOWN';
   @override
-  String get youActAlone => 'YOU WORK ALONE';
+  String get youActAlone => 'AT THIS TABLE, YOU ARE THE FAMILY';
   @override
   String get yourAccomplices => 'YOUR ACCOMPLICES';
   @override

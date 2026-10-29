@@ -120,7 +120,7 @@ final class ItalianStrings extends AppStrings {
   @override
   String get youAreTown => 'STAI CON GLI ONESTI';
   @override
-  String get youActAlone => 'AGISCI DA SOLO';
+  String get youActAlone => 'AL TAVOLO LA FAMIGLIA SEI TU';
   @override
   String get yourAccomplices => 'I TUOI COMPLICI';
   @override
