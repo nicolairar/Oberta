@@ -184,8 +184,13 @@ class FakeOnline {
   /// Se falso, il server finge di avere il provider Email spento.
   bool emailEnabled = true;
 
-  /// Qualcun altro, già con il suo profilo.
-  Profile addPlayer(String id, {required String handle}) => _profiles[id] = Profile(id: id, handle: handle);
+  /// Qualcun altro, già con il suo profilo (e, se si vuole, il suo look).
+  /// Come un profilo arrivato dal server, il look resta in [WornLooks].
+  Profile addPlayer(String id, {required String handle, Map<String, String> avatar = const {}}) {
+    final profile = _profiles[id] = Profile(id: id, handle: handle, avatar: avatar);
+    if (avatar.isNotEmpty) WornLooks.remember(profile);
+    return profile;
+  }
 
   /// [id] spegne «Profilo pubblico».
   void hideProfile(String id) => _profiles[id] = _profiles[id]!.copyWith(publicProfile: false);
