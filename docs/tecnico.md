@@ -51,9 +51,12 @@ discussione, voto e verdetto finché una fazione vince.
   ticchettio del timer, il rullo di tamburi sul condannato e il trombone
   triste se era innocente. Tutto è sintetizzato in codice: nessun file
   audio, nessuna licenza.
-- **Italiano e inglese**: l'app segue la lingua del telefono, e dalle
-  impostazioni si cambia a mano. Copione, ruoli e interfaccia esistono in
-  tutte e due le lingue.
+- **Sei lingue**: italiano, inglese, spagnolo, francese, tedesco e
+  portoghese brasiliano. L'app segue la lingua del telefono (una lingua non
+  ancora tradotta, giapponese o arabo, gioca in inglese) e dalle impostazioni
+  si sceglie a mano, con le bandierine. Copione, ruoli e interfaccia esistono
+  in tutte; la voce del narratore solo in italiano e inglese (le altre lingue
+  leggono il copione sullo schermo). Vedi «Le lingue» più sotto.
 
 - **Il tavolo e le facce vere**: nella modalità un telefono ci si passa il
   telefono e ognuno si fa la sua scheda, nome e foto segnaletica (fotocamera
@@ -148,6 +151,77 @@ chi muore ha comunque fatto in tempo ad agire. Nell'ordine:
 All'alba ogni agguato va in scena per com'è andato: il delitto, il Dottore
 che arriva in tempo, o il colpo che si ferma su una fiaschetta nel taschino.
 
+## Le lingue
+
+Due lingue sorgente, l'italiano e l'inglese, e quattro tradotte (spagnolo,
+francese, tedesco, portoghese brasiliano). Tre livelli:
+
+- **`AppStrings`, `OnlineStrings`, `ShopStrings`**: classi astratte con un
+  membro per testo; `ItalianStrings` ed `EnglishStrings` (e le compagne)
+  dicono tutto, il compilatore segnala cosa manca. Plurali e accordi stanno
+  nel codice della lingua.
+- **I messaggi a chiave** (`lib/l10n/messages_en.dart`, `messages_it.dart`):
+  le classi più piccole (impostazioni, tavolo, resoconto, missioni, regole,
+  tutorial...) chiedono `language.message('scope.chiave', {...})`. I testi
+  usano `{nome}` e le forme in stile ICU `{n, plural, one{# partita}
+  other{# partite}}` e `{gender, select, feminine{..} masculine{..}
+  other{..}}` (lib/l10n/message_format.dart, senza l'escape degli apostrofi).
+  `gender` si passa solo dove l'italiano accorda; altrove nessuna frase dà un
+  genere al giocatore.
+- **Il copione** (`NarrationPack`): uno per lingua; senza, si legge
+  l'inglese. Le regole lette ad alta voce (`RulesStrings`) hanno italiano e
+  inglese nel file, le altre lingue le portano con `rulesSteps`.
+
+Una lingua che non traduce un testo ripiega sull'inglese, mai sull'italiano.
+Chi aggiunge un testo lo scrive in `messages_en.dart` e `messages_it.dart`
+(o come membro di `AppStrings`) e lo traduce nei file di `languages/`:
+`test/l10n/translations_test.dart` controlla che ogni chiave ci sia in ogni
+lingua, con gli stessi segnaposto, e che quasi niente sia rimasto in inglese.
+
+### Aggiungere una lingua
+
+1. Copiare `lib/l10n/languages/es.dart` in `lib/l10n/languages/<codice>.dart`
+   (codice ISO 639-1) e rinominare le classi: `XxxStrings extends
+   EnglishStrings`, `XxxOnlineStrings`, `XxxShopStrings`, `xxxMessages`,
+   `xxxPack`, le regole `_quickXx`/`_stageXx`. Ogni classe estende quella
+   inglese: quello che non si traduce resta in inglese.
+2. Aggiungere una riga all'enum `AppLanguage` (lib/l10n/app_language.dart):
+   `xx(Locale('xx'), 'Nome nella lingua', XxxStrings())`. Se la lingua si
+   scrive da destra a sinistra il codice è già in `rtlLanguageCodes`, e
+   `textDirection` la gira sul telefono (il riquadro del desktop resta da
+   sinistra a destra). Se ha un ruolo con la maiuscola anche a metà frase,
+   aggiornare `capitalizesRoles`.
+3. Una bandierina: `LanguageFlag` (lib/ui/widgets/language_flag.dart) dipinge
+   quelle delle lingue tradotte; senza, il tavolo mostra il codice.
+4. Le virgolette dei motti in `test/l10n/role_texts_test.dart`.
+5. `flutter test test/l10n`: la prova di completezza dice cosa manca.
+
+Il server accetta già ogni codice ISO 639-1 per stanze, coda classificata,
+rating e classifica (migrazione `20261123090000_lobby_languages`), quindi una
+lingua nuova non chiede migrazioni. La voce del narratore per le lingue
+nuove è da fare (TODO): `NarratorVoice.speaks` è falso dove non ci sono clip,
+e il narratore resta solo testo.
+
+### I tavoli per lingua
+
+Ognuno vede i tavoli in italiano e in inglese, più quelli della sua lingua
+(`LobbyLanguage.offered`): quella scelta nelle impostazioni o, in automatico,
+quella del telefono anche se l'app non è tradotta (un telefono giapponese
+gioca in inglese ma trova i tavoli giapponesi). La classificata e la
+classifica filtrano per lingua, ogni tavolo ha la sua bandierina.
+
+### I caratteri
+
+Georgia e Courier coprono il latino, il cirillico e il greco. Per gli altri
+sistemi (cinese, giapponese, coreano, arabo, ebraico, devanagari, thai) ogni
+stile ha un `fontFamilyFallback` (lib/ui/theme/script_fonts.dart) con i
+caratteri di sistema di iOS/macOS, Windows e Android/Linux (Noto): niente è
+incluso nell'app, perché le famiglie Noto CJK pesano 10-20 MB l'una. Se una
+piattaforma ne restasse senza (il web, un Linux spoglio), si aggiunge un
+sottoinsieme Noto Sans in `assets/fonts/` e lo si mette in testa a
+`scriptFallback`. Nella chat i messaggi da destra a sinistra sono isolati
+(`bidiIsolate`): il nome e il numero del posto restano al loro posto.
+
 ## Stack tecnico e perché
 
 - **Flutter/Dart**: un solo codice per iOS e Android, controllo totale sulla grafica
@@ -175,10 +249,11 @@ lib/
                  `english_pack`), insieme ai nomi, motti e spiegazioni dei
                  dodici ruoli.
 
-  l10n/       -> Le lingue dell'app (`AppLanguage`) e i testi
-                 dell'interfaccia (`AppStrings`, una classe per lingua).
-                 Si segue la lingua del telefono: italiano se è italiano,
-                 inglese altrimenti; dalle impostazioni si sceglie a mano.
+  l10n/       -> Le lingue dell'app (`AppLanguage`), le lingue dei tavoli
+                 (`LobbyLanguage`, ogni codice ISO 639-1) e i testi:
+                 `AppStrings` (una classe per lingua), i messaggi a chiave
+                 (`messages_en.dart`, `messages_it.dart`) e una cartella
+                 `languages/` con un file per ogni lingua tradotta.
 
   settings/   -> Le preferenze ricordate tra una sera e l'altra (lingua,
                  audio), con `shared_preferences`.
