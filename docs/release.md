@@ -319,6 +319,10 @@ niente e il sito risponde uguale. Informativa: `privacy.html#lista` e `docs/lega
 supabase secrets set --project-ref <ref> BREVO_API_KEY=... BREVO_SENDER_EMAIL=oberta@charliemobile.dev BREVO_SENDER_NAME=Obertà
 ```
 
+**Brevo → Security → Authorised IPs**: la protezione per IP va disattivata (o la chiave API resta
+bloccata per le Edge Function, che escono da indirizzi AWS che cambiano): con la protezione attiva
+Brevo risponde `401 unrecognised IP address` e la mail non parte (si vede in `confirm_error`).
+
 Senza segreti l'iscrizione si salva lo stesso e la mail si salta (log «Brevo secrets missing»);
 `confirm_sent_at` resta vuoto e `confirm_error` dice perché (`secrets_missing`, oppure stato e messaggio di Brevo): `select email, confirm_error from internal.waitlist where confirm_error is not null;`. Facoltativi: `WAITLIST_SITE_URL` (default
 `https://charliemobile.dev/oberta`) e `WAITLIST_ORIGINS` (origini ammesse, separate da virgola;
