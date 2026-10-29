@@ -451,13 +451,13 @@ class _DesktopSettingsState extends State<_DesktopSettings> {
             icon: Icons.privacy_tip_outlined,
             title: s.privacyPolicy,
             chevron: true,
-            onTap: () => _host._openLegal(s.privacyPolicy, 'privacy', privacyPolicyUrl),
+            onTap: () => _host._openLegal(s.privacyPolicy, 'privacy'),
           ),
           _DeskRow(
             icon: Icons.gavel,
             title: s.terms,
             chevron: true,
-            onTap: () => _host._openLegal(s.terms, 'terms', termsUrl),
+            onTap: () => _host._openLegal(s.terms, 'terms'),
           ),
           if (signedIn && _host.widget.online?.account != null)
             _DeskRow(

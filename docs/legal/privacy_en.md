@@ -8,9 +8,11 @@ Obertà is a party game. This policy explains what data we process, why, for how
 
 Nicolai Tana — privacy contact: oberta@charliemobile.dev — certified email (PEC): nicolairar@pec.it
 
+> TODO(owner): add the controller's postal address (street, postcode, city) here before publishing, also in site/oberta/privacy-en.html. Do not make it up.
+
 ## Playing without an account
 
-You can play on a single phone without an account. In that case no personal data leaves the device: settings (sound, language) stay on the phone only.
+You can play on a single phone without an account. In that case no personal data leaves the device: the players' names and photos (if you take any) and the settings (sound, language) stay on the phone only.
 
 ## The "Notify me at launch" list (website)
 
@@ -37,12 +39,16 @@ The website uses no profiling, advertising or analytics cookies and loads no thi
 - The platforms linked to your account (Steam, Apple), shown to other players as a small logo next to your name: only yes or no, never the identifier.
 - Your look (avatar face and clothes).
 - Level, experience and virtual coins.
+- Match statistics, missions, medals (achievements) and roles played. Other players see your public file (name, portrait, level and, unless you close it in Settings → Privacy & data → "Public profile", your match numbers, medals and favourite roles); leaderboards show only your name and rank.
 - Friends and friend requests.
 - Rooms you join, seats and match history.
 - Chat messages you write in rooms, automatically moderated (offensive-word filter and rate limits).
 - Table voice chat, only if you turn it on, in friends rooms: your voice goes out live and is never recorded or transcribed. It travels from your device to the other players through LiveKit (servers in the European Union) while you speak, and is kept nowhere: neither we nor LiveKit store the audio. LiveKit receives only the audio stream, a temporary label for your seat (never your name or account) and technical connection data (IP address).
 - The coin ledger (coins earned by playing and spent in the shop).
 - Records of abandoned matches, used for penalties.
+- The reports you make and the ones made about you (reason, optional note, a copy of the reported message and the name at that time) and the players you blocked. A reported player never learns who reported them; only you see your blocks.
+- Your device type (for example "iPhone" or "Mac") and the app's build number, to keep only one device active at a time and never deal you a role your version does not know.
+- If your phone uses Game Center (iPhone) or Google Play Games (Android), or you play on Steam: the medals you unlock are also recorded there, on your account on that platform. We receive nothing from Game Center or Play Games.
 - Server technical data (IP address, request timestamps) kept by the hosting provider in its logs.
 
 We do not process location, contacts, photos or health data. The microphone is used only for table voice chat: it turns on only if you choose it, and transmits only while you hold the talk button, when the game gives you the floor.
@@ -60,7 +66,7 @@ We do not process location, contacts, photos or health data. The microphone is u
 
 - Providing online play, the account, friends, rooms, table voice chat and cosmetics: performance of a contract (art. 6.1.b).
 - The website's "Notify me at launch" list: consent (art. 6.1.a), which you can withdraw at any time.
-- Chat moderation, abandon penalties, cheat and abuse prevention, server security: legitimate interest in a fair and safe game (art. 6.1.f).
+- Chat moderation, reports and blocks, abandon penalties, cheat and abuse prevention, server security: legitimate interest in a fair and safe game (art. 6.1.f).
 
 ## How long
 
@@ -68,6 +74,8 @@ We do not process location, contacts, photos or health data. The microphone is u
 - Chat messages: 90 days, then deleted automatically.
 - Table voice chat: nothing is kept. Your voice goes out live and is never recorded or transcribed.
 - Match and abandon records: as long as the account exists.
+- Blocks: until you remove them, or as long as both accounts exist.
+- Reports: as long as the reported account exists. If the reporter deletes their account, the report stays with no link to them.
 - Coin ledger: as long as the account exists. Nothing in the game is sold for real money, so we keep no payment data.
 - Technical logs: according to the hosting provider's retention (usually a few days).
 
@@ -77,8 +85,8 @@ We do not process location, contacts, photos or health data. The microphone is u
 - LiveKit, Inc. — live transmission of table voice chat (LiveKit Cloud, servers in the European Union). No recording, transcription or storage of audio. Any transfers outside the EU are covered by Standard Contractual Clauses.
 - Sendinblue SAS (Brevo) — sending the emails of the "Notify me at launch" list (France, servers in the European Union).
 - Cloudflare, Inc. — serving and protecting the website. Any transfers outside the EU are covered by Standard Contractual Clauses and the EU-US Data Privacy Framework.
-- Apple Inc. — Sign in with Apple and in-app payments. For payments Apple acts as an independent controller under its own policy.
-- Google LLC — only if you choose to sign in with Google.
+- Apple Inc. — Sign in with Apple and, on iPhone, Game Center for medals. For Game Center Apple acts as an independent controller under its own policy. There are no purchases in the app.
+- Google LLC — only if you choose to sign in with Google (Android) or use Google Play Games; for Play Games Google acts as an independent controller under its own policy.
 - Valve Corporation (Steam) — only if you sign in with Steam: it confirms the sign-in and provides your public Steam profile. Valve acts as an independent controller under its own privacy policy.
 
 ## Minimum age

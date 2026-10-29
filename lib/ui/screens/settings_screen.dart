@@ -44,10 +44,18 @@ import '../widgets/targa.dart';
 
 part 'settings_desktop.dart';
 
-/// Dove vivranno informativa e termini sul web.
-/// TODO(owner): pubblicare docs/legal/*.md a questi indirizzi (o cambiarli).
-const privacyPolicyUrl = 'https://oberta.app/privacy';
-const termsUrl = 'https://oberta.app/terms';
+/// Informativa e termini sul web (site/oberta, gli stessi testi di
+/// docs/legal): in italiano, e in inglese per tutte le altre lingue, come
+/// dentro l'app. [kind] è `privacy` o `terms`, [lang] quella di
+/// [SettingsStrings.legalAsset].
+const legalSiteUrl = 'https://charliemobile.dev/oberta';
+
+String legalUrl(String kind, String lang) => switch ((kind, lang)) {
+  ('privacy', 'it') => '$legalSiteUrl/privacy.html',
+  ('privacy', _) => '$legalSiteUrl/privacy-en.html',
+  ('terms', 'it') => '$legalSiteUrl/termini.html',
+  _ => '$legalSiteUrl/terms-en.html',
+};
 
 /// Le impostazioni, a pagina intera: un ufficio di legno scuro con le
 /// targhette d'ottone. Audio, lingua, i ruoli, account, privacy e dati.
@@ -153,11 +161,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  void _openLegal(String title, String kind, String url) {
+  void _openLegal(String title, String kind) {
     final s = SettingsStrings.of(context);
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => LegalScreen(title: title, asset: 'docs/legal/${kind}_${s.legalAsset}.md', url: url),
+        builder: (_) => LegalScreen(
+          title: title,
+          asset: 'docs/legal/${kind}_${s.legalAsset}.md',
+          url: legalUrl(kind, s.legalAsset),
+        ),
       ),
     );
   }
@@ -471,13 +483,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           leading: const Icon(Icons.privacy_tip_outlined, color: AppColors.gold),
                           title: Text(s.privacyPolicy),
                           trailing: const Icon(Icons.chevron_right),
-                          onTap: () => _openLegal(s.privacyPolicy, 'privacy', privacyPolicyUrl),
+                          onTap: () => _openLegal(s.privacyPolicy, 'privacy'),
                         ),
                         ListTile(
                           leading: const Icon(Icons.gavel, color: AppColors.gold),
                           title: Text(s.terms),
                           trailing: const Icon(Icons.chevron_right),
-                          onTap: () => _openLegal(s.terms, 'terms', termsUrl),
+                          onTap: () => _openLegal(s.terms, 'terms'),
                         ),
                         if (signedIn && widget.online?.account != null)
                           ListTile(

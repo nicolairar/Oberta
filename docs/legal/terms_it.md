@@ -1,14 +1,16 @@
 # Termini d'uso di Obertà
 
-Ultimo aggiornamento: 18 ottobre 2026
+Ultimo aggiornamento: 29 ottobre 2026
 
 Usando Obertà accetti questi termini. Il gioco è offerto da Nicolai Tana (contatto: oberta@charliemobile.dev; PEC: nicolairar@pec.it).
 
+> TODO(owner): aggiungere qui l'indirizzo del titolare (via, CAP, città) prima della pubblicazione, anche in site/oberta/termini.html. Non inventarlo.
+
 ## Account
 
-- Per giocare online serve un account Apple o Google e almeno 14 anni.
+- Per giocare online serve un account Apple, Google o Steam e almeno 14 anni.
 - Sei responsabile di ciò che accade con il tuo account. Il nome unico non deve offendere né impersonare altri o lo staff.
-- Puoi eliminare l'account in qualsiasi momento da Impostazioni → Account → «Elimina account». L'eliminazione è definitiva: monete e cosmetici vanno persi.
+- Puoi eliminare l'account in qualsiasi momento: sul telefono da Impostazioni → Account → «Elimina account»; dal PC (Steam) scrivendo a oberta@charliemobile.dev. L'eliminazione è definitiva: monete e cosmetici vanno persi.
 
 ## Monete virtuali e cosmetici
 
@@ -26,6 +28,10 @@ Usando Obertà accetti questi termini. Il gioco è offerto da Nicolai Tana (cont
 - abbandonare ripetutamente le partite online;
 - spacciarsi per lo staff o per altre persone;
 - attaccare o sovraccaricare i server.
+
+## Segnalare e bloccare
+
+Puoi segnalare o bloccare un giocatore toccando il suo volto al tavolo o nella stanza, tenendo premuto un suo messaggio, o dal suo fascicolo pubblico. Di chi blocchi non vedi più i messaggi, e lui non può chiederti l'amicizia né sedersi nelle stanze che apri; i bloccati si tolgono da Impostazioni → Privacy e dati → «Giocatori bloccati». Leggiamo ogni segnalazione. Per le cose urgenti scrivi a oberta@charliemobile.dev.
 
 ## Sanzioni
 

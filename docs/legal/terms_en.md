@@ -1,14 +1,16 @@
 # Obertà Terms of Use
 
-Last updated: 18 October 2026
+Last updated: 29 October 2026
 
 By using Obertà you accept these terms. The game is offered by Nicolai Tana (contact: oberta@charliemobile.dev; certified email: nicolairar@pec.it).
 
+> TODO(owner): add the owner's postal address (street, postcode, city) here before publishing, also in site/oberta/terms-en.html. Do not make it up.
+
 ## Account
 
-- Online play requires an Apple or Google account and a minimum age of 14.
+- Online play requires an Apple, Google or Steam account and a minimum age of 14.
 - You are responsible for what happens with your account. Your username must not offend or impersonate others or staff.
-- You can delete your account at any time from Settings → Account → "Delete account". Deletion is permanent: coins and cosmetics are lost.
+- You can delete your account at any time: on your phone from Settings → Account → "Delete account"; from PC (Steam) by writing to oberta@charliemobile.dev. Deletion is permanent: coins and cosmetics are lost.
 
 ## Virtual coins and cosmetics
 
@@ -26,6 +28,10 @@ It is forbidden to:
 - repeatedly abandon online matches;
 - impersonate staff or other people;
 - attack or overload the servers.
+
+## Reporting and blocking
+
+You can report or block a player by tapping their face at the table or in the room, by long-pressing one of their messages, or from their public file. Once you block someone you no longer see their messages, and they can no longer send you friend requests or sit in rooms you open; you can unblock players in Settings → Privacy & data → "Blocked players". We read every report. For urgent matters, write to oberta@charliemobile.dev.
 
 ## Sanctions
 
