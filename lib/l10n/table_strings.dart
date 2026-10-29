@@ -44,6 +44,10 @@ class TableStrings {
   String get youAreJailed => _t('Sei in cella. Stanotte non esci.', 'You are in a cell. You are not going out tonight.');
   String get jailerWantsYou => _t('Il Carceriere vuole parlarti.', 'The Jailer wants a word.');
   String inYourCell(String name) => _t('In cella: $name. Interrogalo in chat.', 'In your cell: $name. Question them in the chat.');
+  String get lastOfFamily => _t(
+    'Sei rimasta l\'ultima della Famiglia: ora la notte è tua.',
+    'You are the last of the Family left: now the night is yours.',
+  );
   String mateInCell(String name) => _t('Stanotte $name è in cella.', 'Tonight $name is in a cell.');
   String get jailChat => _t('La cella', 'The cell');
   String get jailer => _t('Il Carceriere', 'The Jailer');

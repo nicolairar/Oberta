@@ -876,6 +876,7 @@ class _GameScreenState extends State<GameScreen> {
         (lastWatch.visited ? _t.pack.watchVisited : _t.pack.watchQuiet).replaceAll('{name}', _tag(lastWatch.target)),
       if (view.doused.isNotEmpty) '${_t.dousedBadge}: ${view.doused.map(_tag).join(', ')}',
       if (view.bounty case final mark?) _t.bountyLine.replaceAll('{name}', _tag(mark)),
+      if (view.role == Role.prostituta && offered.kind == NightTaskKind.kill) _ts.lastOfFamily,
       ..._privateNotes(actor),
     ];
     final desk = DesktopCanvas.of(context);

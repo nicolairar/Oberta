@@ -270,6 +270,79 @@ void main() {
       expect(dawn.victims, [a]);
     });
 
+    test('gioca per la Famiglia al buio: non sa chi sono, e loro non sanno di lei', () {
+      final engine = table({...roles(), b: Role.mafioso});
+      expect(engine.setup.teammatesOf(hooker), isEmpty);
+      expect(engine.setup.teammatesOf(mob), [b]);
+      final view = engine.viewFor(hooker.id);
+      expect(view.team, Team.mafia, reason: 'sa da che parte gioca');
+      expect(view.teammates, isEmpty);
+      expect(view.known, isEmpty);
+      expect(engine.knowledgeOf(hooker, mob).isEmpty, isTrue);
+      expect(engine.knowledgeOf(mob, hooker).isEmpty, isTrue);
+      expect(engine.viewFor(mob.id).teammates, [b]);
+      expect(view.familyChat, isFalse);
+      expect(engine.canUseFamilyChat(hooker), isFalse);
+      // Le mani della Famiglia non arrivano a lei, né la sua a loro.
+      act(engine, mob, a, kill: true);
+      act(engine, hooker, cop);
+      expect(engine.viewFor(hooker.id).familyVotes, isEmpty);
+      expect(engine.viewFor(b.id).familyVotes.map((v) => v.voter), [mob]);
+      expect(leaksIn(engine, hooker, wire(engine.viewFor(hooker.id).toJson())), isEmpty);
+      expect(leaksIn(engine, mob, wire(engine.viewFor(mob.id).toJson())), isEmpty);
+    });
+
+    test('la cella: la Famiglia non sa se dentro c\'è lei, lei non sa se dentro c\'è uno dei loro', () {
+      final mine = table(roles());
+      act(mine, jailer, hooker);
+      expect(mine.viewFor(mob.id).cell, isNull);
+      expect(mine.viewFor(hooker.id).cell, hooker);
+      final theirs = table(roles());
+      act(theirs, jailer, mob);
+      expect(theirs.viewFor(hooker.id).cell, isNull);
+    });
+
+    test('blocca chiunque, anche la Famiglia: il killer bloccato non vota l\'agguato', () {
+      final engine = table({...roles(), b: Role.mafioso});
+      expect(engine.taskFor(hooker).targets, containsAll([mob, b]));
+      act(engine, mob, a, kill: true);
+      act(engine, b, c, kill: true);
+      expect(act(engine, hooker, mob).accepted, isTrue);
+      final dawn = endNight(engine);
+      expect(dawn.victims, [c], reason: 'conta solo il voto di chi non è stato fermato');
+      expect(engine.viewFor(mob.id).busy, isTrue);
+      // L'unico killer bloccato: niente agguato.
+      final alone = table(roles());
+      act(alone, mob, a, kill: true);
+      act(alone, hooker, mob);
+      expect(endNight(alone).victims, isEmpty);
+    });
+
+    test('rimasta l\'ultima della Famiglia: vota lei, ma dei morti sa solo quello che è pubblico', () {
+      final engine = table({...roles(), b: Role.mafioso});
+      act(engine, cop, b);
+      act(engine, mob, b, kill: true);
+      endNight(engine);
+      expect(engine.isAlive(b), isFalse);
+      // Il morto di notte: nessuno svela la carta, e lei non la sa.
+      expect(engine.knowledgeOf(hooker, b).isEmpty, isTrue);
+      engine.lynch(mob);
+      expect(engine.isLastOfFamily(hooker), isTrue);
+      expect(engine.taskFor(hooker).kind, NightTaskKind.kill);
+      final view = engine.viewFor(hooker.id);
+      expect(view.teammates, isEmpty);
+      expect(view.familyChat, isFalse, reason: 'nemmeno da sola entra nella chat della Famiglia');
+      expect(engine.knowledgeOf(hooker, b).isEmpty, isTrue);
+      expect(
+        (engine.knowledgeOf(hooker, mob).role, engine.knowledgeOf(hooker, mob).team),
+        (engine.knowledgeOf(null, mob).role, engine.knowledgeOf(null, mob).team),
+        reason: 'del linciato sa quanto tutti',
+      );
+      act(engine, hooker, a, kill: true);
+      expect(engine.viewFor(hooker.id).familyVotes.map((v) => v.voter), [hooker]);
+      expect(leaksIn(engine, hooker, wire(engine.viewFor(hooker.id).toJson())), isEmpty);
+    });
+
     test('una mossa bloccata si spende lo stesso: lo scoop del Cronista', () {
       final engine = table({...roles(), c: Role.giornalista});
       act(engine, c, mob);

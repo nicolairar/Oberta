@@ -388,7 +388,11 @@ class _Face extends StatelessWidget {
                   if (isMafia) ...[
                     const SizedBox(height: 14),
                     Text(
-                      teammates.isEmpty ? t.youActAlone : t.yourAccomplices,
+                      role == Role.prostituta
+                          ? t.familyUnknown
+                          : teammates.isEmpty
+                          ? t.youActAlone
+                          : t.yourAccomplices,
                       style: AppText.overline.copyWith(color: Saloon.brass),
                     ),
                     if (teammates.isNotEmpty) ...[

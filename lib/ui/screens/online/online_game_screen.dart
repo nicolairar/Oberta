@@ -2193,7 +2193,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   // ---------------------------------------------------------------------
   // La notte.
 
-  bool get _inFamilyChat => _view.alive && _view.team == Team.mafia;
+  /// La Famiglia che si conosce: la Prostituta non entra mai nella sua chat.
+  bool get _inFamilyChat => _view.alive && _view.role.knowsFamily;
 
   /// La notte, per chi ha una mossa: si tocca un posto e la scelta parte
   /// subito; si cambia toccandone un altro (o «passo») fino allo scadere, e
@@ -2221,6 +2222,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
         (lastWatch.visited ? _t.pack.watchVisited : _t.pack.watchQuiet).replaceAll('{name}', _tag(lastWatch.target)),
       if (_view.doused.isNotEmpty) '${_t.dousedBadge}: ${_view.doused.map(_tag).join(', ')}',
       if (_view.bounty case final mark?) _t.bountyLine.replaceAll('{name}', _tag(mark)),
+      if (_view.role == Role.prostituta && option.type == ActionType.mafiaVote) _ts.lastOfFamily,
       if (_view.cell case final mate? when mate != _view.seat && _view.role != Role.carceriere) _ts.mateInCell(_tag(mate)),
       if (_findingsAtDawn && (kind == NightTaskKind.investigate || kind == NightTaskKind.dig)) _ts.answerAtDawn,
       ..._loverNotes,

@@ -24,17 +24,31 @@ void main() {
   });
 
   test('i mafiosi si conoscono tra loro, senza includere se stessi', () {
-    final setup = GameSetup.deal(lobby: _players(9), random: Random(5));
-    final mafiosi = setup.players.where((p) => setup.roleOf(p).team == Team.mafia).toList();
-    expect(mafiosi, hasLength(2));
-    expect(setup.teammatesOf(mafiosi[0]), [mafiosi[1]]);
-    expect(setup.teammatesOf(mafiosi[1]), [mafiosi[0]]);
+    var checked = 0;
+    for (var seed = 1; seed <= 40; seed++) {
+      final setup = GameSetup.deal(lobby: _players(9), random: Random(seed));
+      final mafiosi = setup.players.where((p) => setup.roleOf(p).knowsFamily).toList();
+      for (final p in setup.players.where((p) => setup.roleOf(p) == Role.prostituta)) {
+        expect(setup.teammatesOf(p), isEmpty, reason: 'la Prostituta non conosce la Famiglia');
+      }
+      if (mafiosi.length != 2) continue;
+      checked++;
+      expect(setup.teammatesOf(mafiosi[0]), [mafiosi[1]]);
+      expect(setup.teammatesOf(mafiosi[1]), [mafiosi[0]]);
+    }
+    expect(checked, greaterThan(0));
   });
 
   test('a un tavolo pieno la famiglia si conosce tutta, qualunque ruolo abbia', () {
     final setup = GameSetup.deal(lobby: _players(12), random: Random(2));
     final family = setup.players.where((p) => setup.roleOf(p).team == Team.mafia).toList();
     expect(family, hasLength(3));
+    // La Prostituta gioca per loro al buio: non conosce e non è conosciuta.
+    final hooker = family.where((p) => setup.roleOf(p) == Role.prostituta).toList();
+    for (final p in hooker) {
+      expect(setup.teammatesOf(p), isEmpty);
+    }
+    family.removeWhere(hooker.contains);
     expect(family.map(setup.roleOf), contains(Role.mafioso));
     for (final member in family) {
       expect(setup.teammatesOf(member), family.where((other) => other != member));

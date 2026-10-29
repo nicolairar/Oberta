@@ -31,12 +31,13 @@ class GameSetup {
 
   Role roleOf(Player player) => roles[player]!;
 
-  /// I complici che [player] ha diritto di conoscere: solo i mafiosi si vedono tra loro.
+  /// I complici che [player] ha diritto di conoscere: solo i mafiosi si vedono
+  /// tra loro. La Prostituta non conosce nessuno, e nessuno conosce lei.
   List<Player> teammatesOf(Player player) {
-    if (roleOf(player).team != Team.mafia) return const [];
+    if (!roleOf(player).knowsFamily) return const [];
     return [
       for (final entry in roles.entries)
-        if (entry.key != player && entry.value.team == Team.mafia) entry.key,
+        if (entry.key != player && entry.value.knowsFamily) entry.key,
     ];
   }
 }

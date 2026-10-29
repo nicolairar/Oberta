@@ -392,9 +392,10 @@ class GameEngine {
   GameEngine._start(this.setup, this.settings, Random? random, this.seed)
     : _random = random ?? Random(seed),
       _alive = setup.players {
+    // La Famiglia si conosce; la Prostituta no: sa solo di sé.
     final mafiosi = {
       for (final player in _alive)
-        if (_teamOf(player) == Team.mafia) player,
+        if (setup.roleOf(player).knowsFamily) player,
     };
     for (final player in _alive) {
       final isMafia = mafiosi.contains(player);
@@ -771,14 +772,20 @@ class GameEngine {
 
   /// [player] può scrivere e leggere adesso nella chat della famiglia: vivo,
   /// della famiglia, di notte, o di giorno se c'è un Compare vivo.
-  /// In cella non si parla con la Famiglia.
+  /// In cella non si parla con la Famiglia. La Prostituta non c'è mai:
+  /// non sa chi sono, nemmeno quando resta l'ultima.
   bool canUseFamilyChat(Player player) =>
       isAlive(player) &&
-      _teamOf(player) == Team.mafia &&
+      setup.roleOf(player).knowsFamily &&
       player != jailedTonight &&
       (_phase == GamePhase.night || (_phase == GamePhase.day && familyDayChat));
 
   Team _teamOf(Player player) => setup.roleOf(player).team;
+
+  /// [player] è vivo e nessun altro vivo può votare l'agguato: la
+  /// Prostituta rimasta l'ultima della Famiglia, che ora vota lei.
+  bool isLastOfFamily(Player player) =>
+      isAlive(player) && !_alive.any((other) => other != player && setup.roleOf(other).isKiller);
 
   /// Cosa [viewer] ha diritto di sapere su [subject]. Con `viewer` nullo
   /// restituisce solo ciò che è pubblico.
@@ -905,8 +912,9 @@ class GameEngine {
       ]),
       // La Prostituta non vota l'agguato, finché nella Famiglia c'è un altro
       // che lo vota: se resta sola, vota, e può ancora passare la notte fuori.
+      // Blocca chiunque, anche la Famiglia: non sa chi sono.
       Role.prostituta =>
-        _alive.any((player) => player != actor && setup.roleOf(player).isKiller)
+        !isLastOfFamily(actor)
             ? NightTask(NightTaskKind.block, [
                 for (final player in others)
                   if (player != _lastBlocked) player,
@@ -1842,14 +1850,23 @@ class GameEngine {
     if (viewer == null) throw ArgumentError.value(seat, 'seat', 'non gioca');
     final role = setup.roleOf(viewer);
     final alive = isAlive(viewer);
-    final family = alive && _phase == GamePhase.night && role.team == Team.mafia && viewer != jailedTonight;
+    // Le mani della Famiglia: a chi la conosce, e alla Prostituta solo
+    // quando è rimasta l'ultima a votare (vede la sua, nessun'altra).
+    final family =
+        alive &&
+        _phase == GamePhase.night &&
+        viewer != jailedTonight &&
+        (role.knowsFamily || (role == Role.prostituta && isLastOfFamily(viewer)));
     // Chi è in cella stanotte, per chi lo può sapere: il Carceriere, il
-    // prigioniero, e la Famiglia se è uno dei loro. Mai chi l'ha chiuso.
+    // prigioniero, e la Famiglia se è uno dei loro (la Prostituta no, da
+    // nessuna delle due parti). Mai chi l'ha chiuso.
     final jailed = jailedTonight;
     final cell =
         jailed != null &&
             alive &&
-            (viewer == jailed || viewer == jailerTonight || (role.team == Team.mafia && _teamOf(jailed) == Team.mafia))
+            (viewer == jailed ||
+                viewer == jailerTonight ||
+                (role.knowsFamily && setup.roleOf(jailed).knowsFamily))
         ? jailed
         : null;
     return PlayerView(

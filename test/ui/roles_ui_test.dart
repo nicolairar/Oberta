@@ -62,7 +62,7 @@ void main() {
                               child: FlipRoleCard(
                                 key: ValueKey(role),
                                 role: role,
-                                teammates: role.team == Team.mafia ? accomplices : const [],
+                                teammates: role.knowsFamily ? accomplices : const [],
                               ),
                             ),
                           ),
@@ -82,7 +82,8 @@ void main() {
           expect(find.text(t.role(role).motto), findsOneWidget);
           expect(find.textContaining(t.role(role).description), findsOneWidget);
           expect(find.text(switch (role.team) { Team.mafia => t.youAreFamily, Team.citizens => t.youAreTown, Team.neutral => t.youAreNeutral }), findsOneWidget, reason: role.name);
-          expect(find.text(t.yourAccomplices), role.team == Team.mafia ? findsOneWidget : findsNothing);
+          expect(find.text(t.yourAccomplices), role.knowsFamily ? findsOneWidget : findsNothing);
+          expect(find.text(t.familyUnknown), role == Role.prostituta ? findsOneWidget : findsNothing);
           await hold.up();
           await tester.pumpAndSettle();
         }

@@ -141,6 +141,12 @@ extension RoleInfo on Role {
   /// in più, finché vive, apre la chat di giorno.
   bool get isKiller => team == Team.mafia && this != Role.prostituta;
 
+  /// Chi della Famiglia conosce gli altri (e ne è conosciuto): tutti tranne
+  /// la Prostituta, che vince con la Famiglia ma non sa chi sono. Niente
+  /// elenco, chat, voce o mani della Famiglia per lei, e la Famiglia non sa
+  /// di lei: un'alleata nascosta da tutte e due le parti.
+  bool get knowsFamily => team == Team.mafia && this != Role.prostituta;
+
   /// I punti del ruolo nel bilancio del mazzo. Il Pregiudicato pesa meno di
   /// zero: è un guaio per la Città.
   /// Il Presidente pesa −2: è un punto debole della Città.

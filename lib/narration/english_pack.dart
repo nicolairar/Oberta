@@ -122,7 +122,7 @@ const englishPack = NarrationPack(
     Role.prostituta: RoleText(
       'Consort',
       '“One song, one drink, and the night is gone.”',
-      'You are in the Family but do not vote the hit: each night you block someone\'s move, never the same one twice running. If you are the last who can vote, you vote.',
+      'You play for the Family, but you don\'t know them and they don\'t know you. Each night you block anyone\'s move, never the same one twice running. Left last, you vote.',
     ),
     Role.carceriere: RoleText(
       'Jailer',

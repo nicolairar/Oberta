@@ -155,6 +155,9 @@ Deno.test('the matrix: every role state, every stage', () => {
     jailed: member(8, { jailed: true }),
     jailedFamily: member(9, { family: true, jailed: true }),
     jailer: member(10),
+    // The Prostitute plays for the family without knowing it: the server
+    // never flags her family (lib/rules/role.dart, knowsFamily).
+    prostituta: member(11),
   };
   type Seat = keyof typeof seats;
   type Cell = [string | null, boolean];
@@ -164,23 +167,23 @@ Deno.test('the matrix: every role state, every stage', () => {
   const fam: Cell = ['family', true];
   const closed: Record<Seat, Cell> = {
     town: off, family: off, compare: off, silenced: off, silencedFamily: off, dead: off, deadFamily: off,
-    jailed: off, jailedFamily: off, jailer: off,
+    jailed: off, jailedFamily: off, jailer: off, prostituta: off,
   };
   const expected: Record<string, Record<Seat, Cell>> = {
     reveal: closed,
     night: {
       town: off, family: fam, compare: fam, silenced: off, silencedFamily: fam, dead: off, deadFamily: off,
-      jailed: off, jailedFamily: off, jailer: off,
+      jailed: off, jailedFamily: off, jailer: off, prostituta: off,
     },
     dawnFilms: closed,
     dawn: closed,
     discussion: {
       town: day, family: day, compare: day, silenced: listen, silencedFamily: listen, dead: listen, deadFamily: listen,
-      jailed: day, jailedFamily: day, jailer: day,
+      jailed: day, jailedFamily: day, jailer: day, prostituta: day,
     },
     vote: {
       town: listen, family: listen, compare: listen, silenced: listen, silencedFamily: listen, dead: listen, deadFamily: listen,
-      jailed: listen, jailedFamily: listen, jailer: listen,
+      jailed: listen, jailedFamily: listen, jailer: listen, prostituta: listen,
     },
     verdictFilm: closed,
     verdict: closed,

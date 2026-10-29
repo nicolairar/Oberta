@@ -104,21 +104,21 @@ void main() {
       expect(table.rights(seat)['jail'], isNull, reason: seat);
       expect(table.rights(seat)['jailed'], isFalse, reason: seat);
     }
-    // Il prigioniero non agisce; la Famiglia sa che è dentro, gli altri no.
+    // Il prigioniero non agisce; gli altri non sanno chi è dentro (la
+    // Prostituta nemmeno: non sa chi è della Famiglia).
     expect(table.view('s1')['action'], isNull);
     expect(table.view('s1')['cell'], 's1');
-    expect(table.view('s2')['cell'], 's1');
     expect(table.view('s3')['cell'], 's1');
-    for (final seat in ['s4', 's5', 's6', 's7', 's8']) {
+    for (final seat in ['s2', 's4', 's5', 's6', 's7', 's8']) {
       expect(table.view(seat).containsKey('cell'), isFalse, reason: seat);
     }
     // Nessuna vista porta il nome di chi ha chiuso la cella, se non la sua.
     for (final seat in ['s1', 's2']) {
       expect(jsonEncode(table.view(seat)['known']), isNot(contains('s3')), reason: seat);
     }
-    // Le righe private: al prigioniero e alla Famiglia, non al resto.
+    // Le righe private: al prigioniero e al Carceriere, non al resto.
     final cells = [for (final e in table.last.events) if (e['kind'] == 'cell') e['to']];
-    expect(cells.toSet(), {'s1', 's2', 's3'});
+    expect(cells.toSet(), {'s1', 's3'});
     expect(table.last.events.where((e) => e['kind'] == 'cell' && e['to'] == null), isEmpty);
     // Un'altra mossa del prigioniero torna rifiutata.
     table.send({'s1': {'type': 'mafiaVote', 'seat': 's1', 'target': 's6'}});
@@ -132,6 +132,42 @@ void main() {
       expect(table.rights(seat)['jail'], isNull, reason: seat);
       expect(table.rights(seat)['jailed'], isFalse, reason: seat);
     }
+  });
+
+  test('la Prostituta gioca al buio: niente Famiglia per lei, niente lei per la Famiglia', () {
+    final table = Table({...roles, 's6': Role.mafioso});
+    // La carta: lei non ha complici, e i complici non hanno lei.
+    expect(table.view('s2')['teammates'], anyOf(isNull, isEmpty));
+    expect(table.view('s1')['teammates'], ['s6']);
+    expect(table.view('s6')['teammates'], ['s1']);
+    table.ackAll();
+    expect(table.game.stage, Stage.night);
+    // Chat e voce della Famiglia: lei fuori, loro dentro.
+    expect(table.rights('s2')['family'], isFalse);
+    expect(table.rights('s1')['family'], isTrue);
+    expect(table.rights('s6')['family'], isTrue);
+    expect(table.view('s2')['familyChat'], anyOf(isNull, isFalse));
+    expect(table.view('s1')['familyChat'], isTrue);
+    // Le mani: la Famiglia vota, lei non le vede; lei blocca uno di loro.
+    table.send({'s1': {'type': 'mafiaVote', 'seat': 's1', 'target': 's7'}});
+    table.send({'s2': night('s2', 's6')});
+    expect(table.receipt('s2')?['ok'], isTrue);
+    expect(table.view('s2')['familyVotes'], anyOf(isNull, isEmpty));
+    final votes = table.view('s6')['familyVotes'] as List;
+    expect([for (final v in votes) (v as Map)['seat']], ['s1']);
+    expect(jsonEncode(table.view('s6')), isNot(contains('"busy"')));
+    for (final seat in ['s1', 's6']) {
+      expect(jsonEncode(table.view(seat)['known']), isNot(contains('"s2"')), reason: seat);
+    }
+    expect(jsonEncode(table.view('s2')['known']), allOf(isNot(contains('"s1"')), isNot(contains('"s6"'))));
+    // All'alba: la riga della Famiglia va a loro due, mai a lei.
+    final events = [...table.send({for (final seat in ['s3', 's4', 's5', 's6', 's7', 's8']) seat: pass(seat)}).events];
+    while (table.game.stage == Stage.night || table.game.stage == Stage.dawnFilms) {
+      events.addAll(table.wait().events);
+    }
+    final closing = [for (final e in events) if (e['kind'] == 'familyTarget') e['to']];
+    expect(closing, isNot(contains('s2')));
+    expect(closing, contains('s1'));
   });
 
   test('il blocco: lo sa solo chi l\'ha subito, all\'alba', () {

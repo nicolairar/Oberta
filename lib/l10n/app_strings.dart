@@ -93,6 +93,9 @@ abstract class AppStrings {
   String get youAreTown;
   String get youActAlone;
   String get yourAccomplices;
+
+  /// La Prostituta: gioca per la Famiglia, ma non sa chi sono.
+  String get familyUnknown;
   String get familyBadge;
   String get townBadge;
 
@@ -308,6 +311,7 @@ abstract class AppStrings {
     'youAreTown': youAreTown,
     'youActAlone': youActAlone,
     'yourAccomplices': yourAccomplices,
+    'familyUnknown': familyUnknown,
     'familyBadge': familyBadge,
     'townBadge': townBadge,
     'passThePhoneTo': passThePhoneTo,

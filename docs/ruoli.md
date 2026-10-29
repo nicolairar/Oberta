@@ -11,7 +11,7 @@ Legenda livelli: **L0** nessun potere (o malus), **L1** base, **L2** medio, **L3
 ## 0. Decisioni del proprietario (finali, 28 ottobre 2026)
 
 - **Sicario:** neutrale, uccide una persona ogni notte, vince **solo se resta l'ultimo vivo** (non più "con una persona" né "con la Famiglia"). *Nel codice.*
-- **Prostituta:** della **Famiglia**; di notte passa la notte con una persona e ne blocca la mossa. *Nel codice.*
+- **Prostituta:** vince con la **Famiglia** ma **non sa chi sono** (decisione del 29 ottobre): niente elenco, chat, voce o mani della Famiglia per lei, e la Famiglia non sa di lei (alleata nascosta da tutte e due le parti). Di notte passa la notte con una persona, chiunque sia (anche della Famiglia), e ne blocca la mossa. Non vota l'agguato; se resta l'ultima della Famiglia vota lei («Sei rimasta l'ultima della Famiglia: ora la notte è tua»), sempre senza sapere dei morti più di quanto è pubblico. Al Commissario risulta della Famiglia. *Nel codice.*
 - **Carceriere:** Città; ogni notte chiude in cella una persona: ne blocca la mossa e la protegge (anche dal fuoco); **niente esecuzione**; può interrogarla in una chat privata per quella notte (il prigioniero non sa chi è il Carceriere); mai la stessa persona due notti di fila; il prigioniero quella notte non usa la voce. *Nel codice.*
 - **Pacifista:** Città; una volta per partita, di giorno, svela a tutti il **ruolo esatto** di una persona e annulla il voto di quel giorno. *Nel codice.*
 - **Cupido:** la prima notte lega due persone, qualunque ruolo abbiano; gli innamorati vincono solo se sono **vivi tutti e due a fine partita** (qualunque squadra vinca); se uno muore l'altro muore subito. Si conoscono (e hanno una chat privata). *Nel codice.* In locale niente chat: gli innamorati leggono «Il tuo cuore batte per…» al loro turno della notte dopo (e a ogni turno), Cupido «Hai legato…».
@@ -49,7 +49,7 @@ Legenda livelli: **L0** nessun potere (o malus), **L1** base, **L2** medio, **L3
 | Il Cacciatore di taglie | `cacciatore` | Neutrale | Vince se la sua taglia viene linciata; se muore altrimenti passa con la Città | 9 | L2 | **È già il "Cacciatore di teste" chiesto.** Unica differenza: dopo la taglia scaduta la carta dovrebbe mostrare "Ora sei un Onesto" (oggi passa con la Città senza dirlo chiaro). |
 | Lo Strozzino | `strozzino` | Neutrale | Ogni notte protegge uno; vince se vivo a fine partita | 10 | L1 | È un secondo Dottore che non sceglie parte: aiuta chi protegge, quindi ok. |
 | Il Sicario | `sicario` | Neutrale ostile | Uccide ogni notte; risulta della Famiglia; vince solo se resta l'ultimo vivo | 12 | L3 | Ok, fermabile da protezioni e dalla cella. |
-| La Prostituta | `prostituta` | Famiglia | Blocca la mossa notturna di una persona; non vota l'agguato (lo vota se resta l'unica che può) | 9 | L2 | Anche in locale. |
+| La Prostituta | `prostituta` | Famiglia | Blocca la mossa notturna di una persona (anche della Famiglia); non sa chi è della Famiglia e la Famiglia non sa di lei; non vota l'agguato (lo vota se resta l'ultima della Famiglia) | 9 | L2 | Anche in locale. |
 | Il Carceriere | `carceriere` | Città | Chiude in cella: blocca e protegge (anche dal fuoco); chat anonima | 8 | L3 | In locale: domanda e risposta scritte. |
 | Il Pacifista | `pacifista` | Città | Una volta, di giorno: ruolo esatto di uno a tutti, niente voto | 9 | L2 | Anche in locale. |
 | Il Tiratore scelto | `tiratoreScelto` | Città | Di notte mira; di giorno spara (2 colpi); se colpisce la Città muore lui | 9 | L3 | Anche in locale. Prende il posto del Cecchino da 9. |
@@ -84,7 +84,7 @@ Nel codice (`lib/rules/role_assignment.dart`, campo `tier` in `RoleRule`, punti 
 6. **L3 della Città** (`maxStrongCitizensFor`): al massimo uno sotto gli 8 giocatori, due da 8.
 7. **Colpo extra** (Cecchino, poi Artigliere e Tiratore): uno solo, mai con Piromane o Sicario.
 8. **Contrappeso:** da 7 giocatori, se la Città usa almeno `V(n) − 1` punti e la Famiglia non ha poteri, un Picciotto ne riceve uno (se ce n'è uno ammesso dentro `F(n)`).
-9. **Sempre qualcuno che vota l'agguato** nella Famiglia: la Prostituta non lo vota (finché c'è un altro della Famiglia che può).
+9. **Sempre qualcuno che vota l'agguato** nella Famiglia: la Prostituta non lo vota (finché c'è un altro della Famiglia che può), e non conosce la Famiglia.
 10. **Neutrali** almeno uno da 9 giocatori (prima da 8), due da 11.
 
 | n | Famiglia | F(n) | N(n) | V(n) | L3 città max |
@@ -135,6 +135,8 @@ Decisione del proprietario: **stesso roster, stesse regole dei livelli** (2.2) i
 Senza i ruoli nuovi i numeri cambiano di 1–3 punti al massimo (stessa tabella: 4: 50/50, 6: 76/24, 7: 26/74, 8: 39/61, 10: 58/35/7, 11: 51/24/25, 12: 24/54/22), tranne a 11 dove il Capo della setta sposta 4–5 punti dalla Città ai neutrali: i ruoli nuovi non sbilanciano. Nella simulazione l'Artigliere spara un giorno su due dal secondo, col fiuto su uno della Famiglia, se no a caso.
 
 **Con il Tiratore scelto** (dai 9 al posto del Cecchino; 1500 partite per tavolo, con tutti i ruoli nuovi, Capo della setta e Artigliere compresi; il Tiratore di notte mira con lo stesso fiuto a uno della Famiglia, di giorno spara una volta su due): 4: 51/49, 5: 55/45, 6: 76/24, 7: 25/75, 8: 40/60, 9: 50/41/9, 10: 60/34/6, 11: 48/24/28, 12: 23/55/22. Senza nessun ruolo nuovo: 9: 45/43/11, 10: 60/33/7, 11: 52/23/25, 12: 24/57/19. Il Tiratore vince il 57% delle partite in cui c'è (l'Artigliere il 62%, il Cecchino, rimasto ai tavoli da 7 e 8, il 32%): a 9 la Città sale di qualche punto, senza passare il 60%.
+
+**Con la Prostituta al buio** (29 ottobre: non conosce la Famiglia e la Famiglia non conosce lei; 3000 partite per tavolo, `dart run tool/balance/simulate.dart`), Città/Famiglia/Neutrali con i ruoli nuovi: 9: 53/37/11, 10: 65/28/7, 11: 49/22/29, 12: 28/48/23 (prima 9: 50/41/9, 10: 60/34/6, 11: 48/24/28, 12: 23/55/22). Senza i ruoli nuovi (quindi senza Prostituta) non cambia niente: 9: 43/45/11, 10: 60/33/7, 11: 52/23/25, 12: 24/55/21. La Prostituta vince il 24% delle partite in cui c'è (prima il 39%): i bot la fanno bloccare a caso, anche la Famiglia, e la Famiglia può colpirla senza saperlo. La Famiglia perde 4–7 punti dai 9 ai 12; a 10 la Città arriva al 65%, sopra il tetto del 60%: da tenere d'occhio con le partite vere (strade: Prostituta L1 invece di L2 nel bilancio della Famiglia, o da 10 giocatori).
 
 **Prima della taratura** (regole del documento originale, stesso fiuto): 5: 67/33, 6: 80/20, 7: 26/74, 10: 61/33, **11: 17/67/16**. La taratura ha sistemato 5 (Città 67% → 56%), 8 (Famiglia 62% → 60%, Carceriere e due L3 da 8), 10 e soprattutto 11 (Famiglia 67% → 22%, due della Famiglia invece di tre).
 
@@ -241,12 +243,12 @@ Diverso dal Sindaco: il Sindaco è segreto e si rivela per un voto doppio; il Pr
 - **Testi:** «Chi chiami alla luce stanotte?» · «Hai visto la luce. Ora sei della setta.» · motto: «Non vi chiedo di credere. Vi chiedo di seguirmi.»
 
 ### 3.10 La Prostituta — `prostituta`
-Decisione del proprietario: **della Famiglia**. Anche in locale: chi è stato bloccato lo legge al suo turno della notte dopo.
+Decisione del proprietario: **vince con la Famiglia, ma non sa chi sono** (29 ottobre; prima si conoscevano). Anche in locale: chi è stato bloccato lo legge al suo turno della notte dopo.
 - **Squadra:** Famiglia · **Liv.:** L2 · **Da:** 9 · **Categoria:** potere di Famiglia (conta in `maxFamilyPowersFor`).
-- **Notte:** passa la notte con una persona (mai la stessa due notti di fila): l'azione di quella persona è annullata (una mossa da una volta sola, come lo scoop, è spesa lo stesso). Non vota l'agguato finché nella Famiglia c'è un altro che lo vota; se resta l'unica, vota l'agguato e può ancora, al suo posto, passare la notte fuori.
+- **Notte:** passa la notte con una persona (mai la stessa due notti di fila): l'azione di quella persona è annullata (una mossa da una volta sola, come lo scoop, è spesa lo stesso). Può scegliere chiunque, anche uno della Famiglia (non sa chi sono): un killer bloccato non vota l'agguato (se era l'unico, niente agguato). Non vota l'agguato finché nella Famiglia c'è un altro che lo vota; se resta l'ultima, legge «Sei rimasta l'ultima della Famiglia: ora la notte è tua», vota l'agguato e può ancora, al suo posto, passare la notte fuori. Anche allora non entra nella chat della Famiglia e dei morti sa solo quello che è pubblico (`GameEngine.isLastOfFamily`).
 - **Interazioni:** blocca Commissario, Dottore, Guardaspalle, Becchino, Portinaio, Cronista (lo scoop è speso), Messia (spesa), Tiratore (mira), Piromane, Sicario, Capo della setta, Strozzino. Non blocca Cupido (prima notte) né i poteri di giorno. Non sblocca la cella. Conta come visita per il Portinaio. In cella non agisce.
-- **Chi vede cosa:** Prostituta: il nome scelto. Famiglia: chi ha scelto (nella chat). Bloccato, all'alba: *«Stanotte qualcuno ti ha tenuto occupato.»*
-- **Voce/chat:** chat e voce della Famiglia, come gli altri.
+- **Chi vede cosa:** Prostituta: il nome scelto, e sulla carta *«Lavori per la Famiglia, ma non sai chi sia»*; nessun complice, nessuna mano della Famiglia, non sa chi della Famiglia è in cella. Famiglia: niente su di lei (non è tra i complici, non sa se è in cella, non vede chi ha scelto). Commissario: della Famiglia, come prima. Bloccato, all'alba: *«Stanotte qualcuno ti ha tenuto occupato.»*
+- **Voce/chat:** niente chat né voce della Famiglia, mai (`RoleInfo.knowsFamily`; sul server `family: false` nei diritti della chat, quindi niente stanza `family` in `voice_rules.ts`).
 - **Testi:** «Per chi canti stanotte?» · «Stanotte qualcuno ti ha tenuto occupato.» · motto: «Una canzone, un bicchiere, e la notte vola.»
 
 ### 3.11 Esclusi dal proprietario
@@ -259,7 +261,7 @@ Setacciatore (cacciatore di setta), Hacker.
 | Canale | Chi scrive | Chi parla (push-to-talk) | Quando | Note |
 |---|---|---|---|---|
 | Piazza (`day`) | Vivi, tranne il silenziato dal Sarto | Vivi, tranne il silenziato | Giorno | Il silenzio deve spegnere anche la voce |
-| Famiglia (`family`) | Famiglia viva, tranne chi è in cella | Idem | Notte (e giorno con il Compare) | Anche la Prostituta. *Nel codice.* |
+| Famiglia (`family`) | Famiglia viva, tranne chi è in cella | Idem | Notte (e giorno con il Compare) | Mai la Prostituta (non sa chi sono). *Nel codice.* |
 | Cella (`jail:<notte>`) | Carceriere (anonimo) e prigioniero | Nessuno (il prigioniero perde anche la voce della Famiglia) | Notte | Online; in locale domanda e risposta scritte (3.1). *Nel codice.* |
 | Innamorati (`lovers`, nuovo) | I due innamorati | Nessuno | Notte | Solo online |
 | Setta (`sect`, nuovo) | Capo della setta e convertiti | Nessuno | Notte | Solo online |

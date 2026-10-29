@@ -239,7 +239,11 @@ class _RoleFace extends StatelessWidget {
                 if (isMafia) ...[
                   const SizedBox(height: 20),
                   Text(
-                    teammates.isEmpty ? t.youActAlone : t.yourAccomplices,
+                    role == Role.prostituta
+                          ? t.familyUnknown
+                          : teammates.isEmpty
+                          ? t.youActAlone
+                          : t.yourAccomplices,
                     style: AppText.overline.copyWith(color: AppColors.gold),
                   ),
                   if (teammates.isNotEmpty) ...[

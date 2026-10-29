@@ -124,6 +124,8 @@ final class ItalianStrings extends AppStrings {
   @override
   String get yourAccomplices => 'I TUOI COMPLICI';
   @override
+  String get familyUnknown => 'LAVORI PER LA FAMIGLIA, MA NON SAI CHI SIA';
+  @override
   String get familyBadge => 'FAMIGLIA';
   @override
   String get townBadge => 'ONESTI';

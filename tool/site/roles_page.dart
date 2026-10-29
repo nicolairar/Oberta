@@ -187,15 +187,20 @@ $sections    </main>
   final page = index.readAsStringSync();
   final summary = RegExp(r'(<!-- roles:summary[^>]*-->\n)[\s\S]*?(\s*<!-- roles:summary:end -->)');
   if (summary.hasMatch(page)) {
+    // La Prostituta gioca per la Famiglia senza conoscerla: si dice a parte.
     String names(Team team) {
-      final list = [for (final e in rolesOfTeam(team)) _bare(italianPack.roles[e.role]?.label ?? e.id)];
+      final list = [
+        for (final e in rolesOfTeam(team))
+          if (e.role != Role.prostituta) _bare(italianPack.roles[e.role]?.label ?? e.id),
+      ];
       return list.length < 2 ? list.join() : '${list.sublist(0, list.length - 1).join(', ')} e ${list.last}';
     }
 
     final count = _words(total);
     final text =
         '          <p>${count[0].toUpperCase()}${count.substring(1)} ruoli, ognuno con la sua icona. '
-        'La <strong>famiglia</strong> si conosce e uccide di notte: ${_esc(names(Team.mafia))}. '
+        'La <strong>famiglia</strong> si conosce e uccide di notte: ${_esc(names(Team.mafia))}; '
+        'con loro gioca la ${_esc(_bare(italianPack.roles[Role.prostituta]!.label))}, che non sa chi sono e non vota l\'agguato. '
         'La <strong>città</strong> indaga, protegge e vota: ${_esc(names(Team.citizens))}. '
         'E poi i <strong>solitari</strong>, che giocano per sé: ${_esc(names(Team.neutral))}.</p>';
     index.writeAsStringSync(page.replaceFirstMapped(summary, (m) => '${m[1]}$text${m[2]}'));

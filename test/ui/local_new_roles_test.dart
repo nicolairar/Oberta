@@ -5,7 +5,7 @@ import 'package:oberta/rules/role.dart';
 import 'package:oberta/ui/widgets/death_scene.dart';
 
 import '../support/local_game.dart';
-import 'game_screen_test.dart' show pumpGame;
+import 'game_screen_test.dart' show pumpGame, seat, table, watchVerdict;
 
 // Sul telefono unico: la cella con la domanda e la risposta scritte, il
 // blocco della Prostituta letto al turno dopo, la tregua del Pacifista
@@ -100,6 +100,57 @@ void main() {
     expect(curtainName(tester), '5 ELIO');
     await tapKey(tester, 'local.itsMe');
     expect(find.text('Ieri notte qualcuno ti ha tenuto occupato: la tua mossa è saltata.'), findsOneWidget);
+  });
+
+  testWidgets('la Prostituta gioca al buio: non vede la Famiglia, la blocca; rimasta sola, la notte è sua', (tester) async {
+    await pumpGame(tester, deal: {
+      ada: Role.mafioso,
+      bruno: Role.cittadino,
+      carla: Role.cittadino,
+      dino: Role.cittadino,
+      elio: Role.cittadino,
+      fabio: Role.prostituta,
+    });
+    await tapLabel(tester, 'COMINCIA LA NOTTE');
+    // La Famiglia non sa di lei.
+    expect(curtainName(tester), contains('ADA'));
+    await tapKey(tester, 'local.itsMe');
+    expect(seat(tester, fabio).note, isNull);
+    await tapSeat(tester, dino);
+    await tapKey(tester, 'local.confirm');
+    await tapKey(tester, 'local.done');
+    for (final player in [bruno, carla, dino, elio]) {
+      await nightTurn(tester, player);
+    }
+    // Lei non sa chi è della Famiglia, non vede le mani, e blocca proprio Ada.
+    expect(curtainName(tester), contains('FABIO'));
+    await tapKey(tester, 'local.itsMe');
+    expect(find.text('Per chi canti stanotte?'), findsOneWidget);
+    expect(seat(tester, ada).note, isNull);
+    expect(table(tester).votes, isEmpty);
+    expect(table(tester).selectable, contains(ada));
+    expect(find.textContaining('ultima della Famiglia'), findsNothing);
+    await tapSeat(tester, ada);
+    await tapKey(tester, 'local.confirm');
+    await tapKey(tester, 'local.done');
+
+    // Ada era ferma: stanotte non muore nessuno. Di giorno la piazza la lincia.
+    await _toTheDay(tester);
+    expect(seat(tester, dino).fallen, isFalse, reason: 'l\'agguato bloccato non parte');
+    await tapKey(tester, 'local.toVote');
+    await openVote(tester, [ada, bruno, carla, dino, elio, fabio], {bruno: ada, carla: ada, dino: ada, elio: ada});
+    await watchVerdict(tester);
+    await tapKey(tester, 'local.afterVerdict');
+
+    // La notte dopo: Ada ha letto che era occupata; Fabio è l'ultima, e vota lei.
+    await tapLabel(tester, 'COMINCIA LA NOTTE');
+    for (final player in [bruno, carla, dino, elio]) {
+      await nightTurn(tester, player);
+    }
+    expect(curtainName(tester), contains('FABIO'));
+    await tapKey(tester, 'local.itsMe');
+    expect(find.text('Sei rimasta l\'ultima della Famiglia: ora la notte è tua.'), findsOneWidget);
+    expect(find.text('Chi eliminate stanotte?'), findsOneWidget);
   });
 
   testWidgets('Cupido lega due persone in due tocchi; gli innamorati lo leggono al turno dopo', (tester) async {

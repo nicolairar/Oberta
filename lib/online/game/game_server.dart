@@ -660,7 +660,8 @@ class ServerGame {
           if (occupant.profileId != null)
             occupant.seat: {
               'alive': _alive(occupant.seat),
-              'family': engine.viewFor(occupant.seat).team == Team.mafia,
+              // La Famiglia che si conosce: la Prostituta mai (né chat né voce).
+              'family': engine.setup.roleOf(seating.playerAt(occupant.seat)).knowsFamily,
               // Il motore decide: il Sarto ha cucito, il Compare apre la
               // chat della famiglia anche di giorno.
               'silenced': stage.chat == 'day' && engine.viewFor(occupant.seat).silenced,

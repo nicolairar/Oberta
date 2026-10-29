@@ -409,3 +409,28 @@ Deno.test('the lovers: their chat only for the two of them, at night', async () 
   assert(refused.includes('chat_closed'), refused);
   await pg.close();
 });
+
+Deno.test('the Prostitute plays blind: no family rights or names for her, nothing about her for the family', () => {
+  const seats = Array.from({ length: 12 }, (_, i) => ({ seat: `s${i + 1}`, profile_id: `p${i + 1}`, name: `human${i + 1}` }));
+  const now = Date.UTC(2026, 9, 29, 21);
+  type Seen = { role: string; team: string; teammates?: string[]; known?: { seat: string }[] };
+  let checked = 0;
+  for (let seed = 1; seed <= 80; seed++) {
+    const out = step({ state: null, seats, language: 'it', now, intents: [], seed });
+    const views = Object.fromEntries(Object.entries(out.seatViews).map(([seat, payload]) => [seat, payload.view as Seen]));
+    const hooker = Object.keys(views).find((seat) => views[seat].role === 'prostituta');
+    if (!hooker) continue;
+    checked++;
+    assertEquals(views[hooker].team, 'mafia', 'she knows her own side');
+    assertEquals(views[hooker].teammates ?? [], [], 'she knows no accomplice');
+    assertEquals(views[hooker].known ?? [], [], 'she knows nobody');
+    assertEquals(out.chat.seats[hooker].family, false, 'no family chat or voice for her');
+    for (const [seat, view] of Object.entries(views)) {
+      if (seat === hooker || view.team !== 'mafia') continue;
+      assert(!(view.teammates ?? []).includes(hooker), `seed ${seed}: ${seat} sees her as an accomplice`);
+      assert(!(view.known ?? []).some((k) => k.seat === hooker), `seed ${seed}: ${seat} knows her`);
+      assertEquals(out.chat.seats[seat].family, true, `${seat} is in the family room`);
+    }
+  }
+  assert(checked > 0, 'some deal has a Prostitute');
+});

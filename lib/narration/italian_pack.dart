@@ -120,7 +120,7 @@ const italianPack = NarrationPack(
     Role.prostituta: RoleText(
       'La Prostituta',
       '«Una canzone, un bicchiere, e la notte vola.»',
-      'Sei della Famiglia ma non voti l\'agguato: ogni notte blocchi la mossa di una persona, mai la stessa due notti di fila. Se resti sola a poter votare, voti tu.',
+      'Giochi per la Famiglia, ma non sai chi sono e loro non sanno di te. Ogni notte blocchi la mossa di chiunque, mai lo stesso due notti di fila. Se resti l\'ultima, voti tu.',
     ),
     Role.carceriere: RoleText(
       'Il Carceriere',

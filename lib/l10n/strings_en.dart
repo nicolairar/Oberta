@@ -126,6 +126,8 @@ final class EnglishStrings extends AppStrings {
   @override
   String get yourAccomplices => 'YOUR ACCOMPLICES';
   @override
+  String get familyUnknown => 'YOU WORK FOR THE FAMILY, BUT YOU DON\'T KNOW WHO THEY ARE';
+  @override
   String get familyBadge => 'FAMILY';
   @override
   String get townBadge => 'TOWN';
