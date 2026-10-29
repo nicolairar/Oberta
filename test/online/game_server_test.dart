@@ -262,6 +262,34 @@ void main() {
     expect(botDue.every((d) => d <= endsAt - 3000), isTrue);
   });
 
+  // QA P1-1: a bot Sindaco who revealed himself never voted that day, and
+  // the server asked to be woken in 1970 (`nextDue` 0) until the deadline.
+  test('un bot Sindaco che si rivela vota lo stesso, e il server non si dà mai appuntamenti nel passato', () {
+    var reveals = 0;
+    for (var seed = 1; seed <= 60 && reveals < 3; seed++) {
+      final server = ServerHarness(table(humans: 1, bots: 11), seed: seed);
+      final random = Random(seed);
+      server.step();
+      String? revealed;
+      for (var i = 0; i < 3000 && server.last['finished'] != true; i++) {
+        if (!humansAct(server, random)) server.now = server.last['nextDue'] as int;
+        server.step();
+        if (server.last['finished'] == true) break;
+        expect(server.last['nextDue'], greaterThan(server.now), reason: 'seed=$seed, passo $i: il prossimo appuntamento è già passato');
+        final state = server.state!;
+        final seating = Seating.fromJson(state['seating'] as Map<String, Object?>);
+        final engine = GameEngine.fromSnapshot(GameSnapshot.fromJson(state['snapshot'] as Map<String, Object?>, seating.playerAt));
+        final mayor = engine.mayor;
+        if (server.stage != Stage.vote || mayor == null || seating.profileOf(mayor.id) != null) continue;
+        expect(engine.dayVotes.containsKey(mayor), isTrue, reason: 'seed=$seed: il Sindaco ${mayor.id} si è rivelato e non ha votato');
+        if (revealed != mayor.id) reveals++;
+        revealed = mayor.id;
+      }
+      expect(server.last['finished'], isTrue, reason: 'seed=$seed: la partita non finisce');
+    }
+    expect(reveals, greaterThan(0), reason: 'nessun bot Sindaco si è rivelato: il test non prova niente');
+  });
+
   test('una conferma sola non basta, e chi non è collegato non blocca', () {
     final server = ServerHarness(table(humans: 3, bots: 1));
     server.step();

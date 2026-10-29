@@ -72,6 +72,41 @@ Deno.test('engine.js plays whole games: deal, moves, acks, bots, deadlines, the 
   }
 });
 
+// QA P1-1: a bot Sindaco who revealed himself kept the "acted" mark (epoch 0)
+// while still owing his vote, and next_due_at became 1970: game_tick stepped
+// that game on every tick until the deadline.
+Deno.test('engine.js never asks to be woken in the past, even when a bot Sindaco reveals himself', () => {
+  let mayors = 0;
+  for (let seed = 1; seed <= 40; seed++) {
+    const seats = [
+      { seat: 's1', profile_id: 'p1', name: 'anna' },
+      ...Array.from({ length: 11 }, (_, i) => ({ seat: `s${i + 2}`, profile_id: null, name: `bot.${i}` })),
+    ];
+    let now = Date.UTC(2026, 9, 17, 20);
+    let out: StepOutput = step({ state: null, seats, language: 'it', now, intents: [], seed });
+    let id = 0;
+    const acted = new Map<string, string>();
+    for (let i = 0; i < 3000 && !out.finished; i++) {
+      const schedule = out.board.schedule as { stage: string; key: string };
+      const intents = [];
+      const view = out.seatViews.s1.view as View;
+      if (acted.get('s1') !== schedule.key) {
+        const move = moveFor(view);
+        if (move) intents.push({ id: ++id, seat: 's1', intent: move });
+        else if (ackStages.has(schedule.stage) && view.alive) intents.push({ id: ++id, seat: 's1', intent: { type: 'ack', seat: 's1', stage: schedule.key } });
+        acted.set('s1', schedule.key);
+      }
+      if (intents.length === 0) now = out.nextDue!;
+      out = step({ state: out.state, seats, language: 'it', now, intents, seed: seed * 1000 + i });
+      if (out.finished) break;
+      assert(out.nextDue! > now, `game ${seed}, step ${i}: next due ${out.nextDue} is not after now ${now}`);
+      if ((out.board.board as { mayor?: string | null }).mayor) mayors++;
+    }
+    assert(out.finished, `game ${seed} ends`);
+  }
+  assert(mayors > 0, 'no Sindaco ever revealed himself: the test proves nothing');
+});
+
 // ---------------------------------------------------------------------------
 
 function pgliteDb(pg: PGlite): Db {

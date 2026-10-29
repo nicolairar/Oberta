@@ -686,7 +686,11 @@ class ServerGame {
   DateTime? nextDue([OnlinePacing pacing = const OnlinePacing()]) {
     if (finished) return null;
     var soonest = window.due(pacing);
-    for (final due in botDue.values) {
+    for (final MapEntry(key: seat, value: due) in botDue.entries) {
+      // Un bot che ha già agito (o non ha più niente da fare) non è un
+      // appuntamento: il suo segno è il 1970, e il server non va svegliato
+      // a ogni giro fino alla scadenza.
+      if (_hasActed(due) || !_botWaiting(seat)) continue;
       if (due.isBefore(soonest)) soonest = due;
     }
     final hold = settleUntil;
@@ -929,21 +933,32 @@ class ServerGame {
     }
   }
 
+  /// Il segno di chi ha già agito in questa fase: resta in [botDue] finché
+  /// la fase non cambia, così non agisce due volte. Non è un'ora.
+  static final _acted = DateTime.fromMillisecondsSinceEpoch(0);
+
+  static bool _hasActed(DateTime due) => due.millisecondsSinceEpoch == 0;
+
   String? _dueBot(DateTime now) {
     String? first;
     for (final MapEntry(key: seat, value: due) in botDue.entries) {
-      if (due.millisecondsSinceEpoch == 0 || now.isBefore(due) || !_botWaiting(seat)) continue;
+      if (_hasActed(due) || now.isBefore(due) || !_botWaiting(seat)) continue;
       if (first == null || due.isBefore(botDue[first]!)) first = seat;
     }
     return first;
   }
 
   void _botActs(String seat) {
-    // Resta in botDue (agito) finché la fase non cambia: non agisce due volte.
-    botDue[seat] = DateTime.fromMillisecondsSinceEpoch(0);
-    // Il bot vede solo la sua vista, come un telefono.
-    final intent = _brain.decide(engine.viewFor(seat)) ?? Pass(seat);
-    if (!engine.apply(intent).accepted) engine.apply(Pass(seat));
+    botDue[seat] = _acted;
+    // Il bot vede solo la sua vista, come un telefono. Rivelarsi non è un
+    // voto: il Sindaco che si è appena rivelato vota subito dopo (ed è il
+    // voto che oggi vale doppio).
+    for (var move = 0; move < 2 && _botWaiting(seat); move++) {
+      final intent = _brain.decide(engine.viewFor(seat)) ?? Pass(seat);
+      final accepted = engine.apply(intent).accepted;
+      if (!accepted) engine.apply(Pass(seat));
+      if (!accepted || intent is! RevealMayor) break;
+    }
   }
 }
 
