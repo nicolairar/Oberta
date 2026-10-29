@@ -70,7 +70,15 @@ class HomeAlleyLayout {
   /// La striscia in basso dove si batte a macchina la didascalia.
   late final Rect caption;
 
-  HomeAlleyLayout(this.size, this.safe) {
+  /// Quanto spazio tenere sotto l'insegna per il biglietto del tutorial (0:
+  /// nessun biglietto). I manifesti, il lampione e l'uomo scendono di tanto.
+  final double note;
+
+  /// Dove sta il biglietto, sotto le lettere e sopra i manifesti (null se
+  /// non c'è).
+  late final Rect? noteSlot;
+
+  HomeAlleyLayout(this.size, this.safe, {this.note = 0}) {
     final w = size.width;
     final h = size.height;
     final top = safe.top;
@@ -108,7 +116,8 @@ class HomeAlleyLayout {
     ground = wall.ground;
     curb = wall.curb;
 
-    final zoneTop = sign.bottom + cap * 0.34;
+    noteSlot = note > 0 ? Rect.fromLTWH(sign.left, sign.bottom + 2, sign.width, note) : null;
+    final zoneTop = max(sign.bottom + cap * 0.34, (noteSlot?.bottom ?? 0) + 8);
     final zone = ground - 12 - zoneTop;
     final column = w * 0.275;
     final left = column + 2;
@@ -179,10 +188,10 @@ class HomeAlleyLayout {
   ];
 
   @override
-  bool operator ==(Object other) => other is HomeAlleyLayout && other.size == size && other.safe == safe;
+  bool operator ==(Object other) => other is HomeAlleyLayout && other.size == size && other.safe == safe && other.note == note;
 
   @override
-  int get hashCode => Object.hash(size, safe);
+  int get hashCode => Object.hash(size, safe, note);
 }
 
 /// Le cose fisse sul muro del vicolo: i colpi della raffica e la targa col

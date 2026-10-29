@@ -95,6 +95,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
   /// lettera in corto, nessun gatto, la sigaretta accesa.
   static const _quietMoment = 0.105;
 
+  /// L'altezza del biglietto del tutorial: due righe di testo, o la x per
+  /// buttarlo, col suo margine.
+  static const _noteRoom = 54.0;
+
   late final AnimationController _ambient = AnimationController(
     vsync: this,
     duration: Duration(milliseconds: (HomeStreetPainter.loop * 1000).round()),
@@ -566,7 +570,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
       body: MediaQuery.withNoTextScaling(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final layout = HomeAlleyLayout(constraints.biggest, MediaQuery.paddingOf(context));
+            // Al primo avvio, sotto l'insegna, il biglietto del tutorial: i
+            // manifesti gli fanno posto.
+            final note = widget.offerTutorial && !AppSettings.instance.tutorialSeen;
+            final layout = HomeAlleyLayout(constraints.biggest, MediaQuery.paddingOf(context), note: note ? _noteRoom : 0);
             // Su desktop non c'è «Un telefono per tutti»: restano gli amici
             // e la classificata, alti quanto tutta la zona dei manifesti.
             final desktop = DesktopPlatform.isDesktop;
@@ -649,15 +656,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                       ),
                     ),
                   ),
-                  if (widget.offerTutorial && !AppSettings.instance.tutorialSeen)
-                    Positioned(
-                      left: layout.sign.left,
-                      width: layout.sign.width,
-                      top: layout.sign.bottom + 2,
+                  if (layout.noteSlot case final slot?)
+                    Positioned.fromRect(
+                      rect: slot,
+                      // Sta sempre tutto nel suo posto: se il testo va a capo
+                      // più del solito (una lingua lunga) si stringe un poco.
                       child: Center(
-                        child: TutorialNote(
-                          onOpen: () => TutorialScreen.open(context),
-                          onDismiss: () => setState(() => AppSettings.instance.tutorialSeen = true),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(maxWidth: slot.width),
+                            child: TutorialNote(
+                              onOpen: () => TutorialScreen.open(context),
+                              onDismiss: () => setState(() => AppSettings.instance.tutorialSeen = true),
+                            ),
+                          ),
                         ),
                       ),
                     ),
