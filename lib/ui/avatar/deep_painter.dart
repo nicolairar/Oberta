@@ -130,7 +130,8 @@ abstract final class _Deep {
           for (var i = 0; i < n; i++) {
             final x0 = box.left - 0.05 + i * fw;
             final centre = (x0 + fw / 2 - h.dx).abs();
-            final tall = height * (1 - centre * 0.9).clamp(0.25, 1.0) * (0.75 + 0.25 * sin(i * 2.3 + row));
+            // Tallest at the sides, where the shoulders do not hide them.
+            final tall = height * (0.4 + centre * 1.5).clamp(0.4, 1.2) * (0.75 + 0.25 * sin(i * 2.3 + row));
             final tip = Offset(x0 + fw * (0.5 + 0.25 * sin(i * 1.7 + row * 2)), box.bottom - tall);
             p.quadraticBezierTo(x0 + fw * 0.05, box.bottom - tall * 0.45, tip.dx, tip.dy);
             p.quadraticBezierTo(x0 + fw * 0.85, box.bottom - tall * 0.4, x0 + fw, box.bottom - tall * 0.12);
@@ -327,14 +328,16 @@ abstract final class _Deep {
         // Il golfo al tramonto: il cielo rosa e arancio, il vulcano col suo
         // pennacchio, il mare a strisce, una barca.
         c.drawRect(box, Paint()..shader = ui.Gradient.linear(box.topCenter, box.bottomCenter, const [Color(0xFF3A1E4A), Color(0xFFC8505A), Color(0xFFFFB45A)], const [0, 0.5, 0.78]));
-        final sun = Offset(h.dx - 0.22, box.bottom - 0.3);
+        // The sun and the volcano beside the head, above the shoulders: low
+        // down the bust hides them.
+        final sun = Offset(h.dx - 0.33, box.bottom - 0.44);
         c.drawCircle(sun, 0.11, fill(const Color(0xFFFFE08A)));
-        final volcano = Offset(h.dx + 0.24, box.bottom - 0.27);
+        final volcano = Offset(h.dx + 0.36, box.bottom - 0.42);
         final mountain = Path()
-          ..moveTo(volcano.dx - 0.5, box.bottom - 0.2)
+          ..moveTo(volcano.dx - 0.5, box.bottom - 0.3)
           ..quadraticBezierTo(volcano.dx - 0.2, volcano.dy - 0.06, volcano.dx - 0.07, volcano.dy - 0.17)
           ..lineTo(volcano.dx + 0.07, volcano.dy - 0.17)
-          ..quadraticBezierTo(volcano.dx + 0.2, volcano.dy - 0.06, volcano.dx + 0.55, box.bottom - 0.2)
+          ..quadraticBezierTo(volcano.dx + 0.2, volcano.dy - 0.06, volcano.dx + 0.55, box.bottom - 0.3)
           ..close();
         c.drawPath(mountain, fill(const Color(0xFF4A2A3E)));
         c.drawPath(Path.combine(PathOperation.difference, mountain, mountain.shift(const Offset(-0.04, 0))), fill(const Color(0xFF3A1E30)));
@@ -342,7 +345,7 @@ abstract final class _Deep {
         for (var j = 0; j < 4; j++) {
           c.drawCircle(Offset(volcano.dx - 0.02 + j * 0.03 + sin(j * 1.3) * 0.02, volcano.dy - 0.24 - j * 0.07), 0.045 + j * 0.014, fill(Color.lerp(const Color(0xFF6A5A6E), const Color(0xFFB8A0B0), j / 3)!.withValues(alpha: 0.85)));
         }
-        final sea = Rect.fromLTRB(box.left, box.bottom - 0.2, box.right, box.bottom);
+        final sea = Rect.fromLTRB(box.left, box.bottom - 0.3, box.right, box.bottom);
         c.drawRect(sea, fill(const Color(0xFF2A3A6A)));
         if (!_small) {
           for (var j = 0; j < 6; j++) {
@@ -1112,23 +1115,25 @@ abstract final class _Deep {
         }
       case FrontFx.petals:
         for (final (x, y, turn) in [(0.12, 0.3, 0.5), (0.86, 0.22, -0.7), (0.82, 0.55, 1.2), (0.16, 0.62, -0.4), (0.3, 0.14, 0.2)]) {
-          at(c, Offset(x, y), 1, turn, () {
+          at(c, Offset(x, y), _small ? 1.7 : 1.2, turn, () {
             final p = Path()
               ..moveTo(0, -0.024)
-              ..quadraticBezierTo(0.026, 0, 0, 0.024)
-              ..quadraticBezierTo(-0.012, 0, 0, -0.024)
+              ..quadraticBezierTo(0.04, -0.004, 0, 0.024)
+              ..quadraticBezierTo(-0.03, 0, 0, -0.024)
               ..close();
-            piece(c, [(p, const Color(0xFFC8283A))], d: 0.006, weight: 0.35);
+            piece(c, [(p, const Color(0xFFE8475C))], d: 0.006, weight: 0.35);
+            c.drawLine(const Offset(0, -0.014), const Offset(0.004, 0.012), line(const Color(0xAAFFC2CC), _thin * 0.8));
           });
         }
       case FrontFx.sparkles:
         for (final (x, y, s) in [(0.14, 0.22, 0.032), (0.86, 0.3, 0.026), (0.9, 0.62, 0.018), (0.1, 0.55, 0.022)]) {
-          c.drawPath(star(Offset(x, y), s * 1.5, 4, 0.25), fill(const Color(0x44FFE2A0)));
-          c.drawPath(star(Offset(x, y), s, 4, 0.25), fill(const Color(0xFFFFF0C0)));
+          final k = _small ? 1.5 : 1.0;
+          c.drawPath(star(Offset(x, y), s * 1.5 * k, 4, 0.25), fill(const Color(0x44FFE2A0)));
+          c.drawPath(star(Offset(x, y), s * k, 4, 0.25), fill(const Color(0xFFFFF0C0)));
         }
       case FrontFx.bats:
         for (final (x, y, s) in [(0.14, 0.18, 1.1), (0.85, 0.12, 0.9), (0.9, 0.42, 0.7)]) {
-          at(c, Offset(x, y), s, 0, () {
+          at(c, Offset(x, y), s * (_small ? 1.5 : 1.0), 0, () {
             final bat = Path();
             for (final side in [1.0, -1.0]) {
               bat
@@ -1140,7 +1145,7 @@ abstract final class _Deep {
                 ..close();
             }
             c.drawPath(bat, fill(const Color(0xFF0C0614)));
-            c.drawPath(bat, line(const Color(0x993FE0D0), _thin * 0.6));
+            c.drawPath(bat, line(const Color(0xCC3FE0D0), _thin * (_small ? 1.0 : 0.6)));
           });
         }
       case FrontFx.yarn:
@@ -1191,11 +1196,12 @@ abstract final class _Deep {
         }
       case FrontFx.fireflies:
         // Le lucciole d'estate in campagna.
-        for (var j = 0; j < (_small ? 5 : 9); j++) {
+        for (var j = 0; j < 9; j++) {
           final p = Offset(0.06 + (j * 0.618 % 1) * 0.88, 0.1 + (j * 0.381 % 1) * 0.6);
           if ((p.dx - g.cx).abs() < g.width * 0.6 && p.dy < g.chin) continue;
-          c.drawCircle(p, 0.028, fill(const Color(0x33D8FF6A)));
-          c.drawCircle(p, 0.012, fill(const Color(0xFFEFFF9A)));
+          final k = _small ? 1.5 : 1.0;
+          c.drawCircle(p, 0.03 * k, fill(const Color(0x40D8FF6A)));
+          c.drawCircle(p, 0.013 * k, fill(const Color(0xFFEFFF9A)));
         }
     }
   }
