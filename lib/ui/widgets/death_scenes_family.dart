@@ -723,75 +723,17 @@ extension _FamilyFilms on DeathScenePainter {
     Offset hand,
     Offset along, {
     required bool loaded,
-  }) {
-    final h = _u * 1.08;
-    final across = Offset(-along.dy, along.dx);
-    Offset p(double x, double y) => hand + along * (h * x) + across * (h * y);
-    final stock = [
-      p(-0.20, -0.03),
-      p(0.04, -0.028),
-      p(0.04, 0.028),
-      p(-0.02, 0.03),
-      p(-0.04, 0.10),
-      p(-0.09, 0.10),
-      p(-0.08, 0.035),
-      p(-0.20, 0.04),
-    ];
-    canvas.drawPath(
-      Path()..addPolygon(stock, true),
-      Paint()..color = const Color(0xFF7A5231),
-    );
-    canvas.drawLine(
-      p(0.0, 0.0),
-      p(0.32, 0.0),
-      Paint()
-        ..color = const Color(0xFF8E959E)
-        ..strokeWidth = h * 0.032,
-    );
-    canvas.drawLine(
-      p(0.02, -0.010),
-      p(0.31, -0.010),
-      Paint()
-        ..color = Colors.white.withValues(alpha: 0.5)
-        ..strokeWidth = h * 0.007,
-    );
-    // Il rocchetto della sagola, sotto la canna.
-    canvas.drawCircle(
-      p(0.10, 0.045),
-      h * 0.035,
-      Paint()..color = const Color(0xFF3B4048),
-    );
-    canvas.drawCircle(p(0.10, 0.045), h * 0.018, Paint()..color = _cream);
-    if (loaded) _harpoonSpear(canvas, p(0.42, 0.0), along);
-  }
+  }) => _loose(
+    canvas,
+    loaded ? NoirWeapon.speargun : NoirWeapon.speargunEmpty,
+    hand,
+    along,
+    _u * 1.08,
+  );
 
-  /// L'arpione: asta d'acciaio e punta con le alette, che punta verso [dir].
-  void _harpoonSpear(Canvas canvas, Offset tip, Offset dir) {
-    final d = dir / max(dir.distance, 0.001);
-    final side = Offset(-d.dy, d.dx);
-    canvas.drawLine(
-      tip - d * (_u * 0.26),
-      tip - d * (_u * 0.05),
-      Paint()
-        ..color = _steelF
-        ..strokeWidth = _u * 0.016,
-    );
-    final head = Path()
-      ..addPolygon([
-        tip,
-        tip - d * (_u * 0.10) + side * (_u * 0.045),
-        tip - d * (_u * 0.065),
-        tip - d * (_u * 0.10) - side * (_u * 0.045),
-      ], true);
-    canvas.drawPath(head, Paint()..color = const Color(0xFFE6EAEE));
-    canvas.drawPath(
-      head,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = _u * 0.006
-        ..color = _inkF,
-    );
-  }
+  /// La fiocina: asta d'acciaio e punta con l'aletta, che punta verso [dir].
+  void _harpoonSpear(Canvas canvas, Offset tip, Offset dir) =>
+      _loose(canvas, NoirWeapon.harpoon, tip, dir, _u * 1.08);
 
   /// La sagola: da [from] a [to], con la pancia che si tende fino a sparire.
   void _rope(Canvas canvas, Offset from, Offset to, double slack) {
@@ -847,7 +789,7 @@ extension _FamilyFilms on DeathScenePainter {
       elbow: elbow,
     );
     _harpoonGun(canvas, hand, along, loaded: t < fire);
-    final muzzle = hand + along * (_u * 1.08 * 0.32);
+    final muzzle = NoirWeapons.muzzleOf(NoirWeapon.speargunEmpty, hand, along, NoirWeapons.perMetre(_u * 1.08));
     _wall(canvas);
 
     // L'arpione vola dalla canna al petto; poi la sagola si tende e tira.
@@ -858,7 +800,7 @@ extension _FamilyFilms on DeathScenePainter {
       arm: 1.5,
       elbow: elbow,
     );
-    final launch = aimHand + aimAlong * (_u * 1.08 * 0.42);
+    final launch = NoirWeapons.muzzleOf(NoirWeapon.speargun, aimHand, aimAlong, NoirWeapons.perMetre(_u * 1.08));
     final chest = Offset(_victimX + _u * 0.10, _ground - _u * 0.74);
     final topple = _span(t, 0.605, 0.635);
     final drag = Curves.easeIn.transform(_span(t, 0.635, 0.70));
@@ -951,7 +893,7 @@ extension _FamilyFilms on DeathScenePainter {
       final slack = fly < 1
           ? 0.25 * fly
           : 0.25 * (1 - _smooth(_span(t, _hit, 0.60)));
-      final tail = tip - dir / max(dir.distance, 0.001) * (_u * 0.26);
+      final tail = tip - dir / max(dir.distance, 0.001) * (NoirWeapons.lengthOf(NoirWeapon.harpoon) * NoirWeapons.perMetre(_u * 1.08));
       // La sagola resta tesa dalla canna all'arpione per tutto il traino,
       // anche quando il corpo finisce sotto il fucile; dietro l'angolo
       // sparisce con lui.
@@ -1087,37 +1029,14 @@ extension _FamilyFilms on DeathScenePainter {
     Offset center,
     double spin, {
     bool lever = true,
-  }) {
-    final r = _u * 0.055;
-    canvas.save();
-    canvas.translate(center.dx, center.dy);
-    canvas.rotate(spin);
-    canvas.drawOval(
-      Rect.fromCenter(center: Offset.zero, width: r * 1.7, height: r * 2.1),
-      Paint()..color = const Color(0xFF4B5A2A),
-    );
-    final grid = Paint()
-      ..color = const Color(0xFF2C3518)
-      ..strokeWidth = r * 0.12;
-    for (final y in [-0.45, 0.0, 0.45]) {
-      canvas.drawLine(Offset(-r * 0.8, r * y), Offset(r * 0.8, r * y), grid);
-    }
-    canvas.drawLine(Offset(0, -r), Offset(0, r), grid);
-    canvas.drawRect(
-      Rect.fromLTRB(-r * 0.30, -r * 1.35, r * 0.30, -r * 0.95),
-      Paint()..color = const Color(0xFF6B7078),
-    );
-    if (lever) {
-      canvas.drawLine(
-        Offset(r * 0.25, -r * 1.25),
-        Offset(r * 0.75, -r * 0.2),
-        Paint()
-          ..color = const Color(0xFF9AA0A7)
-          ..strokeWidth = r * 0.22,
-      );
-    }
-    canvas.restore();
-  }
+  }) => _weapons.held(
+    canvas,
+    lever ? NoirWeapon.grenade : NoirWeapon.grenadeLive,
+    center,
+    Offset(cos(spin), sin(spin)),
+    NoirWeapons.perMetre(_u),
+    fist: false,
+  );
 
   void _pie(Canvas canvas) {
     final (walkX, walk, stride) = _entrance();

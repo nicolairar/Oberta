@@ -14,6 +14,7 @@ import 'city_backdrop.dart';
 import 'noir_avatar.dart';
 import 'particle_sprites.dart';
 import 'victim_card.dart';
+import 'weapons/noir_weapons.dart';
 import '../press.dart';
 import '../theme/script_fonts.dart';
 
@@ -549,7 +550,6 @@ enum _Prop {
   none,
   knife,
   pistol,
-  silenced,
   tommy,
   cup,
   box,
@@ -783,7 +783,7 @@ class DeathScenePainter extends CustomPainter {
       case DeathAct.knife:
         _knife(canvas);
       case DeathAct.gun:
-        _shooting(canvas, const [strike], _Prop.silenced);
+        _shooting(canvas, const [strike], _Prop.pistol);
       case DeathAct.burst:
         _shooting(canvas, const [0.55, 0.575, 0.60, 0.625, 0.65], _Prop.tommy);
       case DeathAct.car:
@@ -1278,7 +1278,11 @@ class DeathScenePainter extends CustomPainter {
         return (hand, _aim(angle + bend));
       }
 
-      armAt(Offset(-h * 0.03 * broad, -h * 0.325), backArm - swing, backElbow);
+      // Chi tiene un'arma a due mani ci tiene sopra anche la mano di dietro.
+      final (back, backBend) = _twoHanded(prop)
+          ? _support(prop, arm + swing, elbow, broad)
+          : (backArm - swing, backElbow);
+      armAt(Offset(-h * 0.03 * broad, -h * 0.325), back, backBend);
 
       // Il soprabito: spalle larghe, vita segnata, la falda che si apre dietro.
       final flare = h * (0.04 + 0.05 * stride * (0.5 + 0.5 * sin(walk * 2)));
@@ -1588,347 +1592,144 @@ class DeathScenePainter extends CustomPainter {
     }
   }
 
-  void _drawPistol(
-    Canvas canvas,
-    Offset hand,
-    Offset along,
-    Offset across,
-    double h, {
-    bool suppressed = false,
-  }) {
-    Offset p(double x, double y) => hand + along * (h * x) + across * (h * y);
-    final frame = Paint()..color = const Color(0xFF282B31);
-    final slide = Paint()..color = const Color(0xFF525862);
-    final wood = Paint()..color = const Color(0xFF65432F);
-    canvas.drawPath(
-      Path()
-        ..moveTo(p(-0.055, -0.025).dx, p(-0.055, -0.025).dy)
-        ..lineTo(p(0.20, -0.025).dx, p(0.20, -0.025).dy)
-        ..lineTo(p(0.23, -0.014).dx, p(0.23, -0.014).dy)
-        ..lineTo(p(0.23, 0.018).dx, p(0.23, 0.018).dy)
-        ..lineTo(p(0.10, 0.026).dx, p(0.10, 0.026).dy)
-        ..lineTo(p(0.08, 0.075).dx, p(0.08, 0.075).dy)
-        ..lineTo(p(0.02, 0.150).dx, p(0.02, 0.150).dy)
-        ..lineTo(p(-0.045, 0.140).dx, p(-0.045, 0.140).dy)
-        ..lineTo(p(-0.010, 0.050).dx, p(-0.010, 0.050).dy)
-        ..lineTo(p(-0.060, 0.045).dx, p(-0.060, 0.045).dy)
-        ..close(),
-      frame,
-    );
-    canvas.drawPath(
-      Path()
-        ..moveTo(p(-0.04, -0.035).dx, p(-0.04, -0.035).dy)
-        ..lineTo(p(0.22, -0.035).dx, p(0.22, -0.035).dy)
-        ..lineTo(p(0.22, -0.010).dx, p(0.22, -0.010).dy)
-        ..lineTo(p(-0.04, -0.010).dx, p(-0.04, -0.010).dy)
-        ..close(),
-      slide,
-    );
-    canvas.drawPath(
-      Path()
-        ..moveTo(p(0.00, 0.050).dx, p(0.00, 0.050).dy)
-        ..lineTo(p(0.07, 0.061).dx, p(0.07, 0.061).dy)
-        ..lineTo(p(0.015, 0.145).dx, p(0.015, 0.145).dy)
-        ..lineTo(p(-0.035, 0.132).dx, p(-0.035, 0.132).dy)
-        ..close(),
-      wood,
-    );
-    if (suppressed) {
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromPoints(p(0.225, -0.027), p(0.405, 0.027)),
-          Radius.circular(h * 0.018),
-        ),
-        Paint()..color = const Color(0xFF24272C),
+  // -------------------------------------------------------------------- armi
+
+  /// Le armi dei filmati (weapons/noir_weapons.dart), in scala vera: nere
+  /// come le figure, col filo di luce dal lato del lampione.
+  NoirWeapons get _weapons => NoirWeapons(
+    WeaponLook.inked,
+    light: staging.mirrored ? NoirWeapons.lampRight : NoirWeapons.lampLeft,
+  );
+
+  /// L'arma vera dietro un [_Prop], se è un'arma.
+  static NoirWeapon? _modelOf(_Prop prop) => switch (prop) {
+    _Prop.knife => NoirWeapon.stiletto,
+    _Prop.pistol => NoirWeapon.revolver,
+    _Prop.tommy => NoirWeapon.tommy,
+    _Prop.lupara => NoirWeapon.lupara,
+    _Prop.bat => NoirWeapon.bat,
+    _ => null,
+  };
+
+  /// Il mitra e la lupara si tengono a due mani: la mano davanti
+  /// sull'impugnatura anteriore, quella di dietro sul calcio.
+  static bool _twoHanded(_Prop prop) => prop == _Prop.tommy || prop == _Prop.lupara;
+
+  /// Un'arma fuori dalle mani (a terra, in volo), in coordinate di scena:
+  /// quando punta a sinistra resta dritta, col calcio in giù.
+  void _loose(Canvas canvas, NoirWeapon weapon, Offset at, Offset along, double h, {bool bySupport = false}) =>
+      _weapons.held(
+        canvas,
+        weapon,
+        at,
+        along,
+        NoirWeapons.perMetre(h),
+        mirror: along.dx < 0,
+        fist: false,
+        bySupport: bySupport,
       );
-      canvas.drawLine(
-        p(0.26, -0.018),
-        p(0.37, -0.018),
-        Paint()
-          ..color = const Color(0xFF707780)
-          ..strokeWidth = h * 0.006,
-      );
-      canvas.drawCircle(p(0.405, 0.0), h * 0.016, Paint()..color = _ink);
-    } else {
-      canvas.drawCircle(p(0.235, 0.0), h * 0.013, Paint()..color = _ink);
-    }
-    canvas.drawLine(
-      p(0.13, -0.022),
-      p(0.18, -0.022),
-      Paint()
-        ..color = const Color(0xFFBBC2CB)
-        ..strokeWidth = h * 0.006,
+
+  /// Dove va la mano che regge [weapon] posata a terra lungo [along], perché
+  /// tocchi l'asfalto in [ground] senza affondarci.
+  double _restingAt(NoirWeapon weapon, Offset along, double h, {double ground = double.nan, bool bySupport = false}) =>
+      (ground.isNaN ? _ground : ground) -
+      NoirWeapons.depthBelow(weapon, along, bySupport: bySupport) * NoirWeapons.perMetre(h);
+
+  /// Il braccio di dietro di chi tiene [prop] a due mani: la mano davanti,
+  /// messa in posa con [arm] ed [elbow], regge l'impugnatura anteriore, e
+  /// quella di dietro va sull'impugnatura del calcio. Gli angoli di spalla e
+  /// gomito, nel riferimento di [_person] e in unità di figura.
+  (double, double) _support(_Prop prop, double arm, double elbow, double broad) {
+    final along = _aim(arm + elbow);
+    final hand = Offset(0.035 * broad, -0.325) + _aim(arm) * 0.185 + along * 0.175;
+    final grip = NoirWeapons.supportOf(
+      _modelOf(prop)!,
+      hand,
+      along,
+      NoirWeapons.perMetre(1),
+      bySupport: true,
     );
-    final trigger = Path()
-      ..moveTo(p(0.015, 0.055).dx, p(0.015, 0.055).dy)
-      ..quadraticBezierTo(
-        p(0.07, 0.095).dx,
-        p(0.07, 0.095).dy,
-        p(0.09, 0.050).dx,
-        p(0.09, 0.050).dy,
-      );
-    canvas.drawPath(
-      trigger,
-      Paint()
-        ..color = const Color(0xFFB7B9BC)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = h * 0.008,
-    );
+    return _reach(Offset(-0.03 * broad, -0.325), grip);
   }
 
-  void _drawTommyGun(
-    Canvas canvas,
-    Offset hand,
-    Offset along,
-    Offset across,
-    double h,
-  ) {
-    Offset p(double x, double y) => hand + along * (h * x) + across * (h * y);
-    final metal = Paint()..color = const Color(0xFF30343B);
-    final wood = Paint()..color = const Color(0xFF69482E);
-    final edge = Paint()
-      ..color = const Color(0xFF9AA0A7)
-      ..strokeWidth = h * 0.006;
-    canvas.drawPath(
-      Path()
-        ..moveTo(p(-0.25, -0.035).dx, p(-0.25, -0.035).dy)
-        ..lineTo(p(-0.10, -0.045).dx, p(-0.10, -0.045).dy)
-        ..lineTo(p(-0.04, -0.020).dx, p(-0.04, -0.020).dy)
-        ..lineTo(p(0.23, -0.025).dx, p(0.23, -0.025).dy)
-        ..lineTo(p(0.23, 0.026).dx, p(0.23, 0.026).dy)
-        ..lineTo(p(-0.05, 0.025).dx, p(-0.05, 0.025).dy)
-        ..lineTo(p(-0.11, 0.045).dx, p(-0.11, 0.045).dy)
-        ..lineTo(p(-0.25, 0.030).dx, p(-0.25, 0.030).dy)
-        ..close(),
-      wood,
+  /// Gli angoli di spalla e gomito che portano la mano da [shoulder] a
+  /// [target] (in unità di figura), col gomito in giù. Se non ci arriva,
+  /// il braccio si tende verso il bersaglio.
+  (double, double) _reach(Offset shoulder, Offset target) {
+    const upper = 0.185;
+    const fore = 0.175;
+    final d = target - shoulder;
+    final dist = d.distance.clamp(0.02, upper + fore - 1e-4);
+    final toward = atan2(d.dx, d.dy);
+    final atShoulder = acos(
+      ((upper * upper + dist * dist - fore * fore) / (2 * upper * dist)).clamp(-1.0, 1.0),
     );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromPoints(p(-0.06, -0.035), p(0.24, 0.040)),
-        Radius.circular(h * 0.018),
-      ),
-      metal,
+    final atElbow = acos(
+      ((upper * upper + fore * fore - dist * dist) / (2 * upper * fore)).clamp(-1.0, 1.0),
     );
-    canvas.drawLine(
-      p(0.23, 0.0),
-      p(0.42, 0.0),
-      Paint()
-        ..color = const Color(0xFF272A30)
-        ..strokeWidth = h * 0.023
-        ..strokeCap = StrokeCap.square,
-    );
-    canvas.drawLine(p(0.40, -0.012), p(0.42, -0.012), edge);
-    canvas.drawCircle(
-      p(0.08, 0.09),
-      h * 0.070,
-      Paint()..color = const Color(0xFF24272C),
-    );
-    canvas.drawCircle(
-      p(0.08, 0.09),
-      h * 0.049,
-      Paint()..color = const Color(0xFF50555C),
-    );
-    canvas.drawCircle(
-      p(0.08, 0.09),
-      h * 0.018,
-      Paint()..color = const Color(0xFF26292E),
-    );
-    canvas.drawPath(
-      Path()
-        ..moveTo(p(0.19, 0.035).dx, p(0.19, 0.035).dy)
-        ..lineTo(p(0.22, 0.115).dx, p(0.22, 0.115).dy)
-        ..lineTo(p(0.15, 0.115).dx, p(0.15, 0.115).dy)
-        ..lineTo(p(0.12, 0.035).dx, p(0.12, 0.035).dy)
-        ..close(),
-      wood,
-    );
-    canvas.drawLine(p(-0.02, -0.042), p(0.18, -0.042), edge);
+    return (toward - atShoulder, pi - atElbow);
   }
 
-  void _drawLupara(
-    Canvas canvas,
-    Offset hand,
-    Offset along,
-    Offset across,
-    double h,
-  ) {
-    Offset p(double x, double y) => hand + along * (h * x) + across * (h * y);
-    final wood = Paint()..color = const Color(0xFF704B2F);
-    final metal = Paint()..color = const Color(0xFF30343B);
-    final steel = Paint()
-      ..color = const Color(0xFFA8ADB4)
-      ..strokeWidth = h * 0.006;
-    canvas.drawPath(
-      Path()
-        ..moveTo(p(-0.23, -0.035).dx, p(-0.23, -0.035).dy)
-        ..lineTo(p(-0.08, -0.030).dx, p(-0.08, -0.030).dy)
-        ..lineTo(p(0.00, -0.018).dx, p(0.00, -0.018).dy)
-        ..lineTo(p(0.00, 0.028).dx, p(0.00, 0.028).dy)
-        ..lineTo(p(-0.09, 0.045).dx, p(-0.09, 0.045).dy)
-        ..lineTo(p(-0.23, 0.028).dx, p(-0.23, 0.028).dy)
-        ..close(),
-      wood,
+  /// Il fucile del Cecchino, appoggiato al davanzale in [nest] con la canna
+  /// verso sinistra. [h] è la grandezza dei vecchi disegni: 0,72 u al primo
+  /// piano, cioè la scala vera; più lontano, meno.
+  double _riflePerMetre(double h) => NoirWeapons.perMetre(_u) * h / (_u * 0.72);
+
+  /// Quanto sta il pugno dietro il davanzale: sul davanzale poggia il castello.
+  static const _sill = 0.20;
+
+  void _drawSniperRifle(Canvas canvas, Offset nest, double h) {
+    final perMetre = _riflePerMetre(h);
+    canvas.save();
+    canvas.translate(nest.dx, nest.dy);
+    canvas.scale(-1, 1);
+    _weapons.held(
+      canvas,
+      NoirWeapon.sniper,
+      Offset(-_sill * perMetre, 0),
+      const Offset(1, 0),
+      perMetre,
+      fist: false,
     );
-    canvas.drawLine(
-      p(-0.02, -0.02),
-      p(0.34, -0.02),
-      Paint()
-        ..color = metal.color
-        ..strokeWidth = h * 0.023
-        ..strokeCap = StrokeCap.square,
-    );
-    canvas.drawLine(
-      p(-0.02, 0.02),
-      p(0.34, 0.02),
-      Paint()
-        ..color = metal.color
-        ..strokeWidth = h * 0.023
-        ..strokeCap = StrokeCap.square,
-    );
-    canvas.drawLine(p(0.31, -0.035), p(0.35, -0.035), steel);
-    canvas.drawLine(p(0.31, 0.005), p(0.35, 0.005), steel);
-    canvas.drawPath(
-      Path()
-        ..moveTo(p(0.00, 0.035).dx, p(0.00, 0.035).dy)
-        ..lineTo(p(0.08, 0.040).dx, p(0.08, 0.040).dy)
-        ..lineTo(p(0.04, 0.11).dx, p(0.04, 0.11).dy)
-        ..lineTo(p(-0.04, 0.10).dx, p(-0.04, 0.10).dy)
-        ..close(),
-      wood,
-    );
-    canvas.drawLine(p(0.24, -0.045), p(0.24, 0.045), steel);
+    canvas.restore();
   }
 
-  void _drawSniperRifle(Canvas canvas, Offset muzzle, double h) {
-    Offset p(double x, double y) => muzzle + Offset(-h * x, h * y);
-    final wood = Paint()..color = const Color(0xFF65432F);
-    final metal = Paint()..color = const Color(0xFF30343B);
-    final steel = Paint()
-      ..color = const Color(0xFF9AA0A7)
-      ..strokeWidth = h * 0.014;
-    canvas.drawPath(
-      Path()
-        ..moveTo(p(-0.22, -0.05).dx, p(-0.22, -0.05).dy)
-        ..lineTo(p(-0.04, -0.045).dx, p(-0.04, -0.045).dy)
-        ..lineTo(p(-0.015, 0.04).dx, p(-0.015, 0.04).dy)
-        ..lineTo(p(-0.22, 0.055).dx, p(-0.22, 0.055).dy)
-        ..close(),
-      wood,
+  /// La bocca del fucile di [_drawSniperRifle], girato di [angle] intorno al
+  /// davanzale e tirato indietro di [kick] dal rinculo.
+  Offset _rifleMuzzle(Offset nest, double angle, double h, {double kick = 0}) {
+    final perMetre = _riflePerMetre(h);
+    final m = NoirWeapons.muzzleOf(
+      NoirWeapon.sniper,
+      Offset(-_sill * perMetre, 0),
+      const Offset(1, 0),
+      perMetre,
     );
-    canvas.drawPath(
-      Path()
-        ..moveTo(p(-0.04, -0.04).dx, p(-0.04, -0.04).dy)
-        ..lineTo(p(0.13, -0.04).dx, p(0.13, -0.04).dy)
-        ..lineTo(p(0.13, 0.035).dx, p(0.13, 0.035).dy)
-        ..lineTo(p(-0.04, 0.035).dx, p(-0.04, 0.035).dy)
-        ..close(),
-      metal,
-    );
-    canvas.drawLine(
-      p(0, 0),
-      p(0.48, 0),
-      Paint()
-        ..color = metal.color
-        ..strokeWidth = h * 0.026
-        ..strokeCap = StrokeCap.square,
-    );
-    canvas.drawLine(p(0.44, -0.02), p(0.48, -0.02), steel);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromPoints(p(-0.14, -0.09), p(0.025, -0.045)),
-        Radius.circular(h * 0.018),
-      ),
-      metal,
-    );
-    canvas.drawLine(p(-0.13, 0.04), p(-0.09, 0.14), steel);
-    canvas.drawLine(p(-0.09, 0.14), p(-0.01, 0.04), steel);
+    return nest + _turn(Offset(-m.dx + kick, m.dy), angle);
   }
 
   void _held(Canvas canvas, Offset hand, Offset along, double h, _Prop prop) {
-    final across = Offset(-along.dy, along.dx);
+    final weapon = _modelOf(prop);
+    if (weapon != null) {
+      _weapons.held(
+        canvas,
+        weapon,
+        hand,
+        along,
+        NoirWeapons.perMetre(h),
+        bySupport: _twoHanded(prop),
+      );
+      return;
+    }
     switch (prop) {
-      case _Prop.none:
+      case _Prop.none ||
+          _Prop.knife ||
+          _Prop.pistol ||
+          _Prop.tommy ||
+          _Prop.bat ||
+          _Prop.lupara:
         break;
-      case _Prop.knife:
-        final tip = hand + along * (h * 0.25);
-        final guard = hand - along * (h * 0.015);
-        final handleEnd = hand - along * (h * 0.14);
-        final blade = Path()
-          ..moveTo(
-            hand.dx + across.dx * h * 0.025,
-            hand.dy + across.dy * h * 0.025,
-          )
-          ..lineTo(tip.dx, tip.dy)
-          ..lineTo(
-            hand.dx - across.dx * h * 0.020,
-            hand.dy - across.dy * h * 0.020,
-          )
-          ..close();
-        canvas.drawPath(blade, Paint()..color = const Color(0xFFB9C2CA));
-        canvas.drawLine(
-          hand + across * (h * 0.009),
-          tip - along * (h * 0.03),
-          Paint()
-            ..color = Colors.white.withValues(alpha: 0.82)
-            ..strokeWidth = h * 0.006,
-        );
-        final handle = Path()
-          ..moveTo(
-            guard.dx + across.dx * h * 0.030,
-            guard.dy + across.dy * h * 0.030,
-          )
-          ..lineTo(
-            handleEnd.dx + across.dx * h * 0.024,
-            handleEnd.dy + across.dy * h * 0.024,
-          )
-          ..lineTo(
-            handleEnd.dx - across.dx * h * 0.024,
-            handleEnd.dy - across.dy * h * 0.024,
-          )
-          ..lineTo(
-            guard.dx - across.dx * h * 0.030,
-            guard.dy - across.dy * h * 0.030,
-          )
-          ..close();
-        canvas.drawPath(handle, Paint()..color = const Color(0xFF5B3828));
-        canvas.drawLine(
-          guard - across * (h * 0.045),
-          guard + across * (h * 0.045),
-          Paint()
-            ..color = const Color(0xFFD5DAE0)
-            ..strokeWidth = h * 0.022
-            ..strokeCap = StrokeCap.round,
-        );
-        for (final fraction in [0.28, 0.53, 0.78]) {
-          final wrap = _mix(hand.dx, handleEnd.dx, fraction);
-          final wrapY = _mix(hand.dy, handleEnd.dy, fraction);
-          canvas.drawLine(
-            Offset(wrap, wrapY) - across * (h * 0.018),
-            Offset(wrap, wrapY) + across * (h * 0.018),
-            Paint()
-              ..color = const Color(0xFF9A6A45)
-              ..strokeWidth = h * 0.008,
-          );
-        }
-      case _Prop.pistol:
-        _drawPistol(canvas, hand, along, across, h);
-      case _Prop.silenced:
-        _drawPistol(canvas, hand, along, across, h, suppressed: true);
-      case _Prop.tommy:
-        _drawTommyGun(canvas, hand, along, across, h);
       case _Prop.cup:
         _teacup(canvas, hand.translate(h * 0.035, -h * 0.02), h);
-      case _Prop.bat:
-        _limb(
-          canvas,
-          hand - along * (h * 0.06),
-          hand + along * (h * 0.46),
-          h * 0.015,
-          h * 0.036,
-          Paint()..color = const Color(0xFFC9A26B),
-        );
-      case _Prop.lupara:
-        _drawLupara(canvas, hand, along, across, h);
       case _Prop.bag:
         _bag(canvas, hand.translate(0, h * 0.09), h);
       case _Prop.flask:
@@ -2427,14 +2228,16 @@ class DeathScenePainter extends CustomPainter {
     bool killer = true,
     double scale = 1,
   }) {
+    final model = _modelOf(weapon);
+    if (model == null) return hand;
     final h = (killer ? _u * 1.08 : _u) * scale;
-    final reach = switch (weapon) {
-      _Prop.silenced => 0.405,
-      _Prop.tommy => 0.42,
-      _Prop.lupara => 0.35,
-      _ => 0.235,
-    };
-    return hand + along * (h * reach);
+    return NoirWeapons.muzzleOf(
+      model,
+      hand,
+      along,
+      NoirWeapons.perMetre(h),
+      bySupport: _twoHanded(weapon),
+    );
   }
 
   /// I bossoli che saltano fuori dall'arma e rimbalzano sull'asfalto.
@@ -2646,6 +2449,7 @@ class DeathScenePainter extends CustomPainter {
 
   void _shooting(Canvas canvas, List<double> shots, _Prop weapon) {
     final (walkX, walk, stride) = _entrance();
+    if (act == DeathAct.burst) _violinCase(canvas);
     final first = shots.first;
     final last = shots.last;
     final twoHands = weapon == _Prop.tommy;
@@ -2758,12 +2562,12 @@ class DeathScenePainter extends CustomPainter {
           muzzle,
           bang,
           toward: along,
-          size: weapon == _Prop.silenced ? 0.45 : (0.75 + 0.2 * (i % 2)),
+          size: weapon == _Prop.pistol ? 0.7 : (0.75 + 0.2 * (i % 2)),
         );
         _star(
           canvas,
           muzzle,
-          _u * (weapon == _Prop.silenced ? 0.05 : 0.09) * (1 - bang * 0.5),
+          _u * (weapon == _Prop.pistol ? 0.08 : 0.09) * (1 - bang * 0.5),
           const Color(0xFFFFF3C4).withValues(alpha: 1 - bang),
         );
         _tracer(
@@ -2773,7 +2577,7 @@ class DeathScenePainter extends CustomPainter {
           bang,
         );
       }
-      _flash(canvas, bang, strength: weapon == _Prop.silenced ? 0.18 : 0.28);
+      _flash(canvas, bang, strength: weapon == _Prop.pistol ? 0.24 : 0.28);
       _spray(
         canvas,
         target.translate(-_u * 0.06, _u * 0.02),
@@ -2782,12 +2586,16 @@ class DeathScenePainter extends CustomPainter {
         count: 9,
       );
     }
-    _casings(
-      canvas,
-      hand + along * (_u * 0.12) + Offset(0, -_u * 0.03),
-      shots,
-      side: 1,
-    );
+    // Il revolver i bossoli se li tiene nel tamburo; il mitra li sputa fuori
+    // dal castello, dietro la mano davanti (se non s'inceppa).
+    if (twoHands && !_holdsFire) {
+      _casings(
+        canvas,
+        hand - along * (_u * 0.10) + Offset(0, -_u * 0.05),
+        shots,
+        side: 1,
+      );
+    }
     // Il filo di fumo dalla canna.
     final smoke = _span(t, first + 0.01, last + 0.16);
     if (smoke > 0 && smoke < 1) {
@@ -2798,6 +2606,22 @@ class DeathScenePainter extends CustomPainter {
         size: twoHands ? 0.5 : 0.32,
       );
     }
+  }
+
+  /// La raffica del violino: la custodia, già vuota, sta per terra
+  /// all'angolo dal primo fotogramma, col manico verso la strada.
+  void _violinCase(Canvas canvas) {
+    const along = Offset(-1, 0);
+    final h = _u * 1.08;
+    final bounds = NoirWeapons.boundsOf(NoirWeapon.violinCase);
+    final right = _cornerX - _u * 0.06;
+    _loose(
+      canvas,
+      NoirWeapon.violinCase,
+      Offset(right + bounds.left * NoirWeapons.perMetre(h), _restingAt(NoirWeapon.violinCase, along, h)),
+      along,
+      h,
+    );
   }
 
   /// La scia di un colpo, da [from] a [to], che si spegne con [life].
@@ -7370,7 +7194,6 @@ class DeathScenePainter extends CustomPainter {
         bang,
       );
     }
-    _casings(canvas, hand + Offset(0, -_u * 0.04), const [strike]);
     final smoke = _span(t, strike + 0.02, strike + 0.14);
     if (smoke > 0 && smoke < 1) {
       _puff(canvas, muzzle.translate(0, -_u * 0.25 * smoke), smoke, size: 0.3);
@@ -7457,20 +7280,22 @@ class DeathScenePainter extends CustomPainter {
       canvas.drawCircle(sight, _u * 0.012, Paint()..color = red.color);
     }
 
+    // Il lampo, la scia e il fumo partono dalla bocca della canna.
+    final muzzle = _rifleMuzzle(nest, angle, _u * 0.72, kick: _u * 0.05 * kick);
     final bang = _span(t, strike, strike + 0.03);
     if (bang > 0 && bang < 1) {
-      _muzzleFlash(canvas, nest, bang, toward: shotAt, size: 0.8);
+      _muzzleFlash(canvas, muzzle, bang, toward: chest - muzzle, size: 0.8);
       _star(
         canvas,
-        nest,
+        muzzle,
         _u * 0.10 * (1 - bang * 0.5),
         const Color(0xFFFFF3C4).withValues(alpha: 1 - bang),
       );
-      _tracer(canvas, nest, chest, bang);
+      _tracer(canvas, muzzle, chest, bang);
     }
     _puff(
       canvas,
-      nest.translate(-_u * 0.05, -_u * 0.1),
+      muzzle.translate(-_u * 0.05, -_u * 0.1),
       _span(t, strike + 0.02, strike + 0.16),
       size: 0.4,
     );

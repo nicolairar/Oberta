@@ -1134,15 +1134,24 @@ extension _SaveFilms on DeathScenePainter {
     canvas.restore();
   }
 
-  /// Il lampo lontano del colpo, la scia fino al petto, il fumo.
-  void _farShot(Canvas canvas, Offset nest, Offset chest, {double size = 0.6}) {
+  /// Il lampo lontano del colpo, la scia fino al petto, il fumo. Con
+  /// [rifle] (la grandezza data a [_farRifle]) partono dalla bocca della
+  /// canna; senza, il fucile non si vede e partono da [nest].
+  void _farShot(Canvas canvas, Offset nest, Offset chest, {double size = 0.6, double? rifle}) {
+    var from = nest;
+    if (rifle != null) {
+      final shotAt = chest - nest;
+      final kick = sin(pi * _span(t, _sStrike, _sStrike + 0.05));
+      final angle = atan2(-shotAt.dy, -shotAt.dx) - 0.18 * kick;
+      from = _rifleMuzzle(nest, angle, _u * rifle, kick: _u * 0.04 * kick);
+    }
     final bang = _span(t, _sStrike, _sStrike + 0.03);
     if (bang > 0 && bang < 1) {
-      _muzzleFlash(canvas, nest, bang, toward: chest - nest, size: size);
-      _star(canvas, nest, _u * 0.10 * (1 - bang * 0.5), const Color(0xFFFFF3C4).withValues(alpha: 1 - bang));
-      _tracer(canvas, nest, chest, bang);
+      _muzzleFlash(canvas, from, bang, toward: chest - from, size: size);
+      _star(canvas, from, _u * 0.10 * (1 - bang * 0.5), const Color(0xFFFFF3C4).withValues(alpha: 1 - bang));
+      _tracer(canvas, from, chest, bang);
     }
-    _puff(canvas, nest.translate(-_u * 0.05, -_u * 0.1), _span(t, _sStrike + 0.02, _sStrike + 0.16), size: 0.35);
+    _puff(canvas, from.translate(-_u * 0.05, -_u * 0.1), _span(t, _sStrike + 0.02, _sStrike + 0.16), size: 0.35);
     _flash(canvas, bang, strength: 0.35);
   }
 
@@ -1189,7 +1198,7 @@ extension _SaveFilms on DeathScenePainter {
     _scopeGlint(canvas, nest, 0.35, 0.42, size: 0.11);
     _scopeGlint(canvas, nest, 0.49, 0.53, size: 0.07);
     _crosshair(canvas, chest, aim);
-    _farShot(canvas, nest, chest, size: 0.5);
+    _farShot(canvas, nest, chest, size: 0.5, rifle: 0.42);
     _pigeons(canvas, arch, _span(t, _sStrike + 0.004, _sStrike + 0.30));
     // Il rintocco: un'onda che si allarga dalla cella delle campane.
     for (final at in [0.40, _sStrike, 0.64]) {
@@ -1621,7 +1630,7 @@ extension _SaveFilms on DeathScenePainter {
     _farRifle(canvas, nest, chest, aim, size: 0.38);
     _scopeGlint(canvas, nest, 0.38, 0.45, size: 0.09);
     _crosshair(canvas, chest, aim);
-    _farShot(canvas, nest, chest, size: 0.45);
+    _farShot(canvas, nest, chest, size: 0.45, rifle: 0.38);
     if (hit) {
       _spray(canvas, chest, _span(t, _sStrike, _sStrike + 0.20), seed: 77, count: 18, bias: const Offset(-0.6, -0.8));
     }
@@ -2222,11 +2231,15 @@ extension _SaveFilms on DeathScenePainter {
     );
     // La pistola mollata lì, che rimbalza sull'asfalto.
     if (dropped) {
+      // Gira in aria e si posa di fianco, la canna a sinistra, appoggiata
+      // sul calcio e sulla canna.
+      const rest = pi - 0.53;
       final fall = _span(t, 0.652, 0.665);
-      final at = Offset(_cornerX - _u * 0.30, _mix(_ground - _u * 1.0, _ground - _u * 0.04, fall * fall));
-      final spin = fall < 1 ? fall * 6 : pi * 0.98;
+      final spin = fall < 1 ? fall * (2 * pi + rest) : rest;
       final along = Offset(cos(spin), sin(spin));
-      _drawPistol(canvas, at, along, Offset(-along.dy, along.dx), _u * 1.08);
+      final floor = _restingAt(NoirWeapon.revolver, const Offset(-0.86, 0.51), _u * 1.08);
+      final at = Offset(_cornerX - _u * 0.30, _mix(_ground - _u * 1.0, floor, fall * fall));
+      _loose(canvas, NoirWeapon.revolver, at, along, _u * 1.08);
     }
     _wall(canvas);
     // Ogni clic: solo un filo di polvere dalla canna, niente fiammata.
@@ -2408,13 +2421,19 @@ extension _SaveFilms on DeathScenePainter {
     );
     final knife = weapon == _Prop.knife;
     final fly = _span(t, 0.525, 0.605);
-    final land = Offset(peelX + _u * 0.62, _ground - _u * (knife ? 0.20 : 0.035));
+    // Il pugnale si pianta di punta, due dita nell'asfalto; la mazza si posa
+    // di piatto.
+    final rest = knife ? atan2(1.0, 0.18) : 0.04;
+    final restAlong = Offset(cos(rest), sin(rest));
+    final floor = knife
+        ? _ground - (NoirWeapons.muzzleOf(NoirWeapon.stiletto, Offset.zero, const Offset(1, 0), 1).dx - 0.02) * sin(rest) * NoirWeapons.perMetre(_u * 1.08)
+        : _restingAt(DeathScenePainter._modelOf(weapon)!, restAlong, _u * 1.08);
+    final land = Offset(peelX + _u * 0.62, floor);
     final bounce = knife ? 0.0 : sin(pi * _span(t, 0.605, 0.625)) * _u * 0.08;
     final at = fly < 1
         ? Offset(_mix(hand.dx, land.dx, fly), _mix(hand.dy, land.dy, fly) - sin(pi * fly) * _u * 1.3)
         : land.translate(0, -bounce);
     // Gira in aria; il pugnale atterra di punta, la mazza di piatto.
-    final rest = knife ? atan2(1.0, 0.18) : 0.04;
     final spin = fly < 1 ? -pi / 2 + fly * (4 * pi + rest + pi / 2) : rest;
     _held(canvas, at, Offset(cos(spin), sin(spin)), _u * 1.08, weapon);
   }
@@ -2565,15 +2584,20 @@ extension _SaveFilms on DeathScenePainter {
       _flash(canvas, bang, strength: 0.3);
     }
     if (!hasGun) {
+      // L'arma vola girando e si posa per terra di fianco, la canna a
+      // sinistra, appoggiata sull'asfalto.
+      final model = DeathScenePainter._modelOf(weapon)!;
+      final two = DeathScenePainter._twoHanded(weapon);
+      const rest = pi;
       final fly = _span(t, 0.566, 0.625);
       final slide = _smooth(_span(t, 0.625, 0.66));
       final from = hand;
-      final land = Offset(walkX + _u * 0.62, _ground - _u * 0.035);
+      final land = Offset(walkX + _u * 0.62, _restingAt(model, const Offset(-1, 0), _u * 1.08, bySupport: two));
       final at = fly < 1
           ? Offset(_mix(from.dx, land.dx, fly), _mix(from.dy, land.dy, fly) - sin(pi * fly) * _u * 0.55)
           : land.translate(-_u * 0.10 * slide, 0);
-      final spin = fly < 1 ? fly * 15 : pi;
-      _held(canvas, at, Offset(cos(spin), sin(spin)), _u * 1.08, weapon);
+      final spin = fly < 1 ? fly * (4 * pi + rest) : rest;
+      _loose(canvas, model, at, Offset(cos(spin), sin(spin)), _u * 1.08, bySupport: two);
       if (fly >= 1) _dust(canvas, land, _span(t, 0.625, 0.68), size: 0.3, seed: 9);
     }
     // Il ciuffo di pelo nero che resta in aria.

@@ -16,6 +16,7 @@ import 'city_backdrop.dart';
 import 'mugshot_frame.dart';
 import 'noir_avatar.dart';
 import 'particle_sprites.dart';
+import 'weapons/noir_weapons.dart';
 import '../press.dart';
 import '../theme/script_fonts.dart';
 
@@ -2519,17 +2520,8 @@ class VerdictScenePainter extends CustomPainter {
           );
         }
       case _Kit.fork:
-        final top = hand + along * (h * 0.42);
-        canvas.drawLine(hand - along * (h * 0.40), top, wood);
-        final across = Offset(-along.dy, along.dx);
-        final steel = Paint()
-          ..color = _steel
-          ..strokeWidth = h * 0.016
-          ..strokeCap = StrokeCap.round;
-        canvas.drawLine(top - across * (h * 0.07), top + across * (h * 0.07), steel);
-        for (final s in [-0.07, 0.0, 0.07]) {
-          canvas.drawLine(top + across * (h * s), top + across * (h * s) + along * (h * 0.13), steel);
-        }
+        // Il forcone vero, nero come chi lo porta (weapons/noir_weapons.dart).
+        const NoirWeapons(WeaponLook.inked).held(canvas, NoirWeapon.pitchfork, hand, along, NoirWeapons.perMetre(h));
       case _Kit.kerchief:
         final wave = sin(t * 180 + hand.dx);
         canvas.drawPath(

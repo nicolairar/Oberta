@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:typed_data';
 import 'dart:ui';
 
 /// Le armi dei filmati della notte, disegnate a mano e in scala vera.
@@ -46,8 +47,17 @@ enum NoirWeapon {
   /// Il fucile subacqueo a elastici, con la fiocina.
   speargun,
 
+  /// Lo stesso fucile subacqueo, scarico: la fiocina è partita.
+  speargunEmpty,
+
+  /// La fiocina da sola, in volo o piantata: l'origine è la punta.
+  harpoon,
+
   /// La bomba a mano "ananas".
   grenade,
+
+  /// La stessa bomba con la spoletta innescata: leva e anello volati via.
+  grenadeLive,
 
   /// Il forcone della folla.
   pitchfork,
@@ -167,15 +177,23 @@ class NoirWeapons {
   /// Il filo di luce del lampione.
   final Color rim;
 
+  /// Da dove arriva la luce, sullo schermo: di solito il lampione in alto a
+  /// sinistra, come per il bordo caldo delle figure; nelle scene ribaltate,
+  /// in alto a destra.
+  final Offset light;
+
   const NoirWeapons(
     this.look, {
     this.ink = const Color(0xFF050506),
     this.rim = const Color(0xFF8A6D3E),
+    this.light = lampLeft,
   });
 
-  /// Da dove arriva la luce, sullo schermo: il lampione è in alto a sinistra,
-  /// come per il bordo caldo delle figure.
-  static const _light = Offset(-0.85, -0.53);
+  /// Il lampione in alto a sinistra.
+  static const lampLeft = Offset(-0.85, -0.53);
+
+  /// Il lampione in alto a destra, nelle scene ribaltate.
+  static const lampRight = Offset(0.85, -0.53);
 
   /// Il raggio del pugno delle figure dei filmati, in metri.
   static const fistRadius = 0.0565;
@@ -193,26 +211,39 @@ class NoirWeapons {
   /// Il riquadro dell'arma, in metri, rispetto al centro del pugno.
   static Rect boundsOf(NoirWeapon weapon) => _model(weapon).bounds;
 
+  /// Se [weapon] si tiene a due mani: ha un'impugnatura davanti.
+  static bool twoHanded(NoirWeapon weapon) => _model(weapon).support != null;
+
   /// La bocca della canna (o la punta) di [weapon] tenuta in [hand] lungo
   /// [along], in coordinate di schermo. L'arma si suppone dritta, col calcio
-  /// in giù, anche quando la figura è specchiata.
+  /// in giù, anche quando la figura è specchiata. Con [bySupport] la mano
+  /// in [hand] è quella davanti, sull'impugnatura anteriore.
   static Offset muzzleOf(
     NoirWeapon weapon,
     Offset hand,
     Offset along,
-    double perMetre,
-  ) => _onScreen(_model(weapon).muzzle, hand, along, perMetre);
+    double perMetre, {
+    bool bySupport = false,
+  }) => _onScreen(_model(weapon).muzzle - _origin(weapon, bySupport), hand, along, perMetre);
 
-  /// Dove va l'altra mano sulle armi a due mani; per le altre, la mano stessa.
+  /// Dove va l'altra mano: sulle armi a due mani tenute per il calcio,
+  /// l'impugnatura davanti; tenute per l'impugnatura davanti ([bySupport]),
+  /// quella del calcio. Per le altre, la mano stessa.
   static Offset supportOf(
     NoirWeapon weapon,
     Offset hand,
     Offset along,
-    double perMetre,
-  ) {
+    double perMetre, {
+    bool bySupport = false,
+  }) {
     final at = _model(weapon).support;
-    return at == null ? hand : _onScreen(at, hand, along, perMetre);
+    if (at == null) return hand;
+    return _onScreen(bySupport ? -at : at, hand, along, perMetre);
   }
+
+  /// Il punto del modello che sta nel pugno.
+  static Offset _origin(NoirWeapon weapon, bool bySupport) =>
+      bySupport ? _model(weapon).support ?? Offset.zero : Offset.zero;
 
   static Offset _onScreen(Offset local, Offset hand, Offset along, double perMetre) {
     final a = along / max(along.distance, 1e-9);
@@ -222,7 +253,8 @@ class NoirWeapons {
   }
 
   /// Disegna [weapon] nel pugno che sta in [hand], puntata lungo [along].
-  /// [mirror] la ribalta sotto sopra (per chi la disegna già specchiata).
+  /// [mirror] la ribalta sotto sopra (per chi la disegna già specchiata);
+  /// con [bySupport] il pugno è sull'impugnatura davanti.
   void held(
     Canvas canvas,
     NoirWeapon weapon,
@@ -231,13 +263,46 @@ class NoirWeapons {
     double perMetre, {
     bool mirror = false,
     bool fist = true,
+    bool bySupport = false,
   }) {
+    final origin = _origin(weapon, bySupport);
     canvas.save();
     canvas.translate(hand.dx, hand.dy);
     canvas.rotate(atan2(along.dy, along.dx));
     canvas.scale(perMetre, mirror ? -perMetre : perMetre);
-    _paint(canvas, _model(weapon), fist: fist);
+    canvas.translate(-origin.dx, -origin.dy);
+    _paint(canvas, _model(weapon), fist: fist && !bySupport);
     canvas.restore();
+  }
+
+  /// Quanto scende [weapon], in metri sotto la mano, quando è girata lungo
+  /// [along] (dritta, ribaltata se punta a sinistra, come la disegna chi la
+  /// posa a terra): per appoggiarla sull'asfalto senza farla affondare.
+  static double depthBelow(NoirWeapon weapon, Offset along, {bool bySupport = false}) {
+    final angle = atan2(along.dy, along.dx.abs());
+    final c = cos(angle), s = sin(angle);
+    final origin = _origin(weapon, bySupport);
+    final turned = _model(weapon).silhouette.shift(-origin).transform(
+      Float64List.fromList([c, s, 0, 0, -s, c, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]),
+    );
+    return turned.getBounds().bottom;
+  }
+
+  /// Dove cade la bocca della canna di [weapon] disegnata con [icon].
+  static Offset iconMuzzle(NoirWeapon weapon, Rect box, {double tilt = 0}) {
+    final model = _model(weapon);
+    final b = model.bounds;
+    final c = cos(tilt).abs(), s = sin(tilt).abs();
+    final scale = min(
+      box.width / (b.width * c + b.height * s),
+      box.height / (b.width * s + b.height * c),
+    );
+    final local = (model.muzzle - b.center) * scale;
+    return box.center +
+        Offset(
+          local.dx * cos(tilt) - local.dy * sin(tilt),
+          local.dx * sin(tilt) + local.dy * cos(tilt),
+        );
   }
 
   /// L'arma da sola, dentro [box], inclinata di [tilt]: per i gesti del
@@ -315,8 +380,8 @@ class NoirWeapons {
     /// deve diventare un'ombra staccata).
     Offset toward(double metres, double minPx, double maxPx) {
       var v = Offset(
-        (d * _light.dx - c * _light.dy) / det,
-        (-b * _light.dx + a * _light.dy) / det,
+        (d * light.dx - c * light.dy) / det,
+        (-b * light.dx + a * light.dy) / det,
       );
       v = v / v.distance;
       return v * ((metres * px).clamp(minPx, maxPx) / px);
@@ -478,8 +543,11 @@ class NoirWeapons {
       NoirWeapon.stiletto => _stiletto(),
       NoirWeapon.bat => _bat(),
       NoirWeapon.sniper => _sniper(),
-      NoirWeapon.speargun => _speargun(),
-      NoirWeapon.grenade => _grenade(),
+      NoirWeapon.speargun => _speargun(loaded: true),
+      NoirWeapon.speargunEmpty => _speargun(loaded: false),
+      NoirWeapon.harpoon => _harpoon(),
+      NoirWeapon.grenade => _grenade(live: false),
+      NoirWeapon.grenadeLive => _grenade(live: true),
       NoirWeapon.pitchfork => _pitchfork(),
       NoirWeapon.garroteToggle => _toggle(),
     },
@@ -1096,7 +1164,7 @@ _Model _sniper() {
 
 /// Il fucile subacqueo: fusto di legno, impugnatura a pistola, elastici in
 /// testa e la fiocina con l'aletta.
-_Model _speargun() {
+_Model _speargun({required bool loaded}) {
   final body = Path()
     ..moveTo(-0.300, -0.028)
     ..lineTo(0.640, -0.022)
@@ -1127,24 +1195,42 @@ _Model _speargun() {
       _Part(reel, _Mat.steel),
       _Part(head, _Mat.steel),
       _Part(bands, _Mat.rubber),
-      _Part(spear, _Mat.bright),
-      _Part(tip, _Mat.bright),
-      _Part(barb, _Mat.bright),
+      if (loaded) ...[
+        _Part(spear, _Mat.bright),
+        _Part(tip, _Mat.bright),
+        _Part(barb, _Mat.bright),
+      ],
     ],
     holes: [hole],
     after: [_Part(_trigger(_o(0.028, 0.004), 0.016), _Mat.steel)],
     details: [
       ..._grain(body, const Rect.fromLTRB(-0.30, -0.026, 0.64, 0.010), count: 2, bend: 0.1),
       _Detail(_disc(_o(0.130, 0.024), 0.012), _Line.groove, width: 0.0015),
-      _Detail(_seg(_o(-0.20, -0.0405), _o(0.715, -0.0405)), _Line.shine, width: 0.0009),
+      if (loaded) _Detail(_seg(_o(-0.20, -0.0405), _o(0.715, -0.0405)), _Line.shine, width: 0.0009),
     ],
-    muzzle: _o(0.770, -0.0385),
+    // Carico, la punta della fiocina; scarico, la testa dove partono gli
+    // elastici (e la sagola).
+    muzzle: loaded ? _o(0.770, -0.0385) : _o(0.664, -0.0385),
     grip: grip,
   ).shift(_o(0.024, -0.034));
 }
 
-/// La bomba "ananas": il corpo a quadretti, la spoletta, la leva e l'anello.
-_Model _grenade() {
+/// La fiocina in volo: asta d'acciaio e punta con l'aletta, lunga [length]
+/// metri; l'origine è la punta, l'asta va indietro.
+_Model _harpoon({double length = 0.43}) {
+  final shaft = _box(-length, -0.0035, -0.040, 0.0035, 0.0015);
+  final head = _poly([_o(0, 0), _o(-0.052, -0.0085), _o(-0.040, 0), _o(-0.052, 0.0085)]);
+  final barb = _poly([_o(-0.044, -0.002), _o(-0.072, -0.016), _o(-0.076, -0.013), _o(-0.052, 0.001)]);
+  return _Model(
+    [_Part(shaft, _Mat.bright), _Part(head, _Mat.bright), _Part(barb, _Mat.bright)],
+    details: [_Detail(_seg(_o(-length + 0.01, -0.0012), _o(-0.045, -0.0012)), _Line.shine, width: 0.0009)],
+    muzzle: Offset.zero,
+  );
+}
+
+/// La bomba "ananas": il corpo a quadretti, la spoletta, la leva e l'anello
+/// (che con [live] sono già volati via).
+_Model _grenade({required bool live}) {
   final body = <Offset>[];
   for (var i = 0; i < 120; i++) {
     final a = i / 120 * 2 * pi;
@@ -1184,8 +1270,8 @@ _Model _grenade() {
       _Part(shell, _Mat.steel),
       _Part(neck, _Mat.steel),
       _Part(fuze, _Mat.steel),
-      _Part(lever, _Mat.steel),
-      _Part(ring, _Mat.wire),
+      if (!live) _Part(lever, _Mat.steel),
+      if (!live) _Part(ring, _Mat.wire),
     ],
     details: [_Detail(grid, _Line.groove, width: 0.0022, clip: shell)],
     muzzle: _o(0, -0.066),
@@ -1225,8 +1311,10 @@ _Model _pitchfork() {
       ..._grain(shaft, const Rect.fromLTRB(-0.95, -0.014, 0.19, 0.014), count: 2, bend: 0.05),
     ],
     muzzle: _o(0.590, 0),
-    grip: _box(-0.06, -0.02, 0.06, 0.02),
-  );
+    grip: _box(-0.56, -0.02, -0.44, 0.02),
+    // Il pugno sta a 45 cm dal fondo del manico: col forcone alzato, il
+    // manico non tocca terra.
+  ).shift(_o(0.50, 0));
 }
 
 /// Una maniglia della garrota: un piolo di legno, di traverso al filo.

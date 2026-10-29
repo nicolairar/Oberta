@@ -202,13 +202,13 @@ List<SceneCue> _cuesOf(DeathAct act, {required bool memes}) {
           const SceneCue.fx(0.71, FxGroup.running, 0.35),
         ],
       DeathAct.gun => [
-          // Il cane armato quando la pistola esce dall'angolo, il colpo
-          // smorzato del silenziatore, il bossolo che tintinna a terra.
+          // Il cane armato quando il revolver esce dall'angolo, il colpo
+          // smorzato (quello del copione, il tappo di spumante). Nessun
+          // bossolo a terra: il revolver se li tiene nel tamburo.
           const SceneCue.fx(0.505, FxGroup.cock, 0.55),
           const SceneCue.fx(_s, FxGroup.silencer, 0.85),
           const SceneCue.fx(_s + 0.005, FxGroup.impact, 0.45),
           reaction(_s + 0.025, FxGroup.ouch),
-          const SceneCue.fx(_s + 0.035, FxGroup.casing, 0.4),
           const SceneCue.fx(_s + 0.13, FxGroup.faint, 0.7),
           const SceneCue.fx(0.69, FxGroup.running, 0.35),
         ],
