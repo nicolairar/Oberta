@@ -1148,6 +1148,8 @@ extension on FakeOnline {
             ? {for (final MapEntry(:key, :value) in game.lastSeen.entries) key: value.millisecondsSinceEpoch}
             : null,
         'seed': _random.nextInt(1 << 30),
+        // Come runner.ts: la classificata si dà col suo mazzo.
+        if (game.state == null && room.room.ranked) 'ranked': true,
       }),
       pacing: pacing,
     );

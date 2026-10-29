@@ -11,6 +11,7 @@ import 'package:oberta/online/handle_rules.dart';
 import 'package:oberta/online/online_services.dart';
 import 'package:oberta/rules/intent.dart';
 import 'package:oberta/rules/role.dart';
+import 'package:oberta/rules/role_assignment.dart';
 
 import '../support/manual_clock.dart';
 
@@ -508,7 +509,21 @@ void main() {
       expect((room.status, room.ranked, room.bots, room.testMatch), (RoomStatus.playing, true, 0, false));
       await expectLater(online.gameAs(room.hostId).setBots(room.id, 2), throwsA(isA<OnlineException>()));
       await settle();
-      await playToTheEnd([for (final (i, id) in ids.indexed) _Human(id, clientOf(id), Random(i + 9))]);
+      final humans = [for (final (i, id) in ids.indexed) _Human(id, clientOf(id), Random(i + 9))];
+      await playToTheEnd(humans);
+      // The ranked deck, as the real server deals it (QA P3-3: the fake
+      // dealt the friends deck): both guns, and only the ranked pools.
+      final roles = humans.first.client.board!.view.finalRoles.values.toList();
+      expect(roles, hasLength(12));
+      expect(roles, containsAll(rankedGuns));
+      const pools = {
+        ...rankedFamilyPowers, ...rankedNeutrals, ...rankedInvestigators, ...rankedProtectors, ...rankedGuns, //
+        ...rankedCivics, Role.mafioso, Role.cittadino,
+      };
+      expect(roles.where((r) => !pools.contains(r)), isEmpty, reason: 'roles outside the ranked deck: $roles');
+      for (final human in humans) {
+        human.client.dispose();
+      }
       for (final id in ids) {
         final match = online.history[id]!.single;
         expect(match.ranked, isTrue);
