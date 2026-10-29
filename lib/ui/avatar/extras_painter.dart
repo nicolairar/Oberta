@@ -9,6 +9,9 @@ abstract final class _Extras {
   static const _green = Color(0xFF2F6A3A);
   static const _yellow = Color(0xFFD9A43A);
 
+  /// Painting for a portrait under 110 px (the table): the tattoos grow.
+  static bool table = false;
+
   static Paint _fill(Color c) => Paint()..color = c;
   static Paint _line(Color c, double w) => Paint()
     ..color = c
@@ -333,8 +336,24 @@ abstract final class _Extras {
   static Path _neckPath() => _Face.neckPath;
 
   static void tattoo(Canvas canvas, AvatarLook look) {
+    if (look.tattoo == Tattoo.none) return;
+    // On dark skin the ink would vanish: a lighter rim of healed skin
+    // around every line, as the old sailors' tattoos have.
+    if (look.skin.computeLuminance() < 0.16) {
+      canvas.saveLayer(
+        null,
+        Paint()
+          ..imageFilter = ui.ImageFilter.dilate(radiusX: 0.007, radiusY: 0.007)
+          ..colorFilter = ColorFilter.mode(Color.lerp(look.skin, const Color(0xFFF0DEC4), 0.42)!, BlendMode.srcIn),
+      );
+      _tattoo(canvas, look);
+      canvas.restore();
+    }
+    _tattoo(canvas, look);
+  }
+
+  static void _tattoo(Canvas canvas, AvatarLook look) {
     final t = look.tattoo;
-    if (t == Tattoo.none) return;
     final ink = _line(_ink.withValues(alpha: 0.85), 0.007);
     final fillInk = _fill(_ink.withValues(alpha: 0.8));
     final red = _fill(_red.withValues(alpha: 0.8));
@@ -352,7 +371,7 @@ abstract final class _Extras {
           fillInk,
         );
       } else {
-        canvas.drawPath(_star(const Offset(0.1, -0.81), 0.018), fillInk);
+        canvas.drawPath(_star(const Offset(0.1, -0.81), table ? 0.026 : 0.018), fillInk);
       }
       canvas.restore();
       return;
@@ -372,8 +391,9 @@ abstract final class _Extras {
     canvas.save();
     canvas.clipPath(area);
     // Un poco più grandi del vero: si devono leggere anche nel ritratto piccolo.
+    // At the table, bigger still.
     canvas.translate(0, -0.64);
-    canvas.scale(1.4);
+    canvas.scale(table ? 1.75 : 1.4);
     canvas.translate(0, 0.64);
     const side = Offset(0.04, -0.66);
     switch (t) {

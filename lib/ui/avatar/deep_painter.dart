@@ -663,24 +663,39 @@ abstract final class _Deep {
             c.drawLine(p + Offset(-dx * 0.16, dx * 0.05), p + Offset(dx * 0.16, -dx * 0.05), line(ink, max(_thin, dx * 0.04)));
           }
         case FaceExtra.skullPaint:
+          // The face is painted bone white (the skin, in the noir painter):
+          // here the black sockets with a glint in them, the nose hole, the
+          // stitched grin and the sugar-skull dots around the eyes.
           for (final s in [-1.0, 1.0]) {
-            final o = Offset(g.cx + s * dx, g.eyeY);
-            c.drawCircle(o, dx * 0.62, fill(const Color(0xCC1A0E22)));
-            if (!_small) {
-              for (var j = 0; j < 8; j++) {
-                c.drawCircle(o + Offset(cos(j * pi / 4), sin(j * pi / 4)) * dx * 0.72, dx * 0.08, fill(const Color(0xFF3FE0D0)));
-              }
+            final o = Offset(g.cx + s * dx, g.eyeY + dx * 0.04);
+            c.drawOval(Rect.fromCenter(center: o, width: dx * 1.3, height: dx * 1.18), fill(const Color(0xF2140A18)));
+            c.drawCircle(o + Offset(-dx * 0.14, -dx * 0.1), dx * 0.13, fill(white));
+            for (var j = 0; j < (_small ? 0 : 9); j++) {
+              final a = -pi * 0.95 + j * pi * 0.9 / 8;
+              c.drawCircle(o + Offset(cos(a) * dx * 0.82, sin(a) * dx * 0.76), dx * 0.075, fill(const Color(0xFF2FC8BC)));
             }
           }
+          final n = Offset(g.cx, g.nose - dx * 0.05);
+          c.drawPath(
+            Path()
+              ..moveTo(n.dx, n.dy + dx * 0.2)
+              ..quadraticBezierTo(n.dx - dx * 0.3, n.dy + dx * 0.02, n.dx - dx * 0.08, n.dy - dx * 0.16)
+              ..lineTo(n.dx, n.dy - dx * 0.06)
+              ..lineTo(n.dx + dx * 0.08, n.dy - dx * 0.16)
+              ..quadraticBezierTo(n.dx + dx * 0.3, n.dy + dx * 0.02, n.dx, n.dy + dx * 0.2)
+              ..close(),
+            fill(const Color(0xF2140A18)),
+          );
           final m = Offset(g.cx, g.mouth);
-          c.drawLine(m - Offset(dx * 0.8, 0), m + Offset(dx * 0.8, 0), line(ink, _thin));
-          if (!_small) {
-            for (var j = -3; j <= 3; j++) {
-              c.drawLine(m + Offset(j * dx * 0.22, -dx * 0.12), m + Offset(j * dx * 0.22, dx * 0.12), line(ink, _thin * 0.8));
-            }
+          c.drawLine(m - Offset(dx * 0.85, 0), m + Offset(dx * 0.85, 0), line(ink, max(_thin, dx * 0.07)));
+          for (var j = -3; j <= 3; j++) {
+            c.drawLine(m + Offset(j * dx * 0.24, -dx * 0.15), m + Offset(j * dx * 0.24, dx * 0.15), line(ink, max(_thin * 0.8, dx * 0.05)));
           }
         case FaceExtra.beautyStar:
-          c.drawPath(star(Offset(g.rightEye.dx + dx * 0.4, g.eyeY + dx * 0.68), dx * 0.34, 5, 0.45), fill(night));
+          // Dark, with a gold edge: it reads on every skin.
+          final beauty = star(Offset(g.rightEye.dx + dx * 0.4, g.eyeY + dx * 0.7), dx * 0.38, 5, 0.45);
+          c.drawPath(beauty, fill(night));
+          c.drawPath(beauty, line(gold, max(_thin, dx * 0.06)));
         case FaceExtra.goldTooth:
           // Il sorriso storto col dente d'oro, e il lampo sopra.
           final o = Offset(g.cx + dx * 0.3, g.mouth + dx * 0.06);

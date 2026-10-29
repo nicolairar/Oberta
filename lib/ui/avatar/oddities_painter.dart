@@ -408,9 +408,10 @@ abstract final class _Oddities {
           canvas.drawLine(const Offset(-0.16, -1.06), const Offset(0.16, -1.06), fold);
         }
       case AvatarHead.sombrero:
-        // Il sombrero di paglia, il nastro ricamato e i pompon sulla tesa.
+        // Il sombrero di paglia, il nastro ricamato e i pompon sulla tesa: largo,
+        // ma dentro lo schermo del telefono e il posto al tavolo.
         const straw = Color(0xFFD8B46A);
-        canvas.drawOval(Rect.fromCenter(center: const Offset(0, -0.97), width: 0.94, height: 0.15), p(straw));
+        canvas.drawOval(Rect.fromCenter(center: const Offset(0, -0.97), width: 0.8, height: 0.14), p(straw));
         canvas.drawPath(
           Path()
             ..moveTo(-0.14, -0.975)
@@ -421,7 +422,7 @@ abstract final class _Oddities {
         );
         if (detail) {
           canvas.drawArc(
-            Rect.fromCenter(center: const Offset(0, -0.97), width: 0.94, height: 0.15),
+            Rect.fromCenter(center: const Offset(0, -0.97), width: 0.8, height: 0.14),
             pi,
             pi,
             false,
@@ -435,8 +436,8 @@ abstract final class _Oddities {
           canvas.drawPath(zig, _line(const Color(0xFF2E9E4A), 0.008));
           const pompons = [Color(0xFFD23A2E), Color(0xFF2E9E4A), Color(0xFFE8842A)];
           var i = 0;
-          for (final x in [-0.44, -0.37, -0.29, 0.29, 0.37, 0.44]) {
-            final y = -0.97 + 0.075 * sqrt(max(0, 1 - pow(x / 0.47, 2)));
+          for (final x in [-0.375, -0.315, -0.25, 0.25, 0.315, 0.375]) {
+            final y = -0.97 + 0.07 * sqrt(max(0, 1 - pow(x / 0.4, 2)));
             canvas.drawLine(Offset(x, y - 0.005), Offset(x, y + 0.02), _line(_dark(straw, 0.4), 0.004));
             canvas.drawCircle(Offset(x, y + 0.03), 0.018, _fill(pompons[i++ % 3]));
           }

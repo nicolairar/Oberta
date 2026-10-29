@@ -485,15 +485,22 @@ abstract final class _Absurd {
         }
       case AvatarHead.ufoHat:
         // Il disco volante con il raggio traente e l'alieno verde nella cupola.
-        if (detail) {
+        if (detail && !_Noir.inkPass) {
           canvas.drawPath(
             Path()
               ..moveTo(-0.08, -1.12)
               ..lineTo(0.08, -1.12)
-              ..lineTo(0.22, -0.98)
-              ..lineTo(-0.22, -0.98)
+              ..lineTo(0.24, -0.94)
+              ..lineTo(-0.24, -0.94)
               ..close(),
-            _fill(const Color(0xFFB8F06A).withValues(alpha: 0.28)),
+            // The beam fades as it falls: no hard edge across the forehead.
+            // (Half alpha on the paint: the ink canvas leaves it unoutlined.)
+            Paint()
+              ..color = const Color(0x80FFFFFF)
+              ..shader = ui.Gradient.linear(const Offset(0, -1.12), const Offset(0, -0.94), [
+                const Color(0xFFB8F06A).withValues(alpha: 0.7),
+                const Color(0xFFB8F06A).withValues(alpha: 0),
+              ]),
           );
         }
         canvas.drawOval(const Rect.fromLTRB(-0.11, -1.3, 0.11, -1.12), p(const Color(0xFFBFE6F2)));

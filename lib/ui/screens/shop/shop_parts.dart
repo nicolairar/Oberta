@@ -23,6 +23,9 @@ class _Entry {
 /// The part of the bust a thumbnail zooms on, in bust units.
 Rect _focusOf(_Entry entry) {
   if (entry.bundle != null) return const Rect.fromLTWH(0.1, 0.06, 0.8, 0.8);
+  // The head and face pieces: measured, so the whole piece fits the round.
+  final measured = pieceFocus[entry.item!.id];
+  if (measured != null) return measured;
   // A flare, a flag, a parrot: beside the player, so the whole portrait.
   final vice = entry.item!.slot == 'accessory' ? AvatarAccessory.values.where((a) => a.name == entry.item!.lookId).firstOrNull : null;
   if (vice != null && LookPainter.beside(vice)) return const Rect.fromLTWH(0, 0, 1, 1);

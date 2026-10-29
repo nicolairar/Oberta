@@ -1774,7 +1774,14 @@ abstract final class LookPainter {
     }
   }
 
-  static Color _hairColor(AvatarLook look) => look.features.hairColor.color;
+  static Color _hairColor(AvatarLook look) => _beardColor(look, look.features.hairColor.color);
+
+  /// The colour of the beard: the hair's, but on dark skin a beard as dark
+  /// as the skin takes a cool sheen, or it would not show at the table.
+  static Color _beardColor(AvatarLook look, Color hair) {
+    if (look.base.skin.computeLuminance() < 0.12 && hair.computeLuminance() < 0.05) return Color.lerp(hair, const Color(0xFF7A86A2), 0.28)!;
+    return hair;
+  }
 
   /// La barba e i baffi, sopra la bocca: la barba piena dentro la mascella
   /// di ogni forma di faccia (e oltre il mento), i baffi sul labbro.
@@ -1898,7 +1905,10 @@ abstract final class LookPainter {
             ..strokeCap = StrokeCap.round,
         );
       case FaceMark.mole:
-        canvas.drawCircle(const Offset(0.07, -0.79), 0.01, Paint()..color = const Color(0xFF1A0E0A));
+        // A touch bigger at the table, with a glint that lifts it off dark skin.
+        final r = _Extras.table ? 0.015 : 0.01;
+        canvas.drawCircle(const Offset(0.07, -0.79), r, Paint()..color = const Color(0xFF1A0E0A));
+        canvas.drawCircle(Offset(0.07 - r * 0.35, -0.79 - r * 0.35), r * 0.38, Paint()..color = const Color(0x99FFF0DC));
       case FaceMark.pencil:
         // Il baffetto a matita: sottile, ma con un filo di luce sotto che lo
         // stacca dalla pelle anche nel ritratto piccolo.

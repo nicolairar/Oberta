@@ -617,6 +617,10 @@ class _NParts {
 abstract final class _Noir {
   static final Map<int, _NParts> _cache = {};
 
+  /// True while the odd hats paint their ink silhouette: light that only
+  /// glows (the UFO's beam) stays out of it.
+  static bool inkPass = false;
+
   static bool _real(AvatarLook look) =>
       !look.bareHead && !_Face._onTop.contains(look.hat) && !_Face._covered.contains(look.hat) && look.hairdo == Hairdo.none;
 
@@ -638,6 +642,14 @@ abstract final class _Noir {
       final below = Path()..addRect(Rect.fromLTRB(-1, line, 2, 3));
       if (back != null) back = Path.combine(PathOperation.intersect, back, below);
       if (front != null) front = Path.combine(PathOperation.intersect, front, below);
+      // An afro under a hat puffs out at the sides and stops by the cheeks:
+      // the rest of its round would wrap the jaw like a bowl.
+      if (style == HairStyle.afro) {
+        final drop = b.mouthY - line;
+        final puff = Path()..addOval(Rect.fromCenter(center: Offset(b.cx, line + drop * 0.4), width: b.w * 1.62, height: drop * 1.3));
+        if (back != null) back = Path.combine(PathOperation.intersect, back, puff);
+        if (front != null) front = Path.combine(PathOperation.intersect, front, puff);
+      }
     }
     final braids = hidden ? null : b.braids(style);
     var crown = b.top;
@@ -704,7 +716,9 @@ abstract final class _Noir {
     final ink = _InkCanvas(Canvas(recorder), side);
     final previous = LookPainter._style;
     LookPainter._style = const _Style(noir: true);
+    _Extras.table = side < 110;
     _with(ink, m, () => draw(ink));
+    _Extras.table = false;
     LookPainter._style = previous;
     return _pieces[(look, key, side)] = recorder.endRecording();
   }
@@ -787,7 +801,11 @@ abstract final class _Noir {
     final bare = only != null;
     final f = look.features;
     final gold = look.base.mark == FaceMark.goldStatue;
-    final skin = gold ? const Color(0xFFD9A93E) : (look.base.mark == FaceMark.mimeFace ? const Color(0xFFF4F0E8) : look.base.skin);
+    final skin = gold ? const Color(0xFFD9A93E) : (look.base.mark == FaceMark.mimeFace
+            ? const Color(0xFFF4F0E8)
+            : look.faceExtras.contains(FaceExtra.skullPaint)
+            ? const Color(0xFFE6E0D0)
+            : look.base.skin);
     final hair = gold ? const Color(0xFFB98A26) : f.hairColor.color;
     final styled = look.hairdo != Hairdo.none;
     final hatLift = lift(look, b, hairTop: p.hairTop);
@@ -844,7 +862,7 @@ abstract final class _Noir {
           _Oddities.wings(c, look);
           _Calcio.glow = true;
         });
-    void oddHat() => pic('hat', liftedHat, (c) => LookPainter._hat(c, look, Paint(), silhouette: false));
+    void oddHat() => pic(inkPass && look.hat == AvatarHead.ufoHat ? 'hatInk' : 'hat', liftedHat, (c) => LookPainter._hat(c, look, Paint(), silhouette: false));
     void hairdoBack() => pic('hairdoBack', hatAt, (c) => _Extras.hairdoBack(c, look, null));
     void hairdoFront() => pic('hairdoFront', hatAt, (c) => _Extras.hairdoFront(c, look));
     void coat() => pic('coat', bodyMap(b, look), (c) => LookPainter._coat(c, look, LookPainter._torso(broad), const Offset(-0.6, -0.8)));
@@ -871,7 +889,9 @@ abstract final class _Noir {
     void eyeShine() {
       if (look.eyeShine == EyeShine.none) return;
       final pupils = _pupils(look, b, glance);
-      _Deep.pic(canvas, ('eyes', look.eyeShine, pupils.$1, pupils.$2), (c) => _Deep.eyeShine(c, look.eyeShine, pupils.$1, pupils.$2));
+      // Narrow eyes have small pupils: the shine keeps a size that reads.
+      final size = max(pupils.$2, b.w * 0.034);
+      _Deep.pic(canvas, ('eyes', look.eyeShine, pupils.$1, size), (c) => _Deep.eyeShine(c, look.eyeShine, pupils.$1, size));
     }
 
     // --- Dietro a tutto: le spalle e il bagliore, con la loro sagoma ---
@@ -914,7 +934,9 @@ abstract final class _Noir {
             ..imageFilter = ui.ImageFilter.dilate(radiusX: ow, radiusY: ow)
             ..colorFilter = const ColorFilter.mode(_nInk, BlendMode.srcIn),
         );
+        inkPass = true;
         if (legacyHat) oddHat();
+        inkPass = false;
         if (styled) {
           hairdoBack();
           hairdoFront();
@@ -970,7 +992,7 @@ abstract final class _Noir {
           if (faceTattoo) pic('tattoo', mouthMap(b), (c) => _Extras.tattoo(c, look));
           if (!look.glasses.dark) eyeShine();
         case LookLayer.beard:
-          _beard(canvas, look, b, hair, thin, toon, pic);
+          _beard(canvas, look, b, LookPainter._beardColor(look, hair), thin, toon, pic);
           // I segni sulla faccia, sopra i baffi e il rossetto.
           if (look.faceExtras.isNotEmpty) _Deep.pic(canvas, ('face', AvatarLook.extrasId(look.faceExtras), g), (c) => _Deep.faceExtras(c, look.faceExtras, g));
         case LookLayer.hairFront:
@@ -1204,7 +1226,22 @@ abstract final class _Noir {
         ..lineTo(b.cx + b.w, 1)
         ..lineTo(b.cx - b.w, 1)
         ..close();
-      canvas.drawPath(shadow, _nFill(Color.lerp(skin, f.hairColor.color, 0.45)!.withValues(alpha: mark == FaceMark.stubble ? 0.55 : 0.25)));
+      // Multiplied, so the lamp's shadow on the face stays where it is.
+      final stubble = mark == FaceMark.stubble;
+      canvas.drawPath(
+        shadow,
+        _nFill(Color.lerp(const Color(0xFFFFFFFF), Color.lerp(skin, f.hairColor.color, 0.6)!, stubble ? 0.62 : 0.3)!)..blendMode = BlendMode.multiply,
+      );
+      if (stubble && !small) {
+        // The grain of a day's beard, in the beard's colour.
+        final dot = _nFill(LookPainter._beardColor(look, f.hairColor.color).withValues(alpha: 0.55));
+        final rnd = Random(7);
+        for (var i = 0; i < 70; i++) {
+          final x = b.cx + (rnd.nextDouble() * 2 - 1) * b.r;
+          final y = b.noseY + b.h * (0.07 + rnd.nextDouble() * 0.36);
+          canvas.drawCircle(Offset(x, y), b.w * 0.007, dot);
+        }
+      }
     }
     final rosy = f.detail == FaceDetail.rosyCheeks;
     if (rosy || (look.dame && !small)) {
@@ -1329,7 +1366,8 @@ abstract final class _Noir {
     final size = _size(f.eyeSize);
     final iris = Color.lerp(f.eyeColor.color, _nLamp, 0.15)!;
     final br = _brow(f.brows);
-    final browColor = Color.lerp(look.base.mark == FaceMark.goldStatue ? const Color(0xFFB98A26) : f.hairColor.color, _nInk, look.dame ? 0.45 : 0.75)!;
+    // On dark skin the brows take the beard's sheen, or every shape looks alike.
+    final browColor = LookPainter._beardColor(look, Color.lerp(look.base.mark == FaceMark.goldStatue ? const Color(0xFFB98A26) : f.hairColor.color, _nInk, look.dame ? 0.45 : 0.75)!);
     final g = glance.clamp(-1.0, 1.0) * b.w * 0.02;
     for (final s in [-1.0, 1.0]) {
       // Gli occhi stanno sempre sulla stessa riga e sono speculari.
@@ -1613,7 +1651,7 @@ abstract final class _Noir {
       canvas.save();
       canvas.clipPath(front);
       for (final s in [-1, 1]) {
-        canvas.drawRect(Rect.fromCenter(center: Offset(b.cx + s * b.r, b.cy - b.h * 0.02), width: b.w * 0.2, height: b.h * 0.14), _nFill(const Color(0xFF8E8A86)));
+        canvas.drawOval(Rect.fromCenter(center: Offset(b.cx + s * b.r, b.cy - b.h * 0.02), width: b.w * 0.2, height: b.h * 0.16), _nFill(const Color(0xFF8E8A86)));
       }
       canvas.restore();
     }
@@ -1626,13 +1664,15 @@ abstract final class _Noir {
       ..quadraticBezierTo(b.cx - b.r * 0.2, b.top - b.h * 0.005, b.cx - b.r * 0.75, b.top + b.h * 0.1)
       ..close();
     canvas.drawPath(gloss, _nFill(Color.lerp(hair, _nLamp, hair.computeLuminance() < 0.03 ? 0.3 : 0.2)!));
-    canvas.restore();
+    // The parting stays inside the hair: above it, it would stick out of the
+    // crown like a tick.
     if (look.features.hair == HairStyle.sidePart && !small) {
       canvas.drawLine(Offset(b.cx + b.r * 0.35, b.top - b.h * 0.02), Offset(b.cx + b.r * 0.5, b.top + b.h * 0.14), _nStroke(_nInk, thin));
     }
     if ((look.features.hair == HairStyle.middlePart || look.features.hair == HairStyle.long || look.features.hair == HairStyle.braids) && !small) {
       canvas.drawLine(Offset(b.cx, b.top - b.h * 0.04), Offset(b.cx, b.top + b.h * 0.06), _nStroke(_nInk, thin));
     }
+    canvas.restore();
   }
 
   // --- Occhiali, cappelli, oggetti --------------------------------------------
