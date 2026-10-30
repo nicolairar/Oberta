@@ -466,6 +466,8 @@ void main() {
     await openPower(tester, bruno);
     await tapKey(tester, 'game.powerUse');
     await tapKey(tester, 'local.toVote');
+    await tapLabel(tester, 'AVANTI');
+    expect(find.byKey(const Key('local.mayor')), findsOneWidget, reason: 'in cabina si ricorda il Sindaco');
     await secretVote(tester, [ada, bruno, carla, dino, elio], {ada: carla, bruno: ada});
     await watchVerdict(tester);
     expect(find.byKey(const Key('lynch.stamp')), findsOneWidget, reason: 'due voti contro uno: Ada');

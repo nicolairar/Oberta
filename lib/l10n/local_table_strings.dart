@@ -46,4 +46,10 @@ class LocalTableStrings {
   String get secretBallot => _m('secretBallot');
   String votePicked(String name) => _m('votePicked', {'name': name});
   String get castVote => _m('castVote');
+  String get ballotAbstain => _m('ballotAbstain');
+  String get ballotHint => _m('ballotHint');
+  String get ballotTitle => _m('ballotTitle');
+  String get ballotRule => _m('ballotRule');
+  String ballotSerial(String n) => _m('ballotSerial', {'n': n});
+  String get ballotPad => _m('ballotPad');
 }
