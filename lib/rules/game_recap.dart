@@ -189,12 +189,12 @@ class GameRecap {
           );
         case CloseDayVoteCommand():
           final round = replay.round;
-          final mayor = replay.mayor;
+          final mayor = replay.mayorRevealedToday;
           final votes = [for (final entry in replay.dayVotes.entries) (voter: entry.key, target: entry.value)];
           days.add(RecapDay(round: round, mayor: mayor, votes: votes, lynch: replay.closeDayVote()));
         case LynchCommand(:final seat):
           final round = replay.round;
-          final mayor = replay.mayor;
+          final mayor = replay.mayorRevealedToday;
           final votes = [for (final entry in replay.dayVotes.entries) (voter: entry.key, target: entry.value)];
           final condemned = seat == null ? null : engine.setup.players.firstWhere((p) => p.id == seat);
           days.add(RecapDay(round: round, mayor: mayor, votes: votes, lynch: replay.lynch(condemned)));

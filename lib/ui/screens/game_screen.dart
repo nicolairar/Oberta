@@ -31,6 +31,7 @@ import '../../l10n/table_strings.dart';
 import '../../rules/intent.dart';
 import '../../rules/player_view.dart';
 import 'local/local_table.dart';
+import 'local/secret_ballot.dart';
 import 'online/game/action_strip.dart';
 import 'online/game/noir_ui.dart';
 import 'online/game/verdict_line.dart';
@@ -395,7 +396,19 @@ class _GameScreenState extends State<GameScreen> {
         if (_engine.isAlive(player)) player,
     ];
     _voter = 0;
-    _stage = _Stage.vote;
+    if (!_secretVote) {
+      _stage = _Stage.vote;
+      return;
+    }
+    // In cabina non c'è posto per il copione: il richiamo si legge prima.
+    _stage = _Stage.script;
+    _page = ScriptPage(
+      icon: Icons.how_to_vote,
+      title: _ls.voteTitle,
+      lines: _voteLines,
+      action: _ls.voteNext.toUpperCase(),
+      onAction: () => _advance(() => _stage = _Stage.vote),
+    );
   }
 
   /// Dal voto si torna alla discussione (e ai poteri di giorno), finché
@@ -652,6 +665,7 @@ class _GameScreenState extends State<GameScreen> {
         ),
       );
     }
+    if (_stage == _Stage.vote && _secretVote) return _boothScreen();
     if (_atTheTable) return _tableScreen();
     final phoneIsWithNarrator = _stage == _Stage.script;
     return PopScope(
@@ -766,7 +780,6 @@ class _GameScreenState extends State<GameScreen> {
   /// La riga sotto il titolo: a che punto è il giro del telefono, o il voto.
   String? _ribbon() => switch (_stage) {
         _Stage.handoff || _Stage.task || _Stage.taskDone => '${_turn + 1} / ${_queue.length}',
-        _Stage.vote when _secretVote => '${_voter + 1} / ${_voters.length}',
         _ => null,
       };
 
@@ -840,7 +853,7 @@ class _GameScreenState extends State<GameScreen> {
         _Stage.power => _powerView(_powerUser!),
         _Stage.shot => _shotView(),
         _Stage.marksmanShot => _marksmanShotView(),
-        _Stage.vote => _secretVote ? _secretVoteView() : _voiceVoteView(),
+        _Stage.vote => _voiceVoteView(),
         _Stage.end => _endView(),
       };
 
@@ -1080,20 +1093,14 @@ class _GameScreenState extends State<GameScreen> {
   /// Il bottone dei poteri di giorno, accanto al cronometro: uno solo e
   /// sempre lì, durante la discussione, che ci siano o no ruoli con un
   /// potere. Così non dice niente del mazzo.
-  Widget _usePowerButton() => SizedBox(
-        height: NoirMetrics(DesktopCanvas.of(context)).button,
-        child: OutlinedButton(
-          key: const Key('game.usePower'),
-          onPressed: pressed(
-            () => _advance(() {
-              _powerUser = null;
-              _marksmanShot = null;
-              _stage = _Stage.powerWho;
-            }),
-            Press.tap,
-          ),
-          child: FittedBox(fit: BoxFit.scaleDown, child: Text(_lr.usePower.toUpperCase(), maxLines: 1)),
-        ),
+  NoirAction _usePowerButton() => NoirAction(
+        key: const Key('game.usePower'),
+        label: _lr.usePower,
+        onPressed: () => _advance(() {
+          _powerUser = null;
+          _marksmanShot = null;
+          _stage = _Stage.powerWho;
+        }),
       );
 
   /// Chi vuole usare un potere tocca il suo volto, davanti a tutti: il
@@ -1484,8 +1491,9 @@ class _GameScreenState extends State<GameScreen> {
       strip: ActionStrip(
         status: expired ? _t.timeUp : _ls.discuss,
         tone: expired ? StripTone.wait : StripTone.act,
-        control: _usePowerButton(),
+        even: true,
         actions: [
+          _usePowerButton(),
           NoirAction(
             key: const Key('local.moreTime'),
             label: _t.plusMinute,
@@ -1546,62 +1554,104 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  /// Il voto segreto: il telefono passa di mano e chi lo tiene vota da
-  /// solo, una volta. Sul tavolo nessun voto di chi è venuto prima, niente
-  /// accusato, niente suoni: solo quante schede sono nell'urna. Si tocca e
-  /// si conferma, perché non si torna indietro.
-  Widget _secretVoteView() {
+  /// Il voto segreto: il telefono passa di mano e chi lo tiene entra in
+  /// cabina, da solo, una volta. Sulla scheda ci sono solo i vivi che si
+  /// possono condannare, lui escluso, e niente di chi è venuto prima: solo
+  /// quante schede sono nell'urna. Si timbra, si può cambiare nome, si mette
+  /// nell'urna: indietro non si torna. Lo stesso colpo per chi vota e per
+  /// chi si astiene, così il tavolo non sente la differenza.
+  Widget _boothScreen() {
     final voter = _voters[_voter];
     final selected = _selected;
     final cast = _engine.dayVotes.length;
     final turn = _script.voterTurn(_tag(voter));
-    return _tablePage(
-      key: const Key('local.vote'),
-      // Al primo votante la voce legge il richiamo e poi il suo turno; agli
-      // altri, solo il turno.
-      script: _voter == 0 ? SpokenScriptCard(reader: _narrator?.name, lines: [..._voteLines, turn]) : null,
-      voice: _voter == 0 ? const [] : [turn],
-      table: _publicTable(
-        holder: voter,
-        selectable: {
-          for (final player in _engine.lynchable)
-            if (player != voter) player,
-        },
-        selected: selected,
-        onTap: (player) => setState(() => _selected = player),
-        center: LocalFelt([
-          (
-            text: _ls.mustVote(_tag(voter)).toUpperCase(),
-            key: const Key('local.mustVote'),
-            style: LocalFelt.titleStyle(context),
+    final tag = _tag(voter).toUpperCase();
+    final line = _mayorLine();
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        backgroundColor: Saloon.ink,
+        body: SecretBooth(
+          key: const Key('local.vote'),
+          voterKey: voter.id,
+          words: BallotWords(
+            voter: tag,
+            mustVote: _ls.mustVote('').trim().toUpperCase(),
+            secrecy: _ls.secretBallot,
+            note: line?.text,
+            day: _t.dayTitle(_engine.round),
+            serial: _ls.ballotSerial((_engine.round * 100 + _voter + 1).toString().padLeft(4, '0')),
+            title: _ls.ballotTitle,
+            rule: _ls.ballotRule,
+            pad: _ls.ballotPad,
           ),
-          (text: _ls.secretBallot, key: null, style: LocalFelt.lineStyle(context, style: FontStyle.italic)),
-          ?_mayorLine(),
-        ]),
-      ),
-      strip: ActionStrip(
-        status: selected == null ? turn.text : _ls.votePicked(_tag(selected)),
-        statusKey: const Key('local.voterTurn'),
-        tone: selected == null ? StripTone.act : StripTone.done,
-        count: '$cast/${_voters.length}',
-        countTooltip: _t.online.votesCast(cast, _voters.length),
-        actions: [
-          NoirAction(
-            key: const Key('local.abstain'),
-            label: _t.online.abstain,
-            onPressed: () => _castVote(null),
+          candidates: [
+            for (final player in _engine.lynchable)
+              if (player != voter) player,
+          ],
+          numbers: _numbers,
+          marked: selected,
+          onMark: (player) => setState(() => _selected = player),
+          onImpact: _stampSound,
+          leading: HeaderIconButton(
+            icon: Icons.close,
+            tooltip: _t.leaveTooltip,
+            onPressed: pressed(_confirmExit, Press.back),
           ),
-          NoirAction(
-            key: const Key('local.castVote'),
-            label: _ls.castVote,
-            style: NoirButtonStyle.primary,
-            feel: Press.confirm,
-            onPressed: selected == null ? null : () => _castVote(selected),
+          actions: [
+            HeaderIconButton(
+              key: const Key('rolesSheet.button'),
+              icon: Icons.style,
+              tooltip: _t.rolesTooltip,
+              onPressed: pressed(_showDeck, Press.card),
+            ),
+            if (_canBackToTalk)
+              HeaderIconButton(
+                key: const Key('local.backToTalk'),
+                icon: Icons.undo,
+                tooltip: _ls.backToTalk,
+                onPressed: pressed(_backToTalk, Press.back),
+              )
+            else if (_narrator != null)
+              _narratorEye(),
+          ],
+          strip: SpokenLines(
+            key: ValueKey('booth-$_voter'),
+            lines: [turn],
+            reader: _narrator?.name,
+            child: ActionStrip(
+              status: selected == null ? _ls.ballotHint : _ls.votePicked(_tag(selected)),
+              statusKey: const Key('local.voterTurn'),
+              tone: selected == null ? StripTone.act : StripTone.done,
+              count: '$cast/${_voters.length}',
+              countTooltip: _t.online.votesCast(cast, _voters.length),
+              actions: [
+                NoirAction(
+                  key: const Key('local.abstain'),
+                  label: _ls.ballotAbstain,
+                  feel: Press.confirm,
+                  onPressed: () {
+                    _stampSound();
+                    _castVote(null);
+                  },
+                ),
+                NoirAction(
+                  key: const Key('local.castVote'),
+                  label: _ls.castVote,
+                  style: NoirButtonStyle.primary,
+                  feel: Press.confirm,
+                  onPressed: selected == null ? null : () => _castVote(selected),
+                ),
+              ],
+            ),
           ),
-        ],
+        ),
       ),
     );
   }
+
+  /// Il timbro che batte sulla mensola.
+  void _stampSound() => SoundStage.instance.effect(FxGroup.thud, volume: 0.55);
 
   /// Lo scrutinio in una riga: quanti voti a chi, e quanti si sono astenuti.
   String _verdictTally() {

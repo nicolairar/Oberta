@@ -684,14 +684,18 @@ class GameEngine {
   /// Chi il Piromane ha cosparso ed è ancora vivo.
   Set<Player> get doused => Set.unmodifiable(_doused);
 
-  /// Il Sindaco che si è rivelato oggi: il suo voto vale due.
+  /// Il Sindaco che si è rivelato, finché è vivo: da quel giorno il suo voto
+  /// vale due, per il resto della partita. Da morto non conta più.
   Player? get mayor {
-    if (_mayorRound != _round || _phase != GamePhase.day) return null;
+    if (_mayorRound == null) return null;
     for (final player in _alive) {
       if (setup.roleOf(player) == Role.sindaco) return player;
     }
     return null;
   }
+
+  /// Il Sindaco che si è rivelato proprio oggi: il resoconto lo dice una volta.
+  Player? get mayorRevealedToday => _mayorRound == _round && _phase == GamePhase.day ? mayor : null;
 
   /// Il Sindaco si è già rivelato (lo fa una volta per partita).
   bool get mayorRevealed => _mayorRound != null;
@@ -1437,8 +1441,8 @@ class GameEngine {
     return report;
   }
 
-  /// Il Sindaco si rivela alla piazza: il suo ruolo diventa pubblico e,
-  /// per il voto di oggi, il suo voto vale due. Una volta per partita.
+  /// Il Sindaco si rivela alla piazza: il suo ruolo diventa pubblico e, da
+  /// oggi e finché è vivo, il suo voto vale due. Una volta per partita.
   void revealMayor(Player mayor) {
     _require(GamePhase.day);
     if (!isAlive(mayor) || setup.roleOf(mayor) != Role.sindaco) {

@@ -431,11 +431,11 @@ void main() {
 
     await openPower(tester, bruno);
     expect(find.text('IL SINDACO'), findsOneWidget);
-    expect(find.text('Una volta a partita: ti riveli a tutti, e oggi il tuo voto vale doppio.'), findsOneWidget);
+    expect(find.text('Una volta a partita: ti riveli a tutti, e da oggi, finché sei vivo, il tuo voto vale doppio.'), findsOneWidget);
     await tapKey(tester, 'game.powerUse');
     expect(find.byKey(const Key('local.day')), findsOneWidget, reason: 'si torna alla discussione');
     expect(seat(tester, bruno).role, Role.sindaco, reason: 'il suo posto porta la carta, per sempre');
-    expect(find.text('2 Bruno è il Sindaco: oggi il suo voto vale doppio.'), findsOneWidget);
+    expect(find.text('2 Bruno è il Sindaco: il suo voto vale doppio.'), findsOneWidget);
 
     // Una volta per partita: al secondo giro dietro la tenda non c'è più niente.
     await openPower(tester, bruno);
@@ -444,7 +444,7 @@ void main() {
 
     // Al voto a voce il panno lo ricorda: il doppio lo conta il tavolo.
     await tapKey(tester, 'local.toVote');
-    expect(find.text('2 Bruno è il Sindaco: oggi il suo voto vale doppio.'), findsOneWidget);
+    expect(find.text('2 Bruno è il Sindaco: il suo voto vale doppio.'), findsOneWidget);
     await voiceVerdict(tester, ada);
     await watchVerdict(tester);
     expect(find.byKey(const Key('lynch.stamp')), findsOneWidget);
@@ -466,6 +466,8 @@ void main() {
     await openPower(tester, bruno);
     await tapKey(tester, 'game.powerUse');
     await tapKey(tester, 'local.toVote');
+    await tapLabel(tester, 'AVANTI');
+    expect(find.byKey(const Key('local.mayor')), findsOneWidget, reason: 'in cabina si ricorda il Sindaco');
     await secretVote(tester, [ada, bruno, carla, dino, elio], {ada: carla, bruno: ada});
     await watchVerdict(tester);
     expect(find.byKey(const Key('lynch.stamp')), findsOneWidget, reason: 'due voti contro uno: Ada');

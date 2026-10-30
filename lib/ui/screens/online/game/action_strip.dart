@@ -32,6 +32,10 @@ class ActionStrip extends StatelessWidget {
   final Widget? control;
   final List<NoirAction> actions;
 
+  /// All the [actions] on one row, their words at the same size, however
+  /// many they are.
+  final bool even;
+
   const ActionStrip({
     super.key,
     required this.status,
@@ -42,6 +46,7 @@ class ActionStrip extends StatelessWidget {
     this.detail,
     this.control,
     this.actions = const [],
+    this.even = false,
   });
 
   /// The strip is always this tall: nothing above or below it moves.
@@ -134,6 +139,7 @@ class ActionStrip extends StatelessWidget {
   }
 
   Widget _buttons(NoirMetrics m) {
+    if (even) return NoirEvenActions(actions: actions);
     final control = this.control;
     if (control == null) return NoirActions(actions: actions);
     return Row(

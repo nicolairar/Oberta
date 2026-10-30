@@ -85,7 +85,7 @@ const italianPack = NarrationPack(
     Role.sindaco: RoleText(
       'Il Sindaco',
       '«Non ho vinto le elezioni per stare zitto.»',
-      'Una volta a partita, durante il voto, puoi rivelarti: da lì il tuo voto vale doppio. Vinci con la Città.',
+      'Una volta a partita, di giorno, puoi rivelarti: da lì, finché sei vivo, il tuo voto vale doppio. Vinci con la Città.',
     ),
     Role.portinaio: RoleText(
       'Il Portinaio',
@@ -561,7 +561,7 @@ const italianPack = NarrationPack(
     'L\'ultima luce si spegne a {city}. Qualcuno pulisce la lama e fischietta. Titoli di coda.',
   ],
   assassinWinsFact: 'Vince il Sicario, da solo: ha fatto piazza pulita.',
-  mayorRevealed: '{name} è il Sindaco: oggi il suo voto vale doppio.',
+  mayorRevealed: '{name} è il Sindaco: il suo voto vale doppio.',
   watchVisited: 'Stanotte qualcuno è passato dalla porta di {name}.',
   watchQuiet: 'Stanotte nessuno è passato dalla porta di {name}.',
   taskPrompts: {

@@ -133,7 +133,19 @@ class NoirModalButton extends StatefulWidget {
   final bool paper;
   final bool autofocus;
 
-  const NoirModalButton({super.key, required this.action, this.paper = false, this.autofocus = false});
+  /// The size of the words, and the room at their sides, when a row of
+  /// buttons has to share them ([NoirEvenActions]).
+  final double? fontSize;
+  final double? sidePadding;
+
+  const NoirModalButton({
+    super.key,
+    required this.action,
+    this.paper = false,
+    this.autofocus = false,
+    this.fontSize,
+    this.sidePadding,
+  });
 
   @override
   State<NoirModalButton> createState() => _NoirModalButtonState();
@@ -194,11 +206,12 @@ class _NoirModalButtonState extends State<NoirModalButton> {
     final targa = a.main ? TargaKind.primary : TargaKind.secondary;
     if (plate) ink = !enabled ? NoirInk.muted : (a.main ? Targa.cream : (lit ? NoirInk.brassLight : Targa.brass));
     final radius = BorderRadius.circular(m.desk ? 14 : 12);
+    final words = widget.fontSize ?? m.buttonText;
     final label = Text(
       a.label.toUpperCase(),
       maxLines: 1,
       textAlign: TextAlign.center,
-      style: _serif(m.buttonText, ink, spacing: m.buttonText * 0.12),
+      style: _serif(words, ink, spacing: words * 0.12),
     );
     return FocusableActionDetector(
       enabled: enabled,
@@ -231,7 +244,7 @@ class _NoirModalButtonState extends State<NoirModalButton> {
                 child: AnimatedContainer(
                 duration: const Duration(milliseconds: 140),
                 constraints: BoxConstraints(minHeight: m.button),
-                padding: EdgeInsets.symmetric(horizontal: m.desk ? 28 : 16, vertical: m.desk ? 12 : 8),
+                padding: EdgeInsets.symmetric(horizontal: widget.sidePadding ?? (m.desk ? 28 : 16), vertical: m.desk ? 12 : 8),
                 decoration: plate
                     ? BoxDecoration(borderRadius: radius, border: _focus ? Border.all(color: NoirInk.brassLight, width: 2) : null)
                     : BoxDecoration(
@@ -312,6 +325,51 @@ class NoirActions extends StatelessWidget {
           button(a),
         ],
       ],
+    );
+  }
+}
+
+/// Three buttons or more on one row, all with their words at the same size:
+/// each as wide as its words need, and if the row is short the words shrink
+/// together, never one alone.
+class NoirEvenActions extends StatelessWidget {
+  final List<NoirAction> actions;
+
+  const NoirEvenActions({super.key, required this.actions});
+
+  @override
+  Widget build(BuildContext context) {
+    final m = NoirMetrics.of(context);
+    final side = m.desk ? 18.0 : 7.0;
+    final gap = m.desk ? m.gap : m.gap * 0.75;
+    final scaler = MediaQuery.textScalerOf(context);
+    final words = [
+      for (final action in actions)
+        (TextPainter(
+          text: TextSpan(text: action.label.toUpperCase(), style: _serif(m.buttonText, const Color(0xFF000000), spacing: m.buttonText * 0.12)),
+          textDirection: TextDirection.ltr,
+          textScaler: scaler,
+          maxLines: 1,
+        )..layout()).width + 1,
+    ];
+    final needed = words.fold(0.0, (sum, width) => sum + width);
+    return LayoutBuilder(
+      builder: (context, box) {
+        final room = box.maxWidth - gap * (actions.length - 1) - side * 2 * actions.length;
+        final scale = (room / needed).clamp(0.0, 1.0);
+        final spare = (room - needed * scale) / actions.length;
+        return Row(
+          children: [
+            for (final (i, action) in actions.indexed) ...[
+              if (i > 0) SizedBox(width: gap),
+              SizedBox(
+                width: words[i] * scale + side * 2 + spare,
+                child: NoirModalButton(key: action.key, action: action, fontSize: m.buttonText * scale, sidePadding: side),
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 }

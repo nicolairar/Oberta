@@ -42,7 +42,7 @@ Legenda livelli: **L0** nessun potere (o malus), **L1** base, **L2** medio, **L3
 | Il Reduce | `reduce` | Città | Il primo attacco di notte va a vuoto | 9 | L1 | Ok. |
 | Il Pregiudicato | `pregiudicato` | Città | Nessuno; al Commissario risulta della Famiglia | 10 | L0 (−1) | Malus per la Città: nel bilancio vale −1. |
 | Il Messia | `messia` | Città | Una volta: resuscita un cittadino linciato | 10 | L2 | **Testo sbagliato:** dice "uno qualsiasi dei morti", la regola è "solo cittadini linciati". |
-| Il Sindaco | `sindaco` | Città | Una volta, nel voto: si rivela e vale doppio quel giorno | 9 | L1 | **Testo sbagliato:** dice "da lì vale doppio", il motore lo conta solo quel giorno (domanda aperta da ottobre). |
+| Il Sindaco | `sindaco` | Città | Una volta, di giorno: si rivela e da lì, finché è vivo, vale doppio | 9 | L1 | Deciso il 30 ottobre: il doppio resta per tutta la partita finché è vivo. |
 | Il Portinaio | `portinaio` | Città | Ogni notte: qualcuno è passato da quella porta? | 9 | L1 | Informazione debole e tardiva (la legge la notte dopo). |
 | Il Fesso | `fesso` | Neutrale | Vince se linciato | 8 | L1 | Ok. |
 | Il Piromane | `piromane` | Neutrale ostile | Cosparge o accende; fuoco inarrestabile | 11 | L4 | Dal 20 ottobre nessuno lo ferma: unico contrasto è il linciaggio. La cella del Carceriere (nuovo) sarebbe il primo contrasto notturno. |
@@ -144,6 +144,8 @@ Senza i ruoli nuovi i numeri cambiano di 1–3 punti al massimo (stessa tabella:
 
 **Vittorie per ruolo** (chi aveva quella carta ha vinto), su tutti i tavoli: Picciotto 49%, Padrino 41%, Sarto 42%, Compare 42%, **Prostituta 39%**, Onesto 50%, Commissario 50%, Dottore 37%, Cecchino 36%, Cronista 47%, Becchino 39%, Guardaspalle 42%, Reduce 48%, Pregiudicato 45%, Messia 47%, Sindaco 45%, Portinaio 42%, **Carceriere 43%**, **Pacifista 46%**, **Cupido 44%**, **Presidente 58%**, **Artigliere 62%**, Fesso 18%, Piromane 20%, Cacciatore 40%, Strozzino 43%, Sicario 17%, **Capo della setta 21%**. Nessun ruolo domina; l'Artigliere è il più forte (due colpi pubblici, da 10 giocatori, dove la Città vince già il 61%): sul tetto del 62% del test, da tenere d'occhio (se sale, alzarlo a 11 giocatori o togliergli un colpo).
 
+**Il Sindaco che vale doppio per sempre** (30 ottobre: da quando si rivela, finché è vivo, non più solo quel giorno; 3000 partite per tavolo, `dart run tool/balance/simulate.dart`). Quasi niente si muove: Città/Famiglia/Neutrali con i ruoli nuovi, prima e dopo: 9: 47/43/10 → 47/44/10, 10: 60/33/7 → 59/33/8, 11: 47/23/30 → 48/25/28, 12: 28/48/23 → 29/48/23; da 4 a 8 identici (al Sindaco si arriva da 9). Senza i ruoli nuovi: 9: 43/45/11 → 43/46/11, 10: 58/35/8 → 61/32/7, 11: 52/23/25 → 54/23/23, 12: 24/55/21 → 24/57/19. Sono spostamenti dentro il rumore (±2 punti a 3000 partite). Il Sindaco vince il 47% (prima 45%). In classificata: Città 50,8 → 50,8, Famiglia 43,1 → 42,9, neutrale 6,1 → 6,3, Sindaco 49,1 → 50,3 (tabella in 2.6): tutto nella fascia. I bot si rivelano a caso e votano quasi a caso, quindi la simulazione sottostima un Sindaco che al tavolo guida il voto: da riguardare con le partite vere.
+
 **Il limite che resta: 6 e 7 giocatori.** Nella simulazione conta quasi solo quanti uccidono di notte: un mafioso su 6 perde tre volte su quattro, due su 7 vincono tre volte su quattro, qualunque potere abbia la Città (a 6 anche senza nessun ruolo speciale la Città vince il 71%; a 7 col mazzo cittadino più forte possibile, Commissario + Dottore + Cecchino, vince il 26%). Bilanci e livelli non bastano: serve una decisione sul tavolo (sezione 6).
 
 ### 2.6 Classificata
@@ -169,8 +171,8 @@ La classificata si gioca in **12** (`ranked_size`), ed è quella che deve essere
 | Squadra | vittorie (IC 95%) |
 |---|---|
 | Città | 50,8% ± 0,4 |
-| Famiglia | 43,1% ± 0,4 |
-| Neutrale da solo | 6,1% ± 0,2 |
+| Famiglia | 42,9% ± 0,4 |
+| Neutrale da solo | 6,3% ± 0,2 |
 
 | Ruolo | esce (per partita) | vince quando esce | vittorie sul totale |
 |---|---|---|---|
@@ -187,7 +189,7 @@ La classificata si gioca in **12** (`ranked_size`), ed è quella che deve essere
 | Reduce | 28,4% | 51,8% ± 0,8 |  |
 | Pregiudicato | 28,6% | 49,7% ± 0,8 |  |
 | Messia | 28,8% | 52,3% ± 0,8 |  |
-| Sindaco | 28,4% | 49,1% ± 0,8 |  |
+| Sindaco | 28,6% | 50,3% ± 0,8 |  |
 | Portinaio | 24,8% | 47,5% ± 0,9 |  |
 | Carceriere | 33,5% | 50,7% ± 0,8 |  |
 | Pacifista | 28,8% | 49,6% ± 0,8 |  |
@@ -370,6 +372,6 @@ Restano:
 4. **Indagini all'alba:** con un Carceriere o una Prostituta nel mazzo il Commissario e il Becchino ricevono la risposta all'alba invece che subito (sennò il blocco non bloccherebbe niente). Va bene così, o la risposta resta immediata e il blocco ferma solo le mosse che si risolvono all'alba?
 5. **Pacifista:** la tregua si chiede solo in discussione (non durante il voto). Va bene?
 6. **Cittadini speciali:** vale il 40% del documento o i due terzi del codice? (il codice resta ai due terzi)
-7. **Sindaco:** voto doppio solo quel giorno (motore) o da lì in poi (testo)?
+7. ~~**Sindaco:** voto doppio solo quel giorno o da lì in poi?~~ Deciso il 30 ottobre: da lì in poi, finché è vivo.
 8. **Guardaspalle e fuoco:** muore lui al posto del cosparso o il fuoco non si ferma?
 9. **Stanze degli amici:** il mazzo "a mano" può infrangere i bilanci con solo un avviso?

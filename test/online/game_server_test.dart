@@ -279,7 +279,7 @@ void main() {
         final state = server.state!;
         final seating = Seating.fromJson(state['seating'] as Map<String, Object?>);
         final engine = GameEngine.fromSnapshot(GameSnapshot.fromJson(state['snapshot'] as Map<String, Object?>, seating.playerAt));
-        final mayor = engine.mayor;
+        final mayor = engine.mayorRevealedToday;
         if (server.stage != Stage.vote || mayor == null || seating.profileOf(mayor.id) != null) continue;
         expect(engine.dayVotes.containsKey(mayor), isTrue, reason: 'seed=$seed: il Sindaco ${mayor.id} si è rivelato e non ha votato');
         if (revealed != mayor.id) reveals++;

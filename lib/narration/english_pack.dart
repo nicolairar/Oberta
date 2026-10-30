@@ -87,7 +87,7 @@ const englishPack = NarrationPack(
     Role.sindaco: RoleText(
       'Mayor',
       '“I didn\'t win the election to sit quiet.”',
-      'Once a game, during the vote, you can reveal yourself: from then on your vote counts double. You win with the town.',
+      'Once a game, by day, you can reveal yourself: from then on, while you live, your vote counts double. You win with the town.',
     ),
     Role.portinaio: RoleText(
       'Doorman',
@@ -565,7 +565,7 @@ const englishPack = NarrationPack(
     'The last light goes out in {city}. Somebody wipes a blade and whistles. Roll credits.',
   ],
   assassinWinsFact: 'The Hitman wins alone: a clean sweep.',
-  mayorRevealed: '{name} is the Mayor: today their vote counts double.',
+  mayorRevealed: '{name} is the Mayor: their vote counts double.',
   watchVisited: 'Last night somebody came to {name}\'s door.',
   watchQuiet: 'Last night nobody came to {name}\'s door.',
   taskPrompts: {

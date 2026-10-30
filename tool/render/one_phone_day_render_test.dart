@@ -1,7 +1,9 @@
 // Il giorno sul telefono unico, per guardarlo senza telefono: la scelta del
-// voto, «Usa un potere» con la tenda e il potere, il voto a voce e quello
-// segreto, i verdetti. `flutter test tool/render/one_phone_day_render_test.dart`
-// scrive i PNG (393×852 a 3x) in OUT (build/render/one_phone_day).
+// voto, «Usa un potere» con la tenda e il potere, il voto a voce, la cabina
+// del voto segreto (telefono piccolo, medio, grande e desktop, con 6, 10 e 12
+// al tavolo), i verdetti.
+// `flutter test tool/render/one_phone_day_render_test.dart` scrive i PNG in
+// OUT (build/render/one_phone_day).
 import 'dart:io';
 import 'dart:math';
 import 'dart:ui' as ui;
@@ -13,6 +15,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/rules/game_setup.dart';
 import 'package:oberta/rules/player.dart';
 import 'package:oberta/rules/role.dart';
+import 'package:oberta/ui/desktop/desktop_canvas.dart';
 import 'package:oberta/ui/screens/game_screen.dart';
 import 'package:oberta/ui/screens/vote_mode_screen.dart';
 import 'package:oberta/ui/theme/app_theme.dart';
@@ -58,7 +61,7 @@ ThemeData _theme() {
   return theme.copyWith(textTheme: theme.textTheme.apply(fontFamily: 'Roboto'));
 }
 
-Future<void> _shot(WidgetTester tester, String name) async {
+Future<void> _shot(WidgetTester tester, String name, {double ratio = 3}) async {
   await tester.pump(const Duration(milliseconds: 400));
   await tester.runAsync(() async {
     for (final element in find.byType(Image).evaluate()) {
@@ -68,7 +71,7 @@ Future<void> _shot(WidgetTester tester, String name) async {
   await tester.pump();
   await tester.runAsync(() async {
     final boundary = _key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
-    final image = await boundary.toImage(pixelRatio: 3);
+    final image = await boundary.toImage(pixelRatio: ratio);
     final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
     File('$out/$name.png')
       ..createSync(recursive: true)
@@ -76,9 +79,10 @@ Future<void> _shot(WidgetTester tester, String name) async {
   });
 }
 
-Future<void> _pump(WidgetTester tester, Widget home) async {
-  tester.view.physicalSize = const Size(393, 852) * 3;
-  tester.view.devicePixelRatio = 3;
+Future<void> _pump(WidgetTester tester, Widget home, {Size size = const Size(393, 852), bool desk = false}) async {
+  final ratio = desk ? 1.0 : 3.0;
+  tester.view.physicalSize = size * ratio;
+  tester.view.devicePixelRatio = ratio;
   addTearDown(tester.view.reset);
   tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
   addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
@@ -88,6 +92,7 @@ Future<void> _pump(WidgetTester tester, Widget home) async {
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         theme: _theme(),
+        builder: desk ? (context, child) => DesktopCanvas(child: child!) : null,
         home: Builder(
           builder: (context) => Scaffold(
             body: Center(
@@ -124,11 +129,11 @@ Future<void> _label(WidgetTester tester, String label) async {
   await tester.pumpAndSettle();
 }
 
-const _names = ['Ada', 'Bruno', 'Carla', 'Dino', 'Elio', 'Fabio', 'Gina', 'Ugo', 'Rosa'];
+const _names = ['Ada', 'Bruno', 'Carla', 'Dino', 'Elio', 'Fabio', 'Gina', 'Ugo', 'Rosa', 'Massimiliano', 'Teresa', 'Vito'];
 final _players = [for (final name in _names) Player(id: name.toLowerCase(), name: name)];
 
 /// Nove al tavolo: la Famiglia, il Sindaco, il Pacifista, l'Artigliere...
-final _deal = Map.fromIterables(_players, [
+final _deal = Map.fromIterables(_players.take(9), [
   Role.mafioso,
   Role.sindaco,
   Role.pacifista,
@@ -140,16 +145,35 @@ final _deal = Map.fromIterables(_players, [
   Role.cittadino,
 ]);
 
+/// [count] al tavolo: due della Famiglia, il resto onesti.
+Map<Player, Role> _table(int count) => {
+  for (final (i, player) in _players.take(count).indexed) player: i == 0 || i == 4 ? Role.mafioso : Role.cittadino,
+};
+
 /// Fino alla discussione del primo giorno: tutti passano.
-Future<void> _toTheDay(WidgetTester tester, LocalVote vote) async {
-  await _pump(tester, GameScreen(setup: GameSetup.fromRoles(_deal, vote: vote), random: Random(1)));
+Future<void> _toTheDay(WidgetTester tester, Map<Player, Role> deal, LocalVote vote, {Size size = const Size(393, 852), bool desk = false}) async {
+  await _pump(tester, GameScreen(setup: GameSetup.fromRoles(deal, vote: vote), random: Random(1)), size: size, desk: desk);
   await _label(tester, 'COMINCIA LA NOTTE');
-  for (final _ in _players) {
+  for (final _ in deal.keys) {
     await _tapKey(tester, 'local.itsMe');
     await _tapKey(tester, 'local.pass');
     await _tapKey(tester, 'local.done');
   }
   await _label(tester, 'APRI LA DISCUSSIONE');
+}
+
+/// La cabina del primo votante: vuota, poi con l'ultimo nome timbrato.
+Future<void> _booth(WidgetTester tester, String tag, int count, Size size, {bool desk = false}) async {
+  final ratio = desk ? 1.0 : 3.0;
+  final deal = _table(count);
+  await _toTheDay(tester, deal, LocalVote.secret, size: size, desk: desk);
+  if (tag == 's') await _shot(tester, 'day_strip_${count}_s', ratio: ratio);
+  await _tapKey(tester, 'local.toVote');
+  await _label(tester, 'AVANTI');
+  await _shot(tester, 'booth_${tag}_${count}_empty', ratio: ratio);
+  await tester.tap(find.byKey(ValueKey('ballot-${deal.keys.last.id}')));
+  await tester.pumpAndSettle();
+  await _shot(tester, 'booth_${tag}_${count}_stamped', ratio: ratio);
 }
 
 void main() {
@@ -163,7 +187,7 @@ void main() {
   });
 
   testWidgets('usa un potere, e il voto a voce', (tester) async {
-    await _toTheDay(tester, LocalVote.voice);
+    await _toTheDay(tester, _deal, LocalVote.voice);
     await _shot(tester, '03_day');
     await _tapKey(tester, 'game.usePower');
     await _seat(tester, _players[2]);
@@ -195,15 +219,35 @@ void main() {
     await _shot(tester, '12_voice_verdict');
   });
 
-  testWidgets('il voto segreto', (tester) async {
-    await _toTheDay(tester, LocalVote.secret);
+  testWidgets('il voto segreto: la scheda in volo e il verdetto', (tester) async {
+    await _toTheDay(tester, _deal, LocalVote.secret);
     await _tapKey(tester, 'local.toVote');
-    await _shot(tester, '13_secret_vote');
-    for (final (i, voter) in _players.indexed) {
-      await _seat(tester, voter == _players[0] ? _players[4] : _players[0]);
-      if (i == 1) await _shot(tester, '14_secret_vote_selected');
+    await _shot(tester, '13_secret_vote_call');
+    await _label(tester, 'AVANTI');
+    // Il timbro in volo: per questo tocco, le animazioni tornano.
+    tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures();
+    await tester.pump();
+    await tester.tap(find.byKey(ValueKey('ballot-${_players[4].id}')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 220));
+    await _shot(tester, '14_secret_stamp_flying');
+    await tester.pumpAndSettle();
+    await _shot(tester, '14b_secret_stamped');
+    tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
+    await _tapKey(tester, 'local.castVote');
+    for (final voter in _players.take(9).skip(1)) {
+      await tester.tap(find.byKey(ValueKey('ballot-${(voter == _players[0] ? _players[4] : _players[0]).id}')));
+      await tester.pumpAndSettle();
       await _tapKey(tester, 'local.castVote');
     }
     await _shot(tester, '15_secret_verdict');
   });
+
+  const screens = {'s': Size(375, 667), 'm': Size(393, 852), 'l': Size(430, 932)};
+  for (final count in const [6, 10, 12]) {
+    for (final MapEntry(key: tag, value: size) in screens.entries) {
+      testWidgets('la cabina $tag $count', (tester) => _booth(tester, tag, count, size));
+    }
+    testWidgets('la cabina desktop $count', (tester) => _booth(tester, 'desk', count, const Size(1920, 1080), desk: true));
+  }
 }

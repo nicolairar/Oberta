@@ -202,6 +202,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
   /// (il tavolo pubblico li cancella appena il voto si chiude).
   List<SeatVote> _lastVotes = const [];
 
+  /// Il Sindaco di quei voti: se è lui il condannato, il tabellone non lo dice più.
+  Player? _lastMayor;
+
   /// Le scelte della famiglia di questa notte: restano sul tavolo fino al
   /// film, anche quando il server ha già chiuso la notte.
   List<SeatVote> _lastFamilyVotes = const [];
@@ -449,7 +452,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       _finding = finding;
     }
     if (_client.ready) {
-      if (_stage == Stage.vote) _lastVotes = _public.dayVotes;
+      if (_stage == Stage.vote) {
+        _lastVotes = _public.dayVotes;
+        _lastMayor = _public.mayor;
+      }
       if (_stage == Stage.night && _view.familyVotes.isNotEmpty) _lastFamilyVotes = _view.familyVotes;
       if (_stage == Stage.discussion) _lastFamilyVotes = const [];
       _enterStage();
@@ -2118,7 +2124,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
     final tally = <Player, int>{};
     for (final vote in votes) {
       // Il voto del Sindaco rivelato vale doppio.
-      final weight = day && vote.voter == _public.mayor ? 2 : 1;
+      final weight = day && vote.voter == (_public.mayor ?? _lastMayor) ? 2 : 1;
       if (vote.target case final target?) tally[target] = (tally[target] ?? 0) + weight;
     }
     final top = tally.values.fold(0, max);
@@ -2725,7 +2731,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> with WidgetsBinding
       if (target == null) {
         abstained++;
       } else {
-        counts[target] = (counts[target] ?? 0) + (vote.voter == _public.mayor ? 2 : 1);
+        counts[target] = (counts[target] ?? 0) + (vote.voter == (_public.mayor ?? _lastMayor) ? 2 : 1);
       }
     }
     final order = counts.keys.toList()..sort((a, b) => counts[b]!.compareTo(counts[a]!));

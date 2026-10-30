@@ -3,12 +3,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oberta/rules/game_setup.dart';
 import 'package:oberta/rules/player.dart';
 import 'package:oberta/rules/role.dart';
+import 'package:oberta/rules/role_assignment.dart';
 import 'package:oberta/ui/screens/online/game/noir_role_card.dart';
 import 'package:oberta/ui/screens/online/game/seat_card.dart';
 import 'package:oberta/ui/screens/role_reveal_screen.dart';
 import 'package:oberta/ui/theme/app_theme.dart';
 import 'package:oberta/ui/screens/online/game/verdict_line.dart' show TallyScroll;
+import 'package:oberta/ui/screens/local/local_table.dart';
 import 'package:oberta/ui/widgets/death_scene.dart';
+import 'package:oberta/ui/widgets/noir_modal.dart';
+import 'package:oberta/ui/widgets/player_avatar.dart';
 import 'package:oberta/ui/widgets/spoken_lines.dart';
 
 import '../support/local_game.dart';
@@ -379,6 +383,81 @@ void _powerTests() {
 }
 
 void _voteTests() {
+  testWidgets('sulla scheda solo i vivi che si possono condannare, e al massimo dei posti stanno tutti sul telefono piccolo', (tester) async {
+    final players = [for (var i = 1; i <= maxRolePlayers; i++) Player(id: 'g$i', name: i == 3 ? 'Massimiliano' : 'Posto$i')];
+    await pumpGame(
+      tester,
+      vote: LocalVote.secret,
+      screen: const Size(375, 667),
+      deal: {
+        for (final (i, player) in players.indexed)
+          player: switch (i) {
+            0 => Role.mafioso,
+            1 => Role.presidente,
+            _ => Role.cittadino,
+          },
+      },
+    );
+    await tapLabel(tester, 'COMINCIA LA NOTTE');
+    await nightTurn(tester, players[0], pick: players[5]);
+    for (final player in players.skip(1)) {
+      await nightTurn(tester, player);
+    }
+    await tester.tap(find.text('BUIO IN SALA'));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pump(DeathScene.length + const Duration(milliseconds: 100));
+    await tester.pump();
+    await tapLabel(tester, 'AVANTI');
+    await tapLabel(tester, 'APRI LA DISCUSSIONE');
+    await tapKey(tester, 'local.toVote');
+    await tapLabel(tester, 'AVANTI');
+    expect(tester.takeException(), isNull);
+
+    expect(find.byKey(const Key('ballot-g2')), findsNothing, reason: 'il Presidente non si vota');
+    expect(find.byKey(const Key('ballot-g6')), findsNothing, reason: 'i morti non stanno sulla scheda');
+    expect(find.byKey(const Key('ballot-g1')), findsNothing, reason: 'chi vota non sta sulla scheda');
+    final rows = [
+      for (final player in players)
+        if (!['g1', 'g2', 'g6'].contains(player.id)) find.byKey(ValueKey('ballot-${player.id}')),
+    ];
+    expect(rows, hasLength(9));
+    final bottom = tester.getTopLeft(find.byKey(const Key('local.abstain'))).dy;
+    for (final row in rows) {
+      final box = tester.getRect(row);
+      expect(box.height, greaterThanOrEqualTo(44), reason: 'si tocca col dito');
+      expect(box.left, greaterThanOrEqualTo(0));
+      expect(box.right, lessThanOrEqualTo(375));
+      expect(box.bottom, lessThan(bottom), reason: 'niente nascosto sotto la striscia');
+      expect(row.hitTestable(), findsOneWidget);
+    }
+    expect(find.byType(Scrollable), findsNothing, reason: 'la scheda non scorre mai');
+    await tester.tap(rows.last);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(const Key('ballot.stamped')), findsOneWidget);
+  });
+
+  testWidgets('il timbro parte, batte, e l\'inchiostro resta quando tocca la carta', (tester) async {
+    await pumpGame(tester, vote: LocalVote.secret, deal: {ada: Role.mafioso, bruno: Role.cittadino, carla: Role.cittadino, dino: Role.cittadino});
+    await tapLabel(tester, 'COMINCIA LA NOTTE');
+    for (final player in [ada, bruno, carla, dino]) {
+      await nightTurn(tester, player);
+    }
+    await tapLabel(tester, 'APRI LA DISCUSSIONE');
+    await tapKey(tester, 'local.toVote');
+    await tapLabel(tester, 'AVANTI');
+    tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures();
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('ballot-bruno')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+    expect(find.byKey(const Key('ballot.stamped')), findsNothing, reason: 'è ancora in volo');
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.byKey(const Key('ballot.stamped')), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.binding.transientCallbackCount, 0, reason: 'finito il timbro, in cabina non si muove più niente');
+  });
+
   testWidgets('al voto a voce il Presidente non si tocca, e il Fesso linciato vince', (tester) async {
     await pumpGame(tester, deal: {
       ada: Role.mafioso,
@@ -437,24 +516,35 @@ void _voteTests() {
     }
     await tapLabel(tester, 'APRI LA DISCUSSIONE');
     await tapKey(tester, 'local.toVote');
+    // Il richiamo si legge prima: in cabina non c'è posto per il copione.
     expect(find.textContaining('Voto segreto: il telefono passa di mano'), findsOneWidget);
-    expect(find.text('1 ADA DEVE VOTARE'), findsOneWidget);
-    expect(tester.widget<Text>(find.byKey(const Key('local.voterTurn'))).data, '1 Ada deve votare. Il voto è segreto.');
+    await tapLabel(tester, 'AVANTI');
+    expect(find.text('1 ADA\nDEVE VOTARE', findRichText: true), findsOneWidget);
+    expect(find.textContaining('nessuno vede la tua scheda'), findsOneWidget);
+    expect(find.text('SCHEDA SEGRETA'), findsOneWidget);
+    expect(find.byType(LocalTable), findsNothing, reason: 'il voto segreto è in cabina, non al tavolo');
+    expect(find.byKey(const Key('ballot-ada')), findsNothing, reason: 'non si vota se stessi');
+    expect(find.byType(PlayerAvatar), findsNWidgets(4), reason: 'ogni nome ha il suo ritratto');
+    expect(find.text('Tocca un nome sulla scheda, o astieniti.'), findsOneWidget);
     expect(find.byKey(const Key('local.backToTalk')), findsOneWidget, reason: 'l\'urna è ancora vuota');
-    await tapSeat(tester, bruno);
-    expect(find.text('Voti 2 Bruno. Conferma, o tocca un altro posto.'), findsOneWidget);
-    await tapKey(tester, 'local.castVote');
+    final cast = find.byKey(const Key('local.castVote'));
+    expect(tester.widget<NoirModalButton>(cast).action.onPressed, isNull, reason: 'prima si timbra');
+    await stampBallot(tester, bruno);
+    expect(find.text('Hai segnato 2 Bruno. Mettila nell\'urna o cambia nome.'), findsOneWidget);
+    expect(find.byKey(const Key('ballot.stamped')), findsOneWidget);
+    await tester.tap(cast);
+    await tester.pumpAndSettle();
 
     // Il secondo votante non vede niente del primo.
-    expect(find.text('2 BRUNO DEVE VOTARE'), findsOneWidget);
+    expect(find.text('2 BRUNO\nDEVE VOTARE', findRichText: true), findsOneWidget);
+    expect(find.byKey(const Key('ballot.stamped')), findsNothing, reason: 'scheda pulita');
+    expect(find.byKey(const Key('ballot-ada')), findsOneWidget);
+    expect(find.byKey(const Key('ballot-bruno')), findsNothing);
     expect(find.byKey(const Key('local.backToTalk')), findsNothing, reason: 'una scheda è già nell\'urna');
     expect(find.byKey(const Key('local.undoVote')), findsNothing, reason: 'non si torna alla scheda di un altro');
-    expect(table(tester).votes, isEmpty);
-    expect(seat(tester, bruno).votes, 0);
-    expect(seat(tester, bruno).accused, isFalse);
-    expect(seat(tester, ada).pizzino, isNull);
+    expect(find.byType(SeatCard), findsNothing, reason: 'nessun bollo, nessun accusato, nessun pizzino');
     expect(tester.widget<Text>(find.byKey(const Key('strip.count'))).data, '1/5');
-    await tapSeat(tester, ada);
+    await stampBallot(tester, ada);
     await tapKey(tester, 'local.castVote');
     await secretVote(tester, [carla, dino, elio], {carla: ada, dino: bruno});
 

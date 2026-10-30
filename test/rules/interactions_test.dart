@@ -517,7 +517,7 @@ void main() {
   });
 
   group('Sindaco', () {
-    test('rivelato, il suo voto vale due solo quel giorno', () {
+    test('rivelato, il suo voto vale due anche i giorni dopo', () {
       final engine = table({mob: Role.mafioso, mayor: Role.sindaco});
       night(engine, {});
       engine.revealMayor(mayor);
@@ -526,10 +526,10 @@ void main() {
       engine.apply(DayVote(b.id, c.id));
       expect(engine.closeDayVote().condemned, a);
       night(engine, {});
-      expect(engine.mayor, isNull);
+      expect(engine.mayor, mayor);
       engine.apply(DayVote(mayor.id, b.id));
       engine.apply(DayVote(c.id, d.id));
-      expect(engine.closeDayVote().condemned, isNull, reason: 'parità: nessuno');
+      expect(engine.closeDayVote().condemned, b, reason: 'due voti contro uno');
     });
 
     test('rivelato e poi ucciso di notte: niente voto doppio, ruolo resta pubblico', () {

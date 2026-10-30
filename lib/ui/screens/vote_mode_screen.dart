@@ -54,7 +54,7 @@ class _VoteModeScreenState extends State<VoteModeScreen> {
                   children: [
                     Text(ls.voteHeadline, style: AppText.display(34)),
                     const SizedBox(height: 8),
-                    Text(ls.voteIntro, style: AppText.body),
+                    _OnScrim(child: Text(ls.voteIntro, style: AppText.body)),
                     const SizedBox(height: 28),
                     _BallotCheck(
                       key: const Key('vote.secret'),
@@ -65,10 +65,12 @@ class _VoteModeScreenState extends State<VoteModeScreen> {
                     const SizedBox(height: 16),
                     AnimatedSwitcher(
                       duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : const Duration(milliseconds: 250),
-                      child: Text(
-                        _secret ? ls.secretVoteHint : ls.voiceVoteHint,
+                      child: _OnScrim(
                         key: ValueKey(_secret ? 'vote.hint.secret' : 'vote.hint.voice'),
-                        style: AppText.body.copyWith(fontSize: 15, height: 1.45),
+                        child: Text(
+                          _secret ? ls.secretVoteHint : ls.voiceVoteHint,
+                          style: AppText.body.copyWith(color: AppColors.textPrimary, fontSize: 15, height: 1.45),
+                        ),
                       ),
                     ),
                   ],
@@ -88,6 +90,21 @@ class _VoteModeScreenState extends State<VoteModeScreen> {
       ),
     );
   }
+}
+
+/// Il testo si legge su una lastra scura: dietro c'è il cielo con la luna.
+class _OnScrim extends StatelessWidget {
+  final Widget child;
+
+  const _OnScrim({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(color: const Color(0xF20C0907), borderRadius: BorderRadius.circular(14)),
+        child: child,
+      );
 }
 
 /// La casella della scheda: un quadrato d'ottone che si spunta con una

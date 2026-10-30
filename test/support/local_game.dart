@@ -62,17 +62,26 @@ Future<void> nightTurn(WidgetTester tester, Player actor, {Player? pick, int? nu
   await tapKey(tester, 'local.done');
 }
 
-/// The secret vote: every living voter, in seat order, taps a seat and
-/// confirms (or abstains when [votes] has no entry for them).
+/// The title of the booth ("4 DINO\nDEVE VOTARE").
+String boothTitle(WidgetTester tester) =>
+    tester.widget<Text>(find.byKey(const Key('local.mustVote'))).textSpan!.toPlainText();
+
+/// Stamps the name of [player] on the ballot on screen.
+Future<void> stampBallot(WidgetTester tester, Player player) async {
+  await tester.tap(find.byKey(ValueKey('ballot-${player.id}')));
+  await tester.pumpAndSettle();
+}
+
+/// The secret vote: every living voter, in seat order, stamps a name and
+/// puts the ballot in the box (or abstains when [votes] has no entry for them).
 Future<void> secretVote(WidgetTester tester, List<Player> voters, Map<Player, Player?> votes) async {
   for (final voter in voters) {
-    final status = tester.widget<Text>(find.byKey(const Key('local.voterTurn')));
-    expect(status.data, contains(voter.name), reason: 'vota ${voter.name}');
+    expect(boothTitle(tester), contains(voter.name.toUpperCase()), reason: 'vota ${voter.name}');
     final target = votes[voter];
     if (target == null) {
       await tapKey(tester, 'local.abstain');
     } else {
-      await tapSeat(tester, target);
+      await stampBallot(tester, target);
       await tapKey(tester, 'local.castVote');
     }
   }
