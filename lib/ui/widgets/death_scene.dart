@@ -2365,16 +2365,21 @@ class DeathScenePainter extends CustomPainter {
   void _knife(Canvas canvas) {
     final (walkX, walk, stride) = _entrance();
     final peek = _smooth(_span(t, 0.38, 0.46));
-    final dash = Curves.easeIn.transform(_span(t, 0.49, strike));
+    // La lama sale, aspetta sopra il cappello, scende nell'ultimo istante
+    // (il fruscio) e sul colpo è nella schiena: ci resta un attimo, poi esce.
+    final stab = _stab();
+    final dash = Curves.easeIn.transform(_span(t, 0.49, strike - _stabSwing));
     final leave = _smooth(_span(t, 0.70, 0.84));
     final killerX = _mix(
-      _mix(_mix(_hiddenX, _peekX, peek), _victimX + _u * 0.42, dash),
+      _mix(_mix(_hiddenX, _peekX, peek), stab.x, dash),
       _hiddenX,
       leave,
     );
     final running = (dash > 0 && dash < 1) || (leave > 0 && leave < 1);
     final raise = _span(t, 0.46, 0.53);
-    final blow = _span(t, strike, strike + 0.03);
+    final down = Curves.easeIn.transform(_span(t, strike - _stabSwing, strike));
+    final out = _smooth(_span(t, strike + 0.035, strike + 0.075));
+    final shove = sin(pi * _span(t, strike, strike + 0.035));
 
     _person(
       canvas,
@@ -2382,10 +2387,14 @@ class DeathScenePainter extends CustomPainter {
       facing: leave > 0.08 ? 1 : -1,
       walk: _prowl,
       stride: running ? 1 : 0,
-      lean: leave > 0 ? 0.08 : 0.16 * dash + 0.25 * sin(pi * blow),
-      crouch: 0.18 * dash * (1 - leave),
-      arm: leave > 0 ? 0.1 : _mix(_mix(0.3, 2.85, raise), 1.35, blow),
-      elbow: leave > 0 ? 0.2 : _mix(0.9, 0.1, blow),
+      lean: leave > 0
+          ? 0.08
+          : _mix(_mix(0.16 * dash, _stabLean, down), 0.14, out) + 0.04 * shove,
+      crouch: _stabCrouch * dash * (1 - leave),
+      arm: leave > 0
+          ? 0.1
+          : _mix(_mix(_mix(0.3, 2.85, raise), stab.arm, down), 1.0, out),
+      elbow: leave > 0 ? 0.2 : _mix(_mix(0.9, _stabElbow, down), 0.5, out),
       prop: _Prop.knife,
       killer: true,
     );
@@ -2420,22 +2429,37 @@ class DeathScenePainter extends CustomPainter {
       );
     }
 
-    // Il lampo della lama, e quello che ne segue.
-    if (blow > 0 && blow < 1) {
-      canvas.drawArc(
-        Rect.fromCircle(
-          center: Offset(_victimX + _u * 0.22, _ground - _u * 0.72),
-          radius: _u * 0.46,
-        ),
-        pi * 0.92,
-        pi * 0.62 * blow,
-        false,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = _u * 0.035
-          ..strokeCap = StrokeCap.round
-          ..color = Colors.white.withValues(alpha: 1 - blow),
-      );
+    // La scia della punta che scende, dall'alto fino alla schiena: segue la
+    // lama vera, e si spegne appena dopo il colpo.
+    final fade = _span(t, strike, strike + 0.012);
+    if (down > 0 && fade < 1 && leave <= 0) {
+      Offset tipAt(double s) {
+        final (hand, along) = _handOf(
+          feet: Offset(killerX, _ground),
+          facing: -1,
+          lean: _mix(0.16 * dash, _stabLean, s),
+          crouch: _stabCrouch * dash,
+          arm: _mix(2.85, stab.arm, s),
+          elbow: _mix(0.9, _stabElbow, s),
+          killer: true,
+        );
+        return _muzzleOf(hand, along, _Prop.knife);
+      }
+
+      const steps = 10;
+      var from = tipAt(down * 0.25);
+      for (var i = 1; i <= steps; i++) {
+        final to = tipAt(down * (0.25 + 0.75 * i / steps));
+        canvas.drawLine(
+          from,
+          to,
+          Paint()
+            ..strokeWidth = _u * (0.012 + 0.022 * i / steps)
+            ..strokeCap = StrokeCap.round
+            ..color = Colors.white.withValues(alpha: 0.85 * (i / steps) * (1 - fade)),
+        );
+        from = to;
+      }
     }
     _spray(
       canvas,
@@ -2445,6 +2469,52 @@ class DeathScenePainter extends CustomPainter {
       count: 20,
     );
     _flash(canvas, _span(t, strike, strike + 0.04), strength: 0.35);
+  }
+
+  /// La posa della coltellata: il busto in avanti, il braccio quasi teso.
+  static const _stabLean = 0.30;
+  static const _stabCrouch = 0.18;
+  static const _stabElbow = 0.35;
+
+  /// Quanto ci mette la lama a scendere, fino al colpo.
+  static const _stabSwing = 0.02;
+
+  /// Dove la punta dello stiletto entra nella schiena (o nel petto, se la
+  /// vittima si è girata): appena dentro il soprabito, all'altezza del cuore.
+  Offset get _stabPoint => Offset(_victimX + _u * 0.13, _ground - _u * 0.76);
+
+  /// Dove devono stare i piedi del killer, e quanto alzato il braccio, perché
+  /// sul colpo la punta vera dello stiletto arrivi in [_stabPoint].
+  ({double x, double arm}) _stab() {
+    final target = _stabPoint;
+    final from = _victimX + _u * 0.42;
+    Offset tip(double arm) {
+      final (hand, along) = _handOf(
+        feet: Offset(from, _ground),
+        facing: -1,
+        lean: _stabLean,
+        crouch: _stabCrouch,
+        arm: arm,
+        elbow: _stabElbow,
+        killer: true,
+      );
+      return _muzzleOf(hand, along, _Prop.knife);
+    }
+
+    // Più alto il braccio, più alta la punta: si cerca l'altezza giusta, poi
+    // si sposta tutto il killer quanto serve in orizzontale.
+    var low = 0.8;
+    var high = 2.3;
+    for (var i = 0; i < 24; i++) {
+      final mid = (low + high) / 2;
+      if (tip(mid).dy > target.dy) {
+        low = mid;
+      } else {
+        high = mid;
+      }
+    }
+    final arm = (low + high) / 2;
+    return (x: from + target.dx - tip(arm).dx, arm: arm);
   }
 
   void _shooting(Canvas canvas, List<double> shots, _Prop weapon) {
