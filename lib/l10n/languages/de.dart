@@ -2549,7 +2549,7 @@ const germanPack = NarrationPack(
     StoryPiece('pugnale', 'Ein Schatten hinter {name}. Eine Klinge. Einmal reicht.'),
     StoryPiece('cemento', 'Zwei Schläger halten {name} fest. Ein dritter rührt den Zement an.'),
     StoryPiece('cappio', 'Aus dem Dunkel hinter {name} fällt eine Schlinge. Sie zieht sich zu.'),
-    StoryPiece('silenziatore', 'Ein dumpfes Plopp, wie ein Sektkorken. {name} sackt zu Boden.'),
+    StoryPiece('silenziatore', 'Ein Revolverschuss, trocken wie ein Fingerschnippen. {name} sackt zu Boden.'),
     StoryPiece('pacco', '{name} packt ein Geschenk aus. Drinnen tickt etwas. Dann kracht etwas.'),
     StoryPiece('lampadario', 'Ein Knarren. Ein Kristallleuchter löst sich, genau über {name}.'),
     StoryPiece('violino', 'Ein Geigenkasten geht auf. Drin ist keine Geige. {name} fällt.'),

@@ -378,7 +378,7 @@ const italianPack = NarrationPack(
     StoryPiece('pugnale', 'Un\'ombra alle spalle di {name}. Una lama. Un colpo solo.'),
     StoryPiece('cemento', 'Due uomini bloccano {name}. Un terzo mescola il cemento.'),
     StoryPiece('cappio', 'Un cappio cala dal buio alle spalle di {name}. Si stringe.'),
-    StoryPiece('silenziatore', 'Un colpo attutito, come un tappo di spumante. {name} scivola a terra.'),
+    StoryPiece('silenziatore', 'Un colpo di rivoltella, secco come uno schiocco di dita. {name} scivola a terra.'),
     StoryPiece('pacco', '{name} apre un pacco regalo. Dentro, un ticchettio. Poi un boato.'),
     StoryPiece('lampadario', 'Un cigolio. Un lampadario di cristallo si stacca sopra {name}.'),
     StoryPiece('violino', 'Una custodia di violino si apre. Non c\'è un violino. {name} cade.'),

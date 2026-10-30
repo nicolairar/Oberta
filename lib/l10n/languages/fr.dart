@@ -2646,7 +2646,7 @@ const frenchPack = NarrationPack(
     StoryPiece('pugnale', 'Une ombre derrière {name}. Une lame. Une fois suffit.'),
     StoryPiece('cemento', 'Deux gorilles tiennent {name}. Un troisième remue le béton.'),
     StoryPiece('cappio', 'Un nœud coulant tombe du noir, derrière {name}. Il se resserre.'),
-    StoryPiece('silenziatore', 'Un « pop » étouffé, comme un bouchon de champagne. {name} glisse au sol.'),
+    StoryPiece('silenziatore', 'Un coup de revolver, sec comme un claquement de doigts. {name} glisse au sol.'),
     StoryPiece('pacco', '{name} déballe un cadeau. Dedans, quelque chose fait tic-tac. Puis boum.'),
     StoryPiece('lampadario', 'Un craquement. Un lustre en cristal se décroche, juste au-dessus de {name}.'),
     StoryPiece('violino', 'Un étui à violon s’ouvre. Pas de violon dedans. {name} s’écroule.'),

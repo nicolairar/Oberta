@@ -2551,7 +2551,7 @@ const portuguesePack = NarrationPack(
     StoryPiece('pugnale', 'Uma sombra atrás de {name}. Uma lâmina. Uma vez basta.'),
     StoryPiece('cemento', 'Dois capangas seguram {name}. Um terceiro mexe o cimento.'),
     StoryPiece('cappio', 'Um laço desce do escuro atrás de {name}. E aperta.'),
-    StoryPiece('silenziatore', 'Um estalo abafado, como rolha de champanhe. {name} escorrega até o chão.'),
+    StoryPiece('silenziatore', 'Um tiro de revólver, seco como um estalar de dedos. {name} escorrega até o chão.'),
     StoryPiece('pacco', '{name} abre um presente. Lá dentro, algo faz tique-taque. Depois, algo faz bum.'),
     StoryPiece('lampadario', 'Um rangido. Um lustre de cristal se solta, bem em cima de {name}.'),
     StoryPiece('violino', 'Um estojo de violino se abre. Não tem violino dentro. {name} cai.'),
