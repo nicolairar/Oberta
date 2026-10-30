@@ -1791,7 +1791,7 @@ const portugueseMessages = <String, String>{
   'table.votedFor': 'Você votou em {name}. Dá para mudar de ideia.',
   'table.revealMayor': 'Revelar',
   'table.revealMayorTitle': 'Revelar-se como Prefeito?',
-  'table.revealMayorBody': 'Todos vão saber quem você é, e seu voto conta em dobro a partir de hoje.',
+  'table.revealMayorBody': 'Todos vão saber quem você é, e seu voto conta em dobro a partir de hoje, enquanto viver.',
   'table.shootTitle': 'Atirar em {name}?',
   'table.shotLine': 'O tiro voltou: {name} era {role}.',
   'table.shotLine.aShotFrom': 'Um tiro do campanário: {name} era {role}.',
@@ -2130,7 +2130,7 @@ const portugueseMessages = <String, String>{
   'localRole.truceHow': 'Uma vez por partida: você revela a todos o papel exato de alguém, e o seu. Hoje não tem votação.',
   'localRole.cannonHow': 'Quem você acerta morre na hora, na frente de todos. Um tiro por dia; desde o primeiro, todos sabem quem você é.',
   'localRole.marksmanHow': 'Você atira em quem está na sua mira. Se for da cidade, o tiro volta contra você.',
-  'localRole.mayorHow': 'Uma vez por partida: você se revela a todos, e hoje seu voto vale dobrado.',
+  'localRole.mayorHow': 'Uma vez por partida: você se revela a todos, e a partir de hoje, enquanto viver, seu voto vale em dobro.',
   'localRole.shotsLeft': 'Tiros restantes: {left}.',
   'localRole.askTruce': 'Trégua',
   'localRole.dayPowerHint': 'De dia: pegue o celular e toque em “Usar um poder”.',
@@ -2272,7 +2272,7 @@ const portuguesePack = NarrationPack(
     Role.sindaco: RoleText(
       'Prefeito',
       '“Não ganhei a eleição para ficar quieto.”',
-      'Uma vez por partida, na votação, você pode se revelar: a partir daí seu voto vale em dobro. Você vence com a cidade.',
+      'Uma vez por partida, de dia, você pode se revelar: a partir daí, enquanto viver, seu voto vale em dobro. Você vence com a cidade.',
     ),
     Role.portinaio: RoleText(
       'Porteiro',
@@ -2743,7 +2743,7 @@ const portuguesePack = NarrationPack(
     'A última luz se apaga em {city}. Alguém limpa uma lâmina e assobia. Sobem os créditos.',
   ],
   assassinWinsFact: 'O Matador vence por conta própria: limpou a mesa.',
-  mayorRevealed: '{name} é o Prefeito: hoje esse voto vale em dobro.',
+  mayorRevealed: '{name} é o Prefeito: esse voto vale em dobro.',
   watchVisited: 'Ontem à noite alguém bateu à porta de {name}.',
   watchQuiet: 'Ontem à noite ninguém bateu à porta de {name}.',
   taskPrompts: {

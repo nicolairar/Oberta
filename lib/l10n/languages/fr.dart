@@ -1800,7 +1800,7 @@ const frenchMessages = <String, String>{
   'table.votedFor': 'Tu as voté {name}. Tu peux changer d’avis.',
   'table.revealMayor': 'Se révéler',
   'table.revealMayorTitle': 'Te révéler comme Maire ?',
-  'table.revealMayorBody': 'Tout le monde saura qui tu es, et ton vote comptera double dès aujourd’hui.',
+  'table.revealMayorBody': 'Tout le monde saura qui tu es, et dès aujourd’hui, tant que tu vis, ton vote compte double.',
   'table.shootTitle': 'Tirer sur {name} ?',
   'table.shotLine': 'Le coup est revenu en arrière : {name} était {role}.',
   'table.shotLine.aShotFrom': 'Un coup de feu du clocher : {name} était {role}.',
@@ -2139,7 +2139,7 @@ const frenchMessages = <String, String>{
   'localRole.truceHow': 'Une fois par partie : tu révèles à tous le rôle exact de quelqu’un, et le tien. Pas de vote aujourd’hui.',
   'localRole.cannonHow': 'Qui tu frappes meurt sur le coup, devant tout le monde. Un tir par jour ; dès le premier, tout le monde sait qui tu es.',
   'localRole.marksmanHow': 'Tu tires sur qui tu tiens en joue. Si c’est quelqu’un de la ville, le coup revient sur toi.',
-  'localRole.mayorHow': 'Une fois par partie : tu te révèles à tous, et aujourd’hui ton vote compte double.',
+  'localRole.mayorHow': 'Une fois par partie : tu te révèles à tous, et dès aujourd’hui, tant que tu vis, ton vote compte double.',
   'localRole.shotsLeft': 'Balles restantes : {left}.',
   'localRole.askTruce': 'Trêve',
   'localRole.dayPowerHint': 'Le jour : prends le téléphone et touche « Utiliser un pouvoir ».',
@@ -2367,7 +2367,7 @@ const frenchPack = NarrationPack(
     Role.sindaco: RoleText(
       'Le Maire',
       '« Je n’ai pas été élu pour me taire. »',
-      'Une fois par partie, pendant le vote, tu peux te révéler : dès lors ton vote compte double. Tu gagnes avec la ville.',
+      'Une fois par partie, le jour, tu peux te révéler : dès lors, tant que tu vis, ton vote compte double. Tu gagnes avec la ville.',
     ),
     Role.portinaio: RoleText(
       'Le Concierge',
@@ -2839,7 +2839,7 @@ const frenchPack = NarrationPack(
     'La dernière lumière s’éteint à {city}. Quelqu’un essuie une lame en sifflotant. Générique.',
   ],
   assassinWinsFact: 'Le Tueur à gages gagne en solo : table rase.',
-  mayorRevealed: '{name} est le Maire : aujourd’hui, son vote compte double.',
+  mayorRevealed: '{name} est le Maire : son vote compte double.',
   watchVisited: 'La nuit dernière, quelqu’un est venu à la porte de {name}.',
   watchQuiet: 'La nuit dernière, personne n’est venu à la porte de {name}.',
   taskPrompts: {

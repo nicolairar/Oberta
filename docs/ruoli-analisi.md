@@ -47,7 +47,7 @@ F. Testi IT/EN dei ruoli nuovi e voci (`tool/voice/regenerate.sh`).
 - Piromane: da 11 giocatori, una copia, mai con il Cecchino. Ogni notte cosparge qualcuno (non se stesso, non chi è già cosparso) oppure accende (sceglie se stesso): bruciano tutti i cosparsi vivi. Il fuoco passa per il Dottore, il Guardaspalle e il Reduce come ogni agguato. Chi è cosparso lo sa solo il Piromane. Vince da solo solo se resta l'ultimo vivo (regola del proprietario, 19 ottobre 2026); finché è vivo la città non vince.
 - Neutrali nel mazzo: entrano prima degli altri speciali, ognuno con probabilità 1/2, al posto di un cittadino speciale; al massimo due (quindi il Fesso mai con più di un altro neutrale).
 - Messia: da 10 giocatori, una copia. Una volta per partita, di notte, sceglie un cittadino linciato (mai un mafioso; il ruolo è già pubblico). Se il Messia vede l'alba il prescelto torna in vita con il suo ruolo e i poteri già spesi restano spesi; se muore quella notte la resurrezione fallisce ed è comunque spesa. Si applica prima del controllo dei vincitori. Il suo compito di notte non conta come visita per il Portinaio.
-- Sindaco: da 9 giocatori, una copia. Una volta per partita, durante il voto di giorno, si rivela (`RevealMayor`): il ruolo diventa pubblico e per il voto di quel giorno vale due. Sul telefono unico il narratore condanna di persona, quindi il voto doppio lo conta il tavolo.
+- Sindaco: da 9 giocatori, una copia. Una volta per partita, durante il voto di giorno, si rivela (`RevealMayor`): il ruolo diventa pubblico e da lì, finché è vivo, il suo voto vale due (deciso il 30 ottobre, online e sul telefono unico). Sul telefono unico il narratore condanna di persona, quindi il voto doppio lo conta il tavolo.
 - Portinaio: da 9 giocatori, una copia, investigatore. Ogni notte guarda una porta e all'alba sa solo se qualcuno ci è passato: contano le mosse vere su quel bersaglio (agguato, protezione, scorta, indagine, colpo, scoop, silenzio, benzina, un altro Portinaio); non contano il compito di copertura, il fiammifero, lo scavo e la resurrezione. Lo legge la notte dopo, sopra la sua scelta.
 - Categorie: Messia e Sindaco sono "civici" (nessun tetto oltre la copia); Portinaio conta tra gli investigatori.
 
@@ -76,7 +76,7 @@ Fissate una per una in `test/rules/interactions_test.dart`.
 
 **Indagini.** Commissario: Padrino onesto; Pregiudicato e Sicario famiglia; Fesso, Piromane, Cacciatore, Strozzino onesti. Becchino: ruolo esatto di ogni morto non pubblico (bruciato, sparato, accoltellato); i linciati sono già pubblici. Cronista: fazione vera (i neutrali come neutrali).
 
-**Il giorno.** Parità in piazza: nessuno. Il Sindaco rivelato vale due solo quel giorno; ucciso o linciato, il ruolo resta pubblico. Il cosparso linciato esce dalla lista del Piromane (**fix**: prima restava visibile fino alla notte dopo).
+**Il giorno.** Parità in piazza: nessuno. Il Sindaco rivelato vale due da lì in poi; ucciso o linciato non conta più, e il ruolo resta pubblico. Il cosparso linciato esce dalla lista del Piromane (**fix**: prima restava visibile fino alla notte dopo).
 
 **Fine partita, in quest'ordine** (si controlla a ogni alba, a ogni linciaggio e a ogni abbandono):
 1. Taglia linciata con il Cacciatore vivo: vince il Cacciatore (`Team.neutral`), la partita finisce. **Fix:** ora vince anche lo Strozzino vivo.
@@ -87,7 +87,7 @@ Fissate una per una in `test/rules/interactions_test.dart`.
 Vittorie personali che si sommano: Fesso linciato (anche se il linciaggio chiude la partita), Strozzino vivo a fine partita (con chiunque vinca), Cacciatore con taglia scaduta (vince se vince la città).
 
 ## Domande aperte per il proprietario
-- Sindaco: il voto doppio deve restare anche nei giorni dopo la rivelazione?
+- ~~Sindaco: il voto doppio deve restare anche nei giorni dopo la rivelazione?~~ Sì, finché è vivo (30 ottobre).
 - Portinaio: deve vedere anche i compiti di copertura (più rumore, meno informazione)?
 - Investigatore mafioso: cosa scopre e che prezzo paga?
 - Cacciatore: alla taglia morta di notte meglio una taglia nuova invece del passaggio alla città?

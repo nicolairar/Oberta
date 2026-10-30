@@ -177,6 +177,106 @@ void main() {
     });
   });
 
+  group('il Sindaco, da quando si rivela', () {
+    /// Un tavolo largo, così i voti non finiscono la partita.
+    GameEngine town() => _table({
+      mob: Role.mafioso,
+      mayor: Role.sindaco,
+      pacifist: Role.pacifista,
+      a: Role.cittadino,
+      b: Role.cittadino,
+      c: Role.cittadino,
+      fool: Role.cittadino,
+      gunner: Role.cittadino,
+    });
+
+    test('si rivela il giorno 2: nei giorni 3 e seguenti vale ancora due', () {
+      final engine = town();
+      _quietNight(engine);
+      expect(engine.mayor, isNull, reason: 'non si è rivelato');
+      engine.apply(DayVote(a.id, b.id));
+      engine.apply(DayVote(mayor.id, c.id));
+      engine.apply(DayVote(gunner.id, c.id));
+      engine.apply(DayVote(fool.id, b.id));
+      expect(engine.dayVoteTied, isTrue, reason: 'non rivelato vale uno');
+      expect(engine.closeDayVote().condemned, isNull);
+
+      _quietNight(engine);
+      expect(engine.apply(RevealMayor(mayor.id)).accepted, isTrue);
+      engine.lynch(null);
+
+      for (var day = 3; day <= 4; day++) {
+        _quietNight(engine);
+        expect(engine.round, day);
+        expect(engine.mayor, mayor);
+        expect(engine.publicView().mayor, mayor);
+        engine.apply(DayVote(mayor.id, mob.id));
+        engine.apply(DayVote(a.id, b.id));
+        expect(engine.dayVoteTied, isFalse, reason: 'giorno $day: due contro uno');
+        if (day == 4) expect(engine.closeDayVote().condemned, mob);
+        if (day == 3) engine.lynch(null);
+      }
+    });
+
+    test('un pareggio col suo voto doppio resta pareggio', () {
+      final engine = town();
+      _quietNight(engine);
+      engine.apply(RevealMayor(mayor.id));
+      engine.lynch(null);
+      _quietNight(engine);
+      engine.apply(DayVote(mayor.id, mob.id));
+      engine.apply(DayVote(a.id, b.id));
+      engine.apply(DayVote(c.id, b.id));
+      expect(engine.dayVoteTied, isTrue, reason: 'due a due');
+      expect(engine.closeDayVote().condemned, isNull);
+    });
+
+    test('da morto non conta più, e il suo ruolo resta pubblico', () {
+      final engine = town();
+      _quietNight(engine);
+      engine.apply(RevealMayor(mayor.id));
+      engine.lynch(mayor);
+      expect(engine.mayor, isNull);
+      _quietNight(engine);
+      expect(engine.mayor, isNull);
+      expect(engine.publicView().mayor, isNull);
+      expect(engine.knowledgeOf(null, mayor).role, Role.sindaco);
+      engine.apply(DayVote(a.id, b.id));
+      engine.apply(DayVote(c.id, mob.id));
+      expect(engine.dayVoteTied, isTrue, reason: 'nessun voto pesa due');
+    });
+
+    test('con la tregua del Pacifista non si vota, e il giorno dopo vale ancora due', () {
+      final engine = town();
+      _quietNight(engine);
+      engine.apply(RevealMayor(mayor.id));
+      engine.lynch(null);
+      _quietNight(engine);
+      engine.pacify(pacifist, a);
+      expect(engine.apply(DayVote(mayor.id, mob.id)), isA<IntentRejected>());
+      expect(engine.lynch(null).truce, isTrue);
+      _quietNight(engine);
+      expect(engine.mayor, mayor, reason: 'la tregua non gli toglie niente');
+      engine.apply(DayVote(mayor.id, mob.id));
+      engine.apply(DayVote(a.id, b.id));
+      expect(engine.closeDayVote().condemned, mob);
+    });
+
+    test('il resoconto dice una volta sola che si è rivelato, il giorno giusto', () {
+      final engine = _table({mob: Role.mafioso, mayor: Role.sindaco, a: Role.cittadino, b: Role.cittadino, c: Role.cittadino, gunner: Role.cittadino});
+      _quietNight(engine);
+      engine.lynch(null);
+      _quietNight(engine);
+      engine.apply(RevealMayor(mayor.id));
+      engine.lynch(null);
+      _quietNight(engine);
+      engine.apply(DayVote(mayor.id, mob.id));
+      engine.closeDayVote();
+      final days = engine.recap!.days;
+      expect([for (final day in days) day.mayor], [null, mayor, null]);
+    });
+  });
+
   group('i poteri di giorno', () {
     test('solo i quattro ruoli di giorno ne hanno uno', () {
       expect({for (final role in Role.values) role: role.dayPower}..removeWhere((_, power) => power == null), {

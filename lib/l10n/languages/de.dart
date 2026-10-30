@@ -1793,7 +1793,7 @@ const germanMessages = <String, String>{
   'table.votedFor': 'Du hast für {name} gestimmt. Du kannst umentscheiden.',
   'table.revealMayor': 'Enthüllen',
   'table.revealMayorTitle': 'Dich als Bürgermeister zu erkennen geben?',
-  'table.revealMayorBody': 'Alle wissen dann, wer du bist, und ab heute zählt deine Stimme doppelt.',
+  'table.revealMayorBody': 'Alle wissen dann, wer du bist, und ab heute zählt deine Stimme doppelt, solange du lebst.',
   'table.shootTitle': 'Auf {name} schießen?',
   'table.shotLine': 'Der Schuss ging nach hinten los: {name} war {role}.',
   'table.shotLine.aShotFrom': 'Ein Schuss vom Glockenturm: {name} war {role}.',
@@ -2128,7 +2128,7 @@ const germanMessages = <String, String>{
   'localRole.truceHow': 'Einmal pro Spiel: Du enthüllst allen die genaue Rolle einer Person, und deine eigene. Heute wird nicht abgestimmt.',
   'localRole.cannonHow': 'Wen du triffst, stirbt sofort, vor allen. Ein Schuss pro Tag; ab dem ersten wissen alle, wer du bist.',
   'localRole.marksmanHow': 'Du schießt auf die Person in deinem Visier. Gehört sie zur Stadt, geht der Schuss nach hinten los.',
-  'localRole.mayorHow': 'Einmal pro Spiel: Du gibst dich allen zu erkennen, und heute zählt deine Stimme doppelt.',
+  'localRole.mayorHow': 'Einmal pro Spiel: Du gibst dich allen zu erkennen, und ab heute zählt deine Stimme doppelt, solange du lebst.',
   'localRole.shotsLeft': 'Schüsse übrig: {left}.',
   'localRole.askTruce': 'Waffenruhe',
   'localRole.dayPowerHint': 'Am Tag: Nimm das Handy und tipp auf „Macht einsetzen“.',
@@ -2270,7 +2270,7 @@ const germanPack = NarrationPack(
     Role.sindaco: RoleText(
       'Bürgermeister',
       '„Gewählt bin ich nicht, um zu schweigen.“',
-      'Einmal pro Spiel kannst du dich bei der Abstimmung zu erkennen geben: Ab dann zählt deine Stimme doppelt. Du gewinnst mit der Stadt.',
+      'Einmal pro Spiel kannst du dich am Tag zu erkennen geben: Ab dann zählt deine Stimme doppelt, solange du lebst. Du gewinnst mit der Stadt.',
     ),
     Role.portinaio: RoleText(
       'Portier',
@@ -2704,7 +2704,7 @@ const germanPack = NarrationPack(
     'In {city} geht das letzte Licht aus. Jemand wischt eine Klinge ab und pfeift. Abspann.',
   ],
   assassinWinsFact: 'Der Auftragskiller gewinnt allein: reiner Tisch.',
-  mayorRevealed: '{name} ist der Bürgermeister: Heute zählt diese Stimme doppelt.',
+  mayorRevealed: '{name} ist der Bürgermeister: Diese Stimme zählt doppelt.',
   watchVisited: 'Letzte Nacht kam jemand an die Tür von {name}.',
   watchQuiet: 'Letzte Nacht kam niemand an die Tür von {name}.',
   taskPrompts: {
