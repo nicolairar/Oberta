@@ -37,10 +37,20 @@ void main() {
     expect(SeasonCalendar.on(DateTime(2026, 4, 7)), isNull);
   });
 
-  test('per chi gioca non si accende niente finché nessuna prova è scelta', () {
-    expect(SeasonLooks.picked, isEmpty);
+  test('per chi gioca si accendono le prove scelte, nei loro giorni', () {
+    SeasonLooks.debugCalendarOff = false;
+    addTearDown(() => SeasonLooks.debugCalendarOff = true);
+    expect(SeasonLooks.at(DateTime(2026, 12, 24)), NataleLook.cenone);
+    expect(SeasonLooks.at(DateTime(2027, 1, 6)), NataleLook.cenone);
+    expect(SeasonLooks.at(DateTime(2027, 1, 7)), isNull);
+    expect(SeasonLooks.at(DateTime(2026, 10, 31)), HalloweenLook.nebbia);
+    expect(SeasonLooks.at(DateTime(2026, 11, 2)), HalloweenLook.nebbia);
+    expect(SeasonLooks.at(DateTime(2026, 11, 3)), isNull);
+    expect(SeasonLooks.at(DateTime(2026, 2, 12)), isNull, reason: 'il Carnevale non ha ancora una prova scelta');
+  });
+
+  test('nei test il calendario tace, qualunque sia il giorno', () {
     expect(SeasonLooks.at(DateTime(2026, 12, 24)), isNull);
-    expect(SeasonLooks.at(DateTime(2026, 10, 31)), isNull);
     expect(SeasonLooks.today, isNull);
   });
 
@@ -55,7 +65,7 @@ void main() {
   test('ogni prova ha un nome da scrivere in --dart-define=SEASON', () {
     expect(SeasonLooks.named('natale.cenone'), NataleLook.cenone);
     expect(SeasonLooks.named('halloween.nebbia'), HalloweenLook.nebbia);
-    expect(SeasonLooks.named('halloween'), HalloweenLook.zucche);
+    expect(SeasonLooks.named('halloween'), HalloweenLook.nebbia);
     expect(SeasonLooks.named('ferragosto'), isNull);
     expect({for (final look in SeasonLooks.all) look.key}.length, SeasonLooks.all.length);
   });

@@ -1,9 +1,8 @@
 part of 'season.dart';
 
 /// Le tre prove di Halloween (fino ai Morti, il 2 novembre), sulle stesse
-/// schermate del Natale. Nessuna è accesa per chi gioca finché non c'è in
-/// [SeasonLooks.picked] (per ora le accendono solo le prove in
-/// `tool/render/season_render_test.dart`).
+/// schermate del Natale. Per chi gioca si accende quella in
+/// [SeasonLooks.picked]; le altre solo in `tool/render/season_render_test.dart`.
 enum HalloweenLook implements SeasonLook {
   /// A, «Zucche nel vicolo»: le zucche intagliate sul marciapiede con la
   /// candela dentro, la loro luce arancione sui mattoni, le ragnatele, i

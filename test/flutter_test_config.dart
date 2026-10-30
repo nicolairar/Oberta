@@ -11,6 +11,7 @@ import 'package:oberta/roster/roster_store.dart';
 import 'package:oberta/settings/app_settings.dart';
 import 'package:oberta/settings/settings_store.dart';
 import 'package:oberta/sound/narrator_voice.dart';
+import 'package:oberta/ui/season/season.dart';
 
 /// Il telefono dei test parla italiano, come quello di chi ha scritto le
 /// prove: chi vuole l'inglese lo chiede nel test. Ogni prova parte da
@@ -18,6 +19,8 @@ import 'package:oberta/sound/narrator_voice.dart';
 /// successivo; e l'elenco dei giocatori riparte vuoto.
 Future<void> testExecutable(FutureOr<void> Function() testMain) async {
   final binding = TestWidgetsFlutterBinding.ensureInitialized();
+  // Le prove non cambiano col giorno in cui girano: a Natale come a luglio.
+  SeasonLooks.debugCalendarOff = true;
   // La voce del narratore automatico con le sue clip vere: il palco dei test
   // è muto, ma i tempi e i sottotitoli sono quelli del telefono.
   final voice = File('assets/voice/index.json');

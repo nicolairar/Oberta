@@ -125,10 +125,12 @@ abstract final class SeasonCalendar {
 
 /// Quale prova si vede, e quando.
 abstract final class SeasonLooks {
-  /// La prova scelta per ogni festa. Vuoto finché il proprietario non sceglie
-  /// tra le prove: senza una riga qui nessuna festa si accende per chi gioca,
-  /// anche quando il calendario dice che è il suo giorno.
-  static const Map<Season, SeasonLook> picked = {};
+  /// La prova scelta per ogni festa: senza una riga qui la festa non si
+  /// accende per chi gioca, anche quando il calendario dice che è il suo giorno.
+  static const Map<Season, SeasonLook> picked = {
+    Season.natale: NataleLook.cenone,
+    Season.halloween: HalloweenLook.nebbia,
+  };
 
   static List<SeasonLook> get all => [...NataleLook.values, ...HalloweenLook.values];
 
@@ -137,6 +139,10 @@ abstract final class SeasonLooks {
   /// `--dart-define=SEASON=halloween.morti` (o solo `halloween`, per la
   /// prova scelta o la prima).
   static SeasonLook? debugOverride;
+
+  /// I test non devono cambiare col giorno in cui girano: niente calendario,
+  /// si accende solo quello che si forza.
+  static bool debugCalendarOff = false;
 
   static const _forced = String.fromEnvironment('SEASON');
 
@@ -156,7 +162,7 @@ abstract final class SeasonLooks {
   static SeasonLook? at(DateTime now) {
     if (debugOverride case final look?) return look;
     if (_forced.isNotEmpty) return named(_forced);
-    if (picked.isEmpty) return null;
+    if (debugCalendarOff) return null;
     final season = SeasonCalendar.on(now);
     return season == null ? null : picked[season];
   }
@@ -167,7 +173,7 @@ abstract final class SeasonLooks {
   /// La prova di oggi, ricalcolata una volta al giorno.
   static SeasonLook? get today {
     if (debugOverride != null || _forced.isNotEmpty) return at(DateTime.now());
-    if (picked.isEmpty) return null;
+    if (debugCalendarOff) return null;
     final now = DateTime.now();
     final day = (now.year, now.month, now.day);
     if (day != _day) {

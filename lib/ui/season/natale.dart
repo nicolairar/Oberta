@@ -1,8 +1,7 @@
 part of 'season.dart';
 
-/// Le tre prove del Natale, da guardare prima di sceglierne una. Nessuna è
-/// accesa per chi gioca finché non c'è in [SeasonLooks.picked] (per ora le
-/// accendono solo le prove in `tool/render/season_render_test.dart`).
+/// Le tre prove del Natale. Per chi gioca si accende quella in
+/// [SeasonLooks.picked]; le altre solo in `tool/render/season_render_test.dart`.
 enum NataleLook implements SeasonLook {
   /// A, «Natale in vicolo»: la neve che cade e si posa, le lucine calde
   /// lungo il muro, la corona sulla porta, la nebbiolina del fiato.
